@@ -14,6 +14,7 @@ interface UserFilters {
   search?: string;
   page?: number;
   page_size?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export const managersApi = {

@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card: #ffffff;
-  --card-foreground: #171717;
-  --primary: #3b82f6;
+  --card-foreground: #0f172a;
+  --primary: #6366f1;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f8fafc;
+  --secondary-foreground: #1e293b;
+  --muted: #e2e8f0;
   --muted-foreground: #64748b;
   --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --border: #e2e8f0;
+  --accent-foreground: #1e293b;
+  --border: #cbd5e1;
   --input: #e2e8f0;
-  --ring: #3b82f6;
+  --ring: #6366f1;
 }
 
 .dark {
@@ -59,7 +59,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-outfit), system-ui, -apple-system, sans-serif;
 }
 
 /* Custom scrollbar */

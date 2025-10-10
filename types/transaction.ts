@@ -34,6 +34,7 @@ export interface TransactionFilters {
   txn?: 'purchases' | 'cashouts';
   page?: number;
   page_size?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface QueueFilters {
@@ -42,5 +43,6 @@ export interface QueueFilters {
   user_id?: number;
   page?: number;
   page_size?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 

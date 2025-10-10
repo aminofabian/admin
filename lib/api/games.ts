@@ -13,12 +13,14 @@ interface GameFilters {
   search?: string;
   page?: number;
   page_size?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 
 interface UserGameFilters {
   user_id?: number;
   page?: number;
   page_size?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export const gamesApi = {

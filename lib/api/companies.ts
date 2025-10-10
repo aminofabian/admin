@@ -12,6 +12,7 @@ interface CompanyFilters {
   search?: string;
   page?: number;
   page_size?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export const companiesApi = {
