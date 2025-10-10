@@ -17,9 +17,10 @@
 /.next/
 /out/
 
-/.cursor/
+.gitignore
 
-/.gitignore/
+# cursor
+/.cursor/
 
 # production
 /build
