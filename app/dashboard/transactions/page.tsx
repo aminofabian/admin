@@ -73,7 +73,7 @@ export default function TransactionsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Transactions</h1>
+        <h1 className="text-3xl font-bold text-foreground">Transactions</h1>
       </div>
 
       <div className="mb-4 flex gap-2">

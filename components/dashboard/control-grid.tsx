@@ -7,18 +7,18 @@ interface ControlItem {
 }
 
 const controlItems: ControlItem[] = [
-  { icon: '🔒', label: 'Lock' },
-  { icon: '📶', label: 'Bluetooth' },
-  { icon: '🎵', label: 'Music' },
-  { icon: '🌡️', label: 'Climate' },
-  { icon: '🎤', label: 'Voice' },
-  { icon: '📡', label: 'Radar' },
-  { icon: '📊', label: 'Statistic' },
-  { icon: '💧', label: 'Humidity' },
-  { icon: '💨', label: 'Wind' },
-  { icon: '🪑', label: 'Chair C' },
-  { icon: '🗺️', label: 'Maps' },
-  { icon: '🌀', label: 'Fan' },
+  { icon: '🏢', label: 'Companies' },
+  { icon: '👥', label: 'Users' },
+  { icon: '🎮', label: 'Games' },
+  { icon: '💰', label: 'Transactions' },
+  { icon: '🎁', label: 'Bonuses' },
+  { icon: '🖼️', label: 'Banners' },
+  { icon: '📊', label: 'Analytics' },
+  { icon: '🔗', label: 'Affiliates' },
+  { icon: '⚙️', label: 'Settings' },
+  { icon: '📈', label: 'Reports' },
+  { icon: '🔔', label: 'Notifications' },
+  { icon: '🛠️', label: 'Tools' },
 ];
 
 export function ControlGrid() {

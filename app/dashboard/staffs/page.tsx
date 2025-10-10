@@ -43,7 +43,7 @@ export default function StaffsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Staff</h1>
+        <h1 className="text-3xl font-bold text-foreground">Staff</h1>
         <Button>Add Staff</Button>
       </div>
       <Card>

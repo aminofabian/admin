@@ -34,8 +34,8 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardContent className="pt-6">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="text-gray-600 mt-2">Sign in to your account</p>
+            <h1 className="text-3xl font-bold text-foreground">Admin Panel</h1>
+            <p className="text-muted-foreground mt-2">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

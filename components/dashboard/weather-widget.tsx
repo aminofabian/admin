@@ -1,44 +1,44 @@
 'use client';
 
-interface WeatherData {
-  temperature: number;
-  condition: string;
-  windSpeed: number;
-  humidity: number;
+interface TransactionHealthData {
+  pendingCount: number;
+  status: string;
+  totalToday: number;
+  successRate: number;
 }
 
 export function WeatherWidget() {
-  const weather: WeatherData = {
-    temperature: 27,
-    condition: 'Sunny Cloudy',
-    windSpeed: 16,
-    humidity: 83,
+  const transactionHealth: TransactionHealthData = {
+    pendingCount: 23,
+    status: 'Processing Smoothly',
+    totalToday: 1847,
+    successRate: 98.5,
   };
 
   return (
     <div className="bg-card rounded-xl p-4 border border-border">
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">Weather</h3>
+      <h3 className="text-sm font-medium text-muted-foreground mb-4">Transaction Status</h3>
       
       <div className="text-center mb-4">
         <div className="text-3xl font-bold text-foreground mb-1">
-          {weather.temperature}°C
+          {transactionHealth.pendingCount}
         </div>
         <div className="text-sm text-muted-foreground mb-2">
-          {weather.condition}
+          {transactionHealth.status}
         </div>
         <div className="text-xs text-muted-foreground">
-          {weather.windSpeed} km/h
+          pending transactions
         </div>
       </div>
 
       <div className="space-y-2">
         <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">Humidity</span>
-          <span className="text-foreground">{weather.humidity}%</span>
+          <span className="text-muted-foreground">Success Rate</span>
+          <span className="text-foreground text-green-500">{transactionHealth.successRate}%</span>
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">Wind</span>
-          <span className="text-foreground">{weather.windSpeed} km/h</span>
+          <span className="text-muted-foreground">Total Today</span>
+          <span className="text-foreground">{transactionHealth.totalToday}</span>
         </div>
       </div>
 
@@ -48,12 +48,12 @@ export function WeatherWidget() {
             <div
               key={i}
               className={`w-1 h-2 rounded ${
-                i < 2 ? 'bg-primary' : 'bg-muted'
+                i < 9 ? 'bg-green-500' : 'bg-muted'
               }`}
             />
           ))}
         </div>
-        <span className="text-xs text-muted-foreground ml-2">2 of 10</span>
+        <span className="text-xs text-muted-foreground ml-2">9 of 10</span>
       </div>
     </div>
   );

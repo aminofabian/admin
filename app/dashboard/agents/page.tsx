@@ -43,7 +43,7 @@ export default function AgentsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Agents</h1>
+        <h1 className="text-3xl font-bold text-foreground">Agents</h1>
         <Button>Add Agent</Button>
       </div>
       <Card>

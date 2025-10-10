@@ -4,12 +4,12 @@ import { useState } from 'react';
 
 export function AirConditionerWidget() {
   const [isOn, setIsOn] = useState(true);
-  const [temperature, setTemperature] = useState(25.2);
+  const [bonusesActive, setBonusesActive] = useState(8);
 
   return (
     <div className="bg-card rounded-xl p-4 border border-border">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted-foreground">Air Conditioner</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Active Bonuses</h3>
         <button
           onClick={() => setIsOn(!isOn)}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -43,24 +43,24 @@ export function AirConditionerWidget() {
               stroke="currentColor"
               strokeWidth="8"
               fill="none"
-              strokeDasharray={`${(temperature / 30) * 251.2} 251.2`}
-              className="text-primary"
+              strokeDasharray={`${(bonusesActive / 12) * 251.2} 251.2`}
+              className="text-yellow-500"
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-lg font-bold text-foreground">{temperature}°C</span>
+            <span className="text-lg font-bold text-foreground">{bonusesActive}/12</span>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">Cooling to {temperature}°C</p>
-        <p className="text-xs text-muted-foreground">Under 5 mnt</p>
+        <p className="text-sm text-muted-foreground">Active Bonus Programs</p>
+        <p className="text-xs text-muted-foreground">Last updated 2 min ago</p>
       </div>
 
       <div className="flex justify-center space-x-2">
         {[
-          { icon: '🚗', label: 'Auto' },
-          { icon: '⬇️', label: 'Fan Down' },
-          { icon: '👤', label: 'Personal' },
-          { icon: '⬆️', label: 'Fan Up' },
+          { icon: '🎁', label: 'Purchase' },
+          { icon: '🎮', label: 'Recharge' },
+          { icon: '💰', label: 'Transfer' },
+          { icon: '👋', label: 'Signup' },
         ].map((item, index) => (
           <button
             key={index}

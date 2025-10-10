@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     storage.set('user', JSON.stringify(authUser));
     setUser(authUser);
     
-    router.push('/dash');
+    router.push('/dashboard');
   };
 
   const logout = () => {

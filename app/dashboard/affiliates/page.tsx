@@ -42,7 +42,7 @@ export default function AffiliatesPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Affiliates</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-6">Affiliates</h1>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
