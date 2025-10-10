@@ -1,0 +1,133 @@
+import { API_BASE_URL, TOKEN_KEY } from '@/lib/constants/api';
+import { storage } from '@/lib/utils/storage';
+import type { ApiError } from '@/types';
+
+interface RequestConfig extends RequestInit {
+  params?: Record<string, string | number | boolean | undefined>;
+}
+
+class ApiClient {
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private getHeaders(isMultipart = false): HeadersInit {
+    const headers: HeadersInit = {};
+    
+    if (!isMultipart) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    const token = storage.get(TOKEN_KEY);
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  private buildUrl(endpoint: string, params?: Record<string, string | number | boolean | undefined>): string {
+    if (!this.baseUrl) {
+      throw new Error('API_BASE_URL is not configured. Please set NEXT_PUBLIC_API_URL in your .env.local file.');
+    }
+
+    let fullUrl = `${this.baseUrl}${endpoint}`;
+    
+    if (params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, String(value));
+        }
+      });
+      const queryString = searchParams.toString();
+      if (queryString) {
+        fullUrl += `?${queryString}`;
+      }
+    }
+
+    return fullUrl;
+  }
+
+  private async handleResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      const error: ApiError = await response.json().catch(() => ({
+        status: 'error',
+        message: 'An unexpected error occurred',
+      }));
+      throw error;
+    }
+
+    return response.json();
+  }
+
+  async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
+    const url = this.buildUrl(endpoint, config?.params);
+    const response = await fetch(url, {
+      ...config,
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async post<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
+    const isFormData = data instanceof FormData;
+    const url = this.buildUrl(endpoint, config?.params);
+    
+    const response = await fetch(url, {
+      ...config,
+      method: 'POST',
+      headers: this.getHeaders(isFormData),
+      body: isFormData ? data : JSON.stringify(data),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async put<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
+    const isFormData = data instanceof FormData;
+    const url = this.buildUrl(endpoint, config?.params);
+    
+    const response = await fetch(url, {
+      ...config,
+      method: 'PUT',
+      headers: this.getHeaders(isFormData),
+      body: isFormData ? data : JSON.stringify(data),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async patch<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
+    const isFormData = data instanceof FormData;
+    const url = this.buildUrl(endpoint, config?.params);
+    
+    const response = await fetch(url, {
+      ...config,
+      method: 'PATCH',
+      headers: this.getHeaders(isFormData),
+      body: isFormData ? data : JSON.stringify(data),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async delete<T>(endpoint: string, config?: RequestConfig): Promise<T> {
+    const url = this.buildUrl(endpoint, config?.params);
+    
+    const response = await fetch(url, {
+      ...config,
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+}
+
+export const apiClient = new ApiClient(API_BASE_URL);
+
