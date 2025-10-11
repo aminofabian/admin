@@ -3,7 +3,7 @@ export { AirConditionerWidget } from './air-conditioner';
 export { SpeedGauge } from './speed-gauge';
 export { WeatherWidget } from './weather-widget';
 export { BatteryWidget } from './battery-widget';
-export { MusicPlayer } from './music-player';
+export { FeaturedGameWidget } from './featured-game-widget';
 export { UsageChart } from './usage-chart';
 export { LoadGauge } from './load-gauge';
 export { MapWidget } from './map-widget';
