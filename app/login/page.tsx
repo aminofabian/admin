@@ -43,10 +43,10 @@ export default function LoginPage() {
 
       {/* Theme Toggle - Fixed Position */}
       <div className="fixed top-6 right-6 z-50">
-        <div className="flex items-center bg-white dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-700 rounded-full p-1 shadow-md">
+        <div className="flex items-center bg-white dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-700 p-1 shadow-md">
           <button
             onClick={toggleTheme}
-            className={`px-3 py-1.5 rounded-full text-xs lg:text-sm font-medium transition-all duration-200 ${
+            className={`px-3 py-1.5 text-xs lg:text-sm font-medium transition-all duration-200 ${
               theme === 'light'
                 ? 'bg-[#6366f1] text-white shadow-sm'
                 : 'text-gray-600 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground'
@@ -56,7 +56,7 @@ export default function LoginPage() {
           </button>
           <button
             onClick={toggleTheme}
-            className={`px-3 py-1.5 rounded-full text-xs lg:text-sm font-medium transition-all duration-200 ${
+            className={`px-3 py-1.5 text-xs lg:text-sm font-medium transition-all duration-200 ${
               theme === 'dark'
                 ? 'bg-[#6366f1] text-white shadow-sm'
                 : 'text-gray-600 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground'
@@ -68,26 +68,26 @@ export default function LoginPage() {
       </div>
 
       {/* Login card */}
-      <Card className="w-full max-w-md relative z-10 shadow-xl bg-white dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700">
-        <CardContent className="pt-8 pb-8 px-8">
+      <Card className="w-full max-w-xl relative z-10 shadow-xl bg-white dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700">
+        <CardContent className="pt-12 pb-12 px-12">
           {/* Logo */}
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-10">
             <Logo size="lg" className="transform hover:scale-105 transition-transform duration-200" />
           </div>
 
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white uppercase">
+          <div className="text-center mb-10">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase">
               Slotthing Admin Panel
             </h1>
-            <p className="text-gray-600 dark:text-muted-foreground mt-2 text-sm">
+            <p className="text-gray-600 dark:text-muted-foreground mt-3 text-base">
               Sign in to access your dashboard
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-5">
               <Input
                 label="Username"
                 type="text"
@@ -125,7 +125,7 @@ export default function LoginPage() {
 
             {/* Error message */}
             {error && (
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl animate-shake">
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 animate-shake">
                 <div className="flex items-start gap-3">
                   <svg
                     className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
@@ -146,7 +146,7 @@ export default function LoginPage() {
             {/* Submit button */}
             <Button
               type="submit"
-              className="w-full shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 py-6 text-base font-semibold"
+              className="w-full shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-[1.02] hover:bg-[#5558e3] transition-all duration-200 py-6 text-base font-semibold"
               isLoading={isLoading}
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
@@ -154,8 +154,8 @@ export default function LoginPage() {
           </form>
 
           {/* Footer note */}
-          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-xs text-center text-gray-500 dark:text-muted-foreground">
+          <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-center text-gray-500 dark:text-muted-foreground">
               Secure authentication powered by your admin system
             </p>
           </div>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
+import { Logo } from '@/components/ui';
 import { useState } from 'react';
 
 interface SubMenuItem {
@@ -98,7 +99,7 @@ function MenuItem({
       <Link
         href={category.href}
         onClick={onClose}
-        className={`flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+        className={`flex items-center justify-between px-4 py-3 text-sm font-medium transition-all duration-200 ${
           isActive
             ? 'bg-primary text-primary-foreground shadow-md'
             : 'text-foreground hover:bg-accent/80 hover:shadow-sm'
@@ -116,7 +117,7 @@ function MenuItem({
     <div className="space-y-1">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium text-foreground hover:bg-accent/80 transition-all duration-200"
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground hover:bg-accent/80 transition-all duration-200"
       >
         <div className="flex items-center space-x-3">
           <span className="text-lg">{category.icon}</span>
@@ -141,7 +142,7 @@ function MenuItem({
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                className={`flex items-center space-x-3 px-4 py-2.5 text-sm transition-all duration-200 ${
                   isSubActive
                     ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary -ml-[2px]'
                     : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
@@ -170,15 +171,10 @@ export function Sidebar({ onClose }: SidebarProps) {
     <aside className="w-full h-full bg-card border-r border-border flex flex-col">
       {/* Header */}
       <div className="p-6 flex items-center justify-between border-b border-border">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-lg">A</span>
-          </div>
-          <h1 className="text-xl font-bold text-foreground">Admin</h1>
-        </div>
+        <Logo showText size="sm" />
         <button
           onClick={onClose}
-          className="lg:hidden p-2 rounded-lg hover:bg-accent transition-colors"
+          className="lg:hidden p-2 hover:bg-accent transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -188,9 +184,9 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       {/* User Profile Section */}
       <div className="p-4">
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/20">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-4 border border-primary/20">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-md">
+            <div className="w-12 h-12 bg-primary flex items-center justify-center shadow-md">
               <span className="text-primary-foreground font-semibold text-lg">
                 {user?.username?.charAt(0).toUpperCase() || 'A'}
               </span>
@@ -200,7 +196,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 {user?.username || 'Admin User'}
               </div>
               <div className="text-xs text-muted-foreground capitalize flex items-center space-x-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span className="w-2 h-2 bg-green-500"></span>
                 <span>{user?.role || 'SuperAdmin'}</span>
               </div>
             </div>
