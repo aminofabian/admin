@@ -109,24 +109,162 @@ const controlItems: ControlItem[] = [
 ];
 
 export function ControlGrid() {
+  // Priority system: show most important controls first
+  const priorityItems = controlItems.slice(0, 8); // Top 8 for small screens
+  const allItems = controlItems;
+
   return (
-    <div className="bg-card rounded-xl p-4 border border-border">
-      <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase">Quick Controls</h3>
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 lg:gap-3">
-        {controlItems.map((item, index) => (
+    <div className="bg-card rounded-xl p-3 sm:p-4 md:p-4 lg:p-5 xl:p-5 border border-border shadow-sm">
+      {/* Header with count indicator */}
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-xs sm:text-sm md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Quick Controls
+        </h3>
+        <span className="text-[10px] sm:text-xs text-muted-foreground/60 font-medium">
+          {allItems.length}
+        </span>
+      </div>
+      
+      {/* 🎨 CREATIVE RESPONSIVE GRID SYSTEM:
+          Mobile (< 640px): 2 cols, 8 items shown
+          Tablet (640px-768px): 3 cols, all items
+          13" & 14" Laptop (768px-1024px): 5 cols (compact for text overflow)
+          15" Laptop (1024px-1280px): 4 cols (more breathing room)
+          17" Desktop (1280px+): 3 cols (full sidebar with generous spacing)
+      */}
+      
+      {/* Mobile: Exact Copy of Reference Design */}
+      <div className="grid sm:hidden grid-cols-2 gap-4">
+        {priorityItems.map((item, index) => (
           <button
             key={index}
-            className="group relative flex flex-col items-center justify-center p-3 lg:p-4 rounded-lg bg-secondary/80 hover:bg-primary border-2 border-border/50 hover:border-primary shadow-md hover:shadow-xl hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+            className="group relative flex flex-col items-center justify-center p-6 rounded-2xl bg-card/95 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-card transition-all duration-300 active:scale-[0.97] shadow-sm"
             title={item.label}
           >
-            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors mb-1.5 drop-shadow-sm">
-              {item.icon}
+            <div className="flex flex-col items-center gap-4 w-full">
+              {/* Icon Container - Exact Style from Reference */}
+              <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/20 transition-all duration-300 border border-primary/20">
+                <div className="text-primary group-hover:scale-110 transition-transform duration-300">
+                  {item.icon}
+                </div>
+              </div>
+              
+              {/* Text Content - Clean Typography */}
+              <div className="text-center w-full">
+                <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-tight">
+                  {item.label}
+                </div>
+              </div>
             </div>
-            <span className="text-xs font-semibold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight">
-              {item.label}
-            </span>
+            
+            {/* Notification Badge - Prominent Red */}
+            {(index === 3 || index === 10) && (
+              <span className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full text-[11px] text-white font-bold flex items-center justify-center shadow-lg ring-2 ring-card">
+                {index === 3 ? '5' : '2'}
+              </span>
+            )}
           </button>
         ))}
+      </div>
+
+      {/* Tablet & Small Laptop: 3 columns */}
+      <div className="hidden sm:grid md:hidden grid-cols-3 gap-2">
+        {allItems.map((item, index) => (
+          <button
+            key={index}
+            className="group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border border-border/50 hover:border-primary/50 shadow-sm hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 aspect-square"
+            title={item.label}
+          >
+            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors">
+              {item.icon}
+            </div>
+            <span className="text-[10px] font-bold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight px-1">
+              {item.label}
+            </span>
+            {(index === 3 || index === 10) && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
+                {index === 3 ? '5' : '2'}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Medium Laptop (13" & 14" with collapsed sidebar): 5 columns for better fit */}
+      <div className="hidden md:grid lg:hidden grid-cols-5 gap-2">
+        {allItems.map((item, index) => (
+          <button
+            key={index}
+            className="group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border border-border/50 hover:border-primary/50 shadow-sm hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 min-h-[4rem]"
+            title={item.label}
+          >
+            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors scale-90">
+              {item.icon}
+            </div>
+            <span className="text-[9px] font-bold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight px-0.5 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+              {item.label}
+            </span>
+            {(index === 3 || index === 10) && (
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-[7px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
+                {index === 3 ? '5' : '2'}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Large Laptop (15" with collapsed sidebar): 4 columns */}
+      <div className="hidden lg:grid xl:hidden grid-cols-4 gap-2.5">
+        {allItems.map((item, index) => (
+          <button
+            key={index}
+            className="group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border border-border/50 hover:border-primary/50 shadow-sm hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 min-h-[4.5rem]"
+            title={item.label}
+          >
+            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors">
+              {item.icon}
+            </div>
+            <span className="text-[10px] font-bold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight px-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
+              {item.label}
+            </span>
+            {(index === 3 || index === 10) && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
+                {index === 3 ? '5' : '2'}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Large Desktop (17"+ with full sidebar): 3 columns for better spacing */}
+      <div className="hidden xl:grid grid-cols-3 gap-3">
+        {allItems.map((item, index) => (
+          <button
+            key={index}
+            className="group relative flex flex-col items-center justify-center gap-3 p-4 rounded-xl bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border border-border/50 hover:border-primary/50 shadow-md hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-1 active:translate-y-0 min-h-[5rem]"
+            title={item.label}
+          >
+            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors scale-110">
+              {item.icon}
+            </div>
+            <span className="text-xs font-bold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight px-1">
+              {item.label}
+            </span>
+            {(index === 3 || index === 10) && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-[9px] text-white font-bold flex items-center justify-center shadow-lg animate-pulse">
+                {index === 3 ? '5' : '2'}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+      
+      {/* Footer hint - responsive */}
+      <div className="mt-3 sm:mt-4 pt-3 border-t border-border/50">
+        <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 text-center sm:text-left">
+          <span className="sm:hidden">Tap any control • Showing {priorityItems.length}/{allItems.length}</span>
+          <span className="hidden sm:inline">Click any control for quick access</span>
+        </p>
       </div>
     </div>
   );

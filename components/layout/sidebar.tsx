@@ -79,16 +79,19 @@ const MENU_CATEGORIES: MenuCategory[] = [
 
 interface SidebarProps {
   onClose?: () => void;
+  isCollapsed?: boolean;
 }
 
 function MenuItem({ 
   category, 
   pathname, 
-  onClose 
+  onClose,
+  isCollapsed 
 }: { 
   category: MenuCategory; 
   pathname: string; 
   onClose?: () => void;
+  isCollapsed?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasSubmenu = category.submenu && category.submenu.length > 0;
@@ -99,16 +102,31 @@ function MenuItem({
       <Link
         href={category.href}
         onClick={onClose}
-        className={`flex items-center justify-between px-4 py-3 text-sm font-medium transition-all duration-200 ${
+        className={`group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-4 md:px-2 xl:px-3 py-3 md:py-2.5 xl:py-2.5 text-sm font-medium transition-all duration-200 rounded-lg mx-2 md:mx-1 xl:mx-2 ${
           isActive
-            ? 'bg-primary text-primary-foreground shadow-md'
-            : 'text-foreground hover:bg-accent/80 hover:shadow-sm'
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'text-foreground hover:bg-accent/80'
         }`}
+        title={isCollapsed ? category.name : undefined}
       >
-        <div className="flex items-center space-x-3">
-          <span className="text-lg">{category.icon}</span>
-          <span>{category.name}</span>
-        </div>
+        <span className="text-lg md:text-xl xl:text-lg shrink-0">{category.icon}</span>
+        <span className="md:hidden xl:block truncate">{category.name}</span>
+      </Link>
+    );
+  }
+
+  // For collapsed state with submenu - show first item
+  if (isCollapsed && hasSubmenu && category.submenu) {
+    const firstItem = category.submenu[0];
+    return (
+      <Link
+        href={firstItem.href}
+        onClick={onClose}
+        className="group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-4 md:px-2 xl:px-3 py-3 md:py-2.5 xl:py-2.5 text-sm font-medium text-foreground hover:bg-accent/80 transition-all duration-200 rounded-lg mx-2 md:mx-1 xl:mx-2"
+        title={category.name}
+      >
+        <span className="text-lg md:text-xl xl:text-lg shrink-0">{category.icon}</span>
+        <span className="md:hidden xl:block truncate">{category.name}</span>
       </Link>
     );
   }
@@ -117,14 +135,15 @@ function MenuItem({
     <div className="space-y-1">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground hover:bg-accent/80 transition-all duration-200"
+        className="w-full flex items-center justify-center md:justify-center xl:justify-between gap-3 px-4 md:px-2 xl:px-3 py-3 md:py-2.5 xl:py-2.5 text-sm font-medium text-foreground hover:bg-accent/80 transition-all duration-200 rounded-lg mx-2 md:mx-1 xl:mx-2"
+        title={isCollapsed ? category.name : undefined}
       >
-        <div className="flex items-center space-x-3">
-          <span className="text-lg">{category.icon}</span>
-          <span>{category.name}</span>
+        <div className="flex items-center justify-center md:justify-center xl:justify-start gap-3">
+          <span className="text-lg md:text-xl xl:text-lg shrink-0">{category.icon}</span>
+          <span className="md:hidden xl:block truncate">{category.name}</span>
         </div>
         <svg
-          className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform duration-200 md:hidden xl:block ${isExpanded ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -134,7 +153,7 @@ function MenuItem({
       </button>
       
       {isExpanded && category.submenu && (
-        <div className="ml-4 space-y-1 border-l-2 border-border pl-2">
+        <div className="space-y-1 pl-0 md:pl-0 xl:pl-4">
           {category.submenu.map((item) => {
             const isSubActive = pathname === item.href;
             return (
@@ -142,14 +161,15 @@ function MenuItem({
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`flex items-center space-x-3 px-4 py-2.5 text-sm transition-all duration-200 ${
+                className={`flex items-center justify-center md:justify-center xl:justify-start gap-3 px-4 md:px-2 xl:px-3 py-2 md:py-2 xl:py-2 text-sm transition-all duration-200 rounded-lg mx-2 md:mx-1 xl:mx-2 ${
                   isSubActive
-                    ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary -ml-[2px]'
+                    ? 'bg-primary/10 text-primary font-medium'
                     : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                 }`}
+                title={isCollapsed ? item.name : undefined}
               >
-                <span className="text-base">{item.icon}</span>
-                <span>{item.name}</span>
+                <span className="text-base md:text-lg xl:text-base shrink-0">{item.icon}</span>
+                <span className="md:hidden xl:block truncate text-xs">{item.name}</span>
               </Link>
             );
           })}
@@ -159,7 +179,7 @@ function MenuItem({
   );
 }
 
-export function Sidebar({ onClose }: SidebarProps) {
+export function Sidebar({ onClose, isCollapsed = true }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
 
@@ -170,11 +190,15 @@ export function Sidebar({ onClose }: SidebarProps) {
   return (
     <aside className="w-full h-full bg-card border-r border-border flex flex-col">
       {/* Header */}
-      <div className="p-6 flex items-center justify-between border-b border-border">
-        <Logo showText size="sm" />
+      <div className="p-3 md:p-2 xl:p-4 flex items-center justify-center md:justify-center xl:justify-between border-b border-border">
+        <Logo 
+          showText={true} 
+          size="sm" 
+          className="md:scale-75 xl:scale-100"
+        />
         <button
           onClick={onClose}
-          className="lg:hidden p-2 hover:bg-accent transition-colors"
+          className="md:hidden p-1.5 hover:bg-accent transition-colors rounded-lg absolute right-3 top-3"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -183,21 +207,21 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* User Profile Section */}
-      <div className="p-4">
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-4 border border-primary/20">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-primary flex items-center justify-center shadow-md">
-              <span className="text-primary-foreground font-semibold text-lg">
+      <div className="p-3 md:p-2 xl:p-3">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-lg p-3 md:p-2 xl:p-3">
+          <div className="flex items-center md:flex-col md:gap-2 xl:flex-row xl:gap-3">
+            <div className="w-10 h-10 md:w-8 md:h-8 xl:w-10 xl:h-10 rounded-full bg-primary flex items-center justify-center shadow-sm shrink-0">
+              <span className="text-primary-foreground font-semibold text-base md:text-sm xl:text-base">
                 {user?.username?.charAt(0).toUpperCase() || 'A'}
               </span>
             </div>
-            <div className="flex-1">
-              <div className="text-sm font-semibold text-foreground">
-                {user?.username || 'Admin User'}
+            <div className="flex-1 md:text-center xl:text-left min-w-0">
+              <div className="font-semibold text-foreground text-sm md:text-[10px] xl:text-sm truncate">
+                {user?.username || 'Admin'}
               </div>
-              <div className="text-xs text-muted-foreground capitalize flex items-center space-x-1">
-                <span className="w-2 h-2 bg-green-500"></span>
-                <span>{user?.role || 'SuperAdmin'}</span>
+              <div className="text-muted-foreground capitalize text-xs md:text-[8px] xl:text-xs flex items-center md:justify-center xl:justify-start gap-1">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full shrink-0"></span>
+                <span className="truncate">{user?.role || 'SuperAdmin'}</span>
               </div>
             </div>
           </div>
@@ -205,33 +229,33 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 overflow-y-auto py-2">
         {filteredCategories.map((category) => (
-          <MenuItem 
-            key={category.name} 
-            category={category} 
+          <MenuItem
+            key={category.name}
+            category={category}
             pathname={pathname}
             onClose={onClose}
+            isCollapsed={isCollapsed}
           />
         ))}
       </nav>
 
       {/* Footer Section */}
-      <div className="p-4 border-t border-border bg-accent/30">
-        <div className="text-xs space-y-2">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="font-medium">System Status</span>
-            <span className="flex items-center space-x-1 text-green-500">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+      <div className="border-t border-border bg-accent/30 p-3 md:p-2 xl:p-3">
+        <div className="text-xs md:text-center xl:text-left space-y-1.5">
+          <div className="flex items-center md:flex-col md:gap-1 xl:flex-row xl:justify-between text-muted-foreground">
+            <span className="font-medium text-[10px] md:text-[8px] xl:text-[10px]">Status</span>
+            <span className="flex items-center text-green-500 text-[10px] md:text-[8px] xl:text-[10px] gap-1">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shrink-0"></span>
               <span className="font-medium">Online</span>
             </span>
           </div>
-          <div className="text-muted-foreground/80 text-[10px]">
-            Version 2.1.4 • Updated 2h ago
+          <div className="text-muted-foreground/80 text-[9px] md:text-[7px] xl:text-[9px] md:hidden xl:block">
+            v2.1.4 • 2h ago
           </div>
         </div>
       </div>
     </aside>
   );
 }
-

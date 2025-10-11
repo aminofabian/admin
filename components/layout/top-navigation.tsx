@@ -39,25 +39,26 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   };
 
   return (
-    <div className="flex items-center justify-between px-4 lg:px-6 py-4 bg-card border-b border-border">
+    <div className="flex items-center justify-between px-3 sm:px-4 md:px-5 xl:px-6 py-3 sm:py-3.5 md:py-4 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm sticky top-0 z-20">
       {/* Left side - Mobile menu button and Time */}
-      <div className="flex items-center space-x-4">
-        {/* Mobile menu button */}
+      <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
+        {/* Mobile menu button - Enhanced */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-lg hover:bg-accent transition-colors"
+          className="md:hidden p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
+          aria-label="Open menu"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
 
-        {/* Time and Date */}
+        {/* Time and Date - Responsive sizing */}
         <div className="flex flex-col">
-          <span className="text-lg lg:text-2xl font-bold text-foreground">
+          <span className="text-base sm:text-lg md:text-xl xl:text-2xl font-bold text-foreground tracking-tight">
             {formatTime(currentTime)}
           </span>
-          <span className="text-xs lg:text-sm text-muted-foreground hidden sm:block">
+          <span className="text-[10px] sm:text-xs md:text-sm text-muted-foreground hidden sm:block">
             {formatDate(currentTime)}
           </span>
         </div>
@@ -123,14 +124,31 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
       </div>
 
       {/* Right side - User Profile, Notifications, and Theme Toggle */}
-      <div className="flex items-center space-x-2 lg:space-x-4">
-        {/* Theme Toggle */}
-        <div className="flex items-center bg-accent rounded-full p-1">
+      <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3 xl:space-x-4">
+        {/* Theme Toggle - Icon on mobile, toggle on desktop */}
+        <button
+          onClick={toggleTheme}
+          className="md:hidden p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
+          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {theme === 'light' ? (
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          )}
+        </button>
+
+        {/* Theme Toggle - Full on desktop */}
+        <div className="hidden md:flex items-center bg-accent/50 rounded-full p-0.5 md:p-1">
           <button
             onClick={toggleTheme}
-            className={`px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-medium transition-colors ${
+            className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all duration-200 ${
               theme === 'light'
-                ? 'bg-primary text-primary-foreground'
+                ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -138,9 +156,9 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           </button>
           <button
             onClick={toggleTheme}
-            className={`px-2 lg:px-3 py-1 rounded-full text-xs lg:text-sm font-medium transition-colors ${
+            className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all duration-200 ${
               theme === 'dark'
-                ? 'bg-primary text-primary-foreground'
+                ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -148,38 +166,43 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           </button>
         </div>
 
-        {/* Notifications/Alerts */}
+        {/* Notifications/Alerts - Responsive sizing */}
         <button 
-          className="relative p-2 rounded-lg hover:bg-accent transition-colors"
+          className="relative p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
           title="Notifications"
         >
-          <svg className="w-4 lg:w-5 h-4 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
-          {/* Notification Badge */}
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          {/* Notification Badge - Animated */}
+          <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse ring-2 ring-card"></span>
         </button>
 
-        {/* System Health (hidden on mobile) */}
+        {/* System Health (hidden on small screens) */}
         <button 
-          className="hidden lg:block p-2 rounded-lg hover:bg-accent transition-colors"
+          className="hidden xl:block p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
           title="System Health"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </button>
 
-        {/* User Profile */}
-        <div className="flex items-center space-x-2">
-          <div className="w-6 lg:w-8 h-6 lg:h-8 bg-primary rounded-full flex items-center justify-center">
-            <span className="text-primary-foreground font-medium text-xs lg:text-sm">
+        {/* User Profile - Enhanced responsive design */}
+        <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-2.5 pl-1.5 sm:pl-2 md:pl-3 ml-1.5 sm:ml-2 md:ml-3 border-l border-border">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-md ring-2 ring-primary/20">
+            <span className="text-primary-foreground font-semibold text-xs sm:text-sm">
               {user?.username?.charAt(0).toUpperCase() || 'U'}
             </span>
           </div>
-          <span className="text-xs lg:text-sm font-medium text-foreground hidden sm:block">
-            {user?.username || 'User'}
-          </span>
+          <div className="hidden sm:flex flex-col">
+            <span className="text-xs md:text-sm font-semibold text-foreground leading-tight">
+              {user?.username || 'User'}
+            </span>
+            <span className="text-[10px] text-muted-foreground capitalize leading-tight hidden md:block">
+              {user?.role || 'Admin'}
+            </span>
+          </div>
         </div>
       </div>
     </div>

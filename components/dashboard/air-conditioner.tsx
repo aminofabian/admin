@@ -191,11 +191,13 @@ export function BonusWidget() {
             key={category.id}
             className="group border border-border/50 overflow-hidden transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
           >
-            <button
-              onClick={() => toggleSection(category.id)}
-              className="w-full p-3.5 bg-gradient-to-br from-secondary/50 to-accent/30 hover:from-secondary hover:to-accent transition-all duration-200 flex items-center justify-between"
+            <div
+              className="w-full p-3.5 bg-gradient-to-br from-secondary/50 to-accent/30 hover:from-secondary hover:to-accent transition-all duration-200 flex items-center justify-between cursor-pointer"
             >
-              <div className="flex items-center gap-3">
+              <div 
+                className="flex items-center gap-3 flex-1"
+                onClick={() => toggleSection(category.id)}
+              >
                 <div className={`w-10 h-10 bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-sm`}>
                   <div className={category.iconColor}>
                     {category.icon}
@@ -222,16 +224,21 @@ export function BonusWidget() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </button>
-                <svg 
-                  className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedSection === category.id ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => toggleSection(category.id)}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                  <svg 
+                    className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${expandedSection === category.id ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
-            </button>
+            </div>
             
             {/* Expanded Content */}
             {expandedSection === category.id && (

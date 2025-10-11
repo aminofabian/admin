@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Sidebar } from './sidebar';
 import { TopNavigation } from './top-navigation';
+import { MobileBottomNav } from './mobile-bottom-nav';
 import { LoadingState } from '@/components/features';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -37,21 +38,24 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         />
       )}
       
-      {/* Sidebar */}
+      {/* Sidebar - Ultra compact: w-16 on md-lg, w-56 on xl+ */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        fixed md:static inset-y-0 left-0 z-50 w-64 md:w-16 xl:w-56 transform transition-all duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <Sidebar onClose={() => setSidebarOpen(false)} />
+        <Sidebar onClose={() => setSidebarOpen(false)} isCollapsed={true} />
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col lg:ml-0">
+      {/* Main content - Mobile App Style */}
+      <div className="flex-1 flex flex-col w-full">
         <TopNavigation onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-4 md:p-4 xl:p-6 bg-gradient-to-b from-background to-background/50">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 }
