@@ -11,8 +11,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Admin Panel",
-  description: "ProjectX Admin Dashboard",
+  title: "Slotthing Admin Panel",
+  description: "Slotthing Admin Dashboard",
 };
 
 export default function RootLayout({
