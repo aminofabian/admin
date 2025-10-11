@@ -111,18 +111,18 @@ const controlItems: ControlItem[] = [
 export function ControlGrid() {
   return (
     <div className="bg-card rounded-xl p-4 border border-border">
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">Quick Controls</h3>
+      <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase">Quick Controls</h3>
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 lg:gap-3">
         {controlItems.map((item, index) => (
           <button
             key={index}
-            className="group flex flex-col items-center justify-center p-2 lg:p-3 rounded-lg bg-accent/50 hover:bg-primary hover:shadow-lg hover:scale-105 transition-all duration-200"
+            className="group relative flex flex-col items-center justify-center p-3 lg:p-4 rounded-lg bg-secondary/80 hover:bg-primary border-2 border-border/50 hover:border-primary shadow-md hover:shadow-xl hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
             title={item.label}
           >
-            <div className="text-muted-foreground group-hover:text-primary-foreground transition-colors mb-1">
+            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors mb-1.5 drop-shadow-sm">
               {item.icon}
             </div>
-            <span className="text-xs font-medium text-foreground group-hover:text-primary-foreground transition-colors">
+            <span className="text-xs font-semibold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight">
               {item.label}
             </span>
           </button>
