@@ -48,7 +48,7 @@ export default function LoginPage() {
             onClick={toggleTheme}
             className={`px-3 py-1.5 rounded-full text-xs lg:text-sm font-medium transition-all duration-200 ${
               theme === 'light'
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-[#6366f1] text-white shadow-sm'
                 : 'text-gray-600 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground'
             }`}
           >
@@ -58,7 +58,7 @@ export default function LoginPage() {
             onClick={toggleTheme}
             className={`px-3 py-1.5 rounded-full text-xs lg:text-sm font-medium transition-all duration-200 ${
               theme === 'dark'
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-[#6366f1] text-white shadow-sm'
                 : 'text-gray-600 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground'
             }`}
           >
@@ -72,7 +72,7 @@ export default function LoginPage() {
         <CardContent className="pt-8 pb-8 px-8">
           {/* Logo/Icon */}
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-200">
+            <div className="w-16 h-16 bg-[#6366f1] rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-200">
               <svg
                 className="w-8 h-8 text-white"
                 fill="none"
@@ -91,7 +91,7 @@ export default function LoginPage() {
 
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:bg-gradient-to-r dark:from-indigo-400 dark:to-purple-400 dark:bg-clip-text dark:text-transparent">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               Admin Panel
             </h1>
             <p className="text-gray-600 dark:text-muted-foreground mt-2 text-sm">
@@ -160,7 +160,7 @@ export default function LoginPage() {
             {/* Submit button */}
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 py-6 text-base font-semibold"
+              className="w-full shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 py-6 text-base font-semibold"
               isLoading={isLoading}
             >
               {isLoading ? 'Signing in...' : 'Sign In'}

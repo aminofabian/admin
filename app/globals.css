@@ -25,7 +25,7 @@
   --foreground: #ededed;
   --card: #1a1a1a;
   --card-foreground: #ededed;
-  --primary: #3b82f6;
+  --primary: #6366f1;
   --primary-foreground: #ffffff;
   --secondary: #1e293b;
   --secondary-foreground: #f8fafc;
@@ -35,7 +35,7 @@
   --accent-foreground: #f8fafc;
   --border: #334155;
   --input: #334155;
-  --ring: #3b82f6;
+  --ring: #6366f1;
 }
 
 @theme inline {
