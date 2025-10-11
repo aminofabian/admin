@@ -1,5 +1,5 @@
 export { ControlGrid } from './control-grid';
-export { AirConditionerWidget } from './air-conditioner';
+export { BonusWidget } from './air-conditioner';
 export { SpeedGauge } from './speed-gauge';
 export { WeatherWidget } from './weather-widget';
 export { BatteryWidget } from './battery-widget';

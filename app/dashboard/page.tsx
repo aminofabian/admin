@@ -4,7 +4,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import {
   ControlGrid,
-  AirConditionerWidget,
+  BonusWidget,
   SpeedGauge,
   WeatherWidget,
   BatteryWidget,
@@ -51,7 +51,7 @@ export default function DashboardPage() {
         <ControlGrid />
 
         {/* Active Bonus Programs */}
-        <AirConditionerWidget />
+        <BonusWidget />
       </div>
 
       {/* Main Content Area - Game & Player Analytics */}
