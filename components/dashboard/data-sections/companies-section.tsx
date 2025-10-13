@@ -135,7 +135,7 @@ export function CompaniesSection() {
                   </a>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={company.is_active ? 'success' : 'error'}>
+                  <Badge variant={company.is_active ? 'success' : 'danger'}>
                     {company.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
@@ -152,8 +152,9 @@ export function CompaniesSection() {
       {data && data.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalItems={data.count}
-          pageSize={pageSize}
+          totalPages={Math.ceil(data.count / pageSize)}
+          hasNext={!!data.next}
+          hasPrevious={!!data.previous}
           onPageChange={setCurrentPage}
         />
       )}

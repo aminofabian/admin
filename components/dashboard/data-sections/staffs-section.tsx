@@ -131,7 +131,7 @@ export function StaffsSection() {
                   <Badge variant="info">{staff.role}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={staff.is_active ? 'success' : 'error'}>
+                  <Badge variant={staff.is_active ? 'success' : 'danger'}>
                     {staff.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
@@ -148,8 +148,9 @@ export function StaffsSection() {
       {data && data.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalItems={data.count}
-          pageSize={pageSize}
+          totalPages={Math.ceil(data.count / pageSize)}
+          hasNext={!!data.next}
+          hasPrevious={!!data.previous}
           onPageChange={setCurrentPage}
         />
       )}

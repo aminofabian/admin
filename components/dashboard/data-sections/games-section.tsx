@@ -132,7 +132,7 @@ export function GamesSection() {
                   <Badge variant="info">{game.game_category}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={game.game_status ? 'success' : 'error'}>
+                  <Badge variant={game.game_status ? 'success' : 'danger'}>
                     {game.game_status ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
@@ -149,8 +149,9 @@ export function GamesSection() {
       {data && data.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalItems={data.count}
-          pageSize={pageSize}
+          totalPages={Math.ceil(data.count / pageSize)}
+          hasNext={!!data.next}
+          hasPrevious={!!data.previous}
           onPageChange={setCurrentPage}
         />
       )}

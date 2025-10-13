@@ -129,7 +129,7 @@ export function ManagersSection() {
                   <Badge variant="info">{manager.role}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={manager.is_active ? 'success' : 'error'}>
+                  <Badge variant={manager.is_active ? 'success' : 'danger'}>
                     {manager.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
@@ -146,8 +146,9 @@ export function ManagersSection() {
       {data && data.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalItems={data.count}
-          pageSize={pageSize}
+          totalPages={Math.ceil(data.count / pageSize)}
+          hasNext={!!data.next}
+          hasPrevious={!!data.previous}
           onPageChange={setCurrentPage}
         />
       )}

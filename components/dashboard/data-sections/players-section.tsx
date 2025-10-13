@@ -139,7 +139,7 @@ export function PlayersSection() {
                   {formatCurrency(player.winning_balance || 0)}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={player.is_active ? 'success' : 'error'}>
+                  <Badge variant={player.is_active ? 'success' : 'danger'}>
                     {player.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
@@ -156,8 +156,9 @@ export function PlayersSection() {
       {data && data.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalItems={data.count}
-          pageSize={pageSize}
+          totalPages={Math.ceil(data.count / pageSize)}
+          hasNext={!!data.next}
+          hasPrevious={!!data.previous}
           onPageChange={setCurrentPage}
         />
       )}

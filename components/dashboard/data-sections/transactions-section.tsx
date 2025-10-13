@@ -27,11 +27,11 @@ export function TransactionsSection() {
         next: null,
         previous: null,
         results: [
-          { id: 1, transaction_id: 'TXN001', user_id: 12, type: 'purchase', amount: '100.00', status: 'completed', operator: 'PayPal' },
-          { id: 2, transaction_id: 'TXN002', user_id: 15, type: 'cashout', amount: '50.00', status: 'pending', operator: 'Bank Transfer' },
-          { id: 3, transaction_id: 'TXN003', user_id: 23, type: 'purchase', amount: '200.00', status: 'completed', operator: 'Stripe' },
-          { id: 4, transaction_id: 'TXN004', user_id: 8, type: 'cashout', amount: '75.50', status: 'failed', operator: 'PayPal' },
-          { id: 5, transaction_id: 'TXN005', user_id: 45, type: 'purchase', amount: '150.00', status: 'completed', operator: 'Crypto' },
+          { id: 1, transaction_id: 'TXN001', user_id: 12, type: 'purchase', amount: '100.00', status: 'completed', operator: 'PayPal', created: '2024-01-15T10:30:00Z', modified: '2024-01-15T10:30:00Z' },
+          { id: 2, transaction_id: 'TXN002', user_id: 15, type: 'cashout', amount: '50.00', status: 'pending', operator: 'Bank Transfer', created: '2024-01-16T11:45:00Z', modified: '2024-01-16T11:45:00Z' },
+          { id: 3, transaction_id: 'TXN003', user_id: 23, type: 'purchase', amount: '200.00', status: 'completed', operator: 'Stripe', created: '2024-01-17T09:20:00Z', modified: '2024-01-17T09:20:00Z' },
+          { id: 4, transaction_id: 'TXN004', user_id: 8, type: 'cashout', amount: '75.50', status: 'failed', operator: 'PayPal', created: '2024-01-18T14:30:00Z', modified: '2024-01-18T14:30:00Z' },
+          { id: 5, transaction_id: 'TXN005', user_id: 45, type: 'purchase', amount: '150.00', status: 'completed', operator: 'Crypto', created: '2024-01-19T16:00:00Z', modified: '2024-01-19T16:00:00Z' },
         ]
       };
       
@@ -57,11 +57,11 @@ export function TransactionsSection() {
     return `$${parseFloat(String(amount)).toFixed(2)}`;
   };
 
-  const getStatusVariant = (status: string): 'success' | 'warning' | 'error' | 'info' => {
+  const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'info' => {
     switch (status.toLowerCase()) {
       case 'completed': return 'success';
       case 'pending': return 'warning';
-      case 'failed': case 'cancelled': return 'error';
+      case 'failed': case 'cancelled': return 'danger';
       default: return 'info';
     }
   };
@@ -213,8 +213,9 @@ export function TransactionsSection() {
       {data && data.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalItems={data.count}
-          pageSize={pageSize}
+          totalPages={Math.ceil(data.count / pageSize)}
+          hasNext={!!data.next}
+          hasPrevious={!!data.previous}
           onPageChange={setCurrentPage}
         />
       )}

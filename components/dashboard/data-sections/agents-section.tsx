@@ -130,7 +130,7 @@ export function AgentsSection() {
                   <Badge variant="info">{agent.role}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={agent.is_active ? 'success' : 'error'}>
+                  <Badge variant={agent.is_active ? 'success' : 'danger'}>
                     {agent.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
@@ -147,8 +147,9 @@ export function AgentsSection() {
       {data && data.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalItems={data.count}
-          pageSize={pageSize}
+          totalPages={Math.ceil(data.count / pageSize)}
+          hasNext={!!data.next}
+          hasPrevious={!!data.previous}
           onPageChange={setCurrentPage}
         />
       )}
