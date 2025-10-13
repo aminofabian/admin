@@ -2,9 +2,12 @@
 
 import { ReactNode } from 'react';
 
+export type ControlSection = 'companies' | 'players' | 'games' | 'managers' | 'agents' | 'staffs' | 'transactions' | 'bonuses' | 'banners' | 'analytics' | 'affiliates' | 'settings' | 'reports' | 'alerts' | 'support';
+
 interface ControlItem {
   icon: ReactNode;
   label: string;
+  section?: ControlSection;
   active?: boolean;
 }
 
@@ -15,7 +18,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
       </svg>
     ), 
-    label: 'Companies' 
+    label: 'Companies',
+    section: 'companies'
   },
   { 
     icon: (
@@ -23,7 +27,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     ), 
-    label: 'Players' 
+    label: 'Players',
+    section: 'players'
   },
   { 
     icon: (
@@ -31,7 +36,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
       </svg>
     ), 
-    label: 'Games' 
+    label: 'Games',
+    section: 'games'
   },
   { 
     icon: (
@@ -39,7 +45,35 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ), 
-    label: 'Transactions' 
+    label: 'Transactions',
+    section: 'transactions'
+  },
+  { 
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    ), 
+    label: 'Managers',
+    section: 'managers'
+  },
+  { 
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ), 
+    label: 'Agents',
+    section: 'agents'
+  },
+  { 
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ), 
+    label: 'Staffs',
+    section: 'staffs'
   },
   { 
     icon: (
@@ -47,7 +81,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
       </svg>
     ), 
-    label: 'Bonuses' 
+    label: 'Bonuses',
+    section: 'bonuses'
   },
   { 
     icon: (
@@ -55,7 +90,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
     ), 
-    label: 'Banners' 
+    label: 'Banners',
+    section: 'banners'
   },
   { 
     icon: (
@@ -63,7 +99,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
     ), 
-    label: 'Analytics' 
+    label: 'Analytics',
+    section: 'analytics'
   },
   { 
     icon: (
@@ -71,7 +108,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
       </svg>
     ), 
-    label: 'Affiliates' 
+    label: 'Affiliates',
+    section: 'affiliates'
   },
   { 
     icon: (
@@ -80,7 +118,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ), 
-    label: 'Settings' 
+    label: 'Settings',
+    section: 'settings'
   },
   { 
     icon: (
@@ -88,7 +127,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     ), 
-    label: 'Reports' 
+    label: 'Reports',
+    section: 'reports'
   },
   { 
     icon: (
@@ -96,7 +136,8 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
       </svg>
     ), 
-    label: 'Alerts' 
+    label: 'Alerts',
+    section: 'alerts'
   },
   { 
     icon: (
@@ -104,14 +145,26 @@ const controlItems: ControlItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
       </svg>
     ), 
-    label: 'Support' 
+    label: 'Support',
+    section: 'support'
   },
 ];
 
-export function ControlGrid() {
+interface ControlGridProps {
+  onSectionClick?: (section: ControlSection | undefined) => void;
+  activeSection?: ControlSection | null;
+}
+
+export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps) {
   // Priority system: show most important controls first
   const priorityItems = controlItems.slice(0, 8); // Top 8 for small screens
   const allItems = controlItems;
+
+  const handleClick = (section: ControlSection | undefined) => {
+    if (onSectionClick && section) {
+      onSectionClick(section);
+    }
+  };
 
   return (
     <div className="bg-card rounded-xl p-3 sm:p-4 md:p-4 lg:p-5 xl:p-5 border border-border shadow-sm">
@@ -138,7 +191,12 @@ export function ControlGrid() {
         {priorityItems.map((item, index) => (
           <button
             key={index}
-            className="group relative flex flex-col items-center justify-center p-6 rounded-2xl bg-card/95 backdrop-blur-sm border border-border/30 hover:border-primary/50 hover:bg-card transition-all duration-300 active:scale-[0.97] shadow-sm"
+            onClick={() => handleClick(item.section)}
+            className={`group relative flex flex-col items-center justify-center p-6 rounded-2xl bg-card/95 backdrop-blur-sm border transition-all duration-300 active:scale-[0.97] shadow-sm ${
+              activeSection === item.section
+                ? 'border-primary bg-primary/10'
+                : 'border-border/30 hover:border-primary/50 hover:bg-card'
+            }`}
             title={item.label}
           >
             <div className="flex flex-col items-center gap-4 w-full">
@@ -172,7 +230,12 @@ export function ControlGrid() {
         {allItems.map((item, index) => (
           <button
             key={index}
-            className="group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border border-border/50 hover:border-primary/50 shadow-sm hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 aspect-square"
+            onClick={() => handleClick(item.section)}
+            className={`group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 aspect-square ${
+              activeSection === item.section
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border-border/50 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20'
+            }`}
             title={item.label}
           >
             <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors">
@@ -195,7 +258,12 @@ export function ControlGrid() {
         {allItems.map((item, index) => (
           <button
             key={index}
-            className="group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border border-border/50 hover:border-primary/50 shadow-sm hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 min-h-[4rem]"
+            onClick={() => handleClick(item.section)}
+            className={`group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 min-h-[4rem] ${
+              activeSection === item.section
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border-border/50 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20'
+            }`}
             title={item.label}
           >
             <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors scale-90">
@@ -218,7 +286,12 @@ export function ControlGrid() {
         {allItems.map((item, index) => (
           <button
             key={index}
-            className="group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border border-border/50 hover:border-primary/50 shadow-sm hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 min-h-[4.5rem]"
+            onClick={() => handleClick(item.section)}
+            className={`group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 min-h-[4.5rem] ${
+              activeSection === item.section
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border-border/50 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20'
+            }`}
             title={item.label}
           >
             <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors">
@@ -241,7 +314,12 @@ export function ControlGrid() {
         {allItems.map((item, index) => (
           <button
             key={index}
-            className="group relative flex flex-col items-center justify-center gap-3 p-4 rounded-xl bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border border-border/50 hover:border-primary/50 shadow-md hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-1 active:translate-y-0 min-h-[5rem]"
+            onClick={() => handleClick(item.section)}
+            className={`group relative flex flex-col items-center justify-center gap-3 p-4 rounded-xl border shadow-md transition-all duration-300 hover:-translate-y-1 active:translate-y-0 min-h-[5rem] ${
+              activeSection === item.section
+                ? 'bg-primary text-primary-foreground border-primary shadow-xl'
+                : 'bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border-border/50 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/30'
+            }`}
             title={item.label}
           >
             <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors scale-110">

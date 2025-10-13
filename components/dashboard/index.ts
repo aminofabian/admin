@@ -1,4 +1,5 @@
 export { ControlGrid } from './control-grid';
+export type { ControlSection } from './control-grid';
 export { BonusWidget } from './bonus-widget';
 export { ServerUptimeGauge } from './server-uptime-gauge';
 export { TransactionStatusWidget } from './transaction-status-widget';
@@ -7,3 +8,6 @@ export { FeaturedGameWidget } from './featured-game-widget';
 export { GameActivityChart } from './game-activity-chart';
 export { JackpotPoolGauge } from './jackpot-pool-gauge';
 export { TopSlotsWidget } from './top-slots-widget';
+
+// Data section components
+export * from './data-sections';
