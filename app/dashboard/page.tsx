@@ -14,6 +14,7 @@ import {
   GameActivityChart,
   JackpotPoolGauge,
   TopSlotsWidget,
+  GameOperationsWidget,
   CompaniesSection,
   PlayersSection,
   GamesSection,
@@ -21,8 +22,10 @@ import {
   AgentsSection,
   StaffsSection,
   TransactionsSection,
-} from '@/components/dashboard';
-import type { ControlSection } from '@/components/dashboard';
+  BannersSection,
+  AffiliatesSection,
+} from '@/components/dashboard/main-content-sections';
+import type { ControlSection } from '@/components/dashboard/main-content-sections';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -60,6 +63,10 @@ export default function DashboardPage() {
         return <StaffsSection />;
       case 'transactions':
         return <TransactionsSection />;
+      case 'banners':
+        return <BannersSection />;
+      case 'affiliates':
+        return <AffiliatesSection />;
       default:
         return null;
     }
@@ -358,6 +365,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-3 space-y-4 xl:space-y-5">
           <JackpotPoolGauge />
           <TransactionStatusWidget />
+          <GameOperationsWidget />
           <RevenueWidget />
           <GameActivityChart />
         </div>
