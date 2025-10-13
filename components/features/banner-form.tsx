@@ -77,7 +77,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         <select
           value={formData.banner_type}
           onChange={(e) => setFormData({ ...formData, banner_type: e.target.value as 'HOMEPAGE' | 'PROMOTIONAL' })}
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
         >
           <option value="HOMEPAGE">Homepage</option>
           <option value="PROMOTIONAL">Promotional</option>
@@ -91,7 +91,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         <select
           value={formData.banner_category}
           onChange={(e) => setFormData({ ...formData, banner_category: e.target.value as 'DESKTOP' | 'MOBILE_RESPONSIVE' | 'MOBILE_APP' })}
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
         >
           <option value="DESKTOP">Desktop</option>
           <option value="MOBILE_RESPONSIVE">Mobile Responsive</option>
@@ -121,7 +121,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           id="is_active"
           checked={formData.is_active}
           onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-          className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
+          className="w-4 h-4 text-[#6366f1] bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-[#6366f1]"
         />
         <label htmlFor="is_active" className="text-sm font-medium text-gray-900 dark:text-gray-100">
           Active

@@ -13,12 +13,12 @@ export function GameOperationsWidget() {
   const totalCompleted = operations.recharge.completed_today + operations.redeem.completed_today + operations.add_user_game.completed_today;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+    <div className="bg-card dark:bg-gray-800 rounded-xl border border-border dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <h3 className="text-lg font-semibold text-foreground dark:text-gray-100">
           Game Operations Queue
         </h3>
-        <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 text-[#6366f1] dark:text-[#6366f1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
         </svg>
       </div>
@@ -57,10 +57,10 @@ export function GameOperationsWidget() {
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#10b981] dark:text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              <span className="font-medium text-gray-900 dark:text-gray-100">
+              <span className="font-medium text-foreground dark:text-gray-100">
                 Recharge Game
               </span>
             </div>
@@ -77,7 +77,7 @@ export function GameOperationsWidget() {
           </div>
           <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-green-500 dark:bg-green-600 transition-all duration-300"
+              className="h-full bg-[#10b981] dark:bg-[#10b981] transition-all duration-300"
               style={{ width: `${(operations.recharge.completed_today / (operations.recharge.completed_today + operations.recharge.pending)) * 100}%` }}
             />
           </div>
@@ -87,10 +87,10 @@ export function GameOperationsWidget() {
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#6366f1] dark:text-[#6366f1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="font-medium text-gray-900 dark:text-gray-100">
+              <span className="font-medium text-foreground dark:text-gray-100">
                 Redeem Game
               </span>
             </div>
@@ -107,7 +107,7 @@ export function GameOperationsWidget() {
           </div>
           <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-blue-500 dark:bg-blue-600 transition-all duration-300"
+              className="h-full bg-[#6366f1] dark:bg-[#6366f1] transition-all duration-300"
               style={{ width: `${(operations.redeem.completed_today / (operations.redeem.completed_today + operations.redeem.pending)) * 100}%` }}
             />
           </div>
@@ -117,10 +117,10 @@ export function GameOperationsWidget() {
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#8b5cf6] dark:text-[#8b5cf6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
-              <span className="font-medium text-gray-900 dark:text-gray-100">
+              <span className="font-medium text-foreground dark:text-gray-100">
                 Add User Game
               </span>
             </div>
@@ -137,7 +137,7 @@ export function GameOperationsWidget() {
           </div>
           <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-purple-500 dark:bg-purple-600 transition-all duration-300"
+              className="h-full bg-[#8b5cf6] dark:bg-[#8b5cf6] transition-all duration-300"
               style={{ width: `${(operations.add_user_game.completed_today / (operations.add_user_game.completed_today + operations.add_user_game.pending)) * 100}%` }}
             />
           </div>

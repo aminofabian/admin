@@ -140,10 +140,10 @@ export function AffiliatesSection() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-[#6366f1] dark:text-[#6366f1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                       </svg>
-                      <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      <span className="font-semibold text-[#6366f1] dark:text-[#6366f1]">
                         {affiliate.total_players}
                       </span>
                     </div>
@@ -165,7 +165,7 @@ export function AffiliatesSection() {
                   <TableCell className="text-right font-medium text-red-600 dark:text-red-400">
                     {formatCurrency(affiliate.total_cashout)}
                   </TableCell>
-                  <TableCell className="text-right font-bold text-blue-600 dark:text-blue-400">
+                  <TableCell className="text-right font-bold text-[#6366f1] dark:text-[#6366f1]">
                     {formatCurrency(affiliate.total_earnings)}
                   </TableCell>
                   <TableCell className="text-right">
@@ -174,7 +174,7 @@ export function AffiliatesSection() {
                         setSelectedAffiliate(affiliate);
                         setIsDrawerOpen(true);
                       }}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                      className="text-[#6366f1] dark:text-[#6366f1] hover:text-[#5558e3] dark:hover:text-[#5558e3]"
                     >
                       Edit Commission
                     </button>

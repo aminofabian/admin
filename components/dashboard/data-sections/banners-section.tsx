@@ -118,7 +118,7 @@ export function BannersSection() {
             setSelectedBanner(null);
             setIsDrawerOpen(true);
           }}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          className="px-4 py-2 bg-[#6366f1] hover:bg-[#5558e3] text-white rounded-lg transition-colors"
         >
           Add Banner
         </button>
@@ -182,7 +182,7 @@ export function BannersSection() {
                         href={banner.redirect_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                        className="text-[#6366f1] dark:text-[#6366f1] hover:underline text-sm"
                       >
                         {banner.redirect_url.length > 30
                           ? `${banner.redirect_url.substring(0, 30)}...`
@@ -199,7 +199,7 @@ export function BannersSection() {
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => handleEdit(banner)}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                        className="text-[#6366f1] dark:text-[#6366f1] hover:text-[#5558e3] dark:hover:text-[#5558e3]"
                       >
                         Edit
                       </button>

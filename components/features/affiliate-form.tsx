@@ -56,14 +56,14 @@ export function AffiliateForm({ onSubmit, onCancel, initialData }: AffiliateForm
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-        <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+      <div className="bg-[#6366f1]/10 dark:bg-[#6366f1]/20 border border-[#6366f1]/30 dark:border-[#6366f1]/50 rounded-lg p-4 mb-6">
+        <h4 className="text-sm font-semibold text-[#6366f1] dark:text-[#6366f1] mb-2">
           Agent: {initialData.name}
         </h4>
-        <p className="text-xs text-blue-700 dark:text-blue-300">
+        <p className="text-xs text-gray-700 dark:text-gray-300">
           Email: {initialData.email}
         </p>
-        <p className="text-xs text-blue-700 dark:text-blue-300">
+        <p className="text-xs text-gray-700 dark:text-gray-300">
           Total Players: {initialData.total_players}
         </p>
       </div>
