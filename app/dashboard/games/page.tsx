@@ -271,7 +271,7 @@ export default function GamesPage() {
   return (
     <div>
       {/* Mock Data Banner */}
-      <div className="mb-4 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 flex items-center gap-2">
+      <div className="mb-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 px-4 py-3 flex items-center gap-2 rounded-lg">
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
         </svg>
@@ -280,21 +280,21 @@ export default function GamesPage() {
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-foreground">Games</h1>
-        <div className="bg-gray-100 px-4 py-2 rounded-md text-sm text-gray-600">
+        <div className="bg-muted dark:bg-muted/50 px-4 py-2 rounded-lg text-sm text-muted-foreground">
           <strong>Note:</strong> Games are manually created by system admins
         </div>
       </div>
 
       {/* Success Message */}
       {successMessage && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 flex items-center justify-between">
+        <div className="mb-6 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300 px-4 py-3 flex items-center justify-between rounded-lg">
           <div className="flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <span>{successMessage}</span>
           </div>
-          <button onClick={() => setSuccessMessage('')} className="text-green-600 hover:text-green-800">
+          <button onClick={() => setSuccessMessage('')} className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -404,7 +404,7 @@ export default function GamesPage() {
         size="md"
       >
         {submitError && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-800 px-4 py-3">
+          <div className="mb-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg">
             {submitError}
           </div>
         )}

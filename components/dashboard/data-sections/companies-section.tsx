@@ -65,8 +65,8 @@ export function CompaniesSection() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Companies</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Companies</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Manage all companies and their projects
           </p>
         </div>
@@ -86,30 +86,30 @@ export function CompaniesSection() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Total Companies</div>
-          <div className="text-2xl font-bold text-foreground mt-1">{data?.count || 0}</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Companies</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.count || 0}</div>
         </div>
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Active</div>
-          <div className="text-2xl font-bold text-green-500 mt-1">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
+          <div className="text-2xl font-bold text-green-500 dark:text-green-400 mt-1">
             {data?.results?.filter(c => c.is_active).length || 0}
           </div>
         </div>
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Inactive</div>
-          <div className="text-2xl font-bold text-red-500 mt-1">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
+          <div className="text-2xl font-bold text-red-500 dark:text-red-400 mt-1">
             {data?.results?.filter(c => !c.is_active).length || 0}
           </div>
         </div>
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">This Page</div>
-          <div className="text-2xl font-bold text-foreground mt-1">{data?.results?.length || 0}</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.results?.length || 0}</div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -129,7 +129,7 @@ export function CompaniesSection() {
                 <TableCell className="font-medium">{company.username}</TableCell>
                 <TableCell>{company.email}</TableCell>
                 <TableCell>{company.project_name}</TableCell>
-                <TableCell className="text-blue-500 hover:underline">
+                <TableCell className="text-blue-500 dark:text-blue-400 hover:underline">
                   <a href={company.project_domain} target="_blank" rel="noopener noreferrer">
                     {company.project_domain}
                   </a>
@@ -139,7 +139,7 @@ export function CompaniesSection() {
                     {company.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-gray-600 dark:text-gray-400">
                   {formatDate(company.created)}
                 </TableCell>
               </TableRow>

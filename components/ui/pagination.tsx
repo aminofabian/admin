@@ -37,7 +37,7 @@ export function Pagination({
       </div>
       <div className="hidden sm:flex sm:items-center sm:justify-between sm:flex-1">
         <div>
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             Page <span className="font-medium">{currentPage}</span>
             {totalPages > 0 && (
               <>

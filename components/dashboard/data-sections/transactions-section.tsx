@@ -73,8 +73,8 @@ export function TransactionsSection() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Transactions</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Transactions</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             View and manage all platform transactions
           </p>
         </div>
@@ -95,7 +95,7 @@ export function TransactionsSection() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === 'all'
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
             }`}
           >
             All
@@ -105,7 +105,7 @@ export function TransactionsSection() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === 'purchases'
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
             }`}
           >
             Purchases
@@ -115,7 +115,7 @@ export function TransactionsSection() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === 'cashouts'
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
             }`}
           >
             Cashouts
@@ -125,7 +125,7 @@ export function TransactionsSection() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === 'processing'
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
             }`}
           >
             Processing
@@ -135,7 +135,7 @@ export function TransactionsSection() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === 'history'
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
             }`}
           >
             History
@@ -145,20 +145,20 @@ export function TransactionsSection() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Total Transactions</div>
-          <div className="text-2xl font-bold text-foreground mt-1">{data?.count || 0}</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Transactions</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.count || 0}</div>
         </div>
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Total Amount</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Amount</div>
           <div className="text-2xl font-bold text-blue-500 mt-1">{formatCurrency(totalAmount)}</div>
         </div>
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">This Page</div>
-          <div className="text-2xl font-bold text-foreground mt-1">{data?.results?.length || 0}</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.results?.length || 0}</div>
         </div>
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Avg Amount</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Avg Amount</div>
           <div className="text-2xl font-bold text-green-500 mt-1">
             {formatCurrency(data?.results?.length ? totalAmount / data.results.length : 0)}
           </div>
@@ -166,7 +166,7 @@ export function TransactionsSection() {
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -200,7 +200,7 @@ export function TransactionsSection() {
                     {transaction.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-gray-600 dark:text-gray-400">
                   {transaction.operator || '-'}
                 </TableCell>
               </TableRow>

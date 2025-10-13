@@ -131,7 +131,7 @@ export const ManagerForm = ({ manager, onSubmit, onCancel, isLoading }: ManagerF
       </div>
 
       {isEditMode && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 text-sm">
+        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 px-4 py-3 text-sm rounded-lg">
           <strong>Note:</strong> Username and email cannot be changed. Use the status toggle button in the table to activate/deactivate this manager.
         </div>
       )}

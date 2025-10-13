@@ -72,8 +72,8 @@ export function PlayersSection() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Players</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Players</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Manage all player accounts and balances
           </p>
         </div>
@@ -90,28 +90,28 @@ export function PlayersSection() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Total Players</div>
-          <div className="text-2xl font-bold text-foreground mt-1">{data?.count || 0}</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Players</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.count || 0}</div>
         </div>
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Active Players</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Active Players</div>
           <div className="text-2xl font-bold text-green-500 mt-1">
             {data?.results?.filter(p => p.is_active).length || 0}
           </div>
         </div>
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Total Balance</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Balance</div>
           <div className="text-2xl font-bold text-blue-500 mt-1">{formatCurrency(totalBalance)}</div>
         </div>
-        <div className="bg-card rounded-xl p-4 border border-border">
-          <div className="text-sm text-muted-foreground">Total Winnings</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Winnings</div>
           <div className="text-2xl font-bold text-green-500 mt-1">{formatCurrency(totalWinnings)}</div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -143,7 +143,7 @@ export function PlayersSection() {
                     {player.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-gray-600 dark:text-gray-400">
                   {formatDate(player.created)}
                 </TableCell>
               </TableRow>

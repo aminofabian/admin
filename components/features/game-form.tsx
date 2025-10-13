@@ -109,7 +109,7 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps)
 
         {/* Status Toggle */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
             Game Status
           </label>
           <div className="flex items-center gap-3">
@@ -117,7 +117,7 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps)
               type="button"
               onClick={() => handleChange('game_status', !formData.game_status)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.game_status ? 'bg-green-600' : 'bg-gray-300'
+                formData.game_status ? 'bg-green-600 dark:bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               disabled={isLoading}
             >
@@ -127,18 +127,18 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps)
                 }`}
               />
             </button>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
               {formData.game_status ? 'Enabled' : 'Disabled'}
             </span>
           </div>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Toggle to enable or disable this game for users
           </p>
         </div>
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 text-sm">
+      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 px-4 py-3 text-sm rounded-lg">
         <strong>Note:</strong> Game code and category cannot be changed. Games are manually created and managed by system administrators.
       </div>
 

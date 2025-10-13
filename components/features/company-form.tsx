@@ -225,8 +225,8 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
       </div>
 
       {/* Optional Fields */}
-      <div className="pt-4 border-t border-gray-200">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Optional Configuration</h3>
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Optional Configuration</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Game API URL"
