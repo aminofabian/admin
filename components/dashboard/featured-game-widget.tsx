@@ -69,7 +69,7 @@ export function FeaturedGameWidget() {
         </div>
         <div className="w-full bg-muted rounded-full h-2">
           <div 
-            className="bg-gradient-to-r from-yellow-400 to-yellow-600 h-2 rounded-full transition-all duration-300"
+            className="bg-gradient-to-r from-primary to-primary/70 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>

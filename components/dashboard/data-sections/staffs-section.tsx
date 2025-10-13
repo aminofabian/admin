@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { staffsApi } from '@/lib/api/users';
 import type { Staff, PaginatedResponse } from '@/types';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, Pagination, SearchInput, Badge, Button } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button } from '@/components/ui';
 
 export function StaffsSection() {
   const [data, setData] = useState<PaginatedResponse<Staff> | null>(null);
@@ -49,16 +49,6 @@ export function StaffsSection() {
   if (!data?.results?.length && !searchTerm) {
     return <EmptyState title="No staff members found" />;
   }
-
-  const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'username', label: 'Username' },
-    { key: 'email', label: 'Email' },
-    { key: 'mobile_number', label: 'Mobile' },
-    { key: 'role', label: 'Role' },
-    { key: 'is_active', label: 'Status' },
-    { key: 'created', label: 'Created' },
-  ];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -118,26 +108,39 @@ export function StaffsSection() {
 
       {/* Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <Table columns={columns}>
-          {data?.results?.map((staff) => (
-            <tr key={staff.id} className="hover:bg-muted/50 transition-colors">
-              <td className="px-4 py-3 text-sm">{staff.id}</td>
-              <td className="px-4 py-3 text-sm font-medium">{staff.username}</td>
-              <td className="px-4 py-3 text-sm">{staff.email}</td>
-              <td className="px-4 py-3 text-sm">{staff.mobile_number || '-'}</td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant="info">{staff.role}</Badge>
-              </td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant={staff.is_active ? 'success' : 'error'}>
-                  {staff.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              </td>
-              <td className="px-4 py-3 text-sm text-muted-foreground">
-                {formatDate(staff.created)}
-              </td>
-            </tr>
-          ))}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Username</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Mobile</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.results?.map((staff) => (
+              <TableRow key={staff.id}>
+                <TableCell>{staff.id}</TableCell>
+                <TableCell className="font-medium">{staff.username}</TableCell>
+                <TableCell>{staff.email}</TableCell>
+                <TableCell>{staff.mobile_number || '-'}</TableCell>
+                <TableCell>
+                  <Badge variant="info">{staff.role}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={staff.is_active ? 'success' : 'error'}>
+                    {staff.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(staff.created)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </div>
 

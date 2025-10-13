@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { managersApi } from '@/lib/api/users';
 import type { Manager, PaginatedResponse } from '@/types';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, Pagination, SearchInput, Badge, Button } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button } from '@/components/ui';
 
 export function ManagersSection() {
   const [data, setData] = useState<PaginatedResponse<Manager> | null>(null);
@@ -49,15 +49,6 @@ export function ManagersSection() {
   if (!data?.results?.length && !searchTerm) {
     return <EmptyState title="No managers found" />;
   }
-
-  const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'username', label: 'Username' },
-    { key: 'email', label: 'Email' },
-    { key: 'role', label: 'Role' },
-    { key: 'is_active', label: 'Status' },
-    { key: 'created', label: 'Created' },
-  ];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -117,25 +108,37 @@ export function ManagersSection() {
 
       {/* Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <Table columns={columns}>
-          {data?.results?.map((manager) => (
-            <tr key={manager.id} className="hover:bg-muted/50 transition-colors">
-              <td className="px-4 py-3 text-sm">{manager.id}</td>
-              <td className="px-4 py-3 text-sm font-medium">{manager.username}</td>
-              <td className="px-4 py-3 text-sm">{manager.email}</td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant="info">{manager.role}</Badge>
-              </td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant={manager.is_active ? 'success' : 'error'}>
-                  {manager.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              </td>
-              <td className="px-4 py-3 text-sm text-muted-foreground">
-                {formatDate(manager.created)}
-              </td>
-            </tr>
-          ))}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Username</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.results?.map((manager) => (
+              <TableRow key={manager.id}>
+                <TableCell>{manager.id}</TableCell>
+                <TableCell className="font-medium">{manager.username}</TableCell>
+                <TableCell>{manager.email}</TableCell>
+                <TableCell>
+                  <Badge variant="info">{manager.role}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={manager.is_active ? 'success' : 'error'}>
+                    {manager.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(manager.created)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </div>
 

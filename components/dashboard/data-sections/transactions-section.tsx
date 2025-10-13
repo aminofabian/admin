@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { Transaction, PaginatedResponse } from '@/types';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, Pagination, SearchInput, Badge } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge } from '@/components/ui';
 
 export function TransactionsSection() {
   const [data, setData] = useState<PaginatedResponse<Transaction> | null>(null);
@@ -52,16 +52,6 @@ export function TransactionsSection() {
   if (!data?.results?.length && !searchTerm) {
     return <EmptyState title="No transactions found" />;
   }
-
-  const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'transaction_id', label: 'Transaction ID' },
-    { key: 'user_id', label: 'User ID' },
-    { key: 'type', label: 'Type' },
-    { key: 'amount', label: 'Amount' },
-    { key: 'status', label: 'Status' },
-    { key: 'operator', label: 'Operator' },
-  ];
 
   const formatCurrency = (amount: string | number) => {
     return `$${parseFloat(String(amount)).toFixed(2)}`;
@@ -177,32 +167,45 @@ export function TransactionsSection() {
 
       {/* Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <Table columns={columns}>
-          {data?.results?.map((transaction) => (
-            <tr key={transaction.id} className="hover:bg-muted/50 transition-colors">
-              <td className="px-4 py-3 text-sm">{transaction.id}</td>
-              <td className="px-4 py-3 text-sm">
-                <code className="bg-muted px-2 py-1 rounded text-xs">
-                  {transaction.transaction_id}
-                </code>
-              </td>
-              <td className="px-4 py-3 text-sm">{transaction.user_id}</td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant="info">{transaction.type}</Badge>
-              </td>
-              <td className="px-4 py-3 text-sm font-semibold text-blue-500">
-                {formatCurrency(transaction.amount)}
-              </td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant={getStatusVariant(transaction.status)}>
-                  {transaction.status}
-                </Badge>
-              </td>
-              <td className="px-4 py-3 text-sm text-muted-foreground">
-                {transaction.operator || '-'}
-              </td>
-            </tr>
-          ))}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Transaction ID</TableHead>
+              <TableHead>User ID</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Operator</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.results?.map((transaction) => (
+              <TableRow key={transaction.id}>
+                <TableCell>{transaction.id}</TableCell>
+                <TableCell>
+                  <code className="bg-muted px-2 py-1 rounded text-xs">
+                    {transaction.transaction_id}
+                  </code>
+                </TableCell>
+                <TableCell>{transaction.user_id}</TableCell>
+                <TableCell>
+                  <Badge variant="info">{transaction.type}</Badge>
+                </TableCell>
+                <TableCell className="font-semibold text-blue-500">
+                  {formatCurrency(transaction.amount)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(transaction.status)}>
+                    {transaction.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {transaction.operator || '-'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </div>
 

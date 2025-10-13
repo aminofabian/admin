@@ -30,7 +30,7 @@ export function GameActivityChart() {
               cx="50"
               cy="50"
               r="40"
-              stroke="#10b981"
+              stroke="rgb(99 102 241)"
               strokeWidth="8"
               fill="none"
               strokeDasharray={`${(activeAngle / 360) * 251.2} 251.2`}
@@ -41,7 +41,7 @@ export function GameActivityChart() {
               cx="50"
               cy="50"
               r="40"
-              stroke="#f59e0b"
+              stroke="rgb(99 102 241 / 0.5)"
               strokeWidth="8"
               fill="none"
               strokeDasharray={`${(pendingAngle / 360) * 251.2} 251.2`}
@@ -52,7 +52,7 @@ export function GameActivityChart() {
               cx="50"
               cy="50"
               r="40"
-              stroke="#ef4444"
+              stroke="rgb(71 85 105)"
               strokeWidth="8"
               fill="none"
               strokeDasharray={`${(maintenanceAngle / 360) * 251.2} 251.2`}
@@ -65,7 +65,7 @@ export function GameActivityChart() {
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full" />
+            <div className="w-3 h-3 bg-primary rounded-full" />
             <span className="text-muted-foreground">Active Games</span>
           </div>
           <span className="text-foreground font-medium">{gameActivity.activeGames}%</span>
@@ -73,7 +73,7 @@ export function GameActivityChart() {
         
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+            <div className="w-3 h-3 bg-primary/50 rounded-full" />
             <span className="text-muted-foreground">Pending TX</span>
           </div>
           <span className="text-foreground font-medium">{gameActivity.pendingTransactions}%</span>
@@ -81,7 +81,7 @@ export function GameActivityChart() {
         
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-red-500 rounded-full" />
+            <div className="w-3 h-3 bg-muted-foreground rounded-full" />
             <span className="text-muted-foreground">Maintenance</span>
           </div>
           <span className="text-foreground font-medium">{gameActivity.maintenance}%</span>

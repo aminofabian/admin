@@ -12,18 +12,18 @@ export function TopSlotsWidget() {
     <div className="bg-card rounded-xl p-4 border border-border">
       <h3 className="text-sm font-medium text-muted-foreground mb-4">Top Performing Slots</h3>
       
-      <div className="relative h-32 sm:h-48 bg-gradient-to-br from-purple-100 to-yellow-100 dark:from-purple-900 dark:to-yellow-900 rounded-lg overflow-hidden p-3 sm:p-4">
+      <div className="relative h-32 sm:h-48 bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-lg overflow-hidden p-3 sm:p-4">
         {/* Game activity visualization */}
         <div className="absolute inset-0 flex items-center justify-center">
           {/* Animated pulse circles representing game activity */}
-          <div className="absolute top-1/4 left-1/4 w-4 h-4 sm:w-6 sm:h-6 bg-yellow-500 rounded-full animate-pulse">
-            <div className="absolute -top-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 bg-yellow-500/30 rounded-full" />
+          <div className="absolute top-1/4 left-1/4 w-4 h-4 sm:w-6 sm:h-6 bg-primary rounded-full animate-pulse">
+            <div className="absolute -top-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 bg-primary/30 rounded-full" />
           </div>
-          <div className="absolute top-1/3 right-1/4 w-3 h-3 sm:w-5 sm:h-5 bg-green-500 rounded-full animate-pulse">
-            <div className="absolute -top-1 -left-1 w-5 h-5 sm:w-7 sm:h-7 bg-green-500/30 rounded-full" />
+          <div className="absolute top-1/3 right-1/4 w-3 h-3 sm:w-5 sm:h-5 bg-primary/70 rounded-full animate-pulse">
+            <div className="absolute -top-1 -left-1 w-5 h-5 sm:w-7 sm:h-7 bg-primary/20 rounded-full" />
           </div>
-          <div className="absolute bottom-1/3 left-1/3 w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full animate-pulse">
-            <div className="absolute -top-1 -left-1 w-5 h-5 sm:w-6 sm:h-6 bg-blue-500/30 rounded-full" />
+          <div className="absolute bottom-1/3 left-1/3 w-3 h-3 sm:w-4 sm:h-4 bg-primary/50 rounded-full animate-pulse">
+            <div className="absolute -top-1 -left-1 w-5 h-5 sm:w-6 sm:h-6 bg-primary/15 rounded-full" />
           </div>
           
           {/* Hot game indicator */}

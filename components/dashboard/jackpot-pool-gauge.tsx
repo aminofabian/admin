@@ -41,7 +41,7 @@ export function JackpotPoolGauge({ current = 45000, max = 100000, lastWin = 1250
             strokeWidth="8"
             fill="none"
             strokeDasharray={strokeDasharray}
-            className="text-yellow-500"
+            className="text-primary"
             strokeLinecap="round"
           />
         </svg>

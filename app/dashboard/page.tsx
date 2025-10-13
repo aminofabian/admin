@@ -132,12 +132,12 @@ export default function DashboardPage() {
             <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-4 border border-border/30 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">System Status</h3>
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Uptime</span>
-                  <span className="text-lg font-bold text-green-500">99.8%</span>
+                  <span className="text-lg font-bold text-primary">99.8%</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Players</span>
@@ -150,12 +150,12 @@ export default function DashboardPage() {
             <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-4 border border-border/30 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">Revenue</h3>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Today</span>
-                  <span className="text-lg font-bold text-blue-500">$45K</span>
+                  <span className="text-lg font-bold text-primary">$45K</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Peak</span>
@@ -195,26 +195,26 @@ export default function DashboardPage() {
               {/* Top Stats Row */}
               <div className="grid grid-cols-2 gap-4">
                 <ServerUptimeGauge speed={99.8} />
-                <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Live</h3>
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  </div>
-                  <div className="text-center space-y-2">
-                    <div className="text-3xl font-bold text-green-500">1,247</div>
-                    <div className="text-xs text-muted-foreground">Active Players</div>
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
-                      <div>
-                        <div className="text-sm font-semibold">892</div>
-                        <div className="text-[10px] text-muted-foreground">Playing</div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold">1,589</div>
-                        <div className="text-[10px] text-muted-foreground">Peak</div>
-                      </div>
+              <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground">Live</h3>
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                </div>
+                <div className="text-center space-y-2">
+                  <div className="text-3xl font-bold text-primary">1,247</div>
+                  <div className="text-xs text-muted-foreground">Active Players</div>
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+                    <div>
+                      <div className="text-sm font-semibold">892</div>
+                      <div className="text-[10px] text-muted-foreground">Playing</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold">1,589</div>
+                      <div className="text-[10px] text-muted-foreground">Peak</div>
                     </div>
                   </div>
                 </div>
+              </div>
               </div>
 
               {/* Search & Controls */}
@@ -298,18 +298,18 @@ export default function DashboardPage() {
             <div className="bg-card rounded-xl p-4 xl:p-5 border border-border shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm xl:text-base font-semibold text-muted-foreground">Live Players</h3>
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50" />
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-lg shadow-primary/50" />
               </div>
               <div className="text-center">
-                <div className="w-16 h-16 xl:w-20 xl:h-20 mx-auto mb-4 bg-gradient-to-br from-green-500/20 to-blue-500/20 rounded-xl flex items-center justify-center">
-                  <svg className="w-8 h-8 xl:w-10 xl:h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-16 h-16 xl:w-20 xl:h-20 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center">
+                  <svg className="w-8 h-8 xl:w-10 xl:h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
                 <div className="space-y-2 xl:space-y-3 text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Active Players</span>
-                    <span className="text-lg xl:text-xl font-bold text-green-500">1,247</span>
+                    <span className="text-lg xl:text-xl font-bold text-primary">1,247</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Playing Now</span>

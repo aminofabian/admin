@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { playersApi } from '@/lib/api/users';
 import type { Player, PaginatedResponse } from '@/types';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, Pagination, SearchInput, Badge } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge } from '@/components/ui';
 
 export function PlayersSection() {
   const [data, setData] = useState<PaginatedResponse<Player> | null>(null);
@@ -51,17 +51,6 @@ export function PlayersSection() {
   if (!data?.results?.length && !searchTerm) {
     return <EmptyState title="No players found" />;
   }
-
-  const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'username', label: 'Username' },
-    { key: 'full_name', label: 'Full Name' },
-    { key: 'email', label: 'Email' },
-    { key: 'balance', label: 'Balance' },
-    { key: 'winning_balance', label: 'Winning Balance' },
-    { key: 'is_active', label: 'Status' },
-    { key: 'created', label: 'Joined' },
-  ];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -123,29 +112,43 @@ export function PlayersSection() {
 
       {/* Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <Table columns={columns}>
-          {data?.results?.map((player) => (
-            <tr key={player.id} className="hover:bg-muted/50 transition-colors">
-              <td className="px-4 py-3 text-sm">{player.id}</td>
-              <td className="px-4 py-3 text-sm font-medium">{player.username}</td>
-              <td className="px-4 py-3 text-sm">{player.full_name || '-'}</td>
-              <td className="px-4 py-3 text-sm">{player.email}</td>
-              <td className="px-4 py-3 text-sm font-semibold text-blue-500">
-                {formatCurrency(player.balance || 0)}
-              </td>
-              <td className="px-4 py-3 text-sm font-semibold text-green-500">
-                {formatCurrency(player.winning_balance || 0)}
-              </td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant={player.is_active ? 'success' : 'error'}>
-                  {player.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              </td>
-              <td className="px-4 py-3 text-sm text-muted-foreground">
-                {formatDate(player.created)}
-              </td>
-            </tr>
-          ))}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Username</TableHead>
+              <TableHead>Full Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Balance</TableHead>
+              <TableHead>Winning Balance</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Joined</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.results?.map((player) => (
+              <TableRow key={player.id}>
+                <TableCell>{player.id}</TableCell>
+                <TableCell className="font-medium">{player.username}</TableCell>
+                <TableCell>{player.full_name || '-'}</TableCell>
+                <TableCell>{player.email}</TableCell>
+                <TableCell className="font-semibold text-blue-500">
+                  {formatCurrency(player.balance || 0)}
+                </TableCell>
+                <TableCell className="font-semibold text-green-500">
+                  {formatCurrency(player.winning_balance || 0)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={player.is_active ? 'success' : 'error'}>
+                    {player.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(player.created)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </div>
 

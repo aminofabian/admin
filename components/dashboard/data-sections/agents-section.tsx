@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { agentsApi } from '@/lib/api/users';
 import type { Agent, PaginatedResponse } from '@/types';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, Pagination, SearchInput, Badge, Button } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button } from '@/components/ui';
 
 export function AgentsSection() {
   const [data, setData] = useState<PaginatedResponse<Agent> | null>(null);
@@ -50,15 +50,6 @@ export function AgentsSection() {
   if (!data?.results?.length && !searchTerm) {
     return <EmptyState title="No agents found" />;
   }
-
-  const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'username', label: 'Username' },
-    { key: 'email', label: 'Email' },
-    { key: 'role', label: 'Role' },
-    { key: 'is_active', label: 'Status' },
-    { key: 'created', label: 'Created' },
-  ];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -118,25 +109,37 @@ export function AgentsSection() {
 
       {/* Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <Table columns={columns}>
-          {data?.results?.map((agent) => (
-            <tr key={agent.id} className="hover:bg-muted/50 transition-colors">
-              <td className="px-4 py-3 text-sm">{agent.id}</td>
-              <td className="px-4 py-3 text-sm font-medium">{agent.username}</td>
-              <td className="px-4 py-3 text-sm">{agent.email}</td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant="info">{agent.role}</Badge>
-              </td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant={agent.is_active ? 'success' : 'error'}>
-                  {agent.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              </td>
-              <td className="px-4 py-3 text-sm text-muted-foreground">
-                {formatDate(agent.created)}
-              </td>
-            </tr>
-          ))}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Username</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.results?.map((agent) => (
+              <TableRow key={agent.id}>
+                <TableCell>{agent.id}</TableCell>
+                <TableCell className="font-medium">{agent.username}</TableCell>
+                <TableCell>{agent.email}</TableCell>
+                <TableCell>
+                  <Badge variant="info">{agent.role}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={agent.is_active ? 'success' : 'error'}>
+                    {agent.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(agent.created)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </div>
 

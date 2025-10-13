@@ -34,7 +34,7 @@ export function TransactionStatusWidget() {
       <div className="space-y-2">
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Success Rate</span>
-          <span className="text-foreground text-green-500">{transactionHealth.successRate}%</span>
+          <span className="text-primary font-medium">{transactionHealth.successRate}%</span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Total Today</span>
@@ -48,7 +48,7 @@ export function TransactionStatusWidget() {
             <div
               key={i}
               className={`w-1 h-2 rounded ${
-                i < 9 ? 'bg-green-500' : 'bg-muted'
+                i < 9 ? 'bg-primary' : 'bg-muted'
               }`}
             />
           ))}

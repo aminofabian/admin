@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { companiesApi } from '@/lib/api/companies';
 import type { Company, PaginatedResponse } from '@/types';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, Pagination, SearchInput, Button, Badge } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Button, Badge } from '@/components/ui';
 
 export function CompaniesSection() {
   const [data, setData] = useState<PaginatedResponse<Company> | null>(null);
@@ -51,16 +51,6 @@ export function CompaniesSection() {
   if (!data?.results?.length && !searchTerm) {
     return <EmptyState title="No companies found" />;
   }
-
-  const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'username', label: 'Username' },
-    { key: 'email', label: 'Email' },
-    { key: 'project_name', label: 'Project Name' },
-    { key: 'project_domain', label: 'Project Domain' },
-    { key: 'is_active', label: 'Status' },
-    { key: 'created', label: 'Created' },
-  ];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -120,28 +110,41 @@ export function CompaniesSection() {
 
       {/* Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <Table columns={columns}>
-          {data?.results?.map((company) => (
-            <tr key={company.id} className="hover:bg-muted/50 transition-colors">
-              <td className="px-4 py-3 text-sm">{company.id}</td>
-              <td className="px-4 py-3 text-sm font-medium">{company.username}</td>
-              <td className="px-4 py-3 text-sm">{company.email}</td>
-              <td className="px-4 py-3 text-sm">{company.project_name}</td>
-              <td className="px-4 py-3 text-sm text-blue-500 hover:underline">
-                <a href={company.project_domain} target="_blank" rel="noopener noreferrer">
-                  {company.project_domain}
-                </a>
-              </td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant={company.is_active ? 'success' : 'error'}>
-                  {company.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              </td>
-              <td className="px-4 py-3 text-sm text-muted-foreground">
-                {formatDate(company.created)}
-              </td>
-            </tr>
-          ))}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Username</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Project Name</TableHead>
+              <TableHead>Project Domain</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.results?.map((company) => (
+              <TableRow key={company.id}>
+                <TableCell>{company.id}</TableCell>
+                <TableCell className="font-medium">{company.username}</TableCell>
+                <TableCell>{company.email}</TableCell>
+                <TableCell>{company.project_name}</TableCell>
+                <TableCell className="text-blue-500 hover:underline">
+                  <a href={company.project_domain} target="_blank" rel="noopener noreferrer">
+                    {company.project_domain}
+                  </a>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={company.is_active ? 'success' : 'error'}>
+                    {company.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(company.created)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </div>
 

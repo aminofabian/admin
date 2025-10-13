@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { gamesApi } from '@/lib/api/games';
 import type { Game, PaginatedResponse } from '@/types';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, Pagination, SearchInput, Badge } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge } from '@/components/ui';
 
 export function GamesSection() {
   const [data, setData] = useState<PaginatedResponse<Game> | null>(null);
@@ -51,15 +51,6 @@ export function GamesSection() {
   if (!data?.results?.length && !searchTerm) {
     return <EmptyState title="No games found" />;
   }
-
-  const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'title', label: 'Game Title' },
-    { key: 'code', label: 'Code' },
-    { key: 'game_category', label: 'Category' },
-    { key: 'game_status', label: 'Status' },
-    { key: 'created', label: 'Created' },
-  ];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -118,27 +109,39 @@ export function GamesSection() {
 
       {/* Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <Table columns={columns}>
-          {data?.results?.map((game) => (
-            <tr key={game.id} className="hover:bg-muted/50 transition-colors">
-              <td className="px-4 py-3 text-sm">{game.id}</td>
-              <td className="px-4 py-3 text-sm font-medium">{game.title}</td>
-              <td className="px-4 py-3 text-sm">
-                <code className="bg-muted px-2 py-1 rounded text-xs">{game.code}</code>
-              </td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant="info">{game.game_category}</Badge>
-              </td>
-              <td className="px-4 py-3 text-sm">
-                <Badge variant={game.game_status ? 'success' : 'error'}>
-                  {game.game_status ? 'Active' : 'Inactive'}
-                </Badge>
-              </td>
-              <td className="px-4 py-3 text-sm text-muted-foreground">
-                {formatDate(game.created)}
-              </td>
-            </tr>
-          ))}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Game Title</TableHead>
+              <TableHead>Code</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data?.results?.map((game) => (
+              <TableRow key={game.id}>
+                <TableCell>{game.id}</TableCell>
+                <TableCell className="font-medium">{game.title}</TableCell>
+                <TableCell>
+                  <code className="bg-muted px-2 py-1 rounded text-xs">{game.code}</code>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="info">{game.game_category}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={game.game_status ? 'success' : 'error'}>
+                    {game.game_status ? 'Active' : 'Inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(game.created)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
         </Table>
       </div>
 
