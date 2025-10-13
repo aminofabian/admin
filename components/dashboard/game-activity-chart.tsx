@@ -6,7 +6,7 @@ interface GameActivityData {
   maintenance: number;
 }
 
-export function UsageChart() {
+export function GameActivityChart() {
   const gameActivity: GameActivityData = {
     activeGames: 65,
     pendingTransactions: 25,

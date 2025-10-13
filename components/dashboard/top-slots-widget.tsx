@@ -1,6 +1,6 @@
 'use client';
 
-export function MapWidget() {
+export function TopSlotsWidget() {
   const topGames = [
     { name: 'Mega Fortune', players: 1247, status: 'hot' },
     { name: 'Lucky Slots', players: 892, status: 'active' },

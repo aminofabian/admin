@@ -5,13 +5,13 @@ import { USER_ROLES } from '@/lib/constants/roles';
 import {
   ControlGrid,
   BonusWidget,
-  SpeedGauge,
-  WeatherWidget,
-  BatteryWidget,
+  ServerUptimeGauge,
+  TransactionStatusWidget,
+  RevenueWidget,
   FeaturedGameWidget,
-  UsageChart,
-  LoadGauge,
-  MapWidget,
+  GameActivityChart,
+  JackpotPoolGauge,
+  TopSlotsWidget,
 } from '@/components/dashboard';
 
 export default function DashboardPage() {
@@ -86,22 +86,22 @@ export default function DashboardPage() {
           <FeaturedGameWidget />
         </div>
 
-        {/* Map & Weather */}
+        {/* Top Slots & Transaction Status */}
         <div className="sm:hidden mb-6">
           <div className="space-y-4">
-            <MapWidget />
+            <TopSlotsWidget />
             <div className="grid grid-cols-2 gap-4">
-              <WeatherWidget />
-              <UsageChart />
+              <TransactionStatusWidget />
+              <GameActivityChart />
             </div>
           </div>
         </div>
 
-        {/* Battery & Load */}
+        {/* Revenue & Jackpot */}
         <div className="sm:hidden">
           <div className="grid grid-cols-2 gap-4">
-            <BatteryWidget />
-            <LoadGauge current={45000} max={100000} lastWin={12500} />
+            <RevenueWidget />
+            <JackpotPoolGauge current={45000} max={100000} lastWin={12500} />
           </div>
         </div>
 
@@ -109,7 +109,7 @@ export default function DashboardPage() {
         <div className="hidden sm:block space-y-4">
           {/* Top Stats Row */}
           <div className="grid grid-cols-2 gap-4">
-            <SpeedGauge speed={99.8} />
+            <ServerUptimeGauge speed={99.8} />
             <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-muted-foreground">Live</h3>
@@ -158,14 +158,14 @@ export default function DashboardPage() {
 
           <ControlGrid />
           <div className="grid grid-cols-2 gap-4">
-            <LoadGauge current={45000} max={100000} lastWin={12500} />
-            <BatteryWidget />
+            <JackpotPoolGauge current={45000} max={100000} lastWin={12500} />
+            <RevenueWidget />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <WeatherWidget />
-            <UsageChart />
+            <TransactionStatusWidget />
+            <GameActivityChart />
           </div>
-          <MapWidget />
+          <TopSlotsWidget />
           <FeaturedGameWidget />
           <BonusWidget />
         </div>
@@ -207,7 +207,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-6 space-y-4 xl:space-y-5">
           {/* System Health & Live Players - Desktop Version */}
           <div className="grid grid-cols-2 gap-4 xl:gap-5">
-            <SpeedGauge speed={99.8} />
+            <ServerUptimeGauge speed={99.8} />
             
             {/* Live Players - Full Desktop Version */}
             <div className="bg-card rounded-xl p-4 xl:p-5 border border-border shadow-sm hover:shadow-md transition-shadow">
@@ -243,16 +243,16 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <MapWidget />
+          <TopSlotsWidget />
           <FeaturedGameWidget />
         </div>
 
         {/* Right Sidebar - Financial Overview */}
         <div className="lg:col-span-3 space-y-4 xl:space-y-5">
-          <LoadGauge current={45000} max={100000} lastWin={12500} />
-          <WeatherWidget />
-          <BatteryWidget />
-          <UsageChart />
+          <JackpotPoolGauge current={45000} max={100000} lastWin={12500} />
+          <TransactionStatusWidget />
+          <RevenueWidget />
+          <GameActivityChart />
         </div>
       </div>
     </div>

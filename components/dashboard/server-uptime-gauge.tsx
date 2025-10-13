@@ -5,7 +5,7 @@ interface SpeedGaugeProps {
   maxSpeed?: number;
 }
 
-export function SpeedGauge({ speed = 99.8, maxSpeed = 100 }: SpeedGaugeProps) {
+export function ServerUptimeGauge({ speed = 99.8, maxSpeed = 100 }: SpeedGaugeProps) {
   const percentage = (speed / maxSpeed) * 100;
   const circumference = 2 * Math.PI * 40; // radius = 40
   const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;

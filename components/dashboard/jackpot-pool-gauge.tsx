@@ -6,7 +6,7 @@ interface JackpotData {
   lastWin: number;
 }
 
-export function LoadGauge({ current = 45000, max = 100000, lastWin = 12500 }: JackpotData) {
+export function JackpotPoolGauge({ current = 45000, max = 100000, lastWin = 12500 }: JackpotData) {
   const percentage = (current / max) * 100;
   const circumference = 2 * Math.PI * 40;
   const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;

@@ -7,7 +7,7 @@ interface RevenueData {
   isGrowing: boolean;
 }
 
-export function BatteryWidget() {
+export function RevenueWidget() {
   const revenue: RevenueData = {
     totalToday: 45000,
     performance: 92,

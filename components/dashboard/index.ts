@@ -1,9 +1,9 @@
 export { ControlGrid } from './control-grid';
-export { BonusWidget } from './air-conditioner';
-export { SpeedGauge } from './speed-gauge';
-export { WeatherWidget } from './weather-widget';
-export { BatteryWidget } from './battery-widget';
+export { BonusWidget } from './bonus-widget';
+export { ServerUptimeGauge } from './server-uptime-gauge';
+export { TransactionStatusWidget } from './transaction-status-widget';
+export { RevenueWidget } from './revenue-widget';
 export { FeaturedGameWidget } from './featured-game-widget';
-export { UsageChart } from './usage-chart';
-export { LoadGauge } from './load-gauge';
-export { MapWidget } from './map-widget';
+export { GameActivityChart } from './game-activity-chart';
+export { JackpotPoolGauge } from './jackpot-pool-gauge';
+export { TopSlotsWidget } from './top-slots-widget';
