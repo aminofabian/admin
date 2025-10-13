@@ -1,32 +1,51 @@
-import { useEffect, useState } from 'react';
-import { dashboardStatsApi, type DashboardStats } from '@/lib/api/dashboard-stats';
+import { useState } from 'react';
+
+export interface DashboardStats {
+  totalPlayers: number;
+  activePlayers: number;
+  totalManagers: number;
+  totalAgents: number;
+  totalStaff: number;
+  totalAffiliates: number;
+  totalBalance: number;
+  totalWinningBalance: number;
+  platformLiquidity: number;
+  pendingTransactions: number;
+  completedToday: number;
+  failedToday: number;
+  transactionSuccessRate: number;
+  totalPurchasesToday: number;
+  totalCashoutsToday: number;
+  totalGames: number;
+  activeGames: number;
+  inactiveGames: number;
+}
 
 export function useDashboardStats() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Mock data for dashboard stats
+  const stats: DashboardStats = {
+    totalPlayers: 1247,
+    activePlayers: 892,
+    totalManagers: 8,
+    totalAgents: 25,
+    totalStaff: 12,
+    totalAffiliates: 25,
+    totalBalance: 125500,
+    totalWinningBalance: 48200,
+    platformLiquidity: 173700,
+    pendingTransactions: 23,
+    completedToday: 342,
+    failedToday: 8,
+    transactionSuccessRate: 98.5,
+    totalPurchasesToday: 45200,
+    totalCashoutsToday: 28900,
+    totalGames: 53,
+    activeGames: 45,
+    inactiveGames: 8,
+  };
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await dashboardStatsApi.getStats();
-        setStats(data);
-      } catch (err) {
-        console.error('Error fetching dashboard stats:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load dashboard stats');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-    
-    // Refresh every 2 minutes
-    const interval = setInterval(fetchStats, 2 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
 
   return { stats, loading, error };
 }

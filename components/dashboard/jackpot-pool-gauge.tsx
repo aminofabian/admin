@@ -1,42 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { dashboardStatsApi } from '@/lib/api/dashboard-stats';
-
 interface PlatformBalanceData {
   totalBalance?: number;
   winningBalance?: number;
   totalPlayers?: number;
 }
 
-export function JackpotPoolGauge({ totalBalance: initialBalance, winningBalance: initialWinning, totalPlayers: initialPlayers }: PlatformBalanceData) {
-  const [totalBalance, setTotalBalance] = useState(initialBalance || 0);
-  const [winningBalance, setWinningBalance] = useState(initialWinning || 0);
-  const [totalPlayers, setTotalPlayers] = useState(initialPlayers || 0);
-  const [loading, setLoading] = useState(!initialBalance);
-
-  useEffect(() => {
-    const fetchBalanceData = async () => {
-      try {
-        const stats = await dashboardStatsApi.getStats();
-        setTotalBalance(stats.totalBalance);
-        setWinningBalance(stats.totalWinningBalance);
-        setTotalPlayers(stats.totalPlayers);
-      } catch (error) {
-        console.error('Error fetching balance data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!initialBalance) {
-      fetchBalanceData();
-      
-      // Refresh every 2 minutes
-      const interval = setInterval(fetchBalanceData, 2 * 60 * 1000);
-      return () => clearInterval(interval);
-    }
-  }, [initialBalance]);
+export function JackpotPoolGauge({ totalBalance = 125500, winningBalance = 48200, totalPlayers = 1247 }: PlatformBalanceData) {
 
   const platformLiquidity = totalBalance + winningBalance;
   const balancePercentage = platformLiquidity > 0 ? (totalBalance / platformLiquidity) * 100 : 50;
@@ -82,7 +52,7 @@ export function JackpotPoolGauge({ totalBalance: initialBalance, winningBalance:
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-lg font-bold text-foreground dark:text-gray-100">
-            {loading ? '...' : formatCurrency(platformLiquidity)}
+            {formatCurrency(platformLiquidity)}
           </span>
           <span className="text-xs text-muted-foreground dark:text-gray-400">total</span>
         </div>

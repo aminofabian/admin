@@ -1,8 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { dashboardStatsApi } from '@/lib/api/dashboard-stats';
-
 interface TransactionVolumeData {
   purchases: number;
   cashouts: number;
@@ -11,41 +8,13 @@ interface TransactionVolumeData {
 }
 
 export function RevenueWidget() {
-  const [volumeData, setVolumeData] = useState<TransactionVolumeData>({
-    purchases: 0,
-    cashouts: 0,
-    netVolume: 0,
-    completedCount: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchVolumeData = async () => {
-      try {
-        const stats = await dashboardStatsApi.getStats();
-        const purchases = stats.totalPurchasesToday;
-        const cashouts = stats.totalCashoutsToday;
-        const netVolume = purchases - cashouts;
-        
-        setVolumeData({
-          purchases,
-          cashouts,
-          netVolume,
-          completedCount: stats.completedToday,
-        });
-      } catch (error) {
-        console.error('Error fetching volume data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchVolumeData();
-    
-    // Refresh every minute for real-time updates
-    const interval = setInterval(fetchVolumeData, 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Mock data for transaction volume
+  const volumeData: TransactionVolumeData = {
+    purchases: 45200,
+    cashouts: 28900,
+    netVolume: 16300,
+    completedCount: 342,
+  };
 
   const isPositive = volumeData.netVolume >= 0;
   const percentage = volumeData.purchases > 0 
@@ -71,7 +40,7 @@ export function RevenueWidget() {
         </div>
         
         <div className={`text-2xl font-bold mb-1 ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-          {loading ? '...' : `${isPositive ? '+' : ''}${formatCurrency(volumeData.netVolume)}`}
+          {`${isPositive ? '+' : ''}${formatCurrency(volumeData.netVolume)}`}
         </div>
         
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground dark:text-gray-400 mb-3">

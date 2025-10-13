@@ -1,8 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { dashboardStatsApi } from '@/lib/api/dashboard-stats';
-
 interface GameStatusData {
   activeGames: number;
   inactiveGames: number;
@@ -10,35 +7,12 @@ interface GameStatusData {
 }
 
 export function GameActivityChart() {
-  const [gameStatus, setGameStatus] = useState<GameStatusData>({
-    activeGames: 0,
-    inactiveGames: 0,
-    pendingQueues: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchGameStatus = async () => {
-      try {
-        const stats = await dashboardStatsApi.getStats();
-        setGameStatus({
-          activeGames: stats.activeGames,
-          inactiveGames: stats.inactiveGames,
-          pendingQueues: stats.pendingTransactions,
-        });
-      } catch (error) {
-        console.error('Error fetching game status:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchGameStatus();
-    
-    // Refresh every 2 minutes
-    const interval = setInterval(fetchGameStatus, 2 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Mock data for platform status
+  const gameStatus: GameStatusData = {
+    activeGames: 45,
+    inactiveGames: 8,
+    pendingQueues: 12,
+  };
 
   const total = gameStatus.activeGames + gameStatus.inactiveGames + gameStatus.pendingQueues;
   const activeAngle = total > 0 ? (gameStatus.activeGames / total) * 360 : 120;
@@ -86,11 +60,6 @@ export function GameActivityChart() {
               strokeDashoffset={`-${((activeAngle + pendingAngle) / 360) * 251.2}`}
             />
           </svg>
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xs text-muted-foreground dark:text-gray-400">...</span>
-            </div>
-          )}
         </div>
       </div>
 

@@ -1,8 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { dashboardStatsApi } from '@/lib/api/dashboard-stats';
-
 interface TopGame {
   id: number;
   name: string;
@@ -12,40 +9,18 @@ interface TopGame {
 }
 
 export function TopSlotsWidget() {
-  const [topGames, setTopGames] = useState<TopGame[]>([
-    { id: 1, name: 'Mega Fortune', players: 1247, status: 'hot' },
-    { id: 2, name: 'Lucky Slots', players: 892, status: 'active' },
-    { id: 3, name: 'Diamond King', players: 654, status: 'active' },
-    { id: 4, name: 'Golden Spin', players: 423, status: 'normal' },
-  ]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchTopGames = async () => {
-      try {
-        const games = await dashboardStatsApi.getTopGames();
-        if (games && games.length > 0) {
-          setTopGames(games);
-        }
-      } catch (error) {
-        console.error('Error fetching top games:', error);
-        // Keep default data on error
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTopGames();
-    
-    // Refresh every 2 minutes
-    const interval = setInterval(fetchTopGames, 2 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Mock data for top games
+  const topGames: TopGame[] = [
+    { id: 1, name: 'Fire Kirin', players: 1247, status: 'hot' },
+    { id: 2, name: 'Panda Master', players: 892, status: 'active' },
+    { id: 3, name: 'Juwa', players: 654, status: 'active' },
+    { id: 4, name: 'Game Vault', players: 423, status: 'normal' },
+  ];
 
   return (
     <div className="bg-card dark:bg-gray-800 rounded-xl p-4 border border-border dark:border-gray-700">
       <h3 className="text-sm font-medium text-muted-foreground dark:text-gray-400 mb-4">
-        {loading ? 'Loading Top Slots...' : 'Top Performing Slots'}
+        Top Performing Slots
       </h3>
       
       <div className="relative h-32 sm:h-48 bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-lg overflow-hidden p-3 sm:p-4">

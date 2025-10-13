@@ -1,43 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { dashboardStatsApi } from '@/lib/api/dashboard-stats';
-
 interface AffiliatePerformanceProps {
   totalAffiliates?: number;
   activeAffiliates?: number;
 }
 
-export function ServerUptimeGauge({ totalAffiliates: initialTotal, activeAffiliates: initialActive }: AffiliatePerformanceProps) {
-  const [totalAffiliates, setTotalAffiliates] = useState(initialTotal || 0);
-  const [activeAffiliates, setActiveAffiliates] = useState(initialActive || 0);
-  const [loading, setLoading] = useState(!initialTotal);
-
-  useEffect(() => {
-    const fetchAffiliateStats = async () => {
-      try {
-        const stats = await dashboardStatsApi.getStats();
-        setTotalAffiliates(stats.totalAffiliates);
-        // Active affiliates are those with players
-        const active = stats.topAffiliates.filter(a => a.total_players > 0).length;
-        setActiveAffiliates(active);
-      } catch (error) {
-        console.error('Error fetching affiliate stats:', error);
-        // Keep default values on error
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!initialTotal) {
-      fetchAffiliateStats();
-      
-      // Refresh every 5 minutes
-      const interval = setInterval(fetchAffiliateStats, 5 * 60 * 1000);
-      return () => clearInterval(interval);
-    }
-  }, [initialTotal]);
-
+export function ServerUptimeGauge({ totalAffiliates = 25, activeAffiliates = 18 }: AffiliatePerformanceProps) {
   const percentage = totalAffiliates > 0 ? (activeAffiliates / totalAffiliates) * 100 : 0;
   const circumference = 2 * Math.PI * 40; // radius = 40
   const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
@@ -72,13 +40,13 @@ export function ServerUptimeGauge({ totalAffiliates: initialTotal, activeAffilia
             strokeWidth="8"
             fill="none"
             strokeDasharray={strokeDasharray}
-            className={loading ? 'text-gray-400' : getPerformanceColor()}
+            className={getPerformanceColor()}
             strokeLinecap="round"
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-lg sm:text-2xl font-bold text-foreground dark:text-gray-100">
-            {loading ? '...' : activeAffiliates}
+            {activeAffiliates}
           </span>
           <span className="text-xs text-muted-foreground dark:text-gray-400">
             of {totalAffiliates}

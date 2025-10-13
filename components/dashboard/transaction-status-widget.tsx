@@ -1,8 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { dashboardStatsApi } from '@/lib/api/dashboard-stats';
-
 interface TransactionHealthData {
   pendingCount: number;
   status: string;
@@ -11,33 +8,13 @@ interface TransactionHealthData {
 }
 
 export function TransactionStatusWidget() {
-  const [transactionHealth, setTransactionHealth] = useState<TransactionHealthData>({
+  // Mock data for transaction status
+  const transactionHealth: TransactionHealthData = {
     pendingCount: 23,
     status: 'Processing Smoothly',
     totalToday: 1847,
     successRate: 98.5,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchTransactionStatus = async () => {
-      try {
-        const status = await dashboardStatsApi.getTransactionStatus();
-        setTransactionHealth(status);
-      } catch (error) {
-        console.error('Error fetching transaction status:', error);
-        // Keep default data on error
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTransactionStatus();
-    
-    // Refresh every minute for real-time updates
-    const interval = setInterval(fetchTransactionStatus, 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+  };
 
   return (
     <div className="bg-card dark:bg-gray-800 rounded-xl p-4 border border-border dark:border-gray-700">
@@ -45,7 +22,7 @@ export function TransactionStatusWidget() {
       
       <div className="text-center mb-4">
         <div className="text-3xl font-bold text-foreground dark:text-gray-100 mb-1">
-          {loading ? '...' : transactionHealth.pendingCount}
+          {transactionHealth.pendingCount}
         </div>
         <div className="text-sm text-muted-foreground dark:text-gray-400 mb-2">
           {transactionHealth.status}
