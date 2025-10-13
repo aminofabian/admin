@@ -146,7 +146,7 @@ export function AffiliateForm({ onSubmit, onCancel, initialData }: AffiliateForm
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          variant="outline"
+          variant="secondary"
           className="flex-1"
         >
           Cancel

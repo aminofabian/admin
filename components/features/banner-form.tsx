@@ -140,7 +140,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          variant="outline"
+          variant="secondary"
           className="flex-1"
         >
           Cancel
