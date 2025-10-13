@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
+import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import {
   ControlGrid,
   BonusWidget,
@@ -25,6 +26,7 @@ import type { ControlSection } from '@/components/dashboard';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { stats, loading: statsLoading } = useDashboardStats();
   const isSuperAdmin = user?.role === USER_ROLES.SUPERADMIN;
   const isCompanyAdmin = user?.role === USER_ROLES.COMPANY;
   const [activeSection, setActiveSection] = useState<ControlSection | null>(null);
@@ -136,12 +138,16 @@ export default function DashboardPage() {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Uptime</span>
-                  <span className="text-lg font-bold text-primary">99.8%</span>
+                  <span className="text-xs text-muted-foreground">Agents</span>
+                  <span className="text-lg font-bold text-primary">
+                    {statsLoading ? '...' : (stats?.totalAffiliates || 0)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Players</span>
-                  <span className="text-lg font-bold text-foreground">1,247</span>
+                  <span className="text-lg font-bold text-foreground">
+                    {statsLoading ? '...' : (stats?.activePlayers || 0).toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -154,12 +160,16 @@ export default function DashboardPage() {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Today</span>
-                  <span className="text-lg font-bold text-primary">$45K</span>
+                  <span className="text-xs text-muted-foreground">Balance</span>
+                  <span className="text-lg font-bold text-primary">
+                    {statsLoading ? '...' : `$${(stats?.platformLiquidity || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Peak</span>
-                  <span className="text-lg font-bold text-foreground">$125K</span>
+                  <span className="text-xs text-muted-foreground">Players</span>
+                  <span className="text-lg font-bold text-foreground">
+                    {statsLoading ? '...' : (stats?.totalPlayers || 0).toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -186,7 +196,7 @@ export default function DashboardPage() {
         <div className="sm:hidden">
           <div className="grid grid-cols-2 gap-4">
             <RevenueWidget />
-            <JackpotPoolGauge current={45000} max={100000} lastWin={12500} />
+            <JackpotPoolGauge />
           </div>
         </div>
 
@@ -194,23 +204,29 @@ export default function DashboardPage() {
         <div className="hidden sm:block space-y-4">
               {/* Top Stats Row */}
               <div className="grid grid-cols-2 gap-4">
-                <ServerUptimeGauge speed={99.8} />
+                <ServerUptimeGauge />
               <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-muted-foreground">Live</h3>
                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                 </div>
                 <div className="text-center space-y-2">
-                  <div className="text-3xl font-bold text-primary">1,247</div>
+                  <div className="text-3xl font-bold text-primary">
+                    {statsLoading ? '...' : (stats?.activePlayers || 0).toLocaleString()}
+                  </div>
                   <div className="text-xs text-muted-foreground">Active Players</div>
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
                     <div>
-                      <div className="text-sm font-semibold">892</div>
-                      <div className="text-[10px] text-muted-foreground">Playing</div>
+                      <div className="text-sm font-semibold">
+                        {statsLoading ? '...' : (stats?.totalPlayers || 0).toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Total</div>
                     </div>
                     <div>
-                      <div className="text-sm font-semibold">1,589</div>
-                      <div className="text-[10px] text-muted-foreground">Peak</div>
+                      <div className="text-sm font-semibold">
+                        {statsLoading ? '...' : (stats?.activeGames || 0)}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Games</div>
                     </div>
                   </div>
                 </div>
@@ -243,7 +259,7 @@ export default function DashboardPage() {
 
           <ControlGrid onSectionClick={handleSectionClick} activeSection={activeSection} />
           <div className="grid grid-cols-2 gap-4">
-            <JackpotPoolGauge current={45000} max={100000} lastWin={12500} />
+            <JackpotPoolGauge />
             <RevenueWidget />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -292,7 +308,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-6 space-y-4 xl:space-y-5">
           {/* System Health & Live Players - Desktop Version */}
           <div className="grid grid-cols-2 gap-4 xl:gap-5">
-            <ServerUptimeGauge speed={99.8} />
+            <ServerUptimeGauge />
             
             {/* Live Players - Full Desktop Version */}
             <div className="bg-card rounded-xl p-4 xl:p-5 border border-border shadow-sm hover:shadow-md transition-shadow">
@@ -309,15 +325,21 @@ export default function DashboardPage() {
                 <div className="space-y-2 xl:space-y-3 text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Active Players</span>
-                    <span className="text-lg xl:text-xl font-bold text-primary">1,247</span>
+                    <span className="text-lg xl:text-xl font-bold text-primary">
+                      {statsLoading ? '...' : (stats?.activePlayers || 0).toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Playing Now</span>
-                    <span className="text-foreground font-semibold">892</span>
+                    <span className="text-muted-foreground">Total Players</span>
+                    <span className="text-foreground font-semibold">
+                      {statsLoading ? '...' : (stats?.totalPlayers || 0).toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Peak Today</span>
-                    <span className="text-foreground font-semibold">1,589</span>
+                    <span className="text-muted-foreground">Active Games</span>
+                    <span className="text-foreground font-semibold">
+                      {statsLoading ? '...' : (stats?.activeGames || 0)}
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground/80 mt-3 pt-3 border-t border-border flex items-center justify-center gap-2">
                     <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-pulse"></div>
@@ -334,7 +356,7 @@ export default function DashboardPage() {
 
         {/* Right Sidebar - Financial Overview */}
         <div className="lg:col-span-3 space-y-4 xl:space-y-5">
-          <JackpotPoolGauge current={45000} max={100000} lastWin={12500} />
+          <JackpotPoolGauge />
           <TransactionStatusWidget />
           <RevenueWidget />
           <GameActivityChart />

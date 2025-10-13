@@ -1,30 +1,67 @@
 'use client';
 
-interface RevenueData {
-  totalToday: number;
-  performance: number;
-  transactionsCompleted: number;
-  isGrowing: boolean;
+import { useEffect, useState } from 'react';
+import { dashboardStatsApi } from '@/lib/api/dashboard-stats';
+
+interface TransactionVolumeData {
+  purchases: number;
+  cashouts: number;
+  netVolume: number;
+  completedCount: number;
 }
 
 export function RevenueWidget() {
-  const revenue: RevenueData = {
-    totalToday: 45000,
-    performance: 92,
-    transactionsCompleted: 1847,
-    isGrowing: true,
-  };
+  const [volumeData, setVolumeData] = useState<TransactionVolumeData>({
+    purchases: 0,
+    cashouts: 0,
+    netVolume: 0,
+    completedCount: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchVolumeData = async () => {
+      try {
+        const stats = await dashboardStatsApi.getStats();
+        const purchases = stats.totalPurchasesToday;
+        const cashouts = stats.totalCashoutsToday;
+        const netVolume = purchases - cashouts;
+        
+        setVolumeData({
+          purchases,
+          cashouts,
+          netVolume,
+          completedCount: stats.completedToday,
+        });
+      } catch (error) {
+        console.error('Error fetching volume data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVolumeData();
+    
+    // Refresh every minute for real-time updates
+    const interval = setInterval(fetchVolumeData, 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isPositive = volumeData.netVolume >= 0;
+  const percentage = volumeData.purchases > 0 
+    ? (volumeData.netVolume / volumeData.purchases) * 100 
+    : 0;
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000) {
       return `$${(amount / 1000).toFixed(1)}K`;
     }
-    return `$${amount}`;
+    return `$${amount.toFixed(0)}`;
   };
 
   return (
-    <div className="bg-card rounded-xl p-4 border border-border">
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">Revenue Today</h3>
+    <div className="bg-card dark:bg-gray-800 rounded-xl p-4 border border-border dark:border-gray-700">
+      <h3 className="text-sm font-medium text-muted-foreground dark:text-gray-400 mb-4">Transaction Volume Today</h3>
       
       <div className="text-center mb-4">
         <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg flex items-center justify-center">
@@ -33,40 +70,44 @@ export function RevenueWidget() {
           </svg>
         </div>
         
-        <div className="text-2xl font-bold text-foreground mb-1">
-          {formatCurrency(revenue.totalToday)}
+        <div className={`text-2xl font-bold mb-1 ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+          {loading ? '...' : `${isPositive ? '+' : ''}${formatCurrency(volumeData.netVolume)}`}
         </div>
         
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-3">
-          <span>{revenue.performance}% of target</span>
-          {revenue.isGrowing ? (
-            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground dark:text-gray-400 mb-3">
+          <span>Net flow</span>
+          {isPositive ? (
+            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           ) : (
-            <svg className="w-4 h-4 text-primary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
             </svg>
           )}
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-muted rounded-full h-2 mb-2">
+        <div className="w-full bg-muted dark:bg-gray-700 rounded-full h-2 mb-2">
           <div 
-            className="h-2 bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-300"
-            style={{ width: `${revenue.performance}%` }}
+            className={`h-2 rounded-full transition-all duration-300 ${isPositive ? 'bg-gradient-to-r from-green-500 to-green-400' : 'bg-gradient-to-r from-red-500 to-red-400'}`}
+            style={{ width: `${Math.min(Math.abs(percentage), 100)}%` }}
           />
         </div>
       </div>
 
       <div className="space-y-2">
         <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">Completed TX</span>
-          <span className="text-foreground">{revenue.transactionsCompleted} txns</span>
+          <span className="text-muted-foreground dark:text-gray-400">Purchases</span>
+          <span className="text-green-600 dark:text-green-400 font-medium">{formatCurrency(volumeData.purchases)}</span>
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">Status</span>
-          <span className="text-primary font-medium">{revenue.isGrowing ? 'Growing' : 'Stable'}</span>
+          <span className="text-muted-foreground dark:text-gray-400">Cashouts</span>
+          <span className="text-red-600 dark:text-red-400 font-medium">{formatCurrency(volumeData.cashouts)}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground dark:text-gray-400">Completed</span>
+          <span className="text-foreground dark:text-gray-100">{volumeData.completedCount} txns</span>
         </div>
       </div>
     </div>
