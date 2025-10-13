@@ -26,12 +26,12 @@ export function BannersSection() {
   const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
   const [totalCount, setTotalCount] = useState(0);
 
-  const { currentPage, pageSize, handlePageChange } = usePagination();
-  const { searchTerm, handleSearch } = useSearch();
+  const { page, pageSize, setPage } = usePagination();
+  const { search, debouncedSearch, setSearch } = useSearch();
 
   useEffect(() => {
     fetchBanners();
-  }, [currentPage, pageSize, searchTerm]);
+  }, [page, pageSize, debouncedSearch]);
 
   const fetchBanners = async () => {
     setIsLoading(true);
@@ -125,8 +125,8 @@ export function BannersSection() {
       </div>
 
       <SearchInput
-        value={searchTerm}
-        onChange={handleSearch}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
         placeholder="Search banners..."
       />
 
@@ -146,7 +146,7 @@ export function BannersSection() {
           <TableBody>
             {banners.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <TableCell className="text-center py-12 text-gray-500 dark:text-gray-400" colSpan={7}>
                   No banners found
                 </TableCell>
               </TableRow>
@@ -171,7 +171,7 @@ export function BannersSection() {
                       onClick={() => handleToggleActive(banner)}
                       className="focus:outline-none"
                     >
-                      <Badge variant={banner.is_active ? 'success' : 'error'}>
+                      <Badge variant={banner.is_active ? 'success' : 'danger'}>
                         {banner.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </button>
@@ -219,9 +219,11 @@ export function BannersSection() {
       </div>
 
       <Pagination
-        currentPage={currentPage}
+        currentPage={page}
         totalPages={Math.ceil(totalCount / pageSize)}
-        onPageChange={handlePageChange}
+        onPageChange={setPage}
+        hasPrevious={page > 1}
+        hasNext={page < Math.ceil(totalCount / pageSize)}
       />
 
       <Drawer

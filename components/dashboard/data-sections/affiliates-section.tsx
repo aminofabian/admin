@@ -25,20 +25,20 @@ export function AffiliatesSection() {
   const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
   const [totalCount, setTotalCount] = useState(0);
 
-  const { currentPage, pageSize, handlePageChange } = usePagination();
-  const { searchTerm, handleSearch } = useSearch();
+  const { page, pageSize, setPage } = usePagination();
+  const { search, debouncedSearch, setSearch } = useSearch();
 
   useEffect(() => {
     fetchAffiliates();
-  }, [currentPage, pageSize, searchTerm]);
+  }, [page, pageSize, debouncedSearch]);
 
   const fetchAffiliates = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await affiliatesApi.list({
-        search: searchTerm,
-        page: currentPage,
+        search: debouncedSearch,
+        page: page,
         page_size: pageSize,
       });
       setAffiliates(response.results);
@@ -100,8 +100,8 @@ export function AffiliatesSection() {
       </div>
 
       <SearchInput
-        value={searchTerm}
-        onChange={handleSearch}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
         placeholder="Search affiliates by name or email..."
       />
 
@@ -123,7 +123,7 @@ export function AffiliatesSection() {
           <TableBody>
             {affiliates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <TableCell className="text-center py-12 text-gray-500 dark:text-gray-400" colSpan={9}>
                   No affiliates found
                 </TableCell>
               </TableRow>
@@ -187,9 +187,11 @@ export function AffiliatesSection() {
       </div>
 
       <Pagination
-        currentPage={currentPage}
+        currentPage={page}
         totalPages={Math.ceil(totalCount / pageSize)}
-        onPageChange={handlePageChange}
+        onPageChange={setPage}
+        hasPrevious={page > 1}
+        hasNext={page < Math.ceil(totalCount / pageSize)}
       />
 
       {selectedAffiliate && (

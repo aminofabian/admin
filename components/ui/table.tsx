@@ -1,4 +1,4 @@
-import { HTMLAttributes } from 'react';
+import { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from 'react';
 
 export function Table({ className = '', ...props }: HTMLAttributes<HTMLTableElement>) {
   return (
@@ -38,7 +38,7 @@ export function TableRow({ className = '', ...props }: HTMLAttributes<HTMLTableR
   );
 }
 
-export function TableHead({ className = '', ...props }: HTMLAttributes<HTMLTableCellElement>) {
+export function TableHead({ className = '', ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th 
       className={`px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${className}`}
@@ -47,7 +47,7 @@ export function TableHead({ className = '', ...props }: HTMLAttributes<HTMLTable
   );
 }
 
-export function TableCell({ className = '', ...props }: HTMLAttributes<HTMLTableCellElement>) {
+export function TableCell({ className = '', ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td 
       className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 ${className}`}
