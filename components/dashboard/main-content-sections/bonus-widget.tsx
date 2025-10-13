@@ -45,9 +45,9 @@ const BONUS_CATEGORIES = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    gradient: 'from-blue-500/20 to-cyan-500/20',
-    iconColor: 'text-blue-500',
-    badgeColor: 'bg-blue-500/10 text-blue-500',
+    gradient: 'from-primary/15 to-primary/5',
+    iconColor: 'text-primary',
+    badgeColor: 'bg-primary/10 text-primary',
   },
   {
     id: 'recharge',
@@ -60,9 +60,9 @@ const BONUS_CATEGORIES = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    gradient: 'from-purple-500/20 to-pink-500/20',
-    iconColor: 'text-purple-500',
-    badgeColor: 'bg-purple-500/10 text-purple-500',
+    gradient: 'from-primary/10 to-primary/5',
+    iconColor: 'text-primary/80',
+    badgeColor: 'bg-primary/8 text-primary',
   },
   {
     id: 'transfer',
@@ -74,9 +74,9 @@ const BONUS_CATEGORIES = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
       </svg>
     ),
-    gradient: 'from-orange-500/20 to-amber-500/20',
-    iconColor: 'text-orange-500',
-    badgeColor: 'bg-orange-500/10 text-orange-500',
+    gradient: 'from-primary/8 to-muted/10',
+    iconColor: 'text-primary/70',
+    badgeColor: 'bg-muted/50 text-foreground',
   },
   {
     id: 'signup',
@@ -88,9 +88,9 @@ const BONUS_CATEGORIES = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
       </svg>
     ),
-    gradient: 'from-green-500/20 to-emerald-500/20',
-    iconColor: 'text-green-500',
-    badgeColor: 'bg-green-500/10 text-green-500',
+    gradient: 'from-primary/12 to-primary/5',
+    iconColor: 'text-primary',
+    badgeColor: 'bg-primary/10 text-primary',
   },
 ];
 
@@ -126,10 +126,9 @@ export function BonusWidget() {
   return (
     <>
       <div className="bg-card p-5 border border-border shadow-md">
-        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary/10 flex items-center justify-center rounded">
               <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
               </svg>
@@ -139,16 +138,15 @@ export function BonusWidget() {
               <p className="text-xs text-muted-foreground">{totalBonuses} active offers</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 border border-green-500/20">
-            <div className="w-1.5 h-1.5 bg-green-500 animate-pulse" />
-            <span className="text-xs text-green-500 font-semibold">Live</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-border/50 rounded">
+            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+            <span className="text-xs text-primary font-semibold">Live</span>
           </div>
         </div>
 
-      {/* Stats Circle */}
       <div className="text-center mb-5 pb-5 border-b border-border/50">
         <div className="relative w-24 h-24 mx-auto mb-3">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-purple-500/10 blur-xl" />
+          <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full" />
           <svg className="relative w-full h-full transform -rotate-90" viewBox="0 0 100 100">
             <circle
               cx="50"

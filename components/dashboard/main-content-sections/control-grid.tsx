@@ -217,7 +217,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
             
             {/* Notification Badge - Prominent Red */}
             {(index === 3 || index === 10) && (
-              <span className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 rounded-full text-[11px] text-white font-bold flex items-center justify-center shadow-lg ring-2 ring-card">
+              <span className="absolute -top-2 -right-2 w-7 h-7 bg-primary rounded-full text-[11px] text-white font-bold flex items-center justify-center shadow-lg ring-2 ring-card">
                 {index === 3 ? '5' : '2'}
               </span>
             )}
@@ -245,7 +245,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
               {item.label}
             </span>
             {(index === 3 || index === 10) && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
                 {index === 3 ? '5' : '2'}
               </span>
             )}
@@ -273,7 +273,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
               {item.label}
             </span>
             {(index === 3 || index === 10) && (
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-[7px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full text-[7px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
                 {index === 3 ? '5' : '2'}
               </span>
             )}
@@ -301,7 +301,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
               {item.label}
             </span>
             {(index === 3 || index === 10) && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
                 {index === 3 ? '5' : '2'}
               </span>
             )}
@@ -329,7 +329,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
               {item.label}
             </span>
             {(index === 3 || index === 10) && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-[9px] text-white font-bold flex items-center justify-center shadow-lg animate-pulse">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full text-[9px] text-white font-bold flex items-center justify-center shadow-lg animate-pulse">
                 {index === 3 ? '5' : '2'}
               </span>
             )}

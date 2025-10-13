@@ -7,7 +7,6 @@ interface GameStatusData {
 }
 
 export function GameActivityChart() {
-  // Mock data for platform status
   const gameStatus: GameStatusData = {
     activeGames: 45,
     inactiveGames: 8,
@@ -20,40 +19,37 @@ export function GameActivityChart() {
   const pendingAngle = total > 0 ? (gameStatus.pendingQueues / total) * 360 : 120;
 
   return (
-    <div className="bg-card dark:bg-gray-800 rounded-xl p-4 border border-border dark:border-gray-700">
-      <h3 className="text-sm font-medium text-muted-foreground dark:text-gray-400 mb-4">Platform Status</h3>
+    <div className="bg-card rounded-xl p-4 border border-border">
+      <h3 className="text-sm font-medium text-muted-foreground mb-4">Platform Status</h3>
       
       <div className="flex items-center justify-center mb-4">
         <div className="relative w-24 h-24">
           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-            {/* Active Games */}
             <circle
               cx="50"
               cy="50"
               r="40"
-              stroke="rgb(34 197 94)"
+              stroke="hsl(var(--primary))"
               strokeWidth="8"
               fill="none"
               strokeDasharray={`${(activeAngle / 360) * 251.2} 251.2`}
               strokeDashoffset="0"
             />
-            {/* Pending Queues */}
             <circle
               cx="50"
               cy="50"
               r="40"
-              stroke="rgb(234 179 8)"
+              stroke="hsl(var(--primary) / 0.5)"
               strokeWidth="8"
               fill="none"
               strokeDasharray={`${(pendingAngle / 360) * 251.2} 251.2`}
               strokeDashoffset={`-${(activeAngle / 360) * 251.2}`}
             />
-            {/* Inactive Games */}
             <circle
               cx="50"
               cy="50"
               r="40"
-              stroke="rgb(107 114 128)"
+              stroke="hsl(var(--muted-foreground) / 0.3)"
               strokeWidth="8"
               fill="none"
               strokeDasharray={`${(inactiveAngle / 360) * 251.2} 251.2`}
@@ -66,26 +62,26 @@ export function GameActivityChart() {
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full" />
-            <span className="text-muted-foreground dark:text-gray-400">Active Games</span>
+            <div className="w-3 h-3 bg-primary rounded-full" />
+            <span className="text-muted-foreground">Active Games</span>
           </div>
-          <span className="text-foreground dark:text-gray-100 font-medium">{gameStatus.activeGames}</span>
+          <span className="text-foreground font-medium">{gameStatus.activeGames}</span>
         </div>
         
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-            <span className="text-muted-foreground dark:text-gray-400">Pending Queues</span>
+            <div className="w-3 h-3 bg-primary/50 rounded-full" />
+            <span className="text-muted-foreground">Pending Queues</span>
           </div>
-          <span className="text-foreground dark:text-gray-100 font-medium">{gameStatus.pendingQueues}</span>
+          <span className="text-foreground font-medium">{gameStatus.pendingQueues}</span>
         </div>
         
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-gray-500 rounded-full" />
-            <span className="text-muted-foreground dark:text-gray-400">Inactive Games</span>
+            <div className="w-3 h-3 bg-muted-foreground/30 rounded-full" />
+            <span className="text-muted-foreground">Inactive Games</span>
           </div>
-          <span className="text-foreground dark:text-gray-100 font-medium">{gameStatus.inactiveGames}</span>
+          <span className="text-foreground font-medium">{gameStatus.inactiveGames}</span>
         </div>
       </div>
     </div>
