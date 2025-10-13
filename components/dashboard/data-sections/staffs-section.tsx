@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { staffsApi } from '@/lib/api/users';
-import type { Staff, PaginatedResponse } from '@/types';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button } from '@/components/ui';
+import type { Staff, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
+import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
 
 export function StaffsSection() {
   const [data, setData] = useState<PaginatedResponse<Staff> | null>(null);
@@ -13,6 +13,11 @@ export function StaffsSection() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+
+  // Drawer state
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const fetchStaffs = async () => {
     try {
@@ -44,6 +49,34 @@ export function StaffsSection() {
     fetchStaffs();
   }, [searchTerm, currentPage]);
 
+  const handleCreateStaff = async (formData: CreateUserRequest | UpdateUserRequest) => {
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock successful creation
+      console.log('Creating staff:', formData);
+      
+      // Close drawer and refresh data
+      setIsDrawerOpen(false);
+      await fetchStaffs();
+      
+    } catch (error) {
+      console.error('Error creating staff:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Failed to create staff member');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setSubmitError(null);
+  };
+
   if (loading && !data) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchStaffs} />;
   if (!data?.results?.length && !searchTerm) {
@@ -68,8 +101,15 @@ export function StaffsSection() {
             Manage all staff accounts and permissions
           </p>
         </div>
-        <Button variant="primary" size="md">
-          + Add Staff
+        <Button 
+          variant="primary" 
+          size="md"
+          onClick={() => setIsDrawerOpen(true)}
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Staff
         </Button>
       </div>
 
@@ -154,6 +194,28 @@ export function StaffsSection() {
           onPageChange={setCurrentPage}
         />
       )}
+
+      {/* Add Staff Drawer */}
+      <Drawer
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        title="Create New Staff"
+        size="lg"
+      >
+        {submitError && (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{submitError}</span>
+          </div>
+        )}
+        <StaffForm
+          onSubmit={handleCreateStaff}
+          onCancel={handleCloseDrawer}
+          isLoading={isSubmitting}
+        />
+      </Drawer>
     </div>
   );
 }
