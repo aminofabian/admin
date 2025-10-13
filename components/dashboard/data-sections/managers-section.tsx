@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { managersApi } from '@/lib/api/users';
-import type { Manager, PaginatedResponse } from '@/types';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button } from '@/components/ui';
+import type { Manager, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
+import { LoadingState, ErrorState, EmptyState, ManagerForm } from '@/components/features';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
 
 export function ManagersSection() {
   const [data, setData] = useState<PaginatedResponse<Manager> | null>(null);
@@ -12,6 +12,9 @@ export function ManagersSection() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const pageSize = 10;
 
   const fetchManagers = async () => {
@@ -58,6 +61,30 @@ export function ManagersSection() {
     });
   };
 
+  const handleCreateManager = async (formData: CreateUserRequest | UpdateUserRequest) => {
+    try {
+      setIsSubmitting(true);
+      setSubmitError('');
+      
+      // Using mock API - replace with managersApi.create when backend is ready
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      
+      setIsDrawerOpen(false);
+      await fetchManagers();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create manager';
+      setSubmitError(errorMessage);
+      throw err;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setSubmitError('');
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -68,8 +95,11 @@ export function ManagersSection() {
             Manage all manager accounts and permissions
           </p>
         </div>
-        <Button variant="primary" size="md">
-          + Add Manager
+        <Button variant="primary" size="md" onClick={() => setIsDrawerOpen(true)}>
+          <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Manager
         </Button>
       </div>
 
@@ -152,6 +182,28 @@ export function ManagersSection() {
           onPageChange={setCurrentPage}
         />
       )}
+
+      {/* Add Manager Drawer */}
+      <Drawer
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        title="Create New Manager"
+        size="lg"
+      >
+        {submitError && (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{submitError}</span>
+          </div>
+        )}
+        <ManagerForm
+          onSubmit={handleCreateManager}
+          onCancel={handleCloseDrawer}
+          isLoading={isSubmitting}
+        />
+      </Drawer>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 export * from './button';
 export * from './input';
 export * from './card';
+export * from './drawer';
 export * from './table';
 export * from './badge';
 export * from './modal';
