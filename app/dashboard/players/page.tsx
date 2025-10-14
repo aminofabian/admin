@@ -32,6 +32,7 @@ export default function PlayersPage() {
 
   useEffect(() => {
     loadPlayers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, debouncedSearch]);
 
   const loadPlayers = async () => {

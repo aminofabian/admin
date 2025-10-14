@@ -20,6 +20,7 @@ export default function StaffsPage() {
 
   useEffect(() => {
     loadStaffs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, debouncedSearch]);
 
   const loadStaffs = async () => {

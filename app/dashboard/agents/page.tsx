@@ -20,6 +20,7 @@ export default function AgentsPage() {
 
   useEffect(() => {
     loadAgents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, debouncedSearch]);
 
   const loadAgents = async () => {

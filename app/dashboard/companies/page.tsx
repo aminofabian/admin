@@ -213,6 +213,7 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     loadCompanies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, debouncedSearch]);
 
   useEffect(() => {
@@ -246,7 +247,7 @@ export default function CompaniesPage() {
       setSubmitError('');
       
       // Using mock API - replace with companiesApi.create when backend is ready
-      const response = await mockCompaniesApi.create(formData as CreateCompanyRequest);
+      await mockCompaniesApi.create(formData as CreateCompanyRequest);
       
       setSuccessMessage('Company created successfully!');
       setIsCreateModalOpen(false);

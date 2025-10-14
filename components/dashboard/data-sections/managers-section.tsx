@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { managersApi } from '@/lib/api/users';
 import type { Manager, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, ManagerForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
@@ -61,7 +60,8 @@ export function ManagersSection() {
     });
   };
 
-  const handleCreateManager = async (formData: CreateUserRequest | UpdateUserRequest) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleCreateManager = async (_formData: CreateUserRequest | UpdateUserRequest) => {
     try {
       setIsSubmitting(true);
       setSubmitError('');

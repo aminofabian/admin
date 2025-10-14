@@ -32,6 +32,7 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     loadTransactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, debouncedSearch, filter]);
 
   const loadTransactions = async () => {

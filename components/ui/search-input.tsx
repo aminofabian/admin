@@ -1,10 +1,8 @@
 import { InputHTMLAttributes } from 'react';
 
-interface SearchInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
-  onClear?: () => void;
-}
+type SearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>;
 
-export function SearchInput({ onClear, className = '', ...props }: SearchInputProps) {
+export function SearchInput({ className = '', ...props }: SearchInputProps) {
   return (
     <div className="relative">
       <input

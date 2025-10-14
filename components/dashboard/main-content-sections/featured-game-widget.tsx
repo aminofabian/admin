@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 interface TopGameData {
   id: number;
   name: string;
@@ -32,9 +34,11 @@ export function FeaturedGameWidget() {
       
       <div className="flex items-center space-x-3 mb-4">
         {topGame.image_url ? (
-          <img 
+          <Image 
             src={topGame.image_url} 
             alt={topGame.name}
+            width={64}
+            height={64}
             className="w-16 h-16 rounded-lg object-cover border border-border"
           />
         ) : (

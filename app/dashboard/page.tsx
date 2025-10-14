@@ -1,8 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES } from '@/lib/constants/roles';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import {
   ControlGrid,
@@ -28,10 +26,7 @@ import {
 import type { ControlSection } from '@/components/dashboard/main-content-sections';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
   const { stats, loading: statsLoading } = useDashboardStats();
-  const isSuperAdmin = user?.role === USER_ROLES.SUPERADMIN;
-  const isCompanyAdmin = user?.role === USER_ROLES.COMPANY;
   const [activeSection, setActiveSection] = useState<ControlSection | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 

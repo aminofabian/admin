@@ -175,6 +175,7 @@ export default function ManagersPage() {
 
   useEffect(() => {
     loadManagers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, debouncedSearch]);
 
   useEffect(() => {

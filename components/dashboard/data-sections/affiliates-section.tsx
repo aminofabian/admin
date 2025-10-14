@@ -30,6 +30,7 @@ export function AffiliatesSection() {
 
   useEffect(() => {
     fetchAffiliates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, debouncedSearch]);
 
   const fetchAffiliates = async () => {

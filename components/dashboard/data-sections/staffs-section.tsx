@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { staffsApi } from '@/lib/api/users';
 import type { Staff, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';

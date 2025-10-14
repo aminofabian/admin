@@ -183,6 +183,7 @@ export default function GamesPage() {
 
   useEffect(() => {
     loadGames();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, debouncedSearch]);
 
   useEffect(() => {

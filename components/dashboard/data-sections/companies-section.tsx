@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { companiesApi } from '@/lib/api/companies';
 import type { Company, PaginatedResponse, CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, CompanyForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Button, Badge, Drawer } from '@/components/ui';
@@ -63,7 +62,8 @@ export function CompaniesSection() {
     });
   };
 
-  const handleCreateCompany = async (formData: CreateCompanyRequest | UpdateCompanyRequest) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleCreateCompany = async (_formData: CreateCompanyRequest | UpdateCompanyRequest) => {
     try {
       setIsSubmitting(true);
       setSubmitError('');

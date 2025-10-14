@@ -1,7 +1,6 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
-import { Button } from './button';
 
 interface DrawerProps {
   isOpen: boolean;

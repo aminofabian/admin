@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { agentsApi } from '@/lib/api/users';
 import type { Agent, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, AgentForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';

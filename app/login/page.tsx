@@ -24,17 +24,17 @@ export default function LoginPage() {
 
     try {
       await login(formData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
       
       let errorMessage = 'Login failed';
       
-      if (err?.message) {
-        errorMessage = err.message;
-      } else if (err?.detail) {
-        errorMessage = err.detail;
-      } else if (err?.error) {
-        errorMessage = err.error;
+      if (err && typeof err === 'object' && 'message' in err) {
+        errorMessage = String(err.message);
+      } else if (err && typeof err === 'object' && 'detail' in err) {
+        errorMessage = String(err.detail);
+      } else if (err && typeof err === 'object' && 'error' in err) {
+        errorMessage = String(err.error);
       } else if (typeof err === 'string') {
         errorMessage = err;
       }
