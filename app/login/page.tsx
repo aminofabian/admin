@@ -25,9 +25,9 @@ export default function LoginPage() {
 
     try {
       await login(formData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      setError(err?.message || 'Login failed. Please check your credentials and try again.');
+      setError((err as Error)?.message || 'Login failed. Please check your credentials and try again.');
     } finally {
       setIsLoading(false);
     }

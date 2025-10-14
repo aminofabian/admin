@@ -25,9 +25,9 @@ export const authApi = {
       const data = await response.json();
       console.log('✅ Dashboard games response:', data);
       return data as DashboardGamesResponse;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Error fetching project UUID:', error);
-      if (error.message.includes('Failed to fetch')) {
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
         throw new Error('Cannot connect to server. Please check your internet connection or if the server is accessible.');
       }
       throw error;

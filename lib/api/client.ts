@@ -88,9 +88,9 @@ class ApiClient {
       });
 
       return this.handleResponse<T>(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle network errors
-      if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      if (error instanceof Error && error.name === 'TypeError' && error.message === 'Failed to fetch') {
         throw {
           status: 'error',
           message: 'Cannot connect to server. Please check if the API is running at ' + this.baseUrl,
@@ -120,9 +120,9 @@ class ApiClient {
       });
 
       return this.handleResponse<T>(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle network errors
-      if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      if (error instanceof Error && error.name === 'TypeError' && error.message === 'Failed to fetch') {
         throw {
           status: 'error',
           message: 'Cannot connect to server. Please check if the API is running at ' + this.baseUrl,
