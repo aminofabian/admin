@@ -5,6 +5,7 @@ export const API_PREFIX = `/api/${API_VERSION}`;
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/users/login/',
+    DASHBOARD_GAMES: '/users/dashboard-games/',
   },
   COMPANIES: {
     LIST: `${API_PREFIX}/companies/`,
@@ -56,4 +57,6 @@ export const API_ENDPOINTS = {
 
 export const TOKEN_KEY = 'auth_token';
 export const REFRESH_TOKEN_KEY = 'refresh_token';
+export const PROJECT_UUID_KEY = 'whitelabel_admin_uuid';
+export const PROJECT_DOMAIN = process.env.NEXT_PUBLIC_PROJECT_DOMAIN || 'https://serverhub.biz';
 

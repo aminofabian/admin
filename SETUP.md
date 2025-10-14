@@ -8,10 +8,10 @@ Create a file named `.env.local` in the root directory (same level as `package.j
 
 ```bash
 # API Configuration - REQUIRED
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=https://admin.serverhub.biz
 
-# Or use your actual backend URL
-# NEXT_PUBLIC_API_URL=https://your-backend-domain.com
+# For local development
+# NEXT_PUBLIC_API_URL=http://localhost:8000
 
 # Environment
 NODE_ENV=development
@@ -19,8 +19,9 @@ NODE_ENV=development
 
 **Important:** 
 - The file must be named exactly `.env.local`
-- Replace `http://localhost:8000` with your actual backend API URL
+- Current API URL is set to `https://admin.serverhub.biz`
 - The variable must start with `NEXT_PUBLIC_` to be available in the browser
+- For local backend development, change the URL to `http://localhost:8000`
 
 ### Step 2: Install Dependencies
 
@@ -51,9 +52,9 @@ If you see **"Failed to construct 'URL': Invalid URL"**, it means the `.env.loca
 1. **Create `.env.local`** in the project root (if it doesn't exist)
 2. **Add this line:**
    ```
-   NEXT_PUBLIC_API_URL=http://localhost:8000
+   NEXT_PUBLIC_API_URL=https://admin.serverhub.biz
    ```
-3. **Replace** `http://localhost:8000` with your actual backend URL
+3. **For local development**, use `http://localhost:8000` instead
 4. **Restart** the development server (stop with Ctrl+C, then run `bun dev` again)
 
 ### Verify Environment Variables

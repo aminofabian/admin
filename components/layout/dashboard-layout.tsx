@@ -13,20 +13,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // TEMPORARILY DISABLED - Auth check bypassed for public access
-  // useEffect(() => {
-  //   if (!isLoading && !isAuthenticated) {
-  //     router.push('/login');
-  //   }
-  // }, [isLoading, isAuthenticated, router]);
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
 
-  // if (isLoading) {
-  //   return <LoadingState />;
-  // }
+  if (isLoading) {
+    return <LoadingState />;
+  }
 
-  // if (!isAuthenticated) {
-  //   return null;
-  // }
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen bg-background">

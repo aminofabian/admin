@@ -26,3 +26,14 @@ export interface AuthUser {
   lastLogin: string;
 }
 
+export interface ProjectDomainRequest {
+  project_domain: string;
+}
+
+export interface DashboardGamesResponse {
+  whitelabel_admin_uuid?: string;
+  project_uuid?: string;
+  uuid?: string;
+  [key: string]: any;
+}
+

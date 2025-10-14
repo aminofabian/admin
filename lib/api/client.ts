@@ -53,11 +53,25 @@ class ApiClient {
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const error: ApiError = await response.json().catch(() => ({
-        status: 'error',
-        message: 'An unexpected error occurred',
-      }));
-      throw error;
+      let errorData: ApiError;
+      
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {
+          status: 'error',
+          message: `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      console.error('API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+        error: errorData,
+      });
+
+      throw errorData;
     }
 
     return response.json();
@@ -78,6 +92,13 @@ class ApiClient {
     const isFormData = data instanceof FormData;
     const url = this.buildUrl(endpoint, config?.params);
     
+    console.log('API POST Request:', {
+      url,
+      endpoint,
+      data: isFormData ? '[FormData]' : data,
+      headers: this.getHeaders(isFormData),
+    });
+
     const response = await fetch(url, {
       ...config,
       method: 'POST',

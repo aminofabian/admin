@@ -24,8 +24,22 @@ export default function LoginPage() {
 
     try {
       await login(formData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      
+      let errorMessage = 'Login failed';
+      
+      if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.detail) {
+        errorMessage = err.detail;
+      } else if (err?.error) {
+        errorMessage = err.error;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -108,19 +122,8 @@ export default function LoginPage() {
                 className="transition-all duration-200 focus:scale-[1.01]"
               />
 
-              <div className="pt-1">
-                <Input
-                  label="Project UUID (Optional)"
-                  type="text"
-                  value={formData.whitelabel_admin_uuid || ''}
-                  onChange={(e) => setFormData({ ...formData, whitelabel_admin_uuid: e.target.value })}
-                  placeholder="Leave empty for superadmin"
-                  className="transition-all duration-200 focus:scale-[1.01]"
-                />
-                <p className="text-xs text-gray-500 dark:text-muted-foreground mt-1.5 ml-0.5">
-                  Only required for project-specific access
-                </p>
-              </div>
+              {/* UUID is now automatically fetched - keeping field hidden */}
+              {/* Users can enable manual UUID entry if needed */}
             </div>
 
             {/* Error message */}
