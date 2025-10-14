@@ -7,7 +7,7 @@ import { Button, Input, Card, CardContent, Logo } from '@/components/ui';
 import type { LoginRequest } from '@/types';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, isFetchingUuid, uuidFetchError, refetchUuid } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [formData, setFormData] = useState<LoginRequest>({
     username: '',
@@ -16,6 +16,7 @@ export default function LoginPage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showManualUuid, setShowManualUuid] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,24 +25,19 @@ export default function LoginPage() {
 
     try {
       await login(formData);
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      
-      let errorMessage = 'Login failed';
-      
-      if (err && typeof err === 'object' && 'message' in err) {
-        errorMessage = String(err.message);
-      } else if (err && typeof err === 'object' && 'detail' in err) {
-        errorMessage = String(err.detail);
-      } else if (err && typeof err === 'object' && 'error' in err) {
-        errorMessage = String(err.error);
-      } else if (typeof err === 'string') {
-        errorMessage = err;
-      }
-      
-      setError(errorMessage);
+      setError(err?.message || 'Login failed. Please check your credentials and try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRetryUuid = async () => {
+    try {
+      await refetchUuid();
+    } catch (err) {
+      console.error('Retry UUID fetch failed:', err);
     }
   };
 
@@ -99,6 +95,42 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* UUID Loading State */}
+          {isFetchingUuid && (
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+              <div className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                  Loading project configuration...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* UUID Error State */}
+          {uuidFetchError && (
+            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">{uuidFetchError}</p>
+                  <button
+                    type="button"
+                    onClick={handleRetryUuid}
+                    className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-5">
@@ -122,8 +154,32 @@ export default function LoginPage() {
                 className="transition-all duration-200 focus:scale-[1.01]"
               />
 
-              {/* UUID is now automatically fetched - keeping field hidden */}
-              {/* Users can enable manual UUID entry if needed */}
+              {/* Manual UUID Entry - Hidden by default */}
+              {!showManualUuid ? (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setShowManualUuid(true)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Need to enter project UUID manually?
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    label="Project UUID (Optional)"
+                    type="text"
+                    value={formData.whitelabel_admin_uuid}
+                    onChange={(e) => setFormData({ ...formData, whitelabel_admin_uuid: e.target.value })}
+                    placeholder="Enter your project UUID"
+                    className="transition-all duration-200 focus:scale-[1.01]"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Only required if automatic configuration fails
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Error message */}
@@ -150,9 +206,10 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-[1.02] hover:bg-[#5558e3] transition-all duration-200 py-6 text-base font-semibold"
-              isLoading={isLoading}
+              disabled={isLoading || isFetchingUuid}
+              isLoading={isLoading || isFetchingUuid}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading || isFetchingUuid ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
 

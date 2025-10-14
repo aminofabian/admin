@@ -79,13 +79,25 @@ class ApiClient {
 
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     const url = this.buildUrl(endpoint, config?.params);
-    const response = await fetch(url, {
-      ...config,
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
+    
+    try {
+      const response = await fetch(url, {
+        ...config,
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
 
-    return this.handleResponse<T>(response);
+      return this.handleResponse<T>(response);
+    } catch (error: any) {
+      // Handle network errors
+      if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+        throw {
+          status: 'error',
+          message: 'Cannot connect to server. Please check if the API is running at ' + this.baseUrl,
+        };
+      }
+      throw error;
+    }
   }
 
   async post<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {
@@ -99,14 +111,25 @@ class ApiClient {
       headers: this.getHeaders(isFormData),
     });
 
-    const response = await fetch(url, {
-      ...config,
-      method: 'POST',
-      headers: this.getHeaders(isFormData),
-      body: isFormData ? data : JSON.stringify(data),
-    });
+    try {
+      const response = await fetch(url, {
+        ...config,
+        method: 'POST',
+        headers: this.getHeaders(isFormData),
+        body: isFormData ? data : JSON.stringify(data),
+      });
 
-    return this.handleResponse<T>(response);
+      return this.handleResponse<T>(response);
+    } catch (error: any) {
+      // Handle network errors
+      if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+        throw {
+          status: 'error',
+          message: 'Cannot connect to server. Please check if the API is running at ' + this.baseUrl,
+        };
+      }
+      throw error;
+    }
   }
 
   async put<T>(endpoint: string, data?: unknown, config?: RequestConfig): Promise<T> {

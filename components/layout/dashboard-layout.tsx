@@ -39,7 +39,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       
       {/* Sidebar - Ultra compact: w-16 on md-lg, w-56 on xl+ */}
       <div className={`
-        fixed md:static inset-y-0 left-0 z-50 w-64 md:w-16 xl:w-56 transform transition-all duration-300 ease-in-out
+        fixed md:static inset-y-0 left-0 z-50 w-64 md:w-16 xl:w-56 h-screen transform transition-all duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} isCollapsed={true} />

@@ -11,8 +11,11 @@ interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isFetchingUuid: boolean;
+  uuidFetchError: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
+  refetchUuid: () => Promise<string | undefined>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -20,29 +23,46 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingUuid, setIsFetchingUuid] = useState(false);
+  const [uuidFetchError, setUuidFetchError] = useState<string | null>(null);
   const router = useRouter();
 
-  const fetchAndStoreProjectUuid = useCallback(async () => {
+  const fetchAndStoreProjectUuid = useCallback(async (forceRefresh = false) => {
     try {
       const existingUuid = storage.get(PROJECT_UUID_KEY);
-      if (existingUuid) {
-        console.log('Using cached project UUID:', existingUuid);
-        return;
+      if (existingUuid && !forceRefresh) {
+        console.log('✅ Using cached project UUID:', existingUuid);
+        return existingUuid;
       }
 
-      console.log('Fetching project UUID for domain:', PROJECT_DOMAIN);
-      const response = await authApi.fetchProjectUuid(PROJECT_DOMAIN);
+      setIsFetchingUuid(true);
+      setUuidFetchError(null);
       
-      const uuid = response.whitelabel_admin_uuid || response.project_uuid || response.uuid;
+      console.log('🔄 Fetching project UUID from https://serverhub.biz/users/dashboard-games/');
+      const response = await authApi.fetchProjectUuid();
+      
+      console.log('📦 Response received:', response);
+      
+      // Try multiple possible field names
+      const uuid = response.whitelabel_admin_uuid || 
+                   response.project_uuid || 
+                   response.uuid ||
+                   (response as any).data?.whitelabel_admin_uuid ||
+                   (response as any).data?.project_uuid;
       
       if (uuid) {
-        console.log('Project UUID fetched successfully:', uuid);
+        console.log('✅ Project UUID fetched and stored successfully:', uuid);
         storage.set(PROJECT_UUID_KEY, uuid);
-      } else {
-        console.warn('No UUID found in response:', response);
+        return uuid;
       }
-    } catch (error) {
-      console.error('Failed to fetch project UUID:', error);
+      
+      throw new Error('No UUID found in response');
+    } catch (error: any) {
+      console.error('❌ Failed to fetch project UUID:', error);
+      setUuidFetchError('Failed to fetch project configuration. Please try again or enter manually.');
+      throw error;
+    } finally {
+      setIsFetchingUuid(false);
     }
   }, []);
 
@@ -62,24 +82,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    fetchAndStoreProjectUuid();
+    // Fetch UUID in background (non-blocking)
+    fetchAndStoreProjectUuid().catch(err => {
+      console.log('UUID fetch failed silently:', err);
+    });
+    
+    // Load user immediately
     loadUser();
   }, [loadUser, fetchAndStoreProjectUuid]);
 
   const login = async (credentials: LoginRequest) => {
     try {
+      // Try to fetch UUID one more time before login if not cached
       const storedUuid = storage.get(PROJECT_UUID_KEY);
+      if (!storedUuid && !credentials.whitelabel_admin_uuid) {
+        console.log('🔄 No UUID found, attempting to fetch before login...');
+        await fetchAndStoreProjectUuid();
+      }
+      
+      const finalStoredUuid = storage.get(PROJECT_UUID_KEY);
       
       const loginData: LoginRequest = {
         username: credentials.username,
         password: credentials.password,
-        whitelabel_admin_uuid: credentials.whitelabel_admin_uuid || storedUuid || undefined,
+        whitelabel_admin_uuid: credentials.whitelabel_admin_uuid || finalStoredUuid || undefined,
       };
 
-      console.log('Attempting login with:', { 
+      console.log('🔐 Attempting login with:', { 
         username: loginData.username,
         hasPassword: !!loginData.password,
         hasUuid: !!loginData.whitelabel_admin_uuid,
+        uuid: loginData.whitelabel_admin_uuid || 'none',
         uuidSource: loginData.whitelabel_admin_uuid 
           ? (credentials.whitelabel_admin_uuid ? 'manual' : 'stored') 
           : 'none',
@@ -106,11 +139,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(authUser);
       
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      throw error;
+      
+      // Provide more user-friendly error messages
+      if (error?.message?.includes('Failed to fetch') || error?.message?.includes('NetworkError')) {
+        throw new Error('Cannot connect to server. Please check if the API server is running.');
+      }
+      
+      if (error?.message) {
+        throw new Error(error.message);
+      }
+      
+      if (error?.detail) {
+        throw new Error(error.detail);
+      }
+      
+      if (error?.error) {
+        throw new Error(error.error);
+      }
+      
+      throw new Error('Login failed. Please check your credentials and try again.');
     }
   };
+
+  const refetchUuid = useCallback(async () => {
+    try {
+      return await fetchAndStoreProjectUuid(true);
+    } catch (error) {
+      console.error('Failed to refresh UUID:', error);
+      throw error;
+    }
+  }, [fetchAndStoreProjectUuid]);
 
   const logout = () => {
     storage.clear();
@@ -123,9 +183,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{ 
         user, 
         isLoading, 
-        isAuthenticated: !!user, 
+        isAuthenticated: !!user,
+        isFetchingUuid,
+        uuidFetchError,
         login, 
-        logout 
+        logout,
+        refetchUuid
       }}
     >
       {children}
