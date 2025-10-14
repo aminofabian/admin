@@ -773,7 +773,7 @@ Transactions
   - Special type parameters:
     - `type=processing`: Shows transactions with status "pending" or "failed"
     - `type=history`: Shows transactions with status "completed" or "cancelled"
-  - Special txn parameters (takes priority over type parameter):
+  - Special txn parameters (ta$ priority over type parameter):
     - `txn=purchases`: Shows pending purchase transactions only (excludes game transactions)
     - `txn=cashouts`: Shows pending cashout transactions only (excludes game transactions)
 - GET /api/v1/transaction-queues/

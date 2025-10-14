@@ -82,7 +82,7 @@ const BONUS_CATEGORIES = [
     id: 'signup',
     label: 'Welcome Bonus',
     shortLabel: 'Signup',
-    value: 'KES 5',
+    value: '$ 5',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
@@ -294,7 +294,7 @@ export function BonusWidget() {
                     <div className="p-3 bg-green-500/5 border border-green-500/10">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-xs text-muted-foreground">Welcome Bonus</span>
-                        <span className="font-bold text-green-500 text-sm">KES {bonusConfig.signup.signupAmount}</span>
+                        <span className="font-bold text-green-500 text-sm">$ {bonusConfig.signup.signupAmount}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">Instant credit on registration</p>
                     </div>
@@ -303,7 +303,7 @@ export function BonusWidget() {
                         <span className="text-xs text-muted-foreground">First Deposit Bonus</span>
                         <span className="font-bold text-green-500 text-sm">+{bonusConfig.signup.firstDepositBonus}%</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Min. deposit: KES {bonusConfig.signup.minDeposit}</p>
+                      <p className="text-xs text-muted-foreground">Min. deposit: $ {bonusConfig.signup.minDeposit}</p>
                     </div>
                   </div>
                 )}
@@ -507,7 +507,7 @@ export function BonusWidget() {
                           Welcome Bonus
                         </label>
                         <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">KES</span>
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">$</span>
                           <input
                             type="number"
                             value={bonusConfig.signup.signupAmount}
@@ -557,7 +557,7 @@ export function BonusWidget() {
                           Minimum Deposit
                         </label>
                         <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">KES</span>
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">$</span>
                           <input
                             type="number"
                             value={bonusConfig.signup.minDeposit}
