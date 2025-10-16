@@ -80,7 +80,6 @@ export const AddManualAffiliateForm = ({
           error={errors.agent_id}
           placeholder="12"
           disabled={isLoading}
-          helperText="Enter the ID of the agent to assign the affiliate to"
         />
 
         {/* Player ID */}
@@ -93,7 +92,6 @@ export const AddManualAffiliateForm = ({
           error={errors.player_id}
           placeholder="25"
           disabled={isLoading}
-          helperText="Enter the ID of the player to be assigned as affiliate"
         />
       </div>
 
