@@ -82,16 +82,16 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
 
   createCompany: async (data: CreateCompanyRequest) => {
     try {
-      const response = await companiesApi.create(data);
+      const company = await companiesApi.create(data);
       
-      if (!response.data) {
+      if (!company) {
         throw new Error('No data returned from server');
       }
       
       // Refresh the list after creation
       await get().fetchCompanies();
       
-      return response.data;
+      return company;
     } catch (err: unknown) {
       let errorMessage = 'Failed to create company';
       
@@ -112,16 +112,16 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
 
   updateCompany: async (id: number, data: UpdateCompanyRequest) => {
     try {
-      const response = await companiesApi.update(id, data);
+      const company = await companiesApi.update(id, data);
       
-      if (!response.data) {
+      if (!company) {
         throw new Error('No data returned from server');
       }
       
       // Refresh the list after update
       await get().fetchCompanies();
       
-      return response.data;
+      return company;
     } catch (err: unknown) {
       let errorMessage = 'Failed to update company';
       
@@ -142,16 +142,16 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
 
   partialUpdateCompany: async (id: number, data: Partial<UpdateCompanyRequest>) => {
     try {
-      const response = await companiesApi.partialUpdate(id, data);
+      const company = await companiesApi.partialUpdate(id, data);
       
-      if (!response.data) {
+      if (!company) {
         throw new Error('No data returned from server');
       }
       
       // Refresh the list after update
       await get().fetchCompanies();
       
-      return response.data;
+      return company;
     } catch (err: unknown) {
       let errorMessage = 'Failed to update company';
       

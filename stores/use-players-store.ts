@@ -80,15 +80,15 @@ export const usePlayersStore = create<PlayersStore>((set, get) => ({
 
   createPlayer: async (data: CreatePlayerRequest) => {
     try {
-      const response = await playersApi.create(data);
+      const player = await playersApi.create(data);
       
-      if (!response.data) {
+      if (!player) {
         throw new Error('No data returned from server');
       }
       
       await get().fetchPlayers();
       
-      return response.data;
+      return player;
     } catch (err: unknown) {
       let errorMessage = 'Failed to create player';
       
@@ -122,15 +122,15 @@ export const usePlayersStore = create<PlayersStore>((set, get) => ({
 
   updatePlayer: async (id: number, data: UpdateUserRequest) => {
     try {
-      const response = await playersApi.update(id, data);
+      const player = await playersApi.update(id, data);
       
-      if (!response.data) {
+      if (!player) {
         throw new Error('No data returned from server');
       }
       
       await get().fetchPlayers();
       
-      return response.data;
+      return player;
     } catch (err: unknown) {
       let errorMessage = 'Failed to update player';
       

@@ -4,8 +4,7 @@ import type {
   Company, 
   CreateCompanyRequest, 
   UpdateCompanyRequest,
-  PaginatedResponse,
-  ApiResponse 
+  PaginatedResponse 
 } from '@/types';
 
 interface CompanyFilters {
@@ -22,12 +21,12 @@ export const companiesApi = {
     }),
 
   create: (data: CreateCompanyRequest) => 
-    apiClient.post<ApiResponse<Company>>(API_ENDPOINTS.COMPANIES.LIST, data),
+    apiClient.post<Company>(API_ENDPOINTS.COMPANIES.LIST, data),
 
   update: (id: number, data: UpdateCompanyRequest) => 
-    apiClient.put<ApiResponse<Company>>(API_ENDPOINTS.COMPANIES.DETAIL(id), data),
+    apiClient.put<Company>(API_ENDPOINTS.COMPANIES.DETAIL(id), data),
 
   partialUpdate: (id: number, data: Partial<UpdateCompanyRequest>) => 
-    apiClient.patch<ApiResponse<Company>>(API_ENDPOINTS.COMPANIES.DETAIL(id), data),
+    apiClient.patch<Company>(API_ENDPOINTS.COMPANIES.DETAIL(id), data),
 };
 
