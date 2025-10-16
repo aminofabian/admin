@@ -1,52 +1,65 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Company, PaginatedResponse, CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
+import type { CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
+import { useCompaniesStore } from '@/stores';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
 import { LoadingState, ErrorState, EmptyState, CompanyForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Button, Badge, Drawer } from '@/components/ui';
 
 export function CompaniesSection() {
-  const [data, setData] = useState<PaginatedResponse<Company> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const { user } = useAuth();
+  const { 
+    companies: data,
+    isLoading: loading,
+    error,
+    currentPage,
+    searchTerm,
+    pageSize,
+    fetchCompanies,
+    createCompany,
+    setPage,
+    setSearchTerm,
+  } = useCompaniesStore();
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const pageSize = 10;
 
-  const fetchCompanies = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Mock data
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockData: PaginatedResponse<Company> = {
-        count: 25,
-        next: null,
-        previous: null,
-        results: [
-          { id: 1, username: 'company1', email: 'admin@company1.com', project_name: 'Gaming Platform 1', project_domain: 'https://company1.com', admin_project_domain: 'https://admin.company1.com', is_active: true, created: '2024-01-15T10:30:00Z', modified: '2024-01-15T10:30:00Z' },
-          { id: 2, username: 'company2', email: 'admin@company2.com', project_name: 'Gaming Platform 2', project_domain: 'https://company2.com', admin_project_domain: 'https://admin.company2.com', is_active: true, created: '2024-01-16T11:45:00Z', modified: '2024-01-16T11:45:00Z' },
-          { id: 3, username: 'company3', email: 'admin@company3.com', project_name: 'Gaming Platform 3', project_domain: 'https://company3.com', admin_project_domain: 'https://admin.company3.com', is_active: false, created: '2024-01-17T09:20:00Z', modified: '2024-01-17T09:20:00Z' },
-          { id: 4, username: 'company4', email: 'admin@company4.com', project_name: 'Gaming Platform 4', project_domain: 'https://company4.com', admin_project_domain: 'https://admin.company4.com', is_active: true, created: '2024-01-18T14:30:00Z', modified: '2024-01-18T14:30:00Z' },
-          { id: 5, username: 'company5', email: 'admin@company5.com', project_name: 'Gaming Platform 5', project_domain: 'https://company5.com', admin_project_domain: 'https://admin.company5.com', is_active: true, created: '2024-01-19T16:00:00Z', modified: '2024-01-19T16:00:00Z' },
-        ]
-      };
-      
-      setData(mockData);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load companies');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Check if user has superadmin role
+  const isSuperAdmin = user?.role === USER_ROLES.SUPERADMIN;
 
   useEffect(() => {
-    fetchCompanies();
-  }, [searchTerm, currentPage]);
+    // Only fetch if user is superadmin
+    if (isSuperAdmin) {
+      fetchCompanies();
+    }
+  }, [fetchCompanies, isSuperAdmin]);
+
+  // Show permission denied if not superadmin
+  if (!isSuperAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800/50 rounded-xl p-8 max-w-md text-center">
+          <svg className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            Access Denied
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            You need <strong>superadmin</strong> privileges to access Company Management.
+          </p>
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-3 text-sm">
+            <p className="text-gray-500 dark:text-gray-500">
+              Your current role: <span className="font-semibold text-gray-700 dark:text-gray-300">{user?.role || 'unknown'}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !data) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchCompanies} />;
@@ -62,17 +75,14 @@ export function CompaniesSection() {
     });
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleCreateCompany = async (_formData: CreateCompanyRequest | UpdateCompanyRequest) => {
+  const handleCreateCompany = async (formData: CreateCompanyRequest | UpdateCompanyRequest) => {
     try {
       setIsSubmitting(true);
       setSubmitError('');
       
-      // Using mock API - replace with companiesApi.create when backend is ready
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await createCompany(formData as CreateCompanyRequest);
       
       setIsDrawerOpen(false);
-      await fetchCompanies();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create company';
       setSubmitError(errorMessage);
@@ -85,6 +95,14 @@ export function CompaniesSection() {
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false);
     setSubmitError('');
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handlePageChange = (page: number) => {
+    setPage(page);
   };
 
   return (
@@ -109,7 +127,7 @@ export function CompaniesSection() {
       <div className="flex items-center gap-4">
         <SearchInput
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleSearchChange}
           placeholder="Search by username, email, or project name..."
         />
       </div>
@@ -185,7 +203,7 @@ export function CompaniesSection() {
           totalPages={Math.ceil(data.count / pageSize)}
           hasNext={!!data.next}
           hasPrevious={!!data.previous}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       )}
 
