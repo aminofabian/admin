@@ -69,7 +69,9 @@ export function TransactionsSection() {
             Transactions
             {filter !== 'all' && (
               <span className="ml-3 text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-lg">
-                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                {filter === 'pending-purchases' ? 'Pending Purchases' :
+                 filter === 'pending-cashouts' ? 'Pending Cashouts' :
+                 filter.charAt(0).toUpperCase() + filter.slice(1)}
               </span>
             )}
           </h2>
@@ -80,89 +82,125 @@ export function TransactionsSection() {
       </div>
 
       {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-        <div className="flex-1">
-          <SearchInput
-            value={localSearchTerm}
-            onChange={(e) => setLocalSearchTerm(e.target.value)}
-            placeholder="Search by username, email, description, or transaction ID..."
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'all'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter('purchases')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'purchases'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-            }`}
-          >
-            Purchases
-          </button>
-          <button
-            onClick={() => setFilter('cashouts')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'cashouts'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-            }`}
-          >
-            Cashouts
-          </button>
-          <button
-            onClick={() => setFilter('processing')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'processing'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-            }`}
-          >
-            Processing
-          </button>
-          <button
-            onClick={() => setFilter('history')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'history'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-            }`}
-          >
-            History
-          </button>
+      <div className="space-y-3">
+        <SearchInput
+          value={localSearchTerm}
+          onChange={(e) => setLocalSearchTerm(e.target.value)}
+          placeholder="Search by username, email, description, or transaction ID..."
+        />
+        
+        {/* Filter Buttons */}
+        <div className="space-y-2">
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'all'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilter('purchases')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'purchases'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+              }`}
+            >
+              Purchases
+            </button>
+            <button
+              onClick={() => setFilter('cashouts')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'cashouts'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+              }`}
+            >
+              Cashouts
+            </button>
+            <button
+              onClick={() => setFilter('processing')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'processing'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+              }`}
+            >
+              Processing
+            </button>
+            <button
+              onClick={() => setFilter('history')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'history'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+              }`}
+            >
+              History
+            </button>
+          </div>
+          
+          {/* Pending Filters */}
+          <div className="flex gap-2 flex-wrap">
+            <span className="px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-center">
+              Pending Only:
+            </span>
+            <button
+              onClick={() => setFilter('pending-purchases')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'pending-purchases'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-950/50'
+              }`}
+            >
+              Pending Purchases
+            </button>
+            <button
+              onClick={() => setFilter('pending-cashouts')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filter === 'pending-cashouts'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-950/50'
+              }`}
+            >
+              Pending Cashouts
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800/50">
+          <div className="text-sm text-blue-700 dark:text-blue-400 font-medium">Total Transactions</div>
+          <div className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-1">
+            {transactions?.count.toLocaleString() || 0}
+          </div>
+          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">Overall count</div>
+        </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Amount</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Page Amount</div>
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{formatCurrency(totalAmount)}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Current page only</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Bonus</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Page Bonus</div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{formatCurrency(totalBonus)}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Current page only</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Purchases</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Page Purchases</div>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{purchaseCount}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">of {transactions?.results?.length || 0} shown</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Cashouts</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Page Cashouts</div>
           <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{cashoutCount}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{transactions?.results?.length || 0}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">of {transactions?.results?.length || 0} shown</div>
         </div>
       </div>
 

@@ -42,7 +42,7 @@ export interface TransactionQueue {
 
 export interface TransactionFilters {
   search?: string;
-  type?: 'processing' | 'history';
+  type?: 'processing' | 'history' | 'purchase' | 'cashout';
   txn?: 'purchases' | 'cashouts';
   page?: number;
   page_size?: number;

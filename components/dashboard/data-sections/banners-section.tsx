@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { bannersApi } from '@/lib/api';
-import { usePagination, useSearch } from '@/lib/hooks';
+import { useBannersStore } from '@/stores';
 import {
   Table,
   TableBody,
@@ -16,48 +15,40 @@ import { SearchInput } from '@/components/ui/search-input';
 import { Pagination } from '@/components/ui/pagination';
 import { Drawer } from '@/components/ui/drawer';
 import { BannerForm } from '@/components/features';
+import { LoadingState, ErrorState } from '@/components/features';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
 export function BannersSection() {
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
 
-  const { page, pageSize, setPage } = usePagination();
-  const { search, debouncedSearch, setSearch } = useSearch();
+  const {
+    banners: bannersData,
+    isLoading,
+    error,
+    currentPage,
+    searchTerm,
+    fetchBanners,
+    createBanner,
+    updateBanner,
+    deleteBanner,
+    setPage,
+    setSearchTerm,
+  } = useBannersStore();
 
   useEffect(() => {
     fetchBanners();
-  }, [page, pageSize, debouncedSearch]);
+  }, [fetchBanners]);
 
-  const fetchBanners = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await bannersApi.list();
-      setBanners(response.results);
-      setTotalCount(response.count);
-    } catch (err) {
-      setError('Failed to load banners');
-      console.error('Error fetching banners:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateBanner = async (formData: CreateBannerRequest | UpdateBannerRequest) => {
+  const handleSubmit = async (formData: CreateBannerRequest | UpdateBannerRequest) => {
     try {
       if (selectedBanner) {
-        await bannersApi.update(selectedBanner.id, formData as UpdateBannerRequest);
+        await updateBanner(selectedBanner.id, formData as UpdateBannerRequest);
       } else {
-        await bannersApi.create(formData as CreateBannerRequest);
+        await createBanner(formData as CreateBannerRequest);
       }
       setIsDrawerOpen(false);
       setSelectedBanner(null);
-      await fetchBanners();
     } catch (err) {
       console.error('Error saving banner:', err);
       throw err;
@@ -73,8 +64,7 @@ export function BannersSection() {
     if (!confirm('Are you sure you want to delete this banner?')) return;
 
     try {
-      await bannersApi.delete(id);
-      await fetchBanners();
+      await deleteBanner(id);
     } catch (err) {
       console.error('Error deleting banner:', err);
       alert('Failed to delete banner');
@@ -83,29 +73,25 @@ export function BannersSection() {
 
   const handleToggleActive = async (banner: Banner) => {
     try {
-      await bannersApi.update(banner.id, { is_active: !banner.is_active });
-      await fetchBanners();
+      await updateBanner(banner.id, { is_active: !banner.is_active });
     } catch (err) {
       console.error('Error toggling banner status:', err);
       alert('Failed to update banner status');
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
+  if (isLoading && !bannersData) {
+    return <LoadingState />;
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-        <p className="text-red-800 dark:text-red-200">{error}</p>
-      </div>
-    );
+    return <ErrorState message={error} onRetry={fetchBanners} />;
   }
+
+  const banners = bannersData?.results || [];
+  const totalCount = bannersData?.count || 0;
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <div className="space-y-4">
@@ -125,9 +111,9 @@ export function BannersSection() {
       </div>
 
       <SearchInput
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search banners..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Search banners by title, type, or category..."
       />
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
@@ -219,11 +205,11 @@ export function BannersSection() {
       </div>
 
       <Pagination
-        currentPage={page}
-        totalPages={Math.ceil(totalCount / pageSize)}
+        currentPage={currentPage}
+        totalPages={totalPages}
         onPageChange={setPage}
-        hasPrevious={page > 1}
-        hasNext={page < Math.ceil(totalCount / pageSize)}
+        hasPrevious={currentPage > 1}
+        hasNext={currentPage < totalPages}
       />
 
       <Drawer
@@ -235,7 +221,7 @@ export function BannersSection() {
         title={selectedBanner ? 'Edit Banner' : 'Add New Banner'}
       >
         <BannerForm
-          onSubmit={handleCreateBanner}
+          onSubmit={handleSubmit}
           onCancel={() => {
             setIsDrawerOpen(false);
             setSelectedBanner(null);

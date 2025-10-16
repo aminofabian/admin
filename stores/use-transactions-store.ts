@@ -6,7 +6,14 @@ import type {
   PaginatedResponse 
 } from '@/types';
 
-type FilterType = 'all' | 'purchases' | 'cashouts' | 'processing' | 'history';
+type FilterType = 
+  | 'all' 
+  | 'purchases' 
+  | 'cashouts' 
+  | 'pending-purchases' 
+  | 'pending-cashouts' 
+  | 'processing' 
+  | 'history';
 
 interface TransactionsState {
   transactions: PaginatedResponse<Transaction> | null;
@@ -55,8 +62,12 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
       // Apply filter logic based on the selected filter type
       if (filter === 'purchases') {
-        filters.txn = 'purchases';
+        filters.type = 'purchase';
       } else if (filter === 'cashouts') {
+        filters.type = 'cashout';
+      } else if (filter === 'pending-purchases') {
+        filters.txn = 'purchases';
+      } else if (filter === 'pending-cashouts') {
         filters.txn = 'cashouts';
       } else if (filter === 'processing') {
         filters.type = 'processing';
