@@ -64,6 +64,8 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         filters.type = 'history';
       }
 
+      console.log('Fetching transactions with filters:', { filter, filters });
+
       const data = await transactionsApi.list(filters);
       
       set({ 
