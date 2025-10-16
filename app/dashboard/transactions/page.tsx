@@ -118,7 +118,7 @@ export default function TransactionsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Transaction ID</TableHead>
-                    <TableHead>User ID</TableHead>
+                    <TableHead>Username</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
@@ -129,8 +129,8 @@ export default function TransactionsPage() {
                 <TableBody>
                   {data?.results.map((transaction) => (
                     <TableRow key={transaction.id}>
-                      <TableCell className="font-medium">{transaction.transaction_id}</TableCell>
-                      <TableCell>{transaction.user_id}</TableCell>
+                      <TableCell className="font-medium">{transaction.unique_id}</TableCell>
+                      <TableCell>{transaction.user_username}</TableCell>
                       <TableCell className="capitalize">{transaction.type}</TableCell>
                       <TableCell>{formatCurrency(transaction.amount)}</TableCell>
                       <TableCell>
