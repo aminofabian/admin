@@ -3,6 +3,8 @@ import { gamesApi } from '@/lib/api';
 import type { 
   Game, 
   UpdateGameRequest,
+  CheckStoreBalanceRequest,
+  CheckStoreBalanceResponse,
   PaginatedResponse 
 } from '@/types';
 
@@ -13,11 +15,13 @@ interface GamesState {
   currentPage: number;
   searchTerm: string;
   pageSize: number;
+  balanceCheckLoading: boolean;
 }
 
 interface GamesActions {
   fetchGames: () => Promise<void>;
   updateGame: (id: number, data: UpdateGameRequest) => Promise<Game>;
+  checkStoreBalance: (data: CheckStoreBalanceRequest) => Promise<CheckStoreBalanceResponse>;
   setPage: (page: number) => void;
   setSearchTerm: (term: string) => void;
   reset: () => void;
@@ -32,6 +36,7 @@ const initialState: GamesState = {
   currentPage: 1,
   searchTerm: '',
   pageSize: 10,
+  balanceCheckLoading: false,
 };
 
 export const useGamesStore = create<GamesStore>((set, get) => ({
@@ -102,6 +107,40 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
       }
       
       set({ error: errorMessage });
+      throw new Error(errorMessage);
+    }
+  },
+
+  checkStoreBalance: async (data: CheckStoreBalanceRequest) => {
+    set({ balanceCheckLoading: true });
+    
+    try {
+      const response = await gamesApi.checkStoreBalance(data);
+      
+      if (response.status !== 'success') {
+        throw new Error(response.message || 'Failed to check store balance');
+      }
+      
+      set({ balanceCheckLoading: false });
+      return response;
+    } catch (err: unknown) {
+      let errorMessage = 'Failed to check store balance';
+      
+      if (err && typeof err === 'object') {
+        if ('detail' in err) {
+          errorMessage = String(err.detail);
+        } else if ('message' in err) {
+          errorMessage = String(err.message);
+        }
+        
+        if (errorMessage.toLowerCase().includes('permission')) {
+          errorMessage = 'Access Denied: You need proper privileges.';
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
+      set({ balanceCheckLoading: false });
       throw new Error(errorMessage);
     }
   },

@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
-import type { Game, UpdateGameRequest } from '@/types';
-import { LoadingState, ErrorState, EmptyState, GameForm } from '@/components/features';
+import type { Game, UpdateGameRequest, CheckStoreBalanceResponse } from '@/types';
+import { LoadingState, ErrorState, EmptyState, GameForm, StoreBalanceModal } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
 
 export function GamesSection() {
@@ -17,8 +17,10 @@ export function GamesSection() {
     currentPage, 
     searchTerm, 
     pageSize,
+    balanceCheckLoading,
     fetchGames,
-    updateGame, 
+    updateGame,
+    checkStoreBalance, 
     setPage, 
     setSearchTerm 
   } = useGamesStore();
@@ -27,6 +29,10 @@ export function GamesSection() {
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+  const [selectedGameForBalance, setSelectedGameForBalance] = useState<Game | null>(null);
+  const [balanceData, setBalanceData] = useState<CheckStoreBalanceResponse | null>(null);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
 
   const canManageGames = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
 
@@ -102,6 +108,28 @@ export function GamesSection() {
     setIsDrawerOpen(false);
     setEditingGame(null);
     setSubmitError('');
+  };
+
+  const handleCheckBalance = async (game: Game) => {
+    setSelectedGameForBalance(game);
+    setIsBalanceModalOpen(true);
+    setBalanceData(null);
+    setBalanceError(null);
+
+    try {
+      const response = await checkStoreBalance({ game_id: game.id });
+      setBalanceData(response);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to check balance';
+      setBalanceError(errorMessage);
+    }
+  };
+
+  const handleCloseBalanceModal = () => {
+    setIsBalanceModalOpen(false);
+    setSelectedGameForBalance(null);
+    setBalanceData(null);
+    setBalanceError(null);
   };
 
   return (
@@ -185,15 +213,28 @@ export function GamesSection() {
                   {formatDate(game.created)}
                 </TableCell>
                 <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEditGame(game)}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCheckBalance(game)}
+                      title="Check Store Balance"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditGame(game)}
+                      title="Edit Game"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -236,6 +277,16 @@ export function GamesSection() {
           />
         )}
       </Drawer>
+
+      {/* Store Balance Modal */}
+      <StoreBalanceModal
+        isOpen={isBalanceModalOpen}
+        onClose={handleCloseBalanceModal}
+        gameTitle={selectedGameForBalance?.title || ''}
+        balanceData={balanceData}
+        isLoading={balanceCheckLoading}
+        error={balanceError}
+      />
     </div>
   );
 }

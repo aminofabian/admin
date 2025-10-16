@@ -1,54 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import type { Transaction, PaginatedResponse } from '@/types';
+import { useEffect } from 'react';
+import { useTransactionsStore } from '@/stores';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge } from '@/components/ui';
 
 export function TransactionsSection() {
-  const [data, setData] = useState<PaginatedResponse<Transaction> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filter, setFilter] = useState<'all' | 'purchases' | 'cashouts' | 'processing' | 'history'>('all');
-  const pageSize = 10;
-
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Mock data
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockData: PaginatedResponse<Transaction> = {
-        count: 200,
-        next: null,
-        previous: null,
-        results: [
-          { id: 1, transaction_id: 'TXN001', user_id: 12, type: 'purchase', amount: '100.00', status: 'completed', operator: 'PayPal', created: '2024-01-15T10:30:00Z', modified: '2024-01-15T10:30:00Z' },
-          { id: 2, transaction_id: 'TXN002', user_id: 15, type: 'cashout', amount: '50.00', status: 'pending', operator: 'Bank Transfer', created: '2024-01-16T11:45:00Z', modified: '2024-01-16T11:45:00Z' },
-          { id: 3, transaction_id: 'TXN003', user_id: 23, type: 'purchase', amount: '200.00', status: 'completed', operator: 'Stripe', created: '2024-01-17T09:20:00Z', modified: '2024-01-17T09:20:00Z' },
-          { id: 4, transaction_id: 'TXN004', user_id: 8, type: 'cashout', amount: '75.50', status: 'failed', operator: 'PayPal', created: '2024-01-18T14:30:00Z', modified: '2024-01-18T14:30:00Z' },
-          { id: 5, transaction_id: 'TXN005', user_id: 45, type: 'purchase', amount: '150.00', status: 'completed', operator: 'Crypto', created: '2024-01-19T16:00:00Z', modified: '2024-01-19T16:00:00Z' },
-        ]
-      };
-      
-      setData(mockData);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load transactions');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    transactions,
+    isLoading,
+    error,
+    searchTerm,
+    currentPage,
+    filter,
+    pageSize,
+    fetchTransactions,
+    setPage,
+    setSearchTerm,
+    setFilter,
+  } = useTransactionsStore();
 
   useEffect(() => {
     fetchTransactions();
-  }, [searchTerm, currentPage, filter]);
+  }, [fetchTransactions]);
 
-  if (loading && !data) return <LoadingState />;
+  if (isLoading && !transactions) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchTransactions} />;
-  if (!data?.results?.length && !searchTerm) {
+  if (!transactions?.results?.length && !searchTerm) {
     return <EmptyState title="No transactions found" />;
   }
 
@@ -65,7 +43,7 @@ export function TransactionsSection() {
     }
   };
 
-  const totalAmount = data?.results?.reduce((sum, tx) => sum + parseFloat(tx.amount || '0'), 0) || 0;
+  const totalAmount = transactions?.results?.reduce((sum, tx) => sum + parseFloat(tx.amount || '0'), 0) || 0;
 
   return (
     <div className="space-y-4">
@@ -146,7 +124,7 @@ export function TransactionsSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">Total Transactions</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.count || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{transactions?.count || 0}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">Total Amount</div>
@@ -154,12 +132,12 @@ export function TransactionsSection() {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.results?.length || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{transactions?.results?.length || 0}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">Avg Amount</div>
           <div className="text-2xl font-bold text-green-500 mt-1">
-            {formatCurrency(data?.results?.length ? totalAmount / data.results.length : 0)}
+            {formatCurrency(transactions?.results?.length ? totalAmount / transactions.results.length : 0)}
           </div>
         </div>
       </div>
@@ -179,7 +157,7 @@ export function TransactionsSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.results?.map((transaction) => (
+            {transactions?.results?.map((transaction) => (
               <TableRow key={transaction.id}>
                 <TableCell>{transaction.id}</TableCell>
                 <TableCell>
@@ -209,13 +187,13 @@ export function TransactionsSection() {
       </div>
 
       {/* Pagination */}
-      {data && data.count > pageSize && (
+      {transactions && transactions.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalPages={Math.ceil(data.count / pageSize)}
-          hasNext={!!data.next}
-          hasPrevious={!!data.previous}
-          onPageChange={setCurrentPage}
+          totalPages={Math.ceil(transactions.count / pageSize)}
+          hasNext={!!transactions.next}
+          hasPrevious={!!transactions.previous}
+          onPageChange={setPage}
         />
       )}
     </div>
