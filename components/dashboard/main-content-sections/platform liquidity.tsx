@@ -1,12 +1,20 @@
 'use client';
 
+import { useDashboardStats } from '@/hooks/use-dashboard-stats';
+
 interface PlatformBalanceData {
   totalBalance?: number;
   winningBalance?: number;
   totalPlayers?: number;
 }
 
-export function JackpotPoolGauge({ totalBalance = 125500, winningBalance = 48200, totalPlayers = 1247 }: PlatformBalanceData) {
+export function JackpotPoolGauge(props: PlatformBalanceData = {}) {
+  const { stats, loading } = useDashboardStats();
+  
+  // Use real data from API, fallback to props, then defaults
+  const totalBalance = props.totalBalance ?? stats?.totalBalance ?? 0;
+  const winningBalance = props.winningBalance ?? stats?.totalWinningBalance ?? 0;
+  const totalPlayers = props.totalPlayers ?? stats?.totalPlayers ?? 0;
 
   const platformLiquidity = totalBalance + winningBalance;
   const balancePercentage = platformLiquidity > 0 ? (totalBalance / platformLiquidity) * 100 : 50;
@@ -52,7 +60,7 @@ export function JackpotPoolGauge({ totalBalance = 125500, winningBalance = 48200
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-lg font-bold text-foreground">
-            {formatCurrency(platformLiquidity)}
+            {loading ? '...' : formatCurrency(platformLiquidity)}
           </span>
           <span className="text-xs text-muted-foreground">total</span>
         </div>
@@ -61,15 +69,15 @@ export function JackpotPoolGauge({ totalBalance = 125500, winningBalance = 48200
       <div className="space-y-2">
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Main Balance</span>
-          <span className="text-foreground font-medium">{formatCurrency(totalBalance)}</span>
+          <span className="text-foreground font-medium">{loading ? '...' : formatCurrency(totalBalance)}</span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Winning Balance</span>
-          <span className="text-foreground font-medium">{formatCurrency(winningBalance)}</span>
+          <span className="text-foreground font-medium">{loading ? '...' : formatCurrency(winningBalance)}</span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Total Players</span>
-          <span className="text-primary font-medium">{totalPlayers}</span>
+          <span className="text-primary font-medium">{loading ? '...' : totalPlayers.toLocaleString()}</span>
         </div>
       </div>
     </div>

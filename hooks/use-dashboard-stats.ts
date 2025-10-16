@@ -1,51 +1,59 @@
-import { useState } from 'react';
-
-export interface DashboardStats {
-  totalPlayers: number;
-  activePlayers: number;
-  totalManagers: number;
-  totalAgents: number;
-  totalStaff: number;
-  totalAffiliates: number;
-  totalBalance: number;
-  totalWinningBalance: number;
-  platformLiquidity: number;
-  pendingTransactions: number;
-  completedToday: number;
-  failedToday: number;
-  transactionSuccessRate: number;
-  totalPurchasesToday: number;
-  totalCashoutsToday: number;
-  totalGames: number;
-  activeGames: number;
-  inactiveGames: number;
-}
+import { useState, useEffect } from 'react';
+import { dashboardApi } from '@/lib/api';
+import type { DashboardStats } from '@/lib/api/dashboard';
 
 export function useDashboardStats() {
-  // Mock data for dashboard stats
-  const stats: DashboardStats = {
-    totalPlayers: 1247,
-    activePlayers: 892,
-    totalManagers: 8,
-    totalAgents: 25,
-    totalStaff: 12,
-    totalAffiliates: 25,
-    totalBalance: 125500,
-    totalWinningBalance: 48200,
-    platformLiquidity: 173700,
-    pendingTransactions: 23,
-    completedToday: 342,
-    failedToday: 8,
-    transactionSuccessRate: 98.5,
-    totalPurchasesToday: 45200,
-    totalCashoutsToday: 28900,
-    totalGames: 53,
-    activeGames: 45,
-    inactiveGames: 8,
-  };
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [loading] = useState(false);
-  const [error] = useState<string | null>(null);
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await dashboardApi.getStats();
+        setStats(data);
+      } catch (err: unknown) {
+        let errorMessage = 'Failed to load dashboard statistics';
+        
+        if (err && typeof err === 'object' && 'detail' in err) {
+          errorMessage = String(err.detail);
+        } else if (err instanceof Error) {
+          errorMessage = err.message;
+        }
+        
+        setError(errorMessage);
+        
+        // Fallback to mock data if API fails (for development)
+        console.warn('Dashboard stats API failed, using fallback data:', errorMessage);
+        setStats({
+          totalPlayers: 0,
+          activePlayers: 0,
+          totalManagers: 0,
+          totalAgents: 0,
+          totalStaff: 0,
+          totalAffiliates: 0,
+          totalBalance: 0,
+          totalWinningBalance: 0,
+          platformLiquidity: 0,
+          pendingTransactions: 0,
+          completedToday: 0,
+          failedToday: 0,
+          transactionSuccessRate: 0,
+          totalPurchasesToday: 0,
+          totalCashoutsToday: 0,
+          totalGames: 0,
+          activeGames: 0,
+          inactiveGames: 0,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return { stats, loading, error };
 }

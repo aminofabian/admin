@@ -53,6 +53,9 @@ export const API_ENDPOINTS = {
     ADD_MANUAL: `${API_PREFIX}/add-manual-affiliate/`,
     DEFAULTS: `${API_PREFIX}/affiliate-defaults/`,
   },
+  DASHBOARD: {
+    STATS: `${API_PREFIX}/dashboard/stats/`,
+  },
 } as const;
 
 export const TOKEN_KEY = 'auth_token';

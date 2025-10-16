@@ -7,4 +7,5 @@ export * from './transactions';
 export * from './bonuses';
 export * from './banners';
 export * from './affiliates';
+export * from './dashboard';
 

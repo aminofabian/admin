@@ -142,13 +142,13 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Agents</span>
                   <span className="text-lg font-bold text-primary">
-                    {statsLoading ? '...' : (stats?.totalAffiliates || 0)}
+                    {statsLoading ? '...' : (stats?.totalAffiliates ?? 0)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Players</span>
                   <span className="text-lg font-bold text-foreground">
-                    {statsLoading ? '...' : (stats?.activePlayers || 0).toLocaleString()}
+                    {statsLoading ? '...' : (stats?.activePlayers ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -164,13 +164,13 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Balance</span>
                   <span className="text-lg font-bold text-primary">
-                    {statsLoading ? '...' : `$${(stats?.platformLiquidity || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                    {statsLoading ? '...' : `$${(stats?.platformLiquidity ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground">Players</span>
                   <span className="text-lg font-bold text-foreground">
-                    {statsLoading ? '...' : (stats?.totalPlayers || 0).toLocaleString()}
+                    {statsLoading ? '...' : (stats?.totalPlayers ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -214,19 +214,19 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-center space-y-2">
                   <div className="text-3xl font-bold text-primary">
-                    {statsLoading ? '...' : (stats?.activePlayers || 0).toLocaleString()}
+                    {statsLoading ? '...' : (stats?.activePlayers ?? 0).toLocaleString()}
                   </div>
                   <div className="text-xs text-muted-foreground">Active Players</div>
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
                     <div>
                       <div className="text-sm font-semibold">
-                        {statsLoading ? '...' : (stats?.totalPlayers || 0).toLocaleString()}
+                        {statsLoading ? '...' : (stats?.totalPlayers ?? 0).toLocaleString()}
                       </div>
                       <div className="text-[10px] text-muted-foreground">Total</div>
                     </div>
                     <div>
                       <div className="text-sm font-semibold">
-                        {statsLoading ? '...' : (stats?.activeGames || 0)}
+                        {statsLoading ? '...' : (stats?.activeGames ?? 0)}
                       </div>
                       <div className="text-[10px] text-muted-foreground">Games</div>
                     </div>
@@ -328,19 +328,19 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Active Players</span>
                     <span className="text-lg xl:text-xl font-bold text-primary">
-                      {statsLoading ? '...' : (stats?.activePlayers || 0).toLocaleString()}
+                      {statsLoading ? '...' : (stats?.activePlayers ?? 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Total Players</span>
                     <span className="text-foreground font-semibold">
-                      {statsLoading ? '...' : (stats?.totalPlayers || 0).toLocaleString()}
+                      {statsLoading ? '...' : (stats?.totalPlayers ?? 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Active Games</span>
                     <span className="text-foreground font-semibold">
-                      {statsLoading ? '...' : (stats?.activeGames || 0)}
+                      {statsLoading ? '...' : (stats?.activeGames ?? 0)}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground/80 mt-3 pt-3 border-t border-border flex items-center justify-center gap-2">
