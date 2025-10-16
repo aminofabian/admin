@@ -1,57 +1,281 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown, Trophy, Flame, Sparkles, Users, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+
 interface TopGame {
   id: number;
   name: string;
   image?: string;
   players: number;
+  revenue: number;
+  winRate: number;
+  trend: 'up' | 'down' | 'stable';
+  trendPercentage: number;
   status: 'hot' | 'active' | 'normal';
 }
 
 export function TopSlotsWidget() {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const topGames: TopGame[] = [
-    { id: 1, name: 'Fire Kirin', players: 1247, status: 'hot' },
-    { id: 2, name: 'Panda Master', players: 892, status: 'active' },
-    { id: 3, name: 'Juwa', players: 654, status: 'active' },
-    { id: 4, name: 'Game Vault', players: 423, status: 'normal' },
+    { 
+      id: 1, 
+      name: 'Fire Kirin', 
+      players: 1247, 
+      revenue: 45230,
+      winRate: 94.5,
+      trend: 'up',
+      trendPercentage: 12.3,
+      status: 'hot' 
+    },
+    { 
+      id: 2, 
+      name: 'Panda Master', 
+      players: 892, 
+      revenue: 32150,
+      winRate: 92.8,
+      trend: 'up',
+      trendPercentage: 8.7,
+      status: 'active' 
+    },
+    { 
+      id: 3, 
+      name: 'Juwa', 
+      players: 654, 
+      revenue: 28940,
+      winRate: 91.2,
+      trend: 'down',
+      trendPercentage: 3.2,
+      status: 'active' 
+    },
+    { 
+      id: 4, 
+      name: 'Game Vault', 
+      players: 423, 
+      revenue: 18650,
+      winRate: 89.7,
+      trend: 'up',
+      trendPercentage: 5.1,
+      status: 'normal' 
+    },
   ];
 
+  const getRankOpacity = (index: number) => {
+    switch (index) {
+      case 0: return 'from-primary/15 via-primary/8 to-transparent';
+      case 1: return 'from-primary/10 via-primary/5 to-transparent';
+      case 2: return 'from-primary/8 via-primary/4 to-transparent';
+      default: return 'from-primary/5 via-primary/3 to-transparent';
+    }
+  };
+
+  const getRankIcon = (index: number) => {
+    switch (index) {
+      case 0: return <Trophy className="w-5 h-5 text-primary fill-primary/10" />;
+      case 1: return <Trophy className="w-5 h-5 text-primary/70 fill-primary/5" />;
+      case 2: return <Trophy className="w-5 h-5 text-primary/50 fill-primary/5" />;
+      default: return null;
+    }
+  };
+
+  const selectedGame = topGames[selectedIndex];
+
+  // Auto-play functionality
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    
+    const interval = setInterval(() => {
+      setSelectedIndex((prev) => (prev + 1) % topGames.length);
+    }, 4000); // Change slide every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, topGames.length]);
+
+  // Navigation functions
+  const goToNext = () => {
+    setSelectedIndex((prev) => (prev + 1) % topGames.length);
+    setIsAutoPlaying(false); // Stop auto-play when user manually navigates
+  };
+
+  const goToPrevious = () => {
+    setSelectedIndex((prev) => (prev - 1 + topGames.length) % topGames.length);
+    setIsAutoPlaying(false); // Stop auto-play when user manually navigates
+  };
+
+  const goToSlide = (index: number) => {
+    setSelectedIndex(index);
+    setIsAutoPlaying(false); // Stop auto-play when user manually navigates
+  };
+
   return (
-    <div className="bg-card rounded-xl p-4 border border-border">
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">
-        Top Performing Slots
-      </h3>
+    <div className="relative bg-gradient-to-br from-card via-card to-primary/5 rounded-xl p-5 border border-border/50 overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary/3 rounded-full blur-2xl" />
       
-      <div className="relative h-32 sm:h-48 bg-primary/5 rounded-lg overflow-hidden p-3 sm:p-4">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="absolute top-1/4 left-1/4 w-4 h-4 sm:w-6 sm:h-6 bg-primary/60 rounded-full animate-pulse">
-            <div className="absolute -top-1 -left-1 w-6 h-6 sm:w-8 sm:h-8 bg-primary/20 rounded-full" />
+      <div className="relative">
+        {/* Header with dropdown */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">
+                Top Performing Slots
+              </h3>
+              <p className="text-xs text-muted-foreground">Last 24 hours</p>
+            </div>
           </div>
-          <div className="absolute top-1/3 right-1/4 w-3 h-3 sm:w-5 sm:h-5 bg-primary/40 rounded-full animate-pulse">
-            <div className="absolute -top-1 -left-1 w-5 h-5 sm:w-7 sm:h-7 bg-primary/15 rounded-full" />
-          </div>
-          <div className="absolute bottom-1/3 left-1/3 w-3 h-3 sm:w-4 sm:h-4 bg-primary/30 rounded-full animate-pulse">
-            <div className="absolute -top-1 -left-1 w-5 h-5 sm:w-6 sm:h-6 bg-primary/10 rounded-full" />
-          </div>
-          
-          <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-card/80 backdrop-blur-sm rounded px-2 py-1 flex items-center gap-1 border border-border/50">
-            <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-            <span className="text-xs font-medium text-foreground">Top</span>
+
+          {/* Slide navigation controls */}
+          <div className="flex items-center gap-2">
+            {/* Auto-play toggle */}
+            <button
+              onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
+                isAutoPlaying 
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                  : 'bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-primary'
+              }`}
+              title={isAutoPlaying ? 'Pause auto-play' : 'Start auto-play'}
+            >
+              {isAutoPlaying ? '⏸' : '▶'}
+            </button>
+
+            {/* Previous button */}
+            <button
+              onClick={goToPrevious}
+              className="w-8 h-8 rounded-lg bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-primary flex items-center justify-center transition-all"
+              title="Previous slide"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Next button */}
+            <button
+              onClick={goToNext}
+              className="w-8 h-8 rounded-lg bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-primary flex items-center justify-center transition-all"
+              title="Next slide"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
         
-        <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 bg-card/90 backdrop-blur-sm rounded-lg p-2 sm:p-3 max-h-24 overflow-y-auto border border-border/50">
-          <div className="space-y-1">
-            {topGames.slice(0, 2).map((game, index) => (
-              <div key={index} className="flex justify-between items-center text-xs">
-                <span className="text-foreground font-medium truncate flex-1">{game.name}</span>
-                <span className="text-muted-foreground ml-2">{game.players} players</span>
-                {game.status === 'hot' && (
-                  <div className="w-1 h-1 ml-2 bg-primary rounded-full" />
+        {/* Slide container with transition */}
+        <div className="group relative overflow-hidden">
+          {/* Animated background gradient */}
+          <div className={`absolute inset-0 bg-gradient-to-r ${getRankOpacity(selectedIndex)} rounded-xl opacity-50 group-hover:opacity-100 transition-all duration-500`} />
+          
+          {/* Card content with slide animation */}
+          <div 
+            className="relative bg-card/50 backdrop-blur-sm rounded-xl p-5 border border-border/50 hover:border-primary/50 transition-all duration-500 hover:shadow-lg hover:shadow-primary/10 transform"
+            style={{
+              transform: `translateX(${-selectedIndex * 0}px)`,
+              opacity: 1,
+            }}
+          >
+            <div className="flex items-start gap-4 mb-4">
+              {/* Rank with icon/number */}
+              <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20">
+                {getRankIcon(selectedIndex) || (
+                  <span className="text-lg font-bold text-muted-foreground">
+                    #{selectedIndex + 1}
+                  </span>
                 )}
               </div>
-            ))}
+              
+              {/* Game info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <h4 className="font-bold text-xl text-foreground truncate">
+                    {selectedGame.name}
+                  </h4>
+                  {selectedGame.status === 'hot' && (
+                    <span className="flex items-center gap-1 px-2.5 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full shadow-lg shadow-primary/20 animate-pulse">
+                      <Flame className="w-3.5 h-3.5" />
+                      HOT
+                    </span>
+                  )}
+                </div>
+                
+                {/* Win rate progress bar */}
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{ width: `${selectedGame.winRate}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-primary min-w-[3rem] text-right">
+                    {selectedGame.winRate}%
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">Win Rate</p>
+              </div>
+              
+              {/* Trend indicator */}
+              <div className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold ${
+                selectedGame.trend === 'up' 
+                  ? 'bg-primary/10 text-primary' 
+                  : 'bg-muted text-muted-foreground'
+              }`}>
+                {selectedGame.trend === 'up' ? (
+                  <TrendingUp className="w-4 h-4" />
+                ) : (
+                  <TrendingDown className="w-4 h-4" />
+                )}
+                {selectedGame.trendPercentage}%
+              </div>
+            </div>
+            
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Players</p>
+                  <p className="text-lg font-bold text-foreground">{selectedGame.players.toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Revenue</p>
+                  <p className="text-lg font-bold text-foreground">${(selectedGame.revenue / 1000).toFixed(1)}k</p>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Slide indicators */}
+        <div className="flex items-center justify-center gap-2 mt-4">
+          {topGames.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index === selectedIndex
+                  ? 'bg-primary w-6 shadow-lg shadow-primary/20'
+                  : 'bg-muted hover:bg-primary/50'
+              }`}
+              title={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* Slide counter */}
+        <div className="flex items-center justify-center mt-2">
+          <span className="text-xs text-muted-foreground">
+            {selectedIndex + 1} of {topGames.length}
+          </span>
         </div>
       </div>
     </div>
