@@ -1,49 +1,63 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Game, PaginatedResponse } from '@/types';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge } from '@/components/ui';
+import { useGamesStore } from '@/stores';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
+import type { Game, UpdateGameRequest } from '@/types';
+import { LoadingState, ErrorState, EmptyState, GameForm } from '@/components/features';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
 
 export function GamesSection() {
-  const [data, setData] = useState<PaginatedResponse<Game> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const { user } = useAuth();
+  const { 
+    games: data, 
+    isLoading: loading, 
+    error, 
+    currentPage, 
+    searchTerm, 
+    pageSize,
+    fetchGames,
+    updateGame, 
+    setPage, 
+    setSearchTerm 
+  } = useGamesStore();
 
-  const fetchGames = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Mock data
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockData: PaginatedResponse<Game> = {
-        count: 45,
-        next: null,
-        previous: null,
-        results: [
-          { id: 1, title: 'Mega Fortune Slots', code: 'MFS001', game_category: 'slots', game_status: true, created: '2024-01-15T10:30:00Z' },
-          { id: 2, title: 'Lucky Slots', code: 'LS002', game_category: 'slots', game_status: true, created: '2024-01-16T11:45:00Z' },
-          { id: 3, title: 'Blackjack Classic', code: 'BJC003', game_category: 'table', game_status: true, created: '2024-01-17T09:20:00Z' },
-          { id: 4, title: 'Roulette Pro', code: 'RP004', game_category: 'table', game_status: false, created: '2024-01-18T14:30:00Z' },
-          { id: 5, title: 'Poker Master', code: 'PM005', game_category: 'poker', game_status: true, created: '2024-01-19T16:00:00Z' },
-        ]
-      };
-      
-      setData(mockData);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load games');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const canManageGames = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
 
   useEffect(() => {
-    fetchGames();
-  }, [searchTerm, currentPage]);
+    if (canManageGames) {
+      fetchGames();
+    }
+  }, [fetchGames, canManageGames]);
+
+  if (!canManageGames) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800/50 rounded-xl p-8 max-w-md text-center">
+          <svg className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            Access Denied
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            You need <strong>company</strong> or <strong>superadmin</strong> privileges to access Game Management.
+          </p>
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-3 text-sm">
+            <p className="text-gray-500 dark:text-gray-500">
+              Your current role: <span className="font-semibold text-gray-700 dark:text-gray-300">{user?.role || 'unknown'}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !data) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchGames} />;
@@ -57,6 +71,37 @@ export function GamesSection() {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const handleEditGame = (game: Game) => {
+    setEditingGame(game);
+    setIsDrawerOpen(true);
+  };
+
+  const handleUpdateGame = async (formData: UpdateGameRequest) => {
+    if (!editingGame) return;
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError('');
+      
+      await updateGame(editingGame.id, formData);
+      
+      setIsDrawerOpen(false);
+      setEditingGame(null);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update game';
+      setSubmitError(errorMessage);
+      throw err;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setEditingGame(null);
+    setSubmitError('');
   };
 
   return (
@@ -117,6 +162,7 @@ export function GamesSection() {
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -138,6 +184,17 @@ export function GamesSection() {
                 <TableCell className="text-gray-600 dark:text-gray-400">
                   {formatDate(game.created)}
                 </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditGame(game)}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -151,9 +208,34 @@ export function GamesSection() {
           totalPages={Math.ceil(data.count / pageSize)}
           hasNext={!!data.next}
           hasPrevious={!!data.previous}
-          onPageChange={setCurrentPage}
+          onPageChange={setPage}
         />
       )}
+
+      {/* Edit Game Drawer */}
+      <Drawer
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        title="Edit Game"
+        size="lg"
+      >
+        {submitError && (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{submitError}</span>
+          </div>
+        )}
+        {editingGame && (
+          <GameForm
+            game={editingGame}
+            onSubmit={handleUpdateGame}
+            onCancel={handleCloseDrawer}
+            isLoading={isSubmitting}
+          />
+        )}
+      </Drawer>
     </div>
   );
 }
