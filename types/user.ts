@@ -29,6 +29,8 @@ export interface Player extends BaseUser {
   full_name: string;
   balance: string;
   winning_balance: string;
+  mobile_number?: string;
+  dob?: string;
 }
 
 export type User = Agent | Manager | Staff | Player;
@@ -41,6 +43,16 @@ export interface CreateUserRequest {
   mobile_number?: string;
   full_name?: string;
   dob?: string;
+}
+
+export interface CreatePlayerRequest {
+  username: string;
+  full_name: string;
+  dob: string;
+  email: string;
+  mobile_number: string;
+  password: string;
+  role: 'player';
 }
 
 export interface UpdateUserRequest {

@@ -1,49 +1,62 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Player, PaginatedResponse } from '@/types';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge } from '@/components/ui';
+import { usePlayersStore } from '@/stores/use-players-store';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
+import type { CreatePlayerRequest, UpdateUserRequest } from '@/types';
+import { LoadingState, ErrorState, EmptyState, PlayerForm } from '@/components/features';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
 
 export function PlayersSection() {
-  const [data, setData] = useState<PaginatedResponse<Player> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const { user } = useAuth();
+  const { 
+    players: data, 
+    isLoading: loading, 
+    error, 
+    currentPage, 
+    searchTerm, 
+    pageSize,
+    fetchPlayers, 
+    createPlayer,
+    setPage, 
+    setSearchTerm 
+  } = usePlayersStore();
 
-  const fetchPlayers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Mock data
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockData: PaginatedResponse<Player> = {
-        count: 150,
-        next: null,
-        previous: null,
-        results: [
-          { id: 1, username: 'player1', email: 'player1@example.com', full_name: 'John Doe', role: 'player', balance: '1250.50', winning_balance: '320.75', is_active: true, project_id: 1, created: '2024-01-15T10:30:00Z', modified: '2024-01-15T10:30:00Z' },
-          { id: 2, username: 'player2', email: 'player2@example.com', full_name: 'Jane Smith', role: 'player', balance: '890.25', winning_balance: '150.00', is_active: true, project_id: 1, created: '2024-01-16T11:45:00Z', modified: '2024-01-16T11:45:00Z' },
-          { id: 3, username: 'player3', email: 'player3@example.com', full_name: 'Bob Johnson', role: 'player', balance: '2500.00', winning_balance: '890.50', is_active: true, project_id: 1, created: '2024-01-17T09:20:00Z', modified: '2024-01-17T09:20:00Z' },
-          { id: 4, username: 'player4', email: 'player4@example.com', full_name: 'Alice Brown', role: 'player', balance: '450.75', winning_balance: '0.00', is_active: false, project_id: 1, created: '2024-01-18T14:30:00Z', modified: '2024-01-18T14:30:00Z' },
-          { id: 5, username: 'player5', email: 'player5@example.com', full_name: 'Charlie Davis', role: 'player', balance: '3200.00', winning_balance: '1250.25', is_active: true, project_id: 1, created: '2024-01-19T16:00:00Z', modified: '2024-01-19T16:00:00Z' },
-        ]
-      };
-      
-      setData(mockData);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load players');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const canManagePlayers = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
 
   useEffect(() => {
-    fetchPlayers();
-  }, [searchTerm, currentPage]);
+    if (canManagePlayers) {
+      fetchPlayers();
+    }
+  }, [fetchPlayers, canManagePlayers]);
+
+  if (!canManagePlayers) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800/50 rounded-xl p-8 max-w-md text-center">
+          <svg className="w-16 h-16 text-red-500 dark:text-red-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            Access Denied
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            You need <strong>company</strong> or <strong>superadmin</strong> privileges to access Player Management.
+          </p>
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-3 text-sm">
+            <p className="text-gray-500 dark:text-gray-500">
+              Your current role: <span className="font-semibold text-gray-700 dark:text-gray-300">{user?.role || 'unknown'}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !data) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchPlayers} />;
@@ -66,6 +79,36 @@ export function PlayersSection() {
   const totalBalance = data?.results?.reduce((sum, player) => sum + parseFloat(player.balance || '0'), 0) || 0;
   const totalWinnings = data?.results?.reduce((sum, player) => sum + parseFloat(player.winning_balance || '0'), 0) || 0;
 
+  const handleCreatePlayer = async (formData: CreatePlayerRequest | UpdateUserRequest) => {
+    try {
+      setIsSubmitting(true);
+      setSubmitError('');
+      
+      await createPlayer(formData as CreatePlayerRequest);
+      
+      setIsDrawerOpen(false);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create player';
+      setSubmitError(errorMessage);
+      throw err;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setSubmitError('');
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handlePageChange = (page: number) => {
+    setPage(page);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -76,13 +119,19 @@ export function PlayersSection() {
             Manage all player accounts and balances
           </p>
         </div>
+        <Button variant="primary" size="md" onClick={() => setIsDrawerOpen(true)}>
+          <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Player
+        </Button>
       </div>
 
       {/* Search */}
       <div className="flex items-center gap-4">
         <SearchInput
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleSearchChange}
           placeholder="Search by username, email, or full name..."
         />
       </div>
@@ -158,9 +207,31 @@ export function PlayersSection() {
           totalPages={Math.ceil(data.count / pageSize)}
           hasNext={!!data.next}
           hasPrevious={!!data.previous}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       )}
+
+      {/* Add Player Drawer */}
+      <Drawer
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        title="Create New Player"
+        size="lg"
+      >
+        {submitError && (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{submitError}</span>
+          </div>
+        )}
+        <PlayerForm
+          onSubmit={handleCreatePlayer}
+          onCancel={handleCloseDrawer}
+          isLoading={isSubmitting}
+        />
+      </Drawer>
     </div>
   );
 }
