@@ -18,6 +18,7 @@ interface TopGame {
 export function TopSlotsWidget() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const topGames: TopGame[] = [
     { 
       id: 1, 
@@ -81,31 +82,51 @@ export function TopSlotsWidget() {
 
   const selectedGame = topGames[selectedIndex];
 
-  // Auto-play functionality
+  // Auto-play functionality with smooth transitions
   useEffect(() => {
     if (!isAutoPlaying) return;
     
     const interval = setInterval(() => {
-      setSelectedIndex((prev) => (prev + 1) % topGames.length);
+      if (isTransitioning) return;
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setSelectedIndex((prev) => (prev + 1) % topGames.length);
+        setTimeout(() => setIsTransitioning(false), 150);
+      }, 150);
     }, 4000); // Change slide every 4 seconds
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying, topGames.length]);
+  }, [isAutoPlaying, topGames.length, isTransitioning]);
 
-  // Navigation functions
+  // Navigation functions with smooth transitions
   const goToNext = () => {
-    setSelectedIndex((prev) => (prev + 1) % topGames.length);
-    setIsAutoPlaying(false); // Stop auto-play when user manually navigates
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedIndex((prev) => (prev + 1) % topGames.length);
+      setTimeout(() => setIsTransitioning(false), 150);
+    }, 150);
+    setIsAutoPlaying(false);
   };
 
   const goToPrevious = () => {
-    setSelectedIndex((prev) => (prev - 1 + topGames.length) % topGames.length);
-    setIsAutoPlaying(false); // Stop auto-play when user manually navigates
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedIndex((prev) => (prev - 1 + topGames.length) % topGames.length);
+      setTimeout(() => setIsTransitioning(false), 150);
+    }, 150);
+    setIsAutoPlaying(false);
   };
 
   const goToSlide = (index: number) => {
-    setSelectedIndex(index);
-    setIsAutoPlaying(false); // Stop auto-play when user manually navigates
+    if (isTransitioning || index === selectedIndex) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedIndex(index);
+      setTimeout(() => setIsTransitioning(false), 150);
+    }, 150);
+    setIsAutoPlaying(false);
   };
 
   return (
@@ -134,11 +155,12 @@ export function TopSlotsWidget() {
             {/* Auto-play toggle */}
             <button
               onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+              disabled={isTransitioning}
               className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
                 isAutoPlaying 
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
                   : 'bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-primary'
-              }`}
+              } ${isTransitioning ? 'opacity-50 cursor-not-allowed' : 'opacity-100'}`}
               title={isAutoPlaying ? 'Pause auto-play' : 'Start auto-play'}
             >
               {isAutoPlaying ? '⏸' : '▶'}
@@ -147,7 +169,10 @@ export function TopSlotsWidget() {
             {/* Previous button */}
             <button
               onClick={goToPrevious}
-              className="w-8 h-8 rounded-lg bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-primary flex items-center justify-center transition-all"
+              disabled={isTransitioning}
+              className={`w-8 h-8 rounded-lg bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-primary flex items-center justify-center transition-all ${
+                isTransitioning ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
+              }`}
               title="Previous slide"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -156,7 +181,10 @@ export function TopSlotsWidget() {
             {/* Next button */}
             <button
               onClick={goToNext}
-              className="w-8 h-8 rounded-lg bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-primary flex items-center justify-center transition-all"
+              disabled={isTransitioning}
+              className={`w-8 h-8 rounded-lg bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-primary flex items-center justify-center transition-all ${
+                isTransitioning ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
+              }`}
               title="Next slide"
             >
               <ChevronRight className="w-4 h-4" />
@@ -164,22 +192,34 @@ export function TopSlotsWidget() {
           </div>
         </div>
         
-        {/* Slide container with transition */}
+        {/* Slide container with smooth transitions */}
         <div className="group relative overflow-hidden">
           {/* Animated background gradient */}
-          <div className={`absolute inset-0 bg-gradient-to-r ${getRankOpacity(selectedIndex)} rounded-xl opacity-50 group-hover:opacity-100 transition-all duration-500`} />
-          
-          {/* Card content with slide animation */}
           <div 
-            className="relative bg-card/50 backdrop-blur-sm rounded-xl p-5 border border-border/50 hover:border-primary/50 transition-all duration-500 hover:shadow-lg hover:shadow-primary/10 transform"
+            className={`absolute inset-0 bg-gradient-to-r ${getRankOpacity(selectedIndex)} rounded-xl opacity-50 group-hover:opacity-100 transition-all duration-700 ease-in-out`} 
+          />
+          
+          {/* Card content with smooth slide animation */}
+          <div 
+            className={`relative bg-card/50 backdrop-blur-sm rounded-xl p-5 border border-border/50 hover:border-primary/50 transition-all duration-700 ease-in-out hover:shadow-lg hover:shadow-primary/10 transform ${
+              isTransitioning 
+                ? 'scale-95 opacity-0 translate-y-2' 
+                : 'scale-100 opacity-100 translate-y-0'
+            }`}
             style={{
-              transform: `translateX(${-selectedIndex * 0}px)`,
-              opacity: 1,
+              transitionDelay: isTransitioning ? '0ms' : '150ms',
             }}
           >
             <div className="flex items-start gap-4 mb-4">
               {/* Rank with icon/number */}
-              <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20">
+              <div 
+                className={`flex-shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20 transition-all duration-600 ease-out ${
+                  isTransitioning 
+                    ? 'scale-75 opacity-0 rotate-12' 
+                    : 'scale-100 opacity-100 rotate-0'
+                }`}
+                style={{ transitionDelay: isTransitioning ? '0ms' : '200ms' }}
+              >
                 {getRankIcon(selectedIndex) || (
                   <span className="text-lg font-bold text-muted-foreground">
                     #{selectedIndex + 1}
@@ -188,7 +228,14 @@ export function TopSlotsWidget() {
               </div>
               
               {/* Game info */}
-              <div className="flex-1 min-w-0">
+              <div 
+                className={`flex-1 min-w-0 transition-all duration-600 ease-out ${
+                  isTransitioning 
+                    ? 'opacity-0 translate-x-4' 
+                    : 'opacity-100 translate-x-0'
+                }`}
+                style={{ transitionDelay: isTransitioning ? '0ms' : '250ms' }}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <h4 className="font-bold text-xl text-foreground truncate">
                     {selectedGame.name}
@@ -205,8 +252,13 @@ export function TopSlotsWidget() {
                 <div className="flex items-center gap-3 mb-1">
                   <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-primary rounded-full transition-all duration-500"
-                      style={{ width: `${selectedGame.winRate}%` }}
+                      className={`h-full bg-primary rounded-full transition-all duration-1000 ease-out ${
+                        isTransitioning ? 'w-0' : ''
+                      }`}
+                      style={{ 
+                        width: isTransitioning ? '0%' : `${selectedGame.winRate}%`,
+                        transitionDelay: isTransitioning ? '0ms' : '400ms'
+                      }}
                     />
                   </div>
                   <span className="text-sm font-bold text-primary min-w-[3rem] text-right">
@@ -217,11 +269,18 @@ export function TopSlotsWidget() {
               </div>
               
               {/* Trend indicator */}
-              <div className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold ${
-                selectedGame.trend === 'up' 
-                  ? 'bg-primary/10 text-primary' 
-                  : 'bg-muted text-muted-foreground'
-              }`}>
+              <div 
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold transition-all duration-600 ease-out ${
+                  selectedGame.trend === 'up' 
+                    ? 'bg-primary/10 text-primary' 
+                    : 'bg-muted text-muted-foreground'
+                } ${
+                  isTransitioning 
+                    ? 'scale-75 opacity-0 -translate-x-4' 
+                    : 'scale-100 opacity-100 translate-x-0'
+                }`}
+                style={{ transitionDelay: isTransitioning ? '0ms' : '300ms' }}
+              >
                 {selectedGame.trend === 'up' ? (
                   <TrendingUp className="w-4 h-4" />
                 ) : (
@@ -233,7 +292,14 @@ export function TopSlotsWidget() {
             
             {/* Stats grid */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <div 
+                className={`flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10 transition-all duration-600 ease-out ${
+                  isTransitioning 
+                    ? 'opacity-0 translate-y-4 scale-95' 
+                    : 'opacity-100 translate-y-0 scale-100'
+                }`}
+                style={{ transitionDelay: isTransitioning ? '0ms' : '500ms' }}
+              >
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Users className="w-5 h-5 text-primary" />
                 </div>
@@ -242,7 +308,14 @@ export function TopSlotsWidget() {
                   <p className="text-lg font-bold text-foreground">{selectedGame.players.toLocaleString()}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <div 
+                className={`flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10 transition-all duration-600 ease-out ${
+                  isTransitioning 
+                    ? 'opacity-0 translate-y-4 scale-95' 
+                    : 'opacity-100 translate-y-0 scale-100'
+                }`}
+                style={{ transitionDelay: isTransitioning ? '0ms' : '600ms' }}
+              >
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <DollarSign className="w-5 h-5 text-primary" />
                 </div>
@@ -261,11 +334,12 @@ export function TopSlotsWidget() {
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              disabled={isTransitioning}
+              className={`w-2 h-2 rounded-full transition-all duration-500 ease-out ${
                 index === selectedIndex
-                  ? 'bg-primary w-6 shadow-lg shadow-primary/20'
-                  : 'bg-muted hover:bg-primary/50'
-              }`}
+                  ? 'bg-primary w-6 shadow-lg shadow-primary/20 scale-110'
+                  : 'bg-muted hover:bg-primary/50 hover:scale-110'
+              } ${isTransitioning ? 'pointer-events-none opacity-50' : 'pointer-events-auto opacity-100'}`}
               title={`Go to slide ${index + 1}`}
             />
           ))}
