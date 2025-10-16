@@ -86,8 +86,8 @@ class ApiClient {
       });
 
       // Check for invalid token errors
-      const errorMessage = errorData.message || errorData.detail || (errorData as any).error || '';
-      const errorCode = (errorData as any).code || '';
+      const errorMessage = errorData.message || errorData.detail || errorData.error || '';
+      const errorCode = errorData.code || '';
       
       const isInvalidToken = 
         errorMessage.includes('Given token not valid for any token type') ||

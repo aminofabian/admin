@@ -16,5 +16,7 @@ export interface ApiError {
   message: string;
   detail?: string;
   errors?: Record<string, string[]>;
+  error?: string; // Alternative error message field
+  code?: string; // Error code field (e.g., 'token_not_valid')
 }
 
