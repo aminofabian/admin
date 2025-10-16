@@ -71,6 +71,42 @@ class ApiClient {
         error: errorData,
       });
 
+      // Check for invalid token errors
+      const errorMessage = errorData.message || errorData.detail || (errorData as any).error || '';
+      const errorCode = (errorData as any).code || '';
+      
+      const isInvalidToken = 
+        errorMessage.includes('Given token not valid for any token type') ||
+        errorMessage.includes('token_not_valid') ||
+        errorMessage.includes('Token is invalid') ||
+        errorMessage.includes('Token has expired') ||
+        errorMessage.includes('Invalid token') ||
+        errorCode === 'token_not_valid' ||
+        (response.status === 401 && (
+          errorMessage.toLowerCase().includes('token') || 
+          errorMessage.toLowerCase().includes('authentication') ||
+          errorMessage.toLowerCase().includes('unauthorized')
+        ));
+
+      if (isInvalidToken) {
+        console.warn('🚨 Invalid token detected - redirecting to login page');
+        console.warn('Error details:', { status: response.status, message: errorMessage, code: errorCode });
+        
+        // Clear all stored authentication data
+        storage.clear();
+        
+        // Redirect to login page (use replace to prevent back navigation)
+        if (typeof window !== 'undefined') {
+          window.location.replace('/login');
+        }
+        
+        // Throw a user-friendly error
+        throw {
+          status: 'error',
+          message: 'Your session has expired. Please login again.',
+        };
+      }
+
       throw errorData;
     }
 
