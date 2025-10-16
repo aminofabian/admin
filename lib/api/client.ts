@@ -54,21 +54,35 @@ class ApiClient {
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       let errorData: ApiError;
+      let rawResponseText = '';
       
       try {
-        errorData = await response.json();
+        rawResponseText = await response.text();
+        try {
+          errorData = JSON.parse(rawResponseText);
+        } catch {
+          errorData = {
+            status: 'error',
+            message: `HTTP ${response.status}: ${response.statusText}`,
+            detail: rawResponseText.substring(0, 200) || 'No response body',
+          };
+        }
       } catch {
         errorData = {
           status: 'error',
           message: `HTTP ${response.status}: ${response.statusText}`,
+          detail: 'Failed to read response body',
         };
       }
 
-      console.error('API Error:', {
+      console.error('🚨 API Error Details:', {
         status: response.status,
         statusText: response.statusText,
         url: response.url,
-        error: errorData,
+        endpoint: response.url.replace(this.baseUrl, ''),
+        errorMessage: errorData.message,
+        errorDetail: errorData.detail,
+        rawError: errorData,
       });
 
       // Check for invalid token errors
@@ -116,6 +130,8 @@ class ApiClient {
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     const url = this.buildUrl(endpoint, config?.params);
     
+    console.log('🔵 API GET:', { endpoint, url, params: config?.params });
+    
     try {
       const response = await fetch(url, {
         ...config,
@@ -127,10 +143,13 @@ class ApiClient {
     } catch (error: unknown) {
       // Handle network errors
       if (error instanceof Error && error.name === 'TypeError' && error.message === 'Failed to fetch') {
-        throw {
+        const networkError = {
           status: 'error',
-          message: 'Cannot connect to server. Please check if the API is running at ' + this.baseUrl,
+          message: `Cannot connect to server. Please check if the API is running at ${this.baseUrl}`,
+          detail: `Failed to fetch ${endpoint}`,
         };
+        console.error('🔴 Network Error:', networkError);
+        throw networkError;
       }
       throw error;
     }
@@ -140,11 +159,11 @@ class ApiClient {
     const isFormData = data instanceof FormData;
     const url = this.buildUrl(endpoint, config?.params);
     
-    console.log('API POST Request:', {
-      url,
+    console.log('🟢 API POST:', {
       endpoint,
+      url,
       data: isFormData ? '[FormData]' : data,
-      headers: this.getHeaders(isFormData),
+      params: config?.params,
     });
 
     try {
@@ -159,10 +178,13 @@ class ApiClient {
     } catch (error: unknown) {
       // Handle network errors
       if (error instanceof Error && error.name === 'TypeError' && error.message === 'Failed to fetch') {
-        throw {
+        const networkError = {
           status: 'error',
-          message: 'Cannot connect to server. Please check if the API is running at ' + this.baseUrl,
+          message: `Cannot connect to server. Please check if the API is running at ${this.baseUrl}`,
+          detail: `Failed to fetch ${endpoint}`,
         };
+        console.error('🔴 Network Error:', networkError);
+        throw networkError;
       }
       throw error;
     }

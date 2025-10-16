@@ -23,11 +23,32 @@ export const affiliatesApi = {
       params: filters,
     }),
 
-  update: (id: number, data: UpdateAffiliateRequest) => 
-    apiClient.patch<ApiResponse<Affiliate>>(API_ENDPOINTS.AFFILIATES.DETAIL(id), data),
+  update: async (id: number, data: UpdateAffiliateRequest) => {
+    const response = await apiClient.patch<ApiResponse<Affiliate>>(
+      API_ENDPOINTS.AFFILIATES.DETAIL(id), 
+      data
+    );
+    
+    if (response.status === 'error') {
+      throw new Error(response.message || 'Failed to update affiliate');
+    }
+    
+    // Return unwrapped data
+    return response.data!;
+  },
 
-  addManual: (data: AddManualAffiliateRequest) => 
-    apiClient.post<ApiResponse>(API_ENDPOINTS.AFFILIATES.ADD_MANUAL, data),
+  addManual: async (data: AddManualAffiliateRequest) => {
+    const response = await apiClient.post<ApiResponse>(
+      API_ENDPOINTS.AFFILIATES.ADD_MANUAL, 
+      data
+    );
+    
+    if (response.status === 'error') {
+      throw new Error(response.message || 'Failed to add manual affiliate');
+    }
+    
+    return response;
+  },
 
   defaults: {
     get: (id: number) => 

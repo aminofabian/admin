@@ -1,14 +1,41 @@
 'use client';
 
-interface AffiliatePerformanceProps {
-  totalAffiliates?: number;
-  activeAffiliates?: number;
-}
+import { useEffect } from 'react';
+import { useAffiliatesStore } from '@/stores';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
 
-export function ServerUptimeGauge({ totalAffiliates = 25, activeAffiliates = 18 }: AffiliatePerformanceProps) {
+export function ServerUptimeGauge() {
+  const { user } = useAuth();
+  const { affiliates, fetchAffiliates } = useAffiliatesStore();
+  
+  const canViewAffiliates = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
+
+  useEffect(() => {
+    if (canViewAffiliates) {
+      fetchAffiliates();
+    }
+  }, [canViewAffiliates, fetchAffiliates]);
+
+  // Calculate stats from real data
+  const totalAffiliates = affiliates?.count || 0;
+  const activeAffiliates = affiliates?.results?.filter(aff => aff.total_players > 0).length || 0;
+  
   const percentage = totalAffiliates > 0 ? (activeAffiliates / totalAffiliates) * 100 : 0;
   const circumference = 2 * Math.PI * 40;
   const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
+
+  // Show placeholder if no permission
+  if (!canViewAffiliates) {
+    return (
+      <div className="bg-card rounded-xl p-4 border border-border">
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">Affiliate Network</h3>
+        <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+          Restricted Access
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-xl p-4 border border-border">

@@ -54,7 +54,9 @@ export const API_ENDPOINTS = {
     DEFAULTS: `${API_PREFIX}/affiliate-defaults/`,
   },
   DASHBOARD: {
-    STATS: `${API_PREFIX}/dashboard/stats/`,
+    // TODO: Backend doesn't implement this endpoint yet
+    // See hooks/use-dashboard-stats.ts - currently using fallback data
+    STATS: `${API_PREFIX}/dashboard/stats/`, // NOT IMPLEMENTED
   },
 } as const;
 

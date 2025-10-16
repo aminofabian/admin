@@ -80,10 +80,20 @@ export const useAffiliatesStore = create<AffiliatesStore>((set, get) => ({
 
   updateAffiliate: async (id: number, data: UpdateAffiliateRequest) => {
     try {
-      await affiliatesApi.update(id, data);
+      const updatedAffiliate = await affiliatesApi.update(id, data);
       
-      // Refresh the affiliates list after update
-      await get().fetchAffiliates();
+      // Optimistically update local state instead of refetching
+      const currentAffiliates = get().affiliates;
+      if (currentAffiliates) {
+        set({
+          affiliates: {
+            ...currentAffiliates,
+            results: currentAffiliates.results.map(aff => 
+              aff.id === id ? updatedAffiliate : aff
+            ),
+          },
+        });
+      }
     } catch (err: unknown) {
       let errorMessage = 'Failed to update affiliate';
       
@@ -104,13 +114,9 @@ export const useAffiliatesStore = create<AffiliatesStore>((set, get) => ({
 
   addManualAffiliate: async (data: AddManualAffiliateRequest) => {
     try {
-      const response = await affiliatesApi.addManual(data);
+      await affiliatesApi.addManual(data);
       
-      if (response.status !== 'success') {
-        throw new Error(response.message || 'Failed to add affiliate');
-      }
-      
-      // Refresh the affiliates list after adding
+      // Refresh the affiliates list after adding (needed to get new affiliate stats)
       await get().fetchAffiliates();
     } catch (err: unknown) {
       let errorMessage = 'Failed to add manual affiliate';
