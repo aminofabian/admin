@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { transactionsApi } from '@/lib/api';
-import { usePagination, useSearch } from '@/lib/hooks';
+import { useEffect } from 'react';
+import { useSearch } from '@/lib/hooks';
+import { useTransactionsStore } from '@/stores';
 import { 
   Card, 
   CardHeader, 
@@ -19,39 +19,36 @@ import {
 } from '@/components/ui';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
-import type { Transaction, PaginatedResponse } from '@/types';
 
 export default function TransactionsPage() {
-  const [data, setData] = useState<PaginatedResponse<Transaction> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filter, setFilter] = useState<'all' | 'processing' | 'history'>('all');
-  
-  const { page, pageSize, setPage } = usePagination();
+  const { 
+    transactions,
+    isLoading,
+    error,
+    currentPage,
+    pageSize,
+    filter,
+    setPage,
+    setSearchTerm,
+    setFilter,
+    fetchTransactions,
+  } = useTransactionsStore();
+
   const { search, debouncedSearch, setSearch } = useSearch();
 
+  // Initial load
   useEffect(() => {
-    loadTransactions();
+    fetchTransactions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, debouncedSearch, filter]);
+  }, []);
 
-  const loadTransactions = async () => {
-    try {
-      setIsLoading(true);
-      setError('');
-      const response = await transactionsApi.list({
-        page,
-        page_size: pageSize,
-        search: debouncedSearch || undefined,
-        type: filter === 'all' ? undefined : filter,
-      });
-      setData(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load transactions');
-    } finally {
-      setIsLoading(false);
+  // Handle debounced search
+  useEffect(() => {
+    if (debouncedSearch !== undefined) {
+      setSearchTerm(debouncedSearch);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -63,12 +60,12 @@ export default function TransactionsPage() {
     }
   };
 
-  if (isLoading && !data) {
+  if (isLoading && !transactions) {
     return <LoadingState />;
   }
 
-  if (error && !data) {
-    return <ErrorState message={error} onRetry={loadTransactions} />;
+  if (error && !transactions) {
+    return <ErrorState message={error} onRetry={fetchTransactions} />;
   }
 
   return (
@@ -77,18 +74,26 @@ export default function TransactionsPage() {
         <h1 className="text-3xl font-bold text-foreground">Transactions</h1>
       </div>
 
-      <div className="mb-4 flex gap-2">
-        {(['all', 'processing', 'history'] as const).map((f) => (
+      <div className="mb-4 flex gap-2 flex-wrap">
+        {([
+          { value: 'all', label: 'All' },
+          { value: 'processing', label: 'Processing' },
+          { value: 'history', label: 'History' },
+          { value: 'purchases', label: 'Purchases' },
+          { value: 'cashouts', label: 'Cashouts' },
+          { value: 'pending-purchases', label: 'Pending Purchases' },
+          { value: 'pending-cashouts', label: 'Pending Cashouts' },
+        ] as const).map((f) => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
+            key={f.value}
+            onClick={() => setFilter(f.value)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === f
+              filter === f.value
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {f.label}
           </button>
         ))}
       </div>
@@ -107,7 +112,7 @@ export default function TransactionsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {data?.results.length === 0 ? (
+          {transactions?.results.length === 0 ? (
             <EmptyState 
               title="No transactions found" 
               description="No transactions available"
@@ -127,7 +132,7 @@ export default function TransactionsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data?.results.map((transaction) => (
+                  {transactions?.results.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell className="font-medium">{transaction.unique_id}</TableCell>
                       <TableCell>{transaction.user_username}</TableCell>
@@ -144,13 +149,13 @@ export default function TransactionsPage() {
                   ))}
                 </TableBody>
               </Table>
-              {data && (
+              {transactions && (
                 <Pagination
-                  currentPage={page}
-                  totalPages={Math.ceil(data.count / pageSize)}
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(transactions.count / pageSize)}
                   onPageChange={setPage}
-                  hasNext={!!data.next}
-                  hasPrevious={!!data.previous}
+                  hasNext={!!transactions.next}
+                  hasPrevious={!!transactions.previous}
                 />
               )}
             </>
