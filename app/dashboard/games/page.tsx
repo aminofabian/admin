@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// import { gamesApi } from '@/lib/api'; // Suspended for mock data
-import { usePagination, useSearch } from '@/lib/hooks';
+import { useGamesStore } from '@/stores';
 import { 
   Card, 
   CardHeader, 
@@ -21,170 +20,43 @@ import {
 } from '@/components/ui';
 import { LoadingState, ErrorState, EmptyState, GameForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
-import type { Game, PaginatedResponse, UpdateGameRequest } from '@/types';
-
-// 🎭 MOCK DATA - Remove when backend is ready
-const MOCK_GAMES: Game[] = [
-  {
-    id: 1,
-    title: 'Dragon Fortune Slots',
-    code: 'DFS001',
-    game_category: 'slots',
-    game_status: true,
-    dashboard_url: 'https://dashboard.dragonfortune.com',
-    created: '2024-01-10T08:00:00Z',
-  },
-  {
-    id: 2,
-    title: 'Mega Jackpot Poker',
-    code: 'MJP002',
-    game_category: 'poker',
-    game_status: true,
-    dashboard_url: 'https://dashboard.megajackpot.com',
-    created: '2024-01-15T09:30:00Z',
-  },
-  {
-    id: 3,
-    title: 'Lucky Roulette Pro',
-    code: 'LRP003',
-    game_category: 'roulette',
-    game_status: false,
-    dashboard_url: 'https://dashboard.luckyroulette.com',
-    created: '2024-02-01T10:15:00Z',
-  },
-  {
-    id: 4,
-    title: 'Blackjack Master',
-    code: 'BJM004',
-    game_category: 'blackjack',
-    game_status: true,
-    dashboard_url: 'https://dashboard.blackjackmaster.com',
-    created: '2024-02-10T11:45:00Z',
-  },
-  {
-    id: 5,
-    title: 'Treasure Quest Slots',
-    code: 'TQS005',
-    game_category: 'slots',
-    game_status: true,
-    created: '2024-02-20T14:20:00Z',
-  },
-  {
-    id: 6,
-    title: 'Baccarat Royal',
-    code: 'BAC006',
-    game_category: 'baccarat',
-    game_status: false,
-    dashboard_url: 'https://dashboard.baccaratroyal.com',
-    created: '2024-03-01T15:30:00Z',
-  },
-  {
-    id: 7,
-    title: 'Cosmic Spins',
-    code: 'CSP007',
-    game_category: 'slots',
-    game_status: true,
-    dashboard_url: 'https://dashboard.cosmicspins.com',
-    created: '2024-03-15T16:00:00Z',
-  },
-  {
-    id: 8,
-    title: 'Texas Holdem Elite',
-    code: 'THE008',
-    game_category: 'poker',
-    game_status: true,
-    created: '2024-03-20T17:45:00Z',
-  },
-  {
-    id: 9,
-    title: 'European Roulette',
-    code: 'EUR009',
-    game_category: 'roulette',
-    game_status: false,
-    dashboard_url: 'https://dashboard.euroulette.com',
-    created: '2024-04-01T09:00:00Z',
-  },
-  {
-    id: 10,
-    title: 'Wild West Slots',
-    code: 'WWS010',
-    game_category: 'slots',
-    game_status: true,
-    dashboard_url: 'https://dashboard.wildwest.com',
-    created: '2024-04-10T10:30:00Z',
-  },
-];
-
-// Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Mock API functions
-const mockGamesApi = {
-  list: async (filters?: { search?: string; page?: number; page_size?: number }): Promise<PaginatedResponse<Game>> => {
-    await delay(800); // Simulate network delay
-
-    let filteredGames = [...MOCK_GAMES];
-
-    // Apply search filter
-    if (filters?.search) {
-      const searchLower = filters.search.toLowerCase();
-      filteredGames = filteredGames.filter(
-        (game) =>
-          game.title.toLowerCase().includes(searchLower) ||
-          game.code.toLowerCase().includes(searchLower) ||
-          game.game_category.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply pagination
-    const page = filters?.page || 1;
-    const pageSize = filters?.page_size || 10;
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedGames = filteredGames.slice(startIndex, endIndex);
-
-    return {
-      count: filteredGames.length,
-      next: endIndex < filteredGames.length ? `?page=${page + 1}` : null,
-      previous: page > 1 ? `?page=${page - 1}` : null,
-      results: paginatedGames,
-    };
-  },
-
-  update: async (id: number, data: UpdateGameRequest): Promise<Game> => {
-    await delay(1000); // Simulate network delay
-
-    const gameIndex = MOCK_GAMES.findIndex((g) => g.id === id);
-    if (gameIndex === -1) {
-      throw new Error('Game not found');
-    }
-
-    MOCK_GAMES[gameIndex] = {
-      ...MOCK_GAMES[gameIndex],
-      ...data,
-    };
-
-    return MOCK_GAMES[gameIndex];
-  },
-};
+import type { Game, UpdateGameRequest } from '@/types';
 
 export default function GamesPage() {
-  const [data, setData] = useState<PaginatedResponse<Game> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    games: data,
+    isLoading,
+    error: storeError,
+    currentPage,
+    pageSize,
+    searchTerm: storeSearchTerm,
+    fetchGames,
+    updateGame,
+    setPage,
+    setSearchTerm,
+  } = useGamesStore();
+
+  const [localSearchTerm, setLocalSearchTerm] = useState(storeSearchTerm);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
-  const { page, pageSize, setPage } = usePagination();
-  const { search, debouncedSearch, setSearch } = useSearch();
+
+  // Debounced search implementation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearchTerm !== storeSearchTerm) {
+        setSearchTerm(localSearchTerm);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [localSearchTerm, storeSearchTerm, setSearchTerm]);
 
   useEffect(() => {
-    loadGames();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, debouncedSearch]);
+    fetchGames();
+  }, [fetchGames]);
 
   useEffect(() => {
     if (successMessage) {
@@ -193,24 +65,6 @@ export default function GamesPage() {
     }
   }, [successMessage]);
 
-  const loadGames = async () => {
-    try {
-      setIsLoading(true);
-      setError('');
-      // Using mock API - replace with gamesApi.list when backend is ready
-      const response = await mockGamesApi.list({
-        page,
-        page_size: pageSize,
-        search: debouncedSearch || undefined,
-      });
-      setData(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load games');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleUpdateGame = async (formData: UpdateGameRequest) => {
     if (!selectedGame) return;
     
@@ -218,13 +72,11 @@ export default function GamesPage() {
       setIsSubmitting(true);
       setSubmitError('');
       
-      // Using mock API - replace with gamesApi.update when backend is ready
-      await mockGamesApi.update(selectedGame.id, formData);
+      await updateGame(selectedGame.id, formData);
       
       setSuccessMessage('Game updated successfully!');
       setIsEditModalOpen(false);
       setSelectedGame(null);
-      await loadGames();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update game';
       setSubmitError(errorMessage);
@@ -240,12 +92,11 @@ export default function GamesPage() {
     }
 
     try {
-      // Using mock API - replace with gamesApi.update when backend is ready
-      await mockGamesApi.update(game.id, { game_status: !game.game_status });
+      await updateGame(game.id, { game_status: !game.game_status });
       setSuccessMessage(`Game ${game.game_status ? 'disabled' : 'enabled'} successfully!`);
-      await loadGames();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update game status');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update game status';
+      setSubmitError(errorMessage);
     }
   };
 
@@ -265,22 +116,41 @@ export default function GamesPage() {
     return <LoadingState />;
   }
 
-  if (error && !data) {
-    return <ErrorState message={error} onRetry={loadGames} />;
+  if (storeError && !data) {
+    return <ErrorState message={storeError} onRetry={fetchGames} />;
   }
 
-  return (
-    <div>
-      {/* Mock Data Banner */}
-      <div className="mb-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 px-4 py-3 flex items-center gap-2 rounded-lg">
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-        </svg>
-        <span><strong>Development Mode:</strong> Using mock data. Changes persist in memory only (refresh to reset).</span>
-      </div>
+  // Calculate stats
+  const totalGames = data?.count || 0;
+  const activeGames = data?.results?.filter(g => g.game_status).length || 0;
+  const inactiveGames = data?.results?.filter(g => !g.game_status).length || 0;
+  const uniqueCategories = new Set(data?.results?.map(g => g.game_category)).size || 0;
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Games</h1>
+  // Category breakdown
+  const categoryBreakdown = data?.results?.reduce((acc, game) => {
+    const category = game.game_category;
+    if (!acc[category]) {
+      acc[category] = { total: 0, active: 0, inactive: 0 };
+    }
+    acc[category].total += 1;
+    if (game.game_status) {
+      acc[category].active += 1;
+    } else {
+      acc[category].inactive += 1;
+    }
+    return acc;
+  }, {} as Record<string, { total: number; active: number; inactive: number }>);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Games Management</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage all available games and their status
+          </p>
+        </div>
         <div className="bg-muted dark:bg-muted/50 px-4 py-2 rounded-lg text-sm text-muted-foreground">
           <strong>Note:</strong> Games are manually created by system admins
         </div>
@@ -288,7 +158,7 @@ export default function GamesPage() {
 
       {/* Success Message */}
       {successMessage && (
-        <div className="mb-6 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300 px-4 py-3 flex items-center justify-between rounded-lg">
+        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300 px-4 py-3 flex items-center justify-between rounded-lg">
           <div className="flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -303,15 +173,124 @@ export default function GamesPage() {
         </div>
       )}
 
+      {/* Error Message */}
+      {submitError && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 flex items-center gap-2 rounded-lg">
+          <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          <span>{submitError}</span>
+        </div>
+      )}
+
+      {/* Primary Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Games</p>
+                <h3 className="text-2xl font-bold mt-1">{totalGames}</h3>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+                </svg>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Active Games</p>
+                <h3 className="text-2xl font-bold mt-1 text-green-600 dark:text-green-500">{activeGames}</h3>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Inactive Games</p>
+                <h3 className="text-2xl font-bold mt-1 text-red-600 dark:text-red-500">{inactiveGames}</h3>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Categories</p>
+                <h3 className="text-2xl font-bold mt-1">{uniqueCategories}</h3>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Category Breakdown */}
+      {categoryBreakdown && Object.keys(categoryBreakdown).length > 0 && (
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold">Category Breakdown</h2>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Object.entries(categoryBreakdown).map(([category, stats]) => (
+                <div key={category} className="p-4 border border-border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium capitalize">{category}</span>
+                    <Badge variant="default">{stats.total}</Badge>
+                  </div>
+                  <div className="flex gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <span className="text-muted-foreground">{stats.active} active</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                      <span className="text-muted-foreground">{stats.inactive} inactive</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Games Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">All Games</h2>
             <div className="w-64">
               <SearchInput
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search games..."
+                value={localSearchTerm}
+                onChange={(e) => setLocalSearchTerm(e.target.value)}
+                placeholder="Search by title, code, or category..."
               />
             </div>
           </div>
@@ -320,17 +299,18 @@ export default function GamesPage() {
           {data?.results.length === 0 ? (
             <EmptyState 
               title="No games found" 
-              description="No games available in the system"
+              description={localSearchTerm ? "Try adjusting your search query" : "No games available in the system"}
             />
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Title</TableHead>
+                    <TableHead>Game Info</TableHead>
                     <TableHead>Code</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Dashboard</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -338,17 +318,41 @@ export default function GamesPage() {
                 <TableBody>
                   {data?.results.map((game) => (
                     <TableRow key={game.id}>
-                      <TableCell className="font-medium">{game.title}</TableCell>
-                      <TableCell className="font-mono text-sm">{game.code}</TableCell>
                       <TableCell>
-                        <span className="capitalize">{game.game_category}</span>
+                        <div>
+                          <div className="font-medium">{game.title}</div>
+                          <div className="text-xs text-muted-foreground">ID: {game.id}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <code className="bg-muted px-2 py-1 rounded text-xs font-mono">{game.code}</code>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="info" className="capitalize">{game.game_category}</Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={game.game_status ? 'success' : 'danger'}>
-                          {game.game_status ? 'Enabled' : 'Disabled'}
+                          {game.game_status ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs">{formatDate(game.created)}</TableCell>
+                      <TableCell>
+                        {game.dashboard_url ? (
+                          <a 
+                            href={game.dashboard_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 hover:underline text-xs flex items-center gap-1"
+                          >
+                            View Dashboard
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No URL</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{formatDate(game.created)}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-2">
                           <Button
@@ -363,9 +367,9 @@ export default function GamesPage() {
                           </Button>
                           <Button
                             size="sm"
-                            variant={game.game_status ? 'danger' : 'secondary'}
+                            variant={game.game_status ? 'danger' : 'primary'}
                             onClick={() => handleToggleStatus(game)}
-                            title={game.game_status ? 'Disable' : 'Enable'}
+                            title={game.game_status ? 'Disable game' : 'Enable game'}
                           >
                             {game.game_status ? (
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -385,7 +389,7 @@ export default function GamesPage() {
               </Table>
               {data && (
                 <Pagination
-                  currentPage={page}
+                  currentPage={currentPage}
                   totalPages={Math.ceil(data.count / pageSize)}
                   onPageChange={setPage}
                   hasNext={!!data.next}
