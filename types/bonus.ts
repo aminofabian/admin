@@ -1,5 +1,5 @@
 export type BonusType = 'percentage' | 'fixed';
-export type BonusCategory = 'game' | 'transfer' | 'signup';
+export type BonusCategory = 'game' | 'transfer' | 'signup' | 'purchase';
 
 export interface BaseBonus {
   id: number;
