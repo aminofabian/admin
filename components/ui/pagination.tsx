@@ -18,22 +18,26 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between px-4 py-3 sm:px-6">
       <div className="flex justify-between flex-1 sm:hidden">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={!hasPrevious}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={!hasNext}
-        >
-          Next
-        </Button>
+        {hasPrevious ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onPageChange(currentPage - 1)}
+          >
+            Previous
+          </Button>
+        ) : (
+          <div />
+        )}
+        {hasNext && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onPageChange(currentPage + 1)}
+          >
+            Next
+          </Button>
+        )}
       </div>
       <div className="hidden sm:flex sm:items-center sm:justify-between sm:flex-1">
         <div>
@@ -47,22 +51,24 @@ export function Pagination({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={!hasPrevious}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={!hasNext}
-          >
-            Next
-          </Button>
+          {hasPrevious && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(currentPage - 1)}
+            >
+              Previous
+            </Button>
+          )}
+          {hasNext && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onPageChange(currentPage + 1)}
+            >
+              Next
+            </Button>
+          )}
         </div>
       </div>
     </div>
