@@ -123,9 +123,9 @@ export function AffiliatesSection() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Affiliate Network</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -141,7 +141,7 @@ export function AffiliatesSection() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
         <SearchInput
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -247,13 +247,15 @@ export function AffiliatesSection() {
 
       {/* Pagination */}
       {data && data.count > pageSize && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(data.count / pageSize)}
-          hasNext={!!data.next}
-          hasPrevious={!!data.previous}
-          onPageChange={setPage}
-        />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(data.count / pageSize)}
+            hasNext={!!data.next}
+            hasPrevious={!!data.previous}
+            onPageChange={setPage}
+          />
+        </div>
       )}
 
       {/* Edit Affiliate Commission Drawer */}
