@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTransactionsStore } from '@/stores';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge } from '@/components/ui';
+import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 
 export function TransactionsSection() {
   const {
@@ -42,10 +43,6 @@ export function TransactionsSection() {
     return <EmptyState title="No transactions found" />;
   }
 
-  const formatCurrency = (amount: string | number) => {
-    return `$${parseFloat(String(amount)).toFixed(2)}`;
-  };
-
   const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'info' => {
     switch (status.toLowerCase()) {
       case 'completed': return 'success';
@@ -55,10 +52,33 @@ export function TransactionsSection() {
     }
   };
 
+  // Calculate comprehensive stats
   const totalAmount = transactions?.results?.reduce((sum, tx) => sum + parseFloat(tx.amount || '0'), 0) || 0;
   const totalBonus = transactions?.results?.reduce((sum, tx) => sum + parseFloat(tx.bonus_amount || '0'), 0) || 0;
   const purchaseCount = transactions?.results?.filter(tx => tx.type === 'purchase').length || 0;
   const cashoutCount = transactions?.results?.filter(tx => tx.type === 'cashout').length || 0;
+  const completedCount = transactions?.results?.filter(tx => tx.status === 'completed').length || 0;
+  const pendingCount = transactions?.results?.filter(tx => tx.status === 'pending').length || 0;
+  const failedCount = transactions?.results?.filter(tx => tx.status === 'failed').length || 0;
+  const cancelledCount = transactions?.results?.filter(tx => tx.status === 'cancelled').length || 0;
+  
+  const successRate = transactions?.results?.length 
+    ? ((completedCount / transactions.results.length) * 100).toFixed(1)
+    : '0';
+  
+  const avgTransactionValue = transactions?.results?.length 
+    ? (totalAmount / transactions.results.length).toFixed(2)
+    : '0';
+  
+  // Payment method breakdown
+  const paymentMethods = transactions?.results?.reduce((acc, tx) => {
+    const method = tx.payment_method || 'Unknown';
+    acc[method] = (acc[method] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>) || {};
+  
+  // Unique users
+  const uniqueUsers = new Set(transactions?.results?.map(tx => tx.user_username) || []).size;
 
   return (
     <div className="space-y-4">
@@ -173,125 +193,366 @@ export function TransactionsSection() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800/50">
-          <div className="text-sm text-blue-700 dark:text-blue-400 font-medium">Total Transactions</div>
-          <div className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-1">
-            {transactions?.count.toLocaleString() || 0}
+      {/* Primary Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 rounded-xl p-5 border border-blue-200 dark:border-blue-800/50 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="text-sm text-blue-700 dark:text-blue-400 font-medium mb-2">Total Transactions</div>
+              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                {transactions?.count.toLocaleString() || 0}
+              </div>
+              <div className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                Showing {transactions?.results?.length || 0} of {transactions?.count || 0}
+              </div>
+            </div>
+            <div className="text-3xl opacity-20">📊</div>
           </div>
-          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">Overall count</div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Page Amount</div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{formatCurrency(totalAmount)}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Current page only</div>
+
+        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 rounded-xl p-5 border border-green-200 dark:border-green-800/50 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="text-sm text-green-700 dark:text-green-400 font-medium mb-2">Success Rate</div>
+              <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+                {successRate}%
+              </div>
+              <div className="text-xs text-green-600 dark:text-green-400 mt-2">
+                {completedCount} completed
+              </div>
+            </div>
+            <div className="text-3xl opacity-20">✓</div>
+          </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Page Bonus</div>
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{formatCurrency(totalBonus)}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Current page only</div>
+
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 rounded-xl p-5 border border-purple-200 dark:border-purple-800/50 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="text-sm text-purple-700 dark:text-purple-400 font-medium mb-2">Page Volume</div>
+              <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+                {formatCurrency(totalAmount)}
+              </div>
+              <div className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                +{formatCurrency(totalBonus)} bonus
+              </div>
+            </div>
+            <div className="text-3xl opacity-20">💰</div>
+          </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Page Purchases</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{purchaseCount}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">of {transactions?.results?.length || 0} shown</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Page Cashouts</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{cashoutCount}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">of {transactions?.results?.length || 0} shown</div>
+
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 rounded-xl p-5 border border-orange-200 dark:border-orange-800/50 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="text-sm text-orange-700 dark:text-orange-400 font-medium mb-2">Unique Users</div>
+              <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">
+                {uniqueUsers}
+              </div>
+              <div className="text-xs text-orange-600 dark:text-orange-400 mt-2">
+                Avg: {formatCurrency(avgTransactionValue)}
+              </div>
+            </div>
+            <div className="text-3xl opacity-20">👥</div>
+          </div>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Secondary Stats - Transaction Types & Status */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Purchases</div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-xl font-bold text-green-600 dark:text-green-400">{purchaseCount}</div>
+            <div className="text-xs text-gray-500">
+              {transactions?.results?.length ? ((purchaseCount / transactions.results.length) * 100).toFixed(0) : 0}%
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Cashouts</div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{cashoutCount}</div>
+            <div className="text-xs text-gray-500">
+              {transactions?.results?.length ? ((cashoutCount / transactions.results.length) * 100).toFixed(0) : 0}%
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Completed</div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-xl font-bold text-green-600 dark:text-green-400">{completedCount}</div>
+            <Badge variant="success" className="text-xs">✓</Badge>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Pending</div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{pendingCount}</div>
+            <Badge variant="warning" className="text-xs">⏳</Badge>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Failed</div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-xl font-bold text-red-600 dark:text-red-400">{failedCount}</div>
+            <Badge variant="danger" className="text-xs">✗</Badge>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Cancelled</div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-xl font-bold text-gray-600 dark:text-gray-400">{cancelledCount}</div>
+            <Badge variant="default" className="text-xs">⊘</Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Methods Breakdown */}
+      {Object.keys(paymentMethods).length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            Payment Methods ({Object.keys(paymentMethods).length})
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(paymentMethods).map(([method, count]) => (
+              <div 
+                key={method}
+                className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600"
+              >
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{method}</span>
+                <Badge variant="info" className="text-xs">{count}</Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Table with More Details */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Transaction Details
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Comprehensive transaction information with all available data
+          </p>
+        </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Bonus</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead className="min-w-[180px]">User Info</TableHead>
+                <TableHead className="min-w-[200px]">Transaction Details</TableHead>
+                <TableHead className="min-w-[140px]">Amount & Bonus</TableHead>
+                <TableHead className="min-w-[140px]">Balance Changes</TableHead>
+                <TableHead className="min-w-[120px]">Payment Info</TableHead>
+                <TableHead className="min-w-[100px]">Status</TableHead>
+                <TableHead className="min-w-[160px]">Operator & Role</TableHead>
+                <TableHead className="min-w-[160px]">Timestamps</TableHead>
+                <TableHead className="min-w-[200px]">Additional Info</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {transactions?.results?.map((transaction) => (
                 <TableRow key={transaction.id}>
+                  {/* User Info */}
                   <TableCell>
-                    <div className="space-y-1">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">
-                        {transaction.user_username}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {transaction.user_email}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                          {transaction.user_username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                            {transaction.user_username}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {transaction.user_email}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </TableCell>
+
+                  {/* Transaction Details */}
                   <TableCell>
-                    <div className="max-w-xs">
-                      <div className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                    <div className="space-y-1.5">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {transaction.description}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        ID: <code className="bg-muted px-1 rounded">{transaction.id}</code>
+                      <div className="space-y-0.5 text-xs">
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500 dark:text-gray-400">ID:</span>
+                          <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
+                            {transaction.unique_id}
+                          </code>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Badge 
+                            variant={transaction.type === 'purchase' ? 'success' : 'warning'}
+                            className="text-xs"
+                          >
+                            {transaction.type.toUpperCase()}
+                          </Badge>
+                          <span className="text-gray-400">•</span>
+                          <Badge variant="info" className="text-xs">
+                            {transaction.action || 'N/A'}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </TableCell>
+
+                  {/* Amount & Bonus */}
                   <TableCell>
-                    <div className="font-semibold text-blue-600 dark:text-blue-400">
-                      {formatCurrency(transaction.amount)} {transaction.currency}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {transaction.journal_entry === 'debit' ? '➖ Debit' : '➕ Credit'}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {parseFloat(transaction.bonus_amount) > 0 ? (
-                      <div className="text-green-600 dark:text-green-400 font-medium">
-                        +{formatCurrency(transaction.bonus_amount)}
+                    <div className="space-y-2">
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Transaction Amount</div>
+                        <div className="font-bold text-blue-600 dark:text-blue-400 text-base">
+                          {formatCurrency(transaction.amount)}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                          <span className={transaction.journal_entry === 'debit' ? 'text-red-600' : 'text-green-600'}>
+                            {transaction.journal_entry === 'debit' ? '➖' : '➕'}
+                          </span>
+                          {transaction.journal_entry} • {transaction.currency}
+                        </div>
                       </div>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="info" className="text-xs">
-                      {transaction.payment_method}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1 text-xs">
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Prev:</span> {formatCurrency(transaction.previous_balance)}
-                      </div>
-                      <div className="text-gray-900 dark:text-gray-100 font-semibold">
-                        <span className="font-medium">New:</span> {formatCurrency(transaction.new_balance)}
-                      </div>
+                      {parseFloat(transaction.bonus_amount) > 0 && (
+                        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Bonus</div>
+                          <div className="text-green-600 dark:text-green-400 font-semibold text-sm">
+                            +{formatCurrency(transaction.bonus_amount)}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </TableCell>
+
+                  {/* Balance Changes */}
                   <TableCell>
-                    <Badge variant={getStatusVariant(transaction.status)}>
-                      {transaction.status}
-                    </Badge>
+                    <div className="space-y-1.5">
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Previous</div>
+                        <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          {formatCurrency(transaction.previous_balance)}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-gray-400">
+                        <span>→</span>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">New Balance</div>
+                        <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                          {formatCurrency(transaction.new_balance)}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-700">
+                        Change: <span className={parseFloat(transaction.new_balance) > parseFloat(transaction.previous_balance) ? 'text-green-600' : 'text-red-600'}>
+                          {(parseFloat(transaction.new_balance) - parseFloat(transaction.previous_balance)).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
                   </TableCell>
+
+                  {/* Payment Info */}
                   <TableCell>
-                    <Badge 
-                      variant={transaction.type === 'purchase' ? 'success' : 'warning'}
-                      className="text-xs"
-                    >
-                      {transaction.type}
-                    </Badge>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Method</div>
+                        <Badge variant="info" className="text-xs">
+                          {transaction.payment_method}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Currency: <span className="font-medium text-gray-700 dark:text-gray-300">{transaction.currency}</span>
+                      </div>
+                    </div>
                   </TableCell>
+
+                  {/* Status */}
                   <TableCell>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                      {transaction.created}
+                    <div className="space-y-2">
+                      <Badge variant={getStatusVariant(transaction.status)} className="text-xs">
+                        {transaction.status.toUpperCase()}
+                      </Badge>
+                      {transaction.status === 'completed' && (
+                        <div className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                          <span>✓</span>
+                          <span>Verified</span>
+                        </div>
+                      )}
+                      {transaction.status === 'pending' && (
+                        <div className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                          <span>⏳</span>
+                          <span>Processing</span>
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+
+                  {/* Operator & Role */}
+                  <TableCell>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Operator</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {transaction.operator}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Role</div>
+                        <Badge variant="default" className="text-xs capitalize">
+                          {transaction.role}
+                        </Badge>
+                      </div>
+                    </div>
+                  </TableCell>
+
+                  {/* Timestamps */}
+                  <TableCell>
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <div className="text-gray-500 dark:text-gray-400 mb-0.5">Created</div>
+                        <div className="text-gray-900 dark:text-gray-100 font-medium">
+                          {formatDate(transaction.created)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500 dark:text-gray-400 mb-0.5">Updated</div>
+                        <div className="text-gray-600 dark:text-gray-400">
+                          {formatDate(transaction.updated)}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+
+                  {/* Additional Info */}
+                  <TableCell>
+                    <div className="space-y-2">
+                      <div className="text-xs">
+                        <div className="text-gray-500 dark:text-gray-400 mb-1">Internal ID</div>
+                        <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono">
+                          {transaction.id}
+                        </code>
+                      </div>
+                      {transaction.remarks && (
+                        <div className="text-xs">
+                          <div className="text-gray-500 dark:text-gray-400 mb-1">Remarks</div>
+                          <div className="text-gray-700 dark:text-gray-300 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded border border-yellow-200 dark:border-yellow-800">
+                            {transaction.remarks}
+                          </div>
+                        </div>
+                      )}
+                      {!transaction.remarks && (
+                        <div className="text-xs text-gray-400 italic">
+                          No additional remarks
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
