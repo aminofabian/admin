@@ -94,27 +94,37 @@ export function BannersSection() {
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-          Admin Banners
-        </h2>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Admin Banners
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Manage promotional banners across the platform
+          </p>
+        </div>
         <button
           onClick={() => {
             setSelectedBanner(null);
             setIsDrawerOpen(true);
           }}
-          className="px-4 py-2 bg-[#6366f1] hover:bg-[#5558e3] text-white rounded-lg transition-colors"
+          className="px-4 py-2 bg-[#6366f1] hover:bg-[#5558e3] text-white rounded-lg transition-colors inline-flex items-center"
         >
+          <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
           Add Banner
         </button>
       </div>
 
-      <SearchInput
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Search banners by title, type, or category..."
-      />
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+        <SearchInput
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search banners by title, type, or category..."
+        />
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         <Table>
@@ -204,13 +214,17 @@ export function BannersSection() {
         </Table>
       </div>
 
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        hasPrevious={currentPage > 1}
-        hasNext={currentPage < totalPages}
-      />
+      {totalPages > 1 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            hasPrevious={currentPage > 1}
+            hasNext={currentPage < totalPages}
+          />
+        </div>
+      )}
 
       <Drawer
         isOpen={isDrawerOpen}

@@ -99,26 +99,26 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Transactions
             {filter !== 'all' && (
-              <span className="ml-3 text-sm font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-lg">
+              <span className="ml-3 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/30 px-3 py-1.5 rounded-lg">
                 {filter === 'pending-purchases' ? 'Pending Purchases' :
                  filter === 'pending-cashouts' ? 'Pending Cashouts' :
                  filter.charAt(0).toUpperCase() + filter.slice(1)}
               </span>
             )}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Comprehensive transaction management and analytics • Total: {transactions?.count.toLocaleString() || 0}
           </p>
         </div>
       </div>
 
       {/* Search */}
-      <div className="w-full max-w-xl">
+      <div className="w-full max-w-xl bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
         <SearchInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}

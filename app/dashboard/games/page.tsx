@@ -144,14 +144,14 @@ export default function GamesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Games Management</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Games Management</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Manage all available games and their status
           </p>
         </div>
-        <div className="bg-muted dark:bg-muted/50 px-4 py-2 rounded-lg text-sm text-muted-foreground">
+        <div className="bg-blue-50 dark:bg-blue-950/30 px-4 py-2 rounded-lg text-sm text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
           <strong>Note:</strong> Games are manually created by system admins
         </div>
       </div>

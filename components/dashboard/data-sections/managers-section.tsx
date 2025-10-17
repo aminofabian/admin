@@ -132,9 +132,9 @@ export function ManagersSection() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Managers</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -167,7 +167,7 @@ export function ManagersSection() {
       )}
 
       {/* Search */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
         <SearchInput
           value={localSearchTerm}
           onChange={(e) => setLocalSearchTerm(e.target.value)}
@@ -350,13 +350,15 @@ export function ManagersSection() {
 
       {/* Pagination */}
       {managers && managers.count > pageSize && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(managers.count / pageSize)}
-          hasNext={!!managers.next}
-          hasPrevious={!!managers.previous}
-          onPageChange={setPage}
-        />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(managers.count / pageSize)}
+            hasNext={!!managers.next}
+            hasPrevious={!!managers.previous}
+            onPageChange={setPage}
+          />
+        </div>
       )}
 
       {/* Create Manager Drawer */}

@@ -143,10 +143,10 @@ export default function ManagersPage() {
     <div className="space-y-6">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Managers</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Managers</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Manage platform managers and their permissions • Total: {managers?.count.toLocaleString() || 0}
           </p>
         </div>
@@ -176,7 +176,7 @@ export default function ManagersPage() {
       )}
 
       {/* Search */}
-      <div className="w-full max-w-xl">
+      <div className="w-full max-w-xl bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
         <SearchInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -186,70 +186,86 @@ export default function ManagersPage() {
 
       {/* Primary Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800/50">
+        <Card className="border-l-4 border-l-blue-500">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="text-sm text-blue-700 dark:text-blue-400 font-medium mb-2">Total Managers</div>
-                <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-2">Total Managers</div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                   {managers?.count.toLocaleString() || 0}
                 </div>
-                <div className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                   Showing {managers?.results?.length || 0} on this page
                 </div>
               </div>
-              <div className="text-3xl opacity-20">👨‍💼</div>
+              <div className="w-12 h-12 rounded-full bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-200 dark:border-green-800/50">
+        <Card className="border-l-4 border-l-green-500">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="text-sm text-green-700 dark:text-green-400 font-medium mb-2">Active Managers</div>
-                <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-2">Active Managers</div>
+                <div className="text-3xl font-bold text-green-500">
                   {activeCount}
                 </div>
-                <div className="text-xs text-green-600 dark:text-green-400 mt-2">
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                   {managers?.results?.length ? ((activeCount / managers.results.length) * 100).toFixed(0) : 0}% active
                 </div>
               </div>
-              <div className="text-3xl opacity-20">✓</div>
+              <div className="w-12 h-12 rounded-full bg-green-500/10 dark:bg-green-500/20 flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 border-red-200 dark:border-red-800/50">
+        <Card className="border-l-4 border-l-red-500">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="text-sm text-red-700 dark:text-red-400 font-medium mb-2">Inactive Managers</div>
-                <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-2">Inactive Managers</div>
+                <div className="text-3xl font-bold text-red-500">
                   {inactiveCount}
                 </div>
-                <div className="text-xs text-red-600 dark:text-red-400 mt-2">
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                   Requires attention
                 </div>
               </div>
-              <div className="text-3xl opacity-20">⊘</div>
+              <div className="w-12 h-12 rounded-full bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 border-purple-200 dark:border-purple-800/50">
+        <Card className="border-l-4 border-l-purple-500">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="text-sm text-purple-700 dark:text-purple-400 font-medium mb-2">Recent (30d)</div>
-                <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-2">Recent (30d)</div>
+                <div className="text-3xl font-bold text-purple-500">
                   {recentManagers}
                 </div>
-                <div className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                   New this month
                 </div>
               </div>
-              <div className="text-3xl opacity-20">📅</div>
+              <div className="w-12 h-12 rounded-full bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -259,15 +275,15 @@ export default function ManagersPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-3">
-            <div className="text-xs text-muted-foreground font-medium mb-1">Projects</div>
-            <div className="text-2xl font-bold text-foreground">{uniqueProjects}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-1">Projects</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{uniqueProjects}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-3">
-            <div className="text-xs text-muted-foreground font-medium mb-1">Avg per Project</div>
-            <div className="text-2xl font-bold text-foreground">
+            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-1">Avg per Project</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {uniqueProjects > 0 ? ((managers?.results?.length || 0) / uniqueProjects).toFixed(1) : 0}
             </div>
           </CardContent>
@@ -275,7 +291,7 @@ export default function ManagersPage() {
 
         <Card>
           <CardContent className="p-3">
-            <div className="text-xs text-muted-foreground font-medium mb-1">Status</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-1">Status</div>
             <div className="flex items-center gap-2">
               <Badge variant="success" className="text-xs">{activeCount} Active</Badge>
               <Badge variant="danger" className="text-xs">{inactiveCount} Inactive</Badge>
@@ -285,8 +301,8 @@ export default function ManagersPage() {
 
         <Card>
           <CardContent className="p-3">
-            <div className="text-xs text-muted-foreground font-medium mb-1">Page Results</div>
-            <div className="text-2xl font-bold text-foreground">{managers?.results?.length || 0}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-1">Page Results</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{managers?.results?.length || 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -295,16 +311,16 @@ export default function ManagersPage() {
       {uniqueProjects > 0 && (
         <Card>
           <CardContent className="p-4">
-            <div className="text-sm font-semibold text-foreground mb-3">
+            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
               Managers by Project ({uniqueProjects} projects)
             </div>
             <div className="flex flex-wrap gap-2">
               {Object.entries(projectCounts).map(([projectId, count]) => (
                 <div 
                   key={projectId}
-                  className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg border border-border"
+                  className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600"
                 >
-                  <span className="text-sm font-medium text-foreground">Project #{projectId}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Project #{projectId}</span>
                   <Badge variant="info" className="text-xs">{count}</Badge>
                 </div>
               ))}
@@ -315,10 +331,10 @@ export default function ManagersPage() {
 
       {/* Enhanced Table */}
       <Card>
-        <CardHeader className="border-b bg-muted/50">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <div>
-            <h2 className="text-lg font-semibold">Manager Details</h2>
-            <p className="text-xs text-muted-foreground mt-1">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Manager Details</h2>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
               Comprehensive manager information with quick actions
             </p>
           </div>
