@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-// import { managersApi } from '@/lib/api'; // Suspended for mock data
-import { usePagination, useSearch } from '@/lib/hooks';
+import { useEffect } from 'react';
+import { useManagersStore } from '@/stores';
+import { useSearch } from '@/lib/hooks';
 import { 
   Card, 
   CardHeader, 
@@ -21,148 +21,25 @@ import {
 } from '@/components/ui';
 import { LoadingState, ErrorState, EmptyState, ManagerForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
-import type { Manager, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
-
-// 🎭 MOCK DATA - Remove when backend is ready
-const MOCK_MANAGERS: Manager[] = [
-  {
-    id: 1,
-    username: 'manager_john',
-    email: 'john@gaming.com',
-    role: 'manager',
-    is_active: true,
-    project_id: 1,
-    created: '2024-01-15T10:30:00Z',
-    modified: '2024-01-15T10:30:00Z',
-  },
-  {
-    id: 2,
-    username: 'manager_sarah',
-    email: 'sarah@casino.com',
-    role: 'manager',
-    is_active: true,
-    project_id: 2,
-    created: '2024-02-20T14:45:00Z',
-    modified: '2024-02-20T14:45:00Z',
-  },
-  {
-    id: 3,
-    username: 'manager_mike',
-    email: 'mike@slots.io',
-    role: 'manager',
-    is_active: false,
-    project_id: 3,
-    created: '2024-03-10T09:15:00Z',
-    modified: '2024-03-10T09:15:00Z',
-  },
-  {
-    id: 4,
-    username: 'manager_lisa',
-    email: 'lisa@betzone.net',
-    role: 'manager',
-    is_active: true,
-    project_id: 4,
-    created: '2024-04-05T16:20:00Z',
-    modified: '2024-04-05T16:20:00Z',
-  },
-  {
-    id: 5,
-    username: 'manager_alex',
-    email: 'alex@luckyspin.com',
-    role: 'manager',
-    is_active: true,
-    project_id: 5,
-    created: '2024-05-12T11:30:00Z',
-    modified: '2024-05-12T11:30:00Z',
-  },
-  {
-    id: 6,
-    username: 'manager_emma',
-    email: 'emma@megawins.io',
-    role: 'manager',
-    is_active: false,
-    project_id: 6,
-    created: '2024-06-18T13:45:00Z',
-    modified: '2024-06-18T13:45:00Z',
-  },
-];
-
-// Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Mock API functions
-const mockManagersApi = {
-  list: async (filters?: { search?: string; page?: number; page_size?: number }): Promise<PaginatedResponse<Manager>> => {
-    await delay(800); // Simulate network delay
-
-    let filteredManagers = [...MOCK_MANAGERS];
-
-    // Apply search filter
-    if (filters?.search) {
-      const searchLower = filters.search.toLowerCase();
-      filteredManagers = filteredManagers.filter(
-        (manager) =>
-          manager.username.toLowerCase().includes(searchLower) ||
-          manager.email.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply pagination
-    const page = filters?.page || 1;
-    const pageSize = filters?.page_size || 10;
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedManagers = filteredManagers.slice(startIndex, endIndex);
-
-    return {
-      count: filteredManagers.length,
-      next: endIndex < filteredManagers.length ? `?page=${page + 1}` : null,
-      previous: page > 1 ? `?page=${page - 1}` : null,
-      results: paginatedManagers,
-    };
-  },
-
-  create: async (data: CreateUserRequest): Promise<Manager> => {
-    await delay(1000); // Simulate network delay
-
-    const newManager: Manager = {
-      id: MOCK_MANAGERS.length + 1,
-      username: data.username,
-      email: data.email,
-      role: 'manager',
-      is_active: true,
-      project_id: 1, // Default project
-      created: new Date().toISOString(),
-      modified: new Date().toISOString(),
-    };
-
-    MOCK_MANAGERS.unshift(newManager); // Add to beginning of array
-
-    return newManager;
-  },
-
-  update: async (id: number, data: Partial<UpdateUserRequest>): Promise<Manager> => {
-    await delay(800); // Simulate network delay
-
-    const managerIndex = MOCK_MANAGERS.findIndex((m) => m.id === id);
-    if (managerIndex === -1) {
-      throw new Error('Manager not found');
-    }
-
-    MOCK_MANAGERS[managerIndex] = {
-      ...MOCK_MANAGERS[managerIndex],
-      ...data,
-      modified: new Date().toISOString(),
-    };
-
-    return MOCK_MANAGERS[managerIndex];
-  },
-};
+import type { Manager, CreateUserRequest, UpdateUserRequest } from '@/types';
+import { useState } from 'react';
 
 export default function ManagersPage() {
-  const [data, setData] = useState<PaginatedResponse<Manager> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    managers,
+    isLoading,
+    error,
+    currentPage,
+    pageSize,
+    fetchManagers,
+    createManager,
+    updateManager,
+    setPage,
+    setSearchTerm,
+  } = useManagersStore();
+
+  const { search, debouncedSearch, setSearch } = useSearch();
+  
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedManager, setSelectedManager] = useState<Manager | null>(null);
@@ -170,13 +47,19 @@ export default function ManagersPage() {
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const { page, pageSize, setPage } = usePagination();
-  const { search, debouncedSearch, setSearch } = useSearch();
-
+  // Initial load
   useEffect(() => {
-    loadManagers();
+    fetchManagers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, debouncedSearch]);
+  }, []);
+
+  // Handle debounced search
+  useEffect(() => {
+    if (debouncedSearch !== undefined) {
+      setSearchTerm(debouncedSearch);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   useEffect(() => {
     if (successMessage) {
@@ -185,35 +68,15 @@ export default function ManagersPage() {
     }
   }, [successMessage]);
 
-  const loadManagers = async () => {
-    try {
-      setIsLoading(true);
-      setError('');
-      // Using mock API - replace with managersApi.list when backend is ready
-      const response = await mockManagersApi.list({
-        page,
-        page_size: pageSize,
-        search: debouncedSearch || undefined,
-      });
-      setData(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load managers');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleCreateManager = async (formData: CreateUserRequest | UpdateUserRequest) => {
     try {
       setIsSubmitting(true);
       setSubmitError('');
 
-      // Using mock API - replace with managersApi.create when backend is ready
-      await mockManagersApi.create(formData as CreateUserRequest);
+      await createManager(formData as CreateUserRequest);
 
       setSuccessMessage('Manager created successfully!');
       setIsCreateModalOpen(false);
-      await loadManagers();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create manager';
       setSubmitError(errorMessage);
@@ -229,12 +92,11 @@ export default function ManagersPage() {
     }
 
     try {
-      // Using mock API - replace with managersApi.update when backend is ready
-      await mockManagersApi.update(manager.id, { is_active: !manager.is_active });
+      await updateManager(manager.id, { is_active: !manager.is_active });
       setSuccessMessage(`Manager ${manager.is_active ? 'deactivated' : 'activated'} successfully!`);
-      await loadManagers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update manager status');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update manager status';
+      setSubmitError(errorMessage);
     }
   };
 
@@ -251,26 +113,43 @@ export default function ManagersPage() {
     setSubmitError('');
   };
 
-  if (isLoading && !data) {
+  // Calculate comprehensive stats
+  const activeCount = managers?.results?.filter(m => m.is_active).length || 0;
+  const inactiveCount = managers?.results?.filter(m => !m.is_active).length || 0;
+  const recentManagers = managers?.results?.filter(m => {
+    const createdDate = new Date(m.created);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return createdDate >= thirtyDaysAgo;
+  }).length || 0;
+  
+  // Project distribution
+  const projectCounts = managers?.results?.reduce((acc, m) => {
+    acc[m.project_id] = (acc[m.project_id] || 0) + 1;
+    return acc;
+  }, {} as Record<number, number>) || {};
+  
+  const uniqueProjects = Object.keys(projectCounts).length;
+
+  if (isLoading && !managers) {
     return <LoadingState />;
   }
 
-  if (error && !data) {
-    return <ErrorState message={error} onRetry={loadManagers} />;
+  if (error && !managers) {
+    return <ErrorState message={error} onRetry={fetchManagers} />;
   }
 
   return (
-    <div>
-      {/* Mock Data Banner */}
-      <div className="mb-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 px-4 py-3 flex items-center gap-2 rounded-lg">
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-        </svg>
-        <span><strong>Development Mode:</strong> Using mock data. Changes persist in memory only (refresh to reset).</span>
-      </div>
+    <div className="space-y-6">
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Managers</h1>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Managers</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage platform managers and their permissions • Total: {managers?.count.toLocaleString() || 0}
+          </p>
+        </div>
         <Button onClick={() => setIsCreateModalOpen(true)}>
           <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -281,7 +160,7 @@ export default function ManagersPage() {
 
       {/* Success Message */}
       {successMessage && (
-        <div className="mb-6 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300 px-4 py-3 flex items-center justify-between rounded-lg">
+        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300 px-4 py-3 flex items-center justify-between rounded-lg">
           <div className="flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -296,93 +175,309 @@ export default function ManagersPage() {
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">All Managers</h2>
-            <div className="w-64">
-              <SearchInput
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search managers..."
-              />
+      {/* Search */}
+      <div className="w-full max-w-xl">
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by username or email..."
+        />
+      </div>
+
+      {/* Primary Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800/50">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="text-sm text-blue-700 dark:text-blue-400 font-medium mb-2">Total Managers</div>
+                <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                  {managers?.count.toLocaleString() || 0}
+                </div>
+                <div className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                  Showing {managers?.results?.length || 0} on this page
+                </div>
+              </div>
+              <div className="text-3xl opacity-20">👨‍💼</div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-200 dark:border-green-800/50">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="text-sm text-green-700 dark:text-green-400 font-medium mb-2">Active Managers</div>
+                <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+                  {activeCount}
+                </div>
+                <div className="text-xs text-green-600 dark:text-green-400 mt-2">
+                  {managers?.results?.length ? ((activeCount / managers.results.length) * 100).toFixed(0) : 0}% active
+                </div>
+              </div>
+              <div className="text-3xl opacity-20">✓</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 border-red-200 dark:border-red-800/50">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="text-sm text-red-700 dark:text-red-400 font-medium mb-2">Inactive Managers</div>
+                <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+                  {inactiveCount}
+                </div>
+                <div className="text-xs text-red-600 dark:text-red-400 mt-2">
+                  Requires attention
+                </div>
+              </div>
+              <div className="text-3xl opacity-20">⊘</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 border-purple-200 dark:border-purple-800/50">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="text-sm text-purple-700 dark:text-purple-400 font-medium mb-2">Recent (30d)</div>
+                <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+                  {recentManagers}
+                </div>
+                <div className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                  New this month
+                </div>
+              </div>
+              <div className="text-3xl opacity-20">📅</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-xs text-muted-foreground font-medium mb-1">Projects</div>
+            <div className="text-2xl font-bold text-foreground">{uniqueProjects}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-xs text-muted-foreground font-medium mb-1">Avg per Project</div>
+            <div className="text-2xl font-bold text-foreground">
+              {uniqueProjects > 0 ? ((managers?.results?.length || 0) / uniqueProjects).toFixed(1) : 0}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-xs text-muted-foreground font-medium mb-1">Status</div>
+            <div className="flex items-center gap-2">
+              <Badge variant="success" className="text-xs">{activeCount} Active</Badge>
+              <Badge variant="danger" className="text-xs">{inactiveCount} Inactive</Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3">
+            <div className="text-xs text-muted-foreground font-medium mb-1">Page Results</div>
+            <div className="text-2xl font-bold text-foreground">{managers?.results?.length || 0}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Projects Distribution */}
+      {uniqueProjects > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm font-semibold text-foreground mb-3">
+              Managers by Project ({uniqueProjects} projects)
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(projectCounts).map(([projectId, count]) => (
+                <div 
+                  key={projectId}
+                  className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg border border-border"
+                >
+                  <span className="text-sm font-medium text-foreground">Project #{projectId}</span>
+                  <Badge variant="info" className="text-xs">{count}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Enhanced Table */}
+      <Card>
+        <CardHeader className="border-b bg-muted/50">
+          <div>
+            <h2 className="text-lg font-semibold">Manager Details</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Comprehensive manager information with quick actions
+            </p>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {data?.results.length === 0 ? (
+          {managers?.results.length === 0 ? (
             <EmptyState 
               title="No managers found" 
               description="Get started by creating a new manager"
             />
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Project ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.results.map((manager) => (
-                    <TableRow key={manager.id}>
-                      <TableCell className="font-medium">{manager.username}</TableCell>
-                      <TableCell>{manager.email}</TableCell>
-                      <TableCell>{manager.project_id}</TableCell>
-                      <TableCell>
-                        <Badge variant={manager.is_active ? 'success' : 'danger'}>
-                          {manager.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs">{formatDate(manager.created)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => openViewModal(manager)}
-                            title="View details"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={manager.is_active ? 'danger' : 'secondary'}
-                            onClick={() => handleToggleStatus(manager)}
-                            title={manager.is_active ? 'Deactivate' : 'Activate'}
-                          >
-                            {manager.is_active ? (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                              </svg>
-                            ) : (
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[200px]">Manager Info</TableHead>
+                      <TableHead className="min-w-[150px]">Contact</TableHead>
+                      <TableHead className="min-w-[120px]">Project</TableHead>
+                      <TableHead className="min-w-[100px]">Status</TableHead>
+                      <TableHead className="min-w-[100px]">Role</TableHead>
+                      <TableHead className="min-w-[180px]">Timestamps</TableHead>
+                      <TableHead className="min-w-[150px] text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {data && (
-                <Pagination
-                  currentPage={page}
-                  totalPages={Math.ceil(data.count / pageSize)}
-                  onPageChange={setPage}
-                  hasNext={!!data.next}
-                  hasPrevious={!!data.previous}
-                />
+                  </TableHeader>
+                  <TableBody>
+                    {managers?.results.map((manager) => (
+                      <TableRow key={manager.id}>
+                        {/* Manager Info */}
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+                              {manager.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-foreground">
+                                {manager.username}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                ID: {manager.id}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        {/* Contact */}
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="text-sm text-foreground">
+                              {manager.email}
+                            </div>
+                            <Badge variant="default" className="text-xs">
+                              Email
+                            </Badge>
+                          </div>
+                        </TableCell>
+
+                        {/* Project */}
+                        <TableCell>
+                          <div className="space-y-1">
+                            <Badge variant="info" className="text-sm">
+                              Project #{manager.project_id}
+                            </Badge>
+                          </div>
+                        </TableCell>
+
+                        {/* Status */}
+                        <TableCell>
+                          <div className="space-y-2">
+                            <Badge variant={manager.is_active ? 'success' : 'danger'} className="text-xs">
+                              {manager.is_active ? 'ACTIVE' : 'INACTIVE'}
+                            </Badge>
+                            {manager.is_active && (
+                              <div className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                                <span>✓</span>
+                                <span>Online</span>
+                              </div>
+                            )}
+                            {!manager.is_active && (
+                              <div className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                                <span>⊘</span>
+                                <span>Disabled</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Role */}
+                        <TableCell>
+                          <Badge variant="info" className="capitalize">
+                            {manager.role}
+                          </Badge>
+                        </TableCell>
+
+                        {/* Timestamps */}
+                        <TableCell>
+                          <div className="space-y-2 text-xs">
+                            <div>
+                              <div className="text-muted-foreground mb-0.5">Created</div>
+                              <div className="text-foreground font-medium">
+                                {formatDate(manager.created)}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground mb-0.5">Modified</div>
+                              <div className="text-muted-foreground">
+                                {formatDate(manager.modified)}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => openViewModal(manager)}
+                              title="View details"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={manager.is_active ? 'danger' : 'secondary'}
+                              onClick={() => handleToggleStatus(manager)}
+                              title={manager.is_active ? 'Deactivate' : 'Activate'}
+                            >
+                              {manager.is_active ? (
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {managers && managers.count > pageSize && (
+                <div className="p-4 border-t">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(managers.count / pageSize)}
+                    onPageChange={setPage}
+                    hasNext={!!managers.next}
+                    hasPrevious={!!managers.previous}
+                  />
+                </div>
               )}
             </>
           )}
