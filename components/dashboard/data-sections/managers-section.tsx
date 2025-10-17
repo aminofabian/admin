@@ -1,76 +1,59 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Manager, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
+import { useManagersStore } from '@/stores';
+import type { CreateUserRequest, UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, ManagerForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
+import { formatDate } from '@/lib/utils/formatters';
 
 export function ManagersSection() {
-  const [data, setData] = useState<PaginatedResponse<Manager> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const {
+    managers,
+    isLoading,
+    error,
+    currentPage,
+    pageSize,
+    searchTerm: storeSearchTerm,
+    fetchManagers,
+    createManager,
+    setPage,
+    setSearchTerm,
+  } = useManagersStore();
+
+  const [localSearchTerm, setLocalSearchTerm] = useState(storeSearchTerm);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const pageSize = 10;
-
-  const fetchManagers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Mock data
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockData: PaginatedResponse<Manager> = {
-        count: 12,
-        next: null,
-        previous: null,
-        results: [
-          { id: 1, username: 'manager1', email: 'manager1@example.com', role: 'manager', is_active: true, project_id: 1, created: '2024-01-15T10:30:00Z', modified: '2024-01-15T10:30:00Z' },
-          { id: 2, username: 'manager2', email: 'manager2@example.com', role: 'manager', is_active: true, project_id: 1, created: '2024-01-16T11:45:00Z', modified: '2024-01-16T11:45:00Z' },
-          { id: 3, username: 'manager3', email: 'manager3@example.com', role: 'manager', is_active: false, project_id: 1, created: '2024-01-17T09:20:00Z', modified: '2024-01-17T09:20:00Z' },
-        ]
-      };
-      
-      setData(mockData);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load managers');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     fetchManagers();
-  }, [searchTerm, currentPage]);
+  }, [fetchManagers]);
 
-  if (loading && !data) return <LoadingState />;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearchTerm !== storeSearchTerm) {
+        setSearchTerm(localSearchTerm);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [localSearchTerm, storeSearchTerm, setSearchTerm]);
+
+  if (isLoading && !managers) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchManagers} />;
-  if (!data?.results?.length && !searchTerm) {
+  if (!managers?.results?.length && !storeSearchTerm) {
     return <EmptyState title="No managers found" />;
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleCreateManager = async (_formData: CreateUserRequest | UpdateUserRequest) => {
+  const handleCreateManager = async (formData: CreateUserRequest | UpdateUserRequest) => {
     try {
       setIsSubmitting(true);
       setSubmitError('');
       
-      // Using mock API - replace with managersApi.create when backend is ready
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await createManager(formData as CreateUserRequest);
       
       setIsDrawerOpen(false);
-      await fetchManagers();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create manager';
       setSubmitError(errorMessage);
@@ -106,8 +89,8 @@ export function ManagersSection() {
       {/* Search */}
       <div className="flex items-center gap-4">
         <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={localSearchTerm}
+          onChange={(e) => setLocalSearchTerm(e.target.value)}
           placeholder="Search by username or email..."
         />
       </div>
@@ -116,23 +99,23 @@ export function ManagersSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">Total Managers</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.count || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{managers?.count || 0}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
           <div className="text-2xl font-bold text-green-500 mt-1">
-            {data?.results?.filter(m => m.is_active).length || 0}
+            {managers?.results?.filter(m => m.is_active).length || 0}
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
           <div className="text-2xl font-bold text-red-500 mt-1">
-            {data?.results?.filter(m => !m.is_active).length || 0}
+            {managers?.results?.filter(m => !m.is_active).length || 0}
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.results?.length || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{managers?.results?.length || 0}</div>
         </div>
       </div>
 
@@ -150,7 +133,7 @@ export function ManagersSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.results?.map((manager) => (
+            {managers?.results?.map((manager) => (
               <TableRow key={manager.id}>
                 <TableCell>{manager.id}</TableCell>
                 <TableCell className="font-medium">{manager.username}</TableCell>
@@ -173,13 +156,13 @@ export function ManagersSection() {
       </div>
 
       {/* Pagination */}
-      {data && data.count > pageSize && (
+      {managers && managers.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalPages={Math.ceil(data.count / pageSize)}
-          hasNext={!!data.next}
-          hasPrevious={!!data.previous}
-          onPageChange={setCurrentPage}
+          totalPages={Math.ceil(managers.count / pageSize)}
+          hasNext={!!managers.next}
+          hasPrevious={!!managers.previous}
+          onPageChange={setPage}
         />
       )}
 
