@@ -7,7 +7,10 @@ import type {
   Player,
   CreateUserRequest,
   UpdateUserRequest,
-  PaginatedResponse 
+  PaginatedResponse,
+  Affiliate,
+  UpdateAffiliateRequest,
+  AddManualAffiliateRequest
 } from '@/types';
 
 interface UserFilters {
@@ -67,5 +70,24 @@ export const playersApi = {
 
   update: (id: number, data: UpdateUserRequest) => 
     apiClient.patch<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id), data),
+};
+
+export const affiliatesApi = {
+  list: (filters?: UserFilters) => 
+    apiClient.get<PaginatedResponse<Affiliate>>(API_ENDPOINTS.AFFILIATES.LIST, {
+      params: filters,
+    }),
+
+  update: (id: number, data: UpdateAffiliateRequest) => 
+    apiClient.patch<{ status: string; message: string; data: Affiliate }>(
+      API_ENDPOINTS.AFFILIATES.DETAIL(id), 
+      data
+    ),
+
+  addManual: (data: AddManualAffiliateRequest) => 
+    apiClient.post<{ status: string; message: string; data?: any }>(
+      API_ENDPOINTS.AFFILIATES.ADD_MANUAL, 
+      data
+    ),
 };
 
