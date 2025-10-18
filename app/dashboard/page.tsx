@@ -5,7 +5,7 @@ import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import {
   ControlGrid,
   BonusWidget,
-  ServerUptimeGauge,
+  AffiliateNetworkWidget,
   LivePlayersWidget,
   TransactionStatusWidget,
   RevenueWidget,
@@ -210,7 +210,7 @@ export default function DashboardPage() {
         <div className="hidden sm:block space-y-4">
               {/* Top Stats Row */}
               <div className="grid grid-cols-2 gap-4">
-                <ServerUptimeGauge />
+                <AffiliateNetworkWidget />
               <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-muted-foreground">Live</h3>
@@ -314,7 +314,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-6 space-y-4 xl:space-y-5">
           {/* System Health & Live Players - Desktop Version */}
           <div className="grid grid-cols-2 gap-4 xl:gap-5">
-            <ServerUptimeGauge />
+            <AffiliateNetworkWidget />
             
             {/* Live Players - Full Desktop Version */}
             <LivePlayersWidget stats={stats} statsLoading={statsLoading} />
