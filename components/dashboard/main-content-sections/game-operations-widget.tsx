@@ -1,16 +1,38 @@
 'use client';
 
-export function GameOperationsWidget() {
-  // Mock data for game operations queue
-  const operations = {
-    recharge: { pending: 8, failed: 2, completed_today: 145 },
-    redeem: { pending: 5, failed: 1, completed_today: 98 },
-    add_user_game: { pending: 3, failed: 0, completed_today: 12 },
-  };
+import { useGameOperations } from '@/hooks/use-game-operations';
 
-  const totalPending = operations.recharge.pending + operations.redeem.pending + operations.add_user_game.pending;
-  const totalFailed = operations.recharge.failed + operations.redeem.failed + operations.add_user_game.failed;
-  const totalCompleted = operations.recharge.completed_today + operations.redeem.completed_today + operations.add_user_game.completed_today;
+export function GameOperationsWidget() {
+  const { 
+    recharge, 
+    redeem, 
+    add_user_game, 
+    totalPending, 
+    totalFailed, 
+    totalCompleted, 
+    isLoading: loading, 
+    error 
+  } = useGameOperations();
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-foreground">
+            Game Operations Queue
+          </h3>
+          <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          </svg>
+        </div>
+        <div className="text-center py-8">
+          <div className="text-destructive text-sm mb-2">⚠️ Error Loading Data</div>
+          <div className="text-xs text-muted-foreground">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-xl border border-border p-6">
@@ -27,7 +49,7 @@ export function GameOperationsWidget() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
           <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-            {totalPending}
+            {loading ? '...' : totalPending}
           </div>
           <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
             Pending
@@ -35,7 +57,7 @@ export function GameOperationsWidget() {
         </div>
         <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
           <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-            {totalFailed}
+            {loading ? '...' : totalFailed}
           </div>
           <div className="text-xs text-red-600 dark:text-red-400 font-medium">
             Failed
@@ -43,7 +65,7 @@ export function GameOperationsWidget() {
         </div>
         <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {totalCompleted}
+            {loading ? '...' : totalCompleted}
           </div>
           <div className="text-xs text-green-600 dark:text-green-400 font-medium">
             Completed Today
@@ -66,11 +88,11 @@ export function GameOperationsWidget() {
             </div>
             <div className="flex items-center space-x-3 text-sm">
               <span className="text-yellow-600 dark:text-yellow-400">
-                {operations.recharge.pending} pending
+                {loading ? '...' : `${recharge.pending} pending`}
               </span>
-              {operations.recharge.failed > 0 && (
+              {!loading && recharge.failed > 0 && (
                 <span className="text-red-600 dark:text-red-400">
-                  {operations.recharge.failed} failed
+                  {recharge.failed} failed
                 </span>
               )}
             </div>
@@ -78,7 +100,9 @@ export function GameOperationsWidget() {
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div 
               className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${(operations.recharge.completed_today / (operations.recharge.completed_today + operations.recharge.pending)) * 100}%` }}
+              style={{ 
+                width: loading ? '0%' : `${(recharge.completed_today / (recharge.completed_today + recharge.pending)) * 100}%` 
+              }}
             />
           </div>
         </div>
@@ -96,11 +120,11 @@ export function GameOperationsWidget() {
             </div>
             <div className="flex items-center space-x-3 text-sm">
               <span className="text-yellow-600 dark:text-yellow-400">
-                {operations.redeem.pending} pending
+                {loading ? '...' : `${redeem.pending} pending`}
               </span>
-              {operations.redeem.failed > 0 && (
+              {!loading && redeem.failed > 0 && (
                 <span className="text-red-600 dark:text-red-400">
-                  {operations.redeem.failed} failed
+                  {redeem.failed} failed
                 </span>
               )}
             </div>
@@ -108,7 +132,9 @@ export function GameOperationsWidget() {
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div 
               className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${(operations.redeem.completed_today / (operations.redeem.completed_today + operations.redeem.pending)) * 100}%` }}
+              style={{ 
+                width: loading ? '0%' : `${(redeem.completed_today / (redeem.completed_today + redeem.pending)) * 100}%` 
+              }}
             />
           </div>
         </div>
@@ -126,11 +152,11 @@ export function GameOperationsWidget() {
             </div>
             <div className="flex items-center space-x-3 text-sm">
               <span className="text-yellow-600 dark:text-yellow-400">
-                {operations.add_user_game.pending} pending
+                {loading ? '...' : `${add_user_game.pending} pending`}
               </span>
-              {operations.add_user_game.failed > 0 && (
+              {!loading && add_user_game.failed > 0 && (
                 <span className="text-red-600 dark:text-red-400">
-                  {operations.add_user_game.failed} failed
+                  {add_user_game.failed} failed
                 </span>
               )}
             </div>
@@ -138,7 +164,9 @@ export function GameOperationsWidget() {
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div 
               className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${(operations.add_user_game.completed_today / (operations.add_user_game.completed_today + operations.add_user_game.pending)) * 100}%` }}
+              style={{ 
+                width: loading ? '0%' : `${(add_user_game.completed_today / (add_user_game.completed_today + add_user_game.pending)) * 100}%` 
+              }}
             />
           </div>
         </div>
@@ -151,7 +179,14 @@ export function GameOperationsWidget() {
             Queue Health
           </span>
           <div className="flex items-center space-x-2">
-            {totalFailed > 5 ? (
+            {loading ? (
+              <>
+                <span className="w-2 h-2 bg-muted rounded-full animate-pulse"></span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Loading...
+                </span>
+              </>
+            ) : totalFailed > 5 ? (
               <>
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                 <span className="text-sm font-medium text-red-600 dark:text-red-400">
@@ -179,4 +214,3 @@ export function GameOperationsWidget() {
     </div>
   );
 }
-
