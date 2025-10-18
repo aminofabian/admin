@@ -1,6 +1,6 @@
 'use client';
 
-import { useDashboardStats } from '@/hooks/use-dashboard-stats';
+import { usePlatformLiquidity } from '@/hooks/use-platform-liquidity';
 
 interface PlatformBalanceData {
   totalBalance?: number;
@@ -9,14 +9,19 @@ interface PlatformBalanceData {
 }
 
 export function JackpotPoolGauge(props: PlatformBalanceData = {}) {
-  const { stats, loading } = useDashboardStats();
+  const { 
+    totalMainBalance, 
+    totalWinningBalance, 
+    platformLiquidity, 
+    totalPlayers, 
+    isLoading: loading, 
+    error 
+  } = usePlatformLiquidity();
   
   // Use real data from API, fallback to props, then defaults
-  const totalBalance = props.totalBalance ?? stats?.totalBalance ?? 0;
-  const winningBalance = props.winningBalance ?? stats?.totalWinningBalance ?? 0;
-  const totalPlayers = props.totalPlayers ?? stats?.totalPlayers ?? 0;
-
-  const platformLiquidity = totalBalance + winningBalance;
+  const totalBalance = props.totalBalance ?? totalMainBalance ?? 0;
+  const winningBalance = props.winningBalance ?? totalWinningBalance ?? 0;
+  const playersCount = props.totalPlayers ?? totalPlayers ?? 0;
   const balancePercentage = platformLiquidity > 0 ? (totalBalance / platformLiquidity) * 100 : 50;
   const circumference = 2 * Math.PI * 40;
   const strokeDasharray = `${(balancePercentage / 100) * circumference} ${circumference}`;
@@ -30,6 +35,19 @@ export function JackpotPoolGauge(props: PlatformBalanceData = {}) {
     }
     return `$${amount.toFixed(0)}`;
   };
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="bg-card rounded-xl p-4 border border-border">
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">Platform Liquidity</h3>
+        <div className="text-center py-8">
+          <div className="text-destructive text-sm mb-2">⚠️ Error Loading Data</div>
+          <div className="text-xs text-muted-foreground">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-xl p-4 border border-border">
@@ -77,7 +95,7 @@ export function JackpotPoolGauge(props: PlatformBalanceData = {}) {
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Total Players</span>
-          <span className="text-primary font-medium">{loading ? '...' : totalPlayers.toLocaleString()}</span>
+          <span className="text-primary font-medium">{loading ? '...' : playersCount.toLocaleString()}</span>
         </div>
       </div>
     </div>

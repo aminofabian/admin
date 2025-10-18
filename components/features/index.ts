@@ -11,6 +11,8 @@ export * from './commission-settings-form';
 export * from './manual-affiliate-form';
 export * from './purchase-bonus-form';
 export * from './store-balance-modal';
+export * from './company-settings-form';
+export * from './bonus-settings-form';
 export * from './loading-state';
 export * from './error-state';
 export * from './empty-state';

@@ -8,4 +8,8 @@ export * from './bonuses';
 export * from './banners';
 export * from './affiliates';
 export * from './dashboard';
+export * from './settings';
+export * from './bonus-settings';
+export * from './affiliate-settings';
+export * from './game-settings';
 

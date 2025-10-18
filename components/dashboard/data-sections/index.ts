@@ -7,4 +7,6 @@ export { StaffsSection } from './staffs-section';
 export { TransactionsSection } from './transactions-section';
 export { BannersSection } from './banners-section';
 export { AffiliatesSection } from './affiliates-section';
+export { CompanySettingsSection } from './company-settings-section';
+export { BonusSettingsSection } from './bonus-settings-section';
 
