@@ -1,17 +1,29 @@
 'use client';
 
-interface GameStatusData {
-  activeGames: number;
-  inactiveGames: number;
-  pendingQueues: number;
-}
+import { useGameActivities } from '@/hooks/use-game-activities';
+import { LoadingState } from '@/components/features/loading-state';
+import { ErrorState } from '@/components/features/error-state';
 
 export function GameActivityChart() {
-  const gameStatus: GameStatusData = {
-    activeGames: 45,
-    inactiveGames: 8,
-    pendingQueues: 12,
-  };
+  const gameStatus = useGameActivities();
+
+  if (gameStatus.isLoading) {
+    return (
+      <div className="bg-card rounded-xl p-4 border border-border">
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">Platform Status</h3>
+        <LoadingState />
+      </div>
+    );
+  }
+
+  if (gameStatus.error) {
+    return (
+      <div className="bg-card rounded-xl p-4 border border-border">
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">Platform Status</h3>
+        <ErrorState message={gameStatus.error} />
+      </div>
+    );
+  }
 
   const total = gameStatus.activeGames + gameStatus.inactiveGames + gameStatus.pendingQueues;
   const activeAngle = total > 0 ? (gameStatus.activeGames / total) * 360 : 120;
