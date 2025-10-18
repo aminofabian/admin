@@ -1,84 +1,82 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Staff, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
+import type { Staff, CreateUserRequest, UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
+import { useStaffsStore } from '@/stores/use-staffs-store';
 
 export function StaffsSection() {
-  const [data, setData] = useState<PaginatedResponse<Staff> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const {
+    staffs,
+    isLoading,
+    error,
+    currentPage,
+    searchTerm,
+    pageSize,
+    isCreating,
+    isUpdating,
+    operationError,
+    fetchStaffs,
+    createStaff,
+    updateStaff,
+    setPage,
+    setSearchTerm,
+    clearErrors,
+  } = useStaffsStore();
 
-  // Drawer state
+  // Local state for UI
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const fetchStaffs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Mock data
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockData: PaginatedResponse<Staff> = {
-        count: 8,
-        next: null,
-        previous: null,
-        results: [
-          { id: 1, username: 'staff1', email: 'staff1@example.com', role: 'staff', mobile_number: '+1234567890', is_active: true, project_id: 1, created: '2024-01-15T10:30:00Z', modified: '2024-01-15T10:30:00Z' },
-          { id: 2, username: 'staff2', email: 'staff2@example.com', role: 'staff', mobile_number: '+1234567891', is_active: true, project_id: 1, created: '2024-01-16T11:45:00Z', modified: '2024-01-16T11:45:00Z' },
-          { id: 3, username: 'staff3', email: 'staff3@example.com', role: 'staff', mobile_number: '+1234567892', is_active: false, project_id: 1, created: '2024-01-17T09:20:00Z', modified: '2024-01-17T09:20:00Z' },
-        ]
-      };
-      
-      setData(mockData);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load staff members');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Initialize data on component mount
   useEffect(() => {
     fetchStaffs();
-  }, [searchTerm, currentPage]);
+  }, []);
+
+  // Clear errors when component unmounts
+  useEffect(() => {
+    return () => {
+      clearErrors();
+    };
+  }, [clearErrors]);
 
   const handleCreateStaff = async (formData: CreateUserRequest | UpdateUserRequest) => {
     try {
-      setIsSubmitting(true);
-      setSubmitError(null);
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock successful creation
-      console.log('Creating staff:', formData);
-      
-      // Close drawer and refresh data
+      await createStaff(formData as CreateUserRequest);
       setIsDrawerOpen(false);
-      await fetchStaffs();
-      
     } catch (error) {
       console.error('Error creating staff:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to create staff member');
-    } finally {
-      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateStaff = async (id: number, data: UpdateUserRequest) => {
+    try {
+      await updateStaff(id, data);
+    } catch (error) {
+      console.error('Error updating staff:', error);
     }
   };
 
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false);
-    setSubmitError(null);
   };
 
-  if (loading && !data) return <LoadingState />;
-  if (error) return <ErrorState message={error} onRetry={fetchStaffs} />;
-  if (!data?.results?.length && !searchTerm) {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Show loading state
+  if (isLoading && !staffs) {
+    return <LoadingState />;
+  }
+
+  // Show error state
+  if (error) {
+    return <ErrorState message={error} onRetry={fetchStaffs} />;
+  }
+
+  // Show empty state
+  if (!staffs?.results?.length && !searchTerm) {
     return <EmptyState title="No staff members found" />;
   }
 
@@ -116,7 +114,7 @@ export function StaffsSection() {
       <div className="flex items-center gap-4">
         <SearchInput
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleSearchChange}
           placeholder="Search by username, email, or mobile..."
         />
       </div>
@@ -125,23 +123,23 @@ export function StaffsSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">Total Staff</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.count || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{staffs?.count || 0}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
           <div className="text-2xl font-bold text-green-500 mt-1">
-            {data?.results?.filter(s => s.is_active).length || 0}
+            {staffs?.results?.filter(s => s.is_active).length || 0}
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
           <div className="text-2xl font-bold text-red-500 mt-1">
-            {data?.results?.filter(s => !s.is_active).length || 0}
+            {staffs?.results?.filter(s => !s.is_active).length || 0}
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.results?.length || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{staffs?.results?.length || 0}</div>
         </div>
       </div>
 
@@ -157,10 +155,11 @@ export function StaffsSection() {
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.results?.map((staff) => (
+            {staffs?.results?.map((staff) => (
               <TableRow key={staff.id}>
                 <TableCell>{staff.id}</TableCell>
                 <TableCell className="font-medium">{staff.username}</TableCell>
@@ -177,6 +176,17 @@ export function StaffsSection() {
                 <TableCell className="text-gray-600 dark:text-gray-400">
                   {formatDate(staff.created)}
                 </TableCell>
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleUpdateStaff(staff.id, { is_active: !staff.is_active })}
+                    >
+                      {staff.is_active ? 'Deactivate' : 'Activate'}
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -184,13 +194,13 @@ export function StaffsSection() {
       </div>
 
       {/* Pagination */}
-      {data && data.count > pageSize && (
+      {staffs && staffs.count > pageSize && (
         <Pagination
           currentPage={currentPage}
-          totalPages={Math.ceil(data.count / pageSize)}
-          hasNext={!!data.next}
-          hasPrevious={!!data.previous}
-          onPageChange={setCurrentPage}
+          totalPages={Math.ceil(staffs.count / pageSize)}
+          hasNext={!!staffs.next}
+          hasPrevious={!!staffs.previous}
+          onPageChange={setPage}
         />
       )}
 
@@ -201,18 +211,18 @@ export function StaffsSection() {
         title="Create New Staff"
         size="lg"
       >
-        {submitError && (
+        {operationError && (
           <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
             <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
-            <span>{submitError}</span>
+            <span>{operationError}</span>
           </div>
         )}
         <StaffForm
           onSubmit={handleCreateStaff}
           onCancel={handleCloseDrawer}
-          isLoading={isSubmitting}
+          isLoading={isCreating}
         />
       </Drawer>
     </div>
