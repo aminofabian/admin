@@ -103,6 +103,16 @@ export function BannersSection() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Manage promotional banners across the platform
           </p>
+          <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 space-y-1">
+            <div className="flex flex-wrap gap-4">
+              <span><strong>Types:</strong> HOMEPAGE (main page banners) • PROMOTIONAL (marketing banners)</span>
+              <span><strong>Categories:</strong> DESKTOP • MOBILE_RESPONSIVE • MOBILE_APP</span>
+            </div>
+            <div>
+              <strong>Note:</strong> At least one image (web, mobile, or thumbnail) is required for new banners. 
+              File formats: PNG, JPEG, JPG (max 5MB each)
+            </div>
+          </div>
         </div>
         <button
           onClick={() => {
@@ -130,6 +140,7 @@ export function BannersSection() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Preview</TableHead>
               <TableHead>Title</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Category</TableHead>
@@ -142,13 +153,26 @@ export function BannersSection() {
           <TableBody>
             {banners.length === 0 ? (
               <TableRow>
-                <TableCell className="text-center py-12 text-gray-500 dark:text-gray-400" colSpan={7}>
+                <TableCell className="text-center py-12 text-gray-500 dark:text-gray-400" colSpan={8}>
                   No banners found
                 </TableCell>
               </TableRow>
             ) : (
               banners.map((banner) => (
                 <TableRow key={banner.id}>
+                  <TableCell>
+                    {banner.web_banner || banner.mobile_banner || banner.banner_thumbnail ? (
+                      <img
+                        src={banner.web_banner || banner.mobile_banner || banner.banner_thumbnail || ''}
+                        alt={`${banner.title} preview`}
+                        className="w-16 h-10 object-cover rounded border border-gray-200 dark:border-gray-600"
+                      />
+                    ) : (
+                      <div className="w-16 h-10 bg-gray-100 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">No image</span>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium">
                     {banner.title}
                   </TableCell>

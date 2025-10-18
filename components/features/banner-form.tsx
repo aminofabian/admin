@@ -24,6 +24,11 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
     mobile_banner?: File;
     banner_thumbnail?: File;
   }>({});
+  const [previews, setPreviews] = useState<{
+    web_banner?: string;
+    mobile_banner?: string;
+    banner_thumbnail?: string;
+  }>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,6 +60,20 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         setErrors({ ...errors, [field]: 'Only PNG, JPEG, and JPG files are allowed' });
         return;
       }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors({ ...errors, [field]: 'File size must be less than 5MB' });
+        return;
+      }
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreviews({ ...previews, [field]: event.target?.result as string });
+      };
+      reader.readAsDataURL(file);
+
       setFiles({ ...files, [field]: file });
       // Clear error for this field
       const newErrors = { ...errors };
@@ -62,6 +81,18 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
       delete newErrors.banner;
       setErrors(newErrors);
     }
+  };
+
+  const clearFilePreviews = () => {
+    setPreviews({});
+    setFiles({});
+    // Clear any file-related errors
+    const newErrors = { ...errors };
+    delete newErrors.web_banner;
+    delete newErrors.mobile_banner;
+    delete newErrors.banner_thumbnail;
+    delete newErrors.banner;
+    setErrors(newErrors);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,11 +107,17 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         ...files,
       };
       await onSubmit(submitData);
+      clearFilePreviews();
     } catch (error) {
       console.error('Form submission error:', error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCancel = () => {
+    clearFilePreviews();
+    onCancel();
   };
 
   return (
@@ -161,11 +198,21 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             onChange={(e) => handleFileChange(e, 'web_banner')}
             className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#6366f1] file:text-white hover:file:bg-[#5558e3]"
           />
-          {initialData?.web_banner && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Current: {initialData.web_banner.split('/').pop()}
-            </p>
+          
+          {/* Image Preview */}
+          {(previews.web_banner || initialData?.web_banner) && (
+            <div className="mt-3">
+              <img
+                src={previews.web_banner || initialData?.web_banner || ''}
+                alt="Web banner preview"
+                className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {previews.web_banner ? 'New image' : `Current: ${initialData?.web_banner?.split('/').pop()}`}
+              </p>
+            </div>
           )}
+          
           {errors.web_banner && (
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.web_banner}</p>
           )}
@@ -181,11 +228,21 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             onChange={(e) => handleFileChange(e, 'mobile_banner')}
             className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#6366f1] file:text-white hover:file:bg-[#5558e3]"
           />
-          {initialData?.mobile_banner && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Current: {initialData.mobile_banner.split('/').pop()}
-            </p>
+          
+          {/* Image Preview */}
+          {(previews.mobile_banner || initialData?.mobile_banner) && (
+            <div className="mt-3">
+              <img
+                src={previews.mobile_banner || initialData?.mobile_banner || ''}
+                alt="Mobile banner preview"
+                className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {previews.mobile_banner ? 'New image' : `Current: ${initialData?.mobile_banner?.split('/').pop()}`}
+              </p>
+            </div>
           )}
+          
           {errors.mobile_banner && (
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.mobile_banner}</p>
           )}
@@ -201,11 +258,21 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             onChange={(e) => handleFileChange(e, 'banner_thumbnail')}
             className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#6366f1] file:text-white hover:file:bg-[#5558e3]"
           />
-          {initialData?.banner_thumbnail && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Current: {initialData.banner_thumbnail.split('/').pop()}
-            </p>
+          
+          {/* Image Preview */}
+          {(previews.banner_thumbnail || initialData?.banner_thumbnail) && (
+            <div className="mt-3">
+              <img
+                src={previews.banner_thumbnail || initialData?.banner_thumbnail || ''}
+                alt="Banner thumbnail preview"
+                className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {previews.banner_thumbnail ? 'New image' : `Current: ${initialData?.banner_thumbnail?.split('/').pop()}`}
+              </p>
+            </div>
           )}
+          
           {errors.banner_thumbnail && (
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.banner_thumbnail}</p>
           )}
@@ -239,7 +306,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         </Button>
         <Button
           type="button"
-          onClick={onCancel}
+          onClick={handleCancel}
           disabled={isSubmitting}
           variant="secondary"
           className="flex-1"
