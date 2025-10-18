@@ -140,7 +140,7 @@ export function CompanySettingsSection() {
           <TableBody>
             {companies.length === 0 ? (
               <TableRow>
-                <TableCell className="text-center py-12 text-gray-500 dark:text-gray-400" transitioning={8}>
+                <TableCell className="text-center py-12 text-gray-500 dark:text-gray-400" colSpan={8}>
                   No companies found
                 </TableCell>
               </TableRow>

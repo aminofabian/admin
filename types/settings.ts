@@ -1,3 +1,6 @@
+import type { BonusType } from './bonus';
+import type { CreateCompanyRequest, UpdateCompanyRequest } from './company';
+
 // Company Settings Types
 export interface CompanySettings {
   id: number;
@@ -11,40 +14,7 @@ export interface CompanySettings {
   modified: string;
 }
 
-export interface CreateCompanyRequest {
-  project_name: string;
-  project_domain: string;
-  admin_project_domain: string;
-  username: string;
-  password: string;
-  email: string;
-  service_email: string;
-  service_name: string;
-  game_api_url?: string;
-  game_api_key?: string;
-  service_creds?: string;
-  logo?: File;
-  is_active?: boolean;
-}
-
-export interface UpdateCompanyRequest {
-  project_name?: string;
-  project_domain?: string;
-  admin_project_domain?: string;
-  username?: string;
-  email?: string;
-  password?: string;
-  service_email?: string;
-  service_name?: string;
-  game_api_url?: string;
-  game_api_key?: string;
-  service_creds?: string;
-  logo?: File;
-  is_active?: boolean;
-}
-
 // Bonus Settings Types
-export type BonusType = 'percentage' | 'fixed';
 
 export interface BaseBonusSettings {
   id: number;
@@ -75,13 +45,6 @@ export interface PurchaseBonusSettings {
   bonus: number;
 }
 
-export interface CreatePurchaseBonusRequest {
-  user: number;
-  topup_method: string;
-  bonus_type: BonusType;
-  bonus: number;
-}
-
 export interface UpdateBonusSettingsRequest {
   bonus_type?: BonusType;
   bonus?: number;
@@ -96,12 +59,6 @@ export interface AffiliateDefaultSettings {
   default_affiliation_percentage: string; // Decimal as string
   default_fee_percentage: string; // Decimal as string
   default_payment_method_fee_percentage: string; // Decimal as string
-}
-
-export interface UpdateAffiliateDefaultsRequest {
-  default_affiliation_percentage?: number;
-  default_fee_percentage?: number;
-  default_payment_method_fee_percentage?: number;
 }
 
 // Game Settings Types

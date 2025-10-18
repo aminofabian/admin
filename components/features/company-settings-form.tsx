@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { CompanySettings, CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
@@ -348,9 +349,11 @@ export function CompanySettingsForm({ onSubmit, onCancel, initialData }: Company
           {/* Logo Preview */}
           {(logoPreview || initialData?.username) && (
             <div className="mt-3">
-              <img
+              <Image
                 src={logoPreview || '/api/placeholder/100/50'} // Fallback for existing companies
                 alt="Company logo preview"
+                width={128}
+                height={64}
                 className="max-w-32 h-16 object-contain rounded border border-gray-200 dark:border-gray-600"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

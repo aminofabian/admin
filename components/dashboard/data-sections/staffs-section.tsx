@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Staff, CreateUserRequest, UpdateUserRequest } from '@/types';
+import type { CreateUserRequest, UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
 import { useStaffsStore } from '@/stores/use-staffs-store';
@@ -15,7 +15,6 @@ export function StaffsSection() {
     searchTerm,
     pageSize,
     isCreating,
-    isUpdating,
     operationError,
     fetchStaffs,
     createStaff,
@@ -31,7 +30,7 @@ export function StaffsSection() {
   // Initialize data on component mount
   useEffect(() => {
     fetchStaffs();
-  }, []);
+  }, [fetchStaffs]);
 
   // Clear errors when component unmounts
   useEffect(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui';
 import type { CreatePurchaseBonusRequest } from '@/types';
 
@@ -12,12 +12,12 @@ interface PurchaseBonusFormProps {
 
 export function PurchaseBonusForm({ onSubmit, onCancel, isLoading = false }: PurchaseBonusFormProps) {
   const [formData, setFormData] = useState<CreatePurchaseBonusRequest>({
-    user: '',
+    user: 0,
     topup_method: '',
     bonus_type: 'percentage',
-    bonus: '',
+    bonus: 0,
   });
-  const [errors, setErrors] = useState<Partial<CreatePurchaseBonusRequest>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const topupMethods = [
@@ -30,25 +30,19 @@ export function PurchaseBonusForm({ onSubmit, onCancel, isLoading = false }: Pur
   ];
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<CreatePurchaseBonusRequest> = {};
+    const newErrors: Record<string, string> = {};
 
-    if (!formData.user || formData.user === '') {
-      newErrors.user = 'User ID is required';
-    } else if (isNaN(Number(formData.user))) {
-      newErrors.user = 'User ID must be a valid number';
+    if (!formData.user || formData.user <= 0) {
+      newErrors.user = 'User ID is required and must be greater than 0';
     }
 
     if (!formData.topup_method) {
       newErrors.topup_method = 'Topup method is required';
     }
 
-    if (!formData.bonus || formData.bonus === '') {
-      newErrors.bonus = 'Bonus value is required';
-    } else if (isNaN(Number(formData.bonus))) {
-      newErrors.bonus = 'Bonus value must be a valid number';
-    } else if (Number(formData.bonus) <= 0) {
-      newErrors.bonus = 'Bonus value must be greater than 0';
-    } else if (formData.bonus_type === 'percentage' && Number(formData.bonus) > 100) {
+    if (!formData.bonus || formData.bonus <= 0) {
+      newErrors.bonus = 'Bonus value is required and must be greater than 0';
+    } else if (formData.bonus_type === 'percentage' && formData.bonus > 100) {
       newErrors.bonus = 'Percentage bonus cannot exceed 100%';
     }
 
@@ -81,11 +75,16 @@ export function PurchaseBonusForm({ onSubmit, onCancel, isLoading = false }: Pur
   };
 
   const handleInputChange = (field: keyof CreatePurchaseBonusRequest, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const processedValue = field === 'user' || field === 'bonus' ? parseInt(value) || 0 : value;
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
     
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
   };
 

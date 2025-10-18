@@ -248,16 +248,16 @@ export const useAgentsStore = create<AgentsStore>((set, get) => ({
     set({ isUpdatingAffiliate: true, operationError: null });
 
     try {
-      const response = await affiliatesApi.update(id, data);
+      const updatedAffiliate = await affiliatesApi.update(id, data);
       
-      if (!response || response.status !== 'success') {
-        throw new Error(response?.message || 'No data returned from server');
+      if (!updatedAffiliate) {
+        throw new Error('No data returned from server');
       }
       
       // Refresh affiliates list
       await get().fetchAffiliates();
       
-      return response.data;
+      return updatedAffiliate;
     } catch (err: unknown) {
       let errorMessage = 'Failed to update affiliate commission settings';
       

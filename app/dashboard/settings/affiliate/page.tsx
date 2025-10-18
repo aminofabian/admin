@@ -5,7 +5,6 @@ import { useAffiliateSettingsStore } from '@/stores';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LoadingState, ErrorState } from '@/components/features';
-import type { UpdateAffiliateDefaultsRequest } from '@/types';
 
 export default function AffiliateSettingsPage() {
   const [formData, setFormData] = useState({

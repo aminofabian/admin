@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Agent, CreateUserRequest, UpdateUserRequest, Affiliate, UpdateAffiliateRequest, AddManualAffiliateRequest } from '@/types';
+import type { CreateUserRequest, UpdateUserRequest, Affiliate, UpdateAffiliateRequest, AddManualAffiliateRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, AgentForm, CommissionSettingsForm, ManualAffiliateForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, Modal } from '@/components/ui';
 import { useAgentsStore } from '@/stores/use-agents-store';
@@ -25,7 +25,6 @@ export function AgentsSection() {
     
     // Form states
     isCreating,
-    isUpdating,
     isUpdatingAffiliate,
     isAddingManualAffiliate,
     operationError,
@@ -53,7 +52,7 @@ export function AgentsSection() {
   useEffect(() => {
     fetchAgents();
     fetchAffiliates();
-  }, []);
+  }, [fetchAgents, fetchAffiliates]);
 
   // Clear errors when component unmounts
   useEffect(() => {

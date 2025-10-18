@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useBannersStore } from '@/stores';
 import {
   Table,
@@ -162,9 +163,11 @@ export function BannersSection() {
                 <TableRow key={banner.id}>
                   <TableCell>
                     {banner.web_banner || banner.mobile_banner || banner.banner_thumbnail ? (
-                      <img
+                      <Image
                         src={banner.web_banner || banner.mobile_banner || banner.banner_thumbnail || ''}
                         alt={`${banner.title} preview`}
+                        width={64}
+                        height={40}
                         className="w-16 h-10 object-cover rounded border border-gray-200 dark:border-gray-600"
                       />
                     ) : (

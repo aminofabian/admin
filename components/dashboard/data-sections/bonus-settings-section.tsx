@@ -27,7 +27,7 @@ type BonusType = 'purchase' | 'recharge' | 'transfer' | 'signup';
 export function BonusSettingsSection() {
   const [activeTab, setActiveTab] = useState<BonusType>('purchase');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedBonus, setSelectedBonus] = useState<any>(null);
+  const [selectedBonus, setSelectedBonus] = useState<PurchaseBonusSettings | RechargeBonusSettings | null>(null);
 
   const {
     // Purchase Bonuses
@@ -55,23 +55,19 @@ export function BonusSettingsSection() {
     // Purchase Bonus Actions
     fetchPurchaseBonuses,
     createPurchaseBonus,
-    updatePurchaseBonus,
     patchPurchaseBonus,
     deletePurchaseBonus,
     
     // Recharge Bonus Actions
     fetchRechargeBonuses,
-    updateRechargeBonus,
     patchRechargeBonus,
     
     // Transfer Bonus Actions
     fetchTransferBonus,
-    updateTransferBonus,
     patchTransferBonus,
     
     // Signup Bonus Actions
     fetchSignupBonus,
-    updateSignupBonus,
     patchSignupBonus,
     
     setPage,
@@ -125,7 +121,7 @@ export function BonusSettingsSection() {
     }
   };
 
-  const handleEdit = (bonus: any) => {
+  const handleEdit = (bonus: PurchaseBonusSettings | RechargeBonusSettings) => {
     setSelectedBonus(bonus);
     setIsDrawerOpen(true);
   };
@@ -306,12 +302,12 @@ export function BonusSettingsSection() {
                 </TableCell>
               </TableRow>
             ) : (
-              currentData.map((bonus: any) => (
+              currentData.map((bonus) => (
                 <TableRow key={bonus.id}>
                   {activeTab === 'purchase' ? (
                     <>
-                      <TableCell className="font-medium">{bonus.user}</TableCell>
-                      <TableCell>{bonus.topup_method}</TableCell>
+                      <TableCell className="font-medium">{(bonus as PurchaseBonusSettings).user}</TableCell>
+                      <TableCell>{(bonus as PurchaseBonusSettings).topup_method}</TableCell>
                       <TableCell>
                         <Badge variant={bonus.bonus_type === 'percentage' ? 'info' : 'success'}>
                           {bonus.bonus_type}
@@ -348,13 +344,13 @@ export function BonusSettingsSection() {
                         {bonus.bonus_type === 'percentage' ? `${bonus.bonus}%` : `${bonus.bonus}`}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={bonus.is_enabled ? 'success' : 'danger'}>
-                          {bonus.is_enabled ? 'Enabled' : 'Disabled'}
+                        <Badge variant={(bonus as RechargeBonusSettings).is_enabled ? 'success' : 'danger'}>
+                          {(bonus as RechargeBonusSettings).is_enabled ? 'Enabled' : 'Disabled'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {bonus.on_min_deposit && bonus.min_deposit_amount 
-                          ? `${bonus.min_deposit_amount}` 
+                        {(bonus as RechargeBonusSettings).on_min_deposit && (bonus as RechargeBonusSettings).min_deposit_amount 
+                          ? `${(bonus as RechargeBonusSettings).min_deposit_amount}` 
                           : 'No minimum'}
                       </TableCell>
                       <TableCell className="text-right">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { AddManualAffiliateRequest } from '@/types';
 import { Button, Input } from '@/components/ui';
 import { useAgentsStore } from '@/stores/use-agents-store';
@@ -83,7 +83,7 @@ export function ManualAffiliateForm({
               Manual Affiliate Assignment
             </h3>
             <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-              This will manually assign a player to an agent as their affiliate. The player will be associated with the agent's commission structure.
+              This will manually assign a player to an agent as their affiliate. The player will be associated with the agent&apos;s commission structure.
             </p>
           </div>
         </div>

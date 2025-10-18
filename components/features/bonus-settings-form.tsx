@@ -22,9 +22,12 @@ export function BonusSettingsForm({ onSubmit, onCancel, initialData, type }: Bon
   const [formData, setFormData] = useState({
     bonus_type: (initialData?.bonus_type || 'percentage') as BonusType,
     bonus: initialData?.bonus || 0,
-    is_enabled: initialData?.is_enabled ?? true,
-    on_min_deposit: initialData?.on_min_deposit ?? false,
-    min_deposit_amount: initialData?.min_deposit_amount || null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    is_enabled: 'is_enabled' in (initialData || {}) ? (initialData as any)?.is_enabled ?? true : true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    on_min_deposit: 'on_min_deposit' in (initialData || {}) ? (initialData as any)?.on_min_deposit ?? false : false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    min_deposit_amount: 'min_deposit_amount' in (initialData || {}) ? (initialData as any)?.min_deposit_amount || null : null,
     // Purchase bonus specific fields
     user: (initialData as PurchaseBonusSettings)?.user || 0,
     topup_method: (initialData as PurchaseBonusSettings)?.topup_method || '',

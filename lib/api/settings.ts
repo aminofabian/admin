@@ -73,7 +73,7 @@ export const companySettingsApi = {
       formData.append('logo', data.logo);
     }
     
-    if (data.is_active !== undefined) {
+    if ('is_active' in data && data.is_active !== undefined) {
       formData.append('is_active', String(data.is_active));
     }
     

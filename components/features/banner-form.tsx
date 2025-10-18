@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
@@ -202,9 +203,11 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           {/* Image Preview */}
           {(previews.web_banner || initialData?.web_banner) && (
             <div className="mt-3">
-              <img
+              <Image
                 src={previews.web_banner || initialData?.web_banner || ''}
                 alt="Web banner preview"
+                width={400}
+                height={128}
                 className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -232,9 +235,11 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           {/* Image Preview */}
           {(previews.mobile_banner || initialData?.mobile_banner) && (
             <div className="mt-3">
-              <img
+              <Image
                 src={previews.mobile_banner || initialData?.mobile_banner || ''}
                 alt="Mobile banner preview"
+                width={400}
+                height={128}
                 className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -262,9 +267,11 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           {/* Image Preview */}
           {(previews.banner_thumbnail || initialData?.banner_thumbnail) && (
             <div className="mt-3">
-              <img
+              <Image
                 src={previews.banner_thumbnail || initialData?.banner_thumbnail || ''}
                 alt="Banner thumbnail preview"
+                width={400}
+                height={128}
                 className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
