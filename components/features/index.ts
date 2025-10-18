@@ -9,6 +9,7 @@ export * from './affiliate-form';
 export * from './add-manual-affiliate-form';
 export * from './commission-settings-form';
 export * from './manual-affiliate-form';
+export * from './purchase-bonus-form';
 export * from './store-balance-modal';
 export * from './loading-state';
 export * from './error-state';

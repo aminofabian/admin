@@ -10,7 +10,7 @@ import type {
   UpdateBonusRequest 
 } from '@/types';
 import type { AffiliateDefaults, UpdateAffiliateDefaultsRequest } from '@/types/affiliate';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
+import { LoadingState, ErrorState, EmptyState, PurchaseBonusForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, Modal } from '@/components/ui';
 import { useBonusesStore } from '@/stores/use-bonuses-store';
 
@@ -395,8 +395,30 @@ export function BonusesSection() {
         />
       )}
 
-      {/* Modals and Forms would go here */}
-      {/* This is a simplified version - you would add the actual form components */}
+      {/* Add Purchase Bonus Drawer */}
+      <Drawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        title="Create Purchase Bonus"
+        size="lg"
+      >
+        {error && (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{error}</span>
+          </div>
+        )}
+        <PurchaseBonusForm
+          onSubmit={handleCreatePurchaseBonus}
+          onCancel={() => setIsDrawerOpen(false)}
+          isLoading={operationLoading.purchase}
+        />
+      </Drawer>
+
+      {/* Edit/Delete Modals would go here */}
+      {/* These would be implemented for editing other bonus types */}
     </div>
   );
 }
