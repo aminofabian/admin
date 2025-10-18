@@ -1,0 +1,402 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import type { 
+  PurchaseBonus,
+  RechargeBonus,
+  TransferBonus,
+  SignupBonus,
+  CreatePurchaseBonusRequest,
+  UpdateBonusRequest 
+} from '@/types';
+import type { AffiliateDefaults, UpdateAffiliateDefaultsRequest } from '@/types/affiliate';
+import { LoadingState, ErrorState, EmptyState } from '@/components/features';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, Modal } from '@/components/ui';
+import { useBonusesStore } from '@/stores/use-bonuses-store';
+
+export function BonusesSection() {
+  const {
+    purchaseBonuses,
+    rechargeBonuses,
+    transferBonuses,
+    signupBonuses,
+    affiliateDefaults,
+    isLoading,
+    error,
+    currentPage,
+    searchTerm,
+    pageSize,
+    operationLoading,
+    fetchPurchaseBonuses,
+    createPurchaseBonus,
+    deletePurchaseBonus,
+    fetchRechargeBonuses,
+    updateRechargeBonus,
+    fetchTransferBonuses,
+    updateTransferBonus,
+    fetchSignupBonuses,
+    updateSignupBonus,
+    fetchAffiliateDefaults,
+    updateAffiliateDefaults,
+    fetchAllBonuses,
+    setPage,
+    setSearchTerm,
+    clearErrors,
+  } = useBonusesStore();
+
+  // Local state for UI
+  const [activeTab, setActiveTab] = useState<'purchase' | 'recharge' | 'transfer' | 'signup' | 'affiliate'>('purchase');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBonus, setSelectedBonus] = useState<any>(null);
+  const [modalType, setModalType] = useState<'edit' | 'delete' | 'create'>('edit');
+
+  // Initialize data on component mount
+  useEffect(() => {
+    fetchAllBonuses();
+  }, []);
+
+  // Clear errors when component unmounts
+  useEffect(() => {
+    return () => {
+      clearErrors();
+    };
+  }, [clearErrors]);
+
+  const handleCreatePurchaseBonus = async (data: CreatePurchaseBonusRequest) => {
+    try {
+      await createPurchaseBonus(data);
+      setIsDrawerOpen(false);
+    } catch (error) {
+      console.error('Error creating purchase bonus:', error);
+    }
+  };
+
+  const handleUpdateBonus = async (id: number, data: UpdateBonusRequest) => {
+    try {
+      switch (activeTab) {
+        case 'recharge':
+          await updateRechargeBonus(id, data);
+          break;
+        case 'transfer':
+          await updateTransferBonus(id, data);
+          break;
+        case 'signup':
+          await updateSignupBonus(id, data);
+          break;
+      }
+      setIsModalOpen(false);
+      setSelectedBonus(null);
+    } catch (error) {
+      console.error('Error updating bonus:', error);
+    }
+  };
+
+  const handleUpdateAffiliateDefaults = async (data: UpdateAffiliateDefaultsRequest) => {
+    if (!affiliateDefaults?.results?.[0]) return;
+    
+    try {
+      await updateAffiliateDefaults(affiliateDefaults.results[0].id, data);
+      setIsModalOpen(false);
+      setSelectedBonus(null);
+    } catch (error) {
+      console.error('Error updating affiliate defaults:', error);
+    }
+  };
+
+  const handleDeletePurchaseBonus = async (id: number) => {
+    try {
+      await deletePurchaseBonus(id);
+      setIsModalOpen(false);
+      setSelectedBonus(null);
+    } catch (error) {
+      console.error('Error deleting purchase bonus:', error);
+    }
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const openModal = (type: 'edit' | 'delete' | 'create', bonus?: any) => {
+    setModalType(type);
+    setSelectedBonus(bonus || null);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedBonus(null);
+  };
+
+  // Show loading state
+  if (isLoading && !purchaseBonuses && !rechargeBonuses && !transferBonuses && !signupBonuses && !affiliateDefaults) {
+    return <LoadingState />;
+  }
+
+  // Show error state
+  if (error) {
+    return <ErrorState message={error} onRetry={fetchAllBonuses} />;
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const getCurrentData = () => {
+    switch (activeTab) {
+      case 'purchase':
+        return purchaseBonuses?.results || [];
+      case 'recharge':
+        return rechargeBonuses?.results || [];
+      case 'transfer':
+        return transferBonuses?.results || [];
+      case 'signup':
+        return signupBonuses?.results || [];
+      case 'affiliate':
+        return affiliateDefaults?.results || [];
+      default:
+        return [];
+    }
+  };
+
+  const getCurrentCount = () => {
+    switch (activeTab) {
+      case 'purchase':
+        return purchaseBonuses?.count || 0;
+      case 'recharge':
+        return rechargeBonuses?.count || 0;
+      case 'transfer':
+        return transferBonuses?.count || 0;
+      case 'signup':
+        return signupBonuses?.count || 0;
+      case 'affiliate':
+        return affiliateDefaults?.count || 0;
+      default:
+        return 0;
+    }
+  };
+
+  const getActiveCount = () => {
+    const data = getCurrentData();
+    return data.filter((item: any) => item.is_enabled).length;
+  };
+
+  const getInactiveCount = () => {
+    const data = getCurrentData();
+    return data.filter((item: any) => !item.is_enabled).length;
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Bonus Management</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Manage all types of bonuses and affiliate settings
+          </p>
+        </div>
+        {activeTab === 'purchase' && (
+          <Button 
+            variant="primary" 
+            size="md"
+            onClick={() => setIsDrawerOpen(true)}
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Purchase Bonus
+          </Button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+        {[
+          { key: 'purchase', label: 'Purchase', count: purchaseBonuses?.count || 0 },
+          { key: 'recharge', label: 'Recharge', count: rechargeBonuses?.count || 0 },
+          { key: 'transfer', label: 'Transfer', count: transferBonuses?.count || 0 },
+          { key: 'signup', label: 'Signup', count: signupBonuses?.count || 0 },
+          { key: 'affiliate', label: 'Affiliate', count: affiliateDefaults?.count || 0 },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key as any)}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === tab.key
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            {tab.label} ({tab.count})
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="flex items-center gap-4">
+        <SearchInput
+          value={searchTerm}
+          onChange={handleSearchChange}
+          placeholder={`Search ${activeTab} bonuses...`}
+        />
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total {activeTab} Bonuses</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{getCurrentCount()}</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
+          <div className="text-2xl font-bold text-green-500 mt-1">{getActiveCount()}</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
+          <div className="text-2xl font-bold text-red-500 mt-1">{getInactiveCount()}</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{getCurrentData().length}</div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <Table>
+          <TableHeader>
+            {activeTab === 'purchase' ? (
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>User ID</TableHead>
+                <TableHead>Topup Method</TableHead>
+                <TableHead>Bonus Type</TableHead>
+                <TableHead>Bonus Value</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            ) : activeTab === 'affiliate' ? (
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Commission %</TableHead>
+                <TableHead>Fee %</TableHead>
+                <TableHead>Payment Method Fee %</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            ) : (
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Bonus Type</TableHead>
+                <TableHead>Bonus Value</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Display Text</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            )}
+          </TableHeader>
+          <TableBody>
+            {getCurrentData().map((item: any) => (
+              <TableRow key={item.id}>
+                {activeTab === 'purchase' ? (
+                  <>
+                    <TableCell>{item.id}</TableCell>
+                    <TableCell>{item.user}</TableCell>
+                    <TableCell>
+                      <Badge variant="info">{item.topup_method}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">{item.bonus_type}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {item.bonus_type === 'percentage' ? `${item.bonus}%` : `$${item.bonus}`}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => openModal('delete', item)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </>
+                ) : activeTab === 'affiliate' ? (
+                  <>
+                    <TableCell>{item.id}</TableCell>
+                    <TableCell className="font-medium">{item.default_affiliation_percentage}%</TableCell>
+                    <TableCell className="font-medium">{item.default_fee_percentage}%</TableCell>
+                    <TableCell className="font-medium">{item.default_payment_method_fee_percentage}%</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => openModal('edit', item)}
+                      >
+                        Edit
+                      </Button>
+                    </TableCell>
+                  </>
+                ) : (
+                  <>
+                    <TableCell>{item.id}</TableCell>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="default">{item.bonus_type}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {item.bonus_type === 'percentage' ? `${item.bonus}%` : `$${item.bonus}`}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={item.is_enabled ? 'success' : 'danger'}>
+                        {item.is_enabled ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-gray-600 dark:text-gray-400">
+                      {item.display_text}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => openModal('edit', item)}
+                      >
+                        Edit
+                      </Button>
+                    </TableCell>
+                  </>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Empty State */}
+      {getCurrentData().length === 0 && (
+        <EmptyState title={`No ${activeTab} bonuses found`} />
+      )}
+
+      {/* Pagination */}
+      {getCurrentCount() > pageSize && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(getCurrentCount() / pageSize)}
+          hasNext={false}
+          hasPrevious={false}
+          onPageChange={setPage}
+        />
+      )}
+
+      {/* Modals and Forms would go here */}
+      {/* This is a simplified version - you would add the actual form components */}
+    </div>
+  );
+}

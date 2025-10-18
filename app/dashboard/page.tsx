@@ -24,6 +24,7 @@ import {
   BannersSection,
   AffiliatesSection,
 } from '@/components/dashboard/main-content-sections';
+import { BonusesSection } from '@/components/dashboard/data-sections/bonuses-section';
 import type { ControlSection } from '@/components/dashboard/main-content-sections';
 
 export default function DashboardPage() {
@@ -63,6 +64,8 @@ export default function DashboardPage() {
         return <BannersSection />;
       case 'affiliates':
         return <AffiliatesSection />;
+      case 'bonuses':
+        return <BonusesSection />;
       default:
         return null;
     }

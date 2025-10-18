@@ -19,6 +19,9 @@ interface BonusesState {
   affiliateDefaults: PaginatedResponse<AffiliateDefaults> | null;
   isLoading: boolean;
   error: string | null;
+  currentPage: number;
+  searchTerm: string;
+  pageSize: number;
   operationLoading: {
     purchase: boolean;
     recharge: boolean;
@@ -46,6 +49,9 @@ interface BonusesActions {
   updateAffiliateDefaults: (id: number, data: UpdateAffiliateDefaultsRequest) => Promise<AffiliateDefaults>;
   
   fetchAllBonuses: () => Promise<void>;
+  setPage: (page: number) => void;
+  setSearchTerm: (term: string) => void;
+  clearErrors: () => void;
   reset: () => void;
 }
 
@@ -59,6 +65,9 @@ const initialState: BonusesState = {
   affiliateDefaults: null,
   isLoading: false,
   error: null,
+  currentPage: 1,
+  searchTerm: '',
+  pageSize: 10,
   operationLoading: {
     purchase: false,
     recharge: false,
@@ -385,6 +394,21 @@ export const useBonusesStore = create<BonusesStore>((set, get) => ({
         isLoading: false,
       });
     }
+  },
+
+  setPage: (page: number) => {
+    set({ currentPage: page });
+  },
+
+  setSearchTerm: (term: string) => {
+    set({ 
+      searchTerm: term,
+      currentPage: 1,
+    });
+  },
+
+  clearErrors: () => {
+    set({ error: null });
   },
 
   reset: () => {
