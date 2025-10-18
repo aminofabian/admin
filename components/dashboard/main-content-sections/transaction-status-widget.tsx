@@ -1,19 +1,29 @@
 'use client';
 
-interface TransactionHealthData {
-  pendingCount: number;
-  status: string;
-  totalToday: number;
-  successRate: number;
-}
+import { useTransactionStatus } from '@/hooks/use-transaction-status';
 
 export function TransactionStatusWidget() {
-  const transactionHealth: TransactionHealthData = {
-    pendingCount: 23,
-    status: 'Processing Smoothly',
-    totalToday: 1847,
-    successRate: 98.5,
-  };
+  const { 
+    pendingCount, 
+    status, 
+    totalToday, 
+    successRate, 
+    isLoading: loading, 
+    error 
+  } = useTransactionStatus();
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="bg-card rounded-xl p-4 border border-border">
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">Transaction Status</h3>
+        <div className="text-center py-8">
+          <div className="text-destructive text-sm mb-2">⚠️ Error Loading Data</div>
+          <div className="text-xs text-muted-foreground">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-xl p-4 border border-border">
@@ -21,10 +31,10 @@ export function TransactionStatusWidget() {
       
       <div className="text-center mb-4">
         <div className="text-3xl font-bold text-foreground mb-1">
-          {transactionHealth.pendingCount}
+          {loading ? '...' : pendingCount}
         </div>
         <div className="text-sm text-muted-foreground mb-2">
-          {transactionHealth.status}
+          {loading ? 'Loading...' : status}
         </div>
         <div className="text-xs text-muted-foreground">
           pending transactions
@@ -34,18 +44,22 @@ export function TransactionStatusWidget() {
       <div className="space-y-2">
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Success Rate</span>
-          <span className="text-primary font-medium">{transactionHealth.successRate}%</span>
+          <span className="text-primary font-medium">
+            {loading ? '...' : `${successRate}%`}
+          </span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">Total Today</span>
-          <span className="text-foreground font-medium">{transactionHealth.totalToday}</span>
+          <span className="text-foreground font-medium">
+            {loading ? '...' : totalToday.toLocaleString()}
+          </span>
         </div>
       </div>
 
       <div className="mt-4 flex justify-center items-center gap-2">
         <div className="flex space-x-1">
           {Array.from({ length: 10 }, (_, i) => {
-            const threshold = Math.floor((transactionHealth.successRate / 100) * 10);
+            const threshold = loading ? 0 : Math.floor((successRate / 100) * 10);
             return (
               <div
                 key={i}
@@ -57,7 +71,7 @@ export function TransactionStatusWidget() {
           })}
         </div>
         <span className="text-xs text-muted-foreground">
-          {Math.floor((transactionHealth.successRate / 100) * 10)}/10
+          {loading ? '...' : `${Math.floor((successRate / 100) * 10)}/10`}
         </span>
       </div>
     </div>
