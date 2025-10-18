@@ -1,19 +1,11 @@
 'use client';
 
-interface TransactionVolumeData {
-  purchases: number;
-  cashouts: number;
-  netVolume: number;
-  completedCount: number;
-}
+import { useTransactionVolume } from '@/hooks/use-transaction-volume';
+import { LoadingState } from '@/components/features/loading-state';
+import { ErrorState } from '@/components/features/error-state';
 
 export function RevenueWidget() {
-  const volumeData: TransactionVolumeData = {
-    purchases: 45200,
-    cashouts: 28900,
-    netVolume: 16300,
-    completedCount: 342,
-  };
+  const volumeData = useTransactionVolume();
 
   const isPositive = volumeData.netVolume >= 0;
   const percentage = volumeData.purchases > 0 
@@ -26,6 +18,24 @@ export function RevenueWidget() {
     }
     return `$${amount.toFixed(0)}`;
   };
+
+  if (volumeData.isLoading) {
+    return (
+      <div className="bg-card rounded-xl p-4 border border-border">
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">Transaction Volume Today</h3>
+        <LoadingState />
+      </div>
+    );
+  }
+
+  if (volumeData.error) {
+    return (
+      <div className="bg-card rounded-xl p-4 border border-border">
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">Transaction Volume Today</h3>
+        <ErrorState message={volumeData.error} />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-xl p-4 border border-border">
