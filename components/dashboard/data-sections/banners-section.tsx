@@ -17,6 +17,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Drawer } from '@/components/ui/drawer';
 import { BannerForm } from '@/components/features';
 import { LoadingState, ErrorState } from '@/components/features';
+import { formatDate } from '@/lib/utils/formatters';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
 export function BannersSection() {
@@ -216,7 +217,7 @@ export function BannersSection() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {new Date(banner.created).toLocaleDateString()}
+                    {formatDate(banner.created)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">

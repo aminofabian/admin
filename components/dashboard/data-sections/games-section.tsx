@@ -7,6 +7,7 @@ import { USER_ROLES } from '@/lib/constants/roles';
 import type { Game, UpdateGameRequest, CheckStoreBalanceResponse } from '@/types';
 import { LoadingState, ErrorState, EmptyState, GameForm, StoreBalanceModal } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
+import { formatDate } from '@/lib/utils/formatters';
 
 export function GamesSection() {
   const { user } = useAuth();
@@ -70,14 +71,6 @@ export function GamesSection() {
   if (!data?.results?.length && !searchTerm) {
     return <EmptyState title="No games found" />;
   }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   const handleEditGame = (game: Game) => {
     setEditingGame(game);

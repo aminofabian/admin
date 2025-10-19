@@ -7,6 +7,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { LoadingState, ErrorState, EmptyState, CompanyForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Button, Badge, Drawer } from '@/components/ui';
+import { formatDate } from '@/lib/utils/formatters';
 
 export function CompaniesSection() {
   const { user } = useAuth();
@@ -66,14 +67,6 @@ export function CompaniesSection() {
   if (!data?.results?.length && !searchTerm) {
     return <EmptyState title="No companies found" />;
   }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   const handleCreateCompany = async (formData: CreateCompanyRequest | UpdateCompanyRequest) => {
     try {

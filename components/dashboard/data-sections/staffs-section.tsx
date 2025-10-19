@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { CreateUserRequest, UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
+import { formatDate } from '@/lib/utils/formatters';
 import { useStaffsStore } from '@/stores/use-staffs-store';
 
 export function StaffsSection() {
@@ -78,14 +79,6 @@ export function StaffsSection() {
   if (!staffs?.results?.length && !searchTerm) {
     return <EmptyState title="No staff members found" />;
   }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   return (
     <div className="space-y-4">

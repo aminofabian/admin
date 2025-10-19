@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { CreateUserRequest, UpdateUserRequest, Affiliate, UpdateAffiliateRequest, AddManualAffiliateRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, AgentForm, CommissionSettingsForm, ManualAffiliateForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, Modal } from '@/components/ui';
+import { formatDate } from '@/lib/utils/formatters';
 import { useAgentsStore } from '@/stores/use-agents-store';
 
 export function AgentsSection() {
@@ -127,14 +128,6 @@ export function AgentsSection() {
   if (activeTab === 'affiliates' && !affiliates?.results?.length && !searchTerm) {
     return <EmptyState title="No affiliates found" />;
   }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   return (
     <div className="space-y-4">

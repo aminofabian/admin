@@ -16,6 +16,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Drawer } from '@/components/ui/drawer';
 import { CompanySettingsForm } from '@/components/features';
 import { LoadingState, ErrorState } from '@/components/features';
+import { formatDate } from '@/lib/utils/formatters';
 import type { CompanySettings, CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
 
 export function CompanySettingsSection() {
@@ -195,7 +196,7 @@ export function CompanySettingsSection() {
                     </button>
                   </TableCell>
                   <TableCell>
-                    {new Date(company.created).toLocaleDateString()}
+                    {formatDate(company.created)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
