@@ -1,6 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useGameOperations } from '@/hooks/use-game-operations';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { ErrorState } from '@/components/features/error-state';
+import { LoadingState } from '@/components/features/loading-state';
 
 export function GameOperationsWidget() {
   const { 
@@ -14,67 +18,67 @@ export function GameOperationsWidget() {
     error 
   } = useGameOperations();
 
+  const compactTotals = useMemo(() => ({
+    pending: new Intl.NumberFormat('en-US', { notation: 'compact' }).format(totalPending || 0),
+    failed: new Intl.NumberFormat('en-US', { notation: 'compact' }).format(totalFailed || 0),
+    completed: new Intl.NumberFormat('en-US', { notation: 'compact' }).format(totalCompleted || 0),
+  }), [totalPending, totalFailed, totalCompleted]);
+
+  const progressPct = (completed: number, pending: number) => {
+    const denom = (completed || 0) + (pending || 0);
+    if (denom <= 0) return 0;
+    return Math.max(0, Math.min(100, (completed / denom) * 100));
+  };
+
   // Show error state if there's an error
   if (error) {
     return (
-      <div className="bg-card rounded-xl border border-border p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-foreground">
-            Game Operations Queue
-          </h3>
-          <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <Card className="rounded-xl border border-border">
+        <CardHeader className="px-4 py-3 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground">Game Operations Queue</h3>
+          <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
           </svg>
-        </div>
-        <div className="text-center py-8">
-          <div className="text-destructive text-sm mb-2">⚠️ Error Loading Data</div>
-          <div className="text-xs text-muted-foreground">{error}</div>
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent className="px-4 py-6">
+          <ErrorState message={error} />
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-card rounded-xl border border-border p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-foreground">
-          Game Operations Queue
-        </h3>
-        <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <Card className="rounded-xl border border-border">
+      <CardHeader className="px-4 py-3 flex items-center justify-between">
+        <h3 className="text-sm font-medium text-muted-foreground">Game Operations Queue</h3>
+        <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
         </svg>
-      </div>
+      </CardHeader>
+      <CardContent className="px-4 py-4">
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
-          <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-            {loading ? '...' : totalPending}
-          </div>
-          <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
-            Pending
-          </div>
-        </div>
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-            {loading ? '...' : totalFailed}
-          </div>
-          <div className="text-xs text-red-600 dark:text-red-400 font-medium">
-            Failed
-          </div>
-        </div>
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {loading ? '...' : totalCompleted}
-          </div>
-          <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-            Completed Today
-          </div>
-        </div>
-      </div>
+        {/* Summary Stats */}
+        {loading ? (
+          <LoadingState />
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3">
+                <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">{compactTotals.pending}</div>
+                <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Pending</div>
+              </div>
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+                <div className="text-xl font-bold text-red-600 dark:text-red-400">{compactTotals.failed}</div>
+                <div className="text-xs text-red-600 dark:text-red-400 font-medium">Failed</div>
+              </div>
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+                <div className="text-xl font-bold text-green-600 dark:text-green-400">{compactTotals.completed}</div>
+                <div className="text-xs text-green-600 dark:text-green-400 font-medium">Completed Today</div>
+              </div>
+            </div>
 
-      {/* Operation Types */}
-      <div className="space-y-3">
+            {/* Operation Types */}
+            <div className="space-y-3">
         {/* Recharge Operations */}
         <div className="border border-border rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
@@ -97,14 +101,9 @@ export function GameOperationsWidget() {
               )}
             </div>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-300"
-              style={{ 
-                width: loading ? '0%' : `${(recharge.completed_today / (recharge.completed_today + recharge.pending)) * 100}%` 
-              }}
-            />
-          </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progressPct(recharge.completed_today, recharge.pending))}>
+                  <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progressPct(recharge.completed_today, recharge.pending)}%` }} />
+                </div>
         </div>
 
         {/* Redeem Operations */}
@@ -129,14 +128,9 @@ export function GameOperationsWidget() {
               )}
             </div>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-300"
-              style={{ 
-                width: loading ? '0%' : `${(redeem.completed_today / (redeem.completed_today + redeem.pending)) * 100}%` 
-              }}
-            />
-          </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progressPct(redeem.completed_today, redeem.pending))}>
+                  <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progressPct(redeem.completed_today, redeem.pending)}%` }} />
+                </div>
         </div>
 
         {/* Add User Game Operations */}
@@ -161,56 +155,39 @@ export function GameOperationsWidget() {
               )}
             </div>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary transition-all duration-300"
-              style={{ 
-                width: loading ? '0%' : `${(add_user_game.completed_today / (add_user_game.completed_today + add_user_game.pending)) * 100}%` 
-              }}
-            />
-          </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progressPct(add_user_game.completed_today, add_user_game.pending))}>
+                  <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progressPct(add_user_game.completed_today, add_user_game.pending)}%` }} />
+                </div>
         </div>
       </div>
 
-      {/* Queue Health Indicator */}
-      <div className="mt-4 pt-4 border-t border-border">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Queue Health
-          </span>
-          <div className="flex items-center space-x-2">
-            {loading ? (
-              <>
-                <span className="w-2 h-2 bg-muted rounded-full animate-pulse"></span>
-                <span className="text-sm font-medium text-muted-foreground">
-                  Loading...
-                </span>
-              </>
-            ) : totalFailed > 5 ? (
-              <>
-                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                  Needs Attention
-                </span>
-              </>
-            ) : totalPending > 10 ? (
-              <>
-                <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
-                <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                  Processing
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                  Healthy
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+            {/* Queue Health Indicator */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Queue Health</span>
+                <div className="flex items-center space-x-2">
+                  {totalFailed > 5 ? (
+                    <>
+                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                      <span className="text-sm font-medium text-red-600 dark:text-red-400">Needs Attention</span>
+                    </>
+                  ) : totalPending > 10 ? (
+                    <>
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+                      <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">Processing</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Healthy</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
