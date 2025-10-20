@@ -38,6 +38,19 @@ export function JackpotPoolGauge(props: PlatformBalanceData = {}) {
     return { balancePercentage: clampedPercentage, strokeDasharray: dasharray };
   }, [platformLiquidity, totalBalance]);
 
+  const compactCenterAmount = useMemo(() => {
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        notation: 'compact',
+        maximumFractionDigits: 2,
+      }).format(platformLiquidity || 0);
+    } catch {
+      return formatCurrency(platformLiquidity || 0);
+    }
+  }, [platformLiquidity]);
+
   // Show error state if there's an error
   if (error) {
     return (
@@ -62,7 +75,7 @@ export function JackpotPoolGauge(props: PlatformBalanceData = {}) {
           <LoadingState />
         ) : (
           <div>
-            <div className="relative w-24 h-24 mx-auto mb-4" role="img" aria-label={`Liquidity gauge at ${balancePercentage.toFixed(0)} percent`}>
+            <div className="relative w-28 h-28 mx-auto mb-4" role="img" aria-label={`Liquidity gauge at ${balancePercentage.toFixed(0)} percent`}>
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
                 <circle
                   cx="50"
@@ -86,8 +99,8 @@ export function JackpotPoolGauge(props: PlatformBalanceData = {}) {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-lg font-bold text-foreground">
-                  {formatCurrency(platformLiquidity)}
+                <span className="text-sm md:text-base font-bold tracking-tight text-foreground">
+                  {compactCenterAmount}
                 </span>
                 <span className="text-xs text-muted-foreground">total</span>
               </div>
