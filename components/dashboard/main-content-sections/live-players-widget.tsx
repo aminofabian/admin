@@ -97,10 +97,10 @@ export function LivePlayersWidget({ stats, statsLoading }: LivePlayersWidgetProp
         {/* Main metrics */}
         <div className="space-y-2 xl:space-y-3 text-sm mb-4">
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground font-medium">Active Players</span>
+            {/* <span className="text-muted-foreground font-medium">Active Players</span>
             <span className="text-lg xl:text-xl font-bold text-primary">
               {activePlayers.toLocaleString()}
-            </span>
+            </span> */}
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Total Players</span>
