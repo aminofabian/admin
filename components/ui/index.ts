@@ -8,4 +8,6 @@ export * from './modal';
 export * from './pagination';
 export * from './search-input';
 export * from './logo';
+export * from './toast';
+export * from './confirm-modal';
 

@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { ToastProvider } from "@/components/ui/toast";
 
 const outfit = Outfit({ 
   subsets: ["latin"],
@@ -41,7 +42,9 @@ export default function RootLayout({
       <body className={outfit.className}>
         <ThemeProvider>
           <AuthProvider>
-            {children}
+            <ToastProvider>
+              {children}
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -5,7 +5,6 @@ import { useManagersStore } from '@/stores';
 import { useSearch } from '@/lib/hooks';
 import { 
   Card, 
-  CardHeader, 
   CardContent, 
   Table, 
   TableHeader, 
@@ -17,7 +16,9 @@ import {
   Pagination, 
   SearchInput, 
   Button,
-  Modal
+  Modal,
+  useToast,
+  ConfirmModal
 } from '@/components/ui';
 import { LoadingState, ErrorState, EmptyState, ManagerForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
@@ -39,6 +40,7 @@ export default function ManagersPage() {
   } = useManagersStore();
 
   const { search, debouncedSearch, setSearch } = useSearch();
+  const { addToast } = useToast();
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -46,6 +48,15 @@ export default function ManagersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    manager: Manager | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    manager: null,
+    isLoading: false,
+  });
 
   // Initial load
   useEffect(() => {
@@ -87,17 +98,44 @@ export default function ManagersPage() {
   };
 
   const handleToggleStatus = async (manager: Manager) => {
-    if (!confirm(`Are you sure you want to ${manager.is_active ? 'deactivate' : 'activate'} ${manager.username}?`)) {
-      return;
-    }
+    setConfirmModal({
+      isOpen: true,
+      manager,
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!confirmModal.manager) return;
+
+    setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      await updateManager(manager.id, { is_active: !manager.is_active });
-      setSuccessMessage(`Manager ${manager.is_active ? 'deactivated' : 'activated'} successfully!`);
-    } catch (err) {
+      const action = confirmModal.manager.is_active ? 'deactivate' : 'activate';
+      const actionPast = confirmModal.manager.is_active ? 'deactivated' : 'activated';
+      
+      await updateManager(confirmModal.manager.id, { is_active: !confirmModal.manager.is_active });
+      
+      addToast({
+        type: 'success',
+        title: 'Manager updated',
+        description: `"${confirmModal.manager.username}" has been ${actionPast} successfully!`,
+      });
+      
+      setConfirmModal({ isOpen: false, manager: null, isLoading: false });
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update manager status';
-      setSubmitError(errorMessage);
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: errorMessage,
+      });
+      setConfirmModal(prev => ({ ...prev, isLoading: false }));
     }
+  };
+
+  const handleCancelToggle = () => {
+    setConfirmModal({ isOpen: false, manager: null, isLoading: false });
   };
 
   const openViewModal = (manager: Manager) => {
@@ -342,6 +380,18 @@ export default function ManagersPage() {
           />
         )}
       </Modal>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={handleCancelToggle}
+        onConfirm={handleConfirmToggle}
+        title={`${confirmModal.manager?.is_active ? 'Deactivate' : 'Activate'} Manager`}
+        description={`Are you sure you want to ${confirmModal.manager?.is_active ? 'deactivate' : 'activate'} "${confirmModal.manager?.username}"?`}
+        confirmText={confirmModal.manager?.is_active ? 'Deactivate' : 'Activate'}
+        variant={confirmModal.manager?.is_active ? 'warning' : 'info'}
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 }
