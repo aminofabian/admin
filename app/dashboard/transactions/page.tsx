@@ -82,7 +82,7 @@ export default function TransactionsPage() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Transactions
               {filter !== 'all' && (
-                <span className="ml-3 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950/30 px-3 py-1.5 rounded-lg">
+                <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">
                   {filter === 'pending-purchases' ? 'Pending Purchases' :
                    filter === 'pending-cashouts' ? 'Pending Cashouts' :
                    filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -110,19 +110,19 @@ export default function TransactionsPage() {
               <span className="font-semibold text-gray-900 dark:text-gray-100">{transactions?.count.toLocaleString() || 0}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              <div className="w-2 h-2 rounded-full bg-gray-400"></div>
               <span className="text-gray-600 dark:text-gray-400">Completed:</span>
-              <span className="font-semibold text-green-600 dark:text-green-400">{completedCount}</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{completedCount}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+              <div className="w-2 h-2 rounded-full bg-gray-500"></div>
               <span className="text-gray-600 dark:text-gray-400">Pending:</span>
-              <span className="font-semibold text-yellow-600 dark:text-yellow-400">{pendingCount}</span>
+              <span className="font-semibold text-gray-700 dark:text-gray-300">{pendingCount}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-red-500"></div>
+              <div className="w-2 h-2 rounded-full bg-gray-600"></div>
               <span className="text-gray-600 dark:text-gray-400">Failed:</span>
-              <span className="font-semibold text-red-600 dark:text-red-400">{failedCount}</span>
+              <span className="font-semibold text-gray-800 dark:text-gray-200">{failedCount}</span>
             </div>
           </div>
         </div>
@@ -130,13 +130,13 @@ export default function TransactionsPage() {
         {/* Filter Buttons */}
         <div className="flex flex-wrap gap-2">
           {([
-            { value: 'all', label: 'All Transactions', color: 'bg-blue-600' },
-            { value: 'processing', label: 'Processing', color: 'bg-purple-600' },
-            { value: 'history', label: 'History', color: 'bg-gray-600' },
-            { value: 'purchases', label: 'Purchases', color: 'bg-green-600' },
-            { value: 'cashouts', label: 'Cashouts', color: 'bg-orange-600' },
-            { value: 'pending-purchases', label: 'Pending Purchases', color: 'bg-green-500' },
-            { value: 'pending-cashouts', label: 'Pending Cashouts', color: 'bg-orange-500' },
+            { value: 'all', label: 'All Transactions', color: 'bg-gray-700' },
+            { value: 'processing', label: 'Processing', color: 'bg-gray-600' },
+            { value: 'history', label: 'History', color: 'bg-gray-500' },
+            { value: 'purchases', label: 'Purchases', color: 'bg-gray-600' },
+            { value: 'cashouts', label: 'Cashouts', color: 'bg-gray-500' },
+            { value: 'pending-purchases', label: 'Pending Purchases', color: 'bg-gray-600' },
+            { value: 'pending-cashouts', label: 'Pending Cashouts', color: 'bg-gray-500' },
           ] as const).map((f) => (
             <button
               key={f.value}
@@ -183,7 +183,7 @@ export default function TransactionsPage() {
                         {/* User Info */}
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-sm font-semibold">
                               {transaction.user_username.charAt(0).toUpperCase()}
                             </div>
                             <div>
@@ -220,17 +220,17 @@ export default function TransactionsPage() {
                         {/* Amount */}
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="font-bold text-blue-600 dark:text-blue-400 text-base">
+                            <div className="font-bold text-gray-900 dark:text-gray-100 text-base">
                               {formatCurrency(transaction.amount)}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                              <span className={transaction.journal_entry === 'debit' ? 'text-red-600' : 'text-green-600'}>
+                              <span className="text-gray-500 dark:text-gray-400">
                                 {transaction.journal_entry === 'debit' ? '➖' : '➕'}
                               </span>
                               {transaction.journal_entry} • {transaction.currency}
                             </div>
                             {parseFloat(transaction.bonus_amount) > 0 && (
-                              <div className="text-green-600 dark:text-green-400 font-semibold text-sm">
+                              <div className="text-gray-600 dark:text-gray-400 font-semibold text-sm">
                                 +{formatCurrency(transaction.bonus_amount)} bonus
                               </div>
                             )}
@@ -244,13 +244,13 @@ export default function TransactionsPage() {
                               {transaction.status.toUpperCase()}
                             </Badge>
                             {transaction.status === 'completed' && (
-                              <div className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                              <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                                 <span>✓</span>
                                 <span>Verified</span>
                               </div>
                             )}
                             {transaction.status === 'pending' && (
-                              <div className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                              <div className="text-xs text-gray-500 dark:text-gray-500 flex items-center gap-1">
                                 <span>⏳</span>
                                 <span>Processing</span>
                               </div>
@@ -273,7 +273,7 @@ export default function TransactionsPage() {
                         {/* Created Date */}
                         <TableCell>
                           <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {formatDate(transaction.created)}
+                            {transaction.created ? formatDate(transaction.created) : 'N/A'}
                           </div>
                         </TableCell>
                       </TableRow>

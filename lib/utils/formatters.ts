@@ -12,12 +12,38 @@ export const formatDate = (dateString: string | null | undefined): string => {
     return 'N/A';
   }
 
-  // Create date object and validate it
-  const date = new Date(dateString);
+  // Handle common invalid date strings
+  if (dateString === 'null' || dateString === 'undefined' || dateString === 'Invalid Date') {
+    return 'N/A';
+  }
+
+  // Try to create date object
+  let date: Date;
+  
+  // Handle different date formats
+  if (dateString.includes('T')) {
+    // ISO format with time
+    date = new Date(dateString);
+  } else if (dateString.includes('-')) {
+    // Date format YYYY-MM-DD
+    date = new Date(dateString + 'T00:00:00Z');
+  } else if (dateString.includes('/')) {
+    // Date format MM/DD/YYYY or DD/MM/YYYY
+    date = new Date(dateString);
+  } else {
+    // Try parsing as timestamp
+    const timestamp = parseInt(dateString);
+    if (!isNaN(timestamp)) {
+      date = new Date(timestamp);
+    } else {
+      date = new Date(dateString);
+    }
+  }
   
   // Check if the date is valid
   if (isNaN(date.getTime())) {
-    return 'Invalid Date';
+    console.warn('Invalid date string:', dateString);
+    return 'N/A';
   }
 
   return new Intl.DateTimeFormat('en-US', {
