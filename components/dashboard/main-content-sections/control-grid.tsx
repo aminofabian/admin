@@ -139,7 +139,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
   };
 
   return (
-    <div className="relative bg-gradient-to-br from-card via-card to-card/95 rounded-2xl p-3 sm:p-5 md:p-6 lg:p-6 xl:p-7 border border-border/50 shadow-lg backdrop-blur-sm overflow-hidden">
+    <div className="relative bg-gradient-to-br from-card via-card to-card/95 p-3 sm:p-5 md:p-6 lg:p-6 xl:p-7 border border-border/50 shadow-lg backdrop-blur-sm overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-[0.02]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)),transparent_50%)]" />
@@ -169,7 +169,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
           <button
             key={index}
             onClick={() => handleClick(item.section)}
-            className={`group relative flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 md:p-2 lg:p-3 xl:p-4 rounded-xl transition-colors duration-200 min-h-[4.5rem] sm:min-h-[5rem] md:min-h-[4rem] lg:min-h-[5rem] xl:min-h-[5.5rem] ${
+            className={`group relative flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 md:p-2 lg:p-3 xl:p-4 transition-colors duration-200 min-h-[4.5rem] sm:min-h-[5rem] md:min-h-[4rem] lg:min-h-[5rem] xl:min-h-[5.5rem] ${
               activeSection === item.section
                 ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-xl shadow-primary/20 border-2 border-primary/30'
                 : 'bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-primary/8 hover:via-primary/12 hover:to-primary/16 border border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg hover:shadow-primary/10'
@@ -177,7 +177,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
             title={item.label}
           >
             {/* Background Glow */}
-            <div className={`absolute inset-0 rounded-xl transition-opacity duration-200 ${
+            <div className={`absolute inset-0 transition-opacity duration-200 ${
               activeSection === item.section 
                 ? 'bg-gradient-to-br from-primary/15 to-primary/5 opacity-100' 
                 : 'bg-gradient-to-br from-primary/5 to-primary/2 opacity-0 group-hover:opacity-100'
@@ -185,7 +185,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
             
             {/* Icon */}
             <div className="relative flex-shrink-0">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-7 md:h-7 lg:w-9 lg:h-9 xl:w-11 xl:h-11 rounded-lg flex items-center justify-center transition-colors duration-200 ${
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-7 md:h-7 lg:w-9 lg:h-9 xl:w-11 xl:h-11 flex items-center justify-center transition-colors duration-200 ${
                 activeSection === item.section
                   ? 'bg-primary-foreground/20'
                   : 'bg-gradient-to-br from-primary/10 to-primary/5 group-hover:from-primary/20 group-hover:to-primary/10'

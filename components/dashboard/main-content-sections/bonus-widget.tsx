@@ -211,7 +211,7 @@ export function BonusWidget() {
       <div className="bg-card p-5 border border-border shadow-md">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+            <div className="w-12 h-12 border-4 border-primary/30 border-t-primary animate-spin mx-auto mb-4" />
             <p className="text-sm text-muted-foreground">Loading bonuses...</p>
           </div>
         </div>
@@ -246,7 +246,7 @@ export function BonusWidget() {
       <div className="bg-card p-5 border border-border shadow-md">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary/10 flex items-center justify-center rounded">
+            <div className="w-8 h-8 bg-primary/10 flex items-center justify-center">
               <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
               </svg>
@@ -256,7 +256,7 @@ export function BonusWidget() {
               <p className="text-xs text-muted-foreground">{totalBonuses} active offers</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-border/50 rounded">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-border/50">
             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
             <span className="text-xs text-primary font-semibold">Live</span>
           </div>
@@ -264,7 +264,7 @@ export function BonusWidget() {
 
         <div className="text-center mb-5 pb-5 border-b border-border/50">
           <div className="relative w-24 h-24 mx-auto mb-3">
-            <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full" />
+            <div className="absolute inset-0 bg-primary/10 blur-xl" />
             <svg className="relative w-full h-full transform -rotate-90" viewBox="0 0 100 100">
               <circle
                 cx="50"

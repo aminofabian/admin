@@ -84,13 +84,13 @@ export default function DashboardPage() {
           
           {/* Modal Content */}
           <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="relative w-full h-full max-w-7xl bg-background rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+            <div className="relative w-full h-full max-w-7xl bg-background shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
               {/* Modal Header */}
               <div className="sticky top-0 z-10 bg-background border-b border-border px-6 py-4 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-foreground">{getSectionTitle()}</h2>
                 <button
                   onClick={handleCloseModal}
-                  className="p-2 rounded-lg hover:bg-muted transition-colors"
+                  className="p-2 hover:bg-muted transition-colors"
                   title="Close"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,7 +190,7 @@ export default function DashboardPage() {
           {/* Top Stats Row */}
           <div className="grid grid-cols-2 gap-4">
             <AffiliateNetworkWidget />
-            <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+            <div className="bg-card p-4 border border-border shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-muted-foreground">Live</h3>
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
@@ -219,7 +219,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Search & Controls */}
-          <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+          <div className="bg-card p-4 border border-border shadow-sm">
             <div className="relative">
               <svg
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
@@ -256,7 +256,7 @@ export default function DashboardPage() {
         {/* Left Sidebar - Quick Access & Controls */}
         <div className="lg:col-span-3 space-y-4 xl:space-y-5">
           {/* Global Search - Enhanced */}
-          <div className="bg-card rounded-xl p-3 xl:p-4 border border-border shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-card p-3 xl:p-4 border border-border shadow-sm hover:shadow-md transition-shadow">
             <div className="relative">
               <svg
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"

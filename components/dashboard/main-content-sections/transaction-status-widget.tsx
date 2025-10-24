@@ -24,7 +24,7 @@ export function TransactionStatusWidget() {
   // Show error state if there's an error
   if (error) {
     return (
-      <Card className="rounded-xl border border-border">
+      <Card className="border border-border">
         <CardHeader className="px-4 py-3">
           <h3 className="text-sm font-medium text-muted-foreground">Transaction Status</h3>
         </CardHeader>
@@ -71,7 +71,7 @@ export function TransactionStatusWidget() {
                 {Array.from({ length: 10 }, (_, i) => (
                   <div
                     key={i}
-                    className={`w-1.5 h-2 rounded ${i < successBuckets ? 'bg-primary' : 'bg-muted'}`}
+                    className={`w-1.5 h-2 ${i < successBuckets ? 'bg-primary' : 'bg-muted'}`}
                   />
                 ))}
               </div>
