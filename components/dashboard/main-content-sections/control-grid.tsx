@@ -143,57 +143,162 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
   };
 
   return (
-    <div className="bg-card rounded-xl p-3 sm:p-4 md:p-4 lg:p-5 xl:p-5 border border-border shadow-sm">
-      {/* Header with count indicator */}
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <h3 className="text-xs sm:text-sm md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Quick Controls
-        </h3>
-        <span className="text-[10px] sm:text-xs text-muted-foreground/60 font-medium">
-          {allItems.length}
-        </span>
+    <div className="relative bg-gradient-to-br from-card via-card to-card/95 rounded-2xl p-4 sm:p-5 md:p-6 lg:p-6 xl:p-7 border border-border/50 shadow-lg backdrop-blur-sm overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.02]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,hsl(var(--primary)/0.05)_25%,hsl(var(--primary)/0.05)_50%,transparent_50%,transparent_75%,hsl(var(--primary)/0.05)_75%)] bg-[length:20px_20px]" />
       </div>
       
-      {/* 🎨 CREATIVE RESPONSIVE GRID SYSTEM:
-          Mobile (< 640px): 2 cols, 8 items shown
-          Tablet (640px-768px): 3 cols, all items
-          13" & 14" Laptop (768px-1024px): 5 cols (compact for text overflow)
-          15" Laptop (1024px-1280px): 4 cols (more breathing room)
-          17" Desktop (1280px+): 3 cols (full sidebar with generous spacing)
-      */}
+      {/* Header with enhanced styling */}
+      <div className="relative flex items-center justify-between mb-4 sm:mb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-2 bg-gradient-to-r from-primary to-primary/60 rounded-full" />
+          <h3 className="text-sm sm:text-base font-bold text-foreground">
+            Quick Controls
+          </h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="px-2 py-1 bg-primary/10 rounded-full border border-primary/20">
+            <span className="text-xs font-bold text-primary">
+              {allItems.length}
+            </span>
+          </div>
+        </div>
+      </div>
       
-      {/* Mobile: Exact Copy of Reference Design */}
-      <div className="grid sm:hidden grid-cols-2 gap-4">
+      {/* 🎨 ENHANCED RESPONSIVE GRID SYSTEM */}
+      
+      {/* Mobile: Premium Card Design */}
+      <div className="grid sm:hidden grid-cols-2 gap-3">
         {priorityItems.map((item, index) => (
           <button
             key={index}
             onClick={() => handleClick(item.section)}
-            className={`group relative flex flex-col items-center justify-center p-6 rounded-2xl bg-card/95 backdrop-blur-sm border transition-all duration-300 active:scale-[0.97] shadow-sm ${
+            className={`group relative flex flex-col items-center justify-center p-5 rounded-2xl transition-colors duration-200 ${
               activeSection === item.section
-                ? 'border-primary bg-primary/10'
-                : 'border-border/30 hover:border-primary/50 hover:bg-card'
+                ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-2xl shadow-primary/25 border-2 border-primary/30'
+                : 'bg-gradient-to-br from-card via-card/95 to-card/90 hover:from-primary/5 hover:via-primary/10 hover:to-primary/15 border border-border/40 hover:border-primary/30 shadow-lg hover:shadow-xl hover:shadow-primary/10'
             }`}
             title={item.label}
           >
-            <div className="flex flex-col items-center gap-4 w-full">
-              {/* Icon Container - Exact Style from Reference */}
-              <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/20 transition-all duration-300 border border-primary/20">
-                <div className="text-primary group-hover:scale-110 transition-transform duration-300">
+            {/* Static Background Glow */}
+            <div className={`absolute inset-0 rounded-2xl ${
+              activeSection === item.section 
+                ? 'bg-gradient-to-br from-primary/20 to-primary/10 opacity-100' 
+                : 'bg-gradient-to-br from-primary/5 to-primary/2 opacity-0 group-hover:opacity-100'
+            }`} />
+            
+            <div className="relative flex flex-col items-center gap-3 w-full">
+              {/* Enhanced Icon Container */}
+              <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-200 ${
+                activeSection === item.section
+                  ? 'bg-primary-foreground/20'
+                  : 'bg-gradient-to-br from-primary/15 to-primary/5 group-hover:from-primary/25 group-hover:to-primary/10'
+              }`}>
+                <div className={`transition-colors duration-200 ${
+                  activeSection === item.section
+                    ? 'text-primary-foreground'
+                    : 'text-primary group-hover:text-primary'
+                }`}>
                   {item.icon}
                 </div>
+                
+                {/* Static Ring */}
+                <div className={`absolute inset-0 rounded-2xl border-2 transition-colors duration-200 ${
+                  activeSection === item.section
+                    ? 'border-primary-foreground/30'
+                    : 'border-primary/20 group-hover:border-primary/40'
+                }`} />
               </div>
               
-              {/* Text Content - Clean Typography */}
+              {/* Enhanced Text */}
               <div className="text-center w-full">
-                <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-tight">
+                <div className={`text-sm font-semibold transition-colors duration-200 leading-tight ${
+                  activeSection === item.section
+                    ? 'text-primary-foreground'
+                    : 'text-foreground group-hover:text-primary'
+                }`}>
                   {item.label}
                 </div>
               </div>
             </div>
             
-            {/* Notification Badge - Prominent Red */}
+            {/* Static Notification Badge */}
+            {(index === 10) && (
+              <span className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-red-500 to-red-600 rounded-full text-[10px] text-white font-bold flex items-center justify-center shadow-lg ring-2 ring-card">
+                2
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Tablet: Sleek Grid */}
+      <div className="hidden sm:grid md:hidden grid-cols-3 gap-3">
+        {allItems.map((item, index) => (
+          <button
+            key={index}
+            onClick={() => handleClick(item.section)}
+            className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl transition-colors duration-200 aspect-square ${
+              activeSection === item.section
+                ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-xl shadow-primary/20 border-2 border-primary/30'
+                : 'bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-primary/8 hover:via-primary/12 hover:to-primary/18 border border-border/30 hover:border-primary/25 shadow-md hover:shadow-lg hover:shadow-primary/10'
+            }`}
+            title={item.label}
+          >
+            <div className={`transition-colors duration-200 ${
+              activeSection === item.section
+                ? 'text-primary-foreground'
+                : 'text-primary group-hover:text-primary'
+            }`}>
+              {item.icon}
+            </div>
+            <span className={`text-[10px] font-bold transition-colors duration-200 text-center leading-tight px-1 ${
+              activeSection === item.section
+                ? 'text-primary-foreground'
+                : 'text-foreground group-hover:text-primary'
+            }`}>
+              {item.label}
+            </span>
+            {(index === 10) && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-red-500 to-red-600 rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md">
+                2
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Medium Laptop: Compact Elegance */}
+      <div className="hidden md:grid lg:hidden grid-cols-5 gap-2.5">
+        {allItems.map((item, index) => (
+          <button
+            key={index}
+            onClick={() => handleClick(item.section)}
+            className={`group relative flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl transition-colors duration-200 min-h-[4rem] ${
+              activeSection === item.section
+                ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/20'
+                : 'bg-gradient-to-br from-card/90 via-card/85 to-card/80 hover:from-primary/6 hover:via-primary/10 hover:to-primary/15 border border-border/20 hover:border-primary/20 shadow-sm hover:shadow-md hover:shadow-primary/5'
+            }`}
+            title={item.label}
+          >
+            <div className={`transition-colors duration-200 scale-90 ${
+              activeSection === item.section
+                ? 'text-primary-foreground'
+                : 'text-primary group-hover:text-primary'
+            }`}>
+              {item.icon}
+            </div>
+            <span className={`text-[9px] font-bold transition-colors duration-200 text-center leading-tight px-0.5 overflow-hidden text-ellipsis whitespace-nowrap max-w-full ${
+              activeSection === item.section
+                ? 'text-primary-foreground'
+                : 'text-foreground group-hover:text-primary'
+            }`}>
+              {item.label}
+            </span>
             {(index === 3 || index === 10) && (
-              <span className="absolute -top-2 -right-2 w-7 h-7 bg-primary rounded-full text-[11px] text-white font-bold flex items-center justify-center shadow-lg ring-2 ring-card">
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-gradient-to-br from-red-500 to-red-600 rounded-full text-[7px] text-white font-bold flex items-center justify-center shadow-md">
                 {index === 3 ? '5' : '2'}
               </span>
             )}
@@ -201,124 +306,91 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
         ))}
       </div>
 
-      {/* Tablet & Small Laptop: 3 columns */}
-      <div className="hidden sm:grid md:hidden grid-cols-3 gap-2">
+      {/* Large Laptop: Balanced Design */}
+      <div className="hidden lg:grid xl:hidden grid-cols-4 gap-3">
         {allItems.map((item, index) => (
           <button
             key={index}
             onClick={() => handleClick(item.section)}
-            className={`group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 aspect-square ${
+            className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl transition-colors duration-200 min-h-[4.5rem] ${
               activeSection === item.section
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border-border/50 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20'
+                ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-xl shadow-primary/25'
+                : 'bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-primary/8 hover:via-primary/12 hover:to-primary/18 border border-border/25 hover:border-primary/25 shadow-md hover:shadow-lg hover:shadow-primary/10'
             }`}
             title={item.label}
           >
-            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors">
+            <div className={`transition-colors duration-200 ${
+              activeSection === item.section
+                ? 'text-primary-foreground'
+                : 'text-primary group-hover:text-primary'
+            }`}>
               {item.icon}
             </div>
-            <span className="text-[10px] font-bold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight px-1">
+            <span className={`text-[10px] font-bold transition-colors duration-200 text-center leading-tight px-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-full ${
+              activeSection === item.section
+                ? 'text-primary-foreground'
+                : 'text-foreground group-hover:text-primary'
+            }`}>
               {item.label}
             </span>
-            {(index === 3 || index === 10) && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
-                {index === 3 ? '5' : '2'}
+            {(index === 10) && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-red-500 to-red-600 rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md">
+                2
               </span>
             )}
           </button>
         ))}
       </div>
 
-      {/* Medium Laptop (13" & 14" with collapsed sidebar): 5 columns for better fit */}
-      <div className="hidden md:grid lg:hidden grid-cols-5 gap-2">
+      {/* Large Desktop: Premium Spacing */}
+      <div className="hidden xl:grid grid-cols-3 gap-4">
         {allItems.map((item, index) => (
           <button
             key={index}
             onClick={() => handleClick(item.section)}
-            className={`group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 min-h-[4rem] ${
+            className={`group relative flex flex-col items-center justify-center gap-3 p-5 rounded-xl transition-colors duration-200 min-h-[5rem] ${
               activeSection === item.section
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border-border/50 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20'
+                ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground shadow-2xl shadow-primary/30 border-2 border-primary/30'
+                : 'bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-primary/10 hover:via-primary/15 hover:to-primary/20 border border-border/30 hover:border-primary/30 shadow-lg hover:shadow-xl hover:shadow-primary/15'
             }`}
             title={item.label}
           >
-            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors scale-90">
-              {item.icon}
-            </div>
-            <span className="text-[9px] font-bold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight px-0.5 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
-              {item.label}
-            </span>
-            {(index === 3 || index === 10) && (
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full text-[7px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
-                {index === 3 ? '5' : '2'}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Large Laptop (15" with collapsed sidebar): 4 columns */}
-      <div className="hidden lg:grid xl:hidden grid-cols-4 gap-2.5">
-        {allItems.map((item, index) => (
-          <button
-            key={index}
-            onClick={() => handleClick(item.section)}
-            className={`group relative flex flex-col items-center justify-center gap-2 p-3 rounded-xl border shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 min-h-[4.5rem] ${
+            <div className={`transition-colors duration-200 scale-110 ${
               activeSection === item.section
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border-border/50 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20'
-            }`}
-            title={item.label}
-          >
-            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors">
+                ? 'text-primary-foreground'
+                : 'text-primary group-hover:text-primary'
+            }`}>
               {item.icon}
             </div>
-            <span className="text-[10px] font-bold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight px-1 overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
-              {item.label}
-            </span>
-            {(index === 3 || index === 10) && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-[8px] text-white font-bold flex items-center justify-center shadow-md animate-pulse">
-                {index === 3 ? '5' : '2'}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Large Desktop (17"+ with full sidebar): 3 columns for better spacing */}
-      <div className="hidden xl:grid grid-cols-3 gap-3">
-        {allItems.map((item, index) => (
-          <button
-            key={index}
-            onClick={() => handleClick(item.section)}
-            className={`group relative flex flex-col items-center justify-center gap-3 p-4 rounded-xl border shadow-md transition-all duration-300 hover:-translate-y-1 active:translate-y-0 min-h-[5rem] ${
+            <span className={`text-xs font-bold transition-colors duration-200 text-center leading-tight px-1 ${
               activeSection === item.section
-                ? 'bg-primary text-primary-foreground border-primary shadow-xl'
-                : 'bg-gradient-to-br from-secondary/90 to-secondary/70 hover:from-primary hover:to-primary/90 border-border/50 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/30'
-            }`}
-            title={item.label}
-          >
-            <div className="text-secondary-foreground group-hover:text-primary-foreground transition-colors scale-110">
-              {item.icon}
-            </div>
-            <span className="text-xs font-bold text-secondary-foreground group-hover:text-primary-foreground transition-colors text-center leading-tight px-1">
+                ? 'text-primary-foreground'
+                : 'text-foreground group-hover:text-primary'
+            }`}>
               {item.label}
             </span>
-            {(index === 3 || index === 10) && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full text-[9px] text-white font-bold flex items-center justify-center shadow-lg animate-pulse">
-                {index === 3 ? '5' : '2'}
+            {(index === 10) && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-red-600 rounded-full text-[9px] text-white font-bold flex items-center justify-center shadow-lg">
+                2
               </span>
             )}
           </button>
         ))}
       </div>
       
-      {/* Footer hint - responsive */}
-      <div className="mt-3 sm:mt-4 pt-3 border-t border-border/50">
-        <p className="text-[9px] sm:text-[10px] text-muted-foreground/60 text-center sm:text-left">
-          <span className="sm:hidden">Tap any control • Showing {priorityItems.length}/{allItems.length}</span>
-          <span className="hidden sm:inline">Click any control for quick access</span>
-        </p>
+      {/* Enhanced Footer */}
+      <div className="relative mt-4 sm:mt-5 pt-4 border-t border-border/30">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground/70 font-medium">
+            <span className="sm:hidden">Tap any control • Showing {priorityItems.length}/{allItems.length}</span>
+            <span className="hidden sm:inline">Click any control for quick access</span>
+          </p>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
+            <div className="w-1.5 h-1.5 bg-primary/60 rounded-full" />
+            <div className="w-1.5 h-1.5 bg-primary/80 rounded-full" />
+          </div>
+        </div>
       </div>
     </div>
   );
