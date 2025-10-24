@@ -185,7 +185,7 @@ function MenuItem({
       >
         {/* Background glow effect */}
         {isActive && (
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent" />
         )}
         
         {/* Icon container */}
@@ -206,7 +206,7 @@ function MenuItem({
         {isActive && (
           <>
             <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-primary-foreground rounded-r-full shadow-lg" />
-            <span className="absolute right-3 md:right-2 xl:right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary-foreground rounded-full animate-pulse" />
+            <span className="absolute right-3 md:right-2 xl:right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary-foreground rounded-full" />
           </>
         )}
         
@@ -301,7 +301,7 @@ function MenuItem({
                 
                 {/* Active dot indicator */}
                 {isSubActive && (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
                 )}
               </Link>
             );
@@ -358,7 +358,7 @@ export function Sidebar({ onClose, isCollapsed = true }: SidebarProps) {
                 {user?.username?.charAt(0).toUpperCase() || 'A'}
               </span>
               {/* Online indicator */}
-              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card shadow-lg animate-pulse" />
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card shadow-lg" />
             </div>
             
             {/* User info */}
@@ -397,10 +397,7 @@ export function Sidebar({ onClose, isCollapsed = true }: SidebarProps) {
         {/* Status indicator */}
         <div className="flex items-center md:flex-col md:gap-2 xl:flex-row xl:justify-between p-2.5 rounded-xl bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
           <div className="flex items-center gap-2 md:flex-col md:gap-1 xl:flex-row">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 shadow-lg shadow-green-500/50"></span>
-            </span>
+            <span className="flex h-3 w-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50" />
             <span className="text-xs font-semibold text-green-600 dark:text-green-400">System Online</span>
           </div>
           <span className="text-[10px] text-muted-foreground font-medium md:hidden xl:block">v2.1.4</span>
