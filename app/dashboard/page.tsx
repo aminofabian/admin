@@ -9,11 +9,6 @@ import {
   LivePlayersWidget,
   TransactionStatusWidget,
   RevenueWidget,
-  FeaturedGameWidget,
-  GameActivityChart,
-  JackpotPoolGauge,
-  TopSlotsWidget,
-  GameOperationsWidget,
   CompaniesSection,
   PlayersSection,
   GamesSection,
@@ -182,98 +177,76 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Featured Content */}
+        {/* Transaction Status & Revenue */}
         <div className="sm:hidden mb-6">
-          <FeaturedGameWidget />
-        </div>
-
-        {/* Top Slots & Transaction Status */}
-        <div className="sm:hidden mb-6">
-          <div className="space-y-4">
-            <TopSlotsWidget />
-            <div className="grid grid-cols-2 gap-4">
-              <TransactionStatusWidget />
-              <GameActivityChart />
-            </div>
-          </div>
-        </div>
-
-        {/* Revenue & Jackpot */}
-        <div className="sm:hidden">
           <div className="grid grid-cols-2 gap-4">
+            <TransactionStatusWidget />
             <RevenueWidget />
-            <JackpotPoolGauge />
           </div>
         </div>
 
         {/* Tablet Layout - Keep existing for tablets */}
         <div className="hidden sm:block space-y-4">
-              {/* Top Stats Row */}
-              <div className="grid grid-cols-2 gap-4">
-                <AffiliateNetworkWidget />
-              <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-muted-foreground">Live</h3>
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+          {/* Top Stats Row */}
+          <div className="grid grid-cols-2 gap-4">
+            <AffiliateNetworkWidget />
+            <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-muted-foreground">Live</h3>
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+              </div>
+              <div className="text-center space-y-2">
+                <div className="text-3xl font-bold text-primary">
+                  {statsLoading ? '...' : (stats?.activePlayers ?? 0).toLocaleString()}
                 </div>
-                <div className="text-center space-y-2">
-                  <div className="text-3xl font-bold text-primary">
-                    {statsLoading ? '...' : (stats?.activePlayers ?? 0).toLocaleString()}
+                <div className="text-xs text-muted-foreground">Active Players</div>
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+                  <div>
+                    <div className="text-sm font-semibold">
+                      {statsLoading ? '...' : (stats?.totalPlayers ?? 0).toLocaleString()}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">Total</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">Active Players</div>
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
-                    <div>
-                      <div className="text-sm font-semibold">
-                        {statsLoading ? '...' : (stats?.totalPlayers ?? 0).toLocaleString()}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">Total</div>
+                  <div>
+                    <div className="text-sm font-semibold">
+                      {statsLoading ? '...' : (stats?.activeGames ?? 0)}
                     </div>
-                    <div>
-                      <div className="text-sm font-semibold">
-                        {statsLoading ? '...' : (stats?.activeGames ?? 0)}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">Games</div>
-                    </div>
+                    <div className="text-[10px] text-muted-foreground">Games</div>
                   </div>
                 </div>
               </div>
-              </div>
+            </div>
+          </div>
 
-              {/* Search & Controls */}
-              <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
-                <div className="relative">
-                  <svg
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="w-full pl-6 bg-transparent text-foreground placeholder-muted-foreground focus:outline-none text-sm font-medium"
-                  />
-                </div>
-              </div>
+          {/* Search & Controls */}
+          <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+            <div className="relative">
+              <svg
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full pl-6 bg-transparent text-foreground placeholder-muted-foreground focus:outline-none text-sm font-medium"
+              />
+            </div>
+          </div>
 
           <ControlGrid onSectionClick={handleSectionClick} activeSection={activeSection} />
           <div className="grid grid-cols-2 gap-4">
-            <JackpotPoolGauge />
+            <TransactionStatusWidget />
             <RevenueWidget />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <TransactionStatusWidget />
-            <GameActivityChart />
-          </div>
-          <TopSlotsWidget />
-          <FeaturedGameWidget />
           <BonusWidget />
         </div>
       </div>
@@ -311,7 +284,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Area - Optimized for Laptop+ */}
-        <div className="lg:col-span-6 space-y-4 xl:space-y-5">
+        <div className="lg:col-span-9 space-y-4 xl:space-y-5">
           {/* System Health & Live Players - Desktop Version */}
           <div className="grid grid-cols-2 gap-4 xl:gap-5">
             <AffiliateNetworkWidget />
@@ -320,17 +293,10 @@ export default function DashboardPage() {
             <LivePlayersWidget stats={stats} statsLoading={statsLoading} />
           </div>
 
-          <TopSlotsWidget />
-          <FeaturedGameWidget />
-        </div>
-
-        {/* Right Sidebar - Financial Overview */}
-        <div className="lg:col-span-3 space-y-4 xl:space-y-5">
-          <JackpotPoolGauge />
-          <TransactionStatusWidget />
-          <GameOperationsWidget />
-          <RevenueWidget />
-          <GameActivityChart />
+          <div className="grid grid-cols-2 gap-4 xl:gap-5">
+            <TransactionStatusWidget />
+            <RevenueWidget />
+          </div>
         </div>
       </div>
       </div>
