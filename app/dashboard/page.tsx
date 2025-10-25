@@ -132,10 +132,10 @@ export default function DashboardPage() {
         <div className="sm:hidden mb-6">
           <div className="grid grid-cols-2 gap-4">
             {/* System Status */}
-            <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-4 border border-border/30 shadow-sm">
+            <div className="bg-card/95 backdrop-blur-sm p-4 border border-border/30 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">System Status</h3>
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-primary animate-pulse" />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -154,10 +154,10 @@ export default function DashboardPage() {
             </div>
 
             {/* Financial Overview */}
-            <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-4 border border-border/30 shadow-sm">
+            <div className="bg-card/95 backdrop-blur-sm p-4 border border-border/30 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">Revenue</h3>
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-primary animate-pulse" />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
