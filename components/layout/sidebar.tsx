@@ -176,7 +176,7 @@ function MenuItem({
       <Link
         href={category.href}
         onClick={onClose}
-        className={`group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium transition-all duration-300 rounded-xl overflow-hidden ${
+        className={`group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium transition-all duration-300 overflow-hidden ${
           isActive
             ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/30'
             : 'text-foreground/70 hover:text-foreground hover:bg-gradient-to-r hover:from-accent/80 hover:to-accent/60 hover:shadow-md'
@@ -189,7 +189,7 @@ function MenuItem({
         )}
         
         {/* Icon container */}
-        <div className={`relative z-10 shrink-0 p-1.5 rounded-lg transition-all duration-300 ${
+        <div className={`relative z-10 shrink-0 p-1.5 transition-all duration-300 ${
           isActive 
             ? 'bg-white/20 shadow-inner' 
             : 'group-hover:bg-primary/10 group-hover:scale-110'
@@ -205,7 +205,7 @@ function MenuItem({
         {/* Active indicator */}
         {isActive && (
           <>
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-primary-foreground rounded-r-full shadow-lg" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-primary-foreground shadow-lg" />
             <span className="absolute right-3 md:right-2 xl:right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary-foreground rounded-full" />
           </>
         )}
@@ -223,10 +223,10 @@ function MenuItem({
       <Link
         href={firstItem.href}
         onClick={onClose}
-        className="group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-gradient-to-r hover:from-accent/80 hover:to-accent/60 hover:shadow-md transition-all duration-300 rounded-xl"
+        className="group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-gradient-to-r hover:from-accent/80 hover:to-accent/60 hover:shadow-md transition-all duration-300"
         title={category.name}
       >
-        <div className="shrink-0 p-1.5 rounded-lg group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
+        <div className="shrink-0 p-1.5 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
           {category.icon}
         </div>
         <span className="md:hidden xl:block truncate text-sm font-semibold tracking-wide">{category.name}</span>
@@ -238,7 +238,7 @@ function MenuItem({
     <div className="space-y-1">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`group w-full flex items-center justify-center md:justify-center xl:justify-between gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium transition-all duration-300 rounded-xl overflow-hidden ${
+        className={`group w-full flex items-center justify-center md:justify-center xl:justify-between gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium transition-all duration-300 overflow-hidden ${
           isExpanded 
             ? 'bg-gradient-to-r from-accent via-accent/90 to-accent/80 text-foreground shadow-md' 
             : 'text-foreground/70 hover:text-foreground hover:bg-gradient-to-r hover:from-accent/60 hover:to-accent/40 hover:shadow-sm'
@@ -246,7 +246,7 @@ function MenuItem({
         title={isCollapsed ? category.name : undefined}
       >
         <div className="flex items-center justify-center md:justify-center xl:justify-start gap-3 relative z-10">
-          <div className={`shrink-0 p-1.5 rounded-lg transition-all duration-300 ${
+          <div className={`shrink-0 p-1.5 transition-all duration-300 ${
             isExpanded ? 'bg-primary/15 scale-105' : 'group-hover:bg-primary/10 group-hover:scale-110'
           }`}>
             {category.icon}
@@ -255,7 +255,7 @@ function MenuItem({
         </div>
         <div className={`flex items-center gap-2 relative z-10 md:hidden xl:flex ${isExpanded ? 'text-primary' : ''}`}>
           {category.submenu && (
-            <span className="text-xs font-medium bg-primary/15 px-1.5 py-0.5 rounded-md">
+                <span className="text-xs font-medium bg-primary/15 px-1.5 py-0.5">
               {category.submenu.length}
             </span>
           )}
@@ -280,7 +280,7 @@ function MenuItem({
                 href={item.href}
                 onClick={onClose}
                 style={{ animationDelay: `${index * 50}ms` }}
-                className={`group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-2.5 md:py-2 xl:py-2.5 text-sm transition-all duration-300 rounded-lg ml-0 md:ml-0 xl:ml-2 ${
+                className={`group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-2.5 md:py-2 xl:py-2.5 text-sm transition-all duration-300 ml-0 md:ml-0 xl:ml-2 ${
                   isSubActive
                     ? 'bg-primary/15 text-primary font-semibold shadow-sm border-l-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-accent/60 border-l-2 border-transparent hover:border-accent/50'
@@ -289,10 +289,10 @@ function MenuItem({
               >
                 {/* Background highlight for active */}
                 {isSubActive && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent rounded-lg" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent" />
                 )}
                 
-                <div className={`relative z-10 shrink-0 p-1 rounded-md transition-all duration-300 ${
+                <div className={`relative z-10 shrink-0 p-1 transition-all duration-300 ${
                   isSubActive ? 'bg-primary/20 scale-105' : 'group-hover:bg-primary/10 group-hover:scale-110'
                 }`}>
                   {item.icon}
@@ -337,7 +337,7 @@ export function Sidebar({ onClose, isCollapsed = true }: SidebarProps) {
         />
         <button
           onClick={onClose}
-          className="md:hidden p-2.5 hover:bg-destructive/10 active:bg-destructive/20 transition-all duration-200 rounded-xl absolute right-3 top-3 hover:rotate-90 group border border-transparent hover:border-destructive/20"
+          className="md:hidden p-2.5 hover:bg-destructive/10 active:bg-destructive/20 transition-all duration-200 absolute right-3 top-3 hover:rotate-90 group border border-transparent hover:border-destructive/20"
         >
           <svg className="w-5 h-5 text-muted-foreground group-hover:text-destructive transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -347,13 +347,13 @@ export function Sidebar({ onClose, isCollapsed = true }: SidebarProps) {
 
       {/* Enhanced User Profile Section */}
       <div className="p-4 md:p-3 xl:p-4">
-        <div className="relative bg-gradient-to-br from-primary/15 via-primary/8 to-primary/5 border border-primary/25 rounded-2xl p-3.5 md:p-3 xl:p-3.5 shadow-lg hover:shadow-xl hover:border-primary/40 hover:scale-[1.02] transition-all duration-300 group overflow-hidden">
+        <div className="relative bg-gradient-to-br from-primary/15 via-primary/8 to-primary/5 border border-primary/25 p-3.5 md:p-3 xl:p-3.5 shadow-lg hover:shadow-xl hover:border-primary/40 hover:scale-[1.02] transition-all duration-300 group overflow-hidden">
           {/* Animated background effect */}
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           
           <div className="relative z-10 flex items-center md:flex-col md:gap-2.5 xl:flex-row xl:gap-3">
             {/* Avatar with enhanced styling */}
-            <div className="relative w-11 h-11 md:w-10 md:h-10 xl:w-11 xl:h-11 rounded-xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 flex items-center justify-center shadow-lg shrink-0 ring-2 ring-primary/30 ring-offset-2 ring-offset-card group-hover:scale-110 transition-transform duration-300">
+            <div className="relative w-11 h-11 md:w-10 md:h-10 xl:w-11 xl:h-11 bg-gradient-to-br from-primary via-primary/90 to-primary/70 flex items-center justify-center shadow-lg shrink-0 ring-2 ring-primary/30 ring-offset-2 ring-offset-card group-hover:scale-110 transition-transform duration-300">
               <span className="text-primary-foreground font-bold text-base md:text-sm xl:text-base drop-shadow-md">
                 {user?.username?.charAt(0).toUpperCase() || 'A'}
               </span>
@@ -367,7 +367,7 @@ export function Sidebar({ onClose, isCollapsed = true }: SidebarProps) {
                 {user?.username || 'Admin'}
               </div>
               <div className="flex items-center md:justify-center xl:justify-start gap-1.5 mt-1">
-                <span className="inline-flex items-center gap-1.5 text-xs md:text-[10px] xl:text-xs font-medium px-2 py-0.5 rounded-md bg-primary/20 text-primary capitalize">
+                <span className="inline-flex items-center gap-1.5 text-xs md:text-[10px] xl:text-xs font-medium px-2 py-0.5 bg-primary/20 text-primary capitalize">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                   </svg>
@@ -395,7 +395,7 @@ export function Sidebar({ onClose, isCollapsed = true }: SidebarProps) {
       {/* Enhanced Footer Section */}
       <div className="relative border-t border-border/30 bg-gradient-to-t from-accent/10 via-background/50 to-transparent backdrop-blur-sm p-3.5 md:p-3 xl:p-3.5 space-y-3">
         {/* Status indicator */}
-        <div className="flex items-center md:flex-col md:gap-2 xl:flex-row xl:justify-between p-2.5 rounded-xl bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
+        <div className="flex items-center md:flex-col md:gap-2 xl:flex-row xl:justify-between p-2.5 bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
           <div className="flex items-center gap-2 md:flex-col md:gap-1 xl:flex-row">
             <span className="flex h-3 w-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50" />
             <span className="text-xs font-semibold text-green-600 dark:text-green-400">System Online</span>
@@ -406,14 +406,14 @@ export function Sidebar({ onClose, isCollapsed = true }: SidebarProps) {
         {/* Enhanced Logout Button */}
         <button
           onClick={handleLogout}
-          className="group relative w-full flex items-center justify-center md:justify-center xl:justify-start gap-2.5 px-3.5 py-3 md:py-2.5 xl:py-3 text-sm font-semibold text-destructive hover:text-destructive-foreground bg-destructive/5 hover:bg-gradient-to-r hover:from-destructive hover:to-destructive/90 transition-all duration-300 rounded-xl border border-destructive/25 hover:border-destructive shadow-md hover:shadow-lg hover:shadow-destructive/20 active:scale-95 overflow-hidden"
+          className="group relative w-full flex items-center justify-center md:justify-center xl:justify-start gap-2.5 px-3.5 py-3 md:py-2.5 xl:py-3 text-sm font-semibold text-destructive hover:text-destructive-foreground bg-destructive/5 hover:bg-gradient-to-r hover:from-destructive hover:to-destructive/90 transition-all duration-300 border border-destructive/25 hover:border-destructive shadow-md hover:shadow-lg hover:shadow-destructive/20 active:scale-95 overflow-hidden"
           title="Logout"
         >
           {/* Animated background */}
           <div className="absolute inset-0 bg-gradient-to-r from-destructive/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           
           {/* Icon */}
-          <div className="relative z-10 p-1 rounded-lg bg-destructive/10 group-hover:bg-white/20 transition-all duration-300">
+          <div className="relative z-10 p-1 bg-destructive/10 group-hover:bg-white/20 transition-all duration-300">
             <svg 
               className="w-4 h-4 md:w-3.5 md:h-3.5 xl:w-4 xl:h-4 shrink-0 transition-transform group-hover:translate-x-1" 
               fill="none" 
