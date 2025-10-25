@@ -56,110 +56,68 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
-      {/* Premium floating island container */}
-      <div className="relative px-6 pb-8">
-        <div className="pointer-events-auto relative">
-          {/* Main navigation island */}
-          <div className="relative bg-card/80 backdrop-blur-2xl rounded-[32px] border border-border/50 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_48px_rgba(0,0,0,0.4)]">
-            {/* Ambient glow effect */}
-            <div className="absolute inset-0 rounded-[32px] bg-gradient-to-t from-primary/5 via-transparent to-transparent opacity-50" />
-            
-            {/* Navigation items */}
-            <div className="relative flex items-center justify-around px-3 py-3">
-              {NAV_ITEMS.map((item) => {
-                const isActive = pathname === item.href;
-                const isCenter = item.isCenter;
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border">
+      {/* Navigation items */}
+      <div className="flex items-center justify-around px-2 py-2">
+        {NAV_ITEMS.map((item) => {
+          const isActive = pathname === item.href;
+          const isCenter = item.isCenter;
 
-                if (isCenter) {
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="relative group"
-                    >
-                      {/* Center button with elevated design */}
-                      <div className={`relative flex items-center justify-center w-[60px] h-[60px] -mt-8 rounded-[20px] transition-all duration-500 active:scale-90 ${
-                        isActive
-                          ? 'bg-gradient-to-br from-primary via-primary to-primary/90 shadow-[0_12px_40px_rgba(0,0,0,0.25)] dark:shadow-[0_12px_56px_rgba(0,0,0,0.5)]'
-                          : 'bg-gradient-to-br from-primary/95 to-primary/85 shadow-[0_8px_32px_rgba(0,0,0,0.2)]'
-                      }`}>
-                        {/* Animated glow ring */}
-                        <div className={`absolute -inset-1 rounded-[22px] bg-gradient-to-br from-primary/30 to-primary/10 blur-xl transition-all duration-500 ${
-                          isActive ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-60 scale-100'
-                        }`} />
-                        
-                        {/* Icon */}
-                        <div className={`relative text-white transition-all duration-300 ${
-                          isActive ? 'scale-110' : 'scale-100'
-                        }`}>
-                          {item.icon(isActive)}
-                        </div>
+          if (isCenter) {
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="relative group"
+              >
+                {/* Center button */}
+                <div className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${
+                  isActive
+                    ? 'bg-primary text-white shadow-lg'
+                    : 'bg-muted text-muted-foreground'
+                }`}>
+                  {/* Icon */}
+                  <div className={`transition-all duration-300 ${
+                    isActive ? 'scale-110' : 'scale-100'
+                  }`}>
+                    {item.icon(isActive)}
+                  </div>
+                </div>
+              </Link>
+            );
+          }
 
-                        {/* Orbital indicator */}
-                        {isActive && (
-                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
-                            <div className="w-1.5 h-1.5 bg-white rounded-full shadow-lg" />
-                          </div>
-                        )}
-                      </div>
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="relative flex flex-col items-center gap-1 py-2 px-3 group active:scale-95 transition-all duration-300"
+            >
+              {/* Icon */}
+              <div className={`transition-all duration-300 ${
+                isActive 
+                  ? 'text-primary scale-110' 
+                  : 'text-muted-foreground group-hover:text-foreground group-hover:scale-105'
+              }`}>
+                {item.icon(isActive)}
+              </div>
 
-                      {/* Label appears below when active */}
-                      <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap transition-all duration-300 ${
-                        isActive ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
-                      }`}>
-                        <span className="text-[9px] font-bold text-primary tracking-wide uppercase">
-                          {item.label}
-                        </span>
-                      </div>
-                    </Link>
-                  );
-                }
+              {/* Label */}
+              <span className={`text-[10px] font-medium transition-all duration-300 ${
+                isActive 
+                  ? 'text-primary' 
+                  : 'text-muted-foreground'
+              }`}>
+                {item.label}
+              </span>
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="relative flex flex-col items-center gap-1.5 py-2 px-4 group active:scale-95 transition-all duration-300"
-                  >
-                    {/* Background pill for active state */}
-                    <div className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
-                      isActive 
-                        ? 'bg-primary/10 dark:bg-primary/15 scale-100 opacity-100' 
-                        : 'bg-transparent scale-90 opacity-0 group-hover:opacity-50 group-hover:scale-95'
-                    }`} />
-
-                    {/* Icon with dynamic sizing */}
-                    <div className={`relative transition-all duration-300 ${
-                      isActive 
-                        ? 'text-primary scale-110' 
-                        : 'text-muted-foreground/70 group-hover:text-foreground group-hover:scale-105'
-                    }`}>
-                      {item.icon(isActive)}
-                    </div>
-
-                    {/* Label with smooth appearance */}
-                    <span className={`relative text-[9px] font-bold tracking-wide transition-all duration-300 ${
-                      isActive 
-                        ? 'text-primary opacity-100 translate-y-0' 
-                        : 'text-muted-foreground/60 opacity-80 translate-y-0.5'
-                    }`}>
-                      {item.label}
-                    </span>
-
-                    {/* Minimal active indicator */}
-                    {isActive && (
-                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full shadow-sm" />
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Reflection effect */}
-          <div className="absolute inset-x-0 -bottom-1 h-8 bg-gradient-to-t from-background/20 to-transparent blur-xl rounded-[32px] -z-10" />
-        </div>
+              {/* Active indicator */}
+              {isActive && (
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+              )}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

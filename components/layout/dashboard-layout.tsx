@@ -48,7 +48,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Main content - Mobile App Style */}
       <div className="flex-1 flex flex-col w-full">
         <TopNavigation onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 md:p-4 xl:p-6 bg-gradient-to-b from-background to-background/50">
+        <main className="flex-1 p-4 md:p-4 xl:p-6 bg-gradient-to-b from-background to-background/50 pb-20 md:pb-4">
           {children}
         </main>
       </div>
