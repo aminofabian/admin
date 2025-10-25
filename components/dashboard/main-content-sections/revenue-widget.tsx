@@ -32,7 +32,7 @@ export function RevenueWidget() {
 
   if (volumeData.isLoading) {
     return (
-      <Card className="border border-border">
+      <Card className="border border-border rounded-none">
         <CardHeader className="px-4 py-3">
           <h3 className="text-sm font-medium text-muted-foreground">Transaction Volume Today</h3>
         </CardHeader>
@@ -45,7 +45,7 @@ export function RevenueWidget() {
 
   if (volumeData.error) {
     return (
-      <Card className="border border-border">
+      <Card className="border border-border rounded-none">
         <CardHeader className="px-4 py-3">
           <h3 className="text-sm font-medium text-muted-foreground">Transaction Volume Today</h3>
         </CardHeader>
@@ -57,7 +57,7 @@ export function RevenueWidget() {
   }
 
   return (
-    <Card className="rounded-xl border border-border">
+    <Card className="border border-border rounded-none">
       <CardHeader className="px-4 py-3">
         <h3 className="text-sm font-medium text-muted-foreground">Transaction Volume Today</h3>
       </CardHeader>
