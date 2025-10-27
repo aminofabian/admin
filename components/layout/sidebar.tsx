@@ -436,40 +436,33 @@ function MenuItem({
     <div className="space-y-1">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`group w-full flex items-center justify-center md:justify-center xl:justify-between gap-3 px-3 md:px-2.5 xl:px-4 py-3 md:py-2.5 xl:py-3 text-sm font-medium transition-all duration-300 overflow-hidden rounded-lg mx-1 ${
+        className={`group w-full flex items-center justify-between gap-3 py-3 px-6 text-sm font-medium transition-all duration-200 rounded-lg ${
           isExpanded 
-            ? 'bg-gradient-to-r from-accent via-accent/90 to-accent/80 dark:from-accent/60 dark:via-accent/50 dark:to-accent/40 text-foreground shadow-md dark:shadow-lg' 
-            : 'text-foreground/80 dark:text-foreground/70 hover:text-foreground dark:hover:text-foreground hover:bg-muted/80 dark:hover:bg-muted/40 hover:shadow-sm'
+            ? 'bg-primary/10 text-primary font-semibold' 
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
         }`}
         title={isCollapsed ? category.name : undefined}
       >
-        <div className="flex items-center justify-center md:justify-center xl:justify-start gap-3 relative z-10">
-          <div className={`shrink-0 p-1.5 transition-all duration-300 rounded ${
-            isExpanded ? 'bg-primary/15 dark:bg-primary/25 scale-105' : 'group-hover:bg-primary/10 dark:group-hover:bg-primary/20 group-hover:scale-110'
+        <div className="flex items-center gap-3">
+          <div className={`shrink-0 transition-all duration-200 ${
+            isExpanded ? 'text-primary' : 'group-hover:text-primary'
           }`}>
             {category.icon}
           </div>
-          <span className="md:hidden xl:block truncate text-sm font-semibold tracking-wide">{category.name}</span>
+          <span className="text-sm font-semibold whitespace-nowrap">{category.name}</span>
         </div>
-        <div className={`flex items-center gap-2 relative z-10 md:hidden xl:flex ${isExpanded ? 'text-primary dark:text-primary' : ''}`}>
-          {category.submenu && (
-                <span className="text-xs font-medium bg-primary/15 dark:bg-primary/25 px-1.5 py-0.5 rounded">
-              {category.submenu.length}
-            </span>
-          )}
-          <svg
-            className={`w-4 h-4 transition-all duration-300 ${isExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        <svg
+          className={`w-4 h-4 flex-shrink-0 transition-all duration-200 ${isExpanded ? 'rotate-180 text-primary' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
       
       {isExpanded && category.submenu && (
-        <div className="space-y-0.5 pt-1 animate-in slide-in-from-top-2 duration-300">
+        <div className="ml-4 space-y-1 pt-1 animate-in fade-in-0 slide-in-from-top-1 duration-200">
           {category.submenu.map((item, index) => (
             <SubMenuItemComponent
               key={item.href || item.name}
@@ -499,61 +492,46 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
   };
 
   return (
-    <aside className="w-full h-screen bg-gradient-to-br from-background via-background to-muted/30 border-r border-border dark:border-border/80 flex flex-col shadow-lg dark:shadow-2xl">
-      {/* Header with enhanced styling */}
-      <div className="relative p-4 md:p-3 xl:p-5 flex items-center justify-center md:justify-center xl:justify-between border-b border-border dark:border-border/50 bg-gradient-to-br from-muted/50 via-background to-accent/10 dark:from-muted/20 dark:via-background/90 dark:to-primary/5">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-40 dark:opacity-30" />
+    <aside className="w-full h-screen bg-gradient-to-b from-background via-background/98 to-background border-r border-border/50 flex flex-col">
+      {/* Header */}
+      <div className="relative p-6 flex items-center justify-between border-b border-border/50">
         <Logo 
           showText={true} 
           size="sm" 
-          className="relative z-10 md:scale-75 xl:scale-90 drop-shadow-md"
+          className="relative z-10"
         />
         <button
           onClick={onClose}
-          className="md:hidden p-2.5 hover:bg-destructive/10 active:bg-destructive/20 transition-all duration-200 absolute right-3 top-3 hover:rotate-90 group border border-transparent hover:border-destructive/20"
+          className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
         >
-          <svg className="w-5 h-5 text-muted-foreground group-hover:text-destructive transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      {/* Enhanced User Profile Section */}
-      <div className="p-4 md:p-3 xl:p-4">
-        <div className="relative bg-gradient-to-br from-muted/80 via-muted/60 to-primary/20 dark:from-primary/20 dark:via-primary/15 dark:to-primary/10 border border-border dark:border-primary/30 p-3.5 md:p-3 xl:p-3.5 shadow-md hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/40 hover:scale-[1.02] transition-all duration-300 group overflow-hidden rounded-lg">
-          {/* Animated background effect */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          
-          <div className="relative z-10 flex items-center md:flex-col md:gap-2.5 xl:flex-row xl:gap-3">
-            {/* Avatar with enhanced styling */}
-            <div className="relative w-11 h-11 md:w-10 md:h-10 xl:w-11 xl:h-11 bg-gradient-to-br from-primary via-primary/90 to-primary/70 flex items-center justify-center shadow-lg shrink-0 ring-2 ring-primary/30 ring-offset-2 ring-offset-card group-hover:scale-110 transition-transform duration-300">
-              <span className="text-primary-foreground font-bold text-base md:text-sm xl:text-base drop-shadow-md">
-                {user?.username?.charAt(0).toUpperCase() || 'A'}
-              </span>
-              {/* Online indicator */}
-              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card shadow-lg" />
+      {/* User Profile Section */}
+      <div className="p-6 border-b border-border/50">
+        <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg hover:bg-muted/40 transition-colors">
+          <div className="relative w-10 h-10 bg-primary rounded-full flex items-center justify-center shrink-0">
+            <span className="text-primary-foreground font-bold">
+              {user?.username?.charAt(0).toUpperCase() || 'A'}
+            </span>
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm truncate">
+              {user?.username || 'Admin'}
             </div>
-            
-            {/* User info */}
-            <div className="flex-1 md:text-center xl:text-left min-w-0">
-              <div className="font-bold text-foreground text-sm md:text-xs xl:text-sm truncate tracking-wide">
-                {user?.username || 'Admin'}
-              </div>
-              <div className="flex items-center md:justify-center xl:justify-start gap-1.5 mt-1">
-                <span className="inline-flex items-center gap-1.5 text-xs md:text-[10px] xl:text-xs font-medium px-2 py-0.5 bg-primary/20 text-primary capitalize">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
-                  {user?.role || 'SuperAdmin'}
-                </span>
-              </div>
+            <div className="text-xs text-muted-foreground capitalize">
+              {user?.role || 'SuperAdmin'}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation with custom scrollbar */}
-      <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1.5 scrollbar-thin scrollbar-thumb-accent scrollbar-track-transparent hover:scrollbar-thumb-accent/80">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-0.5">
         {filteredCategories.map((category) => (
           <MenuItem
             key={category.name}
@@ -565,48 +543,23 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Enhanced Footer Section */}
-      <div className="relative border-t border-border dark:border-border/50 bg-gradient-to-t from-muted/30 dark:from-muted/10 via-background/90 dark:via-background to-transparent p-3.5 md:p-3 xl:p-3.5 space-y-3">
-        {/* Status indicator */}
-        <div className="flex items-center md:flex-col md:gap-2 xl:flex-row xl:justify-between p-2.5 bg-gradient-to-r from-green-500/10 dark:from-green-500/20 to-transparent border border-green-500/20 dark:border-green-500/30 rounded-lg">
-          <div className="flex items-center gap-2 md:flex-col md:gap-1 xl:flex-row">
-            <span className="flex h-3 w-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50" />
-            <span className="text-xs font-semibold text-green-600 dark:text-green-400">System Online</span>
-          </div>
-          <span className="text-[10px] text-muted-foreground font-medium md:hidden xl:block">v2.1.4</span>
+      {/* Footer */}
+      <div className="border-t border-border/50 p-6 space-y-3">
+        {/* Status */}
+        <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
+          <span className="w-2 h-2 bg-green-500 rounded-full" />
+          <span className="text-xs font-medium text-green-600 dark:text-green-400">System Online</span>
         </div>
         
-        {/* Enhanced Logout Button */}
+        {/* Logout Button */}
         <button
           onClick={handleLogout}
-          className="group relative w-full flex items-center justify-center md:justify-center xl:justify-start gap-2.5 px-3.5 py-3 md:py-2.5 xl:py-3 text-sm font-semibold text-destructive dark:text-red-500 hover:text-destructive-foreground bg-destructive/10 dark:bg-red-500/10 hover:bg-gradient-to-r hover:from-destructive hover:to-destructive/90 dark:hover:from-red-600 dark:hover:to-red-600/90 transition-all duration-300 border border-destructive/30 dark:border-red-500/30 hover:border-destructive dark:hover:border-red-600 shadow-md hover:shadow-lg hover:shadow-destructive/30 dark:hover:shadow-red-600/30 active:scale-95 overflow-hidden rounded-lg"
-          title="Logout"
+          className="w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
         >
-          {/* Animated background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-destructive/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          
-          {/* Icon */}
-          <div className="relative z-10 p-1 bg-destructive/10 group-hover:bg-white/20 transition-all duration-300">
-            <svg 
-              className="w-4 h-4 md:w-3.5 md:h-3.5 xl:w-4 xl:h-4 shrink-0 transition-transform group-hover:translate-x-1" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2.5} 
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
-              />
-            </svg>
-          </div>
-          
-          {/* Label */}
-          <span className="relative z-10 md:hidden xl:block text-sm font-bold tracking-wide">Logout</span>
-          
-          {/* Hover effect line */}
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-destructive-foreground to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>Logout</span>
         </button>
       </div>
     </aside>
