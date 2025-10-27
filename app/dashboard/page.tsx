@@ -21,6 +21,13 @@ import {
 } from '@/components/dashboard/main-content-sections';
 import { BonusesSection } from '@/components/dashboard/data-sections/bonuses-section';
 import { ProcessingSection } from '@/components/dashboard/data-sections/processing-section';
+import { 
+  CompanySettingsSection,
+  GameSettingsSection,
+  PaymentSettingsSection,
+  SocialLinksSection,
+  AffiliateSettingsSection
+} from '@/components/dashboard/data-sections';
 import type { ControlSection } from '@/components/dashboard/main-content-sections';
 
 export default function DashboardPage() {
@@ -64,6 +71,16 @@ export default function DashboardPage() {
         return <AffiliatesSection />;
       case 'bonuses':
         return <BonusesSection />;
+      case 'company-settings':
+        return <CompanySettingsSection />;
+      case 'game-settings':
+        return <GameSettingsSection />;
+      case 'payment-settings':
+        return <PaymentSettingsSection />;
+      case 'social-links':
+        return <SocialLinksSection />;
+      case 'affiliate-settings':
+        return <AffiliateSettingsSection />;
       default:
         return null;
     }
@@ -71,7 +88,16 @@ export default function DashboardPage() {
 
   const getSectionTitle = () => {
     if (!activeSection) return '';
-    return activeSection.charAt(0).toUpperCase() + activeSection.slice(1);
+    
+    const titleMap: Record<string, string> = {
+      'company-settings': 'Company Settings',
+      'game-settings': 'Game Settings',
+      'payment-settings': 'Payment Settings',
+      'social-links': 'Social Links',
+      'affiliate-settings': 'Affiliate Settings',
+    };
+    
+    return titleMap[activeSection] || activeSection.charAt(0).toUpperCase() + activeSection.slice(1).replace(/-/g, ' ');
   };
 
   return (

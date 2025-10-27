@@ -115,11 +115,20 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
     } catch (err: unknown) {
       let errorMessage = 'Failed to process game action';
       
-      if (err && typeof err === 'object' && 'detail' in err) {
-        errorMessage = String(err.detail);
+      if (err && typeof err === 'object') {
+        // Try to extract error message from various possible fields
+        if ('detail' in err) {
+          errorMessage = String(err.detail);
+        } else if ('message' in err) {
+          errorMessage = String(err.message);
+        } else if ('error' in err) {
+          errorMessage = String(err.error);
+        }
       } else if (err instanceof Error) {
         errorMessage = err.message;
       }
+      
+      console.error('Game action error:', err);
       
       set({ 
         error: errorMessage,

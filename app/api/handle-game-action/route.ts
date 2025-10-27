@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
+
 export async function POST(request: NextRequest) {
   try {
     // Get the form data from the request
@@ -8,12 +10,17 @@ export async function POST(request: NextRequest) {
     // Get the authorization token from the request headers
     const authHeader = request.headers.get('authorization');
     
-    // Forward directly to the Django backend (no trailing slash)
-    const backendUrl = 'https://admin.serverhub.biz/admin/game-action/';
+    // Forward directly to the Django backend
+    // Note: This is an admin endpoint, not a REST API endpoint
+    const backendUrl = `${BACKEND_URL}/admin/-action/`;
 
-    console.log('🔷 Proxying to:', backendUrl);
-    console.log('📤 Form data:', Object.fromEntries(formData.entries()));
-    console.log('📤 Auth header:', authHeader ? 'Present' : 'Missing');
+    console.log('🔷 Proxy Configuration:');
+    console.log('  - BACKEND_URL:', BACKEND_URL);
+    console.log('  - Full backend URL:', backendUrl);
+    console.log('📤 Request Details:');
+    console.log('  - Form data:', Object.fromEntries(formData.entries()));
+    console.log('  - Auth header:', authHeader ? authHeader.substring(0, 30) + '...' : 'Missing');
+    console.log('  - Auth header length:', authHeader?.length || 0);
 
     // Convert FormData to URLSearchParams for Django (like curl -d "txn_id=123&type=cancel")
     const params = new URLSearchParams();
@@ -23,14 +30,8 @@ export async function POST(request: NextRequest) {
 
     console.log('📤 URL params:', params.toString());
 
-    // Use Bearer token approach like cURL (should bypass CSRF)
-    // Try /admin/handle-game-action/ with Bearer token only
-    const handleGameActionUrl = 'https://admin.serverhub.biz/admin/handle-game-action/';
-    
-    console.log('🔷 Trying handle-game-action URL:', handleGameActionUrl);
-
     // Forward the POST request with Bearer token (like cURL example)
-    const response = await fetch(handleGameActionUrl, {
+    const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Authorization': authHeader || '',
@@ -64,6 +65,12 @@ export async function POST(request: NextRequest) {
     // Get the response data as JSON
     const data = await response.json();
     console.log('📥 Backend response data:', data);
+
+    // If backend returned an error, forward it
+    if (data.status === 'error') {
+      console.error('❌ Backend returned error:', data);
+      return NextResponse.json(data, { status: response.status });
+    }
 
     // Return the response
     return NextResponse.json(data, {

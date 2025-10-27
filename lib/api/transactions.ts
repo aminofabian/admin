@@ -23,8 +23,8 @@ export const transactionsApi = {
       { params: filters }
     ),
 
-  handleGameAction: (data: GameActionRequest) => {
-    // Create form data for the request
+  handleGameAction: async (data: GameActionRequest) => {
+    // Create URL-encoded form data for the request
     const formData = new FormData();
     formData.append('txn_id', String(data.txn_id));
     formData.append('type', data.type);
@@ -33,6 +33,7 @@ export const transactionsApi = {
 
     // Use the Next.js API proxy route to avoid CORS issues
     // The proxy route will forward the request to the Django backend
+    // Note: The proxy expects FormData and converts it to URLSearchParams
     return apiClient.post<GameActionResponse>(
       API_ENDPOINTS.TRANSACTIONS.HANDLE_GAME_ACTION,
       formData

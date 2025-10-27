@@ -10,4 +10,8 @@ export { BannersSection } from './banners-section';
 export { AffiliatesSection } from './affiliates-section';
 export { CompanySettingsSection } from './company-settings-section';
 export { BonusSettingsSection } from './bonus-settings-section';
+export { GameSettingsSection } from './game-settings-section';
+export { PaymentSettingsSection } from './payment-settings-section';
+export { SocialLinksSection } from './social-links-section';
+export { AffiliateSettingsSection } from './affiliate-settings-section';
 
