@@ -20,6 +20,7 @@ import {
   AffiliatesSection,
 } from '@/components/dashboard/main-content-sections';
 import { BonusesSection } from '@/components/dashboard/data-sections/bonuses-section';
+import { ProcessingSection } from '@/components/dashboard/data-sections/processing-section';
 import type { ControlSection } from '@/components/dashboard/main-content-sections';
 
 export default function DashboardPage() {
@@ -55,6 +56,8 @@ export default function DashboardPage() {
         return <StaffsSection />;
       case 'transactions':
         return <TransactionsSection />;
+      case 'processing':
+        return <ProcessingSection />;
       case 'banners':
         return <BannersSection />;
       case 'affiliates':

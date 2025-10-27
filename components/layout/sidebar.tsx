@@ -9,8 +9,9 @@ import { useState } from 'react';
 
 interface SubMenuItem {
   name: string;
-  href: string;
+  href?: string;
   icon: React.ReactNode;
+  submenu?: SubMenuItem[];
 }
 
 interface MenuCategory {
@@ -95,6 +96,30 @@ const AffiliateIcon = () => (
   </svg>
 );
 
+const ProcessingIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+);
+
+const CashoutIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const PurchaseIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const GameActivityIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+);
+
 const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Dashboard',
@@ -132,6 +157,16 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/transactions',
   },
   {
+    name: 'Processing',
+    icon: <ProcessingIcon />,
+    roles: Object.values(USER_ROLES),
+    submenu: [
+      { name: 'Cashout', href: '/dashboard/processing/cashout', icon: <CashoutIcon /> },
+      { name: 'Purchase', href: '/dashboard/processing/purchase', icon: <PurchaseIcon /> },
+      { name: 'Game Activities', href: '/dashboard/processing/game-activities', icon: <GameActivityIcon /> },
+    ],
+  },
+  {
     name: 'Bonuses',
     icon: <BonusIcon />,
     roles: [USER_ROLES.SUPERADMIN, USER_ROLES.COMPANY],
@@ -154,6 +189,108 @@ const MENU_CATEGORIES: MenuCategory[] = [
 interface SidebarProps {
   onClose?: () => void;
   isCollapsed?: boolean;
+}
+
+function SubMenuItemComponent({ 
+  item, 
+  pathname, 
+  onClose,
+  isCollapsed,
+  level = 1
+}: { 
+  item: SubMenuItem; 
+  pathname: string; 
+  onClose?: () => void;
+  isCollapsed?: boolean;
+  level?: number;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasSubmenu = item.submenu && item.submenu.length > 0;
+  const isActive = item.href && pathname === item.href;
+
+  // Render link if it has href and no submenu
+  if (!hasSubmenu && item.href) {
+    const indentClass = level === 1 ? 'xl:ml-2' : level === 2 ? 'xl:ml-4' : 'xl:ml-6';
+    return (
+      <Link
+        href={item.href || '#'}
+        onClick={onClose}
+        className={`group relative flex items-center justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-2.5 md:py-2 xl:py-2.5 text-sm transition-all duration-300 ml-0 md:ml-0 ${indentClass} ${
+          isActive
+            ? 'bg-primary/15 text-primary font-semibold shadow-sm border-l-2 border-primary'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/60 border-l-2 border-transparent hover:border-accent/50'
+        }`}
+        title={isCollapsed ? item.name : undefined}
+      >
+        {isActive && (
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent" />
+        )}
+        
+        <div className={`relative z-10 shrink-0 p-1 transition-all duration-300 ${
+          isActive ? 'bg-primary/20 scale-105' : 'group-hover:bg-primary/10 group-hover:scale-110'
+        }`}>
+          {item.icon}
+        </div>
+        <span className="relative z-10 block truncate text-sm font-medium">{item.name}</span>
+        
+        {isActive && (
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
+        )}
+      </Link>
+    );
+  }
+
+  const indentClass = level === 1 ? 'xl:ml-2' : level === 2 ? 'xl:ml-4' : 'xl:ml-6';
+  
+  return (
+    <div className="space-y-0.5">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        onMouseEnter={() => setIsExpanded(true)}
+        className={`group w-full flex items-center justify-between gap-2 px-3 md:px-2.5 xl:px-3 py-2.5 md:py-2 xl:py-2.5 text-sm transition-all duration-300 ml-0 md:ml-0 ${indentClass} ${
+          isExpanded 
+            ? 'bg-accent/80 text-foreground font-medium shadow-sm' 
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+        }`}
+        title={isCollapsed ? item.name : undefined}
+      >
+        <div className="flex items-center justify-start gap-2 relative z-10">
+          <div className={`shrink-0 p-1 transition-all duration-300 ${
+            isExpanded ? 'bg-primary/15 scale-105' : 'group-hover:bg-primary/10 group-hover:scale-110'
+          }`}>
+            {item.icon}
+          </div>
+          <span className="block truncate text-sm font-medium">{item.name}</span>
+        </div>
+        <svg
+          className={`w-3 h-3 transition-all duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      
+      {isExpanded && item.submenu && (
+        <div 
+          className="space-y-0.5 animate-in slide-in-from-top-2 duration-300"
+          onMouseLeave={() => setIsExpanded(false)}
+        >
+          {item.submenu.map((subItem, index) => (
+            <SubMenuItemComponent
+              key={subItem.href || subItem.name}
+              item={subItem}
+              pathname={pathname}
+              onClose={onClose}
+              isCollapsed={isCollapsed}
+              level={level + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function MenuItem({ 
@@ -216,22 +353,24 @@ function MenuItem({
     );
   }
 
-  // For collapsed state with submenu - show first item
+  // For collapsed state with submenu - show first item with href
   if (isCollapsed && hasSubmenu && category.submenu) {
-    const firstItem = category.submenu[0];
-    return (
-      <Link
-        href={firstItem.href}
-        onClick={onClose}
-        className="group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-gradient-to-r hover:from-accent/80 hover:to-accent/60 hover:shadow-md transition-all duration-300"
-        title={category.name}
-      >
-        <div className="shrink-0 p-1.5 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
-          {category.icon}
-        </div>
-        <span className="md:hidden xl:block truncate text-sm font-semibold tracking-wide">{category.name}</span>
-      </Link>
-    );
+    const firstItem = category.submenu.find(item => item.href);
+    if (firstItem && firstItem.href) {
+      return (
+        <Link
+          href={firstItem.href}
+          onClick={onClose}
+          className="group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium text-foreground/70 hover:text-foreground hover:bg-gradient-to-r hover:from-accent/80 hover:to-accent/60 hover:shadow-md transition-all duration-300"
+          title={category.name}
+        >
+          <div className="shrink-0 p-1.5 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
+            {category.icon}
+          </div>
+          <span className="md:hidden xl:block truncate text-sm font-semibold tracking-wide">{category.name}</span>
+        </Link>
+      );
+    }
   }
 
   return (
@@ -272,47 +411,22 @@ function MenuItem({
       
       {isExpanded && category.submenu && (
         <div className="space-y-0.5 pl-0 md:pl-0 xl:pl-2 pt-1 animate-in slide-in-from-top-2 duration-300">
-          {category.submenu.map((item, index) => {
-            const isSubActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                style={{ animationDelay: `${index * 50}ms` }}
-                className={`group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-2.5 md:py-2 xl:py-2.5 text-sm transition-all duration-300 ml-0 md:ml-0 xl:ml-2 ${
-                  isSubActive
-                    ? 'bg-primary/15 text-primary font-semibold shadow-sm border-l-2 border-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/60 border-l-2 border-transparent hover:border-accent/50'
-                }`}
-                title={isCollapsed ? item.name : undefined}
-              >
-                {/* Background highlight for active */}
-                {isSubActive && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent" />
-                )}
-                
-                <div className={`relative z-10 shrink-0 p-1 transition-all duration-300 ${
-                  isSubActive ? 'bg-primary/20 scale-105' : 'group-hover:bg-primary/10 group-hover:scale-110'
-                }`}>
-                  {item.icon}
-                </div>
-                <span className="relative z-10 md:hidden xl:block truncate text-sm font-medium">{item.name}</span>
-                
-                {/* Active dot indicator */}
-                {isSubActive && (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
-                )}
-              </Link>
-            );
-          })}
+          {category.submenu.map((item, index) => (
+            <SubMenuItemComponent
+              key={item.href || item.name}
+              item={item}
+              pathname={pathname}
+              onClose={onClose}
+              isCollapsed={isCollapsed}
+            />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-export function Sidebar({ onClose, isCollapsed = true }: SidebarProps) {
+export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 

@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
   TRANSACTIONS: {
     LIST: `${API_PREFIX}/transactions/`,
     QUEUES: `${API_PREFIX}/transaction-queues/`,
+    HANDLE_GAME_ACTION: '/admin/handle-game-action', // Exception: no /api/v1/ prefix
   },
   BONUSES: {
     PURCHASE: `${API_PREFIX}/purchase-bonuses/`,

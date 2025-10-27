@@ -5,6 +5,7 @@ export { useGamesStore } from './use-games-store';
 export { useGameActivitiesStore } from './use-game-activities-store';
 export { useAffiliatesStore } from './use-affiliates-store';
 export { useTransactionsStore } from './use-transactions-store';
+export { useTransactionQueuesStore } from './use-transaction-queues-store';
 export { useTransactionVolumeStore } from './use-transaction-volume-store';
 export { useBannersStore } from './use-banners-store';
 export { useBonusesStore } from './use-bonuses-store';

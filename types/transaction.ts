@@ -2,6 +2,7 @@ export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled'
 export type TransactionType = 'purchase' | 'cashout';
 export type QueueType = 'recharge_game' | 'redeem_game' | 'add_user_game';
 export type JournalEntry = 'debit' | 'credit';
+export type GameActionType = 'retry' | 'cancel' | 'complete';
 
 export interface Transaction {
   id: string;
@@ -56,5 +57,19 @@ export interface QueueFilters {
   page?: number;
   page_size?: number;
   [key: string]: string | number | boolean | undefined;
+}
+
+export interface GameActionRequest {
+  txn_id: number;
+  type: GameActionType;
+  new_password?: string;
+  new_balance?: string;
+}
+
+export interface GameActionResponse {
+  status: string;
+  message: string;
+  task_id?: string;
+  queue_id: number;
 }
 
