@@ -43,12 +43,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log('📦 Response received:', response);
       
-      // Try multiple possible field names
-      const uuid = response.whitelabel_admin_uuid || 
+      // Try multiple possible field names - check nested data first
+      const uuid = response.data?.whitelabel_admin_uuid || 
+                   response.data?.project_uuid || 
+                   response.data?.uuid ||
+                   response.whitelabel_admin_uuid || 
                    response.project_uuid || 
-                   response.uuid ||
-                   (response as any).data?.whitelabel_admin_uuid ||
-                   (response as any).data?.project_uuid;
+                   response.uuid;
       
       if (uuid) {
         console.log('✅ Project UUID fetched and stored successfully:', uuid);

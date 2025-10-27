@@ -31,6 +31,12 @@ export interface ProjectDomainRequest {
 }
 
 export interface DashboardGamesResponse {
+  data?: {
+    whitelabel_admin_uuid?: string;
+    project_uuid?: string;
+    uuid?: string;
+    [key: string]: any;
+  };
   whitelabel_admin_uuid?: string;
   project_uuid?: string;
   uuid?: string;
