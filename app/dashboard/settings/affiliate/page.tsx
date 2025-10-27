@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAffiliateSettingsStore } from '@/stores';
-import { Button } from '@/components/ui/button';
+import { Button, Card } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { LoadingState, ErrorState } from '@/components/features';
 
@@ -41,15 +41,15 @@ export default function AffiliateSettingsPage() {
     const newErrors: Record<string, string> = {};
 
     if (formData.default_affiliation_percentage < 0 || formData.default_affiliation_percentage > 100) {
-      newErrors.default_affiliation_percentage = 'Affiliation percentage must be between 0 and 100';
+      newErrors.default_affiliation_percentage = 'Must be between 0 and 100';
     }
 
     if (formData.default_fee_percentage < 0 || formData.default_fee_percentage > 100) {
-      newErrors.default_fee_percentage = 'Fee percentage must be between 0 and 100';
+      newErrors.default_fee_percentage = 'Must be between 0 and 100';
     }
 
     if (formData.default_payment_method_fee_percentage < 0 || formData.default_payment_method_fee_percentage > 100) {
-      newErrors.default_payment_method_fee_percentage = 'Payment method fee percentage must be between 0 and 100';
+      newErrors.default_payment_method_fee_percentage = 'Must be between 0 and 100';
     }
 
     setErrors(newErrors);
@@ -64,10 +64,10 @@ export default function AffiliateSettingsPage() {
     setIsSubmitting(true);
     try {
       await patchAffiliateDefaults(formData);
-      alert('Affiliate settings updated successfully!');
+      alert('Settings updated successfully!');
     } catch (err) {
-      console.error('Error updating affiliate settings:', err);
-      alert('Failed to update affiliate settings');
+      console.error('Error updating settings:', err);
+      alert('Failed to update settings');
     } finally {
       setIsSubmitting(false);
     }
@@ -83,109 +83,140 @@ export default function AffiliateSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Affiliate Default Settings
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Affiliate Settings</h1>
+        <p className="text-muted-foreground mt-1">
           Configure default commission percentages and fees for new affiliate agents
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-              Default Affiliation Percentage
-            </label>
-            <div className="relative">
-              <Input
-                type="number"
-                value={formData.default_affiliation_percentage}
-                onChange={(e) => setFormData({ ...formData, default_affiliation_percentage: parseFloat(e.target.value) || 0 })}
-                className={errors.default_affiliation_percentage ? 'border-red-500' : ''}
-                placeholder="Enter default affiliation percentage"
-                min="0"
-                max="100"
-                step="0.01"
-              />
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                %
-              </span>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Affiliation Percentage */}
+        <Card className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
             </div>
-            {errors.default_affiliation_percentage && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.default_affiliation_percentage}</p>
-            )}
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Default commission percentage for new affiliate agents (0-100%)
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-              Default Fee Percentage
-            </label>
-            <div className="relative">
-              <Input
-                type="number"
-                value={formData.default_fee_percentage}
-                onChange={(e) => setFormData({ ...formData, default_fee_percentage: parseFloat(e.target.value) || 0 })}
-                className={errors.default_fee_percentage ? 'border-red-500' : ''}
-                placeholder="Enter default fee percentage"
-                min="0"
-                max="100"
-                step="0.01"
-              />
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                %
-              </span>
+            <div className="flex-1 space-y-2">
+              <label className="block text-sm font-semibold text-foreground">
+                Default Affiliation Percentage
+              </label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={formData.default_affiliation_percentage}
+                  onChange={(e) => setFormData({ ...formData, default_affiliation_percentage: parseFloat(e.target.value) || 0 })}
+                  className={errors.default_affiliation_percentage ? 'border-red-500' : ''}
+                  placeholder="0.00"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                  %
+                </span>
+              </div>
+              {errors.default_affiliation_percentage ? (
+                <p className="text-sm text-red-600">{errors.default_affiliation_percentage}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Default commission percentage for new affiliate agents (0-100%)
+                </p>
+              )}
             </div>
-            {errors.default_fee_percentage && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.default_fee_percentage}</p>
-            )}
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Default fee percentage for new affiliate agents (0-100%)
-            </p>
           </div>
+        </Card>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-              Default Payment Method Fee Percentage
-            </label>
-            <div className="relative">
-              <Input
-                type="number"
-                value={formData.default_payment_method_fee_percentage}
-                onChange={(e) => setFormData({ ...formData, default_payment_method_fee_percentage: parseFloat(e.target.value) || 0 })}
-                className={errors.default_payment_method_fee_percentage ? 'border-red-500' : ''}
-                placeholder="Enter default payment method fee percentage"
-                min="0"
-                max="100"
-                step="0.01"
-              />
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                %
-              </span>
+        {/* Fee Percentage */}
+        <Card className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
             </div>
-            {errors.default_payment_method_fee_percentage && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.default_payment_method_fee_percentage}</p>
-            )}
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Default payment method fee percentage for new affiliate agents (0-100%)
-            </p>
+            <div className="flex-1 space-y-2">
+              <label className="block text-sm font-semibold text-foreground">
+                Default Fee Percentage
+              </label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={formData.default_fee_percentage}
+                  onChange={(e) => setFormData({ ...formData, default_fee_percentage: parseFloat(e.target.value) || 0 })}
+                  className={errors.default_fee_percentage ? 'border-red-500' : ''}
+                  placeholder="0.00"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                  %
+                </span>
+              </div>
+              {errors.default_fee_percentage ? (
+                <p className="text-sm text-red-600">{errors.default_fee_percentage}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Default fee percentage for new affiliate agents (0-100%)
+                </p>
+              )}
+            </div>
           </div>
+        </Card>
 
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-6"
-            >
-              {isSubmitting ? 'Updating...' : 'Update Settings'}
-            </Button>
+        {/* Payment Method Fee */}
+        <Card className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+            <div className="flex-1 space-y-2">
+              <label className="block text-sm font-semibold text-foreground">
+                Default Payment Method Fee Percentage
+              </label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  value={formData.default_payment_method_fee_percentage}
+                  onChange={(e) => setFormData({ ...formData, default_payment_method_fee_percentage: parseFloat(e.target.value) || 0 })}
+                  className={errors.default_payment_method_fee_percentage ? 'border-red-500' : ''}
+                  placeholder="0.00"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                />
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                  %
+                </span>
+              </div>
+              {errors.default_payment_method_fee_percentage ? (
+                <p className="text-sm text-red-600">{errors.default_payment_method_fee_percentage}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Default payment method fee percentage for new affiliate agents (0-100%)
+                </p>
+              )}
+            </div>
           </div>
-        </form>
-      </div>
+        </Card>
+
+        {/* Submit Button */}
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-8"
+          >
+            {isSubmitting ? 'Updating...' : 'Save Changes'}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
