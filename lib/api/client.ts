@@ -29,6 +29,12 @@ class ApiClient {
   }
 
   private buildUrl(endpoint: string, params?: Record<string, string | number | boolean | undefined>): string {
+    // Handle local Next.js API routes (start with 'api/')
+    if (endpoint.startsWith('api/')) {
+      return `/${endpoint}`;
+    }
+
+    // Handle backend API routes
     if (!this.baseUrl) {
       throw new Error('API_BASE_URL is not configured. Please set NEXT_PUBLIC_API_URL in your .env.local file.');
     }
@@ -167,13 +173,19 @@ class ApiClient {
     });
 
     try {
+      const headers = this.getHeaders(isFormData);
+      console.log('📤 Request Headers:', headers);
+      
       const response = await fetch(url, {
         ...config,
         method: 'POST',
-        headers: this.getHeaders(isFormData),
+        headers,
         body: isFormData ? data : JSON.stringify(data),
+        credentials: 'include', // Include cookies for CSRF token
       });
 
+      console.log('📥 Response Status:', response.status, response.statusText);
+      
       return this.handleResponse<T>(response);
     } catch (error: unknown) {
       // Handle network errors

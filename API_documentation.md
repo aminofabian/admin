@@ -861,7 +861,7 @@ curl -X POST -H "Authorization: Bearer <JWT>" -H "Content-Type: application/json
 - POST /games/check_store_balance
 
 Manual Actions
-- POST /admin/handle-game-action
+- POST /admin/-action
   - Form fields: txn_id, type in {retry, cancel, complete}
   - Notes: For add_user_game tasks, UserGames may not exist until success.
 Example success:
@@ -869,7 +869,7 @@ cURL:
 ```
 curl -X POST -H "Authorization: Bearer <JWT>" \
   -d "txn_id=123&type=retry" \
-  https://<BE_DOMAIN>/admin/handle-game-action
+  https://<BE_DOMAIN>/admin/handle-game-action/
 ```
 
 Notes:

@@ -84,6 +84,30 @@ const BonusIcon = () => (
   </svg>
 );
 
+const PurchaseBonusIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const RechargeBonusIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+);
+
+const TransferBonusIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+  </svg>
+);
+
+const SignUpBonusIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+  </svg>
+);
+
 const BannerIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -93,6 +117,37 @@ const BannerIcon = () => (
 const AffiliateIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const SocialLinksIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+  </svg>
+);
+
+const PaymentSettingsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const AffiliatesAgentIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const AffiliatesDefaultIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
   </svg>
 );
 
@@ -117,6 +172,24 @@ const PurchaseIcon = () => (
 const GameActivityIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+);
+
+const HistoryIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const HistoryTransactionIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+  </svg>
+);
+
+const HistoryGameActivityIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
   </svg>
 );
 
@@ -157,6 +230,15 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/transactions',
   },
   {
+    name: 'History',
+    icon: <HistoryIcon />,
+    roles: Object.values(USER_ROLES),
+    submenu: [
+      { name: 'Transactions', href: '/dashboard/history/transactions', icon: <HistoryTransactionIcon /> },
+      { name: 'Game Activities', href: '/dashboard/history/game-activities', icon: <HistoryGameActivityIcon /> },
+    ],
+  },
+  {
     name: 'Processing',
     icon: <ProcessingIcon />,
     roles: Object.values(USER_ROLES),
@@ -170,19 +252,32 @@ const MENU_CATEGORIES: MenuCategory[] = [
     name: 'Bonuses',
     icon: <BonusIcon />,
     roles: [USER_ROLES.SUPERADMIN, USER_ROLES.COMPANY],
-    href: '/dashboard/bonuses',
+    submenu: [
+      { name: 'Purchase Bonus', href: '/dashboard/bonuses/purchase', icon: <PurchaseBonusIcon /> },
+      { name: 'Recharge Bonus', href: '/dashboard/bonuses/recharge', icon: <RechargeBonusIcon /> },
+      { name: 'Transfer Bonus', href: '/dashboard/bonuses/transfer', icon: <TransferBonusIcon /> },
+      { name: 'Sign Up Bonus', href: '/dashboard/bonuses/signup', icon: <SignUpBonusIcon /> },
+    ],
   },
   {
-    name: 'Banners',
-    icon: <BannerIcon />,
+    name: 'Settings',
+    icon: <SettingsIcon />,
     roles: [USER_ROLES.SUPERADMIN, USER_ROLES.COMPANY],
-    href: '/dashboard/banners',
+    submenu: [
+      { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
+      { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
+      { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
+    ],
   },
   {
     name: 'Affiliates',
     icon: <AffiliateIcon />,
     roles: [USER_ROLES.SUPERADMIN, USER_ROLES.COMPANY, USER_ROLES.MANAGER],
-    href: '/dashboard/affiliates',
+    submenu: [
+      { name: 'Agents', href: '/dashboard/agents', icon: <AffiliatesAgentIcon /> },
+      { name: 'Affiliates', href: '/dashboard/affiliates', icon: <AffiliateIcon /> },
+      { name: 'Default Settings', href: '/dashboard/settings/affiliate', icon: <AffiliatesDefaultIcon /> },
+    ],
   },
 ];
 
@@ -210,72 +305,59 @@ function SubMenuItemComponent({
 
   // Render link if it has href and no submenu
   if (!hasSubmenu && item.href) {
-    const indentClass = level === 1 ? 'xl:ml-2' : level === 2 ? 'xl:ml-4' : 'xl:ml-6';
     return (
       <Link
         href={item.href || '#'}
         onClick={onClose}
-        className={`group relative flex items-center justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-2.5 md:py-2 xl:py-2.5 text-sm transition-all duration-300 ml-0 md:ml-0 ${indentClass} ${
+        className={`group relative flex items-center gap-3 py-2.5 px-6 transition-all duration-200 rounded-md ${
           isActive
-            ? 'bg-primary/15 text-primary font-semibold shadow-sm border-l-2 border-primary'
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/60 border-l-2 border-transparent hover:border-accent/50'
+            ? 'bg-primary/10 dark:bg-primary/15 text-primary font-semibold shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
         }`}
         title={isCollapsed ? item.name : undefined}
       >
-        {isActive && (
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent" />
-        )}
-        
-        <div className={`relative z-10 shrink-0 p-1 transition-all duration-300 ${
-          isActive ? 'bg-primary/20 scale-105' : 'group-hover:bg-primary/10 group-hover:scale-110'
+        <div className={`shrink-0 transition-all duration-200 ${
+          isActive ? 'text-primary' : 'group-hover:text-primary'
         }`}>
           {item.icon}
         </div>
-        <span className="relative z-10 block truncate text-sm font-medium">{item.name}</span>
-        
-        {isActive && (
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
-        )}
+        <span className="block text-sm font-medium whitespace-nowrap">{item.name}</span>
       </Link>
     );
   }
-
-  const indentClass = level === 1 ? 'xl:ml-2' : level === 2 ? 'xl:ml-4' : 'xl:ml-6';
   
   return (
-    <div className="space-y-0.5">
+    <div className="space-y-1">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        onMouseEnter={() => setIsExpanded(true)}
-        className={`group w-full flex items-center justify-between gap-2 px-3 md:px-2.5 xl:px-3 py-2.5 md:py-2 xl:py-2.5 text-sm transition-all duration-300 ml-0 md:ml-0 ${indentClass} ${
+        className={`group w-full flex items-center justify-between gap-3 py-2.5 px-6 transition-all duration-200 rounded-md ${
           isExpanded 
-            ? 'bg-accent/80 text-foreground font-medium shadow-sm' 
-            : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+            ? 'bg-muted/80 text-foreground font-medium' 
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
         }`}
         title={isCollapsed ? item.name : undefined}
       >
-        <div className="flex items-center justify-start gap-2 relative z-10">
-          <div className={`shrink-0 p-1 transition-all duration-300 ${
-            isExpanded ? 'bg-primary/15 scale-105' : 'group-hover:bg-primary/10 group-hover:scale-110'
+        <div className="flex items-center gap-3 relative z-10">
+          <div className={`shrink-0 transition-all duration-200 ${
+            isExpanded ? 'text-primary' : 'group-hover:text-primary'
           }`}>
             {item.icon}
           </div>
-          <span className="block truncate text-sm font-medium">{item.name}</span>
+          <span className="block text-sm font-medium whitespace-nowrap">{item.name}</span>
         </div>
         <svg
-          className={`w-3 h-3 transition-all duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-all duration-200 flex-shrink-0 ${isExpanded ? 'rotate-180 text-primary' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       
       {isExpanded && item.submenu && (
         <div 
-          className="space-y-0.5 animate-in slide-in-from-top-2 duration-300"
-          onMouseLeave={() => setIsExpanded(false)}
+          className="ml-8 space-y-1 animate-in fade-in-0 slide-in-from-top-1 duration-200"
         >
           {item.submenu.map((subItem, index) => (
             <SubMenuItemComponent
@@ -313,42 +395,19 @@ function MenuItem({
       <Link
         href={category.href}
         onClick={onClose}
-        className={`group relative flex items-center justify-center md:justify-center xl:justify-start gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium transition-all duration-300 overflow-hidden ${
+        className={`group relative flex items-center gap-3 py-3 px-6 text-sm font-medium transition-all duration-200 rounded-lg ${
           isActive
-            ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/30'
-            : 'text-foreground/70 hover:text-foreground hover:bg-gradient-to-r hover:from-accent/80 hover:to-accent/60 hover:shadow-md'
+            ? 'bg-primary/10 text-primary font-semibold shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
         }`}
         title={isCollapsed ? category.name : undefined}
       >
-        {/* Background glow effect */}
-        {isActive && (
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent" />
-        )}
-        
-        {/* Icon container */}
-        <div className={`relative z-10 shrink-0 p-1.5 transition-all duration-300 ${
-          isActive 
-            ? 'bg-white/20 shadow-inner' 
-            : 'group-hover:bg-primary/10 group-hover:scale-110'
+        <div className={`shrink-0 transition-all duration-200 ${
+          isActive ? 'text-primary' : 'group-hover:text-primary'
         }`}>
           {category.icon}
         </div>
-        
-        {/* Label */}
-        <span className="relative z-10 md:hidden xl:block truncate text-sm font-semibold tracking-wide">
-          {category.name}
-        </span>
-        
-        {/* Active indicator */}
-        {isActive && (
-          <>
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-primary-foreground shadow-lg" />
-            <span className="absolute right-3 md:right-2 xl:right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary-foreground rounded-full" />
-          </>
-        )}
-        
-        {/* Hover effect line */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <span className="text-sm font-semibold whitespace-nowrap">{category.name}</span>
       </Link>
     );
   }
@@ -377,24 +436,24 @@ function MenuItem({
     <div className="space-y-1">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`group w-full flex items-center justify-center md:justify-center xl:justify-between gap-3 px-3 md:px-2.5 xl:px-3 py-3 md:py-2.5 xl:py-3 text-sm font-medium transition-all duration-300 overflow-hidden ${
+        className={`group w-full flex items-center justify-center md:justify-center xl:justify-between gap-3 px-3 md:px-2.5 xl:px-4 py-3 md:py-2.5 xl:py-3 text-sm font-medium transition-all duration-300 overflow-hidden rounded-lg mx-1 ${
           isExpanded 
-            ? 'bg-gradient-to-r from-accent via-accent/90 to-accent/80 text-foreground shadow-md' 
-            : 'text-foreground/70 hover:text-foreground hover:bg-gradient-to-r hover:from-accent/60 hover:to-accent/40 hover:shadow-sm'
+            ? 'bg-gradient-to-r from-accent via-accent/90 to-accent/80 dark:from-accent/60 dark:via-accent/50 dark:to-accent/40 text-foreground shadow-md dark:shadow-lg' 
+            : 'text-foreground/80 dark:text-foreground/70 hover:text-foreground dark:hover:text-foreground hover:bg-muted/80 dark:hover:bg-muted/40 hover:shadow-sm'
         }`}
         title={isCollapsed ? category.name : undefined}
       >
         <div className="flex items-center justify-center md:justify-center xl:justify-start gap-3 relative z-10">
-          <div className={`shrink-0 p-1.5 transition-all duration-300 ${
-            isExpanded ? 'bg-primary/15 scale-105' : 'group-hover:bg-primary/10 group-hover:scale-110'
+          <div className={`shrink-0 p-1.5 transition-all duration-300 rounded ${
+            isExpanded ? 'bg-primary/15 dark:bg-primary/25 scale-105' : 'group-hover:bg-primary/10 dark:group-hover:bg-primary/20 group-hover:scale-110'
           }`}>
             {category.icon}
           </div>
           <span className="md:hidden xl:block truncate text-sm font-semibold tracking-wide">{category.name}</span>
         </div>
-        <div className={`flex items-center gap-2 relative z-10 md:hidden xl:flex ${isExpanded ? 'text-primary' : ''}`}>
+        <div className={`flex items-center gap-2 relative z-10 md:hidden xl:flex ${isExpanded ? 'text-primary dark:text-primary' : ''}`}>
           {category.submenu && (
-                <span className="text-xs font-medium bg-primary/15 px-1.5 py-0.5">
+                <span className="text-xs font-medium bg-primary/15 dark:bg-primary/25 px-1.5 py-0.5 rounded">
               {category.submenu.length}
             </span>
           )}
@@ -410,7 +469,7 @@ function MenuItem({
       </button>
       
       {isExpanded && category.submenu && (
-        <div className="space-y-0.5 pl-0 md:pl-0 xl:pl-2 pt-1 animate-in slide-in-from-top-2 duration-300">
+        <div className="space-y-0.5 pt-1 animate-in slide-in-from-top-2 duration-300">
           {category.submenu.map((item, index) => (
             <SubMenuItemComponent
               key={item.href || item.name}
@@ -440,10 +499,10 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
   };
 
   return (
-    <aside className="w-full h-screen bg-gradient-to-b from-card via-card to-card/95 border-r border-border/50 backdrop-blur-xl flex flex-col shadow-2xl">
+    <aside className="w-full h-screen bg-gradient-to-br from-background via-background to-muted/30 border-r border-border dark:border-border/80 flex flex-col shadow-lg dark:shadow-2xl">
       {/* Header with enhanced styling */}
-      <div className="relative p-4 md:p-3 xl:p-5 flex items-center justify-center md:justify-center xl:justify-between border-b border-border/30 bg-gradient-to-br from-background/50 via-accent/5 to-primary/5 backdrop-blur-sm">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-50" />
+      <div className="relative p-4 md:p-3 xl:p-5 flex items-center justify-center md:justify-center xl:justify-between border-b border-border dark:border-border/50 bg-gradient-to-br from-muted/50 via-background to-accent/10 dark:from-muted/20 dark:via-background/90 dark:to-primary/5">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-40 dark:opacity-30" />
         <Logo 
           showText={true} 
           size="sm" 
@@ -461,7 +520,7 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
 
       {/* Enhanced User Profile Section */}
       <div className="p-4 md:p-3 xl:p-4">
-        <div className="relative bg-gradient-to-br from-primary/15 via-primary/8 to-primary/5 border border-primary/25 p-3.5 md:p-3 xl:p-3.5 shadow-lg hover:shadow-xl hover:border-primary/40 hover:scale-[1.02] transition-all duration-300 group overflow-hidden">
+        <div className="relative bg-gradient-to-br from-muted/80 via-muted/60 to-primary/20 dark:from-primary/20 dark:via-primary/15 dark:to-primary/10 border border-border dark:border-primary/30 p-3.5 md:p-3 xl:p-3.5 shadow-md hover:shadow-lg hover:border-primary/50 dark:hover:border-primary/40 hover:scale-[1.02] transition-all duration-300 group overflow-hidden rounded-lg">
           {/* Animated background effect */}
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           
@@ -507,9 +566,9 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
       </nav>
 
       {/* Enhanced Footer Section */}
-      <div className="relative border-t border-border/30 bg-gradient-to-t from-accent/10 via-background/50 to-transparent backdrop-blur-sm p-3.5 md:p-3 xl:p-3.5 space-y-3">
+      <div className="relative border-t border-border dark:border-border/50 bg-gradient-to-t from-muted/30 dark:from-muted/10 via-background/90 dark:via-background to-transparent p-3.5 md:p-3 xl:p-3.5 space-y-3">
         {/* Status indicator */}
-        <div className="flex items-center md:flex-col md:gap-2 xl:flex-row xl:justify-between p-2.5 bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
+        <div className="flex items-center md:flex-col md:gap-2 xl:flex-row xl:justify-between p-2.5 bg-gradient-to-r from-green-500/10 dark:from-green-500/20 to-transparent border border-green-500/20 dark:border-green-500/30 rounded-lg">
           <div className="flex items-center gap-2 md:flex-col md:gap-1 xl:flex-row">
             <span className="flex h-3 w-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50" />
             <span className="text-xs font-semibold text-green-600 dark:text-green-400">System Online</span>
@@ -520,7 +579,7 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
         {/* Enhanced Logout Button */}
         <button
           onClick={handleLogout}
-          className="group relative w-full flex items-center justify-center md:justify-center xl:justify-start gap-2.5 px-3.5 py-3 md:py-2.5 xl:py-3 text-sm font-semibold text-destructive hover:text-destructive-foreground bg-destructive/5 hover:bg-gradient-to-r hover:from-destructive hover:to-destructive/90 transition-all duration-300 border border-destructive/25 hover:border-destructive shadow-md hover:shadow-lg hover:shadow-destructive/20 active:scale-95 overflow-hidden"
+          className="group relative w-full flex items-center justify-center md:justify-center xl:justify-start gap-2.5 px-3.5 py-3 md:py-2.5 xl:py-3 text-sm font-semibold text-destructive dark:text-red-500 hover:text-destructive-foreground bg-destructive/10 dark:bg-red-500/10 hover:bg-gradient-to-r hover:from-destructive hover:to-destructive/90 dark:hover:from-red-600 dark:hover:to-red-600/90 transition-all duration-300 border border-destructive/30 dark:border-red-500/30 hover:border-destructive dark:hover:border-red-600 shadow-md hover:shadow-lg hover:shadow-destructive/30 dark:hover:shadow-red-600/30 active:scale-95 overflow-hidden rounded-lg"
           title="Logout"
         >
           {/* Animated background */}
