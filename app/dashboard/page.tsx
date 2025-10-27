@@ -57,7 +57,7 @@ export default function DashboardPage() {
       case 'transactions':
         return <TransactionsSection />;
       case 'processing':
-        return <ProcessingSection />;
+        return <ProcessingSection type="game_activities" />;
       case 'banners':
         return <BannersSection />;
       case 'affiliates':
