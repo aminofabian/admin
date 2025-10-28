@@ -43,8 +43,6 @@ export default function ManagersPage() {
   const { addToast } = useToast();
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedManager, setSelectedManager] = useState<Manager | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -138,22 +136,10 @@ export default function ManagersPage() {
     setConfirmModal({ isOpen: false, manager: null, isLoading: false });
   };
 
-  const openViewModal = (manager: Manager) => {
-    setSelectedManager(manager);
-    setIsViewModalOpen(true);
-    setSubmitError('');
-  };
-
   const closeModals = () => {
     setIsCreateModalOpen(false);
-    setIsViewModalOpen(false);
-    setSelectedManager(null);
     setSubmitError('');
   };
-
-  // Calculate stats
-  const activeCount = managers?.results?.filter(m => m.is_active).length || 0;
-  const inactiveCount = managers?.results?.filter(m => !m.is_active).length || 0;
 
   if (isLoading && !managers) {
     return <LoadingState />;
@@ -199,31 +185,13 @@ export default function ManagersPage() {
           </div>
         )}
 
-        {/* Search and Stats Row */}
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-          <div className="w-full lg:w-96">
-            <SearchInput
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by username or email..."
-            />
-          </div>
-          <div className="flex items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-600 dark:text-gray-400">Total:</span>
-              <span className="font-semibold text-gray-900 dark:text-gray-100">{managers?.count.toLocaleString() || 0}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span className="text-gray-600 dark:text-gray-400">Active:</span>
-              <span className="font-semibold text-green-600 dark:text-green-400">{activeCount}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-red-500"></div>
-              <span className="text-gray-600 dark:text-gray-400">Inactive:</span>
-              <span className="font-semibold text-red-600 dark:text-red-400">{inactiveCount}</span>
-            </div>
-          </div>
+        {/* Search Row */}
+        <div className="w-full lg:w-96">
+          <SearchInput
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by username or email..."
+          />
         </div>
       </div>
 
@@ -243,9 +211,8 @@ export default function ManagersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Manager</TableHead>
+                      <TableHead>Username</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Project</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -254,7 +221,7 @@ export default function ManagersPage() {
                   <TableBody>
                     {managers?.results.map((manager) => (
                       <TableRow key={manager.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                        {/* Manager Info */}
+                        {/* Username Info */}
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
@@ -278,13 +245,6 @@ export default function ManagersPage() {
                           </div>
                         </TableCell>
 
-                        {/* Project */}
-                        <TableCell>
-                          <Badge variant="info">
-                            Project #{manager.project_id}
-                          </Badge>
-                        </TableCell>
-
                         {/* Status */}
                         <TableCell>
                           <Badge variant={manager.is_active ? 'success' : 'danger'}>
@@ -302,18 +262,6 @@ export default function ManagersPage() {
                         {/* Actions */}
                         <TableCell>
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => openViewModal(manager)}
-                              title="View details"
-                              className="hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                            </Button>
                             <Button
                               size="sm"
                               variant={manager.is_active ? 'danger' : 'secondary'}
@@ -362,23 +310,6 @@ export default function ManagersPage() {
           onCancel={closeModals}
           isLoading={isSubmitting}
         />
-      </Modal>
-
-      {/* View Manager Modal */}
-      <Modal
-        isOpen={isViewModalOpen}
-        onClose={closeModals}
-        title="Manager Details"
-        size="md"
-      >
-        {selectedManager && (
-          <ManagerForm
-            manager={selectedManager}
-            onSubmit={async () => {}} // Read-only view
-            onCancel={closeModals}
-            isLoading={false}
-          />
-        )}
       </Modal>
 
       {/* Confirmation Modal */}

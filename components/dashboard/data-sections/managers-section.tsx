@@ -25,7 +25,6 @@ export function ManagersSection() {
   const [localSearchTerm, setLocalSearchTerm] = useState(storeSearchTerm);
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedManager, setSelectedManager] = useState<Manager | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -111,12 +110,6 @@ export function ManagersSection() {
     }
   };
 
-  const openViewDrawer = (manager: Manager) => {
-    setSelectedManager(manager);
-    setIsViewDrawerOpen(true);
-    setSubmitError('');
-  };
-
   const openEditDrawer = (manager: Manager) => {
     setSelectedManager(manager);
     setIsEditDrawerOpen(true);
@@ -126,7 +119,6 @@ export function ManagersSection() {
   const closeDrawers = () => {
     setIsCreateDrawerOpen(false);
     setIsEditDrawerOpen(false);
-    setIsViewDrawerOpen(false);
     setSelectedManager(null);
     setSubmitError('');
   };
@@ -138,7 +130,7 @@ export function ManagersSection() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Managers</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage all manager accounts and permissions • Total: {managers?.count.toLocaleString() || 0}
+            Manage all manager accounts and permissions
           </p>
         </div>
         <Button variant="primary" size="md" onClick={() => setIsCreateDrawerOpen(true)}>
@@ -175,39 +167,14 @@ export function ManagersSection() {
         />
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Managers</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{managers?.count || 0}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
-          <div className="text-2xl font-bold text-green-500 mt-1">
-            {managers?.results?.filter(m => m.is_active).length || 0}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
-          <div className="text-2xl font-bold text-red-500 mt-1">
-            {managers?.results?.filter(m => !m.is_active).length || 0}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{managers?.results?.length || 0}</div>
-        </div>
-      </div>
-
       {/* Enhanced Table with All Data */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">Manager Info</TableHead>
+                <TableHead className="min-w-[200px]">Username</TableHead>
                 <TableHead className="min-w-[200px]">Contact</TableHead>
-                <TableHead className="min-w-[120px]">Project</TableHead>
                 <TableHead className="min-w-[100px]">Status</TableHead>
                 <TableHead className="min-w-[100px]">Role</TableHead>
                 <TableHead className="min-w-[180px]">Timestamps</TableHead>
@@ -217,7 +184,7 @@ export function ManagersSection() {
             <TableBody>
               {managers?.results?.map((manager) => (
                 <TableRow key={manager.id}>
-                  {/* Manager Info */}
+                  {/* Username Info */}
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
@@ -244,13 +211,6 @@ export function ManagersSection() {
                         Email
                       </Badge>
                     </div>
-                  </TableCell>
-
-                  {/* Project */}
-                  <TableCell>
-                    <Badge variant="info" className="text-sm">
-                      Project #{manager.project_id}
-                    </Badge>
                   </TableCell>
 
                   {/* Status */}
@@ -302,17 +262,6 @@ export function ManagersSection() {
                   {/* Actions */}
                   <TableCell>
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openViewDrawer(manager)}
-                        title="View details"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      </Button>
                       <Button
                         size="sm"
                         variant="secondary"
@@ -407,100 +356,6 @@ export function ManagersSection() {
           />
         )}
       </Drawer>
-
-      {/* View Manager Drawer */}
-      <Drawer
-        isOpen={isViewDrawerOpen}
-        onClose={closeDrawers}
-        title="Manager Details"
-        size="lg"
-      >
-        {selectedManager && (
-          <div className="space-y-6">
-            {/* Manager Info Card */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-800/50">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
-                  {selectedManager.username.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                    {selectedManager.username}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Manager ID: {selectedManager.id}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Badge variant={selectedManager.is_active ? 'success' : 'danger'}>
-                  {selectedManager.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-                <Badge variant="info">{selectedManager.role}</Badge>
-              </div>
-            </div>
-
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Email</div>
-                <div className="text-base font-medium text-gray-900 dark:text-gray-100">
-                  {selectedManager.email}
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Project ID</div>
-                <div className="text-base font-medium text-gray-900 dark:text-gray-100">
-                  {selectedManager.project_id}
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Created</div>
-                <div className="text-base font-medium text-gray-900 dark:text-gray-100">
-                  {formatDate(selectedManager.created)}
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Last Modified</div>
-                <div className="text-base font-medium text-gray-900 dark:text-gray-100">
-                  {formatDate(selectedManager.modified)}
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <Button
-                variant="primary"
-                onClick={() => {
-                  closeDrawers();
-                  openEditDrawer(selectedManager);
-                }}
-                className="flex-1"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Manager
-              </Button>
-              <Button
-                variant={selectedManager.is_active ? 'danger' : 'primary'}
-                onClick={() => {
-                  handleToggleStatus(selectedManager);
-                  closeDrawers();
-                }}
-                className="flex-1"
-              >
-                {selectedManager.is_active ? 'Deactivate' : 'Activate'}
-              </Button>
-            </div>
-          </div>
-        )}
-      </Drawer>
     </div>
   );
 }
-
