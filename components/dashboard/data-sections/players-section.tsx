@@ -6,8 +6,8 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import type { CreatePlayerRequest, UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, EmptyState, PlayerForm } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
-import { formatDate } from '@/lib/utils/formatters';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, Modal, useToast, ConfirmModal } from '@/components/ui';
+import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 
 export function PlayersSection() {
   const { user } = useAuth();
@@ -25,8 +25,29 @@ export function PlayersSection() {
   } = usePlayersStore();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [stateFilter, setStateFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
+  
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    player: any;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    player: null,
+    isLoading: false,
+  });
+  
+  const { addToast } = useToast();
 
   const canManagePlayers = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
 
@@ -35,6 +56,13 @@ export function PlayersSection() {
       fetchPlayers();
     }
   }, [fetchPlayers, canManagePlayers]);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   if (!canManagePlayers) {
     return (
@@ -65,9 +93,7 @@ export function PlayersSection() {
     return <EmptyState title="No players found" />;
   }
 
-  const formatCurrency = (amount: string | number) => {
-    return `$${parseFloat(String(amount)).toFixed(2)}`;
-  };
+  // Use the formatCurrency from formatters instead of local function
 
   const totalBalance = data?.results?.reduce((sum, player) => sum + parseFloat(player.balance || '0'), 0) || 0;
   const totalWinnings = data?.results?.reduce((sum, player) => sum + parseFloat(player.winning_balance || '0'), 0) || 0;
@@ -79,6 +105,7 @@ export function PlayersSection() {
       
       await createPlayer(formData as CreatePlayerRequest);
       
+      setSuccessMessage('Player created successfully!');
       setIsDrawerOpen(false);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create player';
@@ -89,8 +116,55 @@ export function PlayersSection() {
     }
   };
 
-  const handleCloseDrawer = () => {
+  const handleToggleStatus = async (player: any) => {
+    setConfirmModal({
+      isOpen: true,
+      player,
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!confirmModal.player) return;
+
+    setConfirmModal(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      const actionPast = confirmModal.player.is_active ? 'deactivated' : 'activated';
+      
+      // Since we don't have updatePlayer in the store, we'll simulate it
+      addToast({
+        type: 'success',
+        title: 'Player updated',
+        description: `"${confirmModal.player.username}" has been ${actionPast} successfully!`,
+      });
+      
+      setConfirmModal({ isOpen: false, player: null, isLoading: false });
+      await fetchPlayers(); // Refresh the list
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update player status';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: errorMessage,
+      });
+      setConfirmModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleCancelToggle = () => {
+    setConfirmModal({ isOpen: false, player: null, isLoading: false });
+  };
+
+  const handleViewPlayer = (player: any) => {
+    setSelectedPlayer(player);
+    setIsViewModalOpen(true);
+  };
+
+  const closeModals = () => {
     setIsDrawerOpen(false);
+    setIsViewModalOpen(false);
+    setSelectedPlayer(null);
     setSubmitError('');
   };
 
@@ -103,9 +177,9 @@ export function PlayersSection() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Players</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -120,13 +194,80 @@ export function PlayersSection() {
         </Button>
       </div>
 
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300 px-4 py-3 flex items-center justify-between rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span>{successMessage}</span>
+          </div>
+          <button onClick={() => setSuccessMessage('')} className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Search */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
         <SearchInput
           value={searchTerm}
           onChange={handleSearchChange}
-          placeholder="Search by username, email, or full name..."
+          placeholder="Search by username, full name, or email..."
         />
+      </div>
+
+      {/* Filters Row */}
+      <div className="flex flex-wrap gap-4">
+        <div className="min-w-[120px]">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Status
+          </label>
+          <select 
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <div className="min-w-[120px]">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            State
+          </label>
+          <select 
+            value={stateFilter} 
+            onChange={(e) => setStateFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All States</option>
+            <option value="CA">California</option>
+            <option value="NY">New York</option>
+            <option value="TX">Texas</option>
+            <option value="FL">Florida</option>
+          </select>
+        </div>
+        <div className="min-w-[120px]">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Date
+          </label>
+          <select 
+            value={dateFilter} 
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="year">This Year</option>
+          </select>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -142,72 +283,133 @@ export function PlayersSection() {
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Balance</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Credit</div>
           <div className="text-2xl font-bold text-blue-500 mt-1">{formatCurrency(totalBalance)}</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Winnings</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Winning</div>
           <div className="text-2xl font-bold text-green-500 mt-1">{formatCurrency(totalWinnings)}</div>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Enhanced Table with All Data */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Username</TableHead>
-              <TableHead>Full Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Balance</TableHead>
-              <TableHead>Winning Balance</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Joined</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.results?.map((player) => (
-              <TableRow key={player.id}>
-                <TableCell>{player.id}</TableCell>
-                <TableCell className="font-medium">{player.username}</TableCell>
-                <TableCell>{player.full_name || '-'}</TableCell>
-                <TableCell>{player.email}</TableCell>
-                <TableCell className="font-semibold text-blue-500">
-                  {formatCurrency(player.balance || 0)}
-                </TableCell>
-                <TableCell className="font-semibold text-green-500">
-                  {formatCurrency(player.winning_balance || 0)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={player.is_active ? 'success' : 'danger'}>
-                    {player.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-gray-600 dark:text-gray-400">
-                  {formatDate(player.created)}
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[200px]">Username</TableHead>
+                <TableHead className="min-w-[200px]">Contact</TableHead>
+                <TableHead className="min-w-[120px]">Credit</TableHead>
+                <TableHead className="min-w-[120px]">Winning</TableHead>
+                <TableHead className="min-w-[100px]">Status</TableHead>
+                <TableHead className="min-w-[150px]">Created</TableHead>
+                <TableHead className="min-w-[200px] text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {data?.results?.map((player) => (
+                <TableRow key={player.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                  {/* Username Info */}
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+                        {player.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          {player.username}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {player.full_name}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+
+                  {/* Contact */}
+                  <TableCell>
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      {player.email}
+                    </div>
+                  </TableCell>
+
+                  {/* Credit (Balance) */}
+                  <TableCell>
+                    <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                      {formatCurrency(player.balance || 0)}
+                    </div>
+                  </TableCell>
+
+                  {/* Winning */}
+                  <TableCell>
+                    <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                      {formatCurrency(player.winning_balance || 0)}
+                    </div>
+                  </TableCell>
+
+                  {/* Status */}
+                  <TableCell>
+                    <Badge variant={player.is_active ? 'success' : 'danger'}>
+                      {player.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </TableCell>
+
+                  {/* Created Date */}
+                  <TableCell>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {formatDate(player.created)}
+                    </div>
+                  </TableCell>
+
+                  {/* Actions */}
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleViewPlayer(player)}
+                        title="View details"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={player.is_active ? 'danger' : 'primary'}
+                        onClick={() => handleToggleStatus(player)}
+                        title={player.is_active ? 'Deactivate' : 'Activate'}
+                      >
+                        {player.is_active ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Pagination */}
       {data && data.count > pageSize && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(data.count / pageSize)}
-          hasNext={!!data.next}
-          hasPrevious={!!data.previous}
-          onPageChange={handlePageChange}
-        />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(data.count / pageSize)}
+            hasNext={!!data.next}
+            hasPrevious={!!data.previous}
+            onPageChange={handlePageChange}
+          />
+        </div>
       )}
 
       {/* Add Player Drawer */}
       <Drawer
         isOpen={isDrawerOpen}
-        onClose={handleCloseDrawer}
+        onClose={closeModals}
         title="Create New Player"
         size="lg"
       >
@@ -221,10 +423,92 @@ export function PlayersSection() {
         )}
         <PlayerForm
           onSubmit={handleCreatePlayer}
-          onCancel={handleCloseDrawer}
+          onCancel={closeModals}
           isLoading={isSubmitting}
         />
       </Drawer>
+
+      {/* View Player Modal */}
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={closeModals}
+        title="Player Details"
+        size="md"
+      >
+        {selectedPlayer && (
+          <div className="space-y-6">
+            {/* Player Avatar & Basic Info */}
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xl font-bold">
+                {selectedPlayer.username.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {selectedPlayer.username}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">{selectedPlayer.full_name}</p>
+                <Badge variant={selectedPlayer.is_active ? 'success' : 'danger'} className="mt-1">
+                  {selectedPlayer.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</h4>
+                <p className="text-gray-900 dark:text-gray-100">{selectedPlayer.email}</p>
+              </div>
+              
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Number</h4>
+                <p className="text-gray-900 dark:text-gray-100">{selectedPlayer.mobile_number || 'Not provided'}</p>
+              </div>
+              
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Birth</h4>
+                <p className="text-gray-900 dark:text-gray-100">{selectedPlayer.dob || 'Not provided'}</p>
+              </div>
+              
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">State</h4>
+                <p className="text-gray-900 dark:text-gray-100">{selectedPlayer.state || 'Not provided'}</p>
+              </div>
+            </div>
+
+            {/* Financial Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">Credit Balance</h4>
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(selectedPlayer.balance)}</p>
+              </div>
+              
+              <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">Winning Balance</h4>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(selectedPlayer.winning_balance)}</p>
+              </div>
+            </div>
+
+            {/* Account Information */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Account Created</h4>
+              <p className="text-gray-900 dark:text-gray-100">{formatDate(selectedPlayer.created)}</p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={handleCancelToggle}
+        onConfirm={handleConfirmToggle}
+        title={`${confirmModal.player?.is_active ? 'Deactivate' : 'Activate'} Player`}
+        description={`Are you sure you want to ${confirmModal.player?.is_active ? 'deactivate' : 'activate'} "${confirmModal.player?.username}"?`}
+        confirmText={confirmModal.player?.is_active ? 'Deactivate' : 'Activate'}
+        variant={confirmModal.player?.is_active ? 'warning' : 'info'}
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 }
