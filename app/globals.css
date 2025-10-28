@@ -21,27 +21,82 @@
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: #1a1a1a;
-  --card-foreground: #ededed;
-  --primary: #6366f1;
+  --background: #1e1b4b;
+  --foreground: #f8fafc;
+  --card: rgba(30, 41, 59, 0.4);
+  --card-foreground: #f8fafc;
+  --primary: #A855F7;
   --primary-foreground: #ffffff;
-  --secondary: #1e293b;
+  --secondary: rgba(51, 65, 85, 0.6);
   --secondary-foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #1e293b;
+  --muted: rgba(51, 65, 85, 0.5);
+  --muted-foreground: #cbd5e1;
+  --accent: rgba(71, 85, 105, 0.5);
   --accent-foreground: #f8fafc;
-  --border: #334155;
-  --input: #334155;
-  --ring: #6366f1;
+  --border: rgba(148, 163, 184, 0.2);
+  --input: rgba(51, 65, 85, 0.6);
+  --ring: #A855F7;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-outfit), system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Dark mode gradient background */
+.dark body {
+  background: linear-gradient(-45deg, #4C1D95, #5B21B6, #6B46C1, #7C3AED, #8B5CF6, #A855F7);
+  background-size: 400% 400%;
+  background-attachment: fixed;
+  animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Enhanced glassmorphism effects for dark mode */
+.dark .bg-card {
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.dark .bg-card\/95 {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Enhanced hover effects for dark mode cards */
+.dark .hover\:shadow-md:hover {
+  box-shadow: 
+    0 10px 15px -3px rgba(168, 85, 247, 0.1),
+    0 4px 6px -4px rgba(168, 85, 247, 0.1),
+    0 0 0 1px rgba(168, 85, 247, 0.05);
+}
+
+.dark .shadow-sm {
+  box-shadow: 
+    0 1px 2px 0 rgba(168, 85, 247, 0.1),
+    0 0 0 1px rgba(148, 163, 184, 0.1);
+}
+
+.dark .shadow-xl {
+  box-shadow: 
+    0 20px 25px -5px rgba(76, 29, 149, 0.3),
+    0 8px 10px -6px rgba(76, 29, 149, 0.2),
+    0 0 0 1px rgba(148, 163, 184, 0.1);
 }
 
 /* Custom scrollbar */
