@@ -42,24 +42,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4 py-8 bg-gray-50 dark:bg-transparent">
-      {/* Animated gradient background - Only visible in dark mode */}
-      <div className="absolute inset-0 bg-white dark:bg-gradient-to-br dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950" />
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4 py-8">
+      {/* Beautiful Purple Gradient Background - Both light and dark modes */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-900 dark:via-indigo-950 dark:to-blue-900" />
       
-      {/* Decorative blobs - Lighter in light mode */}
-      <div className="absolute top-0 -left-4 w-72 h-72 bg-indigo-100 dark:bg-purple-900/30 rounded-full mix-blend-normal dark:mix-blend-soft-light filter blur-3xl opacity-40 dark:opacity-70 animate-blob" />
-      <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-100 dark:bg-indigo-900/30 rounded-full mix-blend-normal dark:mix-blend-soft-light filter blur-3xl opacity-40 dark:opacity-70 animate-blob animation-delay-2000" />
-      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-100 dark:bg-pink-900/30 rounded-full mix-blend-normal dark:mix-blend-soft-light filter blur-3xl opacity-40 dark:opacity-70 animate-blob animation-delay-4000" />
+      {/* Animated gradient overlay for dark mode */}
+      <div className="absolute inset-0 dark:bg-gradient-to-br dark:from-violet-900/50 dark:via-purple-900/30 dark:to-indigo-900/40 dark:animate-pulse" style={{animationDuration: '8s'}} />
+      
+      {/* Enhanced Decorative Elements */}
+      <div className="absolute top-0 -left-4 w-96 h-96 bg-gradient-to-br from-purple-200/60 to-violet-300/40 dark:from-purple-500/20 dark:to-violet-600/10 rounded-full mix-blend-normal filter blur-3xl animate-blob" />
+      <div className="absolute top-0 -right-4 w-80 h-80 bg-gradient-to-br from-indigo-200/60 to-purple-300/40 dark:from-indigo-500/20 dark:to-purple-600/10 rounded-full mix-blend-normal filter blur-3xl animate-blob animation-delay-2000" />
+      <div className="absolute -bottom-8 left-20 w-88 h-88 bg-gradient-to-br from-violet-200/60 to-indigo-300/40 dark:from-violet-500/20 dark:to-indigo-600/10 rounded-full mix-blend-normal filter blur-3xl animate-blob animation-delay-4000" />
+      <div className="absolute bottom-0 right-0 w-72 h-72 bg-gradient-to-br from-blue-200/50 to-purple-200/40 dark:from-blue-500/15 dark:to-purple-500/10 rounded-full mix-blend-normal filter blur-3xl animate-blob animation-delay-6000" />
 
-      {/* Theme Toggle - Fixed Position */}
+      {/* Theme Toggle - Enhanced with Glassmorphism */}
       <div className="fixed top-6 right-6 z-50">
-        <div className="flex items-center bg-white dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-700 p-1 shadow-md">
+        <div className="flex items-center bg-white/80 dark:bg-gray-800/60 backdrop-blur-md border border-purple-200/50 dark:border-purple-500/20 p-1 shadow-lg shadow-purple-500/10">
           <button
             onClick={toggleTheme}
             className={`px-3 py-1.5 text-xs lg:text-sm font-medium transition-all duration-200 ${
               theme === 'light'
-                ? 'bg-[#6366f1] text-white shadow-sm'
-                : 'text-gray-600 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground'
+                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/25'
+                : 'text-gray-600 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground hover:bg-purple-50 dark:hover:bg-purple-900/20'
             }`}
           >
             Light
@@ -68,8 +72,8 @@ export default function LoginPage() {
             onClick={toggleTheme}
             className={`px-3 py-1.5 text-xs lg:text-sm font-medium transition-all duration-200 ${
               theme === 'dark'
-                ? 'bg-[#6366f1] text-white shadow-sm'
-                : 'text-gray-600 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground'
+                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/25'
+                : 'text-gray-600 dark:text-muted-foreground hover:text-gray-900 dark:hover:text-foreground hover:bg-purple-50 dark:hover:bg-purple-900/20'
             }`}
           >
             Dark
@@ -77,19 +81,35 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Login card */}
-      <Card className="w-full max-w-xl relative z-10 shadow-xl bg-white dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700">
-        <CardContent className="pt-12 pb-12 px-12">
+      {/* Login card - Enhanced with Glassmorphism */}
+      <div className="w-full max-w-xl relative z-10 bg-white/95 dark:bg-gray-900/85 backdrop-blur-md border border-purple-200/30 dark:border-purple-500/20 shadow-2xl shadow-purple-500/10 dark:shadow-purple-900/20 overflow-hidden hover:shadow-purple-500/20 dark:hover:shadow-purple-900/30 transition-all duration-300">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_50%)]" />
+        </div>
+        
+        <div className="relative pt-12 pb-12 px-12">
+          {/* Enhanced Inner Background Pattern */}
+          <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.08]">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-transparent to-indigo-500/20" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.1),transparent_60%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,hsl(282_85%_51%/0.08),transparent_60%)]" />
+          </div>
+          
           {/* Logo */}
-          <div className="flex justify-center mb-10">
+          <div className="relative flex justify-center mb-10">
             <Logo size="lg" className="transform hover:scale-105 transition-transform duration-200" />
           </div>
 
-          {/* Header */}
-          <div className="text-center mb-10">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase">
-              Slotthing Admin Panel
-            </h1>
+          {/* Header - Enhanced */}
+          <div className="relative text-center mb-10">
+            <div className="relative inline-block">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-wide">
+                Slotthing Admin Panel
+              </h1>
+              {/* Subtle glow effect behind title */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 blur-sm -z-10 opacity-70 dark:opacity-100" />
+            </div>
             <p className="text-gray-600 dark:text-muted-foreground mt-3 text-base">
               Sign in to access your dashboard
             </p>
@@ -122,7 +142,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={handleRetryUuid}
-                    className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                    className="mt-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline font-medium transition-colors duration-200"
                   >
                     Retry
                   </button>
@@ -131,8 +151,12 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Form - Enhanced Container */}
+          <div className="relative">
+            {/* Subtle form background */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-white/20 dark:from-gray-800/30 dark:to-gray-900/20 backdrop-blur-[2px] rounded-lg border border-white/20 dark:border-gray-700/20 shadow-inner" />
+            
+            <form onSubmit={handleSubmit} className="relative space-y-6 p-6">
             <div className="space-y-5">
               <Input
                 label="Username"
@@ -160,7 +184,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowManualUuid(true)}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition-colors duration-200"
                   >
                     Need to enter project UUID manually?
                   </button>
@@ -202,25 +226,33 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Submit button */}
-            <Button
+            {/* Submit button - Enhanced with Purple Gradient */}
+            <button
               type="submit"
-              className="w-full shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-[1.02] hover:bg-[#5558e3] transition-all duration-200 py-6 text-base font-semibold"
+              className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold py-6 px-6 text-base shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 cursor-pointer transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               disabled={isLoading || isFetchingUuid}
-              isLoading={isLoading || isFetchingUuid}
             >
-              {isLoading || isFetchingUuid ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
+              {isLoading || isFetchingUuid ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Signing in...
+                </div>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+            </form>
+          </div>
 
-          {/* Footer note */}
-          <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-center text-gray-500 dark:text-muted-foreground">
+          {/* Footer note - Enhanced */}
+          <div className="relative mt-8 pt-8 border-t border-purple-200/30 dark:border-purple-500/20">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/5 to-transparent h-px top-0" />
+            <p className="relative text-sm text-center text-gray-500 dark:text-muted-foreground">
               Secure authentication powered by your admin system
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
