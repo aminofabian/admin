@@ -11,8 +11,7 @@ import {
   Badge, 
   Button, 
   Modal,
-  Pagination,
-  SearchInput
+  Pagination
 } from '@/components/ui';
 import { 
   GameActionForm,
@@ -80,7 +79,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     isLoading: transactionsLoading,
     error: transactionsError,
     currentPage: transactionsPage,
-    searchTerm: transactionsSearch,
+    searchTerm: _searchTerm,
     fetchTransactions,
     setPage: setTransactionsPage,
     setSearchTerm: setTransactionsSearch,
@@ -92,7 +91,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     isLoading: queuesLoading,
     error: queuesError,
     currentPage: queuesPage,
-    fetchQueues,
     setPage: setQueuesPage,
     setFilter: setQueuesFilter,
     handleGameAction,

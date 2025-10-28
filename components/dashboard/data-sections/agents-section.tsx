@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { CreateUserRequest, UpdateUserRequest, Affiliate, UpdateAffiliateRequest, AddManualAffiliateRequest } from '@/types';
+import type { CreateUserRequest, UpdateUserRequest, Affiliate, UpdateAffiliateRequest, AddManualAffiliateRequest, Agent } from '@/types';
 import { LoadingState, ErrorState, EmptyState, AgentForm, CommissionSettingsForm, ManualAffiliateForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, Modal } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
@@ -45,7 +45,7 @@ export function AgentsSection() {
   // Local state for UI
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [activeTab, setActiveTab] = useState<'agents' | 'affiliates'>('agents');
   const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
   const [isCommissionModalOpen, setIsCommissionModalOpen] = useState(false);
@@ -109,7 +109,7 @@ export function AgentsSection() {
     setIsDrawerOpen(false);
   };
 
-  const openEditDrawer = (agent: any) => {
+  const openEditDrawer = (agent: Agent) => {
     setSelectedAgent(agent);
     setIsEditDrawerOpen(true);
   };

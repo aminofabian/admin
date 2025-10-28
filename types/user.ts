@@ -31,6 +31,7 @@ export interface Player extends BaseUser {
   winning_balance: string;
   mobile_number?: string;
   dob?: string;
+  state?: string;
 }
 
 export type User = Agent | Manager | Staff | Player;

@@ -1,4 +1,3 @@
-import { apiClient } from './client';
 import type { LoginRequest, LoginResponse, DashboardGamesResponse } from '@/types';
 
 export const authApi = {
@@ -62,6 +61,7 @@ export const authApi = {
     }
     
     // Remove the internal _status field before returning
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _status, ...cleanResult } = result;
     return cleanResult as LoginResponse;
   },

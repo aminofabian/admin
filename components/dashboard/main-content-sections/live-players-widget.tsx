@@ -30,7 +30,6 @@ export function LivePlayersWidget({ stats, statsLoading }: LivePlayersWidgetProp
   
   // Use detailed player data when available, fallback to dashboard stats
   const totalPlayers = players?.count ?? stats?.totalPlayers ?? 0;
-  const activePlayers = players?.results?.filter(p => p.is_active).length ?? stats?.activePlayers ?? 0;
   const activeGames = stats?.activeGames ?? 0;
   
   // Additional business metrics from player data

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePlayersStore } from '@/stores/use-players-store';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
-import type { CreatePlayerRequest, UpdateUserRequest } from '@/types';
+import type { CreatePlayerRequest, UpdateUserRequest, Player } from '@/types';
 import { LoadingState, ErrorState, EmptyState, PlayerForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, Modal, useToast, ConfirmModal } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
@@ -26,7 +26,7 @@ export function PlayersSection() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -39,7 +39,7 @@ export function PlayersSection() {
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
-    player: any;
+    player: Player | null;
     isLoading: boolean;
   }>({
     isOpen: false,
@@ -116,7 +116,7 @@ export function PlayersSection() {
     }
   };
 
-  const handleToggleStatus = async (player: any) => {
+  const handleToggleStatus = async (player: Player) => {
     setConfirmModal({
       isOpen: true,
       player,
@@ -156,7 +156,7 @@ export function PlayersSection() {
     setConfirmModal({ isOpen: false, player: null, isLoading: false });
   };
 
-  const handleViewPlayer = (player: any) => {
+  const handleViewPlayer = (player: Player) => {
     setSelectedPlayer(player);
     setIsViewModalOpen(true);
   };

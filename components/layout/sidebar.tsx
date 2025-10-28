@@ -359,7 +359,7 @@ function SubMenuItemComponent({
         <div 
           className="ml-8 space-y-1 animate-in fade-in-0 slide-in-from-top-1 duration-200"
         >
-          {item.submenu.map((subItem, index) => (
+          {item.submenu.map((subItem) => (
             <SubMenuItemComponent
               key={subItem.href || subItem.name}
               item={subItem}
@@ -463,7 +463,7 @@ function MenuItem({
       
       {isExpanded && category.submenu && (
         <div className="ml-4 space-y-1 pt-1 animate-in fade-in-0 slide-in-from-top-1 duration-200">
-          {category.submenu.map((item, index) => (
+          {category.submenu.map((item) => (
             <SubMenuItemComponent
               key={item.href || item.name}
               item={item}

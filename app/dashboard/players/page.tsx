@@ -454,7 +454,7 @@ export default function PlayersPage() {
               
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">State</h4>
-                <p className="text-gray-900 dark:text-gray-100">{(selectedPlayer as any).state || 'Not provided'}</p>
+                <p className="text-gray-900 dark:text-gray-100">{selectedPlayer?.state || 'Not provided'}</p>
               </div>
             </div>
 

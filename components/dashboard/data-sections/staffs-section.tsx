@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { CreateUserRequest, UpdateUserRequest } from '@/types';
+import type { CreateUserRequest, UpdateUserRequest, Staff } from '@/types';
 import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
@@ -28,7 +28,7 @@ export function StaffsSection() {
   // Local state for UI
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState<any>(null);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
 
   // Initialize data on component mount
   useEffect(() => {
@@ -66,7 +66,7 @@ export function StaffsSection() {
     setIsDrawerOpen(false);
   };
 
-  const openEditDrawer = (staff: any) => {
+  const openEditDrawer = (staff: Staff) => {
     setSelectedStaff(staff);
     setIsEditDrawerOpen(true);
   };
