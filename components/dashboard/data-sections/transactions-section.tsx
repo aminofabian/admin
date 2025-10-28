@@ -83,112 +83,131 @@ export function TransactionsSection() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Transactions
-            {filter !== 'all' && (
-              <span className="ml-3 text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-lg">
-                {filter === 'pending-purchases' ? 'Pending Purchases' :
-                 filter === 'pending-cashouts' ? 'Pending Cashouts' :
-                 filter.charAt(0).toUpperCase() + filter.slice(1)}
-              </span>
-            )}
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            View and manage all platform transactions • Total: {transactions?.count.toLocaleString() || 0}
-          </p>
+      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+            <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-foreground">
+              Transactions
+              {filter !== 'all' && (
+                <span className="ml-3 text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-lg">
+                  {filter === 'pending-purchases' ? 'Pending Purchases' :
+                   filter === 'pending-cashouts' ? 'Pending Cashouts' :
+                   filter.charAt(0).toUpperCase() + filter.slice(1)}
+                </span>
+              )}
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              View and manage all platform transactions • Total: {transactions?.count.toLocaleString() || 0}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Search & Filter */}
-      <div className="space-y-3">
-        <SearchInput
-          value={localSearchTerm}
-          onChange={(e) => setLocalSearchTerm(e.target.value)}
-          placeholder="Search by username, email, description, or transaction ID..."
-        />
+      <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
         
-        {/* Filter Buttons */}
-        <div className="space-y-2">
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'all'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilter('purchases')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'purchases'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-              }`}
-            >
-              Purchases
-            </button>
-            <button
-              onClick={() => setFilter('cashouts')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'cashouts'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-              }`}
-            >
-              Cashouts
-            </button>
-            <button
-              onClick={() => setFilter('processing')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'processing'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-              }`}
-            >
-              Processing
-            </button>
-            <button
-              onClick={() => setFilter('history')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'history'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
-              }`}
-            >
-              History
-            </button>
-          </div>
+        <div className="relative space-y-3">
+          <SearchInput
+            value={localSearchTerm}
+            onChange={(e) => setLocalSearchTerm(e.target.value)}
+            placeholder="Search by username, email, description, or transaction ID..."
+          />
           
-          {/* Pending Filters */}
-          <div className="flex gap-2 flex-wrap">
-            <span className="px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-center">
-              Pending Only:
-            </span>
-            <button
-              onClick={() => setFilter('pending-purchases')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'pending-purchases'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-950/50'
-              }`}
-            >
-              Pending Purchases
-            </button>
-            <button
-              onClick={() => setFilter('pending-cashouts')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                filter === 'pending-cashouts'
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-950/50'
-              }`}
-            >
-              Pending Cashouts
-            </button>
+          {/* Filter Buttons */}
+          <div className="space-y-2">
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'all'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter('purchases')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'purchases'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+                }`}
+              >
+                Purchases
+              </button>
+              <button
+                onClick={() => setFilter('cashouts')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'cashouts'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+                }`}
+              >
+                Cashouts
+              </button>
+              <button
+                onClick={() => setFilter('processing')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'processing'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+                }`}
+              >
+                Processing
+              </button>
+              <button
+                onClick={() => setFilter('history')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'history'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-gray-600 dark:text-gray-400 hover:bg-muted/80'
+                }`}
+              >
+                History
+              </button>
+            </div>
+            
+            {/* Pending Filters */}
+            <div className="flex gap-2 flex-wrap">
+              <span className="px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                Pending Only:
+              </span>
+              <button
+                onClick={() => setFilter('pending-purchases')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'pending-purchases'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-950/50'
+                }`}
+              >
+                Pending Purchases
+              </button>
+              <button
+                onClick={() => setFilter('pending-cashouts')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'pending-cashouts'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-950/50'
+                }`}
+              >
+                Pending Cashouts
+              </button>
+            </div>
           </div>
         </div>
       </div>

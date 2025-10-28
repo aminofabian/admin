@@ -80,21 +80,41 @@ export function AffiliateSettingsSection() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Affiliate Settings
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Configure default commission percentages and fees for new affiliate agents
-        </p>
+      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+            <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-foreground">
+              Affiliate Settings
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              Configure default commission percentages and fees for new affiliate agents
+            </p>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Affiliation Percentage */}
-        <Card className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center shrink-0">
-              <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative flex items-start gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
@@ -120,18 +140,23 @@ export function AffiliateSettingsSection() {
               {errors.default_affiliation_percentage ? (
                 <p className="text-sm text-red-600">{errors.default_affiliation_percentage}</p>
               ) : (
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Default commission percentage for new affiliate agents (0-100%)
                 </p>
               )}
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Fee Percentage */}
-        <Card className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center shrink-0">
+        <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative flex items-start gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-500/20 to-orange-500/10 flex items-center justify-center border border-orange-500/20 shrink-0">
               <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
@@ -158,18 +183,23 @@ export function AffiliateSettingsSection() {
               {errors.default_fee_percentage ? (
                 <p className="text-sm text-red-600">{errors.default_fee_percentage}</p>
               ) : (
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Default fee percentage for new affiliate agents (0-100%)
                 </p>
               )}
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Payment Method Fee */}
-        <Card className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center shrink-0">
+        <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative flex items-start gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-500/10 flex items-center justify-center border border-green-500/20 shrink-0">
               <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
@@ -196,20 +226,20 @@ export function AffiliateSettingsSection() {
               {errors.default_payment_method_fee_percentage ? (
                 <p className="text-sm text-red-600">{errors.default_payment_method_fee_percentage}</p>
               ) : (
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Default payment method fee percentage for new affiliate agents (0-100%)
                 </p>
               )}
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Submit Button */}
         <div className="flex justify-end">
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="px-8"
+            className="px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
           >
             {isSubmitting ? 'Updating...' : 'Save Changes'}
           </Button>

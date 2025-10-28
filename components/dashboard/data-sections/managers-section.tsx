@@ -126,31 +126,55 @@ export function ManagersSection() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Managers</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage all manager accounts and permissions
-          </p>
+      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
         </div>
-        <Button variant="primary" size="md" onClick={() => setIsCreateDrawerOpen(true)}>
-          <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Manager
-        </Button>
+        
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">Managers</h2>
+              <p className="text-muted-foreground mt-1">
+                Manage all manager accounts and permissions
+              </p>
+            </div>
+          </div>
+          <Button 
+            variant="primary" 
+            size="md" 
+            onClick={() => setIsCreateDrawerOpen(true)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Manager
+          </Button>
+        </div>
       </div>
 
       {/* Success Message */}
       {successMessage && (
-        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300 px-4 py-3 flex items-center justify-between rounded-lg">
-          <div className="flex items-center">
+        <div className="relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-green-500/20 text-green-500 px-4 py-3 flex items-center justify-between backdrop-blur-sm shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <span>{successMessage}</span>
           </div>
-          <button onClick={() => setSuccessMessage('')} className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors">
+          <button onClick={() => setSuccessMessage('')} className="text-green-600 hover:text-green-800 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -159,16 +183,29 @@ export function ManagersSection() {
       )}
 
       {/* Search */}
-      <div className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <SearchInput
-          value={localSearchTerm}
-          onChange={(e) => setLocalSearchTerm(e.target.value)}
-          placeholder="Search by username or email..."
-        />
+      <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative flex items-center gap-4">
+          <SearchInput
+            value={localSearchTerm}
+            onChange={(e) => setLocalSearchTerm(e.target.value)}
+            placeholder="Search by username or email..."
+          />
+        </div>
       </div>
 
       {/* Enhanced Table with All Data */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -295,18 +332,26 @@ export function ManagersSection() {
             </TableBody>
           </Table>
         </div>
+        </div>
       </div>
 
       {/* Pagination */}
       {managers && managers.count > pageSize && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(managers.count / pageSize)}
-            hasNext={!!managers.next}
-            hasPrevious={!!managers.previous}
-            onPageChange={setPage}
-          />
+        <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(managers.count / pageSize)}
+              hasNext={!!managers.next}
+              hasPrevious={!!managers.previous}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
       )}
 

@@ -128,52 +128,97 @@ export function GamesSection() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Games</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage all available games and their status
-          </p>
+      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative flex items-center gap-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+            <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-foreground">Games</h2>
+            <p className="text-muted-foreground mt-1">
+              Manage all available games and their status
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by title, code, or category..."
-        />
+      <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative flex items-center gap-4">
+          <SearchInput
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by title, code, or category..."
+          />
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Games</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.count || 0}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Active Games</div>
-          <div className="text-2xl font-bold text-green-500 mt-1">
-            {data?.results?.filter(g => g.game_status).length || 0}
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Total Games</div>
+            <div className="text-2xl font-bold text-foreground mt-1">{data?.count || 0}</div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Inactive Games</div>
-          <div className="text-2xl font-bold text-red-500 mt-1">
-            {data?.results?.filter(g => !g.game_status).length || 0}
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Active Games</div>
+            <div className="text-2xl font-bold text-green-500 mt-1">
+              {data?.results?.filter(g => g.game_status).length || 0}
+            </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Categories</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-            {new Set(data?.results?.map(g => g.game_category)).size || 0}
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Inactive Games</div>
+            <div className="text-2xl font-bold text-red-500 mt-1">
+              {data?.results?.filter(g => !g.game_status).length || 0}
+            </div>
+          </div>
+        </div>
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Categories</div>
+            <div className="text-2xl font-bold text-foreground mt-1">
+              {new Set(data?.results?.map(g => g.game_category)).size || 0}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative">
         <Table>
           <TableHeader>
             <TableRow>
@@ -233,17 +278,27 @@ export function GamesSection() {
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination */}
       {data && data.count > pageSize && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(data.count / pageSize)}
-          hasNext={!!data.next}
-          hasPrevious={!!data.previous}
-          onPageChange={setPage}
-        />
+        <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(data.count / pageSize)}
+              hasNext={!!data.next}
+              hasPrevious={!!data.previous}
+              onPageChange={setPage}
+            />
+          </div>
+        </div>
       )}
 
       {/* Edit Game Drawer */}

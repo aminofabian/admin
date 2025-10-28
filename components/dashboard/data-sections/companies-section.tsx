@@ -101,56 +101,108 @@ export function CompaniesSection() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Companies</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage all companies and their projects
-          </p>
+      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
         </div>
-        <Button variant="primary" size="md" onClick={() => setIsDrawerOpen(true)}>
-          <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Company
-        </Button>
+        
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">Companies</h2>
+              <p className="text-muted-foreground mt-1">
+                Manage all companies and their projects
+              </p>
+            </div>
+          </div>
+          <Button 
+            variant="primary" 
+            size="md" 
+            onClick={() => setIsDrawerOpen(true)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Company
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-4">
-        <SearchInput
-          value={searchTerm}
-          onChange={handleSearchChange}
-          placeholder="Search by username, email, or project name..."
-        />
+      <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative flex items-center gap-4">
+          <SearchInput
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search by username, email, or project name..."
+          />
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Companies</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.count || 0}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
-          <div className="text-2xl font-bold text-green-500 dark:text-green-400 mt-1">
-            {data?.results?.filter(c => c.is_active).length || 0}
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Total Companies</div>
+            <div className="text-2xl font-bold text-foreground mt-1">{data?.count || 0}</div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
-          <div className="text-2xl font-bold text-red-500 dark:text-red-400 mt-1">
-            {data?.results?.filter(c => !c.is_active).length || 0}
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Active</div>
+            <div className="text-2xl font-bold text-green-500 mt-1">
+              {data?.results?.filter(c => c.is_active).length || 0}
+            </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.results?.length || 0}</div>
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Inactive</div>
+            <div className="text-2xl font-bold text-red-500 mt-1">
+              {data?.results?.filter(c => !c.is_active).length || 0}
+            </div>
+          </div>
+        </div>
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">This Page</div>
+            <div className="text-2xl font-bold text-foreground mt-1">{data?.results?.length || 0}</div>
+          </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative">
         <Table>
           <TableHeader>
             <TableRow>
@@ -187,17 +239,27 @@ export function CompaniesSection() {
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination */}
       {data && data.count > pageSize && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(data.count / pageSize)}
-          hasNext={!!data.next}
-          hasPrevious={!!data.previous}
-          onPageChange={handlePageChange}
-        />
+        <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(data.count / pageSize)}
+              hasNext={!!data.next}
+              hasPrevious={!!data.previous}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        </div>
       )}
 
       {/* Add Company Drawer */}

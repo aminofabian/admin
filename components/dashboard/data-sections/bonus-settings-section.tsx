@@ -212,60 +212,87 @@ export function BonusSettingsSection() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Bonus Settings
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Configure various types of bonuses across the platform
-          </p>
+      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
         </div>
-        {(activeTab === 'purchase' || (activeTab === 'transfer' && !transferBonus) || (activeTab === 'signup' && !signupBonus)) && (
-          <button
-            onClick={() => {
-              setSelectedBonus(null);
-              setIsDrawerOpen(true);
-            }}
-            className="px-4 py-2 bg-[#6366f1] hover:bg-[#5558e3] text-white rounded-lg transition-colors inline-flex items-center"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            {activeTab === 'purchase' ? 'Add Purchase Bonus' : 
-             activeTab === 'transfer' ? 'Configure Transfer Bonus' : 
-             activeTab === 'signup' ? 'Configure Signup Bonus' : 'Add Bonus'}
-          </button>
-        )}
+        
+        <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">
+                Bonus Settings
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                Configure various types of bonuses across the platform
+              </p>
+            </div>
+          </div>
+          {(activeTab === 'purchase' || (activeTab === 'transfer' && !transferBonus) || (activeTab === 'signup' && !signupBonus)) && (
+            <button
+              onClick={() => {
+                setSelectedBonus(null);
+                setIsDrawerOpen(true);
+              }}
+              className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-colors inline-flex items-center"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              {activeTab === 'purchase' ? 'Add Purchase Bonus' : 
+               activeTab === 'transfer' ? 'Configure Transfer Bonus' : 
+               activeTab === 'signup' ? 'Configure Signup Bonus' : 'Add Bonus'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-        <div className="flex border-b border-gray-200 dark:border-gray-700">
-          {(['purchase', 'recharge', 'transfer', 'signup'] as BonusType[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab
-                  ? 'border-[#6366f1] text-[#6366f1] dark:text-[#6366f1]'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              {getTabTitle(tab)}
-            </button>
-          ))}
+      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
         </div>
         
-        <div className="p-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {getTabDescription(activeTab)}
-          </p>
+        <div className="relative">
+          <div className="flex border-b border-border/30">
+            {(['purchase', 'recharge', 'transfer', 'signup'] as BonusType[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-3 text-sm font-medium border-b-2 transition-all duration-200 ${
+                  activeTab === tab
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {getTabTitle(tab)}
+              </button>
+            ))}
+          </div>
+          
+          <div className="p-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              {getTabDescription(activeTab)}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Data Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative">
         <Table>
           <TableHeader>
             <TableRow>
@@ -368,18 +395,26 @@ export function BonusSettingsSection() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination for purchase and recharge bonuses */}
       {(activeTab === 'purchase' || activeTab === 'recharge') && totalPages > 1 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            hasPrevious={currentPage > 1}
-            hasNext={currentPage < totalPages}
-          />
+        <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              hasPrevious={currentPage > 1}
+              hasNext={currentPage < totalPages}
+            />
+          </div>
         </div>
       )}
 

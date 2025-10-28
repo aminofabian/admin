@@ -85,46 +85,73 @@ export function CompanySettingsSection() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Company Settings
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage company/whitelabel settings and configurations
-          </p>
-          <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 space-y-1">
-            <div className="flex flex-wrap gap-4">
-              <span><strong>Note:</strong> Only superadmins can create and manage companies</span>
+      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
             </div>
             <div>
-              <strong>Features:</strong> Automatic WhiteLabelAdmin project creation, initial data generation, logo upload support
+              <h2 className="text-3xl font-bold text-foreground">
+                Company Settings
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                Manage company/whitelabel settings and configurations
+              </p>
+              <div className="mt-3 text-xs text-muted-foreground space-y-1">
+                <div className="flex flex-wrap gap-4">
+                  <span><strong>Note:</strong> Only superadmins can create and manage companies</span>
+                </div>
+                <div>
+                  <strong>Features:</strong> Automatic WhiteLabelAdmin project creation, initial data generation, logo upload support
+                </div>
+              </div>
             </div>
           </div>
+          <button
+            onClick={() => {
+              setSelectedCompany(null);
+              setIsDrawerOpen(true);
+            }}
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-colors inline-flex items-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Company
+          </button>
         </div>
-        <button
-          onClick={() => {
-            setSelectedCompany(null);
-            setIsDrawerOpen(true);
-          }}
-          className="px-4 py-2 bg-[#6366f1] hover:bg-[#5558e3] text-white rounded-lg transition-colors inline-flex items-center"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Company
-        </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search companies by username, email, or project name..."
-        />
+      <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative">
+          <SearchInput
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search companies by username, email, or project name..."
+          />
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative">
         <Table>
           <TableHeader>
             <TableRow>
@@ -213,17 +240,25 @@ export function CompanySettingsSection() {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {totalPages > 1 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setPage}
-            hasPrevious={currentPage > 1}
-            hasNext={currentPage < totalPages}
-          />
+        <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              hasPrevious={currentPage > 1}
+              hasNext={currentPage < totalPages}
+            />
+          </div>
         </div>
       )}
 

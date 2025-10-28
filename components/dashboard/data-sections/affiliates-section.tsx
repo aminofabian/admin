@@ -125,58 +125,110 @@ export function AffiliatesSection() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Affiliate Network</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage agent affiliates and commission tracking
-          </p>
+      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
         </div>
-        <Button variant="primary" size="md" onClick={() => setIsAddDrawerOpen(true)}>
-          <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Manual Affiliate
-        </Button>
+        
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
+              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">Affiliate Network</h2>
+              <p className="text-muted-foreground mt-1">
+                Manage agent affiliates and commission tracking
+              </p>
+            </div>
+          </div>
+          <Button 
+            variant="primary" 
+            size="md" 
+            onClick={() => setIsAddDrawerOpen(true)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Manual Affiliate
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by agent name or email..."
-        />
+      <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative flex items-center gap-4">
+          <SearchInput
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by agent name or email..."
+          />
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Affiliates</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{data?.count || 0}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Players</div>
-          <div className="text-2xl font-bold text-blue-500 mt-1">
-            {data?.results?.reduce((sum, aff) => sum + aff.total_players, 0) || 0}
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Total Affiliates</div>
+            <div className="text-2xl font-bold text-foreground mt-1">{data?.count || 0}</div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Earnings</div>
-          <div className="text-2xl font-bold text-green-500 mt-1">
-            {formatCurrency(data?.results?.reduce((sum, aff) => sum + aff.total_earnings, 0) || 0)}
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Total Players</div>
+            <div className="text-2xl font-bold text-primary mt-1">
+              {data?.results?.reduce((sum, aff) => sum + aff.total_players, 0) || 0}
+            </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Topup</div>
-          <div className="text-2xl font-bold text-purple-500 mt-1">
-            {formatCurrency(data?.results?.reduce((sum, aff) => sum + aff.total_topup, 0) || 0)}
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Total Earnings</div>
+            <div className="text-2xl font-bold text-green-500 mt-1">
+              {formatCurrency(data?.results?.reduce((sum, aff) => sum + aff.total_earnings, 0) || 0)}
+            </div>
+          </div>
+        </div>
+        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          <div className="relative">
+            <div className="text-sm text-muted-foreground">Total Topup</div>
+            <div className="text-2xl font-bold text-primary mt-1">
+              {formatCurrency(data?.results?.reduce((sum, aff) => sum + aff.total_topup, 0) || 0)}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+        {/* Subtle background pattern */}
+        <div className="absolute inset-0 opacity-[0.015]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+        </div>
+        
+        <div className="relative">
         <Table>
           <TableHeader>
             <TableRow>
@@ -243,18 +295,26 @@ export function AffiliatesSection() {
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination */}
       {data && data.count > pageSize && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(data.count / pageSize)}
-            hasNext={!!data.next}
-            hasPrevious={!!data.previous}
-            onPageChange={setPage}
-          />
+        <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-[0.015]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+          </div>
+          
+          <div className="relative">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(data.count / pageSize)}
+              hasNext={!!data.next}
+              hasPrevious={!!data.previous}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
       )}
 
