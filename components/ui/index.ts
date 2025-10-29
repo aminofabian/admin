@@ -10,4 +10,5 @@ export * from './search-input';
 export * from './logo';
 export * from './toast';
 export * from './confirm-modal';
+export * from './truncated-text-copy';
 

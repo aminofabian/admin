@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTransactionsStore } from '@/stores';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, TruncatedTextWithCopy } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 
 export function TransactionsSection() {
@@ -351,14 +351,18 @@ export function TransactionsSection() {
       )}
 
       {/* Enhanced Table with More Details */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Transaction Details
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Comprehensive transaction information with all available data
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Transaction Details
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                {transactions?.results?.length || 0} transactions shown
+              </p>
+            </div>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <Table>
@@ -385,13 +389,15 @@ export function TransactionsSection() {
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
                           {transaction.user_username.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
                             {transaction.user_username}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {transaction.user_email}
-                          </div>
+                          <TruncatedTextWithCopy 
+                            text={transaction.user_email}
+                            maxLength={25}
+                            className="text-xs text-gray-500 dark:text-gray-400"
+                          />
                         </div>
                       </div>
                     </div>
@@ -401,16 +407,22 @@ export function TransactionsSection() {
                   <TableCell>
                     <div className="space-y-1.5">
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {transaction.description}
+                        <TruncatedTextWithCopy 
+                          text={transaction.description}
+                          maxLength={40}
+                        />
                       </div>
                       <div className="space-y-0.5 text-xs">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap">
                           <span className="text-gray-500 dark:text-gray-400">ID:</span>
                           <code className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">
-                            {transaction.unique_id}
+                            <TruncatedTextWithCopy 
+                              text={transaction.unique_id}
+                              maxLength={15}
+                            />
                           </code>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap">
                           <Badge 
                             variant={transaction.type === 'purchase' ? 'success' : 'warning'}
                             className="text-xs"
@@ -418,7 +430,7 @@ export function TransactionsSection() {
                             {transaction.type.toUpperCase()}
                           </Badge>
                           <span className="text-gray-400">•</span>
-                          <Badge variant="info" className="text-xs">
+                          <Badge variant="info" className="text-xs max-w-[80px] truncate">
                             {transaction.action || 'N/A'}
                           </Badge>
                         </div>
@@ -519,7 +531,7 @@ export function TransactionsSection() {
                     <div className="space-y-2">
                       <div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Operator</div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                           {transaction.operator}
                         </div>
                       </div>
@@ -555,15 +567,21 @@ export function TransactionsSection() {
                     <div className="space-y-2">
                       <div className="text-xs">
                         <div className="text-gray-500 dark:text-gray-400 mb-1">Internal ID</div>
-                        <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono">
-                          {transaction.id}
+                        <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono block">
+                          <TruncatedTextWithCopy 
+                            text={transaction.id}
+                            maxLength={20}
+                          />
                         </code>
                       </div>
                       {transaction.remarks && (
                         <div className="text-xs">
                           <div className="text-gray-500 dark:text-gray-400 mb-1">Remarks</div>
                           <div className="text-gray-700 dark:text-gray-300 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded border border-yellow-200 dark:border-yellow-800">
-                            {transaction.remarks}
+                            <TruncatedTextWithCopy 
+                              text={transaction.remarks}
+                              maxLength={30}
+                            />
                           </div>
                         </div>
                       )}
