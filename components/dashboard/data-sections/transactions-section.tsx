@@ -203,60 +203,44 @@ export function TransactionsSection() {
       </div>
 
       {/* Primary Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground font-medium mb-2">Total Transactions</div>
-              <div className="text-3xl font-bold text-foreground">
-                {transactions?.count.toLocaleString() || 0}
-              </div>
-              <div className="text-xs text-muted-foreground mt-2">
-                Showing {transactions?.results?.length || 0} of {transactions?.count || 0}
-              </div>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-card rounded-lg p-3 border border-border">
+          <div className="text-xs text-muted-foreground font-medium mb-1">Total Transactions</div>
+          <div className="text-2xl font-bold text-foreground">
+            {transactions?.count.toLocaleString() || 0}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Showing {transactions?.results?.length || 0} of {transactions?.count || 0}
           </div>
         </div>
 
-        <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground font-medium mb-2">Success Rate</div>
-              <div className="text-3xl font-bold text-foreground">
-                {successRate}%
-              </div>
-              <div className="text-xs text-muted-foreground mt-2">
-                {completedCount} completed
-              </div>
-            </div>
+        <div className="bg-card rounded-lg p-3 border border-border">
+          <div className="text-xs text-muted-foreground font-medium mb-1">Success Rate</div>
+          <div className="text-2xl font-bold text-foreground">
+            {successRate}%
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {completedCount} completed
           </div>
         </div>
 
-        <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground font-medium mb-2">Page Volume</div>
-              <div className="text-3xl font-bold text-foreground">
-                {formatCurrency(totalAmount)}
-              </div>
-              <div className="text-xs text-muted-foreground mt-2">
-                +{formatCurrency(totalBonus)} bonus
-              </div>
-            </div>
+        <div className="bg-card rounded-lg p-3 border border-border">
+          <div className="text-xs text-muted-foreground font-medium mb-1">Page Volume</div>
+          <div className="text-2xl font-bold text-foreground">
+            {formatCurrency(totalAmount)}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            +{formatCurrency(totalBonus)} bonus
           </div>
         </div>
 
-        <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground font-medium mb-2">Unique Users</div>
-              <div className="text-3xl font-bold text-foreground">
-                {uniqueUsers}
-              </div>
-              <div className="text-xs text-muted-foreground mt-2">
-                Avg: {formatCurrency(avgTransactionValue)}
-              </div>
-            </div>
+        <div className="bg-card rounded-lg p-3 border border-border">
+          <div className="text-xs text-muted-foreground font-medium mb-1">Unique Users</div>
+          <div className="text-2xl font-bold text-foreground">
+            {uniqueUsers}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Avg: {formatCurrency(avgTransactionValue)}
           </div>
         </div>
       </div>
