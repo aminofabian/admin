@@ -63,9 +63,9 @@ export const playersApi = {
     }),
 
   create: (data: CreateUserRequest) => 
-    apiClient.post<Player>(API_ENDPOINTS.PLAYERS.LIST, data),
+    apiClient.post<Player>('api/admin/players', data),
 
   update: (id: number, data: UpdateUserRequest) => 
-    apiClient.patch<Player>(API_ENDPOINTS.PLAYERS.DETAIL(id), data),
+    apiClient.patch<Player>(`api/admin/players/${id}`, data),
 };
 
