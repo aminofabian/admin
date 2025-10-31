@@ -8,6 +8,11 @@ import type { CreatePlayerRequest, UpdateUserRequest, Player } from '@/types';
 import { LoadingState, ErrorState, EmptyState, PlayerForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, Modal, useToast, ConfirmModal } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
+import { useSearch } from '@/lib/hooks/use-search';
+
+const PLAYER_UPDATE_SUCCESS_TITLE = 'Player updated';
+const PLAYER_UPDATE_ERROR_TITLE = 'Update failed';
+const PLAYER_UPDATE_ERROR_DEFAULT = 'Failed to update player status';
 
 export function PlayersSection() {
   const { user } = useAuth();
@@ -20,8 +25,15 @@ export function PlayersSection() {
     pageSize,
     fetchPlayers, 
     createPlayer,
+    updatePlayer,
     setPage, 
-    setSearchTerm 
+    setSearchTerm,
+    statusFilter,
+    stateFilter,
+    dateFilter,
+    setStatusFilter,
+    setStateFilter,
+    setDateFilter,
   } = usePlayersStore();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -31,10 +43,8 @@ export function PlayersSection() {
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   
-  // Filter states
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [stateFilter, setStateFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('all');
+  // Debounced search UX
+  const { search, debouncedSearch, setSearch } = useSearch(searchTerm);
   
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -125,27 +135,30 @@ export function PlayersSection() {
   };
 
   const handleConfirmToggle = async () => {
-    if (!confirmModal.player) return;
+    const playerToToggle = confirmModal.player;
+    if (!playerToToggle) {
+      return;
+    }
 
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const actionPast = confirmModal.player.is_active ? 'deactivated' : 'activated';
-      
-      // Since we don't have updatePlayer in the store, we'll simulate it
+      const nextStatus = !playerToToggle.is_active;
+      await updatePlayer(playerToToggle.id, { is_active: nextStatus });
+
+      const statusVerb = nextStatus ? 'activated' : 'deactivated';
       addToast({
         type: 'success',
-        title: 'Player updated',
-        description: `"${confirmModal.player.username}" has been ${actionPast} successfully!`,
+        title: PLAYER_UPDATE_SUCCESS_TITLE,
+        description: `"${playerToToggle.username}" has been ${statusVerb} successfully!`,
       });
-      
+
       setConfirmModal({ isOpen: false, player: null, isLoading: false });
-      await fetchPlayers(); // Refresh the list
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update player status';
+      const errorMessage = err instanceof Error ? err.message : PLAYER_UPDATE_ERROR_DEFAULT;
       addToast({
         type: 'error',
-        title: 'Update failed',
+        title: PLAYER_UPDATE_ERROR_TITLE,
         description: errorMessage,
       });
       setConfirmModal(prev => ({ ...prev, isLoading: false }));
@@ -169,8 +182,16 @@ export function PlayersSection() {
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    setSearch(e.target.value);
   };
+
+  useEffect(() => {
+    // apply debounced search to store and fetch
+    if (debouncedSearch !== searchTerm) {
+      setSearchTerm(debouncedSearch);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const handlePageChange = (page: number) => {
     setPage(page);
@@ -214,7 +235,7 @@ export function PlayersSection() {
       {/* Search */}
       <div className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
         <SearchInput
-          value={searchTerm}
+          value={search}
           onChange={handleSearchChange}
           placeholder="Search by username, full name, or email..."
         />
@@ -228,7 +249,7 @@ export function PlayersSection() {
           </label>
           <select 
             value={statusFilter} 
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Status</option>
@@ -258,7 +279,7 @@ export function PlayersSection() {
           </label>
           <select 
             value={dateFilter} 
-            onChange={(e) => setDateFilter(e.target.value)}
+            onChange={(e) => setDateFilter(e.target.value as 'all' | 'today' | 'week' | 'month' | 'year')}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Time</option>
