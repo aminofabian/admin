@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useManagersStore } from '@/stores';
 import { useSearch } from '@/lib/hooks';
 import { 
@@ -23,7 +23,6 @@ import {
 import { LoadingState, ErrorState, EmptyState, ManagerForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import type { Manager, CreateUserRequest, UpdateUserRequest } from '@/types';
-import { useState } from 'react';
 
 export default function ManagersPage() {
   const {
@@ -109,7 +108,6 @@ export default function ManagersPage() {
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const action = confirmModal.manager.is_active ? 'deactivate' : 'activate';
       const actionPast = confirmModal.manager.is_active ? 'deactivated' : 'activated';
       
       await updateManager(confirmModal.manager.id, { is_active: !confirmModal.manager.is_active });

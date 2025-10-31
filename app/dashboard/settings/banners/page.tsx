@@ -36,7 +36,6 @@ export default function BannersPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchBanners();
@@ -45,7 +44,6 @@ export default function BannersPage() {
 
   const handleSubmit = async (formData: CreateBannerRequest | UpdateBannerRequest) => {
     try {
-      setIsSubmitting(true);
       if (selectedBanner) {
         await updateBanner(selectedBanner.id, formData as UpdateBannerRequest);
       } else {
@@ -55,8 +53,6 @@ export default function BannersPage() {
       setSelectedBanner(null);
     } catch (err) {
       console.error('Error saving banner:', err);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

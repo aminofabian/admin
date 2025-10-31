@@ -122,7 +122,6 @@ export default function PlayersPage() {
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const action = confirmModal.player.is_active ? 'deactivate' : 'activate';
       const actionPast = confirmModal.player.is_active ? 'deactivated' : 'activated';
       
       await playersApi.update(confirmModal.player.id, { is_active: !confirmModal.player.is_active });

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const RAW_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
 const BACKEND_URL = RAW_BACKEND_URL.replace(/\/$/, '');
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function PATCH(request: Request, context: { params: { id: string } }) {
+  const { id } = context.params;
 
   if (!id) {
     return NextResponse.json(

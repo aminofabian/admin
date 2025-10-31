@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useSearch } from '@/lib/hooks';
 import { useTransactionsStore } from '@/stores';
 import { 
@@ -23,7 +23,6 @@ export default function HistoryTransactionsPage() {
     isLoading,
     error,
     currentPage,
-    filter,
     setPage,
     setSearchTerm,
     setFilter,
@@ -86,7 +85,7 @@ export default function HistoryTransactionsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Total Transactions</span>
@@ -105,6 +104,16 @@ export default function HistoryTransactionsPage() {
             </svg>
           </div>
           <div className="text-2xl font-bold text-green-600">{completedCount}</div>
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">Cancelled</span>
+            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <div className="text-2xl font-bold text-muted-foreground">{cancelledCount}</div>
         </div>
 
         <div className="bg-card border border-border rounded-lg p-6">
