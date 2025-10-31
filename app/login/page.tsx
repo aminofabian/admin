@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { useTheme } from '@/providers/theme-provider';
-import { Button, Input, Card, CardContent, Logo } from '@/components/ui';
+import { Input, Logo } from '@/components/ui';
 import type { LoginRequest } from '@/types';
 
 export default function LoginPage() {

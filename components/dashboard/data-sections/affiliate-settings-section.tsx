@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAffiliateSettingsStore } from '@/stores';
-import { Card, Button, Input } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
 import { LoadingState, ErrorState } from '@/components/features';
 
 export function AffiliateSettingsSection() {

@@ -110,6 +110,10 @@ export default function TransactionsPage() {
               <span className="font-semibold text-gray-900 dark:text-gray-100">{transactions?.count.toLocaleString() || 0}</span>
             </div>
             <div className="flex items-center gap-2">
+              <span className="text-gray-600 dark:text-gray-400">Volume:</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(totalAmount)}</span>
+            </div>
+            <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-gray-400"></div>
               <span className="text-gray-600 dark:text-gray-400">Completed:</span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">{completedCount}</span>

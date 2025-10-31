@@ -106,7 +106,6 @@ export default function StaffsPage() {
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const action = confirmModal.staff.is_active ? 'deactivate' : 'activate';
       const actionPast = confirmModal.staff.is_active ? 'deactivated' : 'activated';
       
       await staffsApi.update(confirmModal.staff.id, { is_active: !confirmModal.staff.is_active });

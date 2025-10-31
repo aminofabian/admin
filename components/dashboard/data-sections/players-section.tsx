@@ -74,6 +74,16 @@ export function PlayersSection() {
     }
   }, [successMessage]);
 
+  useEffect(() => {
+    if (!canManagePlayers) {
+      return;
+    }
+
+    if (debouncedSearch !== searchTerm) {
+      setSearchTerm(debouncedSearch);
+    }
+  }, [canManagePlayers, debouncedSearch, searchTerm, setSearchTerm]);
+
   if (!canManagePlayers) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
@@ -184,14 +194,6 @@ export function PlayersSection() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
   };
-
-  useEffect(() => {
-    // apply debounced search to store and fetch
-    if (debouncedSearch !== searchTerm) {
-      setSearchTerm(debouncedSearch);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
 
   const handlePageChange = (page: number) => {
     setPage(page);

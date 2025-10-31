@@ -79,7 +79,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     isLoading: transactionsLoading,
     error: transactionsError,
     currentPage: transactionsPage,
-    searchTerm: _searchTerm,
     fetchTransactions,
     setPage: setTransactionsPage,
     setSearchTerm: setTransactionsSearch,
