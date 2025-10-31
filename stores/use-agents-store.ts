@@ -206,6 +206,8 @@ export const useAgentsStore = create<AgentsStore>((set, get) => ({
       
       set({ operationError: errorMessage, isCreating: false });
       throw new Error(errorMessage);
+    } finally {
+      set({ isCreating: false });
     }
   },
 
@@ -241,6 +243,8 @@ export const useAgentsStore = create<AgentsStore>((set, get) => ({
       
       set({ operationError: errorMessage, isUpdating: false });
       throw new Error(errorMessage);
+    } finally {
+      set({ isUpdating: false });
     }
   },
 
@@ -277,6 +281,8 @@ export const useAgentsStore = create<AgentsStore>((set, get) => ({
       
       set({ operationError: errorMessage, isUpdatingAffiliate: false });
       throw new Error(errorMessage);
+    } finally {
+      set({ isUpdatingAffiliate: false });
     }
   },
 
@@ -308,6 +314,8 @@ export const useAgentsStore = create<AgentsStore>((set, get) => ({
       
       set({ operationError: errorMessage, isAddingManualAffiliate: false });
       throw new Error(errorMessage);
+    } finally {
+      set({ isAddingManualAffiliate: false });
     }
   },
 

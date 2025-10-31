@@ -37,10 +37,10 @@ export const agentsApi = {
     }),
 
   create: (data: CreateUserRequest) => 
-    apiClient.post<Agent>(API_ENDPOINTS.AGENTS.LIST, data),
+    apiClient.post<Agent>('api/admin/agents', data),
 
   update: (id: number, data: UpdateUserRequest) => 
-    apiClient.patch<Agent>(API_ENDPOINTS.AGENTS.DETAIL(id), data),
+    apiClient.patch<Agent>(`api/admin/agents/${id}`, data),
 };
 
 export const staffsApi = {
