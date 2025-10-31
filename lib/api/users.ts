@@ -50,10 +50,10 @@ export const staffsApi = {
     }),
 
   create: (data: CreateUserRequest) => 
-    apiClient.post<Staff>(API_ENDPOINTS.STAFFS.LIST, data),
+    apiClient.post<Staff>('api/admin/staffs', data),
 
   update: (id: number, data: UpdateUserRequest) => 
-    apiClient.patch<Staff>(API_ENDPOINTS.STAFFS.DETAIL(id), data),
+    apiClient.patch<Staff>(`api/admin/staffs/${id}`, data),
 };
 
 export const playersApi = {

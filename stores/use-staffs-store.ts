@@ -130,6 +130,8 @@ export const useStaffsStore = create<StaffsStore>((set, get) => ({
       
       set({ operationError: errorMessage, isCreating: false });
       throw new Error(errorMessage);
+    } finally {
+      set({ isCreating: false });
     }
   },
 
@@ -161,6 +163,8 @@ export const useStaffsStore = create<StaffsStore>((set, get) => ({
       
       set({ operationError: errorMessage, isUpdating: false });
       throw new Error(errorMessage);
+    } finally {
+      set({ isUpdating: false });
     }
   },
 
