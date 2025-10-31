@@ -10,11 +10,18 @@ import type {
   AffiliateDefaults
 } from '@/types';
 import { LoadingState, ErrorState, EmptyState, PurchaseBonusForm } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, useToast } from '@/components/ui';
 import { useBonusesStore } from '@/stores/use-bonuses-store';
 
 type BonusItem = PurchaseBonusSettings | RechargeBonusSettings | TransferBonusSettings | SignupBonusSettings;
 type AllItems = BonusItem | AffiliateDefaults;
+type ToggleableBonus = RechargeBonusSettings | TransferBonusSettings | SignupBonusSettings;
+
+const BONUS_TOGGLE_SUCCESS_TITLE = 'Bonus updated';
+const BONUS_TOGGLE_ERROR_TITLE = 'Update failed';
+const BONUS_TOGGLE_ERROR_DEFAULT = 'Failed to update bonus status';
+const BONUS_ENABLE_LABEL = 'Enable';
+const BONUS_DISABLE_LABEL = 'Disable';
 
 export function BonusesSection() {
   const {
@@ -31,6 +38,9 @@ export function BonusesSection() {
     operationLoading,
     createPurchaseBonus,
     fetchAllBonuses,
+    updateRechargeBonus,
+    updateTransferBonus,
+    updateSignupBonus,
     setPage,
     setSearchTerm,
     clearErrors,
@@ -39,6 +49,7 @@ export function BonusesSection() {
   // Local state for UI
   const [activeTab, setActiveTab] = useState<'purchase' | 'recharge' | 'transfer' | 'signup' | 'affiliate'>('purchase');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { addToast } = useToast();
 
   // Initialize data on component mount
   useEffect(() => {
@@ -64,6 +75,61 @@ export function BonusesSection() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+  };
+
+  const isToggleableBonus = (item: AllItems): item is ToggleableBonus => 'is_enabled' in item;
+
+  const getBonusDisplayName = (item: AllItems) => {
+    const record = item as unknown as Record<string, unknown>;
+    const name = record.name;
+    if (typeof name === 'string' && name.trim()) {
+      return name;
+    }
+    const displayText = record.display_text;
+    if (typeof displayText === 'string' && displayText.trim()) {
+      return displayText;
+    }
+    const bonusName = record.bonus_name;
+    if (typeof bonusName === 'string' && bonusName.trim()) {
+      return bonusName;
+    }
+    return `Bonus ${item.id}`;
+  };
+
+  const getToggleLoading = () => {
+    if (activeTab === 'recharge') return operationLoading.recharge;
+    if (activeTab === 'transfer') return operationLoading.transfer;
+    if (activeTab === 'signup') return operationLoading.signup;
+    return false;
+  };
+
+  const handleToggleBonus = async (bonus: ToggleableBonus) => {
+    const nextStatus = !bonus.is_enabled;
+    try {
+      if (activeTab === 'recharge') {
+        await updateRechargeBonus(bonus.id, { is_enabled: nextStatus });
+      } else if (activeTab === 'transfer') {
+        await updateTransferBonus(bonus.id, { is_enabled: nextStatus });
+      } else if (activeTab === 'signup') {
+        await updateSignupBonus(bonus.id, { is_enabled: nextStatus });
+      } else {
+        return;
+      }
+
+      const statusVerb = nextStatus ? 'enabled' : 'disabled';
+      addToast({
+        type: 'success',
+        title: BONUS_TOGGLE_SUCCESS_TITLE,
+        description: `"${getBonusDisplayName(bonus)}" has been ${statusVerb} successfully!`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : BONUS_TOGGLE_ERROR_DEFAULT;
+      addToast({
+        type: 'error',
+        title: BONUS_TOGGLE_ERROR_TITLE,
+        description: message,
+      });
+    }
   };
 
 
@@ -355,13 +421,33 @@ export function BonusesSection() {
                     </TableCell>
                     {/* eslint-enable @typescript-eslint/no-explicit-any */}
                     <TableCell>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => {/* Handle edit */}}
-                      >
-                        Edit
-                      </Button>
+                      {isToggleableBonus(item) ? (
+                        <div className="flex gap-2">
+                          <Button
+                            variant={item.is_enabled ? 'danger' : 'primary'}
+                            size="sm"
+                            onClick={() => handleToggleBonus(item)}
+                            disabled={getToggleLoading()}
+                          >
+                            {item.is_enabled ? BONUS_DISABLE_LABEL : BONUS_ENABLE_LABEL}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {/* Handle edit */}}
+                          >
+                            Edit
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => {/* Handle edit */}}
+                        >
+                          Edit
+                        </Button>
+                      )}
                     </TableCell>
                   </>
                 )}
