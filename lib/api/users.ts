@@ -24,10 +24,10 @@ export const managersApi = {
     }),
 
   create: (data: CreateUserRequest) => 
-    apiClient.post<Manager>(API_ENDPOINTS.MANAGERS.LIST, data),
+    apiClient.post<Manager>('api/admin/managers', data),
 
   update: (id: number, data: UpdateUserRequest) => 
-    apiClient.patch<Manager>(API_ENDPOINTS.MANAGERS.DETAIL(id), data),
+    apiClient.patch<Manager>(`api/admin/managers/${id}`, data),
 };
 
 export const agentsApi = {

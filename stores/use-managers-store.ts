@@ -79,8 +79,10 @@ export const useManagersStore = create<ManagersStore>((set, get) => ({
   },
 
   createManager: async (data: CreateUserRequest) => {
+    set({ error: null });
     try {
-      const manager = await managersApi.create(data);
+      const managerData = { ...data, role: 'manager' as const };
+      const manager = await managersApi.create(managerData);
       
       if (!manager) {
         throw new Error('No data returned from server');
@@ -121,6 +123,7 @@ export const useManagersStore = create<ManagersStore>((set, get) => ({
   },
 
   updateManager: async (id: number, data: UpdateUserRequest) => {
+    set({ error: null });
     try {
       const manager = await managersApi.update(id, data);
       
