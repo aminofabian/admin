@@ -1,10 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+
+type RouteContextParams = {
+  params?: Promise<Record<string, string | string[] | undefined>>;
+};
 
 const RAW_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
 const BACKEND_URL = RAW_BACKEND_URL.replace(/\/$/, '');
 
-export async function PATCH(request: Request, context: { params: { id: string } }) {
-  const { id } = context.params;
+export async function PATCH(request: NextRequest, context: RouteContextParams) {
+  const params = context.params ? await context.params : undefined;
+  const rawId = params?.id;
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
 
   if (!id) {
     return NextResponse.json(

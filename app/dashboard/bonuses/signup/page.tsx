@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useBonusesStore } from '@/stores';
 import { 
   Table, 
@@ -13,7 +13,7 @@ import {
   Button,
 } from '@/components/ui';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import type { SignupBonus, UpdateBonusRequest } from '@/types';
+import type { SignupBonus } from '@/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 export default function SignUpBonusPage() {
@@ -23,10 +23,7 @@ export default function SignUpBonusPage() {
     error,
     operationLoading,
     fetchSignupBonuses,
-    updateSignupBonus,
   } = useBonusesStore();
-
-  const [selectedBonus, setSelectedBonus] = useState<SignupBonus | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -35,7 +32,6 @@ export default function SignUpBonusPage() {
   }, []);
 
   const handleEditBonus = (bonus: SignupBonus) => {
-    // TODO: Open edit modal
     console.log('Edit bonus:', bonus);
   };
 

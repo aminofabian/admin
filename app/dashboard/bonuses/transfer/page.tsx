@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useBonusesStore } from '@/stores';
 import { 
   Table, 
@@ -13,7 +13,7 @@ import {
   Button,
 } from '@/components/ui';
 import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import type { TransferBonus, UpdateBonusRequest } from '@/types';
+import type { TransferBonus } from '@/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 export default function TransferBonusPage() {
@@ -23,10 +23,7 @@ export default function TransferBonusPage() {
     error,
     operationLoading,
     fetchTransferBonuses,
-    updateTransferBonus,
   } = useBonusesStore();
-
-  const [selectedBonus, setSelectedBonus] = useState<TransferBonus | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -35,7 +32,6 @@ export default function TransferBonusPage() {
   }, []);
 
   const handleEditBonus = (bonus: TransferBonus) => {
-    // TODO: Open edit modal
     console.log('Edit bonus:', bonus);
   };
 

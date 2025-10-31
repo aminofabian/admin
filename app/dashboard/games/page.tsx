@@ -112,7 +112,6 @@ export default function GamesPage() {
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const action = confirmModal.game.game_status ? 'disable' : 'enable';
       const actionPast = confirmModal.game.game_status ? 'disabled' : 'enabled';
       
       await updateGame(confirmModal.game.id, { game_status: !confirmModal.game.game_status });
