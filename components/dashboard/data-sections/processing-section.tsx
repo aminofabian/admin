@@ -223,7 +223,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, o
           {isPending ? (
             <>
               <Button
-                variant="default"
+                variant="primary"
                 size="sm"
                 className="font-medium"
                 onClick={() => void onComplete()}
@@ -232,7 +232,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, o
                 Complete
               </Button>
               <Button
-                variant="destructive"
+                variant="danger"
                 size="sm"
                 className="font-medium"
                 onClick={() => void onCancel()}
@@ -482,7 +482,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                       <>
                         <Button
                           size="sm"
-                          variant="default"
+                          variant="primary"
                           disabled={actionLoading}
                           onClick={() => handleQuickAction(queue, 'retry')}
                         >
@@ -490,7 +490,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                         </Button>
                         <Button
                           size="sm"
-                          variant="destructive"
+                          variant="danger"
                           disabled={actionLoading}
                           onClick={() => handleQuickAction(queue, 'cancel')}
                         >
