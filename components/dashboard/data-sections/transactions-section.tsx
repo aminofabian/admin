@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import {
   DashboardActionBar,
@@ -17,6 +17,7 @@ import { useSearch } from '@/lib/hooks';
 import { useTransactionsStore } from '@/stores';
 import type { Transaction } from '@/types';
 import { PROJECT_DOMAIN } from '@/lib/constants/api';
+import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 
 const HEADER_ICON = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -44,6 +45,46 @@ const PENDING_FILTER_OPTIONS = [
   { value: 'pending-cashouts', label: 'Pending Cashouts' },
 ] as const;
 
+const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
+  agent: '',
+  username: '',
+  email: '',
+  transaction_id: '',
+  operator: '',
+  type: '',
+  payment_method: '',
+  status: '',
+  date_from: '',
+  date_to: '',
+  amount_min: '',
+  amount_max: '',
+};
+
+function buildHistoryFilterState(advanced: Record<string, string>): HistoryTransactionsFiltersState {
+  const txn = advanced.txn ?? '';
+  const derivedType =
+    txn === 'purchases'
+      ? 'purchase'
+      : txn === 'cashouts'
+        ? 'cashout'
+        : advanced.type ?? '';
+
+  return {
+    agent: advanced.agent ?? '',
+    username: advanced.username ?? '',
+    email: advanced.email ?? '',
+    transaction_id: advanced.transaction_id ?? '',
+    operator: advanced.operator ?? '',
+    type: derivedType,
+    payment_method: advanced.payment_method ?? '',
+    status: advanced.status ?? '',
+    date_from: advanced.date_from ?? '',
+    date_to: advanced.date_to ?? '',
+    amount_min: advanced.amount_min ?? '',
+    amount_max: advanced.amount_max ?? '',
+  };
+}
+
 export function TransactionsSection() {
   const {
     transactions,
@@ -57,9 +98,14 @@ export function TransactionsSection() {
     setSearchTerm,
     setFilter,
     fetchTransactions,
+    advancedFilters,
+    setAdvancedFilters,
+    clearAdvancedFilters,
   } = useTransactionsStore();
 
   const { search, debouncedSearch, setSearch } = useSearch(searchTerm);
+  const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
+  const [areFiltersOpen, setAreFiltersOpen] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -70,6 +116,49 @@ export function TransactionsSection() {
       setSearchTerm(debouncedSearch);
     }
   }, [debouncedSearch, searchTerm, setSearchTerm]);
+
+  useEffect(() => {
+    setFilters(buildHistoryFilterState(advancedFilters));
+
+    if (Object.keys(advancedFilters).length > 0) {
+      setAreFiltersOpen(true);
+    }
+  }, [advancedFilters]);
+
+  const handleAdvancedFilterChange = (key: keyof HistoryTransactionsFiltersState, value: string) => {
+    setFilters((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const handleApplyAdvancedFilters = () => {
+    const sanitized = Object.fromEntries(
+      Object.entries(filters).filter(([, value]) => value.trim() !== '')
+    ) as Record<string, string>;
+
+    if (sanitized.type) {
+      const txnValue = sanitized.type === 'purchase'
+        ? 'purchases'
+        : sanitized.type === 'cashout'
+          ? 'cashouts'
+          : '';
+
+      if (txnValue) {
+        sanitized.txn = txnValue;
+      }
+
+      delete sanitized.type;
+    }
+
+    setAdvancedFilters(sanitized);
+  };
+
+  const handleClearAdvancedFilters = () => {
+    setFilters({ ...DEFAULT_HISTORY_FILTERS });
+    clearAdvancedFilters();
+  };
+
+  const handleToggleAdvancedFilters = () => {
+    setAreFiltersOpen((previous) => !previous);
+  };
 
   const rawResults = transactions?.results;
   const results = useMemo<Transaction[]>(() => rawResults ?? [], [rawResults]);
@@ -92,6 +181,12 @@ export function TransactionsSection() {
         onSearchChange={setSearch}
         filter={filter}
         onFilterChange={setFilter}
+        advancedFilters={filters}
+        onAdvancedFilterChange={handleAdvancedFilterChange}
+        onApplyAdvancedFilters={handleApplyAdvancedFilters}
+        onClearAdvancedFilters={handleClearAdvancedFilters}
+        areAdvancedFiltersOpen={areFiltersOpen}
+        onToggleAdvancedFilters={handleToggleAdvancedFilters}
         stats={stats}
         transactions={results}
         currentPage={currentPage}
@@ -108,6 +203,12 @@ interface TransactionsLayoutProps {
   onSearchChange: (value: string) => void;
   filter: string;
   onFilterChange: (value: typeof FILTER_OPTIONS[number]['value'] | typeof PENDING_FILTER_OPTIONS[number]['value']) => void;
+  advancedFilters: HistoryTransactionsFiltersState;
+  onAdvancedFilterChange: (key: keyof HistoryTransactionsFiltersState, value: string) => void;
+  onApplyAdvancedFilters: () => void;
+  onClearAdvancedFilters: () => void;
+  areAdvancedFiltersOpen: boolean;
+  onToggleAdvancedFilters: () => void;
   stats: TransactionStat[];
   transactions: Transaction[];
   currentPage: number;
@@ -121,6 +222,12 @@ function TransactionsLayout({
   onSearchChange,
   filter,
   onFilterChange,
+  advancedFilters,
+  onAdvancedFilterChange,
+  onApplyAdvancedFilters,
+  onClearAdvancedFilters,
+  areAdvancedFiltersOpen,
+  onToggleAdvancedFilters,
   stats,
   transactions,
   currentPage,
@@ -154,6 +261,14 @@ function TransactionsLayout({
           onFilterChange={onFilterChange}
         />
       </DashboardActionBar>
+      <HistoryTransactionsFilters
+        filters={advancedFilters}
+        onFilterChange={onAdvancedFilterChange}
+        onApply={onApplyAdvancedFilters}
+        onClear={onClearAdvancedFilters}
+        isOpen={areAdvancedFiltersOpen}
+        onToggle={onToggleAdvancedFilters}
+      />
 
       <DashboardStatGrid>
         {stats.map((stat) => (

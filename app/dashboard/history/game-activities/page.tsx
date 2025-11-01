@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { DashboardSectionHeader } from '@/components/dashboard/layout/dashboard-section-header';
@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
 import type { TransactionQueue } from '@/types';
+import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
 
 const HISTORY_BADGE = (
   <Badge variant="info" className="uppercase tracking-wide">
@@ -27,16 +28,35 @@ const HISTORY_EMPTY_STATE = (
   />
 );
 
+const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
+  status: '',
+  userId: '',
+};
+
+function buildGameActivityFilterState(advanced: Record<string, string>): HistoryGameActivitiesFiltersState {
+  return {
+    status: advanced.status ?? '',
+    userId: advanced.user_id ?? '',
+  };
+}
+
 export default function HistoryGameActivitiesPage() {
   const { 
     queues,
     isLoading,
     error,
     currentPage,
+    filter: queueFilter,
     setPage,
     setFilter,
     fetchQueues,
+    advancedFilters,
+    setAdvancedFilters,
+    clearAdvancedFilters,
   } = useTransactionQueuesStore();
+
+  const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(() => buildGameActivityFilterState(advancedFilters));
+  const [areFiltersOpen, setAreFiltersOpen] = useState(false);
 
   useEffect(() => {
     setFilter('history');
@@ -45,6 +65,45 @@ export default function HistoryGameActivitiesPage() {
   useEffect(() => {
     fetchQueues();
   }, [fetchQueues]);
+
+  useEffect(() => {
+    setFilters(buildGameActivityFilterState(advancedFilters));
+
+    if (Object.keys(advancedFilters).length > 0) {
+      setAreFiltersOpen(true);
+    }
+  }, [advancedFilters]);
+
+  const handleFilterChange = (key: keyof HistoryGameActivitiesFiltersState, value: string) => {
+    setFilters((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const handleApplyFilters = () => {
+    const nextFilters: Record<string, string> = {};
+
+    if (filters.status.trim()) {
+      nextFilters.status = filters.status.trim();
+    }
+
+    if (filters.userId.trim()) {
+      nextFilters.user_id = filters.userId.trim();
+    }
+
+    setAdvancedFilters(nextFilters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({ ...DEFAULT_GAME_ACTIVITY_FILTERS });
+    clearAdvancedFilters();
+  };
+
+  const handleToggleFilters = () => {
+    setAreFiltersOpen((previous) => !previous);
+  };
+
+  const handleQueueFilterChange = (value: QueueFilterOption) => {
+    setFilter(value);
+  };
 
   const results = queues?.results ?? [];
   const stats = useMemo(() => buildActivityStats(results, queues?.count ?? 0), [results, queues?.count]);
@@ -62,6 +121,14 @@ export default function HistoryGameActivitiesPage() {
       <HistoryTabs />
       <HistoryGameActivitiesLayout
         stats={stats}
+        queueFilter={queueFilter as QueueFilterOption}
+        onQueueFilterChange={handleQueueFilterChange}
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onApplyFilters={handleApplyFilters}
+        onClearFilters={handleClearFilters}
+        areFiltersOpen={areFiltersOpen}
+        onToggleFilters={handleToggleFilters}
         queues={results}
         currentPage={currentPage}
         totalCount={queues?.count ?? 0}
@@ -74,6 +141,14 @@ export default function HistoryGameActivitiesPage() {
 
 interface HistoryGameActivitiesLayoutProps {
   stats: ActivityStat[];
+  queueFilter: QueueFilterOption;
+  onQueueFilterChange: (value: QueueFilterOption) => void;
+  filters: HistoryGameActivitiesFiltersState;
+  onFilterChange: (key: keyof HistoryGameActivitiesFiltersState, value: string) => void;
+  onApplyFilters: () => void;
+  onClearFilters: () => void;
+  areFiltersOpen: boolean;
+  onToggleFilters: () => void;
   queues: TransactionQueue[];
   currentPage: number;
   totalCount: number;
@@ -83,6 +158,14 @@ interface HistoryGameActivitiesLayoutProps {
 
 function HistoryGameActivitiesLayout({
   stats,
+  queueFilter,
+  onQueueFilterChange,
+  filters,
+  onFilterChange,
+  onApplyFilters,
+  onClearFilters,
+  areFiltersOpen,
+  onToggleFilters,
   queues,
   currentPage,
   totalCount,
@@ -101,6 +184,16 @@ function HistoryGameActivitiesLayout({
           Showing activities completed or cancelled by system operators. Switch to processing to manage active queues.
         </p>
       </DashboardActionBar>
+      <HistoryGameActivitiesFilters
+        queueFilter={queueFilter}
+        onQueueFilterChange={onQueueFilterChange}
+        filters={filters}
+        onFilterChange={onFilterChange}
+        onApply={onApplyFilters}
+        onClear={onClearFilters}
+        isOpen={areFiltersOpen}
+        onToggle={onToggleFilters}
+      />
       <DashboardStatGrid>
         {stats.map((stat) => (
           <DashboardStatCard

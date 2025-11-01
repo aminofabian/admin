@@ -23,6 +23,7 @@ interface TransactionsState {
   searchTerm: string;
   filter: FilterType;
   pageSize: number;
+  advancedFilters: Record<string, string>;
 }
 
 interface TransactionsActions {
@@ -30,6 +31,8 @@ interface TransactionsActions {
   setPage: (page: number) => void;
   setSearchTerm: (term: string) => void;
   setFilter: (filter: FilterType) => void;
+  setAdvancedFilters: (filters: Record<string, string>) => void;
+  clearAdvancedFilters: () => void;
   reset: () => void;
 }
 
@@ -43,6 +46,7 @@ const initialState: TransactionsState = {
   searchTerm: '',
   filter: 'all',
   pageSize: 10,
+  advancedFilters: {},
 };
 
 export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
@@ -52,13 +56,19 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const { currentPage, pageSize, searchTerm, filter } = get();
+      const { currentPage, pageSize, searchTerm, filter, advancedFilters } = get();
       
       const filters: TransactionFilters = {
         page: currentPage,
         page_size: pageSize,
         ...(searchTerm && { search: searchTerm }),
       };
+
+      const cleanedAdvancedFilters = Object.fromEntries(
+        Object.entries(advancedFilters).filter(([, value]) => value !== undefined && value !== '')
+      );
+
+      Object.assign(filters, cleanedAdvancedFilters);
 
       // Apply filter logic based on the selected filter type
       if (filter === 'purchases') {
@@ -120,6 +130,22 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   setFilter: (filter: FilterType) => {
     set({ 
       filter,
+      currentPage: 1,
+    });
+    get().fetchTransactions();
+  },
+
+  setAdvancedFilters: (filtersMap: Record<string, string>) => {
+    set({
+      advancedFilters: filtersMap,
+      currentPage: 1,
+    });
+    get().fetchTransactions();
+  },
+
+  clearAdvancedFilters: () => {
+    set({
+      advancedFilters: {},
       currentPage: 1,
     });
     get().fetchTransactions();

@@ -22,6 +22,7 @@ interface TransactionQueuesState {
   filter: FilterType;
   pageSize: number;
   actionLoading: boolean;
+  advancedFilters: Record<string, string>;
 }
 
 interface TransactionQueuesActions {
@@ -29,6 +30,8 @@ interface TransactionQueuesActions {
   setPage: (page: number) => void;
   setFilter: (filter: FilterType) => void;
   handleGameAction: (data: GameActionRequest) => Promise<void>;
+  setAdvancedFilters: (filters: Record<string, string>) => void;
+  clearAdvancedFilters: () => void;
   reset: () => void;
 }
 
@@ -42,6 +45,7 @@ const initialState: TransactionQueuesState = {
   filter: 'processing',
   pageSize: 10,
   actionLoading: false,
+  advancedFilters: {},
 };
 
 export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, get) => ({
@@ -51,13 +55,19 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
     set({ isLoading: true, error: null });
 
     try {
-      const { currentPage, pageSize, filter } = get();
+      const { currentPage, pageSize, filter, advancedFilters } = get();
       
       const filters: QueueFilters = {
         page: currentPage,
         page_size: pageSize,
         type: filter,
       };
+
+      const cleanedAdvancedFilters = Object.fromEntries(
+        Object.entries(advancedFilters).filter(([, value]) => value !== undefined && value !== '')
+      );
+
+      Object.assign(filters, cleanedAdvancedFilters);
 
       console.log('Fetching transaction queues with filters:', filters);
 
@@ -96,6 +106,22 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
   setFilter: (filter: FilterType) => {
     set({ 
       filter,
+      currentPage: 1,
+    });
+    get().fetchQueues();
+  },
+
+  setAdvancedFilters: (filtersMap: Record<string, string>) => {
+    set({
+      advancedFilters: filtersMap,
+      currentPage: 1,
+    });
+    get().fetchQueues();
+  },
+
+  clearAdvancedFilters: () => {
+    set({
+      advancedFilters: {},
       currentPage: 1,
     });
     get().fetchQueues();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { DashboardSectionHeader } from '@/components/dashboard/layout/dashboard-section-header';
@@ -16,6 +16,7 @@ import { useSearch } from '@/lib/hooks';
 import { useTransactionsStore } from '@/stores';
 import type { Transaction } from '@/types';
 import { PROJECT_DOMAIN } from '@/lib/constants/api';
+import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 
 const HISTORY_ICON = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -30,6 +31,46 @@ const EMPTY_STATE = (
   />
 );
 
+const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
+  agent: '',
+  username: '',
+  email: '',
+  transaction_id: '',
+  operator: '',
+  type: '',
+  payment_method: '',
+  status: '',
+  date_from: '',
+  date_to: '',
+  amount_min: '',
+  amount_max: '',
+};
+
+function buildHistoryFilterState(advanced: Record<string, string>): HistoryTransactionsFiltersState {
+  const txn = advanced.txn ?? '';
+  const derivedType =
+    txn === 'purchases'
+      ? 'purchase'
+      : txn === 'cashouts'
+        ? 'cashout'
+        : advanced.type ?? '';
+
+  return {
+    agent: advanced.agent ?? '',
+    username: advanced.username ?? '',
+    email: advanced.email ?? '',
+    transaction_id: advanced.transaction_id ?? '',
+    operator: advanced.operator ?? '',
+    type: derivedType,
+    payment_method: advanced.payment_method ?? '',
+    status: advanced.status ?? '',
+    date_from: advanced.date_from ?? '',
+    date_to: advanced.date_to ?? '',
+    amount_min: advanced.amount_min ?? '',
+    amount_max: advanced.amount_max ?? '',
+  };
+}
+
 export default function HistoryTransactionsPage() {
   const {
     transactions,
@@ -40,9 +81,23 @@ export default function HistoryTransactionsPage() {
     setSearchTerm,
     setFilter,
     fetchTransactions,
+    advancedFilters,
+    setAdvancedFilters,
+    clearAdvancedFilters,
   } = useTransactionsStore();
 
   const { search, debouncedSearch, setSearch } = useSearch();
+
+  const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
+  const [areFiltersOpen, setAreFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    setFilters(buildHistoryFilterState(advancedFilters));
+
+    if (Object.keys(advancedFilters).length > 0) {
+      setAreFiltersOpen(true);
+    }
+  }, [advancedFilters]);
 
   useEffect(() => {
     setFilter('history');
@@ -57,6 +112,41 @@ export default function HistoryTransactionsPage() {
       setSearchTerm(debouncedSearch);
     }
   }, [debouncedSearch, setSearchTerm]);
+
+  const handleFilterChange = (key: keyof HistoryTransactionsFiltersState, value: string) => {
+    setFilters((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const handleApplyFilters = () => {
+    const sanitized = Object.fromEntries(
+      Object.entries(filters).filter(([, value]) => value.trim() !== '')
+    ) as Record<string, string>;
+
+    if (sanitized.type) {
+      const txnValue = sanitized.type === 'purchase'
+        ? 'purchases'
+        : sanitized.type === 'cashout'
+          ? 'cashouts'
+          : '';
+
+      if (txnValue) {
+        sanitized.txn = txnValue;
+      }
+
+      delete sanitized.type;
+    }
+
+    setAdvancedFilters(sanitized);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({ ...DEFAULT_HISTORY_FILTERS });
+    clearAdvancedFilters();
+  };
+
+  const handleToggleFilters = () => {
+    setAreFiltersOpen((previous) => !previous);
+  };
 
   const results = transactions?.results ?? [];
 
@@ -78,6 +168,12 @@ export default function HistoryTransactionsPage() {
         search={search}
         onSearchChange={setSearch}
         stats={stats}
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onApplyFilters={handleApplyFilters}
+        onClearFilters={handleClearFilters}
+        areFiltersOpen={areFiltersOpen}
+        onToggleFilters={handleToggleFilters}
         transactions={results}
         currentPage={currentPage}
         totalCount={transactions?.count ?? 0}
@@ -92,6 +188,12 @@ interface HistoryTransactionsLayoutProps {
   search: string;
   onSearchChange: (value: string) => void;
   stats: HistoryStat[];
+  filters: HistoryTransactionsFiltersState;
+  onFilterChange: (key: keyof HistoryTransactionsFiltersState, value: string) => void;
+  onApplyFilters: () => void;
+  onClearFilters: () => void;
+  areFiltersOpen: boolean;
+  onToggleFilters: () => void;
   transactions: Transaction[];
   currentPage: number;
   totalCount: number;
@@ -103,6 +205,12 @@ function HistoryTransactionsLayout({
   search,
   onSearchChange,
   stats,
+  filters,
+  onFilterChange,
+  onApplyFilters,
+  onClearFilters,
+  areFiltersOpen,
+  onToggleFilters,
   transactions,
   currentPage,
   totalCount,
@@ -123,6 +231,14 @@ function HistoryTransactionsLayout({
           placeholder="Search by username, email, transaction ID, or description"
         />
       </DashboardActionBar>
+      <HistoryTransactionsFilters
+        filters={filters}
+        onFilterChange={onFilterChange}
+        onApply={onApplyFilters}
+        onClear={onClearFilters}
+        isOpen={areFiltersOpen}
+        onToggle={onToggleFilters}
+      />
       <HistoryTransactionsStats stats={stats} />
       <HistoryTransactionsTable
         transactions={transactions}
