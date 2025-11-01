@@ -71,11 +71,10 @@ export function TransactionsSection() {
     }
   }, [debouncedSearch, searchTerm, setSearchTerm]);
 
-  const results = transactions?.results ?? [];
-  const stats = useMemo(
-    () => buildTransactionStats(results, transactions?.count ?? 0),
-    [results, transactions?.count],
-  );
+  const rawResults = transactions?.results;
+  const results = useMemo<Transaction[]>(() => rawResults ?? [], [rawResults]);
+  const totalCount = transactions?.count ?? 0;
+  const stats = useMemo(() => buildTransactionStats(results, totalCount), [results, totalCount]);
 
   const isInitialLoading = isLoading && !transactions;
   const isEmpty = !results.length;
@@ -96,7 +95,7 @@ export function TransactionsSection() {
         stats={stats}
         transactions={results}
         currentPage={currentPage}
-        totalCount={transactions?.count ?? 0}
+        totalCount={totalCount}
         pageSize={pageSize}
         onPageChange={setPage}
       />

@@ -58,6 +58,10 @@ export function GamesSection() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   const canManageGames = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
+  const rawGames = data?.results;
+  const games = useMemo<Game[]>(() => rawGames ?? [], [rawGames]);
+  const totalCount = data?.count ?? 0;
+  const stats = useMemo(() => buildGameStats(games, totalCount), [games, totalCount]);
 
   useEffect(() => {
     if (canManageGames) {
@@ -78,9 +82,6 @@ export function GamesSection() {
       </DashboardSectionContainer>
     );
   }
-
-  const games = data?.results ?? [];
-  const stats = useMemo(() => buildGameStats(games, data?.count ?? 0), [games, data?.count]);
 
   const isInitialLoading = isLoading && !data;
   const showEmptyState = !games.length && !searchTerm;
@@ -396,9 +397,4 @@ function AccessDeniedMessage({ role }: AccessDeniedMessageProps) {
     </div>
   );
 }
-
-function mapStatusVariant(status: boolean): 'success' | 'danger' {
-  return status ? 'success' : 'danger';
-}
-
 

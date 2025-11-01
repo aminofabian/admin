@@ -33,9 +33,15 @@ export interface TransactionQueue {
   type: QueueType;
   status: TransactionStatus;
   user_id: number;
+  user_username?: string;
+  user_email?: string;
+  operator?: string;
+  game_username?: string;
   game: string;
   game_code: string;
   amount: string;
+  bonus_amount?: string;
+  new_game_balance?: string;
   remarks: string;
   data: Record<string, unknown>;
   created_at: string;

@@ -28,7 +28,7 @@ const HISTORY_EMPTY_STATE = (
 );
 
 export default function HistoryGameActivitiesPage() {
-  const {
+  const { 
     queues,
     isLoading,
     error,
@@ -220,12 +220,16 @@ function HistoryGameActivitiesTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>User</TableHead>
               <TableHead>Activity</TableHead>
               <TableHead>Game</TableHead>
+              <TableHead>Operation Type</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Bonus Amount</TableHead>
+              <TableHead>New Game Balance</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Remarks</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Dates</TableHead>
+              <TableHead>Operator</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -260,6 +264,12 @@ function HistoryGameActivityRow({ activity }: HistoryGameActivityRowProps) {
   return (
     <TableRow>
       <TableCell>
+        <div className="space-y-1">
+          <div className="font-medium text-foreground">{activity.user_username ?? '—'}</div>
+          <div className="text-xs text-muted-foreground">{activity.user_email ?? '—'}</div>
+        </div>
+      </TableCell>
+      <TableCell>
         <div className="flex items-center gap-2">
           <span className="text-xl">{mapTypeToIcon(activity.type)}</span>
           <Badge variant="info" className="capitalize">
@@ -274,7 +284,18 @@ function HistoryGameActivityRow({ activity }: HistoryGameActivityRowProps) {
         </div>
       </TableCell>
       <TableCell>
+          <Badge variant="default" className="uppercase">
+            {typeof activity.data?.operation_type === 'string' ? activity.data.operation_type : '—'}
+          </Badge>
+      </TableCell>
+      <TableCell>
         <div className="font-semibold">{formatCurrency(activity.amount)}</div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-muted-foreground">{formatCurrency(String(activity.data?.bonus_amount ?? '0'))}</div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm font-semibold text-foreground">{formatCurrency(String(activity.data?.new_game_balance ?? '0'))}</div>
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
@@ -282,16 +303,23 @@ function HistoryGameActivityRow({ activity }: HistoryGameActivityRowProps) {
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="max-w-xs truncate text-sm text-muted-foreground">
-          {activity.remarks || '-'}
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <div>
+            <span className="font-medium text-foreground">Created:</span> {formatDate(activity.created_at)}
+          </div>
+          {activity.updated_at !== activity.created_at && (
+            <div>
+              <span className="font-medium text-foreground">Updated:</span> {formatDate(activity.updated_at)}
+            </div>
+          )}
         </div>
       </TableCell>
       <TableCell>
-        <div className="space-y-1 text-sm">
-          <div>{formatDate(activity.created_at)}</div>
-          {activity.updated_at !== activity.created_at && (
-            <div className="text-xs text-muted-foreground">Updated {formatDate(activity.updated_at)}</div>
-          )}
+        <div className="text-sm text-foreground">
+          {activity.operator ?? '—'}
+          <div className="text-xs text-muted-foreground">
+            {typeof activity.data?.role === 'string' ? activity.data.role : '—'}
+          </div>
         </div>
       </TableCell>
     </TableRow>
