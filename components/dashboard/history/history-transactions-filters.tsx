@@ -40,7 +40,7 @@ const TEXT_FIELDS: InputFieldConfig[] = [
   { key: 'transaction_id', label: 'Transaction ID', placeholder: 'Enter transaction ID' },
 ];
 
-const SELECT_FIELDS: SelectFieldConfig[] = [
+const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
   {
     key: 'operator',
     label: 'Operator Type',
@@ -71,17 +71,6 @@ const SELECT_FIELDS: SelectFieldConfig[] = [
       { value: 'other', label: 'Other' },
     ],
   },
-  {
-    key: 'status',
-    label: 'Status',
-    options: [
-      { value: '', label: 'All Statuses' },
-      { value: 'pending', label: 'Pending' },
-      { value: 'completed', label: 'Completed' },
-      { value: 'failed', label: 'Failed' },
-      { value: 'cancelled', label: 'Cancelled' },
-    ],
-  },
 ];
 
 const DATE_FIELDS: InputFieldConfig[] = [
@@ -107,6 +96,7 @@ interface HistoryTransactionsFiltersProps {
   onClear: () => void;
   isOpen: boolean;
   onToggle: () => void;
+  statusOptions?: Array<{ value: string; label: string }>;
 }
 
 export function HistoryTransactionsFilters({
@@ -116,10 +106,17 @@ export function HistoryTransactionsFilters({
   onClear,
   isOpen,
   onToggle,
+  statusOptions,
 }: HistoryTransactionsFiltersProps) {
   const inputClasses = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors';
   const selectClasses = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors';
   const labelClasses = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors';
+  const effectiveStatusOptions = statusOptions ?? [
+    { value: '', label: 'All Statuses' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ];
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-black/20 p-4 space-y-4 transition-colors">
@@ -167,7 +164,7 @@ export function HistoryTransactionsFilters({
             </div>
           ))}
 
-          {SELECT_FIELDS.map(({ key, label, options }) => (
+          {BASE_SELECT_FIELDS.map(({ key, label, options }) => (
             <div key={key}>
               <label className={labelClasses}>{label}</label>
               <select
@@ -183,6 +180,21 @@ export function HistoryTransactionsFilters({
               </select>
             </div>
           ))}
+
+          <div>
+            <label className={labelClasses}>Status</label>
+            <select
+              value={filters.status}
+              onChange={(event) => onFilterChange('status', event.target.value)}
+              className={selectClasses}
+            >
+              {effectiveStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {DATE_FIELDS.map(({ key, label, type = 'date' }) => (
             <div key={key}>

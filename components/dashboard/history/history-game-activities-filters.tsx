@@ -32,9 +32,7 @@ const QUEUE_TYPE_OPTIONS: Array<{ value: QueueFilterOption; label: string }> = [
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: '', label: 'All Statuses' },
-  { value: 'pending', label: 'Pending' },
   { value: 'completed', label: 'Completed' },
-  { value: 'failed', label: 'Failed' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
 

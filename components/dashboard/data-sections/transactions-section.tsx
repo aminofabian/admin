@@ -268,6 +268,12 @@ function TransactionsLayout({
         onClear={onClearAdvancedFilters}
         isOpen={areAdvancedFiltersOpen}
         onToggle={onToggleAdvancedFilters}
+        statusOptions={[
+          { value: '', label: 'All Statuses' },
+          { value: 'pending', label: 'Pending' },
+          { value: 'completed', label: 'Completed' },
+          { value: 'cancelled', label: 'Cancelled' },
+        ]}
       />
 
       <DashboardStatGrid>

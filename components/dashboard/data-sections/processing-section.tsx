@@ -364,9 +364,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 >
                   <option value="">All Statuses</option>
                   <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
                   <option value="failed">Failed</option>
-                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
 

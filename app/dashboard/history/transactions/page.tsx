@@ -238,6 +238,11 @@ function HistoryTransactionsLayout({
         onClear={onClearFilters}
         isOpen={areFiltersOpen}
         onToggle={onToggleFilters}
+        statusOptions={[
+          { value: '', label: 'All Statuses' },
+          { value: 'completed', label: 'Completed' },
+          { value: 'cancelled', label: 'Cancelled' },
+        ]}
       />
       <HistoryTransactionsStats stats={stats} />
       <HistoryTransactionsTable
