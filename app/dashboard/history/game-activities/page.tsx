@@ -7,6 +7,7 @@ import { DashboardSectionHeader } from '@/components/dashboard/layout/dashboard-
 import { DashboardStatGrid } from '@/components/dashboard/layout/dashboard-stat-grid';
 import { DashboardStatCard } from '@/components/dashboard/layout/dashboard-stat-card';
 import { DashboardActionBar } from '@/components/dashboard/layout/dashboard-action-bar';
+import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
@@ -58,6 +59,7 @@ export default function HistoryGameActivitiesPage() {
       isEmpty={isEmpty}
       emptyState={HISTORY_EMPTY_STATE}
     >
+      <HistoryTabs />
       <HistoryGameActivitiesLayout
         stats={stats}
         queues={results}

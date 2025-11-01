@@ -8,6 +8,7 @@ import { DashboardSearchBar } from '@/components/dashboard/layout/dashboard-sear
 import { DashboardActionBar } from '@/components/dashboard/layout/dashboard-action-bar';
 import { DashboardStatGrid } from '@/components/dashboard/layout/dashboard-stat-grid';
 import { DashboardStatCard } from '@/components/dashboard/layout/dashboard-stat-card';
+import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Pagination } from '@/components/ui';
 import { EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
@@ -71,6 +72,7 @@ export default function HistoryTransactionsPage() {
       isEmpty={isEmpty}
       emptyState={EMPTY_STATE}
     >
+      <HistoryTabs />
       <HistoryTransactionsLayout
         search={search}
         onSearchChange={setSearch}
