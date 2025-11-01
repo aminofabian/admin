@@ -24,6 +24,7 @@ import {
   useTransactionQueuesStore 
 } from '@/stores';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
+import { formatDate } from '@/lib/utils/formatters';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game';
@@ -92,9 +93,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
   useEffect(() => {
     if (viewType === 'purchases') {
-      setTransactionsFilter('purchases');
+      setTransactionsFilter('pending-purchases');
     } else if (viewType === 'cashouts') {
-      setTransactionsFilter('cashouts');
+      setTransactionsFilter('pending-cashouts');
     } else {
       setQueuesFilter(queueFilter);
     }
@@ -174,7 +175,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   </TableCell>
                   <TableCell>{transaction.amount}</TableCell>
                   <TableCell>{transaction.payment_method}</TableCell>
-                  <TableCell>{new Date(transaction.created).toLocaleDateString()}</TableCell>
+                  <TableCell>{formatDate(transaction.created)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
