@@ -224,12 +224,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/games',
   },
   {
-    name: 'Transactions',
-    icon: <TransactionIcon />,
-    roles: Object.values(USER_ROLES),
-    href: '/dashboard/transactions',
-  },
-  {
     name: 'History',
     icon: <HistoryIcon />,
     roles: Object.values(USER_ROLES),

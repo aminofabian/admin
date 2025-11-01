@@ -460,24 +460,52 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 <TableHead>Game</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>User ID</TableHead>
-                <TableHead>Actions</TableHead>
+              <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {queues.results.map((queue: TransactionQueue) => (
-                <TableRow key={queue.id}>
-                  <TableCell>{queue.id}</TableCell>
-                  <TableCell className="capitalize">{queue.type.replace(/_/g, ' ')}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(queue.status)}>
-                      {queue.status.toUpperCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{queue.game}</TableCell>
-                  <TableCell>{formatCurrency(queue.amount || '0')}</TableCell>
-                  <TableCell>{queue.user_id}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+              <TableRow key={queue.id}>
+                <TableCell>{queue.id}</TableCell>
+                <TableCell className="capitalize">{queue.type.replace(/_/g, ' ')}</TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(queue.status)}>
+                    {queue.status.toUpperCase()}
+                  </Badge>
+                </TableCell>
+                <TableCell>{queue.game}</TableCell>
+                <TableCell>{formatCurrency(queue.amount || '0')}</TableCell>
+                <TableCell>{queue.user_id}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {queue.status === 'failed' ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          disabled={actionLoading}
+                          onClick={() => handleQuickAction(queue, 'retry')}
+                        >
+                          Retry
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={actionLoading}
+                          onClick={() => handleQuickAction(queue, 'cancel')}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={actionLoading}
+                          onClick={() => handleQuickAction(queue, 'complete')}
+                        >
+                          Complete
+                        </Button>
+                      </>
+                    ) : (
                       <select
                         onChange={(e) => {
                           handleQuickAction(queue, e.target.value);
@@ -498,9 +526,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                         <option value="cancel" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">❌ Cancel</option>
                         <option value="complete" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">✅ Complete</option>
                       </select>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
               ))}
             </TableBody>
           </Table>
