@@ -10,12 +10,13 @@ import {
   DashboardStatCard,
   DashboardStatGrid,
 } from '@/components/dashboard/layout';
-import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
+import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useSearch } from '@/lib/hooks';
 import { useTransactionsStore } from '@/stores';
 import type { Transaction } from '@/types';
+import { PROJECT_DOMAIN } from '@/lib/constants/api';
 
 const HEADER_ICON = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -321,12 +322,17 @@ function TransactionsTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Tx ID</TableHead>
               <TableHead>User</TableHead>
               <TableHead>Transaction</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Previous Balance</TableHead>
+              <TableHead>New Balance</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Payment</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Dates</TableHead>
+              <TableHead>Operator</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -358,31 +364,30 @@ interface TransactionsRowProps {
 function TransactionsRow({ transaction }: TransactionsRowProps) {
   const bonus = parseFloat(transaction.bonus_amount || '0');
   const statusVariant = mapStatusToVariant(transaction.status);
+  const paymentMethod = transaction.payment_method?.toLowerCase() ?? '';
+  const isCryptoPayment = paymentMethod.includes('crypto');
+  const invoiceUrl = transaction.invoice_url
+    ? transaction.invoice_url
+    : `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${transaction.id}/invoice/`;
+  const canViewInvoice = isCryptoPayment && !!invoiceUrl;
 
   return (
     <TableRow>
       <TableCell>
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-            <span className="text-xs font-semibold text-primary">
-              {transaction.user_username.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div>
-            <div className="font-medium text-foreground">{transaction.user_username}</div>
-            <div className="text-xs text-muted-foreground">{transaction.user_email}</div>
-          </div>
+        <code className="text-xs text-muted-foreground">{transaction.unique_id}</code>
+      </TableCell>
+      <TableCell>
+        <div className="space-y-1">
+          <div className="font-medium text-foreground">{transaction.user_username}</div>
+          <div className="text-xs text-muted-foreground">{transaction.user_email}</div>
         </div>
       </TableCell>
       <TableCell>
         <div className="space-y-1">
           <div className="font-medium text-foreground">{transaction.description}</div>
-          <div className="flex items-center gap-2">
-            <Badge variant={transaction.type === 'purchase' ? 'success' : 'warning'} className="text-xs">
-              {transaction.type.toUpperCase()}
-            </Badge>
-            <code className="text-xs text-muted-foreground">{transaction.unique_id}</code>
-          </div>
+          <Badge variant={transaction.type === 'purchase' ? 'success' : 'warning'} className="text-xs">
+            {transaction.type.toUpperCase()}
+          </Badge>
         </div>
       </TableCell>
       <TableCell>
@@ -390,6 +395,12 @@ function TransactionsRow({ transaction }: TransactionsRowProps) {
         {bonus > 0 && (
           <div className="text-xs text-muted-foreground">+{formatCurrency(transaction.bonus_amount)} bonus</div>
         )}
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-muted-foreground">{formatCurrency(transaction.previous_balance)}</div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm font-semibold text-foreground">{formatCurrency(transaction.new_balance)}</div>
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
@@ -405,9 +416,33 @@ function TransactionsRow({ transaction }: TransactionsRowProps) {
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-muted-foreground">
-          {transaction.created ? formatDate(transaction.created) : 'N/A'}
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div>
+            <span className="font-medium text-foreground">Created:</span> {transaction.created ? formatDate(transaction.created) : '—'}
+          </div>
+          <div>
+            <span className="font-medium text-foreground">Updated:</span> {transaction.updated ? formatDate(transaction.updated) : '—'}
+          </div>
         </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-foreground">
+          {transaction.operator}
+          <div className="text-xs text-muted-foreground">{transaction.role}</div>
+        </div>
+      </TableCell>
+      <TableCell className="text-right">
+        {canViewInvoice ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open(invoiceUrl, '_blank', 'noopener,noreferrer')}
+          >
+            View Invoice
+          </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
       </TableCell>
     </TableRow>
   );

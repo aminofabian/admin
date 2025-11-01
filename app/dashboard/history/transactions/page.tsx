@@ -9,12 +9,13 @@ import { DashboardActionBar } from '@/components/dashboard/layout/dashboard-acti
 import { DashboardStatGrid } from '@/components/dashboard/layout/dashboard-stat-grid';
 import { DashboardStatCard } from '@/components/dashboard/layout/dashboard-stat-card';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Pagination } from '@/components/ui';
+import { Button, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Pagination } from '@/components/ui';
 import { EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useSearch } from '@/lib/hooks';
 import { useTransactionsStore } from '@/stores';
 import type { Transaction } from '@/types';
+import { PROJECT_DOMAIN } from '@/lib/constants/api';
 
 const HISTORY_ICON = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -240,12 +241,17 @@ function HistoryTransactionsTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Tx ID</TableHead>
               <TableHead>User</TableHead>
               <TableHead>Transaction</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Previous Balance</TableHead>
+              <TableHead>New Balance</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Payment</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Dates</TableHead>
+              <TableHead>Operator</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -277,31 +283,30 @@ interface HistoryTransactionRowProps {
 function HistoryTransactionRow({ transaction }: HistoryTransactionRowProps) {
   const badgeVariant = transaction.status === 'completed' ? 'success' : 'default';
   const bonusValue = parseFloat(transaction.bonus_amount || '0');
+  const paymentMethod = transaction.payment_method?.toLowerCase() ?? '';
+  const isCryptoPayment = paymentMethod.includes('crypto');
+  const invoiceUrl = transaction.invoice_url
+    ? transaction.invoice_url
+    : `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${transaction.id}/invoice/`;
+  const canViewInvoice = isCryptoPayment && !!invoiceUrl;
 
   return (
     <TableRow>
       <TableCell>
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-            <span className="text-xs font-semibold text-primary">
-              {transaction.user_username.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div>
-            <div className="font-medium">{transaction.user_username}</div>
-            <div className="text-xs text-muted-foreground">{transaction.user_email}</div>
-          </div>
+        <code className="text-xs text-muted-foreground">{transaction.unique_id}</code>
+      </TableCell>
+      <TableCell>
+        <div className="space-y-1">
+          <div className="font-medium">{transaction.user_username}</div>
+          <div className="text-xs text-muted-foreground">{transaction.user_email}</div>
         </div>
       </TableCell>
       <TableCell>
         <div className="space-y-1">
           <div className="font-medium">{transaction.description}</div>
-          <div className="flex items-center gap-2">
-            <Badge variant={transaction.type === 'purchase' ? 'success' : 'warning'} className="text-xs">
-              {transaction.type.toUpperCase()}
-            </Badge>
-            <code className="text-xs text-muted-foreground">{transaction.unique_id}</code>
-          </div>
+          <Badge variant={transaction.type === 'purchase' ? 'success' : 'warning'} className="text-xs">
+            {transaction.type.toUpperCase()}
+          </Badge>
         </div>
       </TableCell>
       <TableCell>
@@ -309,6 +314,12 @@ function HistoryTransactionRow({ transaction }: HistoryTransactionRowProps) {
         {bonusValue > 0 && (
           <div className="text-xs text-muted-foreground">+{formatCurrency(transaction.bonus_amount)} bonus</div>
         )}
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-muted-foreground">{formatCurrency(transaction.previous_balance)}</div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm font-semibold">{formatCurrency(transaction.new_balance)}</div>
       </TableCell>
       <TableCell>
         <Badge variant={badgeVariant as 'success' | 'default'} className="capitalize">
@@ -319,7 +330,33 @@ function HistoryTransactionRow({ transaction }: HistoryTransactionRowProps) {
         <Badge variant="info">{transaction.payment_method}</Badge>
       </TableCell>
       <TableCell>
-        <div className="text-sm">{transaction.created ? formatDate(transaction.created) : 'N/A'}</div>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div>
+            <span className="font-medium text-foreground">Created:</span> {transaction.created ? formatDate(transaction.created) : '—'}
+          </div>
+          <div>
+            <span className="font-medium text-foreground">Updated:</span> {transaction.updated ? formatDate(transaction.updated) : '—'}
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm">
+          {transaction.operator}
+          <div className="text-xs text-muted-foreground">{transaction.role}</div>
+        </div>
+      </TableCell>
+      <TableCell className="text-right">
+        {canViewInvoice ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open(invoiceUrl, '_blank', 'noopener,noreferrer')}
+          >
+            View Invoice
+          </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
       </TableCell>
     </TableRow>
   );

@@ -25,6 +25,7 @@ export interface Transaction {
   remarks: string | null;
   created: string;
   updated: string;
+  invoice_url?: string;
 }
 
 export interface TransactionQueue {
