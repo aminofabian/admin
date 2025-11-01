@@ -24,6 +24,8 @@ interface TransactionsState {
   filter: FilterType;
   pageSize: number;
   advancedFilters: Record<string, string>;
+  isUpdatingTransaction: boolean;
+  updatingTransactionId: string | null;
 }
 
 interface TransactionsActions {
@@ -33,6 +35,7 @@ interface TransactionsActions {
   setFilter: (filter: FilterType) => void;
   setAdvancedFilters: (filters: Record<string, string>) => void;
   clearAdvancedFilters: () => void;
+  updateTransactionStatus: (options: { id: string; status: 'completed' | 'cancelled' }) => Promise<void>;
   reset: () => void;
 }
 
@@ -47,6 +50,8 @@ const initialState: TransactionsState = {
   filter: 'all',
   pageSize: 10,
   advancedFilters: {},
+  isUpdatingTransaction: false,
+  updatingTransactionId: null,
 };
 
 export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
@@ -149,6 +154,28 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       currentPage: 1,
     });
     get().fetchTransactions();
+  },
+
+  updateTransactionStatus: async ({ id, status }) => {
+    set({ isUpdatingTransaction: true, updatingTransactionId: id });
+
+    try {
+      await transactionsApi.updateStatus(id, { status });
+      await get().fetchTransactions();
+    } catch (err) {
+      let errorMessage = 'Failed to update transaction';
+
+      if (err && typeof err === 'object' && 'detail' in err) {
+        errorMessage = String((err as { detail: unknown }).detail);
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      set({ error: errorMessage });
+      throw err;
+    } finally {
+      set({ isUpdatingTransaction: false, updatingTransactionId: null });
+    }
   },
 
   reset: () => {

@@ -23,6 +23,12 @@ export const transactionsApi = {
       { params: filters }
     ),
 
+  updateStatus: (id: string, payload: { status: string }) =>
+    apiClient.patch<Transaction>(
+      API_ENDPOINTS.TRANSACTIONS.DETAIL(id),
+      payload
+    ),
+
   handleGameAction: async (data: GameActionRequest) => {
     // Create URL-encoded form data for the request
     const formData = new FormData();
