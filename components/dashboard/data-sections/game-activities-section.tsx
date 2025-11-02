@@ -300,6 +300,7 @@ const ActivityDetailsModal = memo(function ActivityDetailsModal({
   // Memoize expensive computations
   const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
   const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
+  const typeVariant = useMemo(() => mapTypeToVariant(activity.type), [activity.type]);
   const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
   
   const bonusAmount = useMemo(() => {
@@ -376,7 +377,7 @@ const ActivityDetailsModal = memo(function ActivityDetailsModal({
             <Badge variant={statusVariant} className="text-sm px-3 py-1">
               {activity.status}
             </Badge>
-            <Badge variant="info" className="text-sm px-3 py-1 capitalize">
+            <Badge variant={typeVariant} className="text-sm px-3 py-1 capitalize">
               {typeLabel}
             </Badge>
           </div>
@@ -506,6 +507,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
   // Memoize expensive computations
   const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
   const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
+  const typeVariant = useMemo(() => mapTypeToVariant(activity.type), [activity.type]);
   const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
   
   const bonusAmount = useMemo(() => {
@@ -592,7 +594,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         </div>
       </TableCell>
       <TableCell>
-        <Badge variant="info" className="capitalize">
+        <Badge variant={typeVariant} className="capitalize">
           {typeLabel}
         </Badge>
       </TableCell>
@@ -675,4 +677,10 @@ const mapTypeToLabel = (type: string): string => {
   if (type === 'redeem_game') return 'Redeem';
   if (type === 'add_user_game') return 'Add User';
   return type;
+};
+
+const mapTypeToVariant = (type: string): 'success' | 'danger' | 'info' | 'default' => {
+  if (type === 'recharge_game') return 'success'; // Green for recharge
+  if (type === 'redeem_game') return 'danger'; // Red for cashout/redeem
+  return 'info'; // Default for other types (reset password, create game, etc.)
 };
