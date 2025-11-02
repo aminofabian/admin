@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { DashboardSectionHeader } from '@/components/dashboard/layout/dashboard-section-header';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
@@ -41,31 +41,35 @@ interface GameActivitiesSectionProps {
 }
 
 export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectionProps) {
-  const { 
-    queues,
-    isLoading,
-    error,
-    currentPage,
-    filter: queueFilter,
-    setPage,
-    setFilter,
-    fetchQueues,
-    advancedFilters,
-    setAdvancedFilters,
-    clearAdvancedFilters,
-  } = useTransactionQueuesStore();
+  // Selective store subscriptions - only subscribe to what we need
+  const queues = useTransactionQueuesStore((state) => state.queues);
+  const isLoading = useTransactionQueuesStore((state) => state.isLoading);
+  const error = useTransactionQueuesStore((state) => state.error);
+  const currentPage = useTransactionQueuesStore((state) => state.currentPage);
+  const queueFilter = useTransactionQueuesStore((state) => state.filter);
+  const advancedFilters = useTransactionQueuesStore((state) => state.advancedFilters);
+  const setPage = useTransactionQueuesStore((state) => state.setPage);
+  const setFilter = useTransactionQueuesStore((state) => state.setFilter);
+  const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
+  const setAdvancedFilters = useTransactionQueuesStore((state) => state.setAdvancedFilters);
+  const clearAdvancedFilters = useTransactionQueuesStore((state) => state.clearAdvancedFilters);
 
   const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(() => buildGameActivityFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
 
+  // Initialize filter once
   useEffect(() => {
     setFilter('history');
-  }, [setFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // Fetch queues when dependencies change
   useEffect(() => {
     fetchQueues();
-  }, [fetchQueues]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, queueFilter, advancedFilters]);
 
+  // Sync filters with advanced filters
   useEffect(() => {
     setFilters(buildGameActivityFilterState(advancedFilters));
 
@@ -74,11 +78,11 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     }
   }, [advancedFilters]);
 
-  const handleFilterChange = (key: keyof HistoryGameActivitiesFiltersState, value: string) => {
+  const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
     setFilters((previous) => ({ ...previous, [key]: value }));
-  };
+  }, []);
 
-  const handleApplyFilters = () => {
+  const handleApplyFilters = useCallback(() => {
     const nextFilters: Record<string, string> = {};
 
     if (filters.status.trim()) {
@@ -90,24 +94,25 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     }
 
     setAdvancedFilters(nextFilters);
-  };
+  }, [filters, setAdvancedFilters]);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setFilters({ ...DEFAULT_GAME_ACTIVITY_FILTERS });
     clearAdvancedFilters();
-  };
+  }, [clearAdvancedFilters]);
 
-  const handleToggleFilters = () => {
+  const handleToggleFilters = useCallback(() => {
     setAreFiltersOpen((previous) => !previous);
-  };
+  }, []);
 
-  const handleQueueFilterChange = (value: QueueFilterOption) => {
+  const handleQueueFilterChange = useCallback((value: QueueFilterOption) => {
     setFilter(value);
-  };
+  }, [setFilter]);
 
-  const results = queues?.results ?? [];
-  const isInitialLoading = isLoading && !queues;
-  const isEmpty = !results.length;
+  const results = useMemo(() => queues?.results ?? [], [queues?.results]);
+  const isInitialLoading = useMemo(() => isLoading && !queues, [isLoading, queues]);
+  const isEmpty = useMemo(() => !results.length, [results.length]);
+  const totalCount = useMemo(() => queues?.count ?? 0, [queues?.count]);
 
   return (
     <DashboardSectionContainer
@@ -129,7 +134,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
         onToggleFilters={handleToggleFilters}
         queues={results}
         currentPage={currentPage}
-        totalCount={queues?.count ?? 0}
+        totalCount={totalCount}
         onPageChange={setPage}
         pageSize={10}
       />
@@ -214,15 +219,19 @@ function HistoryGameActivitiesTable({
   const [selectedActivity, setSelectedActivity] = useState<TransactionQueue | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-  const handleViewActivity = (activity: TransactionQueue) => {
+  const handleViewActivity = useCallback((activity: TransactionQueue) => {
     setSelectedActivity(activity);
     setIsViewModalOpen(true);
-  };
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setIsViewModalOpen(false);
     setSelectedActivity(null);
-  };
+  }, []);
+
+  const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
+  const hasNext = useMemo(() => currentPage * pageSize < totalCount, [currentPage, pageSize, totalCount]);
+  const hasPrevious = useMemo(() => currentPage > 1, [currentPage]);
 
   if (!queues.length) {
     return null;
@@ -256,174 +265,261 @@ function HistoryGameActivitiesTable({
           <div className="border-t border-border px-4 py-4">
             <Pagination
               currentPage={currentPage}
-              totalPages={Math.ceil(totalCount / pageSize)}
+              totalPages={totalPages}
               onPageChange={onPageChange}
-              hasNext={currentPage * pageSize < totalCount}
-              hasPrevious={currentPage > 1}
+              hasNext={hasNext}
+              hasPrevious={hasPrevious}
             />
           </div>
         )}
       </div>
 
-      <Modal
-        isOpen={isViewModalOpen}
-        onClose={handleCloseModal}
-        title="Activity Details"
-        size="lg"
-      >
-        {selectedActivity && (
-          <div className="space-y-6">
-            {/* Header Section - Status and Type */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl border border-border/50">
-              <div className="flex items-center gap-3">
-                <Badge variant={mapStatusToVariant(selectedActivity.status)} className="text-sm px-3 py-1">
-                  {selectedActivity.status}
-                </Badge>
-                <Badge variant="info" className="text-sm px-3 py-1 capitalize">
-                  {mapTypeToLabel(selectedActivity.type)}
-                </Badge>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-foreground">{formatCurrency(selectedActivity.amount)}</div>
-                {(() => {
-                  const bonusAmount = selectedActivity.data?.bonus_amount;
-                  const bonusValue = typeof bonusAmount === 'string' || typeof bonusAmount === 'number' 
-                    ? parseFloat(String(bonusAmount)) 
-                    : 0;
-                  return bonusValue > 0 ? (
-                    <div className="text-sm font-semibold text-green-600">
-                      +{formatCurrency(String(bonusAmount))} bonus
-                    </div>
-                  ) : null;
-                })()}
-              </div>
-            </div>
-
-            {/* Activity IDs */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</label>
-                <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-                  {selectedActivity.id}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Operator</label>
-                <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-                  {selectedActivity.operator || (typeof selectedActivity.data?.operator === 'string' ? selectedActivity.data.operator : '—')}
-                </div>
-              </div>
-            </div>
-
-            {/* Game Balance Section */}
-            <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Game</label>
-                <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{selectedActivity.game}</div>
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Game Balance</label>
-                <div className="text-lg font-bold text-green-900 dark:text-green-100">{formatCurrency(String(selectedActivity.data?.balance ?? '0'))}</div>
-              </div>
-            </div>
-
-            {/* User Information */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">User Information</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Username</label>
-                  <div className="text-sm font-semibold text-foreground">
-                    {typeof selectedActivity.data?.username === 'string' ? selectedActivity.data.username : '—'}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">User ID</label>
-                  <div className="text-sm text-foreground">
-                    {selectedActivity.user_id}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Operation Details */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Operation Details</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Operation Type</label>
-                  <Badge variant="default" className="text-xs uppercase">
-                    {typeof selectedActivity.data?.operation_type === 'string' ? selectedActivity.data.operation_type : '—'}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Game Username</label>
-                  <div className="text-sm text-foreground">
-                    {typeof selectedActivity.data?.username === 'string' ? selectedActivity.data.username : '—'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Timestamps */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Timestamps</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Created</label>
-                  <div className="text-sm font-medium text-foreground">{formatDate(selectedActivity.created_at)}</div>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Updated</label>
-                  <div className="text-sm font-medium text-foreground">{formatDate(selectedActivity.updated_at)}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Remarks */}
-            {selectedActivity.remarks && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Remarks</h3>
-                <div className="text-sm text-foreground bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-900/30">
-                  {selectedActivity.remarks}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
+      {selectedActivity && (
+        <ActivityDetailsModal
+          activity={selectedActivity}
+          isOpen={isViewModalOpen}
+          onClose={handleCloseModal}
+        />
+      )}
     </>
   );
 }
+
+interface ActivityDetailsModalProps {
+  activity: TransactionQueue;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const ActivityDetailsModal = memo(function ActivityDetailsModal({
+  activity,
+  isOpen,
+  onClose,
+}: ActivityDetailsModalProps) {
+  // Memoize expensive computations
+  const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
+  const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
+  const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
+  
+  const bonusAmount = useMemo(() => {
+    const bonus = activity.data?.bonus_amount;
+    if (!bonus) return null;
+    const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
+      ? parseFloat(String(bonus)) 
+      : 0;
+    return bonusValue > 0 ? bonus : null;
+  }, [activity.data?.bonus_amount]);
+
+  const formattedBonus = useMemo(() => {
+    return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+  }, [bonusAmount]);
+
+  const formattedBalance = useMemo(() => {
+    return formatCurrency(String(activity.data?.balance ?? '0'));
+  }, [activity.data?.balance]);
+
+  const username = useMemo(() => {
+    return typeof activity.data?.username === 'string' ? activity.data.username : null;
+  }, [activity.data?.username]);
+
+  const operator = useMemo(() => {
+    return activity.operator || (typeof activity.data?.operator === 'string' ? activity.data.operator : '—');
+  }, [activity.operator, activity.data?.operator]);
+
+  const operationType = useMemo(() => {
+    return typeof activity.data?.operation_type === 'string' ? activity.data.operation_type : '—';
+  }, [activity.data?.operation_type]);
+
+  const formattedCreatedAt = useMemo(() => formatDate(activity.created_at), [activity.created_at]);
+  const formattedUpdatedAt = useMemo(() => formatDate(activity.updated_at), [activity.updated_at]);
+  const showUpdatedAt = useMemo(() => activity.updated_at !== activity.created_at, [activity.updated_at, activity.created_at]);
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Activity Details"
+      size="lg"
+    >
+      <div className="space-y-6">
+        {/* Header Section - Status and Type */}
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl border border-border/50">
+          <div className="flex items-center gap-3">
+            <Badge variant={statusVariant} className="text-sm px-3 py-1">
+              {activity.status}
+            </Badge>
+            <Badge variant="info" className="text-sm px-3 py-1 capitalize">
+              {typeLabel}
+            </Badge>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-foreground">{formattedAmount}</div>
+            {formattedBonus && (
+              <div className="text-sm font-semibold text-green-600">
+                +{formattedBonus} bonus
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Activity IDs */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</label>
+            <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
+              {activity.id}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Operator</label>
+            <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
+              {operator}
+            </div>
+          </div>
+        </div>
+
+        {/* Game Balance Section */}
+        <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Game</label>
+            <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{activity.game}</div>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Game Balance</label>
+            <div className="text-lg font-bold text-green-900 dark:text-green-100">{formattedBalance}</div>
+          </div>
+        </div>
+
+        {/* User Information */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">User Information</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Username</label>
+              <div className="text-sm font-semibold text-foreground">
+                {username || '—'}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">User ID</label>
+              <div className="text-sm text-foreground">
+                {activity.user_id}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Operation Details */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Operation Details</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Operation Type</label>
+              <Badge variant="default" className="text-xs uppercase">
+                {operationType}
+              </Badge>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Game Username</label>
+              <div className="text-sm text-foreground">
+                {username || '—'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Timestamps */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Timestamps</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Created</label>
+              <div className="text-sm font-medium text-foreground">{formattedCreatedAt}</div>
+            </div>
+            {showUpdatedAt && (
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-muted-foreground">Updated</label>
+                <div className="text-sm font-medium text-foreground">{formattedUpdatedAt}</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Remarks */}
+        {activity.remarks && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Remarks</h3>
+            <div className="text-sm text-foreground bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-900/30">
+              {activity.remarks}
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+});
 
 interface HistoryGameActivityRowProps {
   activity: TransactionQueue;
   onView: (activity: TransactionQueue) => void;
 }
 
-function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProps) {
-  const statusVariant = mapStatusToVariant(activity.status);
+const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProps) {
+  // Memoize expensive computations
+  const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
+  const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
+  const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
+  
+  const bonusAmount = useMemo(() => {
+    const bonus = activity.data?.bonus_amount;
+    if (!bonus) return null;
+    const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
+      ? parseFloat(String(bonus)) 
+      : 0;
+    return bonusValue > 0 ? bonus : null;
+  }, [activity.data?.bonus_amount]);
+
+  const formattedBonus = useMemo(() => {
+    return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+  }, [bonusAmount]);
+
+  const formattedBalance = useMemo(() => {
+    return formatCurrency(String(activity.data?.balance ?? '0'));
+  }, [activity.data?.balance]);
+
+  const username = useMemo(() => {
+    return typeof activity.data?.username === 'string' ? activity.data.username : null;
+  }, [activity.data?.username]);
+
+  const userInitial = useMemo(() => {
+    return username ? username.charAt(0).toUpperCase() : '—';
+  }, [username]);
+
+  const formattedCreatedAt = useMemo(() => formatDate(activity.created_at), [activity.created_at]);
+  const formattedUpdatedAt = useMemo(() => formatDate(activity.updated_at), [activity.updated_at]);
+  const showUpdatedAt = useMemo(() => activity.updated_at !== activity.created_at, [activity.updated_at, activity.created_at]);
+
+  const handleViewClick = useCallback(() => {
+    onView(activity);
+  }, [activity, onView]);
 
   return (
     <TableRow>
       <TableCell>
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
-            {(() => {
-              const username = typeof activity.data?.username === 'string' ? activity.data.username : null;
-              return username ? username.charAt(0).toUpperCase() : '—';
-            })()}
+            {userInitial}
           </div>
           <div>
             <div className="font-medium text-gray-900 dark:text-gray-100">
-              {typeof activity.data?.username === 'string' ? activity.data.username : '—'}
+              {username || '—'}
             </div>
           </div>
         </div>
       </TableCell>
       <TableCell>
         <Badge variant="info" className="capitalize">
-          {mapTypeToLabel(activity.type)}
+          {typeLabel}
         </Badge>
       </TableCell>
       <TableCell>
@@ -431,22 +527,16 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
       </TableCell>
       <TableCell>
         <div className="font-semibold">
-          {formatCurrency(activity.amount)}
-          {(() => {
-            const bonusAmount = activity.data?.bonus_amount;
-            const bonusValue = typeof bonusAmount === 'string' || typeof bonusAmount === 'number' 
-              ? parseFloat(String(bonusAmount)) 
-              : 0;
-            return bonusValue > 0 ? (
-              <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                +{formatCurrency(String(bonusAmount))} bonus
-              </div>
-            ) : null;
-          })()}
+          {formattedAmount}
+          {formattedBonus && (
+            <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+              +{formattedBonus} bonus
+            </div>
+          )}
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm font-semibold text-foreground">{formatCurrency(String(activity.data?.balance ?? '0'))}</div>
+        <div className="text-sm font-semibold text-foreground">{formattedBalance}</div>
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
@@ -455,9 +545,9 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
       </TableCell>
       <TableCell>
         <div className="text-xs text-muted-foreground space-y-1">
-          <div>{formatDate(activity.created_at)}</div>
-          {activity.updated_at !== activity.created_at && (
-            <div>{formatDate(activity.updated_at)}</div>
+          <div>{formattedCreatedAt}</div>
+          {showUpdatedAt && (
+            <div>{formattedUpdatedAt}</div>
           )}
         </div>
       </TableCell>
@@ -465,26 +555,35 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onView(activity)}
+          onClick={handleViewClick}
         >
           View
         </Button>
       </TableCell>
     </TableRow>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.activity.id === nextProps.activity.id &&
+    prevProps.activity.status === nextProps.activity.status &&
+    prevProps.activity.amount === nextProps.activity.amount &&
+    prevProps.activity.updated_at === nextProps.activity.updated_at &&
+    prevProps.onView === nextProps.onView
+  );
+});
 
-function mapStatusToVariant(status: string): 'success' | 'warning' | 'danger' | 'default' {
+// Memoize pure functions
+const mapStatusToVariant = (status: string): 'success' | 'warning' | 'danger' | 'default' => {
   if (status === 'completed') return 'success';
   if (status === 'pending') return 'warning';
   if (status === 'failed') return 'danger';
   return 'default';
-}
+};
 
-function mapTypeToLabel(type: string): string {
+const mapTypeToLabel = (type: string): string => {
   if (type === 'recharge_game') return 'Recharge';
   if (type === 'redeem_game') return 'Redeem';
   if (type === 'add_user_game') return 'Add User';
   return type;
-}
-
+};
