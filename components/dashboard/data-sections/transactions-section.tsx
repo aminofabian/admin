@@ -11,6 +11,7 @@ import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
 import type { Transaction } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
+import { PROJECT_DOMAIN } from '@/lib/constants/api';
 
 const HEADER_ICON = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -24,6 +25,8 @@ const EMPTY_STATE = (
     description="Try adjusting your filters or search criteria"
   />
 );
+
+const CRYPTO_PAYMENT_METHODS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'];
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
   agent: '',
@@ -430,27 +433,39 @@ function TransactionsTable({
         title="Transaction Details"
         size="lg"
       >
-        {selectedTransaction && (
-          <div className="space-y-6">
-            {/* Header Section - Status and Type */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl border border-border/50">
-              <div className="flex items-center gap-3">
-                <Badge variant={selectedTransaction.type === 'purchase' ? 'success' : 'warning'} className="text-sm px-3 py-1">
-                  {selectedTransaction.type.toUpperCase()}
-                </Badge>
-                <Badge variant={mapStatusToVariant(selectedTransaction.status)} className="text-sm px-3 py-1">
-                  {selectedTransaction.status}
-                </Badge>
+        {selectedTransaction && (() => {
+          const paymentMethod = selectedTransaction.payment_method ?? '';
+          const lowerPaymentMethod = paymentMethod.toLowerCase();
+          const isCryptoPayment = CRYPTO_PAYMENT_METHODS.some((method) => lowerPaymentMethod.includes(method));
+          const explicitInvoiceUrl = selectedTransaction.payment_url ?? selectedTransaction.invoice_url;
+          const sanitizedInvoiceUrl = typeof explicitInvoiceUrl === 'string' ? explicitInvoiceUrl.trim() : '';
+          const invoiceUrl = sanitizedInvoiceUrl.length > 0
+            ? sanitizedInvoiceUrl
+            : selectedTransaction.id
+              ? `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${selectedTransaction.id}/invoice/`
+              : undefined;
+
+          return (
+            <div className="space-y-6">
+              {/* Header Section - Status and Type */}
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl border border-border/50">
+                <div className="flex items-center gap-3">
+                  <Badge variant={selectedTransaction.type === 'purchase' ? 'success' : 'warning'} className="text-sm px-3 py-1">
+                    {selectedTransaction.type.toUpperCase()}
+                  </Badge>
+                  <Badge variant={mapStatusToVariant(selectedTransaction.status)} className="text-sm px-3 py-1">
+                    {selectedTransaction.status}
+                  </Badge>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-foreground">{formatCurrency(selectedTransaction.amount)}</div>
+                  {parseFloat(selectedTransaction.bonus_amount || '0') > 0 && (
+                    <div className="text-sm font-semibold text-green-600">
+                      +{formatCurrency(selectedTransaction.bonus_amount)} bonus
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-foreground">{formatCurrency(selectedTransaction.amount)}</div>
-                {parseFloat(selectedTransaction.bonus_amount || '0') > 0 && (
-                  <div className="text-sm font-semibold text-green-600">
-                    +{formatCurrency(selectedTransaction.bonus_amount)} bonus
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* Transaction ID */}
             <div className="space-y-1">
@@ -504,6 +519,19 @@ function TransactionsTable({
                   </div>
                 </div>
               </div>
+              {/* View Invoice Button for Crypto Payments */}
+              {isCryptoPayment && invoiceUrl && (
+                <div className="pt-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="font-medium w-full"
+                    onClick={() => window.open(invoiceUrl, '_blank', 'noopener,noreferrer')}
+                  >
+                    View Invoice
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Transaction Details */}
@@ -540,7 +568,8 @@ function TransactionsTable({
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
       </Modal>
     </>
   );
