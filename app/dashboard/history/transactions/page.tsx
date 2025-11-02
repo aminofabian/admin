@@ -148,9 +148,20 @@ export default function HistoryTransactionsPage() {
     setAreFiltersOpen((previous) => !previous);
   };
 
-  const results = transactions?.results ?? [];
+  const allResults = transactions?.results ?? [];
+  
+  // Filter to only show transactions with operator "bot" or "admin" (company maps to admin)
+  // Exclude transactions where operator is "player" or other values
+  const results = useMemo(() => {
+    return allResults.filter((transaction) => {
+      const operator = transaction.operator?.toLowerCase() ?? '';
+      
+      // Only show if operator is bot, admin, or company (company will be displayed as admin)
+      return operator === 'bot' || operator === 'admin' || operator === 'company';
+    });
+  }, [allResults]);
 
-  const stats = useMemo(() => buildHistoryStats(results, transactions?.count ?? 0), [results, transactions?.count]);
+  const stats = useMemo(() => buildHistoryStats(results, results.length), [results]);
 
   const isInitialLoading = isLoading && !transactions;
   const isEmpty = !results.length;
@@ -176,7 +187,7 @@ export default function HistoryTransactionsPage() {
         onToggleFilters={handleToggleFilters}
         transactions={results}
         currentPage={currentPage}
-        totalCount={transactions?.count ?? 0}
+        totalCount={results.length}
         onPageChange={setPage}
         pageSize={10}
       />
@@ -244,7 +255,6 @@ function HistoryTransactionsLayout({
           { value: 'cancelled', label: 'Cancelled' },
         ]}
       />
-      <HistoryTransactionsStats stats={stats} />
       <HistoryTransactionsTable
         transactions={transactions}
         currentPage={currentPage}
@@ -462,8 +472,10 @@ function HistoryTransactionRow({ transaction }: HistoryTransactionRowProps) {
       </TableCell>
       <TableCell>
         <div className="text-sm">
-          {transaction.operator}
-          <div className="text-xs text-muted-foreground">{transaction.role}</div>
+          {transaction.operator?.toLowerCase() === 'company' ? 'admin' : transaction.operator}
+          {transaction.role?.toLowerCase() !== 'player' && transaction.role?.toLowerCase() !== 'company' && (
+            <div className="text-xs text-muted-foreground">{transaction.role}</div>
+          )}
         </div>
       </TableCell>
       <TableCell className="text-right">

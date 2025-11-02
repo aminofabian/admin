@@ -47,7 +47,7 @@ const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
     options: [
       { value: '', label: 'All Types' },
       { value: 'bot', label: 'Bot' },
-      { value: 'manual', label: 'Manual' },
+      { value: 'admin', label: 'Admin' },
     ],
   },
   {
