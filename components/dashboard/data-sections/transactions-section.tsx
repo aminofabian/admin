@@ -452,10 +452,10 @@ function TransactionsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
               <TableHead>User</TableHead>
               <TableHead>Transaction</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>ID</TableHead>
               <TableHead>Previous Balance</TableHead>
               <TableHead>New Balance</TableHead>
               <TableHead>Status</TableHead>
@@ -493,6 +493,7 @@ interface TransactionsRowProps {
 
 function TransactionsRow({ transaction }: TransactionsRowProps) {
   const bonus = parseFloat(transaction.bonus_amount || '0');
+  const isPurchase = transaction.type === 'purchase';
   const statusVariant = mapStatusToVariant(transaction.status);
   const paymentMethod = transaction.payment_method?.toLowerCase() ?? '';
   const isCryptoPayment = paymentMethod.includes('crypto');
@@ -504,27 +505,37 @@ function TransactionsRow({ transaction }: TransactionsRowProps) {
   return (
     <TableRow>
       <TableCell>
-        <code className="text-xs text-muted-foreground">{transaction.id}</code>
-      </TableCell>
-      <TableCell>
-        <div className="space-y-1">
-          <div className="font-medium text-foreground">{transaction.user_username}</div>
-          <div className="text-xs text-muted-foreground">{transaction.user_email}</div>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+            {transaction.user_username.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">
+              {transaction.user_username}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {transaction.user_email}
+            </div>
+          </div>
         </div>
       </TableCell>
       <TableCell>
-        <div className="space-y-1">
-          <div className="font-medium text-foreground">{transaction.description}</div>
-          <Badge variant={transaction.type === 'purchase' ? 'success' : 'warning'} className="text-xs">
-            {transaction.type.toUpperCase()}
-          </Badge>
-        </div>
+        <Badge variant={isPurchase ? 'success' : 'warning'} className="text-xs">
+          {transaction.type.toUpperCase()}
+        </Badge>
       </TableCell>
       <TableCell>
-        <div className="font-semibold text-foreground">{formatCurrency(transaction.amount)}</div>
+        <div className={`font-semibold ${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+          {formatCurrency(transaction.amount)}
+        </div>
         {bonus > 0 && (
-          <div className="text-xs text-muted-foreground">+{formatCurrency(transaction.bonus_amount)} bonus</div>
+          <div className={`text-xs ${isPurchase ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
+            +{formatCurrency(transaction.bonus_amount)} bonus
+          </div>
         )}
+      </TableCell>
+      <TableCell>
+        <code className="text-xs text-muted-foreground">{transaction.id}</code>
       </TableCell>
       <TableCell>
         <div className="text-sm text-muted-foreground">{formatCurrency(transaction.previous_balance)}</div>
