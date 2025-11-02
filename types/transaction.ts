@@ -44,7 +44,7 @@ export interface TransactionQueue {
   bonus_amount?: string;
   new_game_balance?: string;
   remarks: string;
-  data: Record<string, unknown>;
+  data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }

@@ -319,8 +319,24 @@ const ActivityDetailsModal = memo(function ActivityDetailsModal({
   }, [activity.data?.balance]);
 
   const username = useMemo(() => {
-    return typeof activity.data?.username === 'string' ? activity.data.username : null;
-  }, [activity.data?.username]);
+    // Check multiple possible locations for username
+    // 1. Top-level user_username field
+    if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
+      return activity.user_username.trim();
+    }
+    // 2. Top-level game_username field
+    if (typeof activity.game_username === 'string' && activity.game_username.trim()) {
+      return activity.game_username.trim();
+    }
+    // 3. Username in data object (for completed transactions)
+    if (activity.data && typeof activity.data === 'object' && activity.data !== null) {
+      const dataUsername = activity.data.username;
+      if (typeof dataUsername === 'string' && dataUsername.trim()) {
+        return dataUsername.trim();
+      }
+    }
+    return null;
+  }, [activity.user_username, activity.game_username, activity.data]);
 
   const operator = useMemo(() => {
     return activity.operator || (typeof activity.data?.operator === 'string' ? activity.data.operator : '—');
@@ -488,8 +504,24 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
   }, [activity.data?.balance]);
 
   const username = useMemo(() => {
-    return typeof activity.data?.username === 'string' ? activity.data.username : null;
-  }, [activity.data?.username]);
+    // Check multiple possible locations for username
+    // 1. Top-level user_username field
+    if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
+      return activity.user_username.trim();
+    }
+    // 2. Top-level game_username field
+    if (typeof activity.game_username === 'string' && activity.game_username.trim()) {
+      return activity.game_username.trim();
+    }
+    // 3. Username in data object (for completed transactions)
+    if (activity.data && typeof activity.data === 'object' && activity.data !== null) {
+      const dataUsername = activity.data.username;
+      if (typeof dataUsername === 'string' && dataUsername.trim()) {
+        return dataUsername.trim();
+      }
+    }
+    return null;
+  }, [activity.user_username, activity.game_username, activity.data]);
 
   const userInitial = useMemo(() => {
     return username ? username.charAt(0).toUpperCase() : '—';
