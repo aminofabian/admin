@@ -51,45 +51,43 @@ export function PaymentSettingsSection() {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-            {PAYMENT_ICON}
+      {/* Header */}
+      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Payment Methods</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Manage and configure available payment methods
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Payment Methods</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{totalCount}</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
+          <div className="text-2xl font-bold text-green-500 mt-1">
+            {enabledCount}
           </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-foreground">
-              Payment Methods
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage and configure available payment methods
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 rounded-md border border-green-200 dark:border-green-800">
-                <div className="w-2 h-2 bg-green-500 rounded-full" />
-                <span className="text-xs font-medium">{enabledCount} Active</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-950/30 text-gray-700 dark:text-gray-400 rounded-md border border-gray-200 dark:border-gray-800">
-                <div className="w-2 h-2 bg-gray-400 rounded-full" />
-                <span className="text-xs font-medium">{disabledCount} Inactive</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 rounded-md border border-blue-200 dark:border-blue-800">
-                <span className="text-xs font-medium">{totalCount} Total</span>
-              </div>
-            </div>
-          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
+          <div className="text-2xl font-bold text-gray-500 mt-1">{disabledCount}</div>
         </div>
       </div>
 
       {/* Payment Methods Table */}
       {results.length === 0 ? (
-        <div className="bg-card border border-border rounded-lg">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
               {PAYMENT_ICON}
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">No Payment Methods</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No Payment Methods</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Payment methods will appear here once configured
             </p>
           </div>
@@ -97,13 +95,8 @@ export function PaymentSettingsSection() {
       ) : (
         <>
           {/* Desktop Table View */}
-          <div className="hidden lg:block relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-            {/* Subtle background pattern */}
-            <div className="absolute inset-0 opacity-[0.015]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-            </div>
-            
-            <div className="relative">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -117,8 +110,8 @@ export function PaymentSettingsSection() {
                 </TableHeader>
                 <TableBody>
                   {sortedResults.map((method, index) => (
-                    <TableRow key={method.id}>
-                    <TableCell className="text-center font-medium text-muted-foreground">
+                    <TableRow key={method.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <TableCell className="text-center font-medium text-gray-600 dark:text-gray-400">
                       {index + 1}
                     </TableCell>
                     <TableCell>
@@ -129,10 +122,10 @@ export function PaymentSettingsSection() {
                           </svg>
                         </div>
                         <div>
-                          <div className="font-medium text-foreground">
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
                             {method.payment_method_display}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
                             {method.payment_method}
                           </div>
                         </div>
@@ -149,7 +142,7 @@ export function PaymentSettingsSection() {
                         {method.is_enabled ? 'Active' : 'Inactive'}
                       </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-gray-600 dark:text-gray-400">
                       {new Date(method.modified).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
@@ -221,19 +214,13 @@ export function PaymentSettingsSection() {
             {sortedResults.map((method, index) => (
               <div
                 key={method.id}
-                className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:border-primary/30 hover:shadow-md transition-all duration-200"
+                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
               >
-                {/* Subtle background pattern */}
-                <div className="absolute inset-0 opacity-[0.015]">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-                </div>
-                
-                <div className="relative">
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-6">
                     {/* Left: Number + Icon + Info */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0 text-sm font-semibold text-primary">
+                      <div className="w-8 h-8 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0 text-sm font-semibold text-blue-600 dark:text-blue-400">
                         {index + 1}
                       </div>
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${method.is_enabled ? 'bg-green-50 dark:bg-green-950/30' : 'bg-gray-50 dark:bg-gray-950/30'}`}>
@@ -242,10 +229,10 @@ export function PaymentSettingsSection() {
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-foreground leading-tight truncate">
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100 leading-tight truncate">
                           {method.payment_method_display}
                         </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
                           {method.payment_method}
                         </p>
                       </div>
@@ -310,7 +297,7 @@ export function PaymentSettingsSection() {
                   </div>
 
                   {/* Mobile badges */}
-                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border">
+                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <span className="inline-flex items-center px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 text-xs font-medium capitalize">
                       {method.method_type}
                     </span>
@@ -320,11 +307,10 @@ export function PaymentSettingsSection() {
                       {method.is_enabled ? 'Active' : 'Inactive'}
                     </span>
 
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
                       {new Date(method.modified).toLocaleDateString()}
                     </span>
                   </div>
-                </div>
                 </div>
               </div>
             ))}
