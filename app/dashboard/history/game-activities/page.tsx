@@ -318,7 +318,6 @@ function HistoryGameActivitiesTable({
               <TableHead>Game</TableHead>
               <TableHead>Operation Type</TableHead>
               <TableHead>Amount</TableHead>
-              <TableHead>Bonus Amount</TableHead>
               <TableHead>New Game Balance</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Dates</TableHead>
@@ -386,10 +385,20 @@ function HistoryGameActivityRow({ activity }: HistoryGameActivityRowProps) {
           </Badge>
       </TableCell>
       <TableCell>
-        <div className="font-semibold">{formatCurrency(activity.amount)}</div>
-      </TableCell>
-      <TableCell>
-        <div className="text-sm text-muted-foreground">{formatCurrency(String(activity.data?.bonus_amount ?? '0'))}</div>
+        <div className="font-semibold">
+          {formatCurrency(activity.amount)}
+          {(() => {
+            const bonusAmount = activity.data?.bonus_amount;
+            const bonusValue = typeof bonusAmount === 'string' || typeof bonusAmount === 'number' 
+              ? parseFloat(String(bonusAmount)) 
+              : 0;
+            return bonusValue !== 0 ? (
+              <span className="text-sm font-normal text-muted-foreground ml-1">
+                + {formatCurrency(String(bonusAmount))} bonus
+              </span>
+            ) : null;
+          })()}
+        </div>
       </TableCell>
       <TableCell>
         <div className="text-sm font-semibold text-foreground">{formatCurrency(String(activity.data?.new_game_balance ?? '0'))}</div>

@@ -186,11 +186,13 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, o
         </div>
       </TableCell>
       <TableCell>
-        <div className="font-semibold text-foreground">{formatCurrency(transaction.amount || '0')}</div>
-      </TableCell>
-      <TableCell>
-        <div className="text-sm text-muted-foreground">
-          {bonusValue !== 0 ? formatCurrency(bonusValue) : '—'}
+        <div className="font-semibold text-foreground">
+          {formatCurrency(transaction.amount || '0')}
+          {bonusValue !== 0 && (
+            <span className="text-sm font-normal text-muted-foreground ml-1">
+              + {formatCurrency(bonusValue)} bonus
+            </span>
+          )}
         </div>
       </TableCell>
       <TableCell>
@@ -703,7 +705,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   <TableHead>User</TableHead>
                   <TableHead>Transaction</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Bonus</TableHead>
                   <TableHead>Previous Balance</TableHead>
                   <TableHead>New Balance</TableHead>
                   <TableHead>Status</TableHead>
