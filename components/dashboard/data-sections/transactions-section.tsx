@@ -2,15 +2,12 @@
 
 import { useEffect, useMemo, useState, useRef } from 'react';
 import {
-  DashboardActionBar,
-  DashboardSearchBar,
   DashboardSectionContainer,
   DashboardSectionHeader,
 } from '@/components/dashboard/layout';
 import { Badge, Button, Modal, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
-import { useSearch } from '@/lib/hooks';
 import { useTransactionsStore } from '@/stores';
 import type { Transaction } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
@@ -27,19 +24,6 @@ const EMPTY_STATE = (
     description="Try adjusting your filters or search criteria"
   />
 );
-
-const FILTER_OPTIONS = [
-  { value: 'all', label: 'All' },
-  { value: 'processing', label: 'Processing' },
-  { value: 'history', label: 'History' },
-  { value: 'purchases', label: 'Purchases' },
-  { value: 'cashouts', label: 'Cashouts' },
-] as const;
-
-const PENDING_FILTER_OPTIONS = [
-  { value: 'pending-purchases', label: 'Pending Purchases' },
-  { value: 'pending-cashouts', label: 'Pending Cashouts' },
-] as const;
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
   agent: '',
@@ -99,19 +83,12 @@ export function TransactionsSection() {
     clearAdvancedFilters,
   } = useTransactionsStore();
 
-  const { search, debouncedSearch, setSearch } = useSearch(searchTerm);
   const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
-
-  useEffect(() => {
-    if (debouncedSearch !== undefined && debouncedSearch !== searchTerm) {
-      setSearchTerm(debouncedSearch);
-    }
-  }, [debouncedSearch, searchTerm, setSearchTerm]);
 
   useEffect(() => {
     setFilters(buildHistoryFilterState(advancedFilters));
@@ -181,10 +158,7 @@ export function TransactionsSection() {
       emptyState={EMPTY_STATE}
     >
       <TransactionsLayout
-        search={search}
-        onSearchChange={setSearch}
         filter={filter}
-        onFilterChange={setFilter}
         advancedFilters={filters}
         onAdvancedFilterChange={handleAdvancedFilterChange}
         onApplyAdvancedFilters={handleApplyAdvancedFilters}
@@ -202,10 +176,7 @@ export function TransactionsSection() {
 }
 
 interface TransactionsLayoutProps {
-  search: string;
-  onSearchChange: (value: string) => void;
   filter: string;
-  onFilterChange: (value: typeof FILTER_OPTIONS[number]['value'] | typeof PENDING_FILTER_OPTIONS[number]['value']) => void;
   advancedFilters: HistoryTransactionsFiltersState;
   onAdvancedFilterChange: (key: keyof HistoryTransactionsFiltersState, value: string) => void;
   onApplyAdvancedFilters: () => void;
@@ -220,10 +191,7 @@ interface TransactionsLayoutProps {
 }
 
 function TransactionsLayout({
-  search,
-  onSearchChange,
   filter,
-  onFilterChange,
   advancedFilters,
   onAdvancedFilterChange,
   onApplyAdvancedFilters,
@@ -250,18 +218,6 @@ function TransactionsLayout({
           ) : undefined
         }
       />
-
-      <DashboardActionBar>
-        <DashboardSearchBar
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Search by username, email, transaction ID, or description"
-        />
-        <TransactionsFilters
-          filter={filter}
-          onFilterChange={onFilterChange}
-        />
-      </DashboardActionBar>
       <HistoryTransactionsFilters
         filters={advancedFilters}
         onFilterChange={onAdvancedFilterChange}
@@ -285,62 +241,6 @@ function TransactionsLayout({
         onPageChange={onPageChange}
       />
     </>
-  );
-}
-
-interface TransactionsFiltersProps {
-  filter: string;
-  onFilterChange: (value: typeof FILTER_OPTIONS[number]['value'] | typeof PENDING_FILTER_OPTIONS[number]['value']) => void;
-}
-
-function TransactionsFilters({ filter, onFilterChange }: TransactionsFiltersProps) {
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {FILTER_OPTIONS.map((option) => (
-          <FilterChip
-            key={option.value}
-            active={filter === option.value}
-            onClick={() => onFilterChange(option.value)}
-            label={option.label}
-          />
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Pending only
-        </span>
-        {PENDING_FILTER_OPTIONS.map((option) => (
-          <FilterChip
-            key={option.value}
-            active={filter === option.value}
-            onClick={() => onFilterChange(option.value)}
-            label={option.label}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-interface FilterChipProps {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}
-
-function FilterChip({ active, label, onClick }: FilterChipProps) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-        active
-          ? 'bg-primary text-primary-foreground shadow-sm'
-          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 
@@ -452,7 +352,6 @@ function TransactionsTable({
               <TableHead>Status</TableHead>
               <TableHead>Payment</TableHead>
               <TableHead>Dates</TableHead>
-              <TableHead>Operator</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
             </TableHeader>
@@ -739,14 +638,6 @@ function TransactionsRow({ transaction, onView }: TransactionsRowProps) {
           <div>{transaction.updated ? formatDate(transaction.updated) : '—'}</div>
         </div>
       </TableCell>
-      <TableCell>
-        <div className="text-sm text-foreground">
-          {transaction.operator?.toLowerCase() === 'company' ? 'admin' : transaction.operator}
-          {transaction.role?.toLowerCase() !== 'player' && transaction.role?.toLowerCase() !== 'company' && (
-            <div className="text-xs text-muted-foreground">{transaction.role}</div>
-          )}
-        </div>
-      </TableCell>
       <TableCell className="text-right">
         <Button
           variant="ghost"
@@ -901,14 +792,6 @@ function TransactionCard({ transaction, onView, cardNumber, isVisible, animation
           <div className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground block">Updated</span>
             <div className="text-xs font-medium text-foreground">{transaction.updated ? formatDate(transaction.updated) : '—'}</div>
-          </div>
-        </div>
-
-        {/* Operator */}
-        <div className="pt-2 border-t border-border/50">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground block mb-2">Operator</span>
-          <div className="text-sm font-bold text-foreground">
-            {transaction.operator?.toLowerCase() === 'company' ? 'admin' : transaction.operator}
           </div>
         </div>
       </div>
