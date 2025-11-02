@@ -136,21 +136,10 @@ export function TransactionsSection() {
     setAreFiltersOpen((previous) => !previous);
   };
 
-  // Filter to only show transactions with operator "bot" or "admin" (company maps to admin)
-  // Exclude transactions where operator is "player" or other values
-  const results = useMemo<Transaction[]>(() => {
-    const rawResults = transactions?.results ?? [];
-    return rawResults.filter((transaction) => {
-      const operator = transaction.operator?.toLowerCase() ?? '';
-      // Only show if operator is bot, admin, or company (company will be displayed as admin)
-      return operator === 'bot' || operator === 'admin' || operator === 'company';
-    });
-  }, [transactions?.results]);
-  
-  const totalCount = transactions?.count ?? 0;
-
-  const isInitialLoading = isLoading && !transactions;
-  const isEmpty = !results.length;
+  const results = useMemo<Transaction[]>(() => transactions?.results ?? [], [transactions?.results]);
+  const totalCount = useMemo(() => transactions?.count ?? 0, [transactions?.count]);
+  const isInitialLoading = useMemo(() => isLoading && !transactions, [isLoading, transactions]);
+  const isEmpty = useMemo(() => !results.length, [results.length]);
 
   return (
     <DashboardSectionContainer
@@ -618,7 +607,7 @@ function TransactionsRow({ transaction, onView }: TransactionsRowProps) {
         )}
       </TableCell>
       <TableCell>
-        <div className="text-sm text-muted-foreground">{formatCurrency(transaction.previous_balance)}</div>
+        <div className="text-sm font-bold text-foreground">{formatCurrency(transaction.previous_balance)}</div>
       </TableCell>
       <TableCell>
         <div className="text-sm font-semibold text-foreground">{formatCurrency(transaction.new_balance)}</div>
