@@ -8,7 +8,7 @@ import type { TransactionQueue, GameActionType } from '@/types';
 interface GameActionFormProps {
   queue: TransactionQueue | null;
   onSubmit: (data: {
-    txn_id: number;
+    txn_id: string | number;
     type: GameActionType;
     new_password?: string;
     new_balance?: string;
@@ -44,7 +44,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     
     try {
       const data: {
-        txn_id: number;
+        txn_id: string | number;
         type: GameActionType;
         new_password?: string;
         new_balance?: string;
