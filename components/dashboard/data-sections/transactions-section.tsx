@@ -160,9 +160,19 @@ export function TransactionsSection() {
     setAreFiltersOpen((previous) => !previous);
   };
 
-  const rawResults = transactions?.results;
-  const results = useMemo<Transaction[]>(() => rawResults ?? [], [rawResults]);
-  const totalCount = transactions?.count ?? 0;
+  const rawResults = transactions?.results ?? [];
+  
+  // Filter to only show transactions with operator "bot" or "admin" (company maps to admin)
+  // Exclude transactions where operator is "player" or other values
+  const results = useMemo<Transaction[]>(() => {
+    return rawResults.filter((transaction) => {
+      const operator = transaction.operator?.toLowerCase() ?? '';
+      // Only show if operator is bot, admin, or company (company will be displayed as admin)
+      return operator === 'bot' || operator === 'admin' || operator === 'company';
+    });
+  }, [rawResults]);
+  
+  const totalCount = results.length;
   const stats = useMemo(() => buildTransactionStats(results, totalCount), [results, totalCount]);
 
   const isInitialLoading = isLoading && !transactions;
@@ -547,8 +557,10 @@ function TransactionsRow({ transaction }: TransactionsRowProps) {
       </TableCell>
       <TableCell>
         <div className="text-sm text-foreground">
-          {transaction.operator}
-          <div className="text-xs text-muted-foreground">{transaction.role}</div>
+          {transaction.operator?.toLowerCase() === 'company' ? 'admin' : transaction.operator}
+          {transaction.role?.toLowerCase() !== 'player' && transaction.role?.toLowerCase() !== 'company' && (
+            <div className="text-xs text-muted-foreground">{transaction.role}</div>
+          )}
         </div>
       </TableCell>
       <TableCell className="text-right">

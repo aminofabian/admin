@@ -12,7 +12,6 @@ import {
 } from '@/components/dashboard/layout';
 import { Badge, Button, Drawer, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { EmptyState, GameForm, StoreBalanceModal } from '@/components/features';
-import { formatDate } from '@/lib/utils/formatters';
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
@@ -104,7 +103,7 @@ export function GamesSection() {
         <DashboardSearchBar
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search by title, code, or category"
+          placeholder="Search by title"
         />
       </DashboardActionBar>
 
@@ -282,34 +281,20 @@ function GamesTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
               <TableHead>Game</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {games.map((game) => (
               <TableRow key={game.id}>
-                <TableCell className="text-muted-foreground">{game.id}</TableCell>
                 <TableCell className="font-medium text-foreground">{game.title}</TableCell>
-                <TableCell>
-                  <code className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{game.code}</code>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="info" className="capitalize">
-                    {game.game_category}
-                  </Badge>
-                </TableCell>
                 <TableCell>
                   <Badge variant={game.game_status ? 'success' : 'danger'}>
                     {game.game_status ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{formatDate(game.created)}</TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-2">
                     <Button
