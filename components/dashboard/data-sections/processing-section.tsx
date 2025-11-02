@@ -153,8 +153,10 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, o
   const paymentMethod = transaction.payment_method ?? '—';
   const lowerPaymentMethod = paymentMethod.toLowerCase();
   const isCryptoPayment = CRYPTO_PAYMENT_METHODS.some((method) => lowerPaymentMethod.includes(method));
-  const invoiceUrl = transaction.invoice_url
-    ? transaction.invoice_url
+  const explicitInvoiceUrl = transaction.payment_url ?? transaction.invoice_url;
+  const sanitizedInvoiceUrl = typeof explicitInvoiceUrl === 'string' ? explicitInvoiceUrl.trim() : '';
+  const invoiceUrl = sanitizedInvoiceUrl.length > 0
+    ? sanitizedInvoiceUrl
     : transaction.id
       ? `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${transaction.id}/invoice/`
       : undefined;

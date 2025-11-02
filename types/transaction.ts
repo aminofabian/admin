@@ -25,6 +25,7 @@ export interface Transaction {
   remarks: string | null;
   created: string;
   updated: string;
+  payment_url?: string | null;
   invoice_url?: string;
 }
 
