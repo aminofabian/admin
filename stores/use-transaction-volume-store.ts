@@ -47,7 +47,7 @@ export const useTransactionVolumeStore = create<TransactionVolumeStore>((set, ge
       // Fetch purchases today
       const purchasesResponse: PaginatedResponse<Transaction> = await transactionsApi.list({
         txn: 'purchases',
-        page_size: 1000, // Get all purchases for today
+        page_size: 1000, // Get  for today
       });
 
       // Fetch cashouts today

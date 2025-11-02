@@ -59,6 +59,130 @@ interface ProcessingSectionProps {
   type: ViewType;
 }
 
+// Skeleton loaders for better UX
+function ProcessingTransactionTableSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Header skeleton */}
+      <div className="animate-pulse">
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64 mb-2" />
+        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-96" />
+      </div>
+      
+      {/* Hint bar skeleton */}
+      <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded" />
+      
+      {/* Table skeleton */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800/50">
+              <tr>
+                {[...Array(11)].map((_, i) => (
+                  <th key={i} className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+              {[...Array(5)].map((_, i) => (
+                <tr key={i}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse" />
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className="flex justify-end gap-2">
+                      <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse" />
+                      <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* Pagination skeleton */}
+      <div className="flex justify-center gap-2">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-10 animate-pulse" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProcessingQueueTableSkeleton() {
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-black/20 p-4 space-y-4 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-24" />
+        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+      </div>
+      <div className="space-y-3">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="flex items-center gap-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+            <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+            </div>
+            <div className="ml-auto">
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProcessingStatsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24" />
+            <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded" />
+          </div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20 mb-2" />
+          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const PURCHASE_ICON: JSX.Element = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 11H6L5 9z" />
@@ -100,8 +224,8 @@ const PROCESSING_CONFIG: Record<ViewType, {
     description: 'Confirm player cashout requests and ensure payouts are delivered.',
     icon: CASHOUT_ICON,
     hint: 'Keep an eye on outstanding cashout requests and verify payout details before completing them.',
-    emptyTitle: 'No cashout transactions pending',
-    emptyDescription: 'There are no cashout requests waiting for approval right now.',
+    emptyTitle: 'All Clear',
+    emptyDescription: 'No pending cashout requests. New requests will appear here automatically.',
   },
   game_activities: {
     title: 'Game Activities Processing',
@@ -148,9 +272,10 @@ interface ProcessingTransactionRowProps {
   onComplete: () => Promise<void>;
   onCancel: () => Promise<void>;
   isActionPending: boolean;
+  viewType?: 'purchases' | 'cashouts';
 }
 
-function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, onCancel, isActionPending }: ProcessingTransactionRowProps) {
+function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, onCancel, isActionPending, viewType }: ProcessingTransactionRowProps) {
   const bonusValue = parseFloat(transaction.bonus_amount || '0');
   const transactionId = transaction.id;
   const paymentMethod = transaction.payment_method ?? '—';
@@ -166,54 +291,102 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, o
   const isPending = transaction.status === 'pending';
   const disableActions = isActionPending || !isPending;
 
+  // Define cells for purchases (User, Payment, then rest) vs cashouts (default order)
+  const userCell = (
+    <TableCell>
+      <div className="space-y-1">
+        <div className="font-medium text-foreground">{transaction.user_username ?? '—'}</div>
+        <div className="text-xs text-muted-foreground">{transaction.user_email ?? '—'}</div>
+      </div>
+    </TableCell>
+  );
+
+  const paymentCell = (
+    <TableCell>
+      <Badge variant="info" className="capitalize">
+        {paymentMethod}
+      </Badge>
+    </TableCell>
+  );
+
+  const transactionCell = (
+    <TableCell>
+      <div className="space-y-1">
+        <div className="font-medium text-foreground">{transaction.description ?? '—'}</div>
+        <Badge variant={transaction.type === 'purchase' ? 'success' : 'warning'} className="text-xs">
+          {transaction.type?.toUpperCase() ?? '—'}
+        </Badge>
+      </div>
+    </TableCell>
+  );
+
+  const amountCell = (
+    <TableCell>
+      <div className="font-semibold text-foreground">
+        {formatCurrency(transaction.amount || '0')}
+        {bonusValue !== 0 && (
+          <span className="text-sm font-normal text-muted-foreground ml-1">
+            + {formatCurrency(bonusValue)} bonus
+          </span>
+        )}
+      </div>
+    </TableCell>
+  );
+
+  const prevBalanceCell = (
+    <TableCell>
+      <div className="text-sm text-muted-foreground">{formatCurrency(transaction.previous_balance || '0')}</div>
+    </TableCell>
+  );
+
+  const newBalanceCell = (
+    <TableCell>
+      <div className="text-sm font-semibold text-foreground">{formatCurrency(transaction.new_balance || '0')}</div>
+    </TableCell>
+  );
+
+  const statusCell = (
+    <TableCell>
+      <Badge variant={getStatusVariant(transaction.status)} className="capitalize">
+        {transaction.status}
+      </Badge>
+    </TableCell>
+  );
+
+  const createdCell = (
+    <TableCell>
+      <div className="text-xs text-muted-foreground">{formatDate(transaction.created)}</div>
+    </TableCell>
+  );
+
   return (
     <TableRow>
       <TableCell>
         <code className="text-xs text-muted-foreground">{transactionId}</code>
       </TableCell>
-      <TableCell>
-        <div className="space-y-1">
-          <div className="font-medium text-foreground">{transaction.user_username ?? '—'}</div>
-          <div className="text-xs text-muted-foreground">{transaction.user_email ?? '—'}</div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="space-y-1">
-          <div className="font-medium text-foreground">{transaction.description ?? '—'}</div>
-          <Badge variant={transaction.type === 'purchase' ? 'success' : 'warning'} className="text-xs">
-            {transaction.type?.toUpperCase() ?? '—'}
-          </Badge>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="font-semibold text-foreground">
-          {formatCurrency(transaction.amount || '0')}
-          {bonusValue !== 0 && (
-            <span className="text-sm font-normal text-muted-foreground ml-1">
-              + {formatCurrency(bonusValue)} bonus
-            </span>
-          )}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="text-sm text-muted-foreground">{formatCurrency(transaction.previous_balance || '0')}</div>
-      </TableCell>
-      <TableCell>
-        <div className="text-sm font-semibold text-foreground">{formatCurrency(transaction.new_balance || '0')}</div>
-      </TableCell>
-      <TableCell>
-        <Badge variant={getStatusVariant(transaction.status)} className="capitalize">
-          {transaction.status}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <Badge variant="info" className="capitalize">
-          {paymentMethod}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <div className="text-xs text-muted-foreground">{formatDate(transaction.created)}</div>
-      </TableCell>
+      {viewType === 'purchases' ? (
+        <>
+          {userCell}
+          {paymentCell}
+          {transactionCell}
+          {amountCell}
+          {prevBalanceCell}
+          {newBalanceCell}
+          {statusCell}
+          {createdCell}
+        </>
+      ) : (
+        <>
+          {userCell}
+          {transactionCell}
+          {amountCell}
+          {prevBalanceCell}
+          {newBalanceCell}
+          {statusCell}
+          {paymentCell}
+          {createdCell}
+        </>
+      )}
       <TableCell className="text-right">
         <div className="inline-flex flex-wrap items-center justify-end gap-2">
           {isCryptoPayment && invoiceUrl ? (
@@ -671,7 +844,82 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   if (isTransactionsView) {
     const isInitialLoading = transactionsLoading && !transactions;
     const isEmpty = transactionResults.length === 0;
-    const emptyState = (
+    // Custom empty state for cashouts and purchases with theme styling
+    const emptyState = viewType === 'cashouts' ? (
+      <div className="flex flex-col items-center justify-center p-12 text-center">
+        <div className="relative mb-6">
+          <div className="absolute inset-0 bg-purple-gradient-500/20 dark:bg-purple-gradient-500/10 rounded-full blur-2xl animate-pulse" />
+          <div className="relative bg-gradient-to-br from-purple-gradient-50 to-purple-gradient-100 dark:from-purple-gradient-900/30 dark:to-purple-gradient-800/30 rounded-full p-6 backdrop-blur-sm">
+            <svg 
+              className="w-16 h-16 text-purple-gradient-600 dark:text-purple-gradient-400" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+              />
+            </svg>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-gradient-600 to-purple-gradient-500 dark:from-purple-gradient-400 dark:to-purple-gradient-300 bg-clip-text text-transparent">
+            {metadata.emptyTitle}
+          </h3>
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm font-medium">{metadata.emptyDescription}</p>
+          </div>
+        </div>
+        <div className="mt-6 flex gap-2">
+          <div className="h-2 w-2 bg-purple-gradient-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="h-2 w-2 bg-purple-gradient-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="h-2 w-2 bg-purple-gradient-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+      </div>
+    ) : viewType === 'purchases' ? (
+      <div className="flex flex-col items-center justify-center p-12 text-center">
+        <div className="relative mb-6">
+          <div className="absolute inset-0 bg-purple-gradient-500/20 dark:bg-purple-gradient-500/10 rounded-full blur-2xl animate-pulse" />
+          <div className="relative bg-gradient-to-br from-purple-gradient-50 to-purple-gradient-100 dark:from-purple-gradient-900/30 dark:to-purple-gradient-800/30 rounded-full p-6 backdrop-blur-sm">
+            <svg 
+              className="w-16 h-16 text-purple-gradient-600 dark:text-purple-gradient-400" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+              />
+            </svg>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-gradient-600 to-purple-gradient-500 dark:from-purple-gradient-400 dark:to-purple-gradient-300 bg-clip-text text-transparent">
+            {metadata.emptyTitle}
+          </h3>
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm font-medium">{metadata.emptyDescription}</p>
+          </div>
+        </div>
+        <div className="mt-6 flex gap-2">
+          <div className="h-2 w-2 bg-purple-gradient-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="h-2 w-2 bg-purple-gradient-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="h-2 w-2 bg-purple-gradient-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+      </div>
+    ) : (
       <EmptyState
         title={metadata.emptyTitle}
         description={metadata.emptyDescription}
@@ -681,6 +929,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     return (
       <DashboardSectionContainer
         isLoading={isInitialLoading}
+        loadingState={<ProcessingTransactionTableSkeleton />}
         error={transactionsError ?? ''}
         onRetry={fetchTransactions}
         isEmpty={isEmpty}
@@ -702,14 +951,29 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Transaction</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Previous Balance</TableHead>
-                  <TableHead>New Balance</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead>Created</TableHead>
+                  {viewType === 'purchases' ? (
+                    <>
+                      <TableHead>User</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Transaction</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Previous Balance</TableHead>
+                      <TableHead>New Balance</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead>User</TableHead>
+                      <TableHead>Transaction</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Previous Balance</TableHead>
+                      <TableHead>New Balance</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Created</TableHead>
+                    </>
+                  )}
                 <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -719,6 +983,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                     key={transaction.id}
                     transaction={transaction}
                     getStatusVariant={getStatusVariant}
+                    viewType={viewType}
                   onComplete={async () => {
                     try {
                       await handleTransactionAction(
@@ -783,6 +1048,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     <>
       <DashboardSectionContainer
         isLoading={isGameInitialLoading}
+        loadingState={<ProcessingQueueTableSkeleton />}
         error={queuesError ?? ''}
         onRetry={fetchQueues}
         isEmpty={isGameEmpty}
