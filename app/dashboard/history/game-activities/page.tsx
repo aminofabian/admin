@@ -1,14 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import type { JSX } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { DashboardSectionHeader } from '@/components/dashboard/layout/dashboard-section-header';
-import { DashboardStatGrid } from '@/components/dashboard/layout/dashboard-stat-grid';
-import { DashboardStatCard } from '@/components/dashboard/layout/dashboard-stat-card';
 import { DashboardActionBar } from '@/components/dashboard/layout/dashboard-action-bar';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
-import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
+import { Badge, Button, Modal, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
@@ -106,7 +103,6 @@ export default function HistoryGameActivitiesPage() {
   };
 
   const results = queues?.results ?? [];
-  const stats = useMemo(() => buildActivityStats(results, queues?.count ?? 0), [results, queues?.count]);
   const isInitialLoading = isLoading && !queues;
   const isEmpty = !results.length;
 
@@ -120,7 +116,6 @@ export default function HistoryGameActivitiesPage() {
     >
       <HistoryTabs />
       <HistoryGameActivitiesLayout
-        stats={stats}
         queueFilter={queueFilter as QueueFilterOption}
         onQueueFilterChange={handleQueueFilterChange}
         filters={filters}
@@ -140,7 +135,6 @@ export default function HistoryGameActivitiesPage() {
 }
 
 interface HistoryGameActivitiesLayoutProps {
-  stats: ActivityStat[];
   queueFilter: QueueFilterOption;
   onQueueFilterChange: (value: QueueFilterOption) => void;
   filters: HistoryGameActivitiesFiltersState;
@@ -157,7 +151,6 @@ interface HistoryGameActivitiesLayoutProps {
 }
 
 function HistoryGameActivitiesLayout({
-  stats,
   queueFilter,
   onQueueFilterChange,
   filters,
@@ -194,18 +187,6 @@ function HistoryGameActivitiesLayout({
         isOpen={areFiltersOpen}
         onToggle={onToggleFilters}
       />
-      <DashboardStatGrid>
-        {stats.map((stat) => (
-          <DashboardStatCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            helperText={stat.helper}
-            icon={stat.icon}
-            variant={stat.variant}
-          />
-        ))}
-      </DashboardStatGrid>
       <HistoryGameActivitiesTable
         queues={queues}
         currentPage={currentPage}
@@ -215,77 +196,6 @@ function HistoryGameActivitiesLayout({
       />
     </>
   );
-}
-
-type ActivityStat = {
-  title: string;
-  value: string;
-  helper?: string;
-  variant?: 'default' | 'success' | 'warning' | 'danger';
-  icon: JSX.Element;
-};
-
-function buildActivityStats(queues: TransactionQueue[], total: number): ActivityStat[] {
-  const completed = queues.filter((queue) => queue.status === 'completed').length;
-  const cancelled = queues.filter((queue) => queue.status === 'cancelled').length;
-  const totalValue = queues.reduce((sum, queue) => sum + parseFloat(queue.amount || '0'), 0);
-  const pending = queues.filter((queue) => queue.status === 'pending').length;
-
-  return [
-    {
-      title: 'Total Activities',
-      value: total.toLocaleString(),
-      helper: 'History filter applied',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Completed',
-      value: completed.toLocaleString(),
-      helper: `${total ? Math.round((completed / total) * 100) : 0}% success`,
-      variant: 'success',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Cancelled',
-      value: cancelled.toLocaleString(),
-      helper: `${total ? Math.round((cancelled / total) * 100) : 0}% of total`,
-      variant: 'danger',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Pending Follow-ups',
-      value: pending.toLocaleString(),
-      helper: 'Review outstanding queue items',
-      variant: 'warning',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4h4m4 0a8 8 0 11-16 0 8 8 0 0116 0z" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Total Value',
-      value: formatCurrency(totalValue.toString()),
-      helper: 'Aggregated transaction amount',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-  ];
 }
 
 interface HistoryGameActivitiesTableProps {
@@ -303,86 +213,223 @@ function HistoryGameActivitiesTable({
   pageSize,
   onPageChange,
 }: HistoryGameActivitiesTableProps) {
+  const [selectedActivity, setSelectedActivity] = useState<TransactionQueue | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  const handleViewActivity = (activity: TransactionQueue) => {
+    setSelectedActivity(activity);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsViewModalOpen(false);
+    setSelectedActivity(null);
+  };
+
   if (!queues.length) {
     return null;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Activity</TableHead>
-              <TableHead>Game</TableHead>
-              <TableHead>Operation Type</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>New Game Balance</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Dates</TableHead>
-              <TableHead>Operator</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {queues.map((activity) => (
-              <HistoryGameActivityRow key={activity.id} activity={activity} />
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      {totalCount > pageSize && (
-        <div className="border-t border-border px-4 py-4">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(totalCount / pageSize)}
-            onPageChange={onPageChange}
-            hasNext={currentPage * pageSize < totalCount}
-            hasPrevious={currentPage > 1}
-          />
+    <>
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Activity</TableHead>
+                <TableHead>Game</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>New Game Balance</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Dates</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {queues.map((activity) => (
+                <HistoryGameActivityRow key={activity.id} activity={activity} onView={handleViewActivity} />
+              ))}
+            </TableBody>
+          </Table>
         </div>
-      )}
-    </div>
+        {totalCount > pageSize && (
+          <div className="border-t border-border px-4 py-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalCount / pageSize)}
+              onPageChange={onPageChange}
+              hasNext={currentPage * pageSize < totalCount}
+              hasPrevious={currentPage > 1}
+            />
+          </div>
+        )}
+      </div>
+
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={handleCloseModal}
+        title="Activity Details"
+        size="lg"
+      >
+        {selectedActivity && (
+          <div className="space-y-6">
+            {/* Header Section - Status and Type */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl border border-border/50">
+              <div className="flex items-center gap-3">
+                <Badge variant={mapStatusToVariant(selectedActivity.status)} className="text-sm px-3 py-1">
+                  {selectedActivity.status}
+                </Badge>
+                <Badge variant="info" className="text-sm px-3 py-1 capitalize">
+                  {mapTypeToLabel(selectedActivity.type)}
+                </Badge>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-foreground">{formatCurrency(selectedActivity.amount)}</div>
+                {(() => {
+                  const bonusAmount = selectedActivity.data?.bonus_amount;
+                  const bonusValue = typeof bonusAmount === 'string' || typeof bonusAmount === 'number' 
+                    ? parseFloat(String(bonusAmount)) 
+                    : 0;
+                  return bonusValue > 0 ? (
+                    <div className="text-sm font-semibold text-green-600">
+                      +{formatCurrency(String(bonusAmount))} bonus
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            </div>
+
+            {/* Activity IDs */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</label>
+                <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
+                  {selectedActivity.id}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Operator</label>
+                <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
+                  {selectedActivity.operator || (typeof selectedActivity.data?.operator === 'string' ? selectedActivity.data.operator : '—')}
+                </div>
+              </div>
+            </div>
+
+            {/* Game Balance Section */}
+            <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Game</label>
+                <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{selectedActivity.game}</div>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Game Balance</label>
+                <div className="text-lg font-bold text-green-900 dark:text-green-100">{formatCurrency(String(selectedActivity.data?.balance ?? '0'))}</div>
+              </div>
+            </div>
+
+            {/* User Information */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">User Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-muted-foreground">Username</label>
+                  <div className="text-sm font-semibold text-foreground">
+                    {typeof selectedActivity.data?.username === 'string' ? selectedActivity.data.username : '—'}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-muted-foreground">User ID</label>
+                  <div className="text-sm text-foreground">
+                    {selectedActivity.user_id}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Operation Details */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Operation Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-muted-foreground">Operation Type</label>
+                  <Badge variant="default" className="text-xs uppercase">
+                    {typeof selectedActivity.data?.operation_type === 'string' ? selectedActivity.data.operation_type : '—'}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-muted-foreground">Game Username</label>
+                  <div className="text-sm text-foreground">
+                    {typeof selectedActivity.data?.username === 'string' ? selectedActivity.data.username : '—'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Timestamps */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Timestamps</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-muted-foreground">Created</label>
+                  <div className="text-sm font-medium text-foreground">{formatDate(selectedActivity.created_at)}</div>
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-muted-foreground">Updated</label>
+                  <div className="text-sm font-medium text-foreground">{formatDate(selectedActivity.updated_at)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Remarks */}
+            {selectedActivity.remarks && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Remarks</h3>
+                <div className="text-sm text-foreground bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-900/30">
+                  {selectedActivity.remarks}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }
 
 interface HistoryGameActivityRowProps {
   activity: TransactionQueue;
+  onView: (activity: TransactionQueue) => void;
 }
 
-function HistoryGameActivityRow({ activity }: HistoryGameActivityRowProps) {
+function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProps) {
   const statusVariant = mapStatusToVariant(activity.status);
 
   return (
     <TableRow>
       <TableCell>
-        <div className="space-y-1">
-          <div className="font-medium text-foreground">
-            {activity.user_username || (typeof activity.data?.user_username === 'string' ? activity.data.user_username : '—')}
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+            {(() => {
+              const username = typeof activity.data?.username === 'string' ? activity.data.username : null;
+              return username ? username.charAt(0).toUpperCase() : '—';
+            })()}
           </div>
-          <div className="text-xs text-muted-foreground">
-            {activity.user_email || (typeof activity.data?.user_email === 'string' ? activity.data.user_email : '—')}
+          <div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">
+              {typeof activity.data?.username === 'string' ? activity.data.username : '—'}
+            </div>
           </div>
         </div>
       </TableCell>
       <TableCell>
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{mapTypeToIcon(activity.type)}</span>
-          <Badge variant="info" className="capitalize">
-            {mapTypeToLabel(activity.type)}
-          </Badge>
-        </div>
+        <Badge variant="info" className="capitalize">
+          {mapTypeToLabel(activity.type)}
+        </Badge>
       </TableCell>
       <TableCell>
-        <div className="space-y-1">
-          <div className="font-medium">{activity.game}</div>
-          <code className="text-xs text-muted-foreground">{activity.game_code}</code>
-        </div>
-      </TableCell>
-      <TableCell>
-          <Badge variant="default" className="uppercase">
-            {typeof activity.data?.operation_type === 'string' ? activity.data.operation_type : '—'}
-          </Badge>
+        <div className="font-medium">{activity.game}</div>
       </TableCell>
       <TableCell>
         <div className="font-semibold">
@@ -392,16 +439,16 @@ function HistoryGameActivityRow({ activity }: HistoryGameActivityRowProps) {
             const bonusValue = typeof bonusAmount === 'string' || typeof bonusAmount === 'number' 
               ? parseFloat(String(bonusAmount)) 
               : 0;
-            return bonusValue !== 0 ? (
-              <span className="text-sm font-normal text-muted-foreground ml-1">
-                + {formatCurrency(String(bonusAmount))} bonus
-              </span>
+            return bonusValue > 0 ? (
+              <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                +{formatCurrency(String(bonusAmount))} bonus
+              </div>
             ) : null;
           })()}
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm font-semibold text-foreground">{formatCurrency(String(activity.data?.new_game_balance ?? '0'))}</div>
+        <div className="text-sm font-semibold text-foreground">{formatCurrency(String(activity.data?.balance ?? '0'))}</div>
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
@@ -409,24 +456,21 @@ function HistoryGameActivityRow({ activity }: HistoryGameActivityRowProps) {
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="space-y-1 text-xs text-muted-foreground">
-          <div>
-            <span className="font-medium text-foreground">Created:</span> {formatDate(activity.created_at)}
-          </div>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div>{formatDate(activity.created_at)}</div>
           {activity.updated_at !== activity.created_at && (
-            <div>
-              <span className="font-medium text-foreground">Updated:</span> {formatDate(activity.updated_at)}
-            </div>
+            <div>{formatDate(activity.updated_at)}</div>
           )}
         </div>
       </TableCell>
-      <TableCell>
-        <div className="text-sm text-foreground">
-          {activity.operator || (typeof activity.data?.operator === 'string' ? activity.data.operator : '—')}
-          {typeof activity.data?.role === 'string' && activity.data.role.toLowerCase() !== 'player' && activity.data.role.toLowerCase() !== 'company' && (
-            <div className="text-xs text-muted-foreground">{activity.data.role}</div>
-          )}
-        </div>
+      <TableCell className="text-right">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onView(activity)}
+        >
+          View
+        </Button>
       </TableCell>
     </TableRow>
   );

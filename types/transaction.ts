@@ -30,7 +30,7 @@ export interface Transaction {
 }
 
 export interface TransactionQueue {
-  id: number;
+  id: string;
   type: QueueType;
   status: TransactionStatus;
   user_id: number;
@@ -68,7 +68,7 @@ export interface QueueFilters {
 }
 
 export interface GameActionRequest {
-  txn_id: number;
+  txn_id: string | number;
   type: GameActionType;
   new_password?: string;
   new_balance?: string;
@@ -78,6 +78,6 @@ export interface GameActionResponse {
   status: string;
   message: string;
   task_id?: string;
-  queue_id: number;
+  queue_id: string | number;
 }
 
