@@ -1,14 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef } from 'react';
-import type { JSX } from 'react';
 import {
   DashboardActionBar,
   DashboardSearchBar,
   DashboardSectionContainer,
   DashboardSectionHeader,
-  DashboardStatCard,
-  DashboardStatGrid,
 } from '@/components/dashboard/layout';
 import { Badge, Button, Modal, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { EmptyState } from '@/components/features';
@@ -172,7 +169,6 @@ export function TransactionsSection() {
   }, [rawResults]);
   
   const totalCount = results.length;
-  const stats = useMemo(() => buildTransactionStats(results, totalCount), [results, totalCount]);
 
   const isInitialLoading = isLoading && !transactions;
   const isEmpty = !results.length;
@@ -196,7 +192,6 @@ export function TransactionsSection() {
         onClearAdvancedFilters={handleClearAdvancedFilters}
         areAdvancedFiltersOpen={areFiltersOpen}
         onToggleAdvancedFilters={handleToggleAdvancedFilters}
-        stats={stats}
         transactions={results}
         currentPage={currentPage}
         totalCount={totalCount}
@@ -218,7 +213,6 @@ interface TransactionsLayoutProps {
   onClearAdvancedFilters: () => void;
   areAdvancedFiltersOpen: boolean;
   onToggleAdvancedFilters: () => void;
-  stats: TransactionStat[];
   transactions: Transaction[];
   currentPage: number;
   totalCount: number;
@@ -237,7 +231,6 @@ function TransactionsLayout({
   onClearAdvancedFilters,
   areAdvancedFiltersOpen,
   onToggleAdvancedFilters,
-  stats,
   transactions,
   currentPage,
   totalCount,
@@ -284,19 +277,6 @@ function TransactionsLayout({
           { value: 'cancelled', label: 'Cancelled' },
         ]}
       />
-
-      <DashboardStatGrid>
-        {stats.map((stat) => (
-          <DashboardStatCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            helperText={stat.helper}
-            icon={stat.icon}
-            variant={stat.variant}
-          />
-        ))}
-      </DashboardStatGrid>
 
       <TransactionsTable
         transactions={transactions}
@@ -363,67 +343,6 @@ function FilterChip({ active, label, onClick }: FilterChipProps) {
       {label}
     </button>
   );
-}
-
-type TransactionStat = {
-  title: string;
-  value: string;
-  helper?: string;
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
-  icon: JSX.Element;
-};
-
-function buildTransactionStats(transactions: Transaction[], total: number): TransactionStat[] {
-  const completed = transactions.filter((tx) => tx.status === 'completed').length;
-  const pending = transactions.filter((tx) => tx.status === 'pending').length;
-  const failed = transactions.filter((tx) => tx.status === 'failed' || tx.status === 'cancelled').length;
-  const volume = transactions.reduce((sum, tx) => sum + parseFloat(tx.amount || '0'), 0);
-
-  return [
-    {
-      title: 'Total Transactions',
-      value: total.toLocaleString(),
-      helper: `Page volume ${formatCurrency(volume.toString())}`,
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5h6m-6 4h6m-6 4h6m-9 4h12" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Completed',
-      value: completed.toLocaleString(),
-      helper: `${total ? Math.round((completed / total) * 100) : 0}% success rate`,
-      variant: 'success',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Pending',
-      value: pending.toLocaleString(),
-      helper: 'Awaiting processing',
-      variant: 'warning',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Failed / Cancelled',
-      value: failed.toLocaleString(),
-      helper: `${total ? Math.round((failed / total) * 100) : 0}% of total volume`,
-      variant: 'danger',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      ),
-    },
-  ];
 }
 
 interface TransactionsTableProps {
