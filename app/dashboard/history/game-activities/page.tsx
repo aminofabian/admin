@@ -358,8 +358,12 @@ function HistoryGameActivityRow({ activity }: HistoryGameActivityRowProps) {
     <TableRow>
       <TableCell>
         <div className="space-y-1">
-          <div className="font-medium text-foreground">{activity.user_username ?? '—'}</div>
-          <div className="text-xs text-muted-foreground">{activity.user_email ?? '—'}</div>
+          <div className="font-medium text-foreground">
+            {activity.user_username || (typeof activity.data?.user_username === 'string' ? activity.data.user_username : '—')}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {activity.user_email || (typeof activity.data?.user_email === 'string' ? activity.data.user_email : '—')}
+          </div>
         </div>
       </TableCell>
       <TableCell>
@@ -409,10 +413,10 @@ function HistoryGameActivityRow({ activity }: HistoryGameActivityRowProps) {
       </TableCell>
       <TableCell>
         <div className="text-sm text-foreground">
-          {activity.operator ?? '—'}
-          <div className="text-xs text-muted-foreground">
-            {typeof activity.data?.role === 'string' ? activity.data.role : '—'}
-          </div>
+          {activity.operator || (typeof activity.data?.operator === 'string' ? activity.data.operator : '—')}
+          {typeof activity.data?.role === 'string' && activity.data.role.toLowerCase() !== 'player' && activity.data.role.toLowerCase() !== 'company' && (
+            <div className="text-xs text-muted-foreground">{activity.data.role}</div>
+          )}
         </div>
       </TableCell>
     </TableRow>

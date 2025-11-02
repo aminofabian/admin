@@ -4,15 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { DashboardSectionHeader } from '@/components/dashboard/layout/dashboard-section-header';
-import { DashboardSearchBar } from '@/components/dashboard/layout/dashboard-search-bar';
-import { DashboardActionBar } from '@/components/dashboard/layout/dashboard-action-bar';
 import { DashboardStatGrid } from '@/components/dashboard/layout/dashboard-stat-grid';
 import { DashboardStatCard } from '@/components/dashboard/layout/dashboard-stat-card';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Button, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Pagination } from '@/components/ui';
 import { EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
-import { useSearch } from '@/lib/hooks';
 import { useTransactionsStore } from '@/stores';
 import type { Transaction } from '@/types';
 import { PROJECT_DOMAIN } from '@/lib/constants/api';
@@ -78,15 +75,12 @@ export default function HistoryTransactionsPage() {
     error,
     currentPage,
     setPage,
-    setSearchTerm,
     setFilter,
     fetchTransactions,
     advancedFilters,
     setAdvancedFilters,
     clearAdvancedFilters,
   } = useTransactionsStore();
-
-  const { search, debouncedSearch, setSearch } = useSearch();
 
   const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
@@ -106,12 +100,6 @@ export default function HistoryTransactionsPage() {
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
-
-  useEffect(() => {
-    if (debouncedSearch !== undefined) {
-      setSearchTerm(debouncedSearch);
-    }
-  }, [debouncedSearch, setSearchTerm]);
 
   const handleFilterChange = (key: keyof HistoryTransactionsFiltersState, value: string) => {
     setFilters((previous) => ({ ...previous, [key]: value }));
@@ -176,8 +164,6 @@ export default function HistoryTransactionsPage() {
     >
       <HistoryTabs />
       <HistoryTransactionsLayout
-        search={search}
-        onSearchChange={setSearch}
         stats={stats}
         filters={filters}
         onFilterChange={handleFilterChange}
@@ -196,8 +182,6 @@ export default function HistoryTransactionsPage() {
 }
 
 interface HistoryTransactionsLayoutProps {
-  search: string;
-  onSearchChange: (value: string) => void;
   stats: HistoryStat[];
   filters: HistoryTransactionsFiltersState;
   onFilterChange: (key: keyof HistoryTransactionsFiltersState, value: string) => void;
@@ -213,8 +197,6 @@ interface HistoryTransactionsLayoutProps {
 }
 
 function HistoryTransactionsLayout({
-  search,
-  onSearchChange,
   stats,
   filters,
   onFilterChange,
@@ -235,13 +217,6 @@ function HistoryTransactionsLayout({
         description="Comprehensive transaction management and analytics"
         icon={HISTORY_ICON}
       />
-      <DashboardActionBar>
-        <DashboardSearchBar
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Search by username, email, transaction ID, or description"
-        />
-      </DashboardActionBar>
       <HistoryTransactionsFilters
         filters={filters}
         onFilterChange={onFilterChange}

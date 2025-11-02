@@ -67,5 +67,10 @@ export const playersApi = {
 
   update: (id: number, data: UpdateUserRequest) => 
     apiClient.patch<Player>(`api/admin/players/${id}`, data),
+
+  viewDetails: (id: number) => 
+    apiClient.get<{ total_purchases: number; total_cashouts: number; total_transfers: number }>(
+      `api/view-player/${id}`
+    ),
 };
 

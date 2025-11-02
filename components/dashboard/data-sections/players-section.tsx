@@ -9,6 +9,7 @@ import { LoadingState, ErrorState, EmptyState, PlayerForm } from '@/components/f
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, Modal, useToast, ConfirmModal } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { useSearch } from '@/lib/hooks/use-search';
+import { playersApi } from '@/lib/api';
 
 const PLAYER_UPDATE_SUCCESS_TITLE = 'Player updated';
 const PLAYER_UPDATE_ERROR_TITLE = 'Update failed';
@@ -42,6 +43,7 @@ export function PlayersSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   
   // Debounced search UX
   const { search, debouncedSearch, setSearch } = useSearch(searchTerm);
@@ -179,9 +181,38 @@ export function PlayersSection() {
     setConfirmModal({ isOpen: false, player: null, isLoading: false });
   };
 
-  const handleViewPlayer = (player: Player) => {
+  const handleViewPlayer = async (player: Player) => {
+    // Optimistically show modal immediately with player data
     setSelectedPlayer(player);
     setIsViewModalOpen(true);
+    setIsLoadingDetails(true);
+    
+    try {
+      // Fetch transaction details in the background
+      const details = await playersApi.viewDetails(player.id);
+      
+      // Smoothly update with fetched data
+      setSelectedPlayer(prev => ({
+        ...prev!,
+        total_purchases: details.total_purchases,
+        total_cashouts: details.total_cashouts,
+        total_transfers: details.total_transfers,
+      }));
+    } catch (error) {
+      console.error('Failed to load player details:', error);
+      
+      // Only show error if it's not a network timeout
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (!errorMessage.includes('timeout')) {
+        addToast({
+          type: 'error',
+          title: 'Could not load transaction summary',
+          description: 'Please try again or check your connection.',
+        });
+      }
+    } finally {
+      setIsLoadingDetails(false);
+    }
   };
 
   const closeModals = () => {
@@ -529,9 +560,16 @@ export function PlayersSection() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 Transaction Summary
+                {isLoadingDetails && (
+                  <svg className="w-4 h-4 animate-spin text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-purple-200/50 dark:border-purple-700/50 hover:shadow-md transition-shadow">
+                {/* Total Purchases */}
+                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-purple-200/50 dark:border-purple-700/50 hover:shadow-md transition-all duration-300">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded-lg bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center">
                       <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -540,12 +578,19 @@ export function PlayersSection() {
                     </div>
                     <h5 className="text-xs font-semibold text-purple-700 dark:text-purple-300">Total Purchases</h5>
                   </div>
-                  <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                    {formatCurrency(selectedPlayer.total_purchases || 0)}
-                  </p>
+                  {isLoadingDetails ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-7 bg-purple-300/30 dark:bg-purple-700/30 rounded w-24"></div>
+                    </div>
+                  ) : (
+                    <p className="text-xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300">
+                      {formatCurrency(selectedPlayer.total_purchases || 0)}
+                    </p>
+                  )}
                 </div>
                 
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-indigo-200/50 dark:border-indigo-700/50 hover:shadow-md transition-shadow">
+                {/* Total Cashouts */}
+                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-indigo-200/50 dark:border-indigo-700/50 hover:shadow-md transition-all duration-300">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/30 flex items-center justify-center">
                       <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -554,12 +599,19 @@ export function PlayersSection() {
                     </div>
                     <h5 className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">Total Cashouts</h5>
                   </div>
-                  <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
-                    {formatCurrency(selectedPlayer.total_cashouts || 0)}
-                  </p>
+                  {isLoadingDetails ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-7 bg-indigo-300/30 dark:bg-indigo-700/30 rounded w-24"></div>
+                    </div>
+                  ) : (
+                    <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 transition-all duration-300">
+                      {formatCurrency(selectedPlayer.total_cashouts || 0)}
+                    </p>
+                  )}
                 </div>
                 
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-violet-200/50 dark:border-violet-700/50 hover:shadow-md transition-shadow">
+                {/* Total Transfers */}
+                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-violet-200/50 dark:border-violet-700/50 hover:shadow-md transition-all duration-300">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded-lg bg-violet-500/20 dark:bg-violet-500/30 flex items-center justify-center">
                       <svg className="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -568,9 +620,15 @@ export function PlayersSection() {
                     </div>
                     <h5 className="text-xs font-semibold text-violet-700 dark:text-violet-300">Total Transfers</h5>
                   </div>
-                  <p className="text-xl font-bold text-violet-600 dark:text-violet-400">
-                    {formatCurrency(selectedPlayer.total_transfers || 0)}
-                  </p>
+                  {isLoadingDetails ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-7 bg-violet-300/30 dark:bg-violet-700/30 rounded w-24"></div>
+                    </div>
+                  ) : (
+                    <p className="text-xl font-bold text-violet-600 dark:text-violet-400 transition-all duration-300">
+                      {formatCurrency(selectedPlayer.total_transfers || 0)}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
