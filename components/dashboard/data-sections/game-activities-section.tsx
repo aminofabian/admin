@@ -304,13 +304,13 @@ const ActivityDetailsModal = memo(function ActivityDetailsModal({
   const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
   
   const bonusAmount = useMemo(() => {
-    const bonus = activity.data?.bonus_amount;
+    const bonus = activity.bonus_amount || activity.data?.bonus_amount;
     if (!bonus) return null;
     const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
       ? parseFloat(String(bonus)) 
       : 0;
     return bonusValue > 0 ? bonus : null;
-  }, [activity.data?.bonus_amount]);
+  }, [activity.bonus_amount, activity.data?.bonus_amount]);
 
   const formattedBonus = useMemo(() => {
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
@@ -511,13 +511,13 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
   const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
   
   const bonusAmount = useMemo(() => {
-    const bonus = activity.data?.bonus_amount;
+    const bonus = activity.bonus_amount || activity.data?.bonus_amount;
     if (!bonus) return null;
     const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
       ? parseFloat(String(bonus)) 
       : 0;
     return bonusValue > 0 ? bonus : null;
-  }, [activity.data?.bonus_amount]);
+  }, [activity.bonus_amount, activity.data?.bonus_amount]);
 
   const formattedBonus = useMemo(() => {
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
@@ -526,6 +526,18 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
   const formattedBalance = useMemo(() => {
     return formatCurrency(String(activity.data?.balance ?? '0'));
   }, [activity.data?.balance]);
+
+  const credit = useMemo(() => {
+    const creditValue = activity.data?.credit;
+    if (creditValue === undefined || creditValue === null) return null;
+    return formatCurrency(String(creditValue));
+  }, [activity.data?.credit]);
+
+  const winnings = useMemo(() => {
+    const winningsValue = activity.data?.winnings;
+    if (winningsValue === undefined || winningsValue === null) return null;
+    return formatCurrency(String(winningsValue));
+  }, [activity.data?.winnings]);
 
   // Website user (actual user on the platform)
   const websiteUsername = useMemo(() => {
@@ -627,7 +639,22 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm font-semibold text-foreground">{formattedBalance}</div>
+        {(credit || winnings) ? (
+          <div className="space-y-1">
+            {credit && (
+              <div className="text-sm font-semibold text-foreground">
+                Credit: {credit}
+              </div>
+            )}
+            {winnings && (
+              <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                Winnings: {winnings}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-sm font-semibold text-foreground">{formattedBalance}</div>
+        )}
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
