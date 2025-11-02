@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string | number) => `${API_PREFIX}/transactions/${id}/`,
     QUEUES: `${API_PREFIX}/transaction-queues/`,
     HANDLE_GAME_ACTION: 'api/handle-game-action', // Using Next.js API route to proxy request
+    ACTION: 'api/transaction-action', // Using Next.js API route to proxy request for cancel/complete
   },
   BONUSES: {
     PURCHASE: `${API_PREFIX}/purchase-bonuses/`,

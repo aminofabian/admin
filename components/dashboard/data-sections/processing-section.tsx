@@ -32,6 +32,9 @@ import {
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
 import { PROJECT_DOMAIN } from '@/lib/constants/api';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { transactionsApi } from '@/lib/api/transactions';
+import type { ApiError } from '@/types';
+import { useToast } from '@/components/ui';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game';
@@ -228,7 +231,12 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, o
                 variant="primary"
                 size="sm"
                 className="font-medium"
-                onClick={() => void onComplete()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🔵 Complete button clicked');
+                  void onComplete();
+                }}
                 disabled={disableActions}
               >
                 Complete
@@ -237,7 +245,12 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, o
                 variant="danger"
                 size="sm"
                 className="font-medium"
-                onClick={() => void onCancel()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🔴 Cancel button clicked');
+                  void onCancel();
+                }}
                 disabled={disableActions}
               >
                 Cancel
@@ -319,6 +332,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   const [selectedQueue, setSelectedQueue] = useState<TransactionQueue | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const { addToast } = useToast();
   const [filters, setFilters] = useState<TransactionFiltersState>({
     agent: '',
     username: '',
@@ -389,12 +403,88 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     setQueuesFilter(filter);
   };
 
-  const handleTransactionAction = async (transactionId: string, status: 'completed' | 'cancelled') => {
+  const handleTransactionAction = async (
+    transactionId: string, 
+    action: 'completed' | 'cancelled',
+    internalId?: string,
+    transactionStatus?: string
+  ) => {
+    console.log('🔵 handleTransactionAction called:', { transactionId, action, internalId, transactionStatus });
+    
+    if (!transactionId || transactionId.trim() === '') {
+      console.error('❌ Invalid transaction ID:', transactionId);
+      addToast({
+        type: 'error',
+        title: 'Invalid Transaction ID',
+        description: 'Transaction ID is missing or invalid',
+      });
+      return;
+    }
+
+    // Check if transaction is pending
+    if (transactionStatus && transactionStatus !== 'pending') {
+      console.error('❌ Transaction is not pending:', { transactionId, status: transactionStatus });
+      addToast({
+        type: 'error',
+        title: 'Invalid Action',
+        description: `Cannot ${action === 'completed' ? 'complete' : 'cancel'} a transaction that is already ${transactionStatus}.`,
+        duration: 5000,
+      });
+      return;
+    }
+
     try {
-      setPendingTransactionId(transactionId);
-      await updateTransactionStatus({ id: transactionId, status });
+      // Use internal ID for tracking if provided, otherwise use transactionId
+      setPendingTransactionId(internalId ?? transactionId);
+      // Convert status to API action type
+      const apiAction = action === 'completed' ? 'complete' : 'cancel';
+      
+      console.log('🔄 Transaction Action - About to call API:', { transactionId, action: apiAction });
+      const response = await transactionsApi.transactionAction(transactionId, apiAction);
+      console.log('✅ Transaction Action - API call successful:', response);
+      
+      // Refresh transactions after successful action
+      await fetchTransactions();
+      
+      // Show success toast
+      addToast({
+        type: 'success',
+        title: `Transaction ${action === 'completed' ? 'Completed' : 'Cancelled'}`,
+        description: `Transaction ${action} successfully`,
+        duration: 3000,
+      });
     } catch (error) {
-      console.error('Failed to update transaction status:', error);
+      // Extract error message from ApiError object
+      let errorMessage = 'Failed to update transaction status';
+      
+      if (error && typeof error === 'object') {
+        const apiError = error as ApiError;
+        errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
+        
+        console.error('❌ Transaction Action Error:', {
+          message: apiError.message,
+          detail: apiError.detail,
+          error: apiError.error,
+          status: apiError.status,
+          fullError: JSON.stringify(error, null, 2),
+        });
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error('❌ Transaction Action Error:', error.message);
+      } else {
+        console.error('❌ Transaction Action Error:', error);
+      }
+      
+      // Display error to user using toast notification
+      addToast({
+        type: 'error',
+        title: 'Transaction Action Failed',
+        description: errorMessage,
+        duration: 6000,
+      });
+      
+      // Don't re-throw - error is already handled and displayed to user
+      // Re-throwing causes "Uncaught (in promise)" warnings
     } finally {
       setPendingTransactionId(null);
     }
@@ -605,8 +695,34 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                     key={transaction.id}
                     transaction={transaction}
                     getStatusVariant={getStatusVariant}
-                  onComplete={() => handleTransactionAction(transaction.id, 'completed')}
-                  onCancel={() => handleTransactionAction(transaction.id, 'cancelled')}
+                  onComplete={async () => {
+                    try {
+                      await handleTransactionAction(
+                        transaction.unique_id || transaction.id, 
+                        'completed',
+                        transaction.id,
+                        transaction.status
+                      );
+                    } catch (error) {
+                      // Error is already handled in handleTransactionAction
+                      // This catch prevents uncaught promise rejection
+                      console.error('Error in onComplete handler:', error);
+                    }
+                  }}
+                  onCancel={async () => {
+                    try {
+                      await handleTransactionAction(
+                        transaction.unique_id || transaction.id, 
+                        'cancelled',
+                        transaction.id,
+                        transaction.status
+                      );
+                    } catch (error) {
+                      // Error is already handled in handleTransactionAction
+                      // This catch prevents uncaught promise rejection
+                      console.error('Error in onCancel handler:', error);
+                    }
+                  }}
                   isActionPending={pendingTransactionId === transaction.id}
                   />
                 ))}

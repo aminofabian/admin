@@ -20,15 +20,30 @@ export const formatDate = (dateString: string | null | undefined): string => {
   // Try to create date object
   let date: Date;
   
-  // Handle different date formats
-  if (dateString.includes('T')) {
+  // Handle DD/MM/YYYY HH:mm:ss format (from backend)
+  const ddmmyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/;
+  const match = dateString.match(ddmmyyyyPattern);
+  
+  if (match) {
+    // Parse DD/MM/YYYY HH:mm:ss format
+    const [, day, month, year, hour, minute, second] = match;
+    // Month is 0-indexed in JavaScript Date
+    date = new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second)
+    );
+  } else if (dateString.includes('T')) {
     // ISO format with time
     date = new Date(dateString);
   } else if (dateString.includes('-')) {
     // Date format YYYY-MM-DD
     date = new Date(dateString + 'T00:00:00Z');
   } else if (dateString.includes('/')) {
-    // Date format MM/DD/YYYY or DD/MM/YYYY
+    // Try standard date parsing (fallback)
     date = new Date(dateString);
   } else {
     // Try parsing as timestamp

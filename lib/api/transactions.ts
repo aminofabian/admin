@@ -45,5 +45,17 @@ export const transactionsApi = {
       formData
     );
   },
+
+  transactionAction: async (txnId: string, type: 'cancel' | 'complete') => {
+    // Create form-data for the transaction action request
+    const formData = new FormData();
+    formData.append('txn_id', txnId);
+    formData.append('type', type);
+
+    return apiClient.post<{ status: string; message: string }>(
+      API_ENDPOINTS.TRANSACTIONS.ACTION,
+      formData
+    );
+  },
 };
 
