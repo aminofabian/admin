@@ -452,19 +452,11 @@ function TransactionsTable({
               </div>
             </div>
 
-            {/* Transaction IDs */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Transaction ID</label>
-                <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-                  {selectedTransaction.id}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Unique ID</label>
-                <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-                  {selectedTransaction.unique_id}
-                </div>
+            {/* Transaction ID */}
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Transaction ID</label>
+              <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
+                {selectedTransaction.id}
               </div>
             </div>
 
@@ -506,18 +498,10 @@ function TransactionsTable({
                   </Badge>
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Currency</label>
-                  <div className="text-sm text-foreground">{selectedTransaction.currency}</div>
-                </div>
-                <div className="space-y-1">
                   <label className="block text-xs font-medium text-muted-foreground">Operator</label>
                   <div className="text-sm font-semibold text-foreground">
                     {selectedTransaction.operator?.toLowerCase() === 'company' ? 'admin' : selectedTransaction.operator}
                   </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Role</label>
-                  <div className="text-sm text-foreground">{selectedTransaction.role}</div>
                 </div>
               </div>
             </div>
@@ -525,18 +509,6 @@ function TransactionsTable({
             {/* Transaction Details */}
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Transaction Details</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Journal Entry</label>
-                  <Badge variant="info" className="text-xs">
-                    {selectedTransaction.journal_entry}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Action</label>
-                  <div className="text-sm text-foreground">{selectedTransaction.action}</div>
-                </div>
-              </div>
               <div className="space-y-1">
                 <label className="block text-xs font-medium text-muted-foreground">Description</label>
                 <div className="text-sm text-foreground bg-muted/30 px-3 py-2 rounded-lg border border-border/30">
