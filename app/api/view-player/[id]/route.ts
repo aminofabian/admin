@@ -4,10 +4,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const playerId = params.id;
+    const { id: playerId } = await params;
 
     // Get the authorization token from the request headers
     const authHeader = request.headers.get('authorization');
