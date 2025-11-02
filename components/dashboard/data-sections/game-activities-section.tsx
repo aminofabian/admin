@@ -247,6 +247,7 @@ function HistoryGameActivitiesTable({
                 <TableHead>User</TableHead>
                 <TableHead>Activity</TableHead>
                 <TableHead>Game</TableHead>
+                <TableHead>Game Username</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>New Game Balance</TableHead>
                 <TableHead>Status</TableHead>
@@ -318,17 +319,28 @@ const ActivityDetailsModal = memo(function ActivityDetailsModal({
     return formatCurrency(String(activity.data?.balance ?? '0'));
   }, [activity.data?.balance]);
 
-  const username = useMemo(() => {
-    // Check multiple possible locations for username
-    // 1. Top-level user_username field
+  // Website user (actual user on the platform)
+  const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
       return activity.user_username.trim();
     }
-    // 2. Top-level game_username field
+    return null;
+  }, [activity.user_username]);
+
+  const websiteEmail = useMemo(() => {
+    if (typeof activity.user_email === 'string' && activity.user_email.trim()) {
+      return activity.user_email.trim();
+    }
+    return null;
+  }, [activity.user_email]);
+
+  // Game username (username used in the game)
+  const gameUsername = useMemo(() => {
+    // 1. Top-level game_username field
     if (typeof activity.game_username === 'string' && activity.game_username.trim()) {
       return activity.game_username.trim();
     }
-    // 3. Username in data object (for completed transactions)
+    // 2. Username in data object (for completed transactions)
     if (activity.data && typeof activity.data === 'object' && activity.data !== null) {
       const dataUsername = activity.data.username;
       if (typeof dataUsername === 'string' && dataUsername.trim()) {
@@ -336,7 +348,7 @@ const ActivityDetailsModal = memo(function ActivityDetailsModal({
       }
     }
     return null;
-  }, [activity.user_username, activity.game_username, activity.data]);
+  }, [activity.game_username, activity.data]);
 
   const operator = useMemo(() => {
     return activity.operator || (typeof activity.data?.operator === 'string' ? activity.data.operator : '—');
@@ -408,38 +420,48 @@ const ActivityDetailsModal = memo(function ActivityDetailsModal({
 
         {/* User Information */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">User Information</h3>
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Website User</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">Username</label>
               <div className="text-sm font-semibold text-foreground">
-                {username || '—'}
+                {websiteUsername || `User ${activity.user_id}`}
               </div>
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">User ID</label>
+              <label className="block text-xs font-medium text-muted-foreground">Email</label>
               <div className="text-sm text-foreground">
-                {activity.user_id}
+                {websiteEmail || '—'}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Operation Details */}
+        {/* Game Username */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Operation Details</h3>
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Game Username</h3>
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Game Username</label>
+              {gameUsername ? (
+                <div className="text-sm font-semibold text-foreground">
+                  {gameUsername}
+                </div>
+              ) : activity.status === 'cancelled' ? (
+                <Badge variant="default" className="text-xs">
+                  Cancelled
+                </Badge>
+              ) : (
+                <div className="text-sm font-semibold text-foreground">
+                  —
+                </div>
+              )}
+            </div>
             <div className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">Operation Type</label>
               <Badge variant="default" className="text-xs uppercase">
                 {operationType}
               </Badge>
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Game Username</label>
-              <div className="text-sm text-foreground">
-                {username || '—'}
-              </div>
             </div>
           </div>
         </div>
@@ -503,17 +525,28 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
     return formatCurrency(String(activity.data?.balance ?? '0'));
   }, [activity.data?.balance]);
 
-  const username = useMemo(() => {
-    // Check multiple possible locations for username
-    // 1. Top-level user_username field
+  // Website user (actual user on the platform)
+  const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
       return activity.user_username.trim();
     }
-    // 2. Top-level game_username field
+    return null;
+  }, [activity.user_username]);
+
+  const websiteEmail = useMemo(() => {
+    if (typeof activity.user_email === 'string' && activity.user_email.trim()) {
+      return activity.user_email.trim();
+    }
+    return null;
+  }, [activity.user_email]);
+
+  // Game username (username used in the game)
+  const gameUsername = useMemo(() => {
+    // 1. Top-level game_username field
     if (typeof activity.game_username === 'string' && activity.game_username.trim()) {
       return activity.game_username.trim();
     }
-    // 3. Username in data object (for completed transactions)
+    // 2. Username in data object (for completed transactions)
     if (activity.data && typeof activity.data === 'object' && activity.data !== null) {
       const dataUsername = activity.data.username;
       if (typeof dataUsername === 'string' && dataUsername.trim()) {
@@ -521,11 +554,15 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
       }
     }
     return null;
-  }, [activity.user_username, activity.game_username, activity.data]);
+  }, [activity.game_username, activity.data]);
 
   const userInitial = useMemo(() => {
-    return username ? username.charAt(0).toUpperCase() : '—';
-  }, [username]);
+    if (websiteUsername) {
+      return websiteUsername.charAt(0).toUpperCase();
+    }
+    // Fallback to user_id if no username available
+    return activity.user_id ? String(activity.user_id).charAt(0) : '—';
+  }, [websiteUsername, activity.user_id]);
 
   const formattedCreatedAt = useMemo(() => formatDate(activity.created_at), [activity.created_at]);
   const formattedUpdatedAt = useMemo(() => formatDate(activity.updated_at), [activity.updated_at]);
@@ -544,8 +581,13 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
           </div>
           <div>
             <div className="font-medium text-gray-900 dark:text-gray-100">
-              {username || '—'}
+              {websiteUsername || `User ${activity.user_id}`}
             </div>
+            {websiteEmail && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {websiteEmail}
+              </div>
+            )}
           </div>
         </div>
       </TableCell>
@@ -556,6 +598,21 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
       </TableCell>
       <TableCell>
         <div className="font-medium">{activity.game}</div>
+      </TableCell>
+      <TableCell>
+        {gameUsername ? (
+          <div className="font-medium text-gray-900 dark:text-gray-100">
+            {gameUsername}
+          </div>
+        ) : activity.status === 'cancelled' ? (
+          <Badge variant="default" className="text-xs">
+            Cancelled
+          </Badge>
+        ) : (
+          <div className="font-medium text-gray-900 dark:text-gray-100">
+            —
+          </div>
+        )}
       </TableCell>
       <TableCell>
         <div className="font-semibold">
