@@ -77,6 +77,24 @@ export interface UpdateGameSettingsRequest {
   dashboard_url?: string;
 }
 
+// Payment Methods Settings Types
+export interface PaymentMethod {
+  id: number;
+  payment_method: string;
+  payment_method_display: string;
+  method_type: string;
+  is_enabled: boolean;
+  created: string;
+  modified: string;
+}
+
+export interface UpdatePaymentMethodRequest {
+  payment_method?: string;
+  payment_method_display?: string;
+  method_type?: string;
+  is_enabled?: boolean;
+}
+
 // API Response Types
 export interface CompanyCreateResponse {
   status: string;

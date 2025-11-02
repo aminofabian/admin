@@ -61,6 +61,10 @@ export const API_ENDPOINTS = {
     // See hooks/use-dashboard-stats.ts - currently using fallback data
     STATS: `${API_PREFIX}/dashboard/stats/`, // NOT IMPLEMENTED
   },
+  PAYMENT_METHODS: {
+    LIST: `${API_PREFIX}/payment-methods/`,
+    DETAIL: (id: number) => `${API_PREFIX}/payment-methods/${id}/`,
+  },
 } as const;
 
 export const TOKEN_KEY = 'auth_token';

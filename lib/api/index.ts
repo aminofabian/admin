@@ -12,4 +12,5 @@ export * from './settings';
 export * from './bonus-settings';
 export * from './affiliate-settings';
 export * from './game-settings';
+export * from './payment-methods';
 

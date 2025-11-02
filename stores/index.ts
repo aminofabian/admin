@@ -13,3 +13,4 @@ export { useCompanySettingsStore } from './use-company-settings-store';
 export { useBonusSettingsStore } from './use-bonus-settings-store';
 export { useAffiliateSettingsStore } from './use-affiliate-settings-store';
 export { useGameSettingsStore } from './use-game-settings-store';
+export { usePaymentMethodsStore } from './use-payment-methods-store';
