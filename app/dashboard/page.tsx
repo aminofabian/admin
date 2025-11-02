@@ -26,7 +26,8 @@ import {
   GameSettingsSection,
   PaymentSettingsSection,
   SocialLinksSection,
-  AffiliateSettingsSection
+  AffiliateSettingsSection,
+  GameActivitiesSection
 } from '@/components/dashboard/data-sections';
 import type { ControlSection } from '@/components/dashboard/main-content-sections';
 
@@ -71,6 +72,8 @@ export default function DashboardPage() {
         return <AffiliatesSection />;
       case 'bonuses':
         return <BonusesSection />;
+      case 'game-activities':
+        return <GameActivitiesSection />;
       case 'company-settings':
         return <CompanySettingsSection />;
       case 'game-settings':

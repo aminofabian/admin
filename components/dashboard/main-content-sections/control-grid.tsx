@@ -4,7 +4,7 @@ import { ReactNode } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 
-export type ControlSection = 'companies' | 'players' | 'games' | 'managers' | 'agents' | 'staffs' | 'transactions' | 'processing' | 'bonuses' | 'banners' | 'affiliates' | 'support' | 'company-settings' | 'game-settings' | 'payment-settings' | 'social-links' | 'affiliate-settings';
+export type ControlSection = 'companies' | 'players' | 'games' | 'managers' | 'agents' | 'staffs' | 'transactions' | 'processing' | 'bonuses' | 'banners' | 'affiliates' | 'game-activities' | 'company-settings' | 'game-settings' | 'payment-settings' | 'social-links' | 'affiliate-settings';
 
 interface ControlItem {
   icon: ReactNode;
@@ -116,11 +116,11 @@ const controlItems: ControlItem[] = [
   { 
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ), 
-    label: 'Support',
-    section: 'support'
+    label: 'Game Activities',
+    section: 'game-activities'
   },
   
   // Settings Quick Controls

@@ -8,6 +8,7 @@ export { TransactionsSection } from './transactions-section';
 export { ProcessingSection } from './processing-section';
 export { BannersSection } from './banners-section';
 export { AffiliatesSection } from './affiliates-section';
+export { GameActivitiesSection } from './game-activities-section';
 export { CompanySettingsSection } from './company-settings-section';
 export { BonusSettingsSection } from './bonus-settings-section';
 export { GameSettingsSection } from './game-settings-section';
