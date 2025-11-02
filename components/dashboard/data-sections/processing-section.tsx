@@ -310,7 +310,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
 
   const transactionCell = (
     <TableCell>
-      <Badge variant={isPurchase ? 'success' : 'warning'} className="text-xs">
+      <Badge variant={isPurchase ? 'success' : 'danger'} className="text-xs">
         {transaction.type?.toUpperCase() ?? '—'}
       </Badge>
     </TableCell>
@@ -318,11 +318,11 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
 
   const amountCell = (
     <TableCell>
-      <div className={`font-semibold ${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+      <div className={`font-semibold ${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
         {formatCurrency(transaction.amount || '0')}
       </div>
       {bonusValue !== 0 && (
-        <div className={`text-xs ${isPurchase ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
+        <div className={`text-xs ${isPurchase ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
           +{formatCurrency(bonusValue)} bonus
         </div>
       )}
@@ -1046,7 +1046,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
               {/* Header Section - Status and Type */}
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl border border-border/50">
                 <div className="flex items-center gap-3">
-                  <Badge variant={selectedTransaction.type === 'purchase' ? 'success' : 'warning'} className="text-sm px-3 py-1">
+                  <Badge variant={selectedTransaction.type === 'purchase' ? 'success' : 'danger'} className="text-sm px-3 py-1">
                     {selectedTransaction.type.toUpperCase()}
                   </Badge>
                   <Badge variant={getStatusVariant(selectedTransaction.status)} className="text-sm px-3 py-1">

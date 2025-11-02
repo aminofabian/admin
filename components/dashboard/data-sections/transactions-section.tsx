@@ -450,7 +450,7 @@ function TransactionsTable({
               {/* Header Section - Status and Type */}
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl border border-border/50">
                 <div className="flex items-center gap-3">
-                  <Badge variant={selectedTransaction.type === 'purchase' ? 'success' : 'warning'} className="text-sm px-3 py-1">
+                  <Badge variant={selectedTransaction.type === 'purchase' ? 'success' : 'danger'} className="text-sm px-3 py-1">
                     {selectedTransaction.type.toUpperCase()}
                   </Badge>
                   <Badge variant={mapStatusToVariant(selectedTransaction.status)} className="text-sm px-3 py-1">
@@ -603,16 +603,16 @@ function TransactionsRow({ transaction, onView }: TransactionsRowProps) {
         </div>
       </TableCell>
       <TableCell>
-        <Badge variant={isPurchase ? 'success' : 'warning'} className="text-xs">
+        <Badge variant={isPurchase ? 'success' : 'danger'} className="text-xs">
           {transaction.type.toUpperCase()}
         </Badge>
       </TableCell>
       <TableCell>
-        <div className={`font-semibold ${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+        <div className={`font-semibold ${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
           {formatCurrency(transaction.amount)}
         </div>
         {bonus > 0 && (
-          <div className={`text-xs ${isPurchase ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
+          <div className={`text-xs ${isPurchase ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
             +{formatCurrency(transaction.bonus_amount)} bonus
           </div>
         )}
@@ -672,7 +672,7 @@ function TransactionCard({ transaction, onView, cardNumber, isVisible, animation
       className={`relative border rounded-xl overflow-visible hover:shadow-lg transition-all duration-500 ease-out ${
         isPurchase 
           ? 'bg-green-50/50 dark:bg-green-950/10 border-green-200/50 dark:border-green-900/20' 
-          : 'bg-orange-50/50 dark:bg-orange-950/10 border-orange-200/50 dark:border-orange-900/20'
+          : 'bg-red-50/50 dark:bg-red-950/10 border-red-200/50 dark:border-red-900/20'
       } ${
         isVisible 
           ? 'opacity-100 translate-y-0' 
@@ -723,7 +723,7 @@ function TransactionCard({ transaction, onView, cardNumber, isVisible, animation
       <div className={`flex items-center justify-between px-5 py-4 border-b border-border/50 ${
         isPurchase
           ? 'bg-gradient-to-r from-green-50/60 to-green-50/30 dark:from-green-950/15 dark:to-green-950/5'
-          : 'bg-gradient-to-r from-orange-50/60 to-orange-50/30 dark:from-orange-950/15 dark:to-orange-950/5'
+          : 'bg-gradient-to-r from-red-50/60 to-red-50/30 dark:from-red-950/15 dark:to-red-950/5'
       }`}>
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-sm flex-shrink-0">
@@ -734,7 +734,7 @@ function TransactionCard({ transaction, onView, cardNumber, isVisible, animation
             <div className="text-xs text-muted-foreground truncate">{transaction.user_email}</div>
           </div>
         </div>
-        <Badge variant={isPurchase ? 'success' : 'warning'} className="text-xs font-semibold px-2.5 py-0.5 shrink-0">
+        <Badge variant={isPurchase ? 'success' : 'danger'} className="text-xs font-semibold px-2.5 py-0.5 shrink-0">
           {transaction.type.toUpperCase()}
         </Badge>
       </div>
@@ -745,11 +745,11 @@ function TransactionCard({ transaction, onView, cardNumber, isVisible, animation
         <div className="flex items-center justify-between pb-4 border-b border-border/50">
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Amount</span>
           <div className="text-right">
-            <div className={`text-xl font-extrabold ${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+            <div className={`text-xl font-extrabold ${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {formatCurrency(transaction.amount)}
             </div>
             {bonus > 0 && (
-              <div className={`text-xs font-semibold mt-0.5 ${isPurchase ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
+              <div className={`text-xs font-semibold mt-0.5 ${isPurchase ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
                 +{formatCurrency(transaction.bonus_amount)} bonus
               </div>
             )}
@@ -801,7 +801,7 @@ function TransactionCard({ transaction, onView, cardNumber, isVisible, animation
       <div className={`px-5 py-4 border-t border-border/50 ${
         isPurchase
           ? 'bg-green-50/40 dark:bg-green-950/10'
-          : 'bg-orange-50/40 dark:bg-orange-950/10'
+          : 'bg-red-50/40 dark:bg-red-950/10'
       }`}>
         <Button
           variant="ghost"
