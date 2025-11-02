@@ -152,7 +152,7 @@ interface ProcessingTransactionRowProps {
 
 function ProcessingTransactionRow({ transaction, getStatusVariant, onComplete, onCancel, isActionPending }: ProcessingTransactionRowProps) {
   const bonusValue = parseFloat(transaction.bonus_amount || '0');
-  const transactionId = transaction.unique_id ?? transaction.id;
+  const transactionId = transaction.id;
   const paymentMethod = transaction.payment_method ?? '—';
   const lowerPaymentMethod = paymentMethod.toLowerCase();
   const isCryptoPayment = CRYPTO_PAYMENT_METHODS.some((method) => lowerPaymentMethod.includes(method));
@@ -700,7 +700,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tx ID</TableHead>
+                  <TableHead>ID</TableHead>
                   <TableHead>User</TableHead>
                   <TableHead>Transaction</TableHead>
                   <TableHead>Amount</TableHead>
@@ -722,7 +722,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   onComplete={async () => {
                     try {
                       await handleTransactionAction(
-                        transaction.unique_id || transaction.id, 
+                        transaction.id, 
                         'completed',
                         transaction.id,
                         transaction.status
@@ -736,7 +736,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   onCancel={async () => {
                     try {
                       await handleTransactionAction(
-                        transaction.unique_id || transaction.id, 
+                        transaction.id, 
                         'cancelled',
                         transaction.id,
                         transaction.status

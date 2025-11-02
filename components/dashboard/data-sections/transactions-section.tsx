@@ -442,7 +442,7 @@ function TransactionsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tx ID</TableHead>
+              <TableHead>ID</TableHead>
               <TableHead>User</TableHead>
               <TableHead>Transaction</TableHead>
               <TableHead>Amount</TableHead>
@@ -494,7 +494,7 @@ function TransactionsRow({ transaction }: TransactionsRowProps) {
   return (
     <TableRow>
       <TableCell>
-        <code className="text-xs text-muted-foreground">{transaction.unique_id}</code>
+        <code className="text-xs text-muted-foreground">{transaction.id}</code>
       </TableCell>
       <TableCell>
         <div className="space-y-1">
