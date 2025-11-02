@@ -147,7 +147,7 @@ export function TransactionsSection() {
     });
   }, [transactions?.results]);
   
-  const totalCount = results.length;
+  const totalCount = transactions?.count ?? 0;
 
   const isInitialLoading = isLoading && !transactions;
   const isEmpty = !results.length;
