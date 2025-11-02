@@ -528,8 +528,32 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         txn_id: queue.id,
         type: action as GameActionType,
       });
+      
+      // Show success toast
+      addToast({
+        type: 'success',
+        title: 'Action Successful',
+        description: `Queue item ${action === 'retry' ? 'retried' : 'cancelled'} successfully`,
+        duration: 3000,
+      });
     } catch (error) {
+      // Extract error message
+      let errorMessage = 'Failed to process action';
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       console.error('Failed to process quick action:', error);
+      
+      // Show error toast
+      addToast({
+        type: 'error',
+        title: 'Action Failed',
+        description: errorMessage,
+        duration: 6000,
+      });
     }
   };
 

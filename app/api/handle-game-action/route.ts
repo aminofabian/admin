@@ -66,15 +66,20 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     console.log('📥 Backend response data:', data);
 
-    // If backend returned an error, forward it
+    // If backend returned an error, forward it with detailed logging
     if (data.status === 'error') {
-      console.error('❌ Backend returned error:', data);
-      return NextResponse.json(data, { status: response.status });
+      console.error('❌ Backend returned error:', {
+        backendStatus: response.status,
+        errorData: data,
+      });
+      // Always return 200 with error in body so the client can handle it properly
+      // Don't use backend's HTTP status as it causes confusion (404 looks like route not found)
+      return NextResponse.json(data, { status: 200 });
     }
 
-    // Return the response
+    // Return the success response
     return NextResponse.json(data, {
-      status: response.status,
+      status: 200,
     });
   } catch (error) {
     console.error('❌ Proxy error details:', error);

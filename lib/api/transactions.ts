@@ -40,10 +40,20 @@ export const transactionsApi = {
     // Use the Next.js API proxy route to avoid CORS issues
     // The proxy route will forward the request to the Django backend
     // Note: The proxy expects FormData and converts it to URLSearchParams
-    return apiClient.post<GameActionResponse>(
+    const response = await apiClient.post<GameActionResponse>(
       API_ENDPOINTS.TRANSACTIONS.HANDLE_GAME_ACTION,
       formData
     );
+    
+    // Check if the response contains an error (backend errors return 200 with error in body)
+    if (response.status === 'error') {
+      throw {
+        status: 'error',
+        message: response.message || 'Failed to process game action',
+      };
+    }
+    
+    return response;
   },
 
   transactionAction: async (txnId: string, type: 'cancel' | 'complete') => {
@@ -52,10 +62,20 @@ export const transactionsApi = {
     formData.append('txn_id', txnId);
     formData.append('type', type);
 
-    return apiClient.post<{ status: string; message: string }>(
+    const response = await apiClient.post<{ status: string; message: string }>(
       API_ENDPOINTS.TRANSACTIONS.ACTION,
       formData
     );
+    
+    // Check if the response contains an error (backend errors return 200 with error in body)
+    if (response.status === 'error') {
+      throw {
+        status: 'error',
+        message: response.message || 'Failed to process transaction action',
+      };
+    }
+    
+    return response;
   },
 };
 
