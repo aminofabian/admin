@@ -156,17 +156,16 @@ export function TransactionsSection() {
     setAreFiltersOpen((previous) => !previous);
   };
 
-  const rawResults = transactions?.results ?? [];
-  
   // Filter to only show transactions with operator "bot" or "admin" (company maps to admin)
   // Exclude transactions where operator is "player" or other values
   const results = useMemo<Transaction[]>(() => {
+    const rawResults = transactions?.results ?? [];
     return rawResults.filter((transaction) => {
       const operator = transaction.operator?.toLowerCase() ?? '';
       // Only show if operator is bot, admin, or company (company will be displayed as admin)
       return operator === 'bot' || operator === 'admin' || operator === 'company';
     });
-  }, [rawResults]);
+  }, [transactions?.results]);
   
   const totalCount = results.length;
 
@@ -365,10 +364,6 @@ function TransactionsTable({
   const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set());
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  if (!transactions.length) {
-    return null;
-  }
-
   const handleViewTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setIsViewModalOpen(true);
@@ -386,6 +381,8 @@ function TransactionsTable({
 
   // Intersection Observer for scroll animations
   useEffect(() => {
+    if (!transactions.length) return;
+    
     const observerOptions = {
       root: null,
       rootMargin: '-10% 0px -10% 0px',
@@ -434,6 +431,10 @@ function TransactionsTable({
       observer.disconnect();
     };
   }, [transactions.length, currentPage]);
+
+  if (!transactions.length) {
+    return null;
+  }
 
   return (
     <>
