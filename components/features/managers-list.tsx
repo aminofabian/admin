@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useManagersStore } from '@/stores';
 import type { Manager, CreateUserRequest, UpdateUserRequest } from '@/types';
-import { LoadingState, ErrorState, EmptyState, ManagerForm } from '@/components/features';
+import { LoadingState, ErrorState, EmptyState } from '@/components/features';
+import { ManagerForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import {
   Table,
@@ -108,8 +109,6 @@ export function ManagersList() {
   // Local State
   const [localSearchTerm, setLocalSearchTerm] = useState(storeSearchTerm);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedManager, setSelectedManager] = useState<Manager | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [confirmModal, setConfirmModal] = useState<{
@@ -166,31 +165,6 @@ export function ManagersList() {
     }
   };
 
-  const handleUpdate = async (formData: CreateUserRequest | UpdateUserRequest) => {
-    if (!selectedManager) return;
-
-    try {
-      setIsSubmitting(true);
-      setSubmitError('');
-
-      await updateManager(selectedManager.id, formData as UpdateUserRequest);
-
-      addToast({
-        type: 'success',
-        title: 'Manager updated',
-        description: 'Manager has been updated successfully!',
-      });
-      setIsEditOpen(false);
-      setSelectedManager(null);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update manager';
-      setSubmitError(errorMessage);
-      throw err;
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleToggleStatus = (manager: Manager) => {
     setConfirmModal({
       isOpen: true,
@@ -234,16 +208,8 @@ export function ManagersList() {
     setConfirmModal({ isOpen: false, manager: null, isLoading: false });
   };
 
-  const openEdit = (manager: Manager) => {
-    setSelectedManager(manager);
-    setIsEditOpen(true);
-    setSubmitError('');
-  };
-
   const closeModals = () => {
     setIsCreateOpen(false);
-    setIsEditOpen(false);
-    setSelectedManager(null);
     setSubmitError('');
   };
 
@@ -283,15 +249,6 @@ export function ManagersList() {
 
       <TableCell>
         <div className="flex items-center justify-end gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => openEdit(manager)}
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-          >
-            <EditIcon />
-            Edit
-          </Button>
           <Button
             size="sm"
             variant={manager.is_active ? 'danger' : 'primary'}
@@ -353,21 +310,12 @@ export function ManagersList() {
             </div>
           </div>
 
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => openEdit(manager)}
-              className="flex-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            >
-              <EditIcon />
-              Edit
-            </Button>
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
             <Button
               size="sm"
               variant={manager.is_active ? 'danger' : 'primary'}
               onClick={() => handleToggleStatus(manager)}
-              className={`flex-1 ${
+              className={`w-full ${
                 manager.is_active
                   ? 'bg-red-500 hover:bg-red-600 text-white border-red-500'
                   : 'bg-green-500 hover:bg-green-600 text-white border-green-500'
@@ -467,19 +415,6 @@ export function ManagersList() {
       <Drawer isOpen={isCreateOpen} onClose={closeModals} title="Create New Manager" size="lg">
         {submitError && <ErrorMessage message={submitError} />}
         <ManagerForm onSubmit={handleCreate} onCancel={closeModals} isLoading={isSubmitting} />
-      </Drawer>
-
-      {/* Edit Drawer */}
-      <Drawer isOpen={isEditOpen} onClose={closeModals} title="Edit Manager" size="lg">
-        {submitError && <ErrorMessage message={submitError} />}
-        {selectedManager && (
-          <ManagerForm
-            manager={selectedManager}
-            onSubmit={handleUpdate}
-            onCancel={closeModals}
-            isLoading={isSubmitting}
-          />
-        )}
       </Drawer>
 
       {/* Confirmation Modal */}
