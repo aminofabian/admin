@@ -30,11 +30,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCompleteFields, setShowCompleteFields] = useState(false);
 
-  if (!queue) {
-    return null;
-  }
-
   const gameUsername = useMemo(() => {
+    if (!queue) return null;
     if (typeof queue.game_username === 'string' && queue.game_username.trim()) {
       return queue.game_username.trim();
     }
@@ -45,7 +42,11 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       }
     }
     return null;
-  }, [queue.game_username, queue.data]);
+  }, [queue]);
+
+  if (!queue) {
+    return null;
+  }
 
   const handleActionSelect = async (selectedAction: GameActionType) => {
     setActionType(selectedAction);

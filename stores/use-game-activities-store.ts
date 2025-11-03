@@ -45,7 +45,7 @@ export const useGameActivitiesStore = create<GameActivitiesStore>((set, get) => 
 
     try {
       // Fetch all games
-      const gamesResponse: PaginatedResponse<Game> = await gamesApi.list({
+      const gamesResponse: Game[] = await gamesApi.list({
         page_size: 1000, // Get all games
       });
 
@@ -56,9 +56,9 @@ export const useGameActivitiesStore = create<GameActivitiesStore>((set, get) => 
       });
 
       // Calculate active/inactive games
-      const activeGames = gamesResponse.results.filter(game => game.game_status === true).length;
-      const inactiveGames = gamesResponse.results.filter(game => game.game_status === false).length;
-      const totalGames = gamesResponse.results.length;
+      const activeGames = gamesResponse.filter(game => game.game_status === true).length;
+      const inactiveGames = gamesResponse.filter(game => game.game_status === false).length;
+      const totalGames = gamesResponse.length;
       const pendingQueues = queuesResponse.count;
 
       set({

@@ -735,6 +735,110 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
   );
 }
 
+interface MobileTransactionActionsProps {
+  transaction: Transaction;
+  isPending: boolean;
+  onView: () => void;
+  onComplete: () => Promise<void>;
+  onCancel: () => Promise<void>;
+}
+
+function MobileTransactionActions({
+  transaction,
+  isPending,
+  onView,
+  onComplete,
+  onCancel,
+}: MobileTransactionActionsProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="relative pt-2 border-t border-border" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isPending}
+        className="w-full px-4 py-2.5 bg-card border border-border rounded-lg text-sm font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+      >
+        <span>Actions</span>
+        <svg
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50">
+          <button
+            onClick={() => {
+              onView();
+              setIsOpen(false);
+            }}
+            className="w-full px-4 py-3 text-left text-sm font-medium text-foreground hover:bg-accent transition-colors flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            View Details
+          </button>
+
+          {transaction.status === 'pending' && (
+            <>
+              <div className="h-px bg-border" />
+              <button
+                onClick={async () => {
+                  await onComplete();
+                  setIsOpen(false);
+                }}
+                disabled={isPending}
+                className="w-full px-4 py-3 text-left text-sm font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Complete Transaction
+              </button>
+
+              <div className="h-px bg-border" />
+              <button
+                onClick={async () => {
+                  await onCancel();
+                  setIsOpen(false);
+                }}
+                disabled={isPending}
+                className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel Transaction
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function buildProcessingTransactionStats(transactions: Transaction[], totalCount: number): ProcessingStat[] {
   const queueSize = totalCount || transactions.length;
 
@@ -854,21 +958,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   );
   const transactionCount = transactions?.count ?? 0;
   const transactionStats = useMemo(() => buildProcessingTransactionStats(transactionResults, transactionCount), [transactionResults, transactionCount]);
-
-  // Debug logging
-  useEffect(() => {
-    if (isTransactionsView) {
-      console.log('🔍 Component state:', {
-        viewType,
-        transactionsLoading,
-        hasTransactions: !!transactions,
-        transactionResultsLength: transactionResults.length,
-        transactionCount,
-        isEmpty: transactionResults.length === 0,
-        rawTransactions: transactions,
-      });
-    }
-  }, [isTransactionsView, viewType, transactionsLoading, transactions, transactionResults, transactionCount]);
 
   useEffect(() => {
     if (viewType === 'purchases') {
@@ -1310,60 +1399,35 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 pt-2 border-t border-border">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleViewTransaction(transaction)}
-                    className="flex-1"
-                  >
-                    View
-                  </Button>
-                  {transaction.status === 'pending' && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={async () => {
-                          try {
-                            await handleTransactionAction(
-                              transaction.id,
-                              'completed',
-                              transaction.id,
-                              transaction.status
-                            );
-                          } catch (error) {
-                            console.error('Error in onComplete handler:', error);
-                          }
-                        }}
-                        disabled={pendingTransactionId === transaction.id}
-                        className="flex-1"
-                      >
-                        Complete
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={async () => {
-                          try {
-                            await handleTransactionAction(
-                              transaction.id,
-                              'cancelled',
-                              transaction.id,
-                              transaction.status
-                            );
-                          } catch (error) {
-                            console.error('Error in onCancel handler:', error);
-                          }
-                        }}
-                        disabled={pendingTransactionId === transaction.id}
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  )}
-                </div>
+                <MobileTransactionActions
+                  transaction={transaction}
+                  isPending={pendingTransactionId === transaction.id}
+                  onView={() => handleViewTransaction(transaction)}
+                  onComplete={async () => {
+                    try {
+                      await handleTransactionAction(
+                        transaction.id,
+                        'completed',
+                        transaction.id,
+                        transaction.status
+                      );
+                    } catch (error) {
+                      console.error('Error in onComplete handler:', error);
+                    }
+                  }}
+                  onCancel={async () => {
+                    try {
+                      await handleTransactionAction(
+                        transaction.id,
+                        'cancelled',
+                        transaction.id,
+                        transaction.status
+                      );
+                    } catch (error) {
+                      console.error('Error in onCancel handler:', error);
+                    }
+                  }}
+                />
               </div>
             ))}
           </div>

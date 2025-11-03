@@ -69,10 +69,6 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     return null;
   }, [activity.game_username, activity.data]);
 
-  const hasData = useMemo(() => {
-    return activity.data !== null && activity.data !== undefined;
-  }, [activity.data]);
-
   const formattedCreatedAt = useMemo(() => formatDate(activity.created_at), [activity.created_at]);
   const formattedUpdatedAt = useMemo(() => formatDate(activity.updated_at), [activity.updated_at]);
   const showUpdatedAt = useMemo(() => activity.updated_at !== activity.created_at, [activity.updated_at, activity.created_at]);
