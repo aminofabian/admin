@@ -23,7 +23,8 @@ import {
 } from '@/components/dashboard/layout';
 import { 
   GameActionForm,
-  EmptyState
+  EmptyState,
+  TransactionDetailsModal
 } from '@/components/features';
 import { 
   useTransactionsStore, 
@@ -1159,150 +1160,13 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       </DashboardSectionContainer>
       
       {/* View Transaction Modal */}
-      <Modal
-        isOpen={isViewModalOpen}
-        onClose={handleCloseViewModal}
-        title="Transaction Details"
-        size="lg"
-      >
-        {selectedTransaction && (() => {
-          const paymentMethod = selectedTransaction.payment_method ?? '';
-          const lowerPaymentMethod = paymentMethod.toLowerCase();
-          const isCryptoPayment = CRYPTO_PAYMENT_METHODS.some((method) => lowerPaymentMethod.includes(method));
-          const explicitInvoiceUrl = selectedTransaction.payment_url ?? selectedTransaction.invoice_url;
-          const sanitizedInvoiceUrl = typeof explicitInvoiceUrl === 'string' ? explicitInvoiceUrl.trim() : '';
-          const invoiceUrl = sanitizedInvoiceUrl.length > 0
-            ? sanitizedInvoiceUrl
-            : selectedTransaction.id
-              ? `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${selectedTransaction.id}/invoice/`
-              : undefined;
-
-          return (
-            <div className="space-y-6">
-              {/* Header Section - Status and Type */}
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl border border-border/50">
-                <div className="flex items-center gap-3">
-                  <Badge variant={selectedTransaction.type === 'purchase' ? 'success' : 'danger'} className="text-sm px-3 py-1">
-                    {selectedTransaction.type.toUpperCase()}
-                  </Badge>
-                  <Badge variant={getStatusVariant(selectedTransaction.status)} className="text-sm px-3 py-1">
-                    {selectedTransaction.status}
-                  </Badge>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-foreground">{formatCurrency(selectedTransaction.amount)}</div>
-                  {parseFloat(selectedTransaction.bonus_amount || '0') > 0 && (
-                    <div className="text-sm font-semibold text-green-600">
-                      +{formatCurrency(selectedTransaction.bonus_amount)} bonus
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Transaction ID */}
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Transaction ID</label>
-                <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-                  {selectedTransaction.id}
-                </div>
-              </div>
-
-              {/* Balance Section */}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Previous Balance</label>
-                  <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{formatCurrency(selectedTransaction.previous_balance)}</div>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Balance</label>
-                  <div className="text-lg font-bold text-green-900 dark:text-green-100">{formatCurrency(selectedTransaction.new_balance)}</div>
-                </div>
-              </div>
-
-              {/* User Information */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">User Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-muted-foreground">Username</label>
-                    <div className="text-sm font-semibold text-foreground">{selectedTransaction.user_username}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-muted-foreground">Email</label>
-                    <div className="text-sm text-foreground">{selectedTransaction.user_email}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment & Operator Information */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Payment & Operator</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-muted-foreground">Payment Method</label>
-                    <Badge variant="info" className="text-xs">
-                      {selectedTransaction.payment_method}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-muted-foreground">Operator</label>
-                    <div className="text-sm font-semibold text-foreground">
-                      {selectedTransaction.operator?.toLowerCase() === 'company' ? 'admin' : selectedTransaction.operator}
-                    </div>
-                  </div>
-                </div>
-                {/* View Invoice Button for Crypto Payments */}
-                {isCryptoPayment && invoiceUrl && (
-                  <div className="pt-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="font-medium w-full"
-                      onClick={() => window.open(invoiceUrl, '_blank', 'noopener,noreferrer')}
-                    >
-                      View Invoice
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Transaction Details */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Transaction Details</h3>
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-muted-foreground">Description</label>
-                  <div className="text-sm text-foreground bg-muted/30 px-3 py-2 rounded-lg border border-border/30">
-                    {selectedTransaction.description}
-                  </div>
-                </div>
-                {selectedTransaction.remarks && (
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-muted-foreground">Remarks</label>
-                    <div className="text-sm text-foreground bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-900/30">
-                      {selectedTransaction.remarks}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Timestamps */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Timestamps</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-muted-foreground">Created</label>
-                    <div className="text-sm font-medium text-foreground">{formatDate(selectedTransaction.created)}</div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-muted-foreground">Updated</label>
-                    <div className="text-sm font-medium text-foreground">{formatDate(selectedTransaction.updated)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-      </Modal>
+      {selectedTransaction && (
+        <TransactionDetailsModal
+          transaction={selectedTransaction}
+          isOpen={isViewModalOpen}
+          onClose={handleCloseViewModal}
+        />
+      )}
       </>
     );
   }
