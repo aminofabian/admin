@@ -103,7 +103,7 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
         {/* Transaction ID and Operator */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Transaction ID...</label>
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Transaction ID</label>
             <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
               {transaction.id}
             </div>
@@ -175,19 +175,6 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           )}
         </div>
 
-        {/* Transaction Details */}
-        {transaction.description && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Transaction Details</h3>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Description</label>
-              <div className="text-sm text-foreground bg-muted/30 px-3 py-2 rounded-lg border border-border/30">
-                {transaction.description}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Timestamps */}
         <div className="space-y-3">
           <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">TIMESTAMPS</h3>
@@ -205,12 +192,12 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
         </div>
 
         {/* Remarks */}
-        {transaction.remarks && (
+        {transaction.description && (
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">REMARKS</h3>
             <div className="border-b border-gray-300 dark:border-gray-600"></div>
-            <div className="bg-yellow-50/80 dark:bg-yellow-50/30 px-4 py-3 rounded-lg">
-              <div className="text-sm text-gray-800 dark:text-gray-800">{transaction.remarks}</div>
+            <div className="bg-yellow-50/80 dark:bg-yellow-50/10 px-4 py-3 rounded-lg">
+              <div className="text-sm text-gray-800 dark:text-gray-100">{transaction.description}</div>
             </div>
           </div>
         )}

@@ -47,13 +47,6 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     return null;
   }, [activity.user_username]);
 
-  const websiteEmail = useMemo(() => {
-    if (typeof activity.user_email === 'string' && activity.user_email.trim()) {
-      return activity.user_email.trim();
-    }
-    return null;
-  }, [activity.user_email]);
-
   // Game username (username used in the game)
   const gameUsername = useMemo(() => {
     // 1. Top-level game_username field
@@ -70,13 +63,9 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     return null;
   }, [activity.game_username, activity.data]);
 
-  const operator = useMemo(() => {
-    return activity.operator || (typeof activity.data?.operator === 'string' ? activity.data.operator : '—');
-  }, [activity.operator, activity.data?.operator]);
-
-  const operationType = useMemo(() => {
-    return typeof activity.data?.operation_type === 'string' ? activity.data.operation_type : '—';
-  }, [activity.data?.operation_type]);
+  const hasData = useMemo(() => {
+    return activity.data !== null && activity.data !== undefined;
+  }, [activity.data]);
 
   const formattedCreatedAt = useMemo(() => formatDate(activity.created_at), [activity.created_at]);
   const formattedUpdatedAt = useMemo(() => formatDate(activity.updated_at), [activity.updated_at]);
@@ -110,19 +99,11 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
           </div>
         </div>
 
-        {/* Activity IDs */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</label>
-            <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-              {activity.id}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Operator</label>
-            <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-              {operator}
-            </div>
+        {/* Activity ID */}
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</label>
+          <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
+            {activity.id}
           </div>
         </div>
 
@@ -140,27 +121,19 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
 
         {/* User Information */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Website User</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Username</label>
-              <div className="text-sm font-semibold text-foreground">
-                {websiteUsername || `User ${activity.user_id}`}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Email</label>
-              <div className="text-sm text-foreground">
-                {websiteEmail || '—'}
-              </div>
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">User Information</h3>
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-muted-foreground">Username</label>
+            <div className="text-sm font-semibold text-foreground">
+              {websiteUsername || `User ${activity.user_id}`}
             </div>
           </div>
         </div>
 
         {/* Game Username */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Game Username</h3>
-          <div className="grid grid-cols-2 gap-4">
+        {hasData && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Game Username</h3>
             <div className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">Game Username</label>
               {gameUsername ? (
@@ -177,14 +150,8 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
                 </div>
               )}
             </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Operation Type</label>
-              <Badge variant="default" className="text-xs uppercase">
-                {operationType}
-              </Badge>
-            </div>
           </div>
-        </div>
+        )}
 
         {/* Timestamps */}
         <div className="space-y-3">
