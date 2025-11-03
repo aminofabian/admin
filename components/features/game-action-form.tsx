@@ -19,6 +19,7 @@ interface GameActionFormProps {
     type: GameActionType;
     new_password?: string;
     new_balance?: string;
+    new_username?: string;
   }) => Promise<void>;
   onCancel: () => void;
 }
@@ -27,6 +28,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
   const [actionType, setActionType] = useState<GameActionType | ''>('');
   const [newPassword, setNewPassword] = useState('');
   const [newBalance, setNewBalance] = useState('');
+  const [newUsername, setNewUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCompleteFields, setShowCompleteFields] = useState(false);
 
@@ -60,7 +62,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     }
   };
 
-  const executeAction = async (action: GameActionType, password?: string, balance?: string) => {
+  const executeAction = async (action: GameActionType, password?: string, balance?: string, username?: string) => {
     setIsSubmitting(true);
     
     try {
@@ -69,12 +71,14 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         type: GameActionType;
         new_password?: string;
         new_balance?: string;
+        new_username?: string;
       } = {
         txn_id: queue.id,
         type: action,
       };
 
       if (action === 'complete') {
+        if (username?.trim()) data.new_username = username.trim();
         if (password?.trim()) data.new_password = password.trim();
         if (balance?.trim()) data.new_balance = balance.trim();
       }
@@ -87,7 +91,31 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   const handleCompleteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await executeAction('complete', newPassword, newBalance);
+    await executeAction('complete', newPassword, newBalance, newUsername);
+  };
+
+  // Determine required fields based on queue type
+  const getRequiredFields = () => {
+    if (queue.type === 'recharge_game' || queue.type === 'redeem_game') {
+      return { balance: true, password: false, username: false };
+    }
+    if (queue.type === 'add_user_game') {
+      return { balance: false, password: true, username: true };
+    }
+    // For future types like change_password_game
+    if (queue.type.includes('password')) {
+      return { balance: false, password: true, username: false };
+    }
+    return { balance: false, password: false, username: false };
+  };
+
+  const requiredFields = getRequiredFields();
+
+  const isFormValid = () => {
+    if (requiredFields.balance && !newBalance.trim()) return false;
+    if (requiredFields.password && !newPassword.trim()) return false;
+    if (requiredFields.username && !newUsername.trim()) return false;
+    return true;
   };
 
   if (showCompleteFields) {
@@ -95,7 +123,12 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       <form onSubmit={handleCompleteSubmit} className="space-y-4">
         {/* Transaction Details */}
         <div className="p-4 border border-border rounded-lg">
-          <h3 className="text-sm font-semibold mb-3">#{queue.id}</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">#{queue.id}</h3>
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+              Manual Completion
+            </span>
+          </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <span className="text-muted-foreground text-xs">Type:</span>
@@ -132,25 +165,75 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               </div>
             )}
           </div>
+          
+          {queue.remarks && (
+            <div className="mt-3 pt-3 border-t">
+              <span className="text-muted-foreground text-xs">Remarks:</span>
+              <p className="text-sm mt-1.5 text-muted-foreground">{queue.remarks}</p>
+            </div>
+          )}
         </div>
 
         {/* Complete Action Fields */}
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">Optional: Override system-generated values</p>
-          <Input
-            label="New Password"
-            type="text"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Leave empty for system value"
-          />
-          <Input
-            label="New Balance"
-            type="text"
-            value={newBalance}
-            onChange={(e) => setNewBalance(e.target.value)}
-            placeholder="Leave empty for system value"
-          />
+        <div className="space-y-3 p-4 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50/50 dark:bg-blue-900/10">
+          <div className="flex items-start gap-2">
+            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {queue.type === 'recharge_game' 
+                  ? 'Recharge Operation - Required Field'
+                  : queue.type === 'redeem_game'
+                  ? 'Redeem Operation - Required Field'
+                  : queue.type === 'add_user_game'
+                  ? 'Create Game Account - Required Fields'
+                  : 'Complete Operation - Required Fields'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {queue.type === 'recharge_game' || queue.type === 'redeem_game' 
+                  ? 'Enter the new game balance after manually completing the operation in the game provider system.'
+                  : queue.type === 'add_user_game'
+                  ? 'Enter the game username and password that were created in the game provider system.'
+                  : 'Enter the required information to complete this operation.'}
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-3 mt-3">
+            {requiredFields.username && (
+              <Input
+                label="New Game Username *"
+                type="text"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Enter the game username"
+                required
+              />
+            )}
+            
+            {requiredFields.password && (
+              <Input
+                label="Password *"
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter the password"
+                required
+              />
+            )}
+            
+            {requiredFields.balance && (
+              <Input
+                label="New Game Balance *"
+                type="text"
+                value={newBalance}
+                onChange={(e) => setNewBalance(e.target.value)}
+                placeholder="Enter the new balance (e.g., 1000.50)"
+                required
+              />
+            )}
+          </div>
         </div>
 
         {/* Action Buttons */}
@@ -163,6 +246,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               setActionType('');
               setNewPassword('');
               setNewBalance('');
+              setNewUsername('');
             }}
             disabled={isSubmitting}
           >
@@ -170,7 +254,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isFormValid()}
           >
             {isSubmitting ? 'Processing...' : 'Complete'}
           </Button>

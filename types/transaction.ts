@@ -72,6 +72,7 @@ export interface GameActionRequest {
   type: GameActionType;
   new_password?: string;
   new_balance?: string;
+  new_username?: string;
 }
 
 export interface GameActionResponse {

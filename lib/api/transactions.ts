@@ -73,6 +73,7 @@ export const transactionsApi = {
     const formData = new FormData();
     formData.append('txn_id', String(data.txn_id));
     formData.append('type', data.type);
+    if (data.new_username) formData.append('new_username', data.new_username);
     if (data.new_password) formData.append('new_password', data.new_password);
     if (data.new_balance) formData.append('new_balance', data.new_balance);
 
