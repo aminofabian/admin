@@ -59,10 +59,6 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
       : undefined;
   }, [sanitizedInvoiceUrl, transaction.id]);
 
-  const operator = useMemo(() => {
-    return transaction.operator?.toLowerCase() === 'company' ? 'admin' : transaction.operator;
-  }, [transaction.operator]);
-
   const formattedCreatedAt = useMemo(() => formatDate(transaction.created), [transaction.created]);
   const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated), [transaction.updated]);
 
@@ -100,19 +96,11 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           </div>
         </div>
 
-        {/* Transaction ID and Operator */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Transaction ID</label>
-            <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-              {transaction.id}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Operator</label>
-            <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-              {operator || '—'}
-            </div>
+        {/* Transaction ID */}
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Transaction ID</label>
+          <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
+            {transaction.id}
           </div>
         </div>
 
@@ -143,22 +131,14 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           </div>
         </div>
 
-        {/* Payment & Operator Information */}
+        {/* Payment Information */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Payment & Operator</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Payment Method</label>
-              <Badge variant="info" className="text-xs">
-                {paymentMethod}
-              </Badge>
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Operator</label>
-              <div className="text-sm font-semibold text-foreground">
-                {operator || '—'}
-              </div>
-            </div>
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Payment</h3>
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-muted-foreground">Payment Method</label>
+            <Badge variant="info" className="text-xs">
+              {paymentMethod}
+            </Badge>
           </div>
           {/* View Invoice Button for Crypto Payments */}
           {isCryptoPayment && invoiceUrl && (
@@ -177,7 +157,7 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
         {/* Timestamps */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">TIMESTAMPS</h3>
+          <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide">DATES</h3>
           <div className="border-b border-gray-300 dark:border-gray-600"></div>
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="space-y-1">
