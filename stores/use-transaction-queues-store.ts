@@ -3,7 +3,6 @@ import { transactionsApi } from '@/lib/api';
 import type { 
   TransactionQueue,
   QueueFilters,
-  PaginatedResponse,
   GameActionRequest
 } from '@/types';
 
@@ -15,19 +14,16 @@ type FilterType =
   | 'add_user_game';
 
 interface TransactionQueuesState {
-  queues: PaginatedResponse<TransactionQueue> | null;
+  queues: TransactionQueue[] | null;
   isLoading: boolean;
   error: string | null;
-  currentPage: number;
   filter: FilterType;
-  pageSize: number;
   actionLoading: boolean;
   advancedFilters: Record<string, string>;
 }
 
 interface TransactionQueuesActions {
   fetchQueues: () => Promise<void>;
-  setPage: (page: number) => void;
   setFilter: (filter: FilterType) => void;
   handleGameAction: (data: GameActionRequest) => Promise<void>;
   setAdvancedFilters: (filters: Record<string, string>) => void;
@@ -41,9 +37,7 @@ const initialState: TransactionQueuesState = {
   queues: null,
   isLoading: false,
   error: null,
-  currentPage: 1,
   filter: 'processing',
-  pageSize: 10,
   actionLoading: false,
   advancedFilters: {},
 };
@@ -55,11 +49,9 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
     set({ isLoading: true, error: null });
 
     try {
-      const { currentPage, pageSize, filter, advancedFilters } = get();
+      const { filter, advancedFilters } = get();
       
       const filters: QueueFilters = {
-        page: currentPage,
-        page_size: pageSize,
         type: filter,
       };
 
@@ -69,12 +61,10 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
 
       Object.assign(filters, cleanedAdvancedFilters);
 
-      console.log('Fetching transaction queues with filters:', filters);
-
-      const data = await transactionsApi.queues(filters);
+      const response = await transactionsApi.queues(filters);
       
       set({ 
-        queues: data, 
+        queues: response.results, 
         isLoading: false,
         error: null,
       });
@@ -98,32 +88,18 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
     }
   },
 
-  setPage: (page: number) => {
-    set({ currentPage: page });
-    get().fetchQueues();
-  },
-
   setFilter: (filter: FilterType) => {
-    set({ 
-      filter,
-      currentPage: 1,
-    });
+    set({ filter });
     get().fetchQueues();
   },
 
   setAdvancedFilters: (filtersMap: Record<string, string>) => {
-    set({
-      advancedFilters: filtersMap,
-      currentPage: 1,
-    });
+    set({ advancedFilters: filtersMap });
     get().fetchQueues();
   },
 
   clearAdvancedFilters: () => {
-    set({
-      advancedFilters: {},
-      currentPage: 1,
-    });
+    set({ advancedFilters: {} });
     get().fetchQueues();
   },
 

@@ -5,16 +5,13 @@ import type {
   UpdateGameRequest,
   CheckStoreBalanceRequest,
   CheckStoreBalanceResponse,
-  PaginatedResponse 
 } from '@/types';
 
 interface GamesState {
-  games: PaginatedResponse<Game> | null;
+  games: Game[] | null;
   isLoading: boolean;
   error: string | null;
-  currentPage: number;
   searchTerm: string;
-  pageSize: number;
   balanceCheckLoading: boolean;
 }
 
@@ -22,7 +19,6 @@ interface GamesActions {
   fetchGames: () => Promise<void>;
   updateGame: (id: number, data: UpdateGameRequest) => Promise<Game>;
   checkStoreBalance: (data: CheckStoreBalanceRequest) => Promise<CheckStoreBalanceResponse>;
-  setPage: (page: number) => void;
   setSearchTerm: (term: string) => void;
   reset: () => void;
 }
@@ -33,9 +29,7 @@ const initialState: GamesState = {
   games: null,
   isLoading: false,
   error: null,
-  currentPage: 1,
   searchTerm: '',
-  pageSize: 10,
   balanceCheckLoading: false,
 };
 
@@ -46,11 +40,9 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const { currentPage, pageSize, searchTerm } = get();
+      const { searchTerm } = get();
       
       const filters = {
-        page: currentPage,
-        page_size: pageSize,
         ...(searchTerm && { search: searchTerm }),
       };
 
@@ -145,15 +137,9 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
     }
   },
 
-  setPage: (page: number) => {
-    set({ currentPage: page });
-    get().fetchGames();
-  },
-
   setSearchTerm: (term: string) => {
     set({ 
       searchTerm: term,
-      currentPage: 1,
     });
     get().fetchGames();
   },

@@ -107,7 +107,7 @@ export function GameSettingsSection() {
     return <ErrorState message={error} onRetry={fetchGames} />;
   }
 
-  const games = gamesData?.results || [];
+  const games = gamesData || [];
 
   return (
     <div className="space-y-6">

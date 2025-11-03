@@ -3,11 +3,10 @@ import { paymentMethodsApi } from '@/lib/api';
 import type { 
   PaymentMethod,
   UpdatePaymentMethodRequest,
-  PaginatedResponse,
 } from '@/types';
 
 interface PaymentMethodsState {
-  paymentMethods: PaginatedResponse<PaymentMethod> | null;
+  paymentMethods: PaymentMethod[] | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -68,15 +67,12 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
       const currentPaymentMethods = get().paymentMethods;
       if (currentPaymentMethods) {
         set({
-          paymentMethods: {
-            ...currentPaymentMethods,
-            results: currentPaymentMethods.results.map(method => {
-              if (method.id === id) {
-                return { ...method, ...data };
-              }
-              return method;
-            }),
-          },
+          paymentMethods: currentPaymentMethods.map(method => {
+            if (method.id === id) {
+              return { ...method, ...data };
+            }
+            return method;
+          }),
         });
       }
     } catch (err: unknown) {

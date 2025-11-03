@@ -105,14 +105,35 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
         </div>
 
         {/* Balance Section */}
-        <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Previous Balance</label>
-            <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{formatCurrency(transaction.previous_balance)}</div>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Previous Balance</label>
+              <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{formatCurrency(transaction.previous_balance)}</div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Balance</label>
+              <div className="text-lg font-bold text-green-900 dark:text-green-100">{formatCurrency(transaction.new_balance)}</div>
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Balance</label>
-            <div className="text-lg font-bold text-green-900 dark:text-green-100">{formatCurrency(transaction.new_balance)}</div>
+
+          <div className="grid grid-cols-2 gap-4 p-4 bg-purple-50 dark:bg-purple-950/20 rounded-xl border border-purple-200 dark:border-purple-900/30">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-purple-700 dark:text-purple-400 uppercase tracking-wide">Prev Winning Balance</label>
+              <div className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+                  ? formatCurrency(transaction.previous_winning_balance)
+                  : '—'}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Winning Balance</label>
+              <div className="text-lg font-bold text-green-900 dark:text-green-100">
+                {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+                  ? formatCurrency(transaction.new_winning_balance)
+                  : '—'}
+              </div>
+            </div>
           </div>
         </div>
 

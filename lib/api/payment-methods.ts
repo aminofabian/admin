@@ -3,12 +3,11 @@ import { API_ENDPOINTS } from '@/lib/constants/api';
 import type { 
   PaymentMethod,
   UpdatePaymentMethodRequest,
-  PaginatedResponse,
 } from '@/types';
 
 export const paymentMethodsApi = {
   list: () => {
-    return apiClient.get<PaginatedResponse<PaymentMethod>>(API_ENDPOINTS.PAYMENT_METHODS.LIST);
+    return apiClient.get<PaymentMethod[]>(API_ENDPOINTS.PAYMENT_METHODS.LIST);
   },
 
   get: (id: number) =>

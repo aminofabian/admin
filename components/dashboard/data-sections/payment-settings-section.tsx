@@ -456,8 +456,8 @@ export function PaymentSettingsSection() {
   const { addToast } = useToast();
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
 
-  const results = paymentMethods?.results ?? [];
-  const totalCount = paymentMethods?.count ?? 0;
+  const results = paymentMethods ?? [];
+  const totalCount = results.length;
 
   useEffect(() => {
     fetchPaymentMethods();

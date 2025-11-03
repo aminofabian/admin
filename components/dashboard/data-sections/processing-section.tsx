@@ -343,6 +343,26 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
     </TableCell>
   );
 
+  const prevWinningBalanceCell = (
+    <TableCell>
+      <div className="text-sm text-muted-foreground">
+        {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+          ? formatCurrency(transaction.previous_winning_balance)
+          : '—'}
+      </div>
+    </TableCell>
+  );
+
+  const newWinningBalanceCell = (
+    <TableCell>
+      <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+        {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+          ? formatCurrency(transaction.new_winning_balance)
+          : '—'}
+      </div>
+    </TableCell>
+  );
+
   const statusCell = (
     <TableCell>
       <Badge variant={statusVariant} className="capitalize">
@@ -375,6 +395,8 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
       {amountCell}
       {prevBalanceCell}
       {newBalanceCell}
+      {prevWinningBalanceCell}
+      {newWinningBalanceCell}
       {statusCell}
       {paymentCell}
       {datesCell}
@@ -820,9 +842,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     queues,
     isLoading: queuesLoading,
     error: queuesError,
-    currentPage: queuesPage,
-    pageSize: queuesPageSize,
-    setPage: setQueuesPage,
     setFilter: setQueuesFilter,
     handleGameAction,
     actionLoading,
@@ -1011,54 +1030,40 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   };
 
   const renderQueues = () => {
-    if (!queues?.results || queues.results.length === 0) {
+    // Defensive programming: ensure queues is actually an array
+    if (!queues || !Array.isArray(queues) || queues.length === 0) {
       return null;
     }
 
-    const totalCount = queues.count ?? 0;
-
     return (
-      <>
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Activity</TableHead>
-                  <TableHead>Game</TableHead>
-                  <TableHead>Game Username</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Dates</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {queues.results.map((queue: TransactionQueue) => (
-                  <ProcessingGameActivityRow
-                    key={queue.id}
-                    queue={queue}
-                    actionLoading={actionLoading}
-                    onQuickAction={handleQuickAction}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          {totalCount > queuesPageSize && (
-            <div className="border-t border-border px-4 py-4">
-              <Pagination
-                currentPage={queuesPage}
-                totalPages={Math.ceil(totalCount / queuesPageSize)}
-                hasNext={!!queues.next}
-                hasPrevious={!!queues.previous}
-                onPageChange={setQueuesPage}
-              />
-            </div>
-          )}
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Activity</TableHead>
+                <TableHead>Game</TableHead>
+                <TableHead>Game Username</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Dates</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {queues.map((queue: TransactionQueue) => (
+                <ProcessingGameActivityRow
+                  key={queue.id}
+                  queue={queue}
+                  actionLoading={actionLoading}
+                  onQuickAction={handleQuickAction}
+                />
+              ))}
+            </TableBody>
+          </Table>
         </div>
-      </>
+      </div>
     );
   };
 
@@ -1176,8 +1181,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   <TableHead>User</TableHead>
                   <TableHead>Transaction</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Previous Balance</TableHead>
+                  <TableHead>Prev Balance</TableHead>
                   <TableHead>New Balance</TableHead>
+                  <TableHead>Prev Winning</TableHead>
+                  <TableHead>New Winning</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Dates</TableHead>
@@ -1254,7 +1261,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   }
 
   const isGameInitialLoading = queuesLoading && !queues;
-  const gameResults = queues?.results ?? [];
+  const gameResults = queues ?? [];
   const isGameEmpty = gameResults.length === 0;
   const gameEmptyState = (
     <EmptyState

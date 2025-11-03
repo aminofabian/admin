@@ -39,6 +39,12 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     return formatCurrency(String(activity.data?.balance ?? '0'));
   }, [activity.data?.balance]);
 
+  const totalAmountSent = useMemo(() => {
+    const dataAmount = activity.data?.amount;
+    if (dataAmount === undefined || dataAmount === null) return null;
+    return formatCurrency(String(dataAmount));
+  }, [activity.data?.amount]);
+
   // Website user (actual user on the platform)
   const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
@@ -99,6 +105,33 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
           </div>
         </div>
 
+        {/* Amount Breakdown for Recharge */}
+        {activity.type === 'recharge_game' && formattedBonus && totalAmountSent && (
+          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
+            <h3 className="text-sm font-bold text-blue-900 dark:text-blue-100 uppercase tracking-wide mb-3">
+              Recharge Breakdown
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-blue-700 dark:text-blue-300">Recharge Amount:</span>
+                <span className="font-semibold text-blue-900 dark:text-blue-100">{formattedAmount}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-green-700 dark:text-green-300">Bonus Amount:</span>
+                <span className="font-semibold text-green-600 dark:text-green-400">+{formattedBonus}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-blue-200 dark:border-blue-800">
+                <span className="text-blue-700 dark:text-blue-300">Total Sent to Game:</span>
+                <span className="font-bold text-blue-900 dark:text-blue-100">{totalAmountSent}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-blue-200 dark:border-blue-800">
+                <span className="text-blue-700 dark:text-blue-300">New Game Balance:</span>
+                <span className="font-bold text-green-600 dark:text-green-400">{formattedBalance}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Activity ID */}
         <div className="space-y-1">
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</label>
@@ -107,16 +140,19 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
           </div>
         </div>
 
-        {/* Game Balance Section */}
-        <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
+        {/* Game Information */}
+        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Game</label>
             <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{activity.game}</div>
           </div>
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Game Balance</label>
-            <div className="text-lg font-bold text-green-900 dark:text-green-100">{formattedBalance}</div>
-          </div>
+          {/* Show balance only if not in recharge breakdown */}
+          {!(activity.type === 'recharge_game' && formattedBonus && totalAmountSent) && (
+            <div className="space-y-1 mt-3">
+              <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Game Balance</label>
+              <div className="text-lg font-bold text-green-900 dark:text-green-100">{formattedBalance}</div>
+            </div>
+          )}
         </div>
 
         {/* User Information */}

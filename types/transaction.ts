@@ -19,6 +19,8 @@ export interface Transaction {
   journal_entry: JournalEntry;
   previous_balance: string;
   new_balance: string;
+  previous_winning_balance: string;
+  new_winning_balance: string;
   unique_id: string;
   role: string;
   action: string;
@@ -62,8 +64,6 @@ export interface QueueFilters {
   type?: 'processing' | 'history' | QueueType;
   status?: TransactionStatus;
   user_id?: number;
-  page?: number;
-  page_size?: number;
   [key: string]: string | number | boolean | undefined;
 }
 

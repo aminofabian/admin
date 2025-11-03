@@ -10,7 +10,7 @@ import {
   DashboardStatCard,
   DashboardStatGrid,
 } from '@/components/dashboard/layout';
-import { Badge, Button, Drawer, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
+import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { EmptyState, GameForm, StoreBalanceModal } from '@/components/features';
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
@@ -34,14 +34,11 @@ export function GamesSection() {
     games: data,
     isLoading,
     error,
-    currentPage,
     searchTerm,
-    pageSize,
     balanceCheckLoading,
     fetchGames,
     updateGame,
     checkStoreBalance,
-    setPage,
     setSearchTerm,
   } = useGamesStore();
 
@@ -57,9 +54,8 @@ export function GamesSection() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   const canManageGames = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
-  const rawGames = data?.results;
-  const games = useMemo<Game[]>(() => rawGames ?? [], [rawGames]);
-  const totalCount = data?.count ?? 0;
+  const games = useMemo<Game[]>(() => data ?? [], [data]);
+  const totalCount = games.length;
   const stats = useMemo(() => buildGameStats(games, totalCount), [games, totalCount]);
 
   useEffect(() => {
@@ -122,10 +118,6 @@ export function GamesSection() {
 
       <GamesTable
         games={games}
-        currentPage={currentPage}
-        totalCount={data?.count ?? 0}
-        pageSize={pageSize}
-        onPageChange={setPage}
         onEditGame={(game) => {
           setEditingGame(game);
           setSubmitError('');
@@ -209,7 +201,7 @@ function buildGameStats(games: Game[], total: number): GameStat[] {
     {
       title: 'Total Games',
       value: total.toLocaleString(),
-      helper: `${games.length} on page`,
+      helper: `${games.length} games in catalog`,
       icon: (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6-3 6 3m-12 0v6l6 3m0-6l6-3m-6 3v6" />
@@ -254,20 +246,12 @@ function buildGameStats(games: Game[], total: number): GameStat[] {
 
 interface GamesTableProps {
   games: Game[];
-  currentPage: number;
-  totalCount: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
   onEditGame: (game: Game) => void;
   onCheckBalance: (game: Game) => Promise<void>;
 }
 
 function GamesTable({
   games,
-  currentPage,
-  totalCount,
-  pageSize,
-  onPageChange,
   onEditGame,
   onCheckBalance,
 }: GamesTableProps) {
@@ -324,17 +308,6 @@ function GamesTable({
           </TableBody>
         </Table>
       </div>
-      {totalCount > pageSize && (
-        <div className="border-t border-border px-4 py-4">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(totalCount / pageSize)}
-            onPageChange={onPageChange}
-            hasNext={currentPage * pageSize < totalCount}
-            hasPrevious={currentPage > 1}
-          />
-        </div>
-      )}
     </div>
   );
 }

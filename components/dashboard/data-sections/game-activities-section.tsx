@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { DashboardSectionHeader } from '@/components/dashboard/layout/dashboard-section-header';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
-import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
+import { Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
@@ -45,10 +45,8 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const queues = useTransactionQueuesStore((state) => state.queues);
   const isLoading = useTransactionQueuesStore((state) => state.isLoading);
   const error = useTransactionQueuesStore((state) => state.error);
-  const currentPage = useTransactionQueuesStore((state) => state.currentPage);
   const queueFilter = useTransactionQueuesStore((state) => state.filter);
   const advancedFilters = useTransactionQueuesStore((state) => state.advancedFilters);
-  const setPage = useTransactionQueuesStore((state) => state.setPage);
   const setFilter = useTransactionQueuesStore((state) => state.setFilter);
   const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
   const setAdvancedFilters = useTransactionQueuesStore((state) => state.setAdvancedFilters);
@@ -67,7 +65,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   useEffect(() => {
     fetchQueues();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, queueFilter, advancedFilters]);
+  }, [queueFilter, advancedFilters]);
 
   // Sync filters with advanced filters
   useEffect(() => {
@@ -109,10 +107,9 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     setFilter(value);
   }, [setFilter]);
 
-  const results = useMemo(() => queues?.results ?? [], [queues?.results]);
+  const results = useMemo(() => queues ?? [], [queues]);
   const isInitialLoading = useMemo(() => isLoading && !queues, [isLoading, queues]);
   const isEmpty = useMemo(() => !results.length, [results.length]);
-  const totalCount = useMemo(() => queues?.count ?? 0, [queues?.count]);
 
   return (
     <DashboardSectionContainer
@@ -133,10 +130,6 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
         areFiltersOpen={areFiltersOpen}
         onToggleFilters={handleToggleFilters}
         queues={results}
-        currentPage={currentPage}
-        totalCount={totalCount}
-        onPageChange={setPage}
-        pageSize={10}
       />
     </DashboardSectionContainer>
   );
@@ -152,10 +145,6 @@ interface HistoryGameActivitiesLayoutProps {
   areFiltersOpen: boolean;
   onToggleFilters: () => void;
   queues: TransactionQueue[];
-  currentPage: number;
-  totalCount: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
 }
 
 function HistoryGameActivitiesLayout({
@@ -168,10 +157,6 @@ function HistoryGameActivitiesLayout({
   areFiltersOpen,
   onToggleFilters,
   queues,
-  currentPage,
-  totalCount,
-  pageSize,
-  onPageChange,
 }: HistoryGameActivitiesLayoutProps) {
   return (
     <>
@@ -190,32 +175,16 @@ function HistoryGameActivitiesLayout({
         isOpen={areFiltersOpen}
         onToggle={onToggleFilters}
       />
-      <HistoryGameActivitiesTable
-        queues={queues}
-        currentPage={currentPage}
-        totalCount={totalCount}
-        onPageChange={onPageChange}
-        pageSize={pageSize}
-      />
+      <HistoryGameActivitiesTable queues={queues} />
     </>
   );
 }
 
 interface HistoryGameActivitiesTableProps {
   queues: TransactionQueue[];
-  currentPage: number;
-  totalCount: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
 }
 
-function HistoryGameActivitiesTable({
-  queues,
-  currentPage,
-  totalCount,
-  pageSize,
-  onPageChange,
-}: HistoryGameActivitiesTableProps) {
+function HistoryGameActivitiesTable({ queues }: HistoryGameActivitiesTableProps) {
   const [selectedActivity, setSelectedActivity] = useState<TransactionQueue | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
@@ -228,10 +197,6 @@ function HistoryGameActivitiesTable({
     setIsViewModalOpen(false);
     setSelectedActivity(null);
   }, []);
-
-  const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
-  const hasNext = useMemo(() => currentPage * pageSize < totalCount, [currentPage, pageSize, totalCount]);
-  const hasPrevious = useMemo(() => currentPage > 1, [currentPage]);
 
   if (!queues.length) {
     return null;
@@ -248,6 +213,7 @@ function HistoryGameActivitiesTable({
                 <TableHead>Activity</TableHead>
                 <TableHead>Game</TableHead>
                 <TableHead>Game Username</TableHead>
+                <TableHead>Operator</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>New Game Balance</TableHead>
                 <TableHead>Status</TableHead>
@@ -262,17 +228,6 @@ function HistoryGameActivitiesTable({
             </TableBody>
           </Table>
         </div>
-        {totalCount > pageSize && (
-          <div className="border-t border-border px-4 py-4">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={onPageChange}
-              hasNext={hasNext}
-              hasPrevious={hasPrevious}
-            />
-          </div>
-        )}
       </div>
 
       {selectedActivity && (
@@ -418,6 +373,11 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         )}
       </TableCell>
       <TableCell>
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {activity.operator || '—'}
+        </div>
+      </TableCell>
+      <TableCell>
         <div className="font-semibold">
           {formattedAmount}
           {formattedBonus && (
@@ -475,6 +435,9 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
     prevProps.activity.id === nextProps.activity.id &&
     prevProps.activity.status === nextProps.activity.status &&
     prevProps.activity.amount === nextProps.activity.amount &&
+    prevProps.activity.bonus_amount === nextProps.activity.bonus_amount &&
+    prevProps.activity.operator === nextProps.activity.operator &&
+    prevProps.activity.user_email === nextProps.activity.user_email &&
     prevProps.activity.updated_at === nextProps.activity.updated_at &&
     prevProps.onView === nextProps.onView
   );
