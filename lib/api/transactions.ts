@@ -10,18 +10,57 @@ import type {
   GameActionResponse
 } from '@/types';
 
+/**
+ * Normalizes transaction list response to ensure it matches PaginatedResponse format.
+ * Backend sometimes returns plain arrays instead of paginated responses.
+ */
+async function normalizePaginatedResponse<T>(
+  promise: Promise<PaginatedResponse<T> | T[]>
+): Promise<PaginatedResponse<T>> {
+  const response = await promise;
+  
+  // If response is already paginated (has 'results' property), return as-is
+  if (response && typeof response === 'object' && 'results' in response) {
+    return response as PaginatedResponse<T>;
+  }
+  
+  // If response is a plain array, wrap it in paginated structure
+  if (Array.isArray(response)) {
+    console.warn('⚠️ Backend returned plain array instead of paginated response. Normalizing...');
+    return {
+      count: response.length,
+      next: null,
+      previous: null,
+      results: response,
+    };
+  }
+  
+  // Fallback for unexpected response format
+  console.error('❌ Unexpected response format:', response);
+  return {
+    count: 0,
+    next: null,
+    previous: null,
+    results: [],
+  };
+}
+
 export const transactionsApi = {
-  list: (filters?: TransactionFilters) => 
-    apiClient.get<PaginatedResponse<Transaction>>(
+  list: async (filters?: TransactionFilters) => {
+    const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
       API_ENDPOINTS.TRANSACTIONS.LIST, 
       { params: filters }
-    ),
+    );
+    return normalizePaginatedResponse(response);
+  },
 
-  queues: (filters?: QueueFilters) => 
-    apiClient.get<PaginatedResponse<TransactionQueue>>(
+  queues: async (filters?: QueueFilters) => {
+    const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
       API_ENDPOINTS.TRANSACTIONS.QUEUES, 
       { params: filters }
-    ),
+    );
+    return normalizePaginatedResponse(response);
+  },
 
   updateStatus: (id: string, payload: { status: string }) =>
     apiClient.patch<Transaction>(

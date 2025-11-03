@@ -855,6 +855,21 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   const transactionCount = transactions?.count ?? 0;
   const transactionStats = useMemo(() => buildProcessingTransactionStats(transactionResults, transactionCount), [transactionResults, transactionCount]);
 
+  // Debug logging
+  useEffect(() => {
+    if (isTransactionsView) {
+      console.log('🔍 Component state:', {
+        viewType,
+        transactionsLoading,
+        hasTransactions: !!transactions,
+        transactionResultsLength: transactionResults.length,
+        transactionCount,
+        isEmpty: transactionResults.length === 0,
+        rawTransactions: transactions,
+      });
+    }
+  }, [isTransactionsView, viewType, transactionsLoading, transactions, transactionResults, transactionCount]);
+
   useEffect(() => {
     if (viewType === 'purchases') {
       setTransactionsFilter('pending-purchases');
@@ -1172,6 +1187,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             {metadata.hint}
           </p>
         </DashboardActionBar>
+        {/* Desktop Table View */}
         {transactionResults.length > 0 && (
           <div className="hidden lg:block overflow-hidden rounded-lg border border-border bg-card">
             <div className="overflow-x-auto">
@@ -1235,6 +1251,124 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             </div>
           </div>
         )}
+
+        {/* Mobile Card View */}
+        {transactionResults.length > 0 && (
+          <div className="lg:hidden space-y-4">
+            {transactionResults.map((transaction) => (
+              <div
+                key={transaction.id}
+                className="bg-card rounded-lg border border-border p-4 space-y-3"
+              >
+                {/* User Info */}
+                <div className="flex items-center gap-3 pb-3 border-b border-border">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+                    {transaction.user_username?.charAt(0).toUpperCase() ?? '?'}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{transaction.user_username ?? '—'}</div>
+                    <div className="text-xs text-muted-foreground">{transaction.user_email ?? '—'}</div>
+                  </div>
+                  <Badge variant={transaction.type === 'purchase' ? 'success' : 'danger'} className="text-xs">
+                    {transaction.type?.toUpperCase() ?? '—'}
+                  </Badge>
+                </div>
+
+                {/* Amount and Balance */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Amount</div>
+                    <div className={`font-semibold ${transaction.type === 'purchase' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {formatCurrency(transaction.amount || '0')}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Status</div>
+                    <Badge variant={getStatusVariant(transaction.status)}>
+                      {transaction.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Previous Balance</div>
+                    <div className="font-medium">{formatCurrency(transaction.previous_balance || '0')}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">New Balance</div>
+                    <div className="font-semibold">{formatCurrency(transaction.new_balance || '0')}</div>
+                  </div>
+                </div>
+
+                {/* Payment Method */}
+                <div className="text-sm">
+                  <div className="text-xs text-muted-foreground mb-1">Payment Method</div>
+                  <div className="font-medium">{transaction.payment_method ?? '—'}</div>
+                </div>
+
+                {/* Date */}
+                <div className="text-xs text-muted-foreground">
+                  {formatDate(transaction.created)}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2 border-t border-border">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleViewTransaction(transaction)}
+                    className="flex-1"
+                  >
+                    View
+                  </Button>
+                  {transaction.status === 'pending' && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={async () => {
+                          try {
+                            await handleTransactionAction(
+                              transaction.id,
+                              'completed',
+                              transaction.id,
+                              transaction.status
+                            );
+                          } catch (error) {
+                            console.error('Error in onComplete handler:', error);
+                          }
+                        }}
+                        disabled={pendingTransactionId === transaction.id}
+                        className="flex-1"
+                      >
+                        Complete
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={async () => {
+                          try {
+                            await handleTransactionAction(
+                              transaction.id,
+                              'cancelled',
+                              transaction.id,
+                              transaction.status
+                            );
+                          } catch (error) {
+                            console.error('Error in onCancel handler:', error);
+                          }
+                        }}
+                        disabled={pendingTransactionId === transaction.id}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {transactionCount > transactionsPageSize && (
           <div className="border-t border-border px-4 py-4">
             <Pagination

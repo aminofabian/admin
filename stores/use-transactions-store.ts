@@ -94,6 +94,14 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
       const data = await transactionsApi.list(filters);
       
+      console.log('📊 Store received normalized data:', {
+        count: data.count,
+        resultsLength: data.results?.length ?? 0,
+        hasResults: !!data.results,
+        isArray: Array.isArray(data.results),
+        firstItem: data.results?.[0],
+      });
+      
       set({ 
         transactions: data, 
         isLoading: false,
