@@ -121,7 +121,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       return { balance: false, password: true, username: true };
     }
     // For future types like change_password_game
-    if (queue.type.includes('password')) {
+    if ((queue.type as string).includes('password')) {
       return { balance: false, password: true, username: false };
     }
     return { balance: false, password: false, username: false };
