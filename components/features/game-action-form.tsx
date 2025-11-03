@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 import type { TransactionQueue, GameActionType } from '@/types';
 
 const mapTypeToLabel = (type: string): string => {
@@ -31,6 +32,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
   const [newUsername, setNewUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCompleteFields, setShowCompleteFields] = useState(false);
+  const [pendingAction, setPendingAction] = useState<GameActionType | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const gameUsername = useMemo(() => {
     if (!queue) return null;
@@ -50,16 +53,31 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return null;
   }
 
-  const handleActionSelect = async (selectedAction: GameActionType) => {
+  const handleActionSelect = (selectedAction: GameActionType) => {
     setActionType(selectedAction);
     
     if (selectedAction === 'complete') {
-      // Show optional fields for complete action
+      // Show form fields for complete action
       setShowCompleteFields(true);
     } else {
-      // Execute immediately for retry and cancel
-      await executeAction(selectedAction);
+      // Show confirmation for retry and cancel
+      setPendingAction(selectedAction);
+      setShowConfirmation(true);
     }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!pendingAction) return;
+    
+    setShowConfirmation(false);
+    await executeAction(pendingAction);
+    setPendingAction(null);
+  };
+
+  const handleCancelConfirmation = () => {
+    setShowConfirmation(false);
+    setPendingAction(null);
+    setActionType('');
   };
 
   const executeAction = async (action: GameActionType, password?: string, balance?: string, username?: string) => {
@@ -379,6 +397,23 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           Close
         </Button>
       </div>
+
+      {/* Confirmation Modal for Retry/Cancel */}
+      <ConfirmModal
+        isOpen={showConfirmation}
+        onClose={handleCancelConfirmation}
+        onConfirm={handleConfirmAction}
+        title={pendingAction === 'retry' ? 'Confirm Retry' : 'Confirm Cancellation'}
+        description={
+          pendingAction === 'retry'
+            ? `Are you sure you want to retry this ${mapTypeToLabel(queue.type).toLowerCase()} operation for ${queue.user_username || `User ${queue.user_id}`}? This will re-queue the task for processing.`
+            : `Are you sure you want to cancel this ${mapTypeToLabel(queue.type).toLowerCase()} operation for ${queue.user_username || `User ${queue.user_id}`}? This action will mark the transaction as cancelled and may trigger refunds.`
+        }
+        confirmText={pendingAction === 'retry' ? 'Yes, Retry' : 'Yes, Cancel'}
+        cancelText="No, Go Back"
+        variant={pendingAction === 'retry' ? 'info' : 'danger'}
+        isLoading={isSubmitting}
+      />
     </div>
   );
 }
