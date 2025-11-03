@@ -134,11 +134,17 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
         {/* Payment Information */}
         <div className="space-y-3">
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Payment</h3>
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-muted-foreground">Payment Method</label>
-            <Badge variant="info" className="text-xs">
-              {paymentMethod}
-            </Badge>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Payment Method</label>
+              <Badge variant="info" className="text-xs">
+                {paymentMethod}
+              </Badge>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Operator</label>
+              <div className="text-sm text-foreground">{transaction.operator || '—'}</div>
+            </div>
           </div>
           {/* View Invoice Button for Crypto Payments */}
           {isCryptoPayment && invoiceUrl && (

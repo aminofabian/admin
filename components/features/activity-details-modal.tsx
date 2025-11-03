@@ -122,36 +122,36 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
         {/* User Information */}
         <div className="space-y-3">
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">User Information</h3>
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-muted-foreground">Username</label>
-            <div className="text-sm font-semibold text-foreground">
-              {websiteUsername || `User ${activity.user_id}`}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Username</label>
+              <div className="text-sm font-semibold text-foreground">
+                {websiteUsername || `User ${activity.user_id}`}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Email</label>
+              <div className="text-sm text-foreground">{activity.user_email || '—'}</div>
             </div>
           </div>
         </div>
 
-        {/* Game Username */}
-        {hasData && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Game Username</h3>
+        {/* Game Information */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Game Information</h3>
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">Game Username</label>
-              {gameUsername ? (
-                <div className="text-sm font-semibold text-foreground">
-                  {gameUsername}
-                </div>
-              ) : activity.status === 'cancelled' ? (
-                <Badge variant="default" className="text-xs">
-                  Cancelled
-                </Badge>
-              ) : (
-                <div className="text-sm font-semibold text-foreground">
-                  —
-                </div>
-              )}
+              <div className="text-sm font-semibold text-foreground">
+                {gameUsername || '—'}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-muted-foreground">Operator</label>
+              <div className="text-sm text-foreground">{activity.operator || '—'}</div>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Timestamps */}
         <div className="space-y-3">
