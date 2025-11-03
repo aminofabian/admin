@@ -428,6 +428,208 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
   );
 }
 
+const mapTypeToLabel = (type: string): string => {
+  if (type === 'recharge_game') return 'Recharge';
+  if (type === 'redeem_game') return 'Redeem';
+  if (type === 'add_user_game') return 'Add User';
+  return type;
+};
+
+const mapTypeToVariant = (type: string): 'success' | 'danger' | 'info' | 'default' => {
+  if (type === 'recharge_game') return 'success';
+  if (type === 'redeem_game') return 'danger';
+  return 'info';
+};
+
+const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'info' => {
+  switch (status.toLowerCase()) {
+    case 'completed': return 'success';
+    case 'pending': return 'warning';
+    case 'failed': case 'cancelled': return 'danger';
+    default: return 'info';
+  }
+};
+
+interface ProcessingGameActivityRowProps {
+  queue: TransactionQueue;
+  actionLoading: boolean;
+  onQuickAction: (queue: TransactionQueue, action: string) => void;
+}
+
+function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: ProcessingGameActivityRowProps) {
+  const statusVariant = getStatusVariant(queue.status);
+  const typeLabel = mapTypeToLabel(queue.type);
+  const typeVariant = mapTypeToVariant(queue.type);
+  const formattedAmount = formatCurrency(queue.amount || '0');
+  
+  const bonusAmount = useMemo(() => {
+    const bonus = queue.bonus_amount || queue.data?.bonus_amount;
+    if (!bonus) return null;
+    const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
+      ? parseFloat(String(bonus)) 
+      : 0;
+    return bonusValue > 0 ? bonus : null;
+  }, [queue.bonus_amount, queue.data?.bonus_amount]);
+
+  const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+
+  // Website user (actual user on the platform)
+  const websiteUsername = typeof queue.user_username === 'string' && queue.user_username.trim()
+    ? queue.user_username.trim()
+    : null;
+
+  const websiteEmail = typeof queue.user_email === 'string' && queue.user_email.trim()
+    ? queue.user_email.trim()
+    : null;
+
+  // Game username (username used in the game)
+  const gameUsername = (() => {
+    // 1. Top-level game_username field
+    if (typeof queue.game_username === 'string' && queue.game_username.trim()) {
+      return queue.game_username.trim();
+    }
+    // 2. Username in data object (for completed transactions)
+    if (queue.data && typeof queue.data === 'object' && queue.data !== null) {
+      const dataUsername = queue.data.username;
+      if (typeof dataUsername === 'string' && dataUsername.trim()) {
+        return dataUsername.trim();
+      }
+    }
+    return null;
+  })();
+
+  const userInitial = websiteUsername
+    ? websiteUsername.charAt(0).toUpperCase()
+    : queue.user_id
+      ? String(queue.user_id).charAt(0)
+      : '—';
+
+  const formattedCreatedAt = formatDate(queue.created_at);
+  const formattedUpdatedAt = formatDate(queue.updated_at);
+  const showUpdatedAt = queue.updated_at !== queue.created_at;
+
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+            {userInitial}
+          </div>
+          <div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">
+              {websiteUsername || `User ${queue.user_id}`}
+            </div>
+            {websiteEmail && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {websiteEmail}
+              </div>
+            )}
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant={typeVariant} className="capitalize">
+          {typeLabel}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="font-medium">{queue.game}</div>
+      </TableCell>
+      <TableCell>
+        {gameUsername ? (
+          <div className="font-medium text-gray-900 dark:text-gray-100">
+            {gameUsername}
+          </div>
+        ) : queue.status === 'cancelled' ? (
+          <Badge variant="default" className="text-xs">
+            Cancelled
+          </Badge>
+        ) : (
+          <div className="font-medium text-gray-900 dark:text-gray-100">
+            —
+          </div>
+        )}
+      </TableCell>
+      <TableCell>
+        <div className="font-semibold">
+          {formattedAmount}
+          {formattedBonus && (
+            <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+              +{formattedBonus} bonus
+            </div>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant={statusVariant} className="capitalize">
+          {queue.status}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div>{formattedCreatedAt}</div>
+          {showUpdatedAt && (
+            <div>{formattedUpdatedAt}</div>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {queue.status === 'failed' ? (
+            <>
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={actionLoading}
+                onClick={() => onQuickAction(queue, 'retry')}
+              >
+                Retry
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                disabled={actionLoading}
+                onClick={() => onQuickAction(queue, 'cancel')}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={actionLoading}
+                onClick={() => onQuickAction(queue, 'complete')}
+              >
+                Complete
+              </Button>
+            </>
+          ) : (
+            <select
+              onChange={(e) => {
+                onQuickAction(queue, e.target.value);
+                e.target.value = '';
+              }}
+              disabled={actionLoading}
+              className="px-3 py-1.5 text-sm font-medium border-2 rounded-lg transition-all cursor-pointer
+                bg-white dark:bg-gray-800 
+                border-gray-300 dark:border-gray-600 
+                text-gray-900 dark:text-gray-100
+                hover:border-blue-500 dark:hover:border-blue-400
+                focus:border-blue-500 dark:focus:border-blue-400 
+                focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20
+                disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">⚡ Action</option>
+              <option value="retry" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">🔄 Retry</option>
+              <option value="cancel" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">❌ Cancel</option>
+              <option value="complete" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">✅ Complete</option>
+            </select>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 function buildProcessingTransactionStats(transactions: Transaction[], totalCount: number): ProcessingStat[] {
   const queueSize = totalCount || transactions.length;
 
@@ -672,15 +874,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     }
   };
 
-  const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'info' => {
-    switch (status.toLowerCase()) {
-      case 'completed': return 'success';
-      case 'pending': return 'warning';
-      case 'failed': case 'cancelled': return 'danger';
-      default: return 'info';
-    }
-  };
-
   const handleViewTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setIsViewModalOpen(true);
@@ -743,102 +936,45 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
     return (
       <>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Game</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>User ID</TableHead>
-              <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {queues.results.map((queue: TransactionQueue) => (
-              <TableRow key={queue.id}>
-                <TableCell>{queue.id}</TableCell>
-                <TableCell className="capitalize">{queue.type.replace(/_/g, ' ')}</TableCell>
-                <TableCell>
-                  <Badge variant={getStatusVariant(queue.status)}>
-                    {queue.status.toUpperCase()}
-                  </Badge>
-                </TableCell>
-                <TableCell>{queue.game}</TableCell>
-                <TableCell>{formatCurrency(queue.amount || '0')}</TableCell>
-                <TableCell>{queue.user_id}</TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {queue.status === 'failed' ? (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          disabled={actionLoading}
-                          onClick={() => handleQuickAction(queue, 'retry')}
-                        >
-                          Retry
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          disabled={actionLoading}
-                          onClick={() => handleQuickAction(queue, 'cancel')}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          disabled={actionLoading}
-                          onClick={() => handleQuickAction(queue, 'complete')}
-                        >
-                          Complete
-                        </Button>
-                      </>
-                    ) : (
-                      <select
-                        onChange={(e) => {
-                          handleQuickAction(queue, e.target.value);
-                          e.target.value = '';
-                        }}
-                        disabled={actionLoading}
-                        className="px-3 py-1.5 text-sm font-medium border-2 rounded-lg transition-all cursor-pointer
-                          bg-white dark:bg-gray-800 
-                          border-gray-300 dark:border-gray-600 
-                          text-gray-900 dark:text-gray-100
-                          hover:border-blue-500 dark:hover:border-blue-400
-                          focus:border-blue-500 dark:focus:border-blue-400 
-                          focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20
-                          disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">⚡ Action</option>
-                        <option value="retry" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">🔄 Retry</option>
-                        <option value="cancel" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">❌ Cancel</option>
-                        <option value="complete" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">✅ Complete</option>
-                      </select>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {totalCount > queuesPageSize && (
-          <div className="mt-4">
-            <Pagination
-              currentPage={queuesPage}
-              totalPages={Math.ceil(totalCount / queuesPageSize)}
-              hasNext={!!queues.next}
-              hasPrevious={!!queues.previous}
-              onPageChange={setQueuesPage}
-            />
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Activity</TableHead>
+                  <TableHead>Game</TableHead>
+                  <TableHead>Game Username</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Dates</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {queues.results.map((queue: TransactionQueue) => (
+                  <ProcessingGameActivityRow
+                    key={queue.id}
+                    queue={queue}
+                    actionLoading={actionLoading}
+                    onQuickAction={handleQuickAction}
+                  />
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        )}
+          {totalCount > queuesPageSize && (
+            <div className="border-t border-border px-4 py-4">
+              <Pagination
+                currentPage={queuesPage}
+                totalPages={Math.ceil(totalCount / queuesPageSize)}
+                hasNext={!!queues.next}
+                hasPrevious={!!queues.previous}
+                onPageChange={setQueuesPage}
+              />
+            </div>
+          )}
+        </div>
       </>
     );
   };
