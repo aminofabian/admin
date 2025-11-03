@@ -387,11 +387,11 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
       </TableCell>
       <TableCell>
         <div className="space-y-1">
-          <div className="text-xs text-muted-foreground">Credits:</div>
-          <div className="text-sm font-medium text-foreground">{formatCurrency(transaction.previous_balance)}</div>
-          <div className="text-xs text-muted-foreground mt-2">Winnings:</div>
-          <div className="text-sm text-muted-foreground">
-            {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+          <div className="text-sm font-bold text-black dark:text-black">
+            C: {formatCurrency(transaction.previous_balance)}
+          </div>
+          <div className="text-sm font-bold text-black dark:text-black">
+            W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
               ? formatCurrency(transaction.previous_winning_balance)
               : '—'}
           </div>
@@ -399,11 +399,11 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
       </TableCell>
       <TableCell>
         <div className="space-y-1">
-          <div className="text-xs text-muted-foreground">Credits:</div>
-          <div className="text-sm font-semibold text-foreground">{formatCurrency(transaction.new_balance)}</div>
-          <div className="text-xs text-muted-foreground mt-2">Winnings:</div>
-          <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-            {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+          <div className="text-sm font-bold text-black dark:text-black">
+            C: {formatCurrency(transaction.new_balance)}
+          </div>
+          <div className="text-sm font-bold text-black dark:text-black">
+            W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
               ? formatCurrency(transaction.new_winning_balance)
               : '—'}
           </div>
