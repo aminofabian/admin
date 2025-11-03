@@ -231,22 +231,6 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         )}
       </div>
 
-      {/* Action Dropdown */}
-      <div>
-        <label className="block text-sm font-medium mb-2">Select Action</label>
-        <select
-          value={actionType}
-          onChange={(e) => handleActionSelect(e.target.value as GameActionType)}
-          disabled={isSubmitting}
-          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        >
-          <option value="">-- Choose an action --</option>
-          <option value="retry">Retry</option>
-          <option value="cancel">Cancel</option>
-          <option value="complete">Complete</option>
-        </select>
-      </div>
-
       {isSubmitting && (
         <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
           <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -256,6 +240,49 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           Processing...
         </div>
       )}
+
+      {/* Action Buttons */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium mb-2">Select Action</label>
+        <div className="grid grid-cols-3 gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => handleActionSelect('retry')}
+            disabled={isSubmitting}
+            className="flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Retry
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => handleActionSelect('cancel')}
+            disabled={isSubmitting}
+            className="flex items-center justify-center gap-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => handleActionSelect('complete')}
+            disabled={isSubmitting}
+            className="flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Complete
+          </Button>
+        </div>
+      </div>
 
       {/* Close Button */}
       <div className="flex justify-end pt-4 border-t">
