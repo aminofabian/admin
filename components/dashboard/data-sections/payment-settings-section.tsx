@@ -13,6 +13,441 @@ const PAYMENT_ICON: JSX.Element = (
   </svg>
 );
 
+// Get payment method initials
+const getPaymentMethodInitials = (paymentMethodDisplay: string): string => {
+  const words = paymentMethodDisplay.trim().split(/\s+/);
+  
+  if (words.length === 1) {
+    return words[0].substring(0, 2).toUpperCase();
+  } else if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  
+  return 'PM';
+};
+
+// Payment method logos (DEPRECATED - keeping for reference)
+const getPaymentMethodLogo = (methodType: string, paymentMethod: string): string | null => {
+  const lowerType = methodType?.toLowerCase() || '';
+  const lowerMethod = paymentMethod?.toLowerCase() || '';
+
+  // ========== CRYPTOCURRENCIES ==========
+  // Bitcoin & Bitcoin Variants
+  if (lowerMethod.includes('bitcoin') || lowerMethod.includes('btc')) {
+    return 'https://cryptoicons.org/api/icon/btc/200';
+  }
+  if (lowerMethod.includes('bitcoin cash') || lowerMethod.includes('bch')) {
+    return 'https://cryptoicons.org/api/icon/bch/200';
+  }
+  if (lowerMethod.includes('bitcoin sv') || lowerMethod.includes('bsv')) {
+    return 'https://cryptoicons.org/api/icon/bsv/200';
+  }
+  if (lowerMethod.includes('bitcoin gold') || lowerMethod.includes('btg')) {
+    return 'https://cryptoicons.org/api/icon/btg/200';
+  }
+  if (lowerMethod.includes('lightning') || lowerMethod.includes('btc-ln')) {
+    return 'https://cryptoicons.org/api/icon/btc/200';
+  }
+  
+  // Ethereum & ERC-20 Tokens
+  if (lowerMethod.includes('ethereum') || lowerMethod.includes('eth')) {
+    return 'https://cryptoicons.org/api/icon/eth/200';
+  }
+  if (lowerMethod.includes('ethereum classic') || lowerMethod.includes('etc')) {
+    return 'https://cryptoicons.org/api/icon/etc/200';
+  }
+  
+  // Stablecoins
+  if (lowerMethod.includes('usdt') || lowerMethod.includes('tether')) {
+    return 'https://cryptoicons.org/api/icon/usdt/200';
+  }
+  if (lowerMethod.includes('usdc') || lowerMethod.includes('usd coin')) {
+    return 'https://cryptoicons.org/api/icon/usdc/200';
+  }
+  if (lowerMethod.includes('dai')) {
+    return 'https://cryptoicons.org/api/icon/dai/200';
+  }
+  if (lowerMethod.includes('busd') || lowerMethod.includes('binance usd')) {
+    return 'https://cryptoicons.org/api/icon/busd/200';
+  }
+  if (lowerMethod.includes('tusd') || lowerMethod.includes('trueusd')) {
+    return 'https://cryptoicons.org/api/icon/tusd/200';
+  }
+  if (lowerMethod.includes('pax') || lowerMethod.includes('paxos')) {
+    return 'https://cryptoicons.org/api/icon/pax/200';
+  }
+  if (lowerMethod.includes('gusd') || lowerMethod.includes('gemini dollar')) {
+    return 'https://cryptoicons.org/api/icon/gusd/200';
+  }
+  
+  // Major Altcoins
+  if (lowerMethod.includes('litecoin') || lowerMethod.includes('ltc')) {
+    return 'https://cryptoicons.org/api/icon/ltc/200';
+  }
+  if (lowerMethod.includes('ripple') || lowerMethod.includes('xrp')) {
+    return 'https://cryptoicons.org/api/icon/xrp/200';
+  }
+  if (lowerMethod.includes('cardano') || lowerMethod.includes('ada')) {
+    return 'https://cryptoicons.org/api/icon/ada/200';
+  }
+  if (lowerMethod.includes('polkadot') || lowerMethod.includes('dot')) {
+    return 'https://cryptoicons.org/api/icon/dot/200';
+  }
+  if (lowerMethod.includes('solana') || lowerMethod.includes('sol')) {
+    return 'https://cryptoicons.org/api/icon/sol/200';
+  }
+  if (lowerMethod.includes('avalanche') || lowerMethod.includes('avax')) {
+    return 'https://cryptoicons.org/api/icon/avax/200';
+  }
+  if (lowerMethod.includes('polygon') || lowerMethod.includes('matic')) {
+    return 'https://cryptoicons.org/api/icon/matic/200';
+  }
+  if (lowerMethod.includes('chainlink') || lowerMethod.includes('link')) {
+    return 'https://cryptoicons.org/api/icon/link/200';
+  }
+  if (lowerMethod.includes('uniswap') || lowerMethod.includes('uni')) {
+    return 'https://cryptoicons.org/api/icon/uni/200';
+  }
+  if (lowerMethod.includes('cosmos') || lowerMethod.includes('atom')) {
+    return 'https://cryptoicons.org/api/icon/atom/200';
+  }
+  if (lowerMethod.includes('algorand') || lowerMethod.includes('algo')) {
+    return 'https://cryptoicons.org/api/icon/algo/200';
+  }
+  if (lowerMethod.includes('stellar') || lowerMethod.includes('xlm')) {
+    return 'https://cryptoicons.org/api/icon/xlm/200';
+  }
+  if (lowerMethod.includes('vechain') || lowerMethod.includes('vet')) {
+    return 'https://cryptoicons.org/api/icon/vet/200';
+  }
+  if (lowerMethod.includes('filecoin') || lowerMethod.includes('fil')) {
+    return 'https://cryptoicons.org/api/icon/fil/200';
+  }
+  if (lowerMethod.includes('hedera') || lowerMethod.includes('hbar')) {
+    return 'https://cryptoicons.org/api/icon/hbar/200';
+  }
+  if (lowerMethod.includes('internet computer') || lowerMethod.includes('icp')) {
+    return 'https://cryptoicons.org/api/icon/icp/200';
+  }
+  if (lowerMethod.includes('elrond') || lowerMethod.includes('egld')) {
+    return 'https://cryptoicons.org/api/icon/egld/200';
+  }
+  if (lowerMethod.includes('theta')) {
+    return 'https://cryptoicons.org/api/icon/theta/200';
+  }
+  if (lowerMethod.includes('tezos') || lowerMethod.includes('xtz')) {
+    return 'https://cryptoicons.org/api/icon/xtz/200';
+  }
+  if (lowerMethod.includes('eos')) {
+    return 'https://cryptoicons.org/api/icon/eos/200';
+  }
+  if (lowerMethod.includes('aave')) {
+    return 'https://cryptoicons.org/api/icon/aave/200';
+  }
+  if (lowerMethod.includes('monero') || lowerMethod.includes('xmr')) {
+    return 'https://cryptoicons.org/api/icon/xmr/200';
+  }
+  if (lowerMethod.includes('zcash') || lowerMethod.includes('zec')) {
+    return 'https://cryptoicons.org/api/icon/zec/200';
+  }
+  if (lowerMethod.includes('dash')) {
+    return 'https://cryptoicons.org/api/icon/dash/200';
+  }
+  if (lowerMethod.includes('neo')) {
+    return 'https://cryptoicons.org/api/icon/neo/200';
+  }
+  if (lowerMethod.includes('iota') || lowerMethod.includes('miota')) {
+    return 'https://cryptoicons.org/api/icon/iota/200';
+  }
+  if (lowerMethod.includes('maker') || lowerMethod.includes('mkr')) {
+    return 'https://cryptoicons.org/api/icon/mkr/200';
+  }
+  if (lowerMethod.includes('compound') || lowerMethod.includes('comp')) {
+    return 'https://cryptoicons.org/api/icon/comp/200';
+  }
+  
+  // Exchange Tokens
+  if (lowerMethod.includes('binance') || lowerMethod.includes('bnb')) {
+    return 'https://cryptoicons.org/api/icon/bnb/200';
+  }
+  if (lowerMethod.includes('ftx') || lowerMethod.includes('ftt')) {
+    return 'https://cryptoicons.org/api/icon/ftt/200';
+  }
+  if (lowerMethod.includes('crypto.com') || lowerMethod.includes('cro')) {
+    return 'https://cryptoicons.org/api/icon/cro/200';
+  }
+  if (lowerMethod.includes('okb')) {
+    return 'https://cryptoicons.org/api/icon/okb/200';
+  }
+  if (lowerMethod.includes('huobi') || lowerMethod.includes('ht')) {
+    return 'https://cryptoicons.org/api/icon/ht/200';
+  }
+  if (lowerMethod.includes('kucoin') || lowerMethod.includes('kcs')) {
+    return 'https://cryptoicons.org/api/icon/kcs/200';
+  }
+  
+  // Layer 2 & Scaling Solutions
+  if (lowerMethod.includes('arbitrum') || lowerMethod.includes('arb')) {
+    return 'https://cryptoicons.org/api/icon/arb/200';
+  }
+  if (lowerMethod.includes('optimism') || lowerMethod.includes('op')) {
+    return 'https://cryptoicons.org/api/icon/op/200';
+  }
+  
+  // Tron Ecosystem
+  if (lowerMethod.includes('tron') || lowerMethod.includes('trx')) {
+    return 'https://cryptoicons.org/api/icon/trx/200';
+  }
+  
+  // Meme Coins
+  if (lowerMethod.includes('dogecoin') || lowerMethod.includes('doge')) {
+    return 'https://cryptoicons.org/api/icon/doge/200';
+  }
+  if (lowerMethod.includes('shiba') || lowerMethod.includes('shib')) {
+    return 'https://cryptoicons.org/api/icon/shib/200';
+  }
+  if (lowerMethod.includes('floki')) {
+    return 'https://cryptoicons.org/api/icon/floki/200';
+  }
+  if (lowerMethod.includes('pepe')) {
+    return 'https://cryptoicons.org/api/icon/pepe/200';
+  }
+  
+  // DeFi Tokens
+  if (lowerMethod.includes('pancakeswap') || lowerMethod.includes('cake')) {
+    return 'https://cryptoicons.org/api/icon/cake/200';
+  }
+  if (lowerMethod.includes('sushiswap') || lowerMethod.includes('sushi')) {
+    return 'https://cryptoicons.org/api/icon/sushi/200';
+  }
+  if (lowerMethod.includes('curve') || lowerMethod.includes('crv')) {
+    return 'https://cryptoicons.org/api/icon/crv/200';
+  }
+  if (lowerMethod.includes('yearn') || lowerMethod.includes('yfi')) {
+    return 'https://cryptoicons.org/api/icon/yfi/200';
+  }
+  if (lowerMethod.includes('synthetix') || lowerMethod.includes('snx')) {
+    return 'https://cryptoicons.org/api/icon/snx/200';
+  }
+  
+  // Gaming & Metaverse
+  if (lowerMethod.includes('sandbox') || lowerMethod.includes('sand')) {
+    return 'https://cryptoicons.org/api/icon/sand/200';
+  }
+  if (lowerMethod.includes('decentraland') || lowerMethod.includes('mana')) {
+    return 'https://cryptoicons.org/api/icon/mana/200';
+  }
+  if (lowerMethod.includes('axie') || lowerMethod.includes('axs')) {
+    return 'https://cryptoicons.org/api/icon/axs/200';
+  }
+  if (lowerMethod.includes('gala')) {
+    return 'https://cryptoicons.org/api/icon/gala/200';
+  }
+  if (lowerMethod.includes('enjin') || lowerMethod.includes('enj')) {
+    return 'https://cryptoicons.org/api/icon/enj/200';
+  }
+  if (lowerMethod.includes('immutable') || lowerMethod.includes('imx')) {
+    return 'https://cryptoicons.org/api/icon/imx/200';
+  }
+  
+  // Other Popular Cryptos
+  if (lowerMethod.includes('apecoin') || lowerMethod.includes('ape')) {
+    return 'https://cryptoicons.org/api/icon/ape/200';
+  }
+  if (lowerMethod.includes('quant') || lowerMethod.includes('qnt')) {
+    return 'https://cryptoicons.org/api/icon/qnt/200';
+  }
+  if (lowerMethod.includes('fantom') || lowerMethod.includes('ftm')) {
+    return 'https://cryptoicons.org/api/icon/ftm/200';
+  }
+  if (lowerMethod.includes('near')) {
+    return 'https://cryptoicons.org/api/icon/near/200';
+  }
+  if (lowerMethod.includes('flow')) {
+    return 'https://cryptoicons.org/api/icon/flow/200';
+  }
+  if (lowerMethod.includes('aptos') || lowerMethod.includes('apt')) {
+    return 'https://cryptoicons.org/api/icon/apt/200';
+  }
+  if (lowerMethod.includes('sui')) {
+    return 'https://cryptoicons.org/api/icon/sui/200';
+  }
+  if (lowerMethod.includes('injective') || lowerMethod.includes('inj')) {
+    return 'https://cryptoicons.org/api/icon/inj/200';
+  }
+  if (lowerMethod.includes('sei')) {
+    return 'https://cryptoicons.org/api/icon/sei/200';
+  }
+  if (lowerMethod.includes('celestia') || lowerMethod.includes('tia')) {
+    return 'https://cryptoicons.org/api/icon/tia/200';
+  }
+  
+  // Generic Crypto Fallback
+  if (lowerType.includes('crypto')) {
+    return 'https://cryptoicons.org/api/icon/btc/200';
+  }
+
+  // ========== E-WALLETS ==========
+  if (lowerMethod.includes('paypal')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/paypal.svg';
+  }
+  if (lowerMethod.includes('skrill')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/skrill.svg';
+  }
+  if (lowerMethod.includes('neteller')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/neteller.svg';
+  }
+  if (lowerMethod.includes('paysafecard') || lowerMethod.includes('paysafe')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/paysafecard.svg';
+  }
+  if (lowerMethod.includes('venmo')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/venmo.svg';
+  }
+  if (lowerMethod.includes('cashapp') || lowerMethod.includes('cash app')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/cashapp.svg';
+  }
+  if (lowerMethod.includes('applepay') || lowerMethod.includes('apple pay')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/applepay.svg';
+  }
+  if (lowerMethod.includes('googlepay') || lowerMethod.includes('google pay') || lowerMethod.includes('gpay')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/googlepay.svg';
+  }
+  if (lowerMethod.includes('alipay')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/alipay.svg';
+  }
+  if (lowerMethod.includes('wechat') || lowerMethod.includes('wepay')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/wechat.svg';
+  }
+
+  // ========== MOBILE MONEY ==========
+  if (lowerMethod.includes('mpesa') || lowerMethod.includes('m-pesa')) {
+    return 'https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg';
+  }
+  if (lowerMethod.includes('airtel')) {
+    return 'https://upload.wikimedia.org/wikipedia/commons/f/f8/Airtel_Money_Logo.svg';
+  }
+
+  // ========== CREDIT/DEBIT CARDS ==========
+  if (lowerMethod.includes('visa')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/visa.svg';
+  }
+  if (lowerMethod.includes('mastercard') || lowerMethod.includes('master')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/mastercard.svg';
+  }
+  if (lowerMethod.includes('amex') || lowerMethod.includes('americanexpress') || lowerMethod.includes('american express')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/americanexpress.svg';
+  }
+  if (lowerMethod.includes('discover')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/discover.svg';
+  }
+  if (lowerMethod.includes('maestro')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/maestro.svg';
+  }
+  if (lowerMethod.includes('diners') || lowerMethod.includes('dinersclub')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/dinersclub.svg';
+  }
+  if (lowerMethod.includes('jcb')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/jcb.svg';
+  }
+  if (lowerMethod.includes('unionpay')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/unionpay.svg';
+  }
+
+  // ========== BANK TRANSFERS ==========
+  if (lowerMethod.includes('stripe')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/stripe.svg';
+  }
+  if (lowerMethod.includes('wise') || lowerMethod.includes('transferwise')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/wise.svg';
+  }
+  if (lowerMethod.includes('revolut')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/revolut.svg';
+  }
+  if (lowerMethod.includes('payoneer')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/payoneer.svg';
+  }
+  if (lowerMethod.includes('western union') || lowerMethod.includes('westernunion')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/westernunion.svg';
+  }
+  if (lowerMethod.includes('moneygram')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/moneygram.svg';
+  }
+
+  // ========== OTHER PAYMENT METHODS ==========
+  if (lowerMethod.includes('klarna')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/klarna.svg';
+  }
+  if (lowerMethod.includes('afterpay')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/afterpay.svg';
+  }
+  if (lowerMethod.includes('affirm')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/affirm.svg';
+  }
+  if (lowerMethod.includes('square')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/square.svg';
+  }
+  if (lowerMethod.includes('zelle')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/zelle.svg';
+  }
+  if (lowerMethod.includes('paytm')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/paytm.svg';
+  }
+  if (lowerMethod.includes('phonepe')) {
+    return 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/phonepe.svg';
+  }
+
+  return null;
+};
+
+// Payment method icons (fallback)
+const getPaymentMethodIcon = (methodType: string, paymentMethod: string): JSX.Element => {
+  const lowerType = methodType?.toLowerCase() || '';
+  const lowerMethod = paymentMethod?.toLowerCase() || '';
+
+  // Crypto
+  if (lowerType.includes('crypto') || lowerMethod.includes('bitcoin')) {
+    return (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    );
+  }
+
+  // Credit Card
+  if (lowerType.includes('card') || lowerMethod.includes('card') || lowerMethod.includes('credit') || lowerMethod.includes('debit')) {
+    return (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+      </svg>
+    );
+  }
+
+  // Bank/Wire Transfer
+  if (lowerType.includes('bank') || lowerMethod.includes('bank') || lowerMethod.includes('wire') || lowerMethod.includes('transfer')) {
+    return (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+    );
+  }
+
+  // E-wallet/Mobile Money
+  if (lowerType.includes('wallet') || lowerMethod.includes('wallet') || lowerMethod.includes('mobile') || lowerMethod.includes('mpesa') || lowerMethod.includes('paypal') || lowerMethod.includes('skrill') || lowerMethod.includes('neteller') || lowerMethod.includes('paysafecard')) {
+    return (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    );
+  }
+
+  // Default payment icon
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  );
+};
+
 export function PaymentSettingsSection() {
   const paymentMethods = usePaymentMethodsStore((state) => state.paymentMethods);
   const isLoading = usePaymentMethodsStore((state) => state.isLoading);
@@ -100,7 +535,6 @@ export function PaymentSettingsSection() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12 text-center">#</TableHead>
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead className="text-center">Status</TableHead>
@@ -109,17 +543,12 @@ export function PaymentSettingsSection() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedResults.map((method, index) => (
+                  {sortedResults.map((method) => (
                     <TableRow key={method.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <TableCell className="text-center font-medium text-gray-600 dark:text-gray-400">
-                      {index + 1}
-                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${method.is_enabled ? 'bg-green-50 dark:bg-green-950/30' : 'bg-gray-50 dark:bg-gray-950/30'}`}>
-                          <svg className={`w-5 h-5 ${method.is_enabled ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                          </svg>
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0 font-semibold text-xs text-gray-600 dark:text-gray-300">
+                          {getPaymentMethodInitials(method.payment_method_display)}
                         </div>
                         <div>
                           <div className="font-medium text-gray-900 dark:text-gray-100">
@@ -211,22 +640,17 @@ export function PaymentSettingsSection() {
 
           {/* Mobile Card View */}
           <div className="lg:hidden space-y-2">
-            {sortedResults.map((method, index) => (
+            {sortedResults.map((method) => (
               <div
                 key={method.id}
                 className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
               >
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-6">
-                    {/* Left: Number + Icon + Info */}
+                    {/* Left: Icon + Info */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-8 h-8 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0 text-sm font-semibold text-blue-600 dark:text-blue-400">
-                        {index + 1}
-                      </div>
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${method.is_enabled ? 'bg-green-50 dark:bg-green-950/30' : 'bg-gray-50 dark:bg-gray-950/30'}`}>
-                        <svg className={`w-5 h-5 ${method.is_enabled ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0 font-semibold text-xs text-gray-600 dark:text-gray-300">
+                        {getPaymentMethodInitials(method.payment_method_display)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-gray-900 dark:text-gray-100 leading-tight truncate">
