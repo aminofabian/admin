@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background - Indigo rounded square -->
+  <rect width="32" height="32" rx="6" fill="#6366f1"/>
+  
+  <!-- Slot machine frame -->
+  <rect x="8" y="10" width="16" height="12" rx="2" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Three reels (vertical lines) -->
+  <line x1="11" y1="12" x2="11" y2="20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="16" y1="12" x2="16" y2="20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="21" y1="12" x2="21" y2="20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  
+  <!-- Handle on the right -->
+  <path d="M24 16 L26 16" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  
+  <!-- Winner indicator dot on top -->
+  <circle cx="16" cy="6" r="1.5" fill="white"/>
+</svg>
+
