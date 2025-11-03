@@ -155,7 +155,7 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
 
         {/* Timestamps */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Timestamps</h3>
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Dates</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">Created</label>
