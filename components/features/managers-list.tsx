@@ -1,0 +1,382 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useManagersStore } from '@/stores';
+import type { Manager, CreateUserRequest, UpdateUserRequest } from '@/types';
+import { LoadingState, ErrorState, EmptyState, ManagerForm } from '@/components/features';
+import { formatDate } from '@/lib/utils/formatters';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer, ConfirmModal, useToast } from '@/components/ui';
+
+export function ManagersList() {
+  const {
+    managers,
+    isLoading,
+    error,
+    currentPage,
+    pageSize,
+    searchTerm: storeSearchTerm,
+    fetchManagers,
+    createManager,
+    updateManager,
+    setPage,
+    setSearchTerm,
+  } = useManagersStore();
+
+  const { addToast } = useToast();
+  const [localSearchTerm, setLocalSearchTerm] = useState(storeSearchTerm);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedManager, setSelectedManager] = useState<Manager | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    manager: Manager | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    manager: null,
+    isLoading: false,
+  });
+
+  useEffect(() => {
+    fetchManagers();
+  }, [fetchManagers]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearchTerm !== storeSearchTerm) {
+        setSearchTerm(localSearchTerm);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [localSearchTerm, storeSearchTerm, setSearchTerm]);
+
+  if (isLoading && !managers) return <LoadingState />;
+  if (error) return <ErrorState message={error} onRetry={fetchManagers} />;
+  if (!managers?.results?.length && !storeSearchTerm) {
+    return <EmptyState title="No managers found" />;
+  }
+
+  const handleCreate = async (formData: CreateUserRequest | UpdateUserRequest) => {
+    try {
+      setIsSubmitting(true);
+      setSubmitError('');
+      
+      await createManager(formData as CreateUserRequest);
+      
+      addToast({
+        type: 'success',
+        title: 'Manager created',
+        description: 'Manager has been created successfully!',
+      });
+      setIsCreateOpen(false);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create manager';
+      setSubmitError(errorMessage);
+      throw err;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdate = async (formData: CreateUserRequest | UpdateUserRequest) => {
+    if (!selectedManager) return;
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError('');
+      
+      await updateManager(selectedManager.id, formData as UpdateUserRequest);
+      
+      addToast({
+        type: 'success',
+        title: 'Manager updated',
+        description: 'Manager has been updated successfully!',
+      });
+      setIsEditOpen(false);
+      setSelectedManager(null);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update manager';
+      setSubmitError(errorMessage);
+      throw err;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleStatus = (manager: Manager) => {
+    setConfirmModal({
+      isOpen: true,
+      manager,
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!confirmModal.manager) return;
+
+    setConfirmModal(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      const actionPast = confirmModal.manager.is_active ? 'deactivated' : 'activated';
+      
+      await updateManager(confirmModal.manager.id, { is_active: !confirmModal.manager.is_active });
+      
+      addToast({
+        type: 'success',
+        title: 'Manager updated',
+        description: `${confirmModal.manager.username} has been ${actionPast} successfully!`,
+      });
+      
+      setConfirmModal({ isOpen: false, manager: null, isLoading: false });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update manager status';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: errorMessage,
+      });
+      setConfirmModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleCancelToggle = () => {
+    setConfirmModal({ isOpen: false, manager: null, isLoading: false });
+  };
+
+  const openEdit = (manager: Manager) => {
+    setSelectedManager(manager);
+    setIsEditOpen(true);
+    setSubmitError('');
+  };
+
+  const closeModals = () => {
+    setIsCreateOpen(false);
+    setIsEditOpen(false);
+    setSelectedManager(null);
+    setSubmitError('');
+  };
+
+  const renderTableRow = (manager: Manager) => (
+    <TableRow key={manager.id}>
+      {/* Username */}
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
+            {manager.username.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">
+              {manager.username}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {manager.role}
+            </div>
+          </div>
+        </div>
+      </TableCell>
+
+      {/* Email */}
+      <TableCell>
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          {manager.email}
+        </div>
+      </TableCell>
+
+      {/* Status */}
+      <TableCell>
+        <Badge variant={manager.is_active ? 'success' : 'danger'}>
+          {manager.is_active ? 'Active' : 'Inactive'}
+        </Badge>
+      </TableCell>
+
+      {/* Dates */}
+      <TableCell>
+        <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+          <div>{formatDate(manager.created)}</div>
+          <div className="text-xs">{formatDate(manager.modified)}</div>
+        </div>
+      </TableCell>
+
+      {/* Actions */}
+      <TableCell>
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => openEdit(manager)}
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+          >
+            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant={manager.is_active ? 'danger' : 'primary'}
+            onClick={() => handleToggleStatus(manager)}
+            className={manager.is_active 
+              ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
+              : 'bg-green-500 hover:bg-green-600 text-white border-green-500'
+            }
+          >
+            {manager.is_active ? (
+              <>
+                <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                Deactivate
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Activate
+              </>
+            )}
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center rounded-lg shadow-sm">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                Managers
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                Manage all manager accounts and permissions
+              </p>
+            </div>
+          </div>
+          <Button 
+            variant="primary" 
+            size="md" 
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Manager
+          </Button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <SearchInput
+          value={localSearchTerm}
+          onChange={(e) => setLocalSearchTerm(e.target.value)}
+          placeholder="Search by username or email..."
+        />
+      </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Username</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Dates</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {managers?.results?.map((manager) => renderTableRow(manager))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Pagination */}
+      {managers && managers.count > pageSize && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-6 py-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(managers.count / pageSize)}
+            hasNext={!!managers.next}
+            hasPrevious={!!managers.previous}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
+
+      {/* Create Drawer */}
+      <Drawer
+        isOpen={isCreateOpen}
+        onClose={closeModals}
+        title="Create New Manager"
+        size="lg"
+      >
+        {submitError && (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{submitError}</span>
+          </div>
+        )}
+        <ManagerForm
+          onSubmit={handleCreate}
+          onCancel={closeModals}
+          isLoading={isSubmitting}
+        />
+      </Drawer>
+
+      {/* Edit Drawer */}
+      <Drawer
+        isOpen={isEditOpen}
+        onClose={closeModals}
+        title="Edit Manager"
+        size="lg"
+      >
+        {submitError && (
+          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span>{submitError}</span>
+          </div>
+        )}
+        {selectedManager && (
+          <ManagerForm
+            manager={selectedManager}
+            onSubmit={handleUpdate}
+            onCancel={closeModals}
+            isLoading={isSubmitting}
+          />
+        )}
+      </Drawer>
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={handleCancelToggle}
+        onConfirm={handleConfirmToggle}
+        title={`${confirmModal.manager?.is_active ? 'Deactivate' : 'Activate'} Manager`}
+        description={`Are you sure you want to ${confirmModal.manager?.is_active ? 'deactivate' : 'activate'} "${confirmModal.manager?.username}"? ${confirmModal.manager?.is_active ? 'They will lose access to the system.' : 'They will regain access to the system.'}`}
+        confirmText={confirmModal.manager?.is_active ? 'Deactivate' : 'Activate'}
+        variant={confirmModal.manager?.is_active ? 'warning' : 'info'}
+        isLoading={confirmModal.isLoading}
+      />
+    </div>
+  );
+}
