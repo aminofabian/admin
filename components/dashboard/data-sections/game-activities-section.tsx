@@ -252,6 +252,18 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
   const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
   const typeVariant = useMemo(() => mapTypeToVariant(activity.type), [activity.type]);
   const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
+  const isRecharge = useMemo(() => activity.type === 'recharge_game', [activity.type]);
+  const isRedeem = useMemo(() => activity.type === 'redeem_game', [activity.type]);
+  const shouldShowDash = useMemo(() => {
+    const amountValue = parseFloat(activity.amount || '0');
+    const isZeroAmount = amountValue === 0 || isNaN(amountValue);
+    const typeStr = String(activity.type);
+    const isNonMonetaryType = typeStr === 'create_game' || 
+                              typeStr === 'reset_password' || 
+                              typeStr === 'change_password' ||
+                              typeStr === 'add_user_game';
+    return isZeroAmount && isNonMonetaryType;
+  }, [activity.amount, activity.type]);
   
   const bonusAmount = useMemo(() => {
     const bonus = activity.bonus_amount || activity.data?.bonus_amount;
@@ -391,9 +403,9 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         )}
       </TableCell>
       <TableCell>
-        <div className="font-semibold">
-          {formattedAmount}
-          {formattedBonus && (
+        <div className={`font-semibold ${shouldShowDash ? '' : isRecharge ? 'text-green-600 dark:text-green-400' : isRedeem ? 'text-red-600 dark:text-red-400' : ''}`}>
+          {shouldShowDash ? '-' : formattedAmount}
+          {!shouldShowDash && formattedBonus && (
             <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
               +{formattedBonus} bonus
             </div>
@@ -460,6 +472,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
   return (
     prevProps.activity.id === nextProps.activity.id &&
     prevProps.activity.status === nextProps.activity.status &&
+    prevProps.activity.type === nextProps.activity.type &&
     prevProps.activity.amount === nextProps.activity.amount &&
     prevProps.activity.bonus_amount === nextProps.activity.bonus_amount &&
     prevProps.activity.operator === nextProps.activity.operator &&
