@@ -182,12 +182,12 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     if (isRechargeOrRedeem) {
       // For recharge and redeem: Type-Status, Game - Game Username, User - Email, New Credits - New Winnings
       return (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {/* Transaction Type and Status */}
-          <div className="flex items-center justify-between pb-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-blue-500 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <div className="flex items-center gap-1.5">
+              <div className="w-6 h-6 rounded bg-blue-500 flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {queue.type === 'recharge_game' ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   ) : (
@@ -196,10 +196,10 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 </svg>
               </div>
               <div>
-                <div className="text-sm font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
+                <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
               </div>
             </div>
-            <div className={`px-2 py-1 rounded text-xs font-semibold ${
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
               queue.status === 'failed' 
                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
                 : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
@@ -209,60 +209,60 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           </div>
 
           {/* Game Information */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Game</div>
-              <div className="text-sm font-medium text-foreground">{queue.game}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Game</div>
+              <div className="text-xs font-medium text-foreground">{queue.game}</div>
             </div>
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Game Username</div>
-              <div className="text-sm font-medium text-foreground">{gameUsername || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Game Username</div>
+              <div className="text-xs font-medium text-foreground">{gameUsername || '—'}</div>
             </div>
           </div>
 
           {/* User Information */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">User</div>
-              <div className="text-sm font-medium text-foreground">{queue.user_username || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">User</div>
+              <div className="text-xs font-medium text-foreground">{queue.user_username || '—'}</div>
             </div>
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Email</div>
-              <div className="text-sm font-medium text-foreground truncate">{queue.user_email || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Email</div>
+              <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
             </div>
           </div>
 
           {/* Balance Information */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
-              <div className="text-xs text-muted-foreground mb-0.5">New Credits</div>
-              <div className="text-base font-bold text-blue-600 dark:text-blue-400">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
+              <div className="text-[10px] text-muted-foreground mb-0.5">New Credits</div>
+              <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
                 {newCreditsBalance || '—'}
               </div>
             </div>
-            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800/30">
-              <div className="text-xs text-muted-foreground mb-0.5">New Winnings</div>
-              <div className="text-base font-bold text-green-600 dark:text-green-400">
+            <div className="p-1.5 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800/30">
+              <div className="text-[10px] text-muted-foreground mb-0.5">New Winnings</div>
+              <div className="text-sm font-bold text-green-600 dark:text-green-400">
                 {newWinningBalance || '—'}
               </div>
             </div>
           </div>
 
           {/* Transaction Amount */}
-          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded">
+          <div className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className="text-xs text-muted-foreground mb-0.5">Amount</div>
-                <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                <div className="text-[10px] text-muted-foreground mb-0.5">Amount</div>
+                <div className="text-base font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(queue.amount || '0')}
                 </div>
               </div>
               {formattedBonus && (
                 <>
-                  <div className="h-8 w-px bg-green-300 dark:bg-green-700 mx-3" />
+                  <div className="h-6 w-px bg-green-300 dark:bg-green-700 mx-2" />
                   <div className="flex-1 text-right">
-                    <div className="text-xs text-muted-foreground mb-0.5">Bonus</div>
-                    <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className="text-[10px] text-muted-foreground mb-0.5">Bonus</div>
+                    <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
                       +{formattedBonus}
                     </div>
                   </div>
@@ -277,20 +277,20 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     if (isResetPassword) {
       // For Reset Password: Type-Status, Game - Game username, User - Email
       return (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {/* Transaction Type and Status */}
-          <div className="flex items-center justify-between pb-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-purple-500 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <div className="flex items-center gap-1.5">
+              <div className="w-6 h-6 rounded bg-purple-500 flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
               </div>
               <div>
-                <div className="text-sm font-semibold text-foreground">Reset Password</div>
+                <div className="text-xs font-semibold text-foreground">Reset Password</div>
               </div>
             </div>
-            <div className={`px-2 py-1 rounded text-xs font-semibold ${
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
               queue.status === 'failed' 
                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
                 : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
@@ -300,26 +300,26 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           </div>
 
           {/* Game Information */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Game</div>
-              <div className="text-sm font-medium text-foreground">{queue.game}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Game</div>
+              <div className="text-xs font-medium text-foreground">{queue.game}</div>
             </div>
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Game Username</div>
-              <div className="text-sm font-medium text-foreground">{gameUsername || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Game Username</div>
+              <div className="text-xs font-medium text-foreground">{gameUsername || '—'}</div>
             </div>
           </div>
 
           {/* User Information */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">User</div>
-              <div className="text-sm font-medium text-foreground">{queue.user_username || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">User</div>
+              <div className="text-xs font-medium text-foreground">{queue.user_username || '—'}</div>
             </div>
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Email</div>
-              <div className="text-sm font-medium text-foreground truncate">{queue.user_email || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Email</div>
+              <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
             </div>
           </div>
         </div>
@@ -328,20 +328,20 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
     // For Create Game
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {/* Transaction Type and Status */}
-        <div className="flex items-center justify-between pb-3 border-b border-border">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-indigo-500 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center">
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
             </div>
             <div>
-              <div className="text-sm font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
+              <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
             </div>
           </div>
-          <div className={`px-2 py-1 rounded text-xs font-semibold ${
+          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
             queue.status === 'failed' 
               ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
               : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
@@ -351,26 +351,26 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         </div>
 
         {/* Game Information */}
-        <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-200 dark:border-indigo-800/30">
-          <div className="text-xs text-muted-foreground mb-0.5">Game</div>
-          <div className="text-sm font-semibold text-foreground">{queue.game}</div>
+        <div className="p-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-200 dark:border-indigo-800/30">
+          <div className="text-[10px] text-muted-foreground mb-0.5">Game</div>
+          <div className="text-xs font-semibold text-foreground">{queue.game}</div>
         </div>
 
         {/* User Information */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col">
-            <div className="text-xs text-muted-foreground mb-0.5">User</div>
-            <div className="text-sm font-medium text-foreground">{queue.user_username || '—'}</div>
+            <div className="text-[10px] text-muted-foreground mb-0.5">User</div>
+            <div className="text-xs font-medium text-foreground">{queue.user_username || '—'}</div>
           </div>
           <div className="flex flex-col">
-            <div className="text-xs text-muted-foreground mb-0.5">Email</div>
-            <div className="text-sm font-medium text-foreground truncate">{queue.user_email || '—'}</div>
+            <div className="text-[10px] text-muted-foreground mb-0.5">Email</div>
+            <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
           </div>
         </div>
         {gameUsername && (
           <div className="pt-2 border-t border-border">
-            <div className="text-xs text-muted-foreground mb-0.5">Game Username</div>
-            <div className="text-sm font-medium text-foreground">{gameUsername}</div>
+            <div className="text-[10px] text-muted-foreground mb-0.5">Game Username</div>
+            <div className="text-xs font-medium text-foreground">{gameUsername}</div>
           </div>
         )}
       </div>
@@ -379,32 +379,32 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   if (showCompleteFields) {
     return (
-      <form onSubmit={handleCompleteSubmit} className="space-y-4">
+      <form onSubmit={handleCompleteSubmit} className="space-y-2">
         {/* Transaction Details */}
         <div className="border border-border rounded-lg">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-border">
+          <div className="px-3 py-2 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-foreground">#{queue.id}</h3>
+                <h3 className="text-xs font-semibold text-foreground">#{queue.id}</h3>
               </div>
-              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+              <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
                 Manual Completion
               </span>
             </div>
           </div>
 
           {/* Content */}
-          <div className="px-4 py-3">
+          <div className="px-3 py-2">
             {renderCompleteFormDetails()}
             
             {queue.remarks && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <div className="p-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded">
-                  <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-200 mb-1">
+              <div className="mt-2 pt-2 border-t border-border">
+                <div className="p-1.5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded">
+                  <h4 className="text-[10px] font-semibold text-amber-900 dark:text-amber-200 mb-0.5">
                     Remarks
                   </h4>
-                  <p className="text-xs text-amber-800 dark:text-amber-300">{queue.remarks}</p>
+                  <p className="text-[10px] text-amber-800 dark:text-amber-300">{queue.remarks}</p>
                 </div>
               </div>
             )}
@@ -412,9 +412,9 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         </div>
 
         {/* Complete Action Fields */}
-        <div className="border border-blue-200 dark:border-blue-800/30 rounded p-3 bg-blue-50 dark:bg-blue-900/10">
-          <div className="mb-3">
-            <h4 className="text-xs font-semibold text-foreground mb-1">
+        <div className="border border-blue-200 dark:border-blue-800/30 rounded p-2 bg-blue-50 dark:bg-blue-900/10">
+          <div className="mb-2">
+            <h4 className="text-[10px] font-semibold text-foreground mb-0.5">
               {queue.type === 'recharge_game' 
                 ? 'Recharge Operation - Required Field'
                 : queue.type === 'redeem_game'
@@ -423,7 +423,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 ? 'Create Game Account - Required Fields'
                 : 'Complete Operation - Required Fields'}
             </h4>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] text-muted-foreground">
               {queue.type === 'recharge_game' || queue.type === 'redeem_game' 
                 ? 'Enter the new game balance after manually completing the operation.'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
@@ -432,7 +432,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             </p>
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-2">
               {requiredFields.username && (
                 <Input
                   label="New Game Username *"
@@ -469,7 +469,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
           <Button
             type="button"
             variant="secondary"
@@ -482,9 +482,9 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             }}
             disabled={isSubmitting}
             size="sm"
-            className="flex items-center gap-1.5"
+            className="flex items-center gap-1 text-xs h-7 px-2"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Back
@@ -493,11 +493,11 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             type="submit"
             disabled={isSubmitting || !isFormValid()}
             size="sm"
-            className="flex items-center gap-1.5"
+            className="flex items-center gap-1 text-xs h-7 px-2"
           >
             {isSubmitting ? (
               <>
-                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -505,7 +505,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               </>
             ) : (
               <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 Complete
@@ -521,12 +521,12 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     if (isRechargeOrRedeem) {
       // For recharge and redeem: Type-Status, Game - Game Username, User - Email, New Credits - New Winnings
       return (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {/* Type - Status */}
-          <div className="flex items-center justify-between pb-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-blue-500 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <div className="flex items-center gap-1.5">
+              <div className="w-6 h-6 rounded bg-blue-500 flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {queue.type === 'recharge_game' ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   ) : (
@@ -535,10 +535,10 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 </svg>
               </div>
               <div>
-                <div className="text-sm font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
+                <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
               </div>
             </div>
-            <div className={`px-2 py-1 rounded text-xs font-semibold ${
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
               queue.status === 'failed' 
                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
                 : queue.status === 'pending'
@@ -550,60 +550,60 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           </div>
 
           {/* Game - Game Username */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Game</div>
-              <div className="text-sm font-medium text-foreground">{queue.game}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Game</div>
+              <div className="text-xs font-medium text-foreground">{queue.game}</div>
             </div>
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Game Username</div>
-              <div className="text-sm font-medium text-foreground">{gameUsername || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Game Username</div>
+              <div className="text-xs font-medium text-foreground">{gameUsername || '—'}</div>
             </div>
           </div>
 
           {/* User - Email */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">User</div>
-              <div className="text-sm font-medium text-foreground">{queue.user_username || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">User</div>
+              <div className="text-xs font-medium text-foreground">{queue.user_username || '—'}</div>
             </div>
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Email</div>
-              <div className="text-sm font-medium text-foreground truncate">{queue.user_email || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Email</div>
+              <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
             </div>
           </div>
 
           {/* New Credits - New Winnings */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
-              <div className="text-xs text-muted-foreground mb-0.5">New Credits</div>
-              <div className="text-base font-bold text-blue-600 dark:text-blue-400">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
+              <div className="text-[10px] text-muted-foreground mb-0.5">New Credits</div>
+              <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
                 {newCreditsBalance || '—'}
               </div>
             </div>
-            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800/30">
-              <div className="text-xs text-muted-foreground mb-0.5">New Winnings</div>
-              <div className="text-base font-bold text-green-600 dark:text-green-400">
+            <div className="p-1.5 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800/30">
+              <div className="text-[10px] text-muted-foreground mb-0.5">New Winnings</div>
+              <div className="text-sm font-bold text-green-600 dark:text-green-400">
                 {newWinningBalance || '—'}
               </div>
             </div>
           </div>
 
           {/* Amount and Bonus */}
-          <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded">
+          <div className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className="text-xs text-muted-foreground mb-0.5">Amount</div>
-                <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                <div className="text-[10px] text-muted-foreground mb-0.5">Amount</div>
+                <div className="text-base font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(queue.amount || '0')}
                 </div>
               </div>
               {formattedBonus && (
                 <>
-                  <div className="h-8 w-px bg-green-300 dark:bg-green-700 mx-3" />
+                  <div className="h-6 w-px bg-green-300 dark:bg-green-700 mx-2" />
                   <div className="flex-1 text-right">
-                    <div className="text-xs text-muted-foreground mb-0.5">Bonus</div>
-                    <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className="text-[10px] text-muted-foreground mb-0.5">Bonus</div>
+                    <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
                       +{formattedBonus}
                     </div>
                   </div>
@@ -618,20 +618,20 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     if (isResetPassword) {
       // For Reset Password: Type-Status, Game - Game username, User - Email
       return (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {/* Type - Status */}
-          <div className="flex items-center justify-between pb-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-purple-500 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <div className="flex items-center gap-1.5">
+              <div className="w-6 h-6 rounded bg-purple-500 flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
               </div>
               <div>
-                <div className="text-sm font-semibold text-foreground">Reset Password</div>
+                <div className="text-xs font-semibold text-foreground">Reset Password</div>
               </div>
             </div>
-            <div className={`px-2 py-1 rounded text-xs font-semibold ${
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
               queue.status === 'failed' 
                 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
                 : queue.status === 'pending'
@@ -643,26 +643,26 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           </div>
 
           {/* Game - Game Username */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Game</div>
-              <div className="text-sm font-medium text-foreground">{queue.game}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Game</div>
+              <div className="text-xs font-medium text-foreground">{queue.game}</div>
             </div>
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Game Username</div>
-              <div className="text-sm font-medium text-foreground">{gameUsername || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Game Username</div>
+              <div className="text-xs font-medium text-foreground">{gameUsername || '—'}</div>
             </div>
           </div>
 
           {/* User - Email */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">User</div>
-              <div className="text-sm font-medium text-foreground">{queue.user_username || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">User</div>
+              <div className="text-xs font-medium text-foreground">{queue.user_username || '—'}</div>
             </div>
             <div className="flex flex-col">
-              <div className="text-xs text-muted-foreground mb-0.5">Email</div>
-              <div className="text-sm font-medium text-foreground truncate">{queue.user_email || '—'}</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Email</div>
+              <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
             </div>
           </div>
         </div>
@@ -671,20 +671,20 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
     // For Create Game
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {/* Type - Status */}
-        <div className="flex items-center justify-between pb-3 border-b border-border">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-indigo-500 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center justify-between pb-2 border-b border-border">
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center">
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
             </div>
             <div>
-              <div className="text-sm font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
+              <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
             </div>
           </div>
-          <div className={`px-2 py-1 rounded text-xs font-semibold ${
+          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
             queue.status === 'failed' 
               ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
               : queue.status === 'pending'
@@ -696,26 +696,26 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         </div>
 
         {/* Game Information */}
-        <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-200 dark:border-indigo-800/30">
-          <div className="text-xs text-muted-foreground mb-0.5">Game</div>
-          <div className="text-sm font-semibold text-foreground">{queue.game}</div>
+        <div className="p-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-200 dark:border-indigo-800/30">
+          <div className="text-[10px] text-muted-foreground mb-0.5">Game</div>
+          <div className="text-xs font-semibold text-foreground">{queue.game}</div>
         </div>
 
         {/* User Information */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col">
-            <div className="text-xs text-muted-foreground mb-0.5">User</div>
-            <div className="text-sm font-medium text-foreground">{queue.user_username || '—'}</div>
+            <div className="text-[10px] text-muted-foreground mb-0.5">User</div>
+            <div className="text-xs font-medium text-foreground">{queue.user_username || '—'}</div>
           </div>
           <div className="flex flex-col">
-            <div className="text-xs text-muted-foreground mb-0.5">Email</div>
-            <div className="text-sm font-medium text-foreground truncate">{queue.user_email || '—'}</div>
+            <div className="text-[10px] text-muted-foreground mb-0.5">Email</div>
+            <div className="text-xs font-medium text-foreground truncate">{queue.user_email || '—'}</div>
           </div>
         </div>
         {gameUsername && (
           <div className="pt-2 border-t border-border">
-            <div className="text-xs text-muted-foreground mb-0.5">Game Username</div>
-            <div className="text-sm font-medium text-foreground">{gameUsername}</div>
+            <div className="text-[10px] text-muted-foreground mb-0.5">Game Username</div>
+            <div className="text-xs font-medium text-foreground">{gameUsername}</div>
           </div>
         )}
       </div>
@@ -723,27 +723,27 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Transaction Details */}
       <div className="border border-border rounded-lg">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-border">
+        <div className="px-3 py-2 border-b border-border">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-foreground">#{queue.id}</h3>
+            <h3 className="text-xs font-semibold text-foreground">#{queue.id}</h3>
           </div>
         </div>
 
         {/* Content */}
-        <div className="px-4 py-3">
+        <div className="px-3 py-2">
           {renderTransactionDetails()}
           
           {queue.remarks && (
-            <div className="mt-3 pt-3 border-t border-border">
-              <div className="p-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded">
-                <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-200 mb-1">
+            <div className="mt-2 pt-2 border-t border-border">
+              <div className="p-1.5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded">
+                <h4 className="text-[10px] font-semibold text-amber-900 dark:text-amber-200 mb-0.5">
                   Remarks
                 </h4>
-                <p className="text-xs text-amber-800 dark:text-amber-300">{queue.remarks}</p>
+                <p className="text-[10px] text-amber-800 dark:text-amber-300">{queue.remarks}</p>
               </div>
             </div>
           )}
@@ -751,31 +751,31 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       </div>
 
       {isSubmitting && (
-        <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded">
-          <svg className="animate-spin h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24">
+        <div className="flex items-center justify-center gap-1.5 p-2 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded">
+          <svg className="animate-spin h-3 w-3 text-blue-600" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span className="text-xs font-medium text-foreground">Processing...</span>
+          <span className="text-[10px] font-medium text-foreground">Processing...</span>
         </div>
       )}
 
       {/* Action Buttons */}
-      <div className="space-y-2">
-        <label className="text-xs font-medium text-muted-foreground">Select Action</label>
-        <div className="grid grid-cols-3 gap-2">
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-medium text-muted-foreground">Select Action</label>
+        <div className="grid grid-cols-3 gap-1.5">
           <Button
             type="button"
             variant="secondary"
             onClick={() => handleActionSelect('retry')}
             disabled={isSubmitting}
             size="sm"
-            className="flex items-center justify-center gap-1.5"
+            className="flex items-center justify-center gap-1 text-xs h-7 px-2"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            <span className="text-xs font-medium">Retry</span>
+            <span className="text-[10px] font-medium">Retry</span>
           </Button>
           <Button
             type="button"
@@ -783,12 +783,12 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             onClick={() => handleActionSelect('cancel')}
             disabled={isSubmitting}
             size="sm"
-            className="flex items-center justify-center gap-1.5 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+            className="flex items-center justify-center gap-1 text-xs h-7 px-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
-            <span className="text-xs font-medium">Cancel</span>
+            <span className="text-[10px] font-medium">Cancel</span>
           </Button>
           <Button
             type="button"
@@ -796,24 +796,25 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             onClick={() => handleActionSelect('complete')}
             disabled={isSubmitting}
             size="sm"
-            className="flex items-center justify-center gap-1.5"
+            className="flex items-center justify-center gap-1 text-xs h-7 px-2"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-xs font-medium">Complete</span>
+            <span className="text-[10px] font-medium">Complete</span>
           </Button>
         </div>
       </div>
 
       {/* Close Button */}
-      <div className="flex justify-end pt-2 border-t border-border">
+      <div className="flex justify-end pt-1.5 border-t border-border">
         <Button
           type="button"
           variant="secondary"
           onClick={onCancel}
           disabled={isSubmitting}
           size="sm"
+          className="text-xs h-7 px-2"
         >
           Close
         </Button>
