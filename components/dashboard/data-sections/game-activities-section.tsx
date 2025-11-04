@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import type { JSX } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { DashboardSectionHeader } from '@/components/dashboard/layout/dashboard-section-header';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
@@ -10,6 +11,12 @@ import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
 import type { TransactionQueue } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
+
+const GAME_ICON: JSX.Element = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z" />
+  </svg>
+);
 
 const HISTORY_BADGE = (
   <Badge variant="info" className="uppercase tracking-wide">
@@ -163,6 +170,7 @@ function HistoryGameActivitiesLayout({
       <DashboardSectionHeader
         title="Game Activity History"
         description="Audit completed and cancelled game operations across the platform"
+        icon={GAME_ICON}
         badge={HISTORY_BADGE}
       />
       <HistoryGameActivitiesFilters
