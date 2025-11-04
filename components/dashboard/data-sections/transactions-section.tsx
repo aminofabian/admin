@@ -387,10 +387,10 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
       </TableCell>
       <TableCell>
         <div className="space-y-1">
-          <div className="text-sm text-gray-700 dark:text-gray-300">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             C: {formatCurrency(transaction.previous_balance)}
           </div>
-          <div className="text-sm text-gray-700 dark:text-gray-300">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
               ? formatCurrency(transaction.previous_winning_balance)
               : formatCurrency('0')}
@@ -399,10 +399,10 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
       </TableCell>
       <TableCell>
         <div className="space-y-1">
-          <div className="text-sm text-gray-700 dark:text-gray-300">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             C: {formatCurrency(transaction.new_balance)}
           </div>
-          <div className="text-sm text-gray-700 dark:text-gray-300">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
               ? formatCurrency(transaction.new_winning_balance)
               : formatCurrency('0')}

@@ -369,10 +369,10 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
   const prevBalanceCell = (
     <TableCell>
       <div className="space-y-1">
-        <div className="text-sm text-gray-700 dark:text-gray-300">
+        <div className="text-xs text-gray-500 dark:text-gray-400">
           C: {formatCurrency(transaction.previous_balance || '0')}
         </div>
-        <div className="text-sm text-gray-700 dark:text-gray-300">
+        <div className="text-xs text-gray-500 dark:text-gray-400">
           W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
             ? formatCurrency(transaction.previous_winning_balance)
             : formatCurrency('0')}
@@ -384,10 +384,10 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
   const newBalanceCell = (
     <TableCell>
       <div className="space-y-1">
-        <div className="text-sm text-gray-700 dark:text-gray-300">
+        <div className="text-xs text-gray-500 dark:text-gray-400">
           C: {formatCurrency(transaction.new_balance || '0')}
         </div>
-        <div className="text-sm text-gray-700 dark:text-gray-300">
+        <div className="text-xs text-gray-500 dark:text-gray-400">
           W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
             ? formatCurrency(transaction.new_winning_balance)
             : formatCurrency('0')}
@@ -1342,11 +1342,29 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Previous Balance</div>
-                    <div className="font-medium">{formatCurrency(transaction.previous_balance || '0')}</div>
+                    <div className="space-y-0.5">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        C: {formatCurrency(transaction.previous_balance || '0')}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+                          ? formatCurrency(transaction.previous_winning_balance)
+                          : formatCurrency('0')}
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">New Balance</div>
-                    <div className="font-semibold">{formatCurrency(transaction.new_balance || '0')}</div>
+                    <div className="space-y-0.5">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        C: {formatCurrency(transaction.new_balance || '0')}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+                          ? formatCurrency(transaction.new_winning_balance)
+                          : formatCurrency('0')}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
