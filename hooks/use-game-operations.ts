@@ -62,7 +62,8 @@ export function useGameOperations() {
           const typeKeyMap: Record<QueueType, keyof typeof operations> = {
             'recharge_game': 'recharge',
             'redeem_game': 'redeem', 
-            'add_user_game': 'add_user_game'
+            'add_user_game': 'add_user_game',
+            'create_game': 'add_user_game'
           };
           const typeKey = typeKeyMap[queueType];
           
