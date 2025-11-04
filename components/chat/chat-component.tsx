@@ -162,7 +162,9 @@ export function ChatComponent() {
   const [isTyping, setIsTyping] = useState(false);
   const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
-  const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
+  const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>(
+    MOCK_PLAYERS[0] ? 'chat' : 'list'
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -278,7 +280,7 @@ export function ChatComponent() {
         <div className="flex border-b border-border">
           <button
             onClick={() => setActiveTab('online')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+            className={`flex-1 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium transition-colors ${
               activeTab === 'online'
                 ? 'bg-primary text-primary-foreground border-b-2 border-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -288,7 +290,7 @@ export function ChatComponent() {
           </button>
           <button
             onClick={() => setActiveTab('all')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+            className={`flex-1 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium transition-colors ${
               activeTab === 'all'
                 ? 'bg-primary text-primary-foreground border-b-2 border-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -299,11 +301,11 @@ export function ChatComponent() {
         </div>
 
         {/* Player Count */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
+        <div className="p-3 md:p-4 border-b border-border flex items-center justify-between">
+          <span className="text-xs md:text-sm text-muted-foreground">
             Online Players: {onlinePlayers.length}
           </span>
-          <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
+          <Button variant="ghost" size="sm" className="text-xs md:text-sm text-blue-600 hover:text-blue-700">
             Refresh
           </Button>
         </div>
@@ -360,12 +362,23 @@ export function ChatComponent() {
       </div>
 
       {/* Middle Column - Chat Conversation */}
-      <div className="flex-1 flex flex-col border-r border-border bg-card">
+      <div className={`${
+        mobileView === 'chat' ? 'flex' : 'hidden'
+      } md:flex flex-1 flex-col border-r border-border bg-card w-full md:w-auto`}>
         {selectedPlayer ? (
           <>
             {/* Chat Header */}
             <div className="p-4 border-b border-border flex items-center justify-between bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-              <div className="flex items-center gap-3">
+              {/* Back button for mobile */}
+              <button
+                onClick={() => setMobileView('list')}
+                className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors mr-2"
+              >
+                <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div className="flex items-center gap-3 flex-1">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
                     {selectedPlayer.avatar}
@@ -382,12 +395,20 @@ export function ChatComponent() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-muted rounded-lg transition-colors">
+                <button 
+                  onClick={() => setMobileView('info')}
+                  className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                <button className="hidden md:block p-2 hover:bg-muted rounded-lg transition-colors">
                   <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </button>
-                <button className="p-2 hover:bg-muted rounded-lg transition-colors">
+                <button className="hidden md:block p-2 hover:bg-muted rounded-lg transition-colors">
                   <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                   </svg>
@@ -398,7 +419,7 @@ export function ChatComponent() {
             {/* Messages */}
             <div 
               ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth"
+              className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4 md:space-y-6 scroll-smooth"
             >
               {Object.entries(groupedMessages).map(([date, dateMessages]) => (
                 <div key={date} className="space-y-4">
@@ -425,7 +446,7 @@ export function ChatComponent() {
                         key={message.id}
                         className={`flex ${message.sender === 'player' ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
                       >
-                        <div className={`flex items-end gap-2 max-w-[70%] ${message.sender === 'player' ? 'flex-row' : 'flex-row-reverse'}`}>
+                        <div className={`flex items-end gap-1.5 md:gap-2 max-w-[85%] md:max-w-[70%] ${message.sender === 'player' ? 'flex-row' : 'flex-row-reverse'}`}>
                           {showAvatar ? (
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
                               {selectedPlayer.avatar}
@@ -435,13 +456,13 @@ export function ChatComponent() {
                           )}
                           <div className="relative group">
                             <div
-                              className={`rounded-2xl px-4 py-2.5 shadow-sm transition-all duration-200 hover:shadow-md ${
+                              className={`rounded-2xl px-3 md:px-4 py-2 md:py-2.5 shadow-sm transition-all duration-200 hover:shadow-md ${
                                 message.sender === 'player'
                                   ? 'bg-blue-500 text-white rounded-bl-md'
                                   : 'bg-gray-200 dark:bg-gray-700 text-foreground rounded-br-md'
                               } ${isConsecutive ? 'mt-1' : ''}`}
                             >
-                              <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                              <div className="text-sm md:text-sm leading-relaxed whitespace-pre-wrap break-words">
                                 {message.text}
                               </div>
                               <div className={`flex items-center gap-1 mt-1 ${
@@ -498,9 +519,9 @@ export function ChatComponent() {
             </div>
 
             {/* Message Input */}
-            <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm sticky bottom-0">
-              <div className="flex items-end gap-2">
-                <div className="flex items-center gap-1">
+            <div className="p-3 md:p-4 border-t border-border bg-card/50 backdrop-blur-sm sticky bottom-0">
+              <div className="flex items-end gap-1 md:gap-2">
+                <div className="hidden md:flex items-center gap-1">
                   <button 
                     className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
                     title="Attach file"
@@ -526,10 +547,19 @@ export function ChatComponent() {
                     </svg>
                   </button>
                 </div>
+                {/* Mobile: Show attach button */}
+                <button 
+                  className="md:hidden p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all active:scale-95"
+                  title="Attach"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
                 <div className="flex-1 relative">
                   <Input
                     type="text"
-                    placeholder="Enter Message..."
+                    placeholder="Type a message..."
                     value={messageInput}
                     onChange={(e) => {
                       setMessageInput(e.target.value);
@@ -539,12 +569,12 @@ export function ChatComponent() {
                       }
                     }}
                     onKeyPress={handleKeyPress}
-                    className="pr-10 rounded-full bg-background border-2 focus:border-primary transition-colors"
+                    className="pr-10 rounded-full bg-background border-2 focus:border-primary transition-colors text-sm md:text-base py-2 md:py-2.5"
                   />
                   {messageInput && (
                     <button
                       onClick={() => setMessageInput('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground transition-colors active:scale-95"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -555,12 +585,12 @@ export function ChatComponent() {
                 <Button 
                   onClick={handleSendMessage} 
                   disabled={!messageInput.trim()}
-                  className="rounded-full px-6 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-full px-4 md:px-6 py-2 md:py-2.5 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
-                  Send
+                  <span className="hidden md:inline">Send</span>
                 </Button>
               </div>
             </div>
@@ -580,10 +610,23 @@ export function ChatComponent() {
 
       {/* Right Column - Player Info */}
       {selectedPlayer && (
-        <div className="w-80 flex-shrink-0 bg-card flex flex-col">
-          <div className="p-4 border-b border-border">
-            <h3 className="font-semibold text-foreground">Personal Info</h3>
-            <div className="text-sm text-muted-foreground mt-1">@{selectedPlayer.username}</div>
+        <div className={`${
+          mobileView === 'info' ? 'flex' : 'hidden'
+        } md:flex w-full md:w-80 flex-shrink-0 bg-card flex-col`}>
+          <div className="p-4 border-b border-border flex items-center gap-3">
+            {/* Back button for mobile */}
+            <button
+              onClick={() => setMobileView('chat')}
+              className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground">Personal Info</h3>
+              <div className="text-sm text-muted-foreground mt-1">@{selectedPlayer.username}</div>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-6">

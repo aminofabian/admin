@@ -30,18 +30,18 @@ export function ChatDrawer() {
       />
 
       {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-7xl z-50 bg-background shadow-2xl animate-in slide-in-from-right duration-300">
+      <div className="fixed inset-y-0 right-0 w-full md:max-w-7xl z-50 bg-background shadow-2xl animate-in slide-in-from-right duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border bg-card">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center justify-between p-3 md:p-4 border-b border-border bg-card">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+              <svg className="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">Player Support Chat</h2>
-              <p className="text-xs text-muted-foreground">Manage player conversations</p>
+              <h2 className="text-base md:text-lg font-bold text-foreground">Support Chat</h2>
+              <p className="text-xs text-muted-foreground hidden md:block">Manage player conversations</p>
             </div>
           </div>
           <button
@@ -56,7 +56,7 @@ export function ChatDrawer() {
         </div>
 
         {/* Content */}
-        <div className="h-[calc(100vh-5rem)]">
+        <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)]">
           <ChatComponent />
         </div>
       </div>
