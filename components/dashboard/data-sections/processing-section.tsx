@@ -144,24 +144,55 @@ function ProcessingTransactionTableSkeleton() {
 
 function ProcessingQueueTableSkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-black/20 p-4 space-y-4 animate-pulse">
-      <div className="flex items-center justify-between">
-        <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-24" />
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-32" />
-      </div>
-      <div className="space-y-3">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="flex items-center gap-4 pb-3 border-b border-gray-200 dark:border-gray-700">
-            <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-            </div>
-            <div className="ml-auto">
-              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24" />
-            </div>
-          </div>
-        ))}
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-black/20 overflow-hidden animate-pulse">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800/50">
+            <tr>
+              {[...Array(10)].map((_, i) => (
+                <th key={i} className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+            {[...Array(5)].map((_, i) => (
+              <tr key={i}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28 animate-pulse" />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right">
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse ml-auto" />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -497,6 +528,16 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
 
   const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
 
+  // Game balance from data object
+  const gameBalance = useMemo(() => {
+    const balance = queue.data?.game_balance;
+    if (balance === undefined || balance === null) return null;
+    const balanceValue = typeof balance === 'string' || typeof balance === 'number'
+      ? parseFloat(String(balance))
+      : null;
+    return balanceValue !== null && !isNaN(balanceValue) ? formatCurrency(String(balanceValue)) : null;
+  }, [queue.data?.game_balance]);
+
   // New balance from data object
   const newCreditsBalance = useMemo(() => {
     const credits = queue.data?.new_credits_balance;
@@ -598,7 +639,7 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
         )}
       </TableCell>
       <TableCell>
-        <div className="font-semibold">
+        <div className="font-semibold text-green-600 dark:text-green-400">
           {formattedAmount}
           {formattedBonus && (
             <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
@@ -608,18 +649,23 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
         </div>
       </TableCell>
       <TableCell>
+        {gameBalance ? (
+          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {gameBalance}
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground">—</div>
+        )}
+      </TableCell>
+      <TableCell>
         {(newCreditsBalance || newWinningBalance) ? (
           <div className="space-y-1">
-            {newCreditsBalance && (
-              <div className="text-sm font-semibold text-foreground">
-                Credits: {newCreditsBalance}
-              </div>
-            )}
-            {newWinningBalance && (
-              <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-                Winnings: {newWinningBalance}
-              </div>
-            )}
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              C: {newCreditsBalance || formatCurrency('0')}
+            </div>
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              W: {newWinningBalance || formatCurrency('0')}
+            </div>
           </div>
         ) : (
           <div className="text-sm text-muted-foreground">—</div>
@@ -1067,6 +1113,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 <TableHead>Game</TableHead>
                 <TableHead>Game Username</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Game Balance</TableHead>
                 <TableHead>New Balance</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Dates</TableHead>
