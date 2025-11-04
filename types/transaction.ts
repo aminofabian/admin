@@ -1,6 +1,6 @@
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
 export type TransactionType = 'purchase' | 'cashout';
-export type QueueType = 'recharge_game' | 'redeem_game' | 'add_user_game';
+export type QueueType = 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
 export type JournalEntry = 'debit' | 'credit';
 export type GameActionType = 'retry' | 'cancel' | 'complete';
 

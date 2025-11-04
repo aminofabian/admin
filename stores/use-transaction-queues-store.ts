@@ -11,7 +11,8 @@ type FilterType =
   | 'history' 
   | 'recharge_game' 
   | 'redeem_game' 
-  | 'add_user_game';
+  | 'add_user_game'
+  | 'create_game';
 
 interface TransactionQueuesState {
   queues: TransactionQueue[] | null;

@@ -10,7 +10,7 @@ import type { TransactionQueue, GameActionType } from '@/types';
 const mapTypeToLabel = (type: string): string => {
   if (type === 'recharge_game') return 'Recharge';
   if (type === 'redeem_game') return 'Redeem';
-  if (type === 'add_user_game') return 'Add User';
+  if (type === 'add_user_game' || type === 'create_game') return 'Add User';
   return type;
 };
 
@@ -154,7 +154,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     if (queue.type === 'recharge_game' || queue.type === 'redeem_game') {
       return { balance: true, password: false, username: false };
     }
-    if (queue.type === 'add_user_game') {
+    if (queue.type === 'add_user_game' || queue.type === 'create_game') {
       return { balance: false, password: true, username: true };
     }
     // For future types like change_password_game
@@ -258,14 +258,14 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                   ? 'Recharge Operation - Required Field'
                   : queue.type === 'redeem_game'
                   ? 'Redeem Operation - Required Field'
-                  : queue.type === 'add_user_game'
+                  : queue.type === 'add_user_game' || queue.type === 'create_game'
                   ? 'Create Game Account - Required Fields'
                   : 'Complete Operation - Required Fields'}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {queue.type === 'recharge_game' || queue.type === 'redeem_game' 
                   ? 'Enter the new game balance after manually completing the operation in the game provider system.'
-                  : queue.type === 'add_user_game'
+                  : queue.type === 'add_user_game' || queue.type === 'create_game'
                   ? 'Enter the game username and password that were created in the game provider system.'
                   : 'Enter the required information to complete this operation.'}
               </p>

@@ -38,7 +38,7 @@ import type { ApiError } from '@/types';
 import { useToast } from '@/components/ui';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
-type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game';
+type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
 
 interface TransactionFiltersState {
   agent?: string;
@@ -455,7 +455,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
 const mapTypeToLabel = (type: string): string => {
   if (type === 'recharge_game') return 'Recharge';
   if (type === 'redeem_game') return 'Redeem';
-  if (type === 'add_user_game') return 'Add User';
+  if (type === 'add_user_game' || type === 'create_game') return 'Add User';
   return type;
 };
 
@@ -1450,6 +1450,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   <option value="recharge_game">Recharge Game</option>
                   <option value="redeem_game">Redeem Game</option>
                   <option value="add_user_game">Add User Game</option>
+                  <option value="create_game">Create Game</option>
                 </select>
               </div>
 
