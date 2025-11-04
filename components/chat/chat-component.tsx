@@ -368,47 +368,59 @@ export function ChatComponent() {
         {selectedPlayer ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-border flex items-center justify-between bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border/50 flex items-center justify-between bg-gradient-to-r from-card via-card/95 to-card backdrop-blur-sm sticky top-0 z-10 shadow-sm">
               {/* Back button for mobile */}
               <button
                 onClick={() => setMobileView('list')}
-                className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors mr-2"
+                className="md:hidden p-2 -ml-2 hover:bg-muted rounded-lg transition-colors mr-1"
+                aria-label="Back to list"
               >
                 <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <div className="flex items-center gap-3 flex-1">
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+              
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm md:text-base font-bold shadow-md ring-2 ring-primary/10">
                     {selectedPlayer.avatar}
                   </div>
                   {selectedPlayer.isOnline && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card animate-pulse" />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-sm" />
                   )}
                 </div>
-                <div>
-                  <div className="font-medium text-foreground">{selectedPlayer.username}</div>
-                  {selectedPlayer.isOnline && (
-                    <div className="text-xs text-green-600 dark:text-green-400">Online</div>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-foreground text-sm md:text-base truncate">{selectedPlayer.username}</h3>
+                    {selectedPlayer.isOnline && (
+                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-medium">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                        Online
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {selectedPlayer.isOnline ? 'Active now' : `Last seen ${selectedPlayer.lastMessageTime}`}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <button 
                   onClick={() => setMobileView('info')}
                   className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+                  aria-label="View info"
                 >
                   <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
-                <button className="hidden md:block p-2 hover:bg-muted rounded-lg transition-colors">
+                <button className="hidden md:flex p-2 hover:bg-muted rounded-lg transition-colors" aria-label="Search">
                   <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </button>
-                <button className="hidden md:block p-2 hover:bg-muted rounded-lg transition-colors">
+                <button className="hidden md:flex p-2 hover:bg-muted rounded-lg transition-colors" aria-label="More options">
                   <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                   </svg>
@@ -419,14 +431,21 @@ export function ChatComponent() {
             {/* Messages */}
             <div 
               ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4 md:space-y-6 scroll-smooth"
+              className="flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-6 space-y-6 scroll-smooth bg-gradient-to-b from-background/50 to-background"
             >
               {Object.entries(groupedMessages).map(([date, dateMessages]) => (
-                <div key={date} className="space-y-4">
+                <div key={date} className="space-y-3">
                   {/* Date Separator */}
-                  <div className="flex items-center justify-center my-6">
-                    <div className="bg-muted/50 px-3 py-1 rounded-full text-xs text-muted-foreground font-medium">
-                      {formatMessageDate(date)}
+                  <div className="flex items-center justify-center my-8 first:mt-0">
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                        <div className="w-full border-t border-border/50" />
+                      </div>
+                      <div className="relative flex justify-center">
+                        <span className="px-4 py-1.5 bg-muted/80 backdrop-blur-sm text-xs font-medium text-muted-foreground rounded-full border border-border/50 shadow-sm">
+                          {formatMessageDate(date)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -444,50 +463,63 @@ export function ChatComponent() {
                     return (
                       <div
                         key={message.id}
-                        className={`flex ${message.sender === 'player' ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
+                        className={`flex ${message.sender === 'player' ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-200 ${isConsecutive ? 'mt-1' : 'mt-4'}`}
                       >
-                        <div className={`flex items-end gap-1.5 md:gap-2 max-w-[85%] md:max-w-[70%] ${message.sender === 'player' ? 'flex-row' : 'flex-row-reverse'}`}>
+                        <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] ${message.sender === 'player' ? 'flex-row' : 'flex-row-reverse'}`}>
+                          {/* Avatar */}
                           {showAvatar ? (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-md ring-2 ring-blue-500/20">
                               {selectedPlayer.avatar}
                             </div>
                           ) : (
-                            <div className="w-8 shrink-0" />
+                            <div className="w-7 md:w-8 shrink-0" />
                           )}
-                          <div className="relative group">
+                          
+                          {/* Message Bubble */}
+                          <div className="relative group flex flex-col">
                             <div
-                              className={`rounded-2xl px-3 md:px-4 py-2 md:py-2.5 shadow-sm transition-all duration-200 hover:shadow-md ${
+                              className={`rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 shadow-md transition-all duration-200 ${
                                 message.sender === 'player'
-                                  ? 'bg-blue-500 text-white rounded-bl-md'
-                                  : 'bg-gray-200 dark:bg-gray-700 text-foreground rounded-br-md'
-                              } ${isConsecutive ? 'mt-1' : ''}`}
+                                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/25'
+                                  : 'bg-card border border-border/50 text-foreground shadow-black/5 dark:shadow-black/20'
+                              } ${
+                                message.sender === 'player' ? 'rounded-bl-sm' : 'rounded-br-sm'
+                              }`}
                             >
-                              <div className="text-sm md:text-sm leading-relaxed whitespace-pre-wrap break-words">
+                              <p className="text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words">
                                 {message.text}
-                              </div>
-                              <div className={`flex items-center gap-1 mt-1 ${
-                                message.sender === 'player' ? 'justify-start' : 'justify-end'
-                              }`}>
-                                <span
-                                  className={`text-xs ${
-                                    message.sender === 'player'
-                                      ? 'text-blue-100'
-                                      : 'text-muted-foreground'
-                                  }`}
-                                >
-                                  {message.time || message.timestamp}
-                                </span>
-                                {message.sender === 'company' && (
-                                  <svg className={`w-3 h-3 ${message.isRead ? 'text-blue-400' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                              </div>
+                              </p>
                             </div>
+                            
+                            {/* Message Meta */}
+                            <div className={`flex items-center gap-1.5 mt-1 px-1 ${
+                              message.sender === 'player' ? 'justify-start' : 'justify-end'
+                            }`}>
+                              <span className="text-[10px] md:text-xs text-muted-foreground font-medium">
+                                {message.time || message.timestamp}
+                              </span>
+                              {message.sender === 'company' && (
+                                <svg 
+                                  className={`w-3.5 h-3.5 ${
+                                    message.isRead 
+                                      ? 'text-blue-500 dark:text-blue-400' 
+                                      : 'text-muted-foreground/50'
+                                  }`} 
+                                  fill="currentColor" 
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L8 8.586l3.293-3.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            
+                            {/* Options Button (Desktop) */}
                             {message.sender === 'company' && (
                               <button
                                 onClick={() => setMessageMenuOpen(messageMenuOpen === message.id ? null : message.id)}
-                                className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded-lg"
+                                className="hidden md:flex absolute -right-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-muted rounded-lg"
+                                aria-label="Message options"
                               >
                                 <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -504,12 +536,15 @@ export function ChatComponent() {
               
               {/* Typing Indicator */}
               {isTyping && (
-                <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex items-center gap-2 bg-gray-200 dark:bg-gray-700 rounded-2xl px-4 py-2.5 rounded-bl-md">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200 mt-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 md:w-8 shrink-0" />
+                    <div className="flex items-center gap-2 bg-muted/80 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-md border border-border/50">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -519,8 +554,8 @@ export function ChatComponent() {
             </div>
 
             {/* Message Input */}
-            <div className="p-3 md:p-4 border-t border-border bg-card/50 backdrop-blur-sm sticky bottom-0">
-              <div className="flex items-end gap-1 md:gap-2">
+            <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
+              <div className="flex items-center gap-2 md:gap-3">
                 <div className="hidden md:flex items-center gap-1">
                   <button 
                     className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
@@ -549,17 +584,20 @@ export function ChatComponent() {
                 </div>
                 {/* Mobile: Show attach button */}
                 <button 
-                  className="md:hidden p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all active:scale-95"
+                  className="md:hidden p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all active:scale-95 flex-shrink-0"
                   title="Attach"
+                  aria-label="Attach file"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
                 </button>
+                
+                {/* Input Container */}
                 <div className="flex-1 relative">
                   <Input
                     type="text"
-                    placeholder="Type a message..."
+                    placeholder="Type your message..."
                     value={messageInput}
                     onChange={(e) => {
                       setMessageInput(e.target.value);
@@ -569,12 +607,13 @@ export function ChatComponent() {
                       }
                     }}
                     onKeyPress={handleKeyPress}
-                    className="pr-10 rounded-full bg-background border-2 focus:border-primary transition-colors text-sm md:text-base py-2 md:py-2.5"
+                    className="pr-10 rounded-2xl bg-muted/50 dark:bg-muted/30 border-2 border-transparent focus:border-primary focus:bg-background transition-all text-sm md:text-base py-2.5 md:py-3 px-4 shadow-sm"
                   />
                   {messageInput && (
                     <button
                       onClick={() => setMessageInput('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground transition-colors active:scale-95"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors active:scale-95"
+                      aria-label="Clear message"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -582,28 +621,43 @@ export function ChatComponent() {
                     </button>
                   )}
                 </div>
+                
+                {/* Send Button */}
                 <Button 
                   onClick={handleSendMessage} 
                   disabled={!messageInput.trim()}
-                  className="rounded-full px-4 md:px-6 py-2 md:py-2.5 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
+                  className="rounded-2xl px-4 md:px-6 py-2.5 md:py-3 transition-all duration-200 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] shadow-md flex-shrink-0"
                 >
                   <svg className="w-4 h-4 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
-                  <span className="hidden md:inline">Send</span>
+                  <span className="hidden md:inline font-medium">Send</span>
                 </Button>
               </div>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center mb-6 opacity-20">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-background/50 to-background">
+            <div className="relative mb-6">
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center ring-8 ring-primary/5">
+                <svg className="w-12 h-12 md:w-14 md:h-14 text-primary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center animate-pulse">
+                <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">No conversation selected</h3>
-            <p className="text-sm text-center max-w-sm">Select a player from the list to start chatting</p>
+            <h3 className="text-lg md:text-xl font-bold text-foreground mb-2">No Conversation Selected</h3>
+            <p className="text-sm md:text-base text-muted-foreground max-w-sm mb-6">
+              Choose a player from the list to start messaging and provide support
+            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span>{displayedPlayers.filter(p => p.isOnline).length} players online</span>
+            </div>
           </div>
         )}
       </div>
@@ -612,107 +666,217 @@ export function ChatComponent() {
       {selectedPlayer && (
         <div className={`${
           mobileView === 'info' ? 'flex' : 'hidden'
-        } md:flex w-full md:w-80 flex-shrink-0 bg-card flex-col`}>
-          <div className="p-4 border-b border-border flex items-center gap-3">
+        } md:flex w-full md:w-80 lg:w-96 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
+          {/* Header with Player Avatar */}
+          <div className="p-4 md:p-6 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
             {/* Back button for mobile */}
             <button
               onClick={() => setMobileView('chat')}
-              className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+              className="md:hidden mb-4 p-2 hover:bg-muted rounded-lg transition-colors inline-flex items-center gap-2 text-muted-foreground"
             >
-              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
+              <span className="text-sm">Back to chat</span>
             </button>
-            <div className="flex-1">
-              <h3 className="font-semibold text-foreground">Personal Info</h3>
-              <div className="text-sm text-muted-foreground mt-1">@{selectedPlayer.username}</div>
+            
+            <div className="flex flex-col items-center text-center">
+              <div className="relative mb-4">
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-lg ring-4 ring-primary/20">
+                  {selectedPlayer.avatar}
+                </div>
+                {selectedPlayer.isOnline && (
+                  <span className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-card animate-pulse shadow-lg" />
+                )}
+              </div>
+              <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">{selectedPlayer.username}</h3>
+              <p className="text-sm text-muted-foreground">@{selectedPlayer.username.toLowerCase().replace(/\s+/g, '')}</p>
+              {selectedPlayer.isOnline && (
+                <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-medium">
+                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  Online Now
+                </span>
+              )}
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-5">
             {/* Financial Summary */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                <span className="font-semibold text-foreground">{formatCurrency(selectedPlayer.balance)}</span>
+            <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-foreground">Balance</h4>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-foreground">Win: {formatCurrency(selectedPlayer.winningBalance)}</span>
-                <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
+                  <span className="text-sm text-muted-foreground">Total Balance</span>
+                  <span className="text-lg font-bold text-foreground">{formatCurrency(selectedPlayer.balance)}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-500/10 to-yellow-600/5 rounded-lg border border-yellow-500/20">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span className="text-sm text-foreground font-medium">Winnings</span>
+                  </div>
+                  <span className="text-base font-bold text-yellow-600 dark:text-yellow-500">{formatCurrency(selectedPlayer.winningBalance)}</span>
+                </div>
               </div>
             </div>
 
             {/* Contact Information */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <span className="text-sm text-foreground">{selectedPlayer.email}</span>
+            <div className="rounded-xl bg-card border border-border p-4 space-y-3 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-foreground">Contact Info</h4>
               </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                <span className="text-sm text-foreground">{selectedPlayer.phone || 'None'}</span>
+              <div className="space-y-2">
+                <div className="flex items-start gap-3 p-2.5 hover:bg-muted/50 rounded-lg transition-colors group">
+                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 group-hover:bg-primary/10 transition-colors">
+                    <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground mb-0.5">Email</p>
+                    <p className="text-sm text-foreground font-medium truncate">{selectedPlayer.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-2.5 hover:bg-muted/50 rounded-lg transition-colors group">
+                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 group-hover:bg-primary/10 transition-colors">
+                    <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground mb-0.5">Phone</p>
+                    <p className="text-sm text-foreground font-medium">{selectedPlayer.phone || 'Not provided'}</p>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Game Statistics */}
-            <div className="space-y-2">
-              <div className="text-sm text-foreground">
-                Games Played: <span className="font-semibold">{selectedPlayer.gamesPlayed}</span>
+            <div className="rounded-xl bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-green-500/20 p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-foreground">Statistics</h4>
               </div>
-              <div className="text-sm text-foreground">
-                Win Rate: <span className="font-semibold">{selectedPlayer.winRate}%</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-background/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Games Played</p>
+                  <p className="text-2xl font-bold text-foreground">{selectedPlayer.gamesPlayed}</p>
+                </div>
+                <div className="p-3 bg-background/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{selectedPlayer.winRate}%</p>
+                </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button variant="default" className="flex-1">Edit Bal.</Button>
-              <Button variant="outline" className="flex-1">Edit</Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="default" className="w-full shadow-md hover:shadow-lg transition-shadow">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Edit Balance
+              </Button>
+              <Button variant="outline" className="w-full hover:bg-muted/50">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Info
+              </Button>
             </div>
 
-            {/* Collapsible Sections */}
-            <div className="space-y-2">
-              {['Purchases 0', 'Cashouts 0', 'Game Activities 0', 'Games'].map((section, idx) => (
+            {/* Activity Sections */}
+            <div className="rounded-xl bg-card border border-border p-4 space-y-2 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-foreground">Activity</h4>
+              </div>
+              {[
+                { name: 'Purchases', count: 0, icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
+                { name: 'Cashouts', count: 0, icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+                { name: 'Game Activities', count: 0, icon: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z' },
+                { name: 'Games', count: 0, icon: 'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z' }
+              ].map((section, idx) => (
                 <button
                   key={idx}
-                  className="w-full flex items-center justify-between p-2 hover:bg-muted rounded-lg transition-colors"
+                  className="w-full flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg transition-colors group"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-foreground">{section}</span>
-                    <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={section.icon} />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-foreground">{section.name}</p>
+                      <p className="text-xs text-muted-foreground">{section.count} items</p>
+                    </div>
                   </div>
-                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
               ))}
             </div>
 
             {/* Add Game Button */}
-            <Button variant="default" className="w-full">Add Game</Button>
+            <Button variant="default" className="w-full shadow-md hover:shadow-lg transition-shadow">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add New Game
+            </Button>
 
             {/* Notes Section */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Notes</label>
+            <div className="rounded-xl bg-card border border-border p-4 space-y-3 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-foreground">Notes</h4>
+              </div>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add notes here..."
-                className="w-full min-h-[100px] p-3 border border-border rounded-lg bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="Add private notes about this player..."
+                className="w-full min-h-[100px] p-3 border border-border rounded-lg bg-background dark:bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-muted-foreground"
               />
-              <div className="flex gap-2">
-                <Button variant="default" className="flex-1">Save</Button>
-                <Button variant="outline" className="flex-1" onClick={() => setNotes('')}>Clear</Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="default" className="w-full">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Save
+                </Button>
+                <Button variant="outline" className="w-full" onClick={() => setNotes('')}>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Clear
+                </Button>
               </div>
             </div>
           </div>
