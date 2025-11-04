@@ -232,34 +232,43 @@ export function ChatComponent() {
       {/* Left Column - Player List */}
       <div className={`${
         mobileView === 'list' ? 'flex' : 'hidden'
-      } md:flex w-full md:w-80 flex-shrink-0 border-r border-border bg-card flex-col`}>
+      } md:flex w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-border/50 bg-gradient-to-b from-card to-card/50 flex-col`}>
         {/* Availability Toggle */}
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">Availability</span>
-            <button
-              onClick={() => setAvailability(!availability)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                availability ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  availability ? 'translate-x-6' : 'translate-x-1'
+        <div className="p-4 md:p-5 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <svg className={`w-4 h-4 transition-colors ${availability ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-sm font-semibold text-foreground">Availability</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-medium ${availability ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                {availability ? 'Available' : 'Away'}
+              </span>
+              <button
+                onClick={() => setAvailability(!availability)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 shadow-inner ${
+                  availability ? 'bg-green-500' : 'bg-muted'
                 }`}
-              />
-            </button>
-            <span className={`text-sm font-medium ${availability ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
-              {availability ? 'Yes' : 'No'}
-            </span>
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
+                    availability ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="p-4 border-b border-border">
+        <div className="p-4 md:p-5 border-b border-border/50">
           <div className="relative">
             <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -271,92 +280,132 @@ export function ChatComponent() {
               placeholder="Search players..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 pr-4 rounded-xl bg-muted/50 dark:bg-muted/30 border-2 border-transparent focus:border-primary focus:bg-background transition-all shadow-sm"
             />
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-border">
-          <button
-            onClick={() => setActiveTab('online')}
-            className={`flex-1 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium transition-colors ${
-              activeTab === 'online'
-                ? 'bg-primary text-primary-foreground border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-          >
-            Online
-          </button>
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`flex-1 px-3 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium transition-colors ${
-              activeTab === 'all'
-                ? 'bg-primary text-primary-foreground border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
-          >
-            All Players
-          </button>
+        <div className="px-4 md:px-5 pt-2 pb-3 border-b border-border/50">
+          <div className="flex gap-2 p-1 bg-muted/30 rounded-xl">
+            <button
+              onClick={() => setActiveTab('online')}
+              className={`flex-1 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
+                activeTab === 'online'
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'online' ? 'bg-white' : 'bg-green-500'}`} />
+                Online
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`flex-1 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
+                activeTab === 'all'
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              All Players
+            </button>
+          </div>
         </div>
 
         {/* Player Count */}
-        <div className="p-3 md:p-4 border-b border-border flex items-center justify-between">
-          <span className="text-xs md:text-sm text-muted-foreground">
-            Online Players: {onlinePlayers.length}
-          </span>
-          <Button variant="ghost" size="sm" className="text-xs md:text-sm text-blue-600 hover:text-blue-700">
-            Refresh
-          </Button>
+        <div className="px-4 md:px-5 py-3 border-b border-border/50 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <span className="text-sm font-bold text-green-600 dark:text-green-400">{onlinePlayers.length}</span>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-foreground">Online Players</p>
+                <p className="text-[10px] text-muted-foreground">{allPlayers.length} total</p>
+              </div>
+            </div>
+            <button className="p-2 hover:bg-muted rounded-lg transition-colors group">
+              <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Player List */}
         <div className="flex-1 overflow-y-auto">
           {displayedPlayers.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <svg className="w-12 h-12 text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <p className="text-sm text-muted-foreground">No players found</p>
+              <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-foreground mb-1">No players found</p>
+              <p className="text-xs text-muted-foreground">Try a different search term</p>
             </div>
           ) : (
-            displayedPlayers.map((player) => (
-              <button
-                key={player.id}
-                onClick={() => handlePlayerSelect(player)}
-                className={`w-full p-4 border-b border-border hover:bg-muted/50 transition-all duration-200 group ${
-                  selectedPlayer?.id === player.id ? 'bg-primary/10 border-l-4 border-l-primary' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold transition-transform group-hover:scale-110 ${
-                      selectedPlayer?.id === player.id ? 'ring-2 ring-primary ring-offset-2' : ''
-                    }`}>
-                      {player.avatar}
-                    </div>
-                    {player.isOnline && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card animate-pulse" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-medium text-foreground truncate">{player.username}</div>
-                      {player.lastMessageTime && (
-                        <span className="text-xs text-muted-foreground shrink-0">
-                          {player.lastMessageTime}
-                        </span>
+            <div className="p-2">
+              {displayedPlayers.map((player, index) => (
+                <button
+                  key={player.id}
+                  onClick={() => handlePlayerSelect(player)}
+                  className={`w-full p-3 md:p-3.5 rounded-xl mb-2 transition-all duration-200 group ${
+                    selectedPlayer?.id === player.id 
+                      ? 'bg-primary/10 shadow-md ring-2 ring-primary/20' 
+                      : 'hover:bg-muted/50 active:scale-[0.98]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Avatar */}
+                    <div className="relative flex-shrink-0">
+                      <div className={`w-11 h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-200 ${
+                        selectedPlayer?.id === player.id 
+                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' 
+                          : 'group-hover:scale-105'
+                      }`}>
+                        {player.avatar}
+                      </div>
+                      {player.isOnline && (
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse shadow-sm" />
                       )}
                     </div>
-                    {player.lastMessage && (
-                      <div className="text-xs text-muted-foreground truncate mt-0.5">
-                        {player.lastMessage}
+                    
+                    {/* Player Info */}
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <h4 className="font-semibold text-sm text-foreground truncate">{player.username}</h4>
+                        {player.lastMessageTime && (
+                          <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
+                            {player.lastMessageTime}
+                          </span>
+                        )}
+                      </div>
+                      {player.lastMessage && (
+                        <p className="text-xs text-muted-foreground truncate leading-tight">
+                          {player.lastMessage}
+                        </p>
+                      )}
+                      {player.isOnline && !player.lastMessage && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="w-1 h-1 bg-green-500 rounded-full" />
+                          <span className="text-xs text-green-600 dark:text-green-400 font-medium">Active now</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Unread Badge (optional) */}
+                    {selectedPlayer?.id !== player.id && index === 0 && (
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-bold text-primary-foreground">3</span>
                       </div>
                     )}
                   </div>
-                </div>
-              </button>
-            ))
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
