@@ -263,7 +263,7 @@ const PROCESSING_CONFIG: Record<ViewType, {
     title: 'Game Activities Processing',
     description: 'Manage queued game actions such as recharge, redeem, and user additions.',
     icon: GAME_ICON,
-    hint: 'Use filters to focus on specific game queues and resolve player-impacting tasks quickly.',
+    hint: '',
     emptyTitle: 'No game activities pending',
     emptyDescription: 'The game activity queue is currently empty. New items will show up here when they arrive.',
   },
@@ -1216,11 +1216,13 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           description={metadata.description}
           icon={metadata.icon}
         />
-        <DashboardActionBar>
-          <p className="text-sm text-muted-foreground">
-            {metadata.hint}
-          </p>
-        </DashboardActionBar>
+        {metadata.hint && (
+          <DashboardActionBar>
+            <p className="text-sm text-muted-foreground">
+              {metadata.hint}
+            </p>
+          </DashboardActionBar>
+        )}
         {/* Desktop Table View */}
         {transactionResults.length > 0 && (
           <div className="hidden lg:block overflow-hidden rounded-lg border border-border bg-card">
@@ -1449,9 +1451,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           description={metadata.description}
           icon={metadata.icon}
         />
-        <DashboardActionBar>
-          <p className="text-sm text-muted-foreground">{metadata.hint}</p>
-        </DashboardActionBar>
+        {metadata.hint && (
+          <DashboardActionBar>
+            <p className="text-sm text-muted-foreground">{metadata.hint}</p>
+          </DashboardActionBar>
+        )}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-black/20 p-4 space-y-4 transition-colors">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 transition-colors">
