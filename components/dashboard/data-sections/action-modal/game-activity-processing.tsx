@@ -1,21 +1,25 @@
 'use client';
 
 import { memo, useMemo } from 'react';
-import { Badge, Modal } from '@/components/ui';
+import { Badge } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type { TransactionQueue } from '@/types';
+import {
+  ActionModalWrapper,
+  ModalHeader,
+} from './action-modal-wrapper';
 
-interface ActivityDetailsModalProps {
+interface GameActivityViewModalProps {
   activity: TransactionQueue;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const ActivityDetailsModal = memo(function ActivityDetailsModal({
+export const GameActivityViewModal = memo(function GameActivityViewModal({
   activity,
   isOpen,
   onClose,
-}: ActivityDetailsModalProps) {
+}: GameActivityViewModalProps) {
   // Memoize expensive computations
   const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
   const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
@@ -93,35 +97,28 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
   const showUpdatedAt = useMemo(() => activity.updated_at !== activity.created_at, [activity.updated_at, activity.created_at]);
 
   return (
-    <Modal
+    <ActionModalWrapper
       isOpen={isOpen}
       onClose={onClose}
       title="Activity Details"
-      size="lg"
     >
-      <div className="space-y-6">
-        {/* Header Section - Status and Type */}
-        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-xl border border-border/50">
-          <div className="flex items-center gap-3">
+      <ModalHeader
+        badges={
+          <>
             <Badge variant={statusVariant} className="text-sm px-3 py-1">
               {activity.status}
             </Badge>
             <Badge variant={typeVariant} className="text-sm px-3 py-1 capitalize">
               {typeLabel}
             </Badge>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-foreground">{formattedAmount}</div>
-            {formattedBonus && (
-              <div className="text-sm font-semibold text-green-600">
-                +{formattedBonus} bonus
-              </div>
-            )}
-          </div>
-        </div>
+          </>
+        }
+        amount={formattedAmount}
+        bonus={formattedBonus ? `+${formattedBonus} bonus` : undefined}
+      />
 
-        {/* Amount Breakdown for Recharge */}
-        {activity.type === 'recharge_game' && formattedBonus && totalAmountSent && (
+      {/* Amount Breakdown for Recharge */}
+      {activity.type === 'recharge_game' && formattedBonus && totalAmountSent && (
           <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
             <h3 className="text-sm font-bold text-blue-900 dark:text-blue-100 uppercase tracking-wide mb-3">
               Recharge Breakdown
@@ -158,19 +155,19 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
                 </div>
               )}
             </div>
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* Activity ID */}
-        <div className="space-y-1">
+      {/* Activity ID */}
+      <div className="space-y-1">
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</label>
           <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
             {activity.id}
           </div>
-        </div>
+      </div>
 
-        {/* Game Information */}
-        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
+      {/* Game Information */}
+      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Game</label>
             <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{activity.game}</div>
@@ -201,10 +198,10 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
               )}
             </div>
           )}
-        </div>
+      </div>
 
-        {/* User Information */}
-        <div className="space-y-3">
+      {/* User Information */}
+      <div className="space-y-3">
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">User Information</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -218,11 +215,11 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
               <div className="text-sm text-foreground">{activity.user_email || '—'}</div>
             </div>
           </div>
-        </div>
+      </div>
 
-        {/* Game Information */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Game Information</h3>
+      {/* Game Information */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Game Information</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">Game Username</label>
@@ -235,10 +232,10 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
               <div className="text-sm text-foreground">{activity.operator || '—'}</div>
             </div>
           </div>
-        </div>
+      </div>
 
-        {/* Timestamps */}
-        <div className="space-y-3">
+      {/* Timestamps */}
+      <div className="space-y-3">
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Dates</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -252,19 +249,18 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
               </div>
             )}
           </div>
-        </div>
-
-        {/* Remarks */}
-        {activity.remarks && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Remarks</h3>
-            <div className="text-sm text-foreground bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-900/30">
-              {activity.remarks}
-            </div>
-          </div>
-        )}
       </div>
-    </Modal>
+
+      {/* Remarks */}
+      {activity.remarks && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Remarks</h3>
+          <div className="text-sm text-foreground bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-900/30">
+            {activity.remarks}
+          </div>
+        </div>
+      )}
+    </ActionModalWrapper>
   );
 });
 
@@ -288,4 +284,3 @@ const mapTypeToVariant = (type: string): 'success' | 'danger' | 'info' | 'defaul
   if (type === 'redeem_game') return 'danger';
   return 'info';
 };
-

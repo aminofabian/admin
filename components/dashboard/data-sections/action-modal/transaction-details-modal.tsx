@@ -1,0 +1,191 @@
+'use client';
+
+import { memo, useCallback, useMemo } from 'react';
+import { Button } from '@/components/ui';
+import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import type { Transaction } from '@/types';
+import { PROJECT_DOMAIN } from '@/lib/constants/api';
+import {
+  DetailsModalWrapper,
+  DetailsCard,
+  DetailsHeader,
+  DetailsRow,
+  DetailsField,
+  DetailsHighlightBox,
+  DetailsAmountBox,
+  DetailsRemarks,
+  DetailsCloseButton,
+} from './details-modal-wrapper';
+
+const CRYPTO_PAYMENT_METHODS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'];
+
+interface TransactionDetailsModalProps {
+  transaction: Transaction;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function mapStatusToVariant(status: string): 'success' | 'warning' | 'danger' | 'default' {
+  if (status === 'completed') return 'success';
+  if (status === 'pending') return 'warning';
+  if (status === 'failed' || status === 'cancelled') return 'danger';
+  return 'default';
+}
+
+export const TransactionDetailsModal = memo(function TransactionDetailsModal({
+  transaction,
+  isOpen,
+  onClose,
+}: TransactionDetailsModalProps) {
+  // Memoize expensive computations
+  const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
+  const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
+  const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
+  const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
+  
+  const bonusAmount = useMemo(() => {
+    const bonus = parseFloat(transaction.bonus_amount || '0');
+    return bonus > 0 ? bonus : null;
+  }, [transaction.bonus_amount]);
+
+  const formattedBonus = useMemo(() => {
+    return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+  }, [bonusAmount]);
+
+  const paymentMethod = useMemo(() => transaction.payment_method ?? '', [transaction.payment_method]);
+  const lowerPaymentMethod = useMemo(() => paymentMethod.toLowerCase(), [paymentMethod]);
+  const isCryptoPayment = useMemo(
+    () => CRYPTO_PAYMENT_METHODS.some((method) => lowerPaymentMethod.includes(method)),
+    [lowerPaymentMethod]
+  );
+
+  const explicitInvoiceUrl = useMemo(() => transaction.payment_url ?? transaction.invoice_url, [transaction.payment_url, transaction.invoice_url]);
+  const sanitizedInvoiceUrl = useMemo(() => typeof explicitInvoiceUrl === 'string' ? explicitInvoiceUrl.trim() : '', [explicitInvoiceUrl]);
+  const invoiceUrl = useMemo(() => {
+    if (sanitizedInvoiceUrl.length > 0) {
+      return sanitizedInvoiceUrl;
+    }
+    return transaction.id
+      ? `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${transaction.id}/invoice/`
+      : undefined;
+  }, [sanitizedInvoiceUrl, transaction.id]);
+
+  const formattedCreatedAt = useMemo(() => formatDate(transaction.created), [transaction.created]);
+  const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated), [transaction.updated]);
+
+  const handleOpenInvoice = useCallback(() => {
+    if (invoiceUrl) {
+      window.open(invoiceUrl, '_blank', 'noopener,noreferrer');
+    }
+  }, [invoiceUrl]);
+
+  const statusColor = transaction.status === 'completed' ? 'green' : transaction.status === 'failed' || transaction.status === 'cancelled' ? 'red' : 'yellow';
+
+  return (
+    <DetailsModalWrapper isOpen={isOpen} onClose={onClose} title="Transaction Details">
+      <DetailsCard id={transaction.id}>
+        <div className="space-y-2">
+          {/* Header with Type and Status */}
+          <DetailsHeader
+            icon={
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {isPurchase ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                )}
+              </svg>
+            }
+            label={transaction.type.toUpperCase()}
+            status={transaction.status}
+            statusColor={statusColor}
+          />
+
+          {/* User and Email */}
+          <DetailsRow>
+            <DetailsField label="User" value={transaction.user_username} />
+            <DetailsField label="Email" value={transaction.user_email} />
+          </DetailsRow>
+
+          {/* Payment Method and Operator */}
+          <DetailsRow>
+            <DetailsField label="Payment Method" value={paymentMethod} />
+            <DetailsField label="Operator" value={transaction.operator || '—'} />
+          </DetailsRow>
+
+          {/* Balance Information */}
+          <DetailsRow>
+            <DetailsHighlightBox
+              label="Previous Balance"
+              value={formatCurrency(transaction.previous_balance)}
+              variant="blue"
+            />
+            <DetailsHighlightBox
+              label="New Balance"
+              value={formatCurrency(transaction.new_balance)}
+              variant="green"
+            />
+          </DetailsRow>
+
+          {/* Winning Balance Information */}
+          {(transaction.previous_winning_balance || transaction.new_winning_balance) && (
+            <DetailsRow>
+              <DetailsHighlightBox
+                label="Prev Winning"
+                value={
+                  transaction.previous_winning_balance &&
+                  !isNaN(parseFloat(transaction.previous_winning_balance))
+                    ? formatCurrency(transaction.previous_winning_balance)
+                    : '—'
+                }
+                variant="purple"
+              />
+              <DetailsHighlightBox
+                label="New Winning"
+                value={
+                  transaction.new_winning_balance &&
+                  !isNaN(parseFloat(transaction.new_winning_balance))
+                    ? formatCurrency(transaction.new_winning_balance)
+                    : '—'
+                }
+                variant="green"
+              />
+            </DetailsRow>
+          )}
+
+          {/* Amount */}
+          <DetailsAmountBox
+            amount={formattedAmount}
+            bonus={formattedBonus ? `+${formattedBonus}` : undefined}
+          />
+
+          {/* Dates */}
+          <DetailsRow>
+            <DetailsField label="Created" value={formattedCreatedAt} />
+            <DetailsField label="Updated" value={formattedUpdatedAt} />
+          </DetailsRow>
+
+          {/* View Invoice Button for Crypto Payments */}
+          {isCryptoPayment && invoiceUrl && (
+            <div className="pt-2 border-t border-border">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="font-medium w-full text-xs h-7"
+                onClick={handleOpenInvoice}
+              >
+                View Invoice
+              </Button>
+            </div>
+          )}
+
+          {/* Remarks/Description */}
+          {transaction.description && <DetailsRemarks remarks={transaction.description} />}
+        </div>
+      </DetailsCard>
+
+      <DetailsCloseButton onClose={onClose} />
+    </DetailsModalWrapper>
+  );
+});
+

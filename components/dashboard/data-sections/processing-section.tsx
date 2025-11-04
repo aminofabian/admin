@@ -11,7 +11,6 @@ import {
   TableCell,
   Badge, 
   Button, 
-  Modal,
   Pagination
 } from '@/components/ui';
 import {
@@ -22,10 +21,10 @@ import {
   DashboardStatGrid,
 } from '@/components/dashboard/layout';
 import { 
-  GameActionForm,
   EmptyState,
   TransactionDetailsModal
 } from '@/components/features';
+import { ActionModal } from './action-modal/game-activity-history';
 import { 
   useTransactionsStore, 
   useTransactionQueuesStore 
@@ -976,13 +975,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   };
 
   const handleActionSubmit = async (data: Parameters<typeof handleGameAction>[0]) => {
-    try {
-      await handleGameAction(data);
-      setIsActionModalOpen(false);
-      setSelectedQueue(null);
-    } catch (error) {
-      console.error('Failed to process game action:', error);
-    }
+    await handleGameAction(data);
   };
 
   const handleViewTransaction = (transaction: Transaction) => {
@@ -1419,23 +1412,15 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         )}
         {renderQueues()}
       </DashboardSectionContainer>
-      <Modal
+      <ActionModal
         isOpen={isActionModalOpen}
+        queue={selectedQueue}
+        onSubmit={handleActionSubmit}
         onClose={() => {
           setIsActionModalOpen(false);
           setSelectedQueue(null);
         }}
-        title="Manage Transaction Queue"
-      >
-        <GameActionForm
-          queue={selectedQueue}
-          onSubmit={handleActionSubmit}
-          onCancel={() => {
-            setIsActionModalOpen(false);
-            setSelectedQueue(null);
-          }}
-        />
-      </Modal>
+      />
     </>
   );
 }
