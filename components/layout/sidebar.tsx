@@ -187,6 +187,12 @@ const HistoryGameActivityIcon = () => (
   </svg>
 );
 
+const ChatIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
+
 const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Dashboard',
@@ -533,6 +539,24 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
 
       {/* Footer */}
       <div className="border-t border-border/50 p-6 space-y-3">
+        {/* Chat Link */}
+        <Link
+          href="/dashboard/chat"
+          onClick={onClose}
+          className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors ${
+            pathname === '/dashboard/chat'
+              ? 'bg-primary/10 text-primary font-semibold shadow-sm'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+          }`}
+        >
+          <div className={`shrink-0 transition-all duration-200 ${
+            pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
+          }`}>
+            <ChatIcon />
+          </div>
+          <span>Chat</span>
+        </Link>
+
         {/* Status */}
         <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
           <span className="w-2 h-2 bg-green-500 rounded-full" />

@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
+import { useChatDrawer } from '@/contexts/chat-drawer-context';
 
 export type ControlSection = 'companies' | 'players' | 'games' | 'managers' | 'agents' | 'staffs' | 'transactions' | 'processing' | 'bonuses' | 'banners' | 'affiliates' | 'game-activities' | 'company-settings' | 'game-settings' | 'payment-settings' | 'social-links' | 'affiliate-settings';
 
@@ -154,11 +155,12 @@ const controlItems: ControlItem[] = [
   { 
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
       </svg>
     ), 
-    label: 'Social Links',
-    section: 'social-links'
+    label: 'Support',
+    section: undefined,
+    active: true
   },
   { 
     icon: (
@@ -178,6 +180,7 @@ interface ControlGridProps {
 
 export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps) {
   const { user } = useAuth();
+  const { openDrawer } = useChatDrawer();
   
   // Filter control items based on user role
   const filteredItems = controlItems.filter(item => {
@@ -195,7 +198,13 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
   });
 
   const handleClick = (item: ControlItem) => {
-    // Open modals for all sections (data and settings)
+    // Open chat drawer for Support button
+    if (item.label === 'Support') {
+      openDrawer();
+      return;
+    }
+    
+    // Open modals for all other sections
     if (onSectionClick && item.section) {
       onSectionClick(item.section);
     }
