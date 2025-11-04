@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { formatCurrency } from '@/lib/utils/formatters';
 import type { TransactionQueue, GameActionType } from '@/types';
 
 const mapTypeToLabel = (type: string): string => {
@@ -48,6 +49,42 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     }
     return null;
   }, [queue]);
+
+  // Bonus amount calculation
+  const bonusAmount = useMemo(() => {
+    if (!queue) return null;
+    const bonus = queue.bonus_amount || queue.data?.bonus_amount;
+    if (!bonus) return null;
+    const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
+      ? parseFloat(String(bonus)) 
+      : 0;
+    return bonusValue > 0 ? bonus : null;
+  }, [queue]);
+
+  const formattedBonus = useMemo(() => {
+    return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+  }, [bonusAmount]);
+
+  // New credits and winnings from data object
+  const newCreditsBalance = useMemo(() => {
+    if (!queue) return null;
+    const credits = queue.data?.new_credits_balance;
+    if (credits === undefined || credits === null) return null;
+    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
+      ? parseFloat(String(credits))
+      : null;
+    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
+  }, [queue?.data?.new_credits_balance]);
+
+  const newWinningBalance = useMemo(() => {
+    if (!queue) return null;
+    const winnings = queue.data?.new_winning_balance;
+    if (winnings === undefined || winnings === null) return null;
+    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
+      ? parseFloat(String(winnings))
+      : null;
+    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
+  }, [queue?.data?.new_winning_balance]);
 
   if (!queue) {
     return null;
@@ -163,7 +200,24 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             <div>
               <span className="text-muted-foreground text-xs">Amount:</span>
               <span className="ml-2 font-medium text-green-600">${queue.amount}</span>
+              {formattedBonus && (
+                <div className="ml-2 text-xs text-green-600 mt-0.5">
+                  +{formattedBonus} bonus
+                </div>
+              )}
             </div>
+            {newCreditsBalance && (
+              <div>
+                <span className="text-muted-foreground text-xs">New Credits:</span>
+                <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
+              </div>
+            )}
+            {newWinningBalance && (
+              <div>
+                <span className="text-muted-foreground text-xs">New Winnings:</span>
+                <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
+              </div>
+            )}
             {queue.user_username && (
               <div>
                 <span className="text-muted-foreground text-xs">User:</span>
@@ -304,7 +358,24 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           <div>
             <span className="text-muted-foreground text-xs">Amount:</span>
             <span className="ml-2 font-medium text-green-600">${queue.amount}</span>
+            {formattedBonus && (
+              <div className="ml-2 text-xs text-green-600 mt-0.5">
+                +{formattedBonus} bonus
+              </div>
+            )}
           </div>
+          {newCreditsBalance && (
+            <div>
+              <span className="text-muted-foreground text-xs">New Credits:</span>
+              <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
+            </div>
+          )}
+          {newWinningBalance && (
+            <div>
+              <span className="text-muted-foreground text-xs">New Winnings:</span>
+              <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
+            </div>
+          )}
           {queue.user_username && (
             <div>
               <span className="text-muted-foreground text-xs">User:</span>

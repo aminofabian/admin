@@ -45,6 +45,25 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     return formatCurrency(String(dataAmount));
   }, [activity.data?.amount]);
 
+  // New credits and winnings from data object
+  const newCreditsBalance = useMemo(() => {
+    const credits = activity.data?.new_credits_balance;
+    if (credits === undefined || credits === null) return null;
+    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
+      ? parseFloat(String(credits))
+      : null;
+    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
+  }, [activity.data?.new_credits_balance]);
+
+  const newWinningBalance = useMemo(() => {
+    const winnings = activity.data?.new_winning_balance;
+    if (winnings === undefined || winnings === null) return null;
+    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
+      ? parseFloat(String(winnings))
+      : null;
+    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
+  }, [activity.data?.new_winning_balance]);
+
   // Website user (actual user on the platform)
   const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
@@ -120,10 +139,24 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
                 <span className="text-blue-700 dark:text-blue-300">Total Sent to Game:</span>
                 <span className="font-bold text-blue-900 dark:text-blue-100">{totalAmountSent}</span>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-blue-200 dark:border-blue-800">
-                <span className="text-blue-700 dark:text-blue-300">New Game Balance:</span>
-                <span className="font-bold text-green-600 dark:text-green-400">{formattedBalance}</span>
-              </div>
+              {newCreditsBalance && (
+                <div className="flex justify-between items-center">
+                  <span className="text-blue-700 dark:text-blue-300">New Credits Balance:</span>
+                  <span className="font-bold text-blue-900 dark:text-blue-100">{newCreditsBalance}</span>
+                </div>
+              )}
+              {newWinningBalance && (
+                <div className="flex justify-between items-center">
+                  <span className="text-green-700 dark:text-green-300">New Winnings Balance:</span>
+                  <span className="font-bold text-green-600 dark:text-green-400">{newWinningBalance}</span>
+                </div>
+              )}
+              {!newCreditsBalance && !newWinningBalance && (
+                <div className="flex justify-between items-center pt-2 border-t border-blue-200 dark:border-blue-800">
+                  <span className="text-blue-700 dark:text-blue-300">New Game Balance:</span>
+                  <span className="font-bold text-green-600 dark:text-green-400">{formattedBalance}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -142,11 +175,30 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
             <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Game</label>
             <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{activity.game}</div>
           </div>
-          {/* Show balance only if not in recharge breakdown */}
+          {/* Show balance information only if not in recharge breakdown */}
           {!(activity.type === 'recharge_game' && formattedBonus && totalAmountSent) && (
-            <div className="space-y-1 mt-3">
-              <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Game Balance</label>
-              <div className="text-lg font-bold text-green-900 dark:text-green-100">{formattedBalance}</div>
+            <div className="space-y-3 mt-3">
+              {(newCreditsBalance || newWinningBalance) ? (
+                <>
+                  {newCreditsBalance && (
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">New Credits Balance</label>
+                      <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{newCreditsBalance}</div>
+                    </div>
+                  )}
+                  {newWinningBalance && (
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Winnings Balance</label>
+                      <div className="text-lg font-bold text-green-900 dark:text-green-100">{newWinningBalance}</div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Game Balance</label>
+                  <div className="text-lg font-bold text-green-900 dark:text-green-100">{formattedBalance}</div>
+                </div>
+              )}
             </div>
           )}
         </div>
