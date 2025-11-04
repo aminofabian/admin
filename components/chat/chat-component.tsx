@@ -603,37 +603,44 @@ export function ChatComponent() {
             </div>
 
             {/* Message Input */}
-            <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="hidden md:flex items-center gap-1">
-                  <button 
-                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
-                    title="Attach file"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </button>
-                  <button 
-                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
-                    title="Attach image"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                  <button 
-                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-110 active:scale-95"
-                    title="Emoji"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
+            <div className="px-4 py-4 md:px-6 md:py-5 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
+              {/* Toolbar - Desktop Only */}
+              <div className="hidden md:flex items-center gap-1 mb-3 pb-3 border-b border-border/30">
+                <button 
+                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                  title="Attach file"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </button>
+                <button 
+                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                  title="Attach image"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <button 
+                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                  title="Emoji"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                  <kbd className="px-2 py-1 bg-muted/50 rounded border border-border/50">Shift + Enter</kbd>
+                  <span>for new line</span>
                 </div>
+              </div>
+
+              {/* Input Area */}
+              <div className="flex items-end gap-2 md:gap-3">
                 {/* Mobile: Show attach button */}
                 <button 
-                  className="md:hidden p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all active:scale-95 flex-shrink-0"
+                  className="md:hidden p-3 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all active:scale-95 flex-shrink-0 mb-[2px]"
                   title="Attach"
                   aria-label="Attach file"
                 >
@@ -642,11 +649,10 @@ export function ChatComponent() {
                   </svg>
                 </button>
                 
-                {/* Input Container */}
-                <div className="flex-1 relative">
-                  <Input
-                    type="text"
-                    placeholder="Type your message..."
+                {/* Textarea Container */}
+                <div className="flex-1 relative flex items-end">
+                  <textarea
+                    placeholder="Type your message... (Shift+Enter for new line)"
                     value={messageInput}
                     onChange={(e) => {
                       setMessageInput(e.target.value);
@@ -654,17 +660,26 @@ export function ChatComponent() {
                         setIsTyping(true);
                         setTimeout(() => setIsTyping(false), 2000);
                       }
+                      // Auto-resize
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 300) + 'px';
                     }}
-                    onKeyPress={handleKeyPress}
-                    className="pr-10 rounded-2xl bg-muted/50 dark:bg-muted/30 border-2 border-transparent focus:border-primary focus:bg-background transition-all text-sm md:text-base py-2.5 md:py-3 px-4 shadow-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    rows={2}
+                    className="w-full min-h-[80px] md:min-h-[100px] max-h-[300px] rounded-2xl bg-background/80 dark:bg-background border-2 border-border/50 focus:border-primary transition-all text-base md:text-lg py-4 md:py-5 px-5 md:px-6 pr-12 shadow-md resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50 text-foreground leading-relaxed"
                   />
                   {messageInput && (
                     <button
                       onClick={() => setMessageInput('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors active:scale-95"
+                      className="absolute right-4 top-4 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors active:scale-95"
                       aria-label="Clear message"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
@@ -675,13 +690,18 @@ export function ChatComponent() {
                 <Button 
                   onClick={handleSendMessage} 
                   disabled={!messageInput.trim()}
-                  className="rounded-2xl px-4 md:px-6 py-2.5 md:py-3 transition-all duration-200 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] shadow-md flex-shrink-0"
+                  className="rounded-2xl px-6 md:px-8 py-4 md:py-5 transition-all duration-200 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed h-[80px] md:h-[100px] shadow-lg flex-shrink-0 font-semibold text-base md:text-lg flex items-center justify-center"
                 >
-                  <svg className="w-4 h-4 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 md:mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
-                  <span className="hidden md:inline font-medium">Send</span>
+                  <span className="hidden md:inline">Send</span>
                 </Button>
+              </div>
+
+              {/* Mobile hint */}
+              <div className="md:hidden mt-2 text-xs text-muted-foreground/60 text-center">
+                Tap Send or Enter to send • Hold Shift for new line
               </div>
             </div>
           </>
