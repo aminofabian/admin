@@ -213,7 +213,6 @@ function HistoryGameActivitiesTable({ queues }: HistoryGameActivitiesTableProps)
                 <TableHead>Activity</TableHead>
                 <TableHead>Game</TableHead>
                 <TableHead>Game Username</TableHead>
-                <TableHead>Operator</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>New Balance</TableHead>
                 <TableHead>Status</TableHead>
@@ -390,11 +389,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
             —
           </div>
         )}
-      </TableCell>
-      <TableCell>
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          {activity.operator || '—'}
-        </div>
       </TableCell>
       <TableCell>
         <div className="font-semibold">
