@@ -193,32 +193,36 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               <span className="text-muted-foreground text-xs">Status:</span>
               <span className={`ml-2 font-medium ${queue.status === 'failed' ? 'text-red-600' : 'text-yellow-600'}`}>{queue.status.toUpperCase()}</span>
             </div>
-            <div>
-              <span className="text-muted-foreground text-xs">Game:</span>
-              <span className="ml-2 font-medium">{queue.game}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-xs">Amount:</span>
-              <span className="ml-2 font-medium text-green-600">${queue.amount}</span>
-              {formattedBonus && (
-                <div className="ml-2 text-xs text-green-600 mt-0.5">
-                  +{formattedBonus} bonus
+          <div>
+            <span className="text-muted-foreground text-xs">Game:</span>
+            <span className="ml-2 font-medium">{queue.game}</span>
+          </div>
+          {!['add_user_game', 'create_game'].includes(queue.type) && !(queue.type as string).includes('password') && (
+            <>
+              <div>
+                <span className="text-muted-foreground text-xs">Amount:</span>
+                <span className="ml-2 font-medium text-green-600">${queue.amount}</span>
+                {formattedBonus && (
+                  <div className="ml-2 text-xs text-green-600 mt-0.5">
+                    +{formattedBonus} bonus
+                  </div>
+                )}
+              </div>
+              {newCreditsBalance && (
+                <div>
+                  <span className="text-muted-foreground text-xs">New Credits:</span>
+                  <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
                 </div>
               )}
-            </div>
-            {newCreditsBalance && (
-              <div>
-                <span className="text-muted-foreground text-xs">New Credits:</span>
-                <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
-              </div>
-            )}
-            {newWinningBalance && (
-              <div>
-                <span className="text-muted-foreground text-xs">New Winnings:</span>
-                <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
-              </div>
-            )}
-            {queue.user_username && (
+              {newWinningBalance && (
+                <div>
+                  <span className="text-muted-foreground text-xs">New Winnings:</span>
+                  <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
+                </div>
+              )}
+            </>
+          )}
+          {queue.user_username && (
               <div>
                 <span className="text-muted-foreground text-xs">User:</span>
                 <span className="ml-2 font-medium">{queue.user_username}</span>
@@ -357,26 +361,30 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             <span className="text-muted-foreground text-xs">Game:</span>
             <span className="ml-2 font-medium">{queue.game}</span>
           </div>
-          <div>
-            <span className="text-muted-foreground text-xs">Amount:</span>
-            <span className="ml-2 font-medium text-green-600">${queue.amount}</span>
-            {formattedBonus && (
-              <div className="ml-2 text-xs text-green-600 mt-0.5">
-                +{formattedBonus} bonus
+          {!['add_user_game', 'create_game'].includes(queue.type) && !(queue.type as string).includes('password') && (
+            <>
+              <div>
+                <span className="text-muted-foreground text-xs">Amount:</span>
+                <span className="ml-2 font-medium text-green-600">${queue.amount}</span>
+                {formattedBonus && (
+                  <div className="ml-2 text-xs text-green-600 mt-0.5">
+                    +{formattedBonus} bonus
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          {newCreditsBalance && (
-            <div>
-              <span className="text-muted-foreground text-xs">New Credits:</span>
-              <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
-            </div>
-          )}
-          {newWinningBalance && (
-            <div>
-              <span className="text-muted-foreground text-xs">New Winnings:</span>
-              <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
-            </div>
+              {newCreditsBalance && (
+                <div>
+                  <span className="text-muted-foreground text-xs">New Credits:</span>
+                  <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
+                </div>
+              )}
+              {newWinningBalance && (
+                <div>
+                  <span className="text-muted-foreground text-xs">New Winnings:</span>
+                  <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
+                </div>
+              )}
+            </>
           )}
           {queue.user_username && (
             <div>
