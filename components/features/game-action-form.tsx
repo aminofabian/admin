@@ -239,9 +239,11 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           </div>
           
           {queue.remarks && (
-            <div className="mt-3 pt-3 border-t">
-              <span className="text-muted-foreground text-xs">Remarks:</span>
-              <p className="text-sm mt-1.5 text-muted-foreground">{queue.remarks}</p>
+            <div className="mt-4">
+              <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">Remarks</h4>
+              <div className="px-4 py-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/30 rounded-lg">
+                <p className="text-sm text-foreground">{queue.remarks}</p>
+              </div>
             </div>
           )}
         </div>
@@ -397,9 +399,11 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         </div>
         
         {queue.remarks && (
-          <div className="mt-3 pt-3 border-t">
-            <span className="text-muted-foreground text-xs">Remarks:</span>
-            <p className="text-sm mt-1.5 text-muted-foreground">{queue.remarks}</p>
+          <div className="mt-4">
+            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide mb-2">Remarks</h4>
+            <div className="px-4 py-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/30 rounded-lg">
+              <p className="text-sm text-foreground">{queue.remarks}</p>
+            </div>
           </div>
         )}
       </div>
