@@ -837,13 +837,13 @@ export function ChatComponent() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="default" className="w-full shadow-md hover:shadow-lg transition-shadow">
+              <Button variant="primary" className="w-full shadow-md hover:shadow-lg transition-shadow">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Edit Balance
               </Button>
-              <Button variant="outline" className="w-full hover:bg-muted/50">
+              <Button variant="secondary" className="w-full hover:bg-muted/50">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -890,7 +890,7 @@ export function ChatComponent() {
             </div>
 
             {/* Add Game Button */}
-            <Button variant="default" className="w-full shadow-md hover:shadow-lg transition-shadow">
+            <Button variant="primary" className="w-full shadow-md hover:shadow-lg transition-shadow">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -914,13 +914,13 @@ export function ChatComponent() {
                 className="w-full min-h-[100px] p-3 border border-border rounded-lg bg-background dark:bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-muted-foreground"
               />
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="default" className="w-full">
+                <Button variant="primary" className="w-full">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   Save
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => setNotes('')}>
+                <Button variant="secondary" className="w-full" onClick={() => setNotes('')}>
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
