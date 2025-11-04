@@ -309,22 +309,27 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
     </TableCell>
   );
 
+  const typeVariant = isPurchase ? 'success' : 'danger';
+
   const transactionCell = (
     <TableCell>
-      <Badge variant={isPurchase ? 'success' : 'danger'} className="text-xs">
-        {transaction.type?.toUpperCase() ?? '—'}
+      <Badge variant={typeVariant} className="text-xs uppercase">
+        {transaction.type ?? '—'}
       </Badge>
     </TableCell>
   );
 
+  const formattedAmount = formatCurrency(transaction.amount || '0');
+  const formattedBonus = bonusValue !== 0 ? formatCurrency(String(bonusValue)) : null;
+
   const amountCell = (
     <TableCell>
-      <div className={`font-semibold ${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-        {formatCurrency(transaction.amount || '0')}
+      <div className={`${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        {formattedAmount}
       </div>
-      {bonusValue !== 0 && (
-        <div className={`text-xs ${isPurchase ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-          +{formatCurrency(bonusValue)} bonus
+      {formattedBonus && (
+        <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+          +{formattedBonus} bonus
         </div>
       )}
     </TableCell>
@@ -332,32 +337,30 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
 
   const prevBalanceCell = (
     <TableCell>
-      <div className="text-sm text-muted-foreground">{formatCurrency(transaction.previous_balance || '0')}</div>
+      <div className="space-y-1">
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          C: {formatCurrency(transaction.previous_balance || '0')}
+        </div>
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+            ? formatCurrency(transaction.previous_winning_balance)
+            : formatCurrency('0')}
+        </div>
+      </div>
     </TableCell>
   );
 
   const newBalanceCell = (
     <TableCell>
-      <div className="text-sm font-semibold text-foreground">{formatCurrency(transaction.new_balance || '0')}</div>
-    </TableCell>
-  );
-
-  const prevWinningBalanceCell = (
-    <TableCell>
-      <div className="text-sm text-muted-foreground">
-        {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-          ? formatCurrency(transaction.previous_winning_balance)
-          : '—'}
-      </div>
-    </TableCell>
-  );
-
-  const newWinningBalanceCell = (
-    <TableCell>
-      <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-        {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-          ? formatCurrency(transaction.new_winning_balance)
-          : '—'}
+      <div className="space-y-1">
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          C: {formatCurrency(transaction.new_balance || '0')}
+        </div>
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+            ? formatCurrency(transaction.new_winning_balance)
+            : formatCurrency('0')}
+        </div>
       </div>
     </TableCell>
   );
@@ -394,8 +397,6 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
       {amountCell}
       {prevBalanceCell}
       {newBalanceCell}
-      {prevWinningBalanceCell}
-      {newWinningBalanceCell}
       {statusCell}
       {paymentCell}
       {datesCell}
@@ -1203,10 +1204,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   <TableHead>User</TableHead>
                   <TableHead>Transaction</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Prev Balance</TableHead>
+                  <TableHead>Previous Balance</TableHead>
                   <TableHead>New Balance</TableHead>
-                  <TableHead>Prev Winning</TableHead>
-                  <TableHead>New Winning</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Dates</TableHead>
