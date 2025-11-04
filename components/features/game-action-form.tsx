@@ -173,6 +173,229 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return true;
   };
 
+  // Type checks for layout rendering
+  const isRechargeOrRedeem = queue.type === 'recharge_game' || queue.type === 'redeem_game';
+  const isResetPassword = (queue.type as string).includes('password');
+  const isCreateGame = queue.type === 'create_game' || queue.type === 'add_user_game';
+
+  const renderCompleteFormDetails = () => {
+    if (isRechargeOrRedeem) {
+      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, New Credits - New Winnings
+      return (
+        <div className="space-y-4">
+          {/* Type - Status */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="text-muted-foreground text-xs">Type:</span>
+              <span className="ml-2 font-medium">{mapTypeToLabel(queue.type)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Status:</span>
+              <span className={`ml-2 font-medium ${queue.status === 'failed' ? 'text-red-600' : 'text-yellow-600'}`}>
+                {queue.status.toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          {/* Game - Game Username */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="text-muted-foreground text-xs">Game:</span>
+              <span className="ml-2 font-medium">{queue.game}</span>
+            </div>
+            {gameUsername ? (
+              <div>
+                <span className="text-muted-foreground text-xs">Game Username:</span>
+                <span className="ml-2 font-medium">{gameUsername}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">Game Username:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+
+          {/* User - Email */}
+          <div className="grid grid-cols-2 gap-3">
+            {queue.user_username ? (
+              <div>
+                <span className="text-muted-foreground text-xs">User:</span>
+                <span className="ml-2 font-medium">{queue.user_username}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">User:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+            {queue.user_email ? (
+              <div>
+                <span className="text-muted-foreground text-xs">Email:</span>
+                <span className="ml-2 font-medium">{queue.user_email}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">Email:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+
+          {/* New Credits - New Winnings */}
+          <div className="grid grid-cols-2 gap-3">
+            {newCreditsBalance ? (
+              <div>
+                <span className="text-muted-foreground text-xs">New Credits:</span>
+                <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">New Credits:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+            {newWinningBalance ? (
+              <div>
+                <span className="text-muted-foreground text-xs">New Winnings:</span>
+                <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">New Winnings:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+
+          {/* Amount and Bonus - Displayed in a highlighted box */}
+          <div className="mt-4 p-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800/30 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs text-muted-foreground">Amount</span>
+                <div className="text-lg font-bold text-green-600 dark:text-green-400 mt-0.5">
+                  {formatCurrency(queue.amount || '0')}
+                </div>
+              </div>
+              {formattedBonus && (
+                <div className="text-right">
+                  <span className="text-xs text-muted-foreground">Bonus</span>
+                  <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    +{formattedBonus}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (isResetPassword) {
+      // For Reset Password: Type-Status, Game - Game username, User - Email
+      return (
+        <div className="space-y-4">
+          {/* Type - Status */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="text-muted-foreground text-xs">Type:</span>
+              <span className="ml-2 font-medium">{mapTypeToLabel(queue.type)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Status:</span>
+              <span className={`ml-2 font-medium ${queue.status === 'failed' ? 'text-red-600' : 'text-yellow-600'}`}>
+                {queue.status.toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          {/* Game - Game Username */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="text-muted-foreground text-xs">Game:</span>
+              <span className="ml-2 font-medium">{queue.game}</span>
+            </div>
+            {gameUsername ? (
+              <div>
+                <span className="text-muted-foreground text-xs">Game Username:</span>
+                <span className="ml-2 font-medium">{gameUsername}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">Game Username:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+
+          {/* User - Email */}
+          <div className="grid grid-cols-2 gap-3">
+            {queue.user_username ? (
+              <div>
+                <span className="text-muted-foreground text-xs">User:</span>
+                <span className="ml-2 font-medium">{queue.user_username}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">User:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+            {queue.user_email ? (
+              <div>
+                <span className="text-muted-foreground text-xs">Email:</span>
+                <span className="ml-2 font-medium">{queue.user_email}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">Email:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // For Create Game: keep as it is (original layout)
+    return (
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <span className="text-muted-foreground text-xs">Type:</span>
+          <span className="ml-2 font-medium">{mapTypeToLabel(queue.type)}</span>
+        </div>
+        <div>
+          <span className="text-muted-foreground text-xs">Status:</span>
+          <span className={`ml-2 font-medium ${queue.status === 'failed' ? 'text-red-600' : 'text-yellow-600'}`}>
+            {queue.status.toUpperCase()}
+          </span>
+        </div>
+        <div>
+          <span className="text-muted-foreground text-xs">Game:</span>
+          <span className="ml-2 font-medium">{queue.game}</span>
+        </div>
+        {queue.user_username && (
+          <div>
+            <span className="text-muted-foreground text-xs">User:</span>
+            <span className="ml-2 font-medium">{queue.user_username}</span>
+          </div>
+        )}
+        {queue.user_email && (
+          <div>
+            <span className="text-muted-foreground text-xs">Email:</span>
+            <span className="ml-2 font-medium">{queue.user_email}</span>
+          </div>
+        )}
+        {gameUsername && (
+          <div>
+            <span className="text-muted-foreground text-xs">Game Username:</span>
+            <span className="ml-2 font-medium">{gameUsername}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (showCompleteFields) {
     return (
       <form onSubmit={handleCompleteSubmit} className="space-y-4">
@@ -184,63 +407,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               Manual Completion
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-muted-foreground text-xs">Type:</span>
-              <span className="ml-2 font-medium">{mapTypeToLabel(queue.type)}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-xs">Status:</span>
-              <span className={`ml-2 font-medium ${queue.status === 'failed' ? 'text-red-600' : 'text-yellow-600'}`}>{queue.status.toUpperCase()}</span>
-            </div>
-          <div>
-            <span className="text-muted-foreground text-xs">Game:</span>
-            <span className="ml-2 font-medium">{queue.game}</span>
-          </div>
-          {!['add_user_game', 'create_game'].includes(queue.type) && !(queue.type as string).includes('password') && (
-            <>
-              <div>
-                <span className="text-muted-foreground text-xs">Amount:</span>
-                <span className="ml-2 font-medium text-green-600">${queue.amount}</span>
-                {formattedBonus && (
-                  <div className="ml-2 text-xs text-green-600 mt-0.5">
-                    +{formattedBonus} bonus
-                  </div>
-                )}
-              </div>
-              {newCreditsBalance && (
-                <div>
-                  <span className="text-muted-foreground text-xs">New Credits:</span>
-                  <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
-                </div>
-              )}
-              {newWinningBalance && (
-                <div>
-                  <span className="text-muted-foreground text-xs">New Winnings:</span>
-                  <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
-                </div>
-              )}
-            </>
-          )}
-          {queue.user_username && (
-              <div>
-                <span className="text-muted-foreground text-xs">User:</span>
-                <span className="ml-2 font-medium">{queue.user_username}</span>
-              </div>
-            )}
-            {queue.user_email && (
-              <div>
-                <span className="text-muted-foreground text-xs">Email:</span>
-                <span className="ml-2 font-medium">{queue.user_email}</span>
-              </div>
-            )}
-            {gameUsername && (
-              <div>
-                <span className="text-muted-foreground text-xs">Game Username:</span>
-                <span className="ml-2 font-medium">{gameUsername}</span>
-              </div>
-            )}
-          </div>
+          {renderCompleteFormDetails()}
           
           {queue.remarks && (
             <div className="mt-4">
@@ -341,70 +508,230 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     );
   }
 
+  const renderTransactionDetails = () => {
+    if (isRechargeOrRedeem) {
+      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, New Credits - New Winnings
+      return (
+        <div className="space-y-4">
+          {/* Type - Status */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="text-muted-foreground text-xs">Type:</span>
+              <span className="ml-2 font-medium">{mapTypeToLabel(queue.type)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Status:</span>
+              <span className={`ml-2 font-medium ${queue.status === 'failed' ? 'text-red-600' : queue.status === 'pending' ? 'text-yellow-600' : 'text-gray-600'}`}>
+                {queue.status.toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          {/* Game - Game Username */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="text-muted-foreground text-xs">Game:</span>
+              <span className="ml-2 font-medium">{queue.game}</span>
+            </div>
+            {gameUsername ? (
+              <div>
+                <span className="text-muted-foreground text-xs">Game Username:</span>
+                <span className="ml-2 font-medium">{gameUsername}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">Game Username:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+
+          {/* User - Email */}
+          <div className="grid grid-cols-2 gap-3">
+            {queue.user_username ? (
+              <div>
+                <span className="text-muted-foreground text-xs">User:</span>
+                <span className="ml-2 font-medium">{queue.user_username}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">User:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+            {queue.user_email ? (
+              <div>
+                <span className="text-muted-foreground text-xs">Email:</span>
+                <span className="ml-2 font-medium">{queue.user_email}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">Email:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+
+          {/* New Credits - New Winnings */}
+          <div className="grid grid-cols-2 gap-3">
+            {newCreditsBalance ? (
+              <div>
+                <span className="text-muted-foreground text-xs">New Credits:</span>
+                <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">New Credits:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+            {newWinningBalance ? (
+              <div>
+                <span className="text-muted-foreground text-xs">New Winnings:</span>
+                <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">New Winnings:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+
+          {/* Amount and Bonus - Displayed in a highlighted box */}
+          <div className="mt-4 p-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800/30 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs text-muted-foreground">Amount</span>
+                <div className="text-lg font-bold text-green-600 dark:text-green-400 mt-0.5">
+                  {formatCurrency(queue.amount || '0')}
+                </div>
+              </div>
+              {formattedBonus && (
+                <div className="text-right">
+                  <span className="text-xs text-muted-foreground">Bonus</span>
+                  <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    +{formattedBonus}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (isResetPassword) {
+      // For Reset Password: Type-Status, Game - Game username, User - Email
+      return (
+        <div className="space-y-4">
+          {/* Type - Status */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="text-muted-foreground text-xs">Type:</span>
+              <span className="ml-2 font-medium">{mapTypeToLabel(queue.type)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Status:</span>
+              <span className={`ml-2 font-medium ${queue.status === 'failed' ? 'text-red-600' : queue.status === 'pending' ? 'text-yellow-600' : 'text-gray-600'}`}>
+                {queue.status.toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          {/* Game - Game Username */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="text-muted-foreground text-xs">Game:</span>
+              <span className="ml-2 font-medium">{queue.game}</span>
+            </div>
+            {gameUsername ? (
+              <div>
+                <span className="text-muted-foreground text-xs">Game Username:</span>
+                <span className="ml-2 font-medium">{gameUsername}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">Game Username:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+
+          {/* User - Email */}
+          <div className="grid grid-cols-2 gap-3">
+            {queue.user_username ? (
+              <div>
+                <span className="text-muted-foreground text-xs">User:</span>
+                <span className="ml-2 font-medium">{queue.user_username}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">User:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+            {queue.user_email ? (
+              <div>
+                <span className="text-muted-foreground text-xs">Email:</span>
+                <span className="ml-2 font-medium">{queue.user_email}</span>
+              </div>
+            ) : (
+              <div>
+                <span className="text-muted-foreground text-xs">Email:</span>
+                <span className="ml-2 font-medium text-muted-foreground">—</span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // For Create Game: keep as it is (original layout)
+    return (
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <span className="text-muted-foreground text-xs">Type:</span>
+          <span className="ml-2 font-medium">{mapTypeToLabel(queue.type)}</span>
+        </div>
+        <div>
+          <span className="text-muted-foreground text-xs">Status:</span>
+          <span className={`ml-2 font-medium ${queue.status === 'failed' ? 'text-red-600' : queue.status === 'pending' ? 'text-yellow-600' : 'text-gray-600'}`}>
+            {queue.status.toUpperCase()}
+          </span>
+        </div>
+        <div>
+          <span className="text-muted-foreground text-xs">Game:</span>
+          <span className="ml-2 font-medium">{queue.game}</span>
+        </div>
+        {queue.user_username && (
+          <div>
+            <span className="text-muted-foreground text-xs">User:</span>
+            <span className="ml-2 font-medium">{queue.user_username}</span>
+          </div>
+        )}
+        {queue.user_email && (
+          <div>
+            <span className="text-muted-foreground text-xs">Email:</span>
+            <span className="ml-2 font-medium">{queue.user_email}</span>
+          </div>
+        )}
+        {gameUsername && (
+          <div>
+            <span className="text-muted-foreground text-xs">Game Username:</span>
+            <span className="ml-2 font-medium">{gameUsername}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Transaction Details */}
       <div className="p-4 border border-border rounded-lg">
         <h3 className="text-sm font-semibold mb-3">#{queue.id}</h3>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <span className="text-muted-foreground text-xs">Type:</span>
-            <span className="ml-2 font-medium">{mapTypeToLabel(queue.type)}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground text-xs">Status:</span>
-            <span className={`ml-2 font-medium ${queue.status === 'failed' ? 'text-red-600' : queue.status === 'pending' ? 'text-yellow-600' : 'text-gray-600'}`}>
-              {queue.status.toUpperCase()}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground text-xs">Game:</span>
-            <span className="ml-2 font-medium">{queue.game}</span>
-          </div>
-          {!['add_user_game', 'create_game'].includes(queue.type) && !(queue.type as string).includes('password') && (
-            <>
-              <div>
-                <span className="text-muted-foreground text-xs">Amount:</span>
-                <span className="ml-2 font-medium text-green-600">${queue.amount}</span>
-                {formattedBonus && (
-                  <div className="ml-2 text-xs text-green-600 mt-0.5">
-                    +{formattedBonus} bonus
-                  </div>
-                )}
-              </div>
-              {newCreditsBalance && (
-                <div>
-                  <span className="text-muted-foreground text-xs">New Credits:</span>
-                  <span className="ml-2 font-medium text-blue-600">{newCreditsBalance}</span>
-                </div>
-              )}
-              {newWinningBalance && (
-                <div>
-                  <span className="text-muted-foreground text-xs">New Winnings:</span>
-                  <span className="ml-2 font-medium text-green-600">{newWinningBalance}</span>
-                </div>
-              )}
-            </>
-          )}
-          {queue.user_username && (
-            <div>
-              <span className="text-muted-foreground text-xs">User:</span>
-              <span className="ml-2 font-medium">{queue.user_username}</span>
-            </div>
-          )}
-          {queue.user_email && (
-            <div>
-              <span className="text-muted-foreground text-xs">Email:</span>
-              <span className="ml-2 font-medium">{queue.user_email}</span>
-            </div>
-          )}
-          {gameUsername && (
-            <div>
-              <span className="text-muted-foreground text-xs">Game Username:</span>
-              <span className="ml-2 font-medium">{gameUsername}</span>
-            </div>
-          )}
-        </div>
+        {renderTransactionDetails()}
         
         {queue.remarks && (
           <div className="mt-4">
