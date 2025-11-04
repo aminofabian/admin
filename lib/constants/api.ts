@@ -31,7 +31,7 @@ export const API_ENDPOINTS = {
     LIST: `${API_PREFIX}/games/`,
     DETAIL: (id: number) => `${API_PREFIX}/games/${id}/`,
     USER_GAMES: `${API_PREFIX}/user-games/`,
-    CHECK_STORE_BALANCE: `${API_PREFIX}/check-store-balance/`,
+    CHECK_STORE_BALANCE: 'api/check-store-balance', // Using Next.js API route to proxy request
   },
   TRANSACTIONS: {
     LIST: `${API_PREFIX}/transactions/`,

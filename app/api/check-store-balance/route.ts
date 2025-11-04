@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    // Get the authorization token from the request headers
+    const authHeader = request.headers.get('authorization');
+    
+    // Forward directly to the Django backend
+    const backendUrl = `${BACKEND_URL}/api/v1/check-store-balance/`;
+
+    console.log('🔷 Proxy Configuration:');
+    console.log('  - BACKEND_URL:', BACKEND_URL);
+    console.log('  - Full backend URL:', backendUrl);
+    console.log('📤 Request Details:');
+    console.log('  - Request body:', body);
+    console.log('  - Auth header:', authHeader ? authHeader.substring(0, 30) + '...' : 'Missing');
+
+    // Forward the POST request with Bearer token
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader || '',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    console.log('📥 Backend response status:', response.status);
+
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType && contentType.includes('application/json');
+
+    if (!isJson) {
+      const text = await response.text();
+      console.log('📥 Backend returned non-JSON:', text.substring(0, 1000));
+      
+      return NextResponse.json(
+        { 
+          status: 'error', 
+          message: 'Backend returned invalid response',
+          details: text.substring(0, 1000)
+        },
+        { status: response.status }
+      );
+    }
+
+    // Parse the response
+    const data = await response.json();
+    console.log('📥 Backend response data:', data);
+
+    // Always return 200 to Next.js, but include the backend status in the body
+    // This prevents CORS issues while still allowing the client to handle errors
+    return NextResponse.json({
+      ...data,
+      _status: response.status,
+    });
+  } catch (error) {
+    console.error('❌ Check store balance proxy error:', error);
+    
+    return NextResponse.json(
+      { 
+        status: 'error', 
+        message: error instanceof Error ? error.message : 'Failed to process check store balance request',
+        _status: 500,
+      },
+      { status: 500 }
+    );
+  }
+}
+
