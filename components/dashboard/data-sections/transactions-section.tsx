@@ -376,11 +376,11 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </Badge>
       </TableCell>
       <TableCell>
-        <div className={`${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        <div className="text-sm font-bold text-green-600 dark:text-green-400">
           {formattedAmount}
         </div>
         {formattedBonus && (
-          <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+          <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
             +{formattedBonus} bonus
           </div>
         )}

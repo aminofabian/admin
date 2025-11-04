@@ -355,11 +355,11 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
 
   const amountCell = (
     <TableCell>
-      <div className={`${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+      <div className="text-sm font-bold text-green-600 dark:text-green-400">
         {formattedAmount}
       </div>
       {formattedBonus && (
-        <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+        <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
           +{formattedBonus} bonus
         </div>
       )}
@@ -639,10 +639,10 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
         )}
       </TableCell>
       <TableCell>
-        <div className="font-semibold text-green-600 dark:text-green-400">
+        <div className="text-sm font-bold text-green-600 dark:text-green-400">
           {formattedAmount}
           {formattedBonus && (
-            <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+            <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
               +{formattedBonus} bonus
             </div>
           )}
@@ -1330,9 +1330,14 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Amount</div>
-                    <div className={`font-semibold ${transaction.type === 'purchase' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    <div className="text-sm font-bold text-green-600 dark:text-green-400">
                       {formatCurrency(transaction.amount || '0')}
                     </div>
+                    {transaction.bonus_amount && parseFloat(transaction.bonus_amount) > 0 && (
+                      <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
+                        +{formatCurrency(transaction.bonus_amount)} bonus
+                      </div>
+                    )}
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground mb-1">Status</div>
