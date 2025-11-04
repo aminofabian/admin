@@ -496,6 +496,25 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
 
   const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
 
+  // New balance from data object
+  const newCreditsBalance = useMemo(() => {
+    const credits = queue.data?.new_credits_balance;
+    if (credits === undefined || credits === null) return null;
+    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
+      ? parseFloat(String(credits))
+      : null;
+    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
+  }, [queue.data?.new_credits_balance]);
+
+  const newWinningBalance = useMemo(() => {
+    const winnings = queue.data?.new_winning_balance;
+    if (winnings === undefined || winnings === null) return null;
+    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
+      ? parseFloat(String(winnings))
+      : null;
+    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
+  }, [queue.data?.new_winning_balance]);
+
   // Website user (actual user on the platform)
   const websiteUsername = typeof queue.user_username === 'string' && queue.user_username.trim()
     ? queue.user_username.trim()
@@ -586,6 +605,24 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
             </div>
           )}
         </div>
+      </TableCell>
+      <TableCell>
+        {(newCreditsBalance || newWinningBalance) ? (
+          <div className="space-y-1">
+            {newCreditsBalance && (
+              <div className="text-sm font-semibold text-foreground">
+                Credits: {newCreditsBalance}
+              </div>
+            )}
+            {newWinningBalance && (
+              <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                Winnings: {newWinningBalance}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground">—</div>
+        )}
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
@@ -1029,6 +1066,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 <TableHead>Game</TableHead>
                 <TableHead>Game Username</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>New Balance</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Dates</TableHead>
                 <TableHead className="text-right">Action</TableHead>

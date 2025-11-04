@@ -215,7 +215,7 @@ function HistoryGameActivitiesTable({ queues }: HistoryGameActivitiesTableProps)
                 <TableHead>Game Username</TableHead>
                 <TableHead>Operator</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>New Game Balance</TableHead>
+                <TableHead>New Balance</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Dates</TableHead>
                 <TableHead className="text-right">Action</TableHead>
@@ -282,6 +282,25 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
     if (winningsValue === undefined || winningsValue === null) return null;
     return formatCurrency(String(winningsValue));
   }, [activity.data?.winnings]);
+
+  // New balance from data object
+  const newCreditsBalance = useMemo(() => {
+    const credits = activity.data?.new_credits_balance;
+    if (credits === undefined || credits === null) return null;
+    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
+      ? parseFloat(String(credits))
+      : null;
+    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
+  }, [activity.data?.new_credits_balance]);
+
+  const newWinningBalance = useMemo(() => {
+    const winnings = activity.data?.new_winning_balance;
+    if (winnings === undefined || winnings === null) return null;
+    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
+      ? parseFloat(String(winnings))
+      : null;
+    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
+  }, [activity.data?.new_winning_balance]);
 
   // Website user (actual user on the platform)
   const websiteUsername = useMemo(() => {
@@ -388,7 +407,20 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         </div>
       </TableCell>
       <TableCell>
-        {(credit || winnings) ? (
+        {(newCreditsBalance || newWinningBalance) ? (
+          <div className="space-y-1">
+            {newCreditsBalance && (
+              <div className="text-sm font-semibold text-foreground">
+                Credits: {newCreditsBalance}
+              </div>
+            )}
+            {newWinningBalance && (
+              <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                Winnings: {newWinningBalance}
+              </div>
+            )}
+          </div>
+        ) : (credit || winnings) ? (
           <div className="space-y-1">
             {credit && (
               <div className="text-sm font-semibold text-foreground">
@@ -402,7 +434,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
             )}
           </div>
         ) : (
-          <div className="text-sm font-semibold text-foreground">{formattedBalance}</div>
+          <div className="text-sm text-muted-foreground">—</div>
         )}
       </TableCell>
       <TableCell>
