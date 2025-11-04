@@ -40,22 +40,6 @@ import { useToast } from '@/components/ui';
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
 
-interface TransactionFiltersState {
-  agent?: string;
-  username?: string;
-  email?: string;
-  transaction_id?: string;
-  operator?: string;
-  type?: string;
-  payment_method?: string;
-  status?: string;
-  role?: string;
-  date_from?: string;
-  date_to?: string;
-  amount_min?: string;
-  amount_max?: string;
-}
-
 interface ProcessingSectionProps {
   type: ViewType;
 }
@@ -848,27 +832,12 @@ function buildProcessingTransactionStats(transactions: Transaction[], totalCount
 
 export function ProcessingSection({ type }: ProcessingSectionProps) {
   const viewType = type;
-  const [queueFilter, setQueueFilter] = useState<QueueFilterType>('processing');
+  const [queueFilter] = useState<QueueFilterType>('processing');
   const [selectedQueue, setSelectedQueue] = useState<TransactionQueue | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const { addToast } = useToast();
-  const [filters, setFilters] = useState<TransactionFiltersState>({
-    agent: '',
-    username: '',
-    email: '',
-    transaction_id: '',
-    operator: '',
-    type: '',
-    payment_method: '',
-    status: '',
-    date_from: '',
-    date_to: '',
-    amount_min: '',
-    amount_max: '',
-  });
 
   const isTransactionsView = viewType === 'purchases' || viewType === 'cashouts';
   const metadata = PROCESSING_CONFIG[viewType];
@@ -913,14 +882,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     }
   }, [viewType, queueFilter, setTransactionsFilter, setQueuesFilter]);
 
-  const handleFilterChange = (key: keyof TransactionFiltersState, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleQueueFilterChange = (filter: QueueFilterType) => {
-    setQueueFilter(filter);
-    setQueuesFilter(filter);
-  };
 
   const handleTransactionAction = async (
     transactionId: string, 
@@ -1456,89 +1417,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             <p className="text-sm text-muted-foreground">{metadata.hint}</p>
           </DashboardActionBar>
         )}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-black/20 p-4 space-y-4 transition-colors">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 transition-colors">
-              <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-              Filters
-            </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
-            >
-              {showFilters ? (
-                <>
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                  </svg>
-                  Hide Filters
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  Show Filters
-                </>
-              )}
-            </Button>
-          </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-800 transition-colors">
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Queue Type
-                </label>
-                <select
-                  value={queueFilter}
-                  onChange={(e) => handleQueueFilterChange(e.target.value as QueueFilterType)}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="processing">Processing</option>
-                  <option value="history">History</option>
-                  <option value="recharge_game">Recharge Game</option>
-                  <option value="redeem_game">Redeem Game</option>
-                  <option value="add_user_game">Add User Game</option>
-                  <option value="create_game">Create Game</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Status
-                </label>
-                <select
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">All Statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="failed">Failed</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  User ID
-                </label>
-                <input
-                  type="number"
-                  value={filters.username || ''}
-                  onChange={(e) => handleFilterChange('username', e.target.value)}
-                  placeholder="Enter user ID"
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
         {renderQueues()}
       </DashboardSectionContainer>
       <Modal
