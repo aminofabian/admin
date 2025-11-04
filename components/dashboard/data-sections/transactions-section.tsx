@@ -376,7 +376,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </Badge>
       </TableCell>
       <TableCell>
-        <div className={`font-semibold ${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        <div className={`${isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
           {formattedAmount}
         </div>
         {formattedBonus && (
@@ -393,7 +393,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
           <div className="text-sm text-gray-900 dark:text-gray-100">
             W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
               ? formatCurrency(transaction.previous_winning_balance)
-              : '—'}
+              : formatCurrency('0')}
           </div>
         </div>
       </TableCell>
@@ -405,7 +405,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
           <div className="text-sm text-gray-900 dark:text-gray-100">
             W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
               ? formatCurrency(transaction.new_winning_balance)
-              : '—'}
+              : formatCurrency('0')}
           </div>
         </div>
       </TableCell>
