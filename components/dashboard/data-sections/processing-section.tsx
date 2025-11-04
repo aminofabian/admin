@@ -528,16 +528,6 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
 
   const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
 
-  // Game balance from data object
-  const gameBalance = useMemo(() => {
-    const balance = queue.data?.game_balance;
-    if (balance === undefined || balance === null) return null;
-    const balanceValue = typeof balance === 'string' || typeof balance === 'number'
-      ? parseFloat(String(balance))
-      : null;
-    return balanceValue !== null && !isNaN(balanceValue) ? formatCurrency(String(balanceValue)) : null;
-  }, [queue.data?.game_balance]);
-
   // New balance from data object
   const newCreditsBalance = useMemo(() => {
     const credits = queue.data?.new_credits_balance;
@@ -647,15 +637,6 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
             </div>
           )}
         </div>
-      </TableCell>
-      <TableCell>
-        {gameBalance ? (
-          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            {gameBalance}
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">—</div>
-        )}
       </TableCell>
       <TableCell>
         {(newCreditsBalance || newWinningBalance) ? (
@@ -1113,7 +1094,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 <TableHead>Game</TableHead>
                 <TableHead>Game Username</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Game Balance</TableHead>
                 <TableHead>New Balance</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Dates</TableHead>
