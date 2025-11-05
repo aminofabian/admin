@@ -204,7 +204,6 @@ export default function PurchaseBonusPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-border/30">
-                    <TableHead className="font-semibold text-foreground">User ID</TableHead>
                     <TableHead className="font-semibold text-foreground">Payment Method</TableHead>
                     <TableHead className="font-semibold text-foreground">Bonus Type</TableHead>
                     <TableHead className="font-semibold text-foreground">Bonus Value</TableHead>
@@ -214,7 +213,6 @@ export default function PurchaseBonusPage() {
                 <TableBody>
                   {purchaseBonuses?.results.map((bonus) => (
                     <TableRow key={bonus.id} className="hover:bg-card/50 border-border/20 transition-colors">
-                      <TableCell className="font-medium text-foreground">{bonus.user}</TableCell>
                       <TableCell>
                         <Badge variant="info" className="capitalize bg-primary/10 text-primary border-primary/20">
                           {bonus.topup_method.replace('_', ' ')}
