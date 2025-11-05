@@ -93,8 +93,19 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         return queue;
       });
       
+      // Filter out completed activities when in processing view
+      const filteredQueues = filter === 'processing' 
+        ? normalizedQueues.filter(queue => {
+            const isCompleted = queue.status === 'completed';
+            if (isCompleted) {
+              console.log('⏭️ Filtering out completed activity from fetch:', queue.id, queue.status);
+            }
+            return !isCompleted;
+          })
+        : normalizedQueues;
+      
       set({ 
-        queues: normalizedQueues, 
+        queues: filteredQueues, 
         isLoading: false,
         error: null,
       });
@@ -181,7 +192,7 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
    * @param updatedQueue - The queue item to update or add
    */
   updateQueue: (updatedQueue: TransactionQueue) => {
-    const { queues } = get();
+    const { queues, filter } = get();
     
     if (!queues || !Array.isArray(queues)) {
       console.log('No queues to update, fetching fresh data...');
@@ -189,20 +200,40 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
       return;
     }
 
-    // Find the index of the queue to update
+    const status = updatedQueue.status?.toLowerCase();
+    const isCompleted = status === 'completed' || status === 'complete';
+    
+    console.log('🔍 Store updateQueue - ID:', updatedQueue.id, 'Status:', updatedQueue.status, 'IsCompleted:', isCompleted, 'Filter:', filter);
+
+    // Find the index of the queue to check if it already exists
     const queueIndex = queues.findIndex((q) => q.id === updatedQueue.id);
     
     if (queueIndex >= 0) {
-      // Update existing queue
+      // Item EXISTS in the list
+      if (filter === 'processing' && isCompleted) {
+        // Remove completed items from processing view
+        const updatedQueues = queues.filter((q) => q.id !== updatedQueue.id);
+        set({ queues: updatedQueues });
+        console.log('✅ Removed completed activity from processing view:', updatedQueue.id);
+        return;
+      }
+      
+      // Update existing queue (for status changes like pending -> processing)
       const updatedQueues = [...queues];
       updatedQueues[queueIndex] = updatedQueue;
       set({ queues: updatedQueues });
-      console.log('✅ Queue updated:', updatedQueue.id);
+      console.log('✅ Queue updated:', updatedQueue.id, 'Status:', updatedQueue.status);
     } else {
+      // Item is NEW - don't add if it's already completed
+      if (filter === 'processing' && isCompleted) {
+        console.log('⏭️ Store: Not adding new completed activity to processing view:', updatedQueue.id);
+        return;
+      }
+      
       // Add new queue to the beginning of the list
       const updatedQueues = [updatedQueue, ...queues];
       set({ queues: updatedQueues });
-      console.log('✅ New queue added:', updatedQueue.id);
+      console.log('✅ New queue added:', updatedQueue.id, 'Status:', updatedQueue.status);
     }
   },
 

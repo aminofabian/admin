@@ -318,6 +318,15 @@ export function useProcessingWebSocket({
             if (message.data) {
               // Transform the WebSocket data structure to match TransactionQueue interface
               const rawData = message.data as any;
+              
+              // DEBUG: Log the raw data to see actual field names and values
+              console.log('🔍 DEBUG - Raw WebSocket data:', {
+                status: rawData.status,
+                transaction_status: rawData.transaction_status,
+                queue_status: rawData.queue_status,
+                fullData: rawData
+              });
+              
               const transformedQueue: TransactionQueue = {
                 id: rawData.id || rawData.transaction_id,
                 type: rawData.operation_type || rawData.type,
@@ -338,7 +347,10 @@ export function useProcessingWebSocket({
                 updated_at: rawData.updated_at,
               };
               
-              console.log('✅ Transformed queue data:', transformedQueue);
+              console.log('✅ Transformed queue - ID:', transformedQueue.id, 'Status:', transformedQueue.status);
+              
+              // Pass all updates to the callback - the store will handle filtering
+              // (completed items need to reach the store so existing items can be removed)
               onQueueUpdate?.(transformedQueue);
             }
           }

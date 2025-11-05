@@ -862,38 +862,49 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     enabled: isGameActivitiesView,
     onQueueUpdate: useCallback((updatedQueue: TransactionQueue) => {
       console.log('📨 Real-time queue update received:', updatedQueue);
+      console.log('   Status:', updatedQueue.status);
+      console.log('   ID:', updatedQueue.id);
       
-      // Use the efficient updateQueue method to append/update the activity
-      // This adds new activities to the top of the list without refetching
+      // Pass ALL updates to the store - it will handle the filtering logic:
+      // - New completed items won't be added
+      // - Existing items that become completed will be removed
       updateQueue(updatedQueue);
       
-      // Show a toast notification with activity details
+      // Show toast notifications (but not for completed items being removed)
+      const statusLower = String(updatedQueue.status || '').toLowerCase();
+      const isCompleted = statusLower === 'completed' || statusLower === 'complete';
       const isNewActivity = !queues?.find(q => q.id === updatedQueue.id);
       
-      if (isNewActivity) {
-        // New activity - show detailed notification
-        const activityType = updatedQueue.type?.replace(/_/g, ' ').toUpperCase() || 'ACTIVITY';
-        const userName = updatedQueue.user_username || 'Unknown User';
-        const gameName = updatedQueue.game || 'Unknown Game';
-        
-        addToast({
-          type: 'info',
-          title: `New ${activityType}`,
-          description: `${userName} - ${gameName}`,
-          duration: 5000,
-        });
-        
-        console.log('✅ New activity added to table:', updatedQueue.id);
+      if (!isCompleted) {
+        // Only show notifications for non-completed activities
+        if (isNewActivity) {
+          // New activity - show detailed notification
+          const activityType = updatedQueue.type?.replace(/_/g, ' ').toUpperCase() || 'ACTIVITY';
+          const userName = updatedQueue.user_username || 'Unknown User';
+          const gameName = updatedQueue.game || 'Unknown Game';
+          
+          addToast({
+            type: 'info',
+            title: `New ${activityType}`,
+            description: `${userName} - ${gameName}`,
+            duration: 5000,
+          });
+          
+          console.log('✅ New activity added to table:', updatedQueue.id);
+        } else {
+          // Existing activity updated (status change)
+          addToast({
+            type: 'info',
+            title: 'Activity Updated',
+            description: `${updatedQueue.type} activity status changed`,
+            duration: 3000,
+          });
+          
+          console.log('✅ Activity updated in table:', updatedQueue.id);
+        }
       } else {
-        // Existing activity updated
-        addToast({
-          type: 'info',
-          title: 'Activity Updated',
-          description: `${updatedQueue.type} activity has been updated`,
-          duration: 3000,
-        });
-        
-        console.log('✅ Activity updated in table:', updatedQueue.id);
+        // Completed items are being removed (no toast needed)
+        console.log('✅ Activity completed and removed:', updatedQueue.id);
       }
     }, [updateQueue, addToast, queues]),
     onConnect: useCallback(() => {
