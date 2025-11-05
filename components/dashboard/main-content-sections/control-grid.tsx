@@ -242,7 +242,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
           <button
             key={index}
             onClick={() => handleClick(item)}
-            className={`group relative w-full flex flex-col items-center justify-center gap-2 p-3 sm:p-4 min-h-[95px] sm:min-h-[110px] rounded-2xl border transition-all duration-200 ${
+            className={`group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 ${
               activeSection === item.section
                 ? 'bg-gradient-to-br from-primary via-primary to-primary/90 text-white border-primary/50 shadow-xl shadow-primary/20'
                 : 'bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg'
@@ -250,12 +250,12 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
             title={item.label}
           >
             {/* Icon Container - Simple and Clean */}
-            <div className={`flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center transition-all duration-200 ${
+            <div className={`flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 2xl:w-8 2xl:h-8 flex items-center justify-center transition-all duration-200 ${
               activeSection === item.section
                 ? 'opacity-100'
                 : 'opacity-70 group-hover:opacity-100'
             }`}>
-              <div className={`transition-all duration-200 w-5 h-5 ${
+              <div className={`transition-all duration-200 w-4 h-4 sm:w-5 sm:h-5 lg:w-5 lg:h-5 2xl:w-4 2xl:h-4 ${
                 activeSection === item.section
                   ? 'text-white'
                   : 'text-foreground'
@@ -266,7 +266,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
 
             {/* Text Label - Centered */}
             <div className="w-full text-center px-1">
-              <div className={`text-xs sm:text-sm font-medium transition-colors duration-200 leading-tight ${
+              <div className={`text-xs lg:text-sm 2xl:text-xs font-medium transition-colors duration-200 leading-tight line-clamp-2 ${
                 activeSection === item.section
                   ? 'text-white'
                   : 'text-foreground'
