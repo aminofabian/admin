@@ -25,11 +25,12 @@ export default function PurchaseBonusPage() {
     operationLoading,
     fetchPurchaseBonuses,
     createPurchaseBonus,
-    deletePurchaseBonus,
+    updatePurchaseBonus,
   } = useBonusesStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingBonus, setEditingBonus] = useState<PurchaseBonus | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -37,26 +38,31 @@ export default function PurchaseBonusPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleCreateBonus = async (data: CreatePurchaseBonusRequest) => {
+  const handleSubmitBonus = async (data: CreatePurchaseBonusRequest) => {
     try {
       setIsSubmitting(true);
-      await createPurchaseBonus(data);
+      if (editingBonus) {
+        await updatePurchaseBonus(editingBonus.id, { bonus: data.bonus });
+      } else {
+        await createPurchaseBonus(data);
+      }
       setIsModalOpen(false);
+      setEditingBonus(null);
     } catch (err) {
-      console.error('Error creating bonus:', err);
+      console.error(`Error ${editingBonus ? 'updating' : 'creating'} bonus:`, err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteBonus = async (id: number) => {
-    if (confirm('Are you sure you want to delete this bonus?')) {
-      try {
-        await deletePurchaseBonus(id);
-      } catch (err) {
-        console.error('Error deleting bonus:', err);
-      }
-    }
+  const handleEditBonus = (bonus: PurchaseBonus) => {
+    setEditingBonus(bonus);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingBonus(null);
   };
 
   if (isLoading && !purchaseBonuses) {
@@ -231,16 +237,16 @@ export default function PurchaseBonusPage() {
                       </TableCell>
                       <TableCell>
                         <Button
-                          variant="danger"
+                          variant="primary"
                           size="sm"
-                          onClick={() => handleDeleteBonus(bonus.id)}
+                          onClick={() => handleEditBonus(bonus)}
                           disabled={operationLoading.purchase}
-                          className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20 hover:border-red-500/30"
+                          className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border-blue-500/20 hover:border-blue-500/30"
                         >
                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
-                          Delete
+                          Edit
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -252,16 +258,18 @@ export default function PurchaseBonusPage() {
         )}
       </div>
 
-      {/* Create Bonus Modal */}
+      {/* Create/Edit Bonus Modal */}
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Create Purchase Bonus"
+        onClose={handleCloseModal}
+        title={editingBonus ? 'Edit Purchase Bonus' : 'Create Purchase Bonus'}
       >
         <PurchaseBonusForm
-          onSubmit={handleCreateBonus}
-          onCancel={() => setIsModalOpen(false)}
+          onSubmit={handleSubmitBonus}
+          onCancel={handleCloseModal}
           isLoading={isSubmitting || operationLoading.purchase}
+          initialData={editingBonus || undefined}
+          mode={editingBonus ? 'edit' : 'create'}
         />
       </Modal>
     </div>

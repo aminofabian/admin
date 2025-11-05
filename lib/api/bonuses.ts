@@ -7,6 +7,7 @@ import type {
   SignupBonus,
   CreatePurchaseBonusRequest,
   UpdateBonusRequest,
+  UpdatePurchaseBonusRequest,
   PaginatedResponse 
 } from '@/types';
 import type { AffiliateDefaults, UpdateAffiliateDefaultsRequest } from '@/types/affiliate';
@@ -18,6 +19,9 @@ export const bonusesApi = {
 
     create: (data: CreatePurchaseBonusRequest) => 
       apiClient.post<PurchaseBonus>(API_ENDPOINTS.BONUSES.PURCHASE, data),
+
+    update: (id: number, data: UpdatePurchaseBonusRequest) => 
+      apiClient.patch<PurchaseBonus>(`${API_ENDPOINTS.BONUSES.PURCHASE}${id}/`, data),
 
     delete: (id: number) =>
       apiClient.delete<void>(`${API_ENDPOINTS.BONUSES.PURCHASE}${id}/`),

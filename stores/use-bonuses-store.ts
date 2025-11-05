@@ -7,6 +7,7 @@ import type {
   SignupBonus,
   CreatePurchaseBonusRequest,
   UpdateBonusRequest,
+  UpdatePurchaseBonusRequest,
   PaginatedResponse 
 } from '@/types';
 import type { AffiliateDefaults, UpdateAffiliateDefaultsRequest } from '@/types/affiliate';
@@ -34,6 +35,7 @@ interface BonusesState {
 interface BonusesActions {
   fetchPurchaseBonuses: () => Promise<void>;
   createPurchaseBonus: (data: CreatePurchaseBonusRequest) => Promise<PurchaseBonus>;
+  updatePurchaseBonus: (id: number, data: UpdatePurchaseBonusRequest) => Promise<PurchaseBonus>;
   deletePurchaseBonus: (id: number) => Promise<void>;
   
   fetchRechargeBonuses: () => Promise<void>;
@@ -125,6 +127,36 @@ export const useBonusesStore = create<BonusesStore>((set, get) => ({
       return bonus;
     } catch (err: unknown) {
       const errorMessage = extractErrorMessage(err, 'Failed to create purchase bonus');
+      
+      set((state) => ({ 
+        error: errorMessage,
+        operationLoading: { ...state.operationLoading, purchase: false },
+      }));
+      throw new Error(errorMessage);
+    }
+  },
+
+  updatePurchaseBonus: async (id: number, data: UpdatePurchaseBonusRequest) => {
+    set((state) => ({ 
+      operationLoading: { ...state.operationLoading, purchase: true },
+    }));
+
+    try {
+      const bonus = await bonusesApi.purchase.update(id, data);
+      
+      if (!bonus) {
+        throw new Error('No data returned from server');
+      }
+      
+      await get().fetchPurchaseBonuses();
+      
+      set((state) => ({ 
+        operationLoading: { ...state.operationLoading, purchase: false },
+      }));
+      
+      return bonus;
+    } catch (err: unknown) {
+      const errorMessage = extractErrorMessage(err, 'Failed to update purchase bonus');
       
       set((state) => ({ 
         error: errorMessage,

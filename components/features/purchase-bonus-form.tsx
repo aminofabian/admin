@@ -1,22 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
-import type { CreatePurchaseBonusRequest } from '@/types';
+import type { CreatePurchaseBonusRequest, PurchaseBonus } from '@/types';
 
 interface PurchaseBonusFormProps {
   onSubmit: (data: CreatePurchaseBonusRequest) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
+  initialData?: PurchaseBonus;
+  mode?: 'create' | 'edit';
 }
 
-export function PurchaseBonusForm({ onSubmit, onCancel, isLoading = false }: PurchaseBonusFormProps) {
+export function PurchaseBonusForm({ 
+  onSubmit, 
+  onCancel, 
+  isLoading = false,
+  initialData,
+  mode = 'create'
+}: PurchaseBonusFormProps) {
   const [formData, setFormData] = useState<CreatePurchaseBonusRequest>({
-    user: 0,
-    topup_method: '',
-    bonus_type: 'percentage',
-    bonus: 0,
+    user: initialData?.user || 0,
+    topup_method: initialData?.topup_method || '',
+    bonus_type: initialData?.bonus_type || 'percentage',
+    bonus: initialData?.bonus || 0,
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        user: initialData.user,
+        topup_method: initialData.topup_method,
+        bonus_type: initialData.bonus_type,
+        bonus: initialData.bonus,
+      });
+    }
+  }, [initialData]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -101,9 +120,10 @@ export function PurchaseBonusForm({ onSubmit, onCancel, isLoading = false }: Pur
             id="user"
             value={formData.user}
             onChange={(e) => handleInputChange('user', e.target.value)}
+            disabled={mode === 'edit'}
             className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
               errors.user ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-            }`}
+            } ${mode === 'edit' ? 'opacity-60 cursor-not-allowed' : ''}`}
             placeholder="Enter user ID"
             min="1"
             step="1"
@@ -122,9 +142,10 @@ export function PurchaseBonusForm({ onSubmit, onCancel, isLoading = false }: Pur
             id="topup_method"
             value={formData.topup_method}
             onChange={(e) => handleInputChange('topup_method', e.target.value)}
+            disabled={mode === 'edit'}
             className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
               errors.topup_method ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-            }`}
+            } ${mode === 'edit' ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <option value="">Select topup method</option>
             {topupMethods.map((method) => (
@@ -147,7 +168,10 @@ export function PurchaseBonusForm({ onSubmit, onCancel, isLoading = false }: Pur
             id="bonus_type"
             value={formData.bonus_type}
             onChange={(e) => handleInputChange('bonus_type', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            disabled={mode === 'edit'}
+            className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white ${
+              mode === 'edit' ? 'opacity-60 cursor-not-allowed' : ''
+            }`}
           >
             <option value="percentage">Percentage</option>
             <option value="fixed">Fixed Amount</option>
@@ -212,10 +236,10 @@ export function PurchaseBonusForm({ onSubmit, onCancel, isLoading = false }: Pur
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Creating...
+              {mode === 'edit' ? 'Updating...' : 'Creating...'}
             </>
           ) : (
-            'Create Bonus'
+            mode === 'edit' ? 'Update Bonus' : 'Create Bonus'
           )}
         </Button>
       </div>

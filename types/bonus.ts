@@ -50,3 +50,7 @@ export interface UpdateBonusRequest {
   min_deposit_amount?: number | null;
 }
 
+export interface UpdatePurchaseBonusRequest {
+  bonus?: number;
+}
+
