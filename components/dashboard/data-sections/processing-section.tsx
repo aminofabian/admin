@@ -35,6 +35,7 @@ import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { ApiError } from '@/types';
 import { useToast } from '@/components/ui';
+import { useProcessingWebSocket } from '@/hooks/use-processing-websocket';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
@@ -839,6 +840,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   const { addToast } = useToast();
 
   const isTransactionsView = viewType === 'purchases' || viewType === 'cashouts';
+  const isGameActivitiesView = viewType === 'game_activities';
   const metadata = PROCESSING_CONFIG[viewType];
   const [pendingTransactionId, setPendingTransactionId] = useState<string | null>(null);
 
@@ -862,7 +864,44 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     handleGameAction,
     actionLoading,
     fetchQueues,
+    updateQueue,
   } = useTransactionQueuesStore();
+
+  // WebSocket connection for real-time updates (only for game activities)
+  const { isConnected: wsConnected, isConnecting: wsConnecting, error: wsError } = useProcessingWebSocket({
+    enabled: isGameActivitiesView,
+    onQueueUpdate: useCallback((updatedQueue: TransactionQueue) => {
+      console.log('📨 Real-time queue update received:', updatedQueue);
+      
+      // Use the efficient updateQueue method to merge the update
+      updateQueue(updatedQueue);
+      
+      // Show a toast notification for new/updated queues
+      if (updatedQueue.status === 'pending') {
+        addToast({
+          type: 'info',
+          title: 'New Activity',
+          description: `New ${updatedQueue.type} activity for ${updatedQueue.game}`,
+          duration: 3000,
+        });
+      }
+    }, [updateQueue, addToast]),
+    onConnect: useCallback(() => {
+      console.log('✅ WebSocket connected - real-time updates enabled');
+      addToast({
+        type: 'success',
+        title: 'Live Updates Active',
+        description: 'Real-time game activities monitoring is now active',
+        duration: 3000,
+      });
+    }, [addToast]),
+    onDisconnect: useCallback(() => {
+      console.log('🔌 WebSocket disconnected');
+    }, []),
+    onError: useCallback(() => {
+      console.error('❌ WebSocket connection error');
+    }, []),
+  });
 
   const transactionResults = useMemo<Transaction[]>(
     () => transactions?.results ?? [],
@@ -1400,17 +1439,50 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         isEmpty={isGameEmpty}
         emptyState={gameEmptyState}
       >
-        <DashboardSectionHeader
-          title={metadata.title}
-          description={metadata.description}
-          icon={metadata.icon}
-        />
-        {metadata.hint && (
-          <DashboardActionBar>
-            <p className="text-sm text-muted-foreground">{metadata.hint}</p>
-          </DashboardActionBar>
-        )}
-        {renderQueues()}
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <DashboardSectionHeader
+              title={metadata.title}
+              description={metadata.description}
+              icon={metadata.icon}
+            />
+            
+            {/* WebSocket Connection Status */}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border">
+              {wsConnecting && (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                  <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
+                </>
+              )}
+              {wsConnected && !wsConnecting && (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
+                </>
+              )}
+              {!wsConnected && !wsConnecting && wsError && (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
+                </>
+              )}
+              {!wsConnected && !wsConnecting && !wsError && (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                  <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
+                </>
+              )}
+            </div>
+          </div>
+          
+          {metadata.hint && (
+            <DashboardActionBar>
+              <p className="text-sm text-muted-foreground">{metadata.hint}</p>
+            </DashboardActionBar>
+          )}
+          {renderQueues()}
+        </div>
       </DashboardSectionContainer>
       <ActionModal
         isOpen={isActionModalOpen}

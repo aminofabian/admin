@@ -29,6 +29,7 @@ interface TransactionQueuesActions {
   handleGameAction: (data: GameActionRequest) => Promise<void>;
   setAdvancedFilters: (filters: Record<string, string>) => void;
   clearAdvancedFilters: () => void;
+  updateQueue: (updatedQueue: TransactionQueue) => void;
   reset: () => void;
 }
 
@@ -139,6 +140,41 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
       });
       
       throw new Error(errorMessage);
+    }
+  },
+
+  /**
+   * Update a single queue item (real-time WebSocket updates)
+   * 
+   * This method efficiently updates or adds a single queue without
+   * refetching all data from the server. Used by WebSocket to merge
+   * real-time updates.
+   * 
+   * @param updatedQueue - The queue item to update or add
+   */
+  updateQueue: (updatedQueue: TransactionQueue) => {
+    const { queues } = get();
+    
+    if (!queues || !Array.isArray(queues)) {
+      console.log('No queues to update, fetching fresh data...');
+      get().fetchQueues();
+      return;
+    }
+
+    // Find the index of the queue to update
+    const queueIndex = queues.findIndex((q) => q.id === updatedQueue.id);
+    
+    if (queueIndex >= 0) {
+      // Update existing queue
+      const updatedQueues = [...queues];
+      updatedQueues[queueIndex] = updatedQueue;
+      set({ queues: updatedQueues });
+      console.log('✅ Queue updated:', updatedQueue.id);
+    } else {
+      // Add new queue to the beginning of the list
+      const updatedQueues = [updatedQueue, ...queues];
+      set({ queues: updatedQueues });
+      console.log('✅ New queue added:', updatedQueue.id);
     }
   },
 
