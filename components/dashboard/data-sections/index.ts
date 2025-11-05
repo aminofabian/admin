@@ -18,4 +18,5 @@ export { BonusesSection } from './bonuses-section';
 export { PurchaseBonusManager } from './purchase-bonus-manager';
 export { GameActivityTable } from './game-activity-table';
 export { GameActivityModal } from './game-activity-modal';
+export { GameActivitiesSection } from './game-activities-section';
 
