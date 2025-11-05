@@ -12,6 +12,7 @@ import {
   Badge,
   Button,
   Modal,
+  useToast,
 } from '@/components/ui';
 import { PurchaseBonusForm, LoadingState, ErrorState, EmptyState } from '@/components/features';
 import { formatCurrency } from '@/lib/utils/formatters';
@@ -27,6 +28,7 @@ export default function PurchaseBonusPage() {
     createPurchaseBonus,
     updatePurchaseBonus,
   } = useBonusesStore();
+  const { addToast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,17 +41,35 @@ export default function PurchaseBonusPage() {
   }, []);
 
   const handleSubmitBonus = async (data: CreatePurchaseBonusRequest) => {
+    const isEditMode = !!editingBonus;
+    const bonusType = editingBonus?.bonus_type || data.bonus_type;
+    
     try {
       setIsSubmitting(true);
       if (editingBonus) {
         await updatePurchaseBonus(editingBonus.id, { bonus: data.bonus });
+        addToast({
+          type: 'success',
+          title: 'Bonus Updated',
+          description: `Bonus value has been successfully updated to ${data.bonus}${bonusType === 'percentage' ? '%' : ''}.`,
+        });
       } else {
         await createPurchaseBonus(data);
+        addToast({
+          type: 'success',
+          title: 'Bonus Created',
+          description: 'Purchase bonus has been successfully created.',
+        });
       }
       setIsModalOpen(false);
       setEditingBonus(null);
     } catch (err) {
-      console.error(`Error ${editingBonus ? 'updating' : 'creating'} bonus:`, err);
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} bonus:`, err);
+      addToast({
+        type: 'error',
+        title: `Failed to ${isEditMode ? 'Update' : 'Create'} Bonus`,
+        description: 'An error occurred while processing your request. Please try again.',
+      });
     } finally {
       setIsSubmitting(false);
     }
