@@ -15,4 +15,6 @@ export { GameSettingsSection } from './game-settings-section';
 export { PaymentSettingsSection } from './payment-settings-section';
 export { SocialLinksSection } from './social-links-section';
 export { AffiliateSettingsSection } from './affiliate-settings-section';
+export { BonusesSection } from './bonuses-section';
+export { PurchaseBonusManager } from './purchase-bonus-manager';
 
