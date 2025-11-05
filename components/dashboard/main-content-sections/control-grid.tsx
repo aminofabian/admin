@@ -237,7 +237,7 @@ export function ControlGrid({ onSectionClick, activeSection }: ControlGridProps)
       </div>
 
       {/* Main Grid Container - Mobile App Style */}
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-3 lg:grid-cols-2 gap-2.5 sm:gap-3">
         {filteredItems.map((item, index) => (
           <button
             key={index}
