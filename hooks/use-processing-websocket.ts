@@ -22,11 +22,14 @@ import { useAuth } from '@/providers/auth-provider';
 import { API_BASE_URL } from '@/lib/constants/api';
 import type { TransactionQueue } from '@/types';
 
-interface WebSocketMessage {
-  type: 'processing_update' | 'queue_update' | 'connection' | 'error';
+export interface WebSocketMessage {
+  type: 'processing_update' | 'queue_update' | 'send_notification' | 'connection' | 'error';
   data?: TransactionQueue;
   message?: string;
   queues?: TransactionQueue[];
+  title?: string;
+  game_title?: string;
+  transaction_id?: string;
 }
 
 interface UseProcessingWebSocketOptions {
@@ -298,7 +301,7 @@ export function useProcessingWebSocket({
           const message: WebSocketMessage = JSON.parse(event.data);
           console.log('📨 WebSocket message received:', message);
 
-          // Call the generic message handler
+          // Call the generic message handler (this will pass the message to the component)
           onMessage?.(message);
 
           // Handle specific message types
@@ -308,6 +311,12 @@ export function useProcessingWebSocket({
             } else if (message.queues && Array.isArray(message.queues)) {
               // Handle bulk queue updates
               message.queues.forEach((queue) => onQueueUpdate?.(queue));
+            }
+          } else if (message.type === 'send_notification') {
+            // Handle send_notification type - this is for new game activities
+            console.log('📨 New game activity notification:', message);
+            if (message.data) {
+              onQueueUpdate?.(message.data);
             }
           }
         } catch (err) {

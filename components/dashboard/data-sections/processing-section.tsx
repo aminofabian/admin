@@ -35,7 +35,7 @@ import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { ApiError } from '@/types';
 import { useToast } from '@/components/ui';
-import { useProcessingWebSocket } from '@/hooks/use-processing-websocket';
+import { useProcessingWebSocket, type WebSocketMessage } from '@/hooks/use-processing-websocket';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
@@ -872,20 +872,47 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     enabled: isGameActivitiesView,
     onQueueUpdate: useCallback((updatedQueue: TransactionQueue) => {
       console.log('📨 Real-time queue update received:', updatedQueue);
+      console.log('🔔 Activity details:', {
+        id: updatedQueue.id,
+        type: updatedQueue.type,
+        game: updatedQueue.game,
+        user_username: updatedQueue.user_username,
+        status: updatedQueue.status,
+      });
       
-      // Use the efficient updateQueue method to merge the update
+      // Use the efficient updateQueue method to append/update the activity
+      // This adds new activities to the top of the list without refetching
       updateQueue(updatedQueue);
       
-      // Show a toast notification for new/updated queues
-      if (updatedQueue.status === 'pending') {
+      // Show a toast notification with activity details
+      const isNewActivity = !queues?.find(q => q.id === updatedQueue.id);
+      
+      if (isNewActivity) {
+        // New activity - show detailed notification
+        const activityType = updatedQueue.type?.replace(/_/g, ' ').toUpperCase() || 'ACTIVITY';
+        const userName = updatedQueue.user_username || 'Unknown User';
+        const gameName = updatedQueue.game || 'Unknown Game';
+        
         addToast({
           type: 'info',
-          title: 'New Activity',
-          description: `New ${updatedQueue.type} activity for ${updatedQueue.game}`,
+          title: `New ${activityType}`,
+          description: `${userName} - ${gameName}`,
+          duration: 5000,
+        });
+        
+        console.log('✅ New activity added to table:', updatedQueue.id);
+      } else {
+        // Existing activity updated
+        addToast({
+          type: 'info',
+          title: 'Activity Updated',
+          description: `${updatedQueue.type} activity has been updated`,
           duration: 3000,
         });
+        
+        console.log('✅ Activity updated in table:', updatedQueue.id);
       }
-    }, [updateQueue, addToast]),
+    }, [updateQueue, addToast, queues]),
     onConnect: useCallback(() => {
       console.log('✅ WebSocket connected - real-time updates enabled');
       addToast({
