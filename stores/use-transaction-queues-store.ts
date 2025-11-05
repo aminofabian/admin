@@ -65,8 +65,23 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
 
       const response = await transactionsApi.queues(filters);
       
+      // Normalize API response to match the structure we expect (same as WebSocket transformation)
+      const normalizedQueues = response.results.map((queue: TransactionQueue) => {
+        // If data has nested fields, promote them to top level for consistency
+        if (queue.data && typeof queue.data === 'object') {
+          const data = queue.data as any;
+          return {
+            ...queue,
+            game: queue.game || data.game_title || data.game,
+            game_username: queue.game_username || data.get_usergame_username || data.username || data.game_username,
+            amount: queue.amount || (data.amount ? String(data.amount) : undefined) || (data.get_total_amount ? String(data.get_total_amount) : undefined),
+          };
+        }
+        return queue;
+      });
+      
       set({ 
-        queues: response.results, 
+        queues: normalizedQueues, 
         isLoading: false,
         error: null,
       });

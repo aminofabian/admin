@@ -540,10 +540,10 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
     ? queue.user_email.trim()
     : null;
 
-  // Game name - already transformed from WebSocket data
+  // Game name - normalized at source (WebSocket hook and Store)
   const gameName = queue.game || 'Unknown Game';
 
-  // Game username (username used in the game) - already transformed from WebSocket data
+  // Game username - normalized at source (WebSocket hook and Store)  
   const gameUsername = queue.game_username || null;
 
   const userInitial = websiteUsername
