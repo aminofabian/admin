@@ -6,7 +6,7 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 }
 
 export const Modal = ({ 
@@ -35,6 +35,8 @@ export const Modal = ({
     md: 'max-w-lg',
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
+    '2xl': 'max-w-6xl',
+    full: 'max-w-[95vw]',
   };
 
   return (
@@ -63,7 +65,7 @@ export const Modal = ({
           </div>
           
           {/* Content */}
-          <div className="px-6 py-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+          <div className={`px-6 py-4 ${size === 'full' || size === '2xl' ? 'max-h-[calc(100vh-120px)]' : 'max-h-[calc(100vh-200px)]'} overflow-y-auto`}>
             {children}
           </div>
           

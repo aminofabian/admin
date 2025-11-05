@@ -25,6 +25,7 @@ import {
   TransactionDetailsModal
 } from '@/components/features';
 import { ActionModal } from './action-modal/game-activity-history';
+import { GameActivityTable } from './game-activity-table';
 import { 
   useTransactionsStore, 
   useTransactionQueuesStore 
@@ -467,19 +468,6 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
   );
 }
 
-const mapTypeToLabel = (type: string): string => {
-  if (type === 'recharge_game') return 'Recharge';
-  if (type === 'redeem_game') return 'Redeem';
-  if (type === 'add_user_game' || type === 'create_game') return 'Add User';
-  return type;
-};
-
-const mapTypeToVariant = (type: string): 'success' | 'danger' | 'info' | 'default' => {
-  if (type === 'recharge_game') return 'success';
-  if (type === 'redeem_game') return 'danger';
-  return 'info';
-};
-
 const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'info' => {
   switch (status.toLowerCase()) {
     case 'completed': return 'success';
@@ -489,169 +477,6 @@ const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'i
   }
 };
 
-interface ProcessingGameActivityRowProps {
-  queue: TransactionQueue;
-  actionLoading: boolean;
-  onQuickAction: (queue: TransactionQueue, action: string) => void;
-}
-
-function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: ProcessingGameActivityRowProps) {
-  const statusVariant = getStatusVariant(queue.status);
-  const typeLabel = mapTypeToLabel(queue.type);
-  const typeVariant = mapTypeToVariant(queue.type);
-  const formattedAmount = formatCurrency(queue.amount || '0');
-  
-  const bonusAmount = useMemo(() => {
-    const bonus = queue.bonus_amount || queue.data?.bonus_amount;
-    if (!bonus) return null;
-    const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
-      ? parseFloat(String(bonus)) 
-      : 0;
-    return bonusValue > 0 ? bonus : null;
-  }, [queue.bonus_amount, queue.data?.bonus_amount]);
-
-  const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
-
-  // New balance from data object
-  const newCreditsBalance = useMemo(() => {
-    const credits = queue.data?.new_credits_balance;
-    if (credits === undefined || credits === null) return null;
-    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
-      ? parseFloat(String(credits))
-      : null;
-    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
-  }, [queue.data?.new_credits_balance]);
-
-  const newWinningBalance = useMemo(() => {
-    const winnings = queue.data?.new_winning_balance;
-    if (winnings === undefined || winnings === null) return null;
-    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
-      ? parseFloat(String(winnings))
-      : null;
-    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
-  }, [queue.data?.new_winning_balance]);
-
-  // Website user (actual user on the platform)
-  const websiteUsername = typeof queue.user_username === 'string' && queue.user_username.trim()
-    ? queue.user_username.trim()
-    : null;
-
-  const websiteEmail = typeof queue.user_email === 'string' && queue.user_email.trim()
-    ? queue.user_email.trim()
-    : null;
-
-  // Game name - normalized at source (WebSocket hook and Store)
-  const gameName = queue.game || 'Unknown Game';
-
-  // Game username - normalized at source (WebSocket hook and Store)  
-  const gameUsername = queue.game_username || null;
-
-  const userInitial = websiteUsername
-    ? websiteUsername.charAt(0).toUpperCase()
-    : queue.user_id
-      ? String(queue.user_id).charAt(0)
-      : '—';
-
-  const formattedCreatedAt = formatDate(queue.created_at);
-  const formattedUpdatedAt = formatDate(queue.updated_at);
-  const showUpdatedAt = queue.updated_at !== queue.created_at;
-
-  const handleActionClick = useCallback(() => {
-    onQuickAction(queue, 'view');
-  }, [queue, onQuickAction]);
-
-  return (
-    <TableRow>
-      <TableCell>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
-            {userInitial}
-          </div>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-gray-100">
-              {websiteUsername || `User ${queue.user_id}`}
-            </div>
-            {websiteEmail && (
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {websiteEmail}
-              </div>
-            )}
-          </div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <Badge variant={typeVariant} className="capitalize">
-          {typeLabel}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <div className="font-medium">{gameName}</div>
-      </TableCell>
-      <TableCell>
-        {gameUsername ? (
-          <div className="font-medium text-gray-900 dark:text-gray-100">
-            {gameUsername}
-          </div>
-        ) : queue.status === 'cancelled' ? (
-          <Badge variant="default" className="text-xs">
-            Cancelled
-          </Badge>
-        ) : (
-          <div className="font-medium text-gray-900 dark:text-gray-100">
-            —
-          </div>
-        )}
-      </TableCell>
-      <TableCell>
-        <div className="text-sm font-bold text-green-600 dark:text-green-400">
-          {formattedAmount}
-          {formattedBonus && (
-            <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
-              +{formattedBonus} bonus
-            </div>
-          )}
-        </div>
-      </TableCell>
-      <TableCell>
-        {(newCreditsBalance || newWinningBalance) ? (
-          <div className="space-y-1">
-            <div className="text-sm text-gray-700 dark:text-gray-300">
-              C: {newCreditsBalance || formatCurrency('0')}
-            </div>
-            <div className="text-sm text-gray-700 dark:text-gray-300">
-              W: {newWinningBalance || formatCurrency('0')}
-            </div>
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">—</div>
-        )}
-      </TableCell>
-      <TableCell>
-        <Badge variant={statusVariant} className="capitalize">
-          {queue.status}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div>{formattedCreatedAt}</div>
-          {showUpdatedAt && (
-            <div>{formattedUpdatedAt}</div>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-right">
-        <Button
-          size="sm"
-          variant="primary"
-          disabled={actionLoading}
-          onClick={handleActionClick}
-        >
-          View Details
-        </Button>
-      </TableCell>
-    </TableRow>
-  );
-}
 
 interface MobileTransactionActionsProps {
   transaction: Transaction;
@@ -1091,44 +916,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     }
   };
 
-  const renderQueues = () => {
-    // Defensive programming: ensure queues is actually an array
-    if (!queues || !Array.isArray(queues) || queues.length === 0) {
-      return null;
-    }
-
-    return (
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Activity</TableHead>
-                <TableHead>Game</TableHead>
-                <TableHead>Game Username</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>New Balance</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {queues.map((queue: TransactionQueue) => (
-                <ProcessingGameActivityRow
-                  key={queue.id}
-                  queue={queue}
-                  actionLoading={actionLoading}
-                  onQuickAction={handleQuickAction}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-    );
-  };
+  const handleViewGameActivity = useCallback((queue: TransactionQueue) => {
+    handleQuickAction(queue, 'view');
+  }, []);
 
   if (isTransactionsView) {
     const isInitialLoading = transactionsLoading && !transactions;
@@ -1502,7 +1292,12 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
               <p className="text-sm text-muted-foreground">{metadata.hint}</p>
             </DashboardActionBar>
           )}
-          {renderQueues()}
+          <GameActivityTable
+            activities={queues ?? []}
+            onViewDetails={handleViewGameActivity}
+            showActions={true}
+            actionLoading={actionLoading}
+          />
         </div>
       </DashboardSectionContainer>
       <ActionModal

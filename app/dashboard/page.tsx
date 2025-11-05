@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDashboardStats } from '@/hooks/use-dashboard-stats';
 import {
   ControlGrid,
@@ -27,25 +27,39 @@ import {
   PaymentSettingsSection,
   SocialLinksSection,
   AffiliateSettingsSection,
-  GameActivitiesSection
+  GameActivityModal,
 } from '@/components/dashboard/data-sections';
+import { useTransactionQueuesStore } from '@/stores/use-transaction-queues-store';
 import type { ControlSection } from '@/components/dashboard/main-content-sections';
 
 export default function DashboardPage() {
   const { stats, loading: statsLoading } = useDashboardStats();
   const [activeSection, setActiveSection] = useState<ControlSection | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGameActivityModalOpen, setIsGameActivityModalOpen] = useState(false);
+  
+  const { queues, isLoading: queuesLoading, fetchQueues, setFilter } = useTransactionQueuesStore();
 
   const handleSectionClick = (section: ControlSection | undefined) => {
     if (section) {
-      setActiveSection(section);
-      setIsModalOpen(true);
+      if (section === 'game-activities') {
+        // Set filter to processing (this will also fetch queues)
+        setFilter('processing');
+        setIsGameActivityModalOpen(true);
+      } else {
+        setActiveSection(section);
+        setIsModalOpen(true);
+      }
     }
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setTimeout(() => setActiveSection(null), 300); // Delay to allow modal close animation
+  };
+
+  const handleCloseGameActivityModal = () => {
+    setIsGameActivityModalOpen(false);
   };
 
   const renderSection = () => {
@@ -72,8 +86,6 @@ export default function DashboardPage() {
         return <AffiliatesSection />;
       case 'bonuses':
         return <BonusesSection />;
-      case 'game-activities':
-        return <GameActivitiesSection />;
       case 'company-settings':
         return <CompanySettingsSection />;
       case 'game-settings':
@@ -105,6 +117,15 @@ export default function DashboardPage() {
 
   return (
     <>
+      {/* Game Activity Modal */}
+      <GameActivityModal
+        isOpen={isGameActivityModalOpen}
+        onClose={handleCloseGameActivityModal}
+        activities={queues || []}
+        title="Game Activities"
+        description="View and manage game activities"
+      />
+
       {/* Full Screen Modal for Data Sections */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden">

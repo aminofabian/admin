@@ -8,7 +8,6 @@ export { TransactionsSection } from './transactions-section';
 export { ProcessingSection } from './processing-section';
 export { BannersSection } from './banners-section';
 export { AffiliatesSection } from './affiliates-section';
-export { GameActivitiesSection } from './game-activities-section';
 export { CompanySettingsSection } from './company-settings-section';
 export { BonusSettingsSection } from './bonus-settings-section';
 export { GameSettingsSection } from './game-settings-section';
@@ -17,4 +16,6 @@ export { SocialLinksSection } from './social-links-section';
 export { AffiliateSettingsSection } from './affiliate-settings-section';
 export { BonusesSection } from './bonuses-section';
 export { PurchaseBonusManager } from './purchase-bonus-manager';
+export { GameActivityTable } from './game-activity-table';
+export { GameActivityModal } from './game-activity-modal';
 
