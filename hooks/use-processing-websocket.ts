@@ -316,7 +316,30 @@ export function useProcessingWebSocket({
             // Handle send_notification type - this is for new game activities
             console.log('📨 New game activity notification:', message);
             if (message.data) {
-              onQueueUpdate?.(message.data);
+              // Transform the WebSocket data structure to match TransactionQueue interface
+              const rawData = message.data as any;
+              const transformedQueue: TransactionQueue = {
+                id: rawData.id || rawData.transaction_id,
+                type: rawData.operation_type || rawData.type,
+                status: rawData.status,
+                user_id: rawData.user_id,
+                user_username: rawData.user_username,
+                user_email: rawData.user_email,
+                operator: rawData.operator,
+                game_username: rawData.get_usergame_username || rawData.game_username,
+                game: rawData.game_title || rawData.game,
+                game_code: rawData.game_code || '',
+                amount: String(rawData.amount || rawData.get_total_amount || 0),
+                bonus_amount: rawData.bonus ? String(rawData.bonus) : undefined,
+                new_game_balance: rawData.new_game_balance,
+                remarks: rawData.remarks || '',
+                data: rawData,
+                created_at: rawData.created_at,
+                updated_at: rawData.updated_at,
+              };
+              
+              console.log('✅ Transformed queue data:', transformedQueue);
+              onQueueUpdate?.(transformedQueue);
             }
           }
         } catch (err) {

@@ -540,21 +540,11 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
     ? queue.user_email.trim()
     : null;
 
-  // Game username (username used in the game)
-  const gameUsername = (() => {
-    // 1. Top-level game_username field
-    if (typeof queue.game_username === 'string' && queue.game_username.trim()) {
-      return queue.game_username.trim();
-    }
-    // 2. Username in data object (for completed transactions)
-    if (queue.data && typeof queue.data === 'object' && queue.data !== null) {
-      const dataUsername = queue.data.username;
-      if (typeof dataUsername === 'string' && dataUsername.trim()) {
-        return dataUsername.trim();
-      }
-    }
-    return null;
-  })();
+  // Game name - already transformed from WebSocket data
+  const gameName = queue.game || 'Unknown Game';
+
+  // Game username (username used in the game) - already transformed from WebSocket data
+  const gameUsername = queue.game_username || null;
 
   const userInitial = websiteUsername
     ? websiteUsername.charAt(0).toUpperCase()
@@ -595,7 +585,7 @@ function ProcessingGameActivityRow({ queue, actionLoading, onQuickAction }: Proc
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="font-medium">{queue.game}</div>
+        <div className="font-medium">{gameName}</div>
       </TableCell>
       <TableCell>
         {gameUsername ? (
@@ -872,13 +862,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     enabled: isGameActivitiesView,
     onQueueUpdate: useCallback((updatedQueue: TransactionQueue) => {
       console.log('📨 Real-time queue update received:', updatedQueue);
-      console.log('🔔 Activity details:', {
-        id: updatedQueue.id,
-        type: updatedQueue.type,
-        game: updatedQueue.game,
-        user_username: updatedQueue.user_username,
-        status: updatedQueue.status,
-      });
       
       // Use the efficient updateQueue method to append/update the activity
       // This adds new activities to the top of the list without refetching
