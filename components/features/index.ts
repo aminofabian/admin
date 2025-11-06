@@ -3,6 +3,7 @@ export * from './manager-form';
 export * from './staff-form';
 export * from './agent-form';
 export * from './player-form';
+export * from './player-view-modal';
 export * from './game-form';
 export * from './banner-form';
 export * from './affiliate-form';
