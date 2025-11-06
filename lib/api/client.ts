@@ -143,7 +143,7 @@ class ApiClient {
       endpoint, 
       url, 
       params: config?.params,
-      hasAuthToken: !!(headers as any)['Authorization'],
+      hasAuthToken: !!((headers as Record<string, string>)['Authorization']),
     });
     
     try {

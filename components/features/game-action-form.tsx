@@ -27,7 +27,6 @@ interface GameActionFormProps {
 }
 
 export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProps) {
-  const [actionType, setActionType] = useState<GameActionType | ''>('');
   const [newPassword, setNewPassword] = useState('');
   const [newBalance, setNewBalance] = useState('');
   const [newUsername, setNewUsername] = useState('');
@@ -74,7 +73,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       ? parseFloat(String(credits))
       : null;
     return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
-  }, [queue?.data?.new_credits_balance]);
+  }, [queue]);
 
   const newWinningBalance = useMemo(() => {
     if (!queue) return null;
@@ -84,15 +83,13 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       ? parseFloat(String(winnings))
       : null;
     return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
-  }, [queue?.data?.new_winning_balance]);
+  }, [queue]);
 
   if (!queue) {
     return null;
   }
 
   const handleActionSelect = (selectedAction: GameActionType) => {
-    setActionType(selectedAction);
-    
     if (selectedAction === 'complete') {
       // Show form fields for complete action
       setShowCompleteFields(true);
@@ -114,7 +111,6 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
   const handleCancelConfirmation = () => {
     setShowConfirmation(false);
     setPendingAction(null);
-    setActionType('');
   };
 
   const executeAction = async (action: GameActionType, password?: string, balance?: string, username?: string) => {
@@ -176,7 +172,6 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
   // Type checks for layout rendering
   const isRechargeOrRedeem = queue.type === 'recharge_game' || queue.type === 'redeem_game';
   const isResetPassword = (queue.type as string).includes('password');
-  const isCreateGame = queue.type === 'create_game' || queue.type === 'add_user_game';
 
   const renderCompleteFormDetails = () => {
     if (isRechargeOrRedeem) {
@@ -475,7 +470,6 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             variant="secondary"
             onClick={() => {
               setShowCompleteFields(false);
-              setActionType('');
               setNewPassword('');
               setNewBalance('');
               setNewUsername('');

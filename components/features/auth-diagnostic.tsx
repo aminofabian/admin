@@ -4,6 +4,36 @@ import { useState } from 'react';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 
+interface DiagnosticJWT {
+  exists: boolean;
+  preview: string;
+  length: number;
+}
+
+interface DiagnosticCookies {
+  count: number;
+  list: string[];
+  raw: string[];
+}
+
+interface DiagnosticAPI {
+  status?: number;
+  statusText?: string;
+  ok?: boolean;
+  headers?: {
+    contentType: string | null;
+  };
+  response?: unknown;
+  error?: string;
+}
+
+interface DiagnosticResult {
+  timestamp: string;
+  jwt: DiagnosticJWT;
+  cookies: DiagnosticCookies;
+  api: DiagnosticAPI;
+}
+
 /**
  * 🔍 Authentication Diagnostic Component
  * 
@@ -13,21 +43,15 @@ import { TOKEN_KEY } from '@/lib/constants/api';
  * - Test API connectivity
  */
 export function AuthDiagnostic() {
-  const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
+  const [diagnosticResult, setDiagnosticResult] = useState<DiagnosticResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const runDiagnostics = async () => {
     setIsLoading(true);
-    const results: any = {
-      timestamp: new Date().toISOString(),
-      jwt: {},
-      cookies: {},
-      api: {},
-    };
 
     // Check JWT token
     const token = storage.get(TOKEN_KEY);
-    results.jwt = {
+    const jwtData: DiagnosticJWT = {
       exists: !!token,
       preview: token ? `${token.substring(0, 20)}...${token.substring(token.length - 10)}` : 'MISSING',
       length: token?.length || 0,
@@ -35,7 +59,7 @@ export function AuthDiagnostic() {
 
     // Check cookies
     const cookies = document.cookie.split(';').map(c => c.trim());
-    results.cookies = {
+    const cookiesData: DiagnosticCookies = {
       count: cookies.length,
       list: cookies.map(c => {
         const [name] = c.split('=');
@@ -45,6 +69,7 @@ export function AuthDiagnostic() {
     };
 
     // Test API connectivity
+    let apiData: DiagnosticAPI = {};
     try {
       const response = await fetch('/api/chat-messages?chatroom_id=1&per_page=1', {
         headers: {
@@ -54,7 +79,7 @@ export function AuthDiagnostic() {
         credentials: 'include',
       });
 
-      results.api = {
+      apiData = {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
@@ -65,16 +90,23 @@ export function AuthDiagnostic() {
 
       if (response.ok) {
         const data = await response.json();
-        results.api.response = data;
+        apiData.response = data;
       } else {
         const errorText = await response.text();
-        results.api.error = errorText.substring(0, 500);
+        apiData.error = errorText.substring(0, 500);
       }
     } catch (error) {
-      results.api = {
+      apiData = {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
+
+    const results: DiagnosticResult = {
+      timestamp: new Date().toISOString(),
+      jwt: jwtData,
+      cookies: cookiesData,
+      api: apiData,
+    };
 
     setDiagnosticResult(results);
     setIsLoading(false);
@@ -156,7 +188,7 @@ export function AuthDiagnostic() {
               )}
               {diagnosticResult.cookies.count === 0 && (
                 <li className="text-yellow-600 dark:text-yellow-400">
-                  <strong>No Cookies Found:</strong> This might be expected if you're using JWT-only auth.
+                  <strong>No Cookies Found:</strong> This might be expected if you&apos;re using JWT-only auth.
                 </li>
               )}
               {!diagnosticResult.cookies.list.includes('sessionid') && 
@@ -182,7 +214,7 @@ export function AuthDiagnostic() {
 
       {!diagnosticResult && (
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-          Click "Run Diagnostics" to check your authentication status
+          Click &quot;Run Diagnostics&quot; to check your authentication status
         </p>
       )}
     </div>
