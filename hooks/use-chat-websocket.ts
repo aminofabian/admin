@@ -349,7 +349,7 @@ export function useChatWebSocket({
 
       ws.onerror = (error) => {
         console.error('❌ Chat WebSocket error:', error);
-        setConnectionError('WebSocket connection failed. Backend may not be ready.');
+        // Don't set blocking error - just log it
       };
 
       ws.onclose = (event) => {
@@ -359,7 +359,7 @@ export function useChatWebSocket({
 
         // Don't attempt reconnection if backend returned 404 or similar
         if (event.code === 1006 || event.code === 1001) {
-          setConnectionError('WebSocket backend not available. Chat will be enabled when backend is ready.');
+          !IS_PROD && console.log('⚠️ Backend WebSocket not available, using REST API fallback');
           return;
         }
 
@@ -373,12 +373,11 @@ export function useChatWebSocket({
             connect();
           }, delay);
         } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-          setConnectionError('Failed to connect after multiple attempts. Backend may not be ready.');
+          !IS_PROD && console.log('⚠️ Max reconnection attempts reached, using REST API fallback');
         }
       };
     } catch (error) {
       console.error('❌ Failed to create WebSocket connection:', error);
-      setConnectionError('Failed to establish connection');
     }
   }, [userId, adminId, enabled, fetchMessageHistory]);
 
@@ -399,29 +398,76 @@ export function useChatWebSocket({
   }, []);
 
   const sendMessage = useCallback((text: string) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.error('❌ Cannot send message: WebSocket not connected');
-      setConnectionError('Not connected. Please try again.');
-      return;
+    // ✅ Try WebSocket first, fallback to REST API if not connected
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      try {
+        // Send message via WebSocket
+        const message = {
+          type: 'message',
+          sender_id: adminId,
+          is_player_sender: false,
+          message: text,
+          sent_time: new Date().toISOString(),
+        };
+
+        wsRef.current.send(JSON.stringify(message));
+        !IS_PROD && console.log('📤 Sent message via WebSocket - waiting for confirmation');
+        return;
+      } catch (error) {
+        console.error('❌ Failed to send via WebSocket, trying REST API:', error);
+      }
     }
 
-    try {
-      // Send message in backend-expected format
-      const message = {
-        type: 'message',
+    // Fallback to REST API if WebSocket is not available
+    !IS_PROD && console.log('📤 WebSocket not available, sending via REST API...');
+    
+    fetch(`${API_BASE_URL}/api/v1/chat/send/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${storage.get(TOKEN_KEY)}`,
+      },
+      body: JSON.stringify({
         sender_id: adminId,
-        is_player_sender: false,
+        receiver_id: userId,
         message: text,
+        is_player_sender: false,
         sent_time: new Date().toISOString(),
-      };
+      }),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to send message: ${response.status}`);
+        }
+        !IS_PROD && console.log('✅ Message sent successfully via REST API');
+        
+        // Add the message to local state for instant feedback
+        const messageDate = new Date();
+        const newMessage: ChatMessage = {
+          id: Date.now().toString(),
+          text,
+          sender: 'admin',
+          timestamp: messageDate.toISOString(),
+          date: messageDate.toISOString().split('T')[0],
+          time: messageDate.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          isRead: false,
+          userId: adminId,
+        };
 
-      wsRef.current.send(JSON.stringify(message));
-      !IS_PROD && console.log('📤 Sent message - waiting for server confirmation');
-    } catch (error) {
-      console.error('❌ Failed to send message:', error);
-      setConnectionError('Failed to send message');
-    }
-  }, [adminId]);
+        setMessages((prev) => [...prev, newMessage]);
+        
+        if (onMessageReceivedRef.current) {
+          onMessageReceivedRef.current(newMessage);
+        }
+      })
+      .catch(error => {
+        console.error('❌ Failed to send message:', error);
+        setConnectionError('Failed to send message. Please try again.');
+      });
+  }, [adminId, userId]);
 
   const markAsRead = useCallback((messageId: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {

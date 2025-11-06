@@ -238,7 +238,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
       ws.onerror = (error) => {
         console.error('❌ Chat list WebSocket error:', error);
-        setError('Failed to connect to chat service');
+        // ✅ Don't set error - we have REST API fallback
         setIsLoading(false);
       };
 
@@ -258,7 +258,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       };
     } catch (error) {
       console.error('❌ Failed to create chat list WebSocket:', error);
-      setError('Failed to establish connection');
+      // ✅ Don't set error - we have REST API fallback
       setIsLoading(false);
     }
   }, [adminId, enabled]);
@@ -282,8 +282,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   }, []);
 
   /**
-   * Fetch active chats via REST API (fallback method)
-   * Used for polling when WebSocket updates aren't working
+   * Fetch active chats via REST API (primary method when WebSocket is disabled)
+   * Used for polling to keep chat list updated
    */
   const fetchActiveChatsREST = useCallback(async () => {
     if (!adminId) return;
@@ -298,12 +298,19 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       });
 
       if (!response.ok) {
-        console.error('❌ [REST Polling] Failed to fetch active chats:', response.status);
+        console.error('❌ [REST API] Failed to fetch active chats:', response.status);
+        // Only set error if it's a real backend error (not 404 or backend not ready)
+        if (response.status !== 404) {
+          setError(`Failed to fetch chats: ${response.status}`);
+        }
         return;
       }
 
       const data = await response.json();
-      !IS_PROD && console.log('📥 [REST Polling] Response received');
+      !IS_PROD && console.log('📥 [REST API] Response received');
+      
+      // ✅ Clear any previous errors since REST API is working
+      setError(null);
       
       // Handle different response formats
       let chats: any[] = [];
@@ -317,11 +324,17 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       
       if (chats.length > 0) {
         const transformedUsers = chats.map(transformChatToUser);
-        !IS_PROD && console.log(`🔄 [REST Polling] Updated ${transformedUsers.length} active chats`);
+        !IS_PROD && console.log(`🔄 [REST API] Updated ${transformedUsers.length} active chats`);
         setActiveChats(transformedUsers);
+      } else {
+        !IS_PROD && console.log('ℹ️ [REST API] No active chats found');
+        setActiveChats([]);
       }
     } catch (err) {
-      console.error('❌ [REST Polling] Error:', err);
+      console.error('❌ [REST API] Error:', err);
+      // Only set error if we couldn't fetch at all
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch chats';
+      setError(errorMessage);
     }
   }, [adminId]);
 
@@ -392,18 +405,32 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     }
   }, [CACHE_TTL]);
 
-  // Connect on mount (WebSocket disabled, no polling)
+  // Connect on mount and setup polling
   useEffect(() => {
     if (enabled && adminId) {
-      // Note: WebSocket connection is disabled, no automatic polling
+      // WebSocket connection is disabled
       connect(); // This will just log and return early
       
-      // Fetch chat list once on mount (no polling)
+      // ✅ Fetch chat list immediately
       fetchActiveChatsREST();
+      
+      // ✅ Setup polling to keep chat list updated (every 10 seconds)
+      const POLL_INTERVAL = 10000; // 10 seconds
+      pollIntervalRef.current = setInterval(() => {
+        !IS_PROD && console.log('🔄 [REST API] Polling for chat updates...');
+        fetchActiveChatsREST();
+      }, POLL_INTERVAL);
+      
+      !IS_PROD && console.log(`✅ Chat list polling enabled (every ${POLL_INTERVAL / 1000}s)`);
     }
 
     return () => {
       disconnect();
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+        !IS_PROD && console.log('🛑 Chat list polling stopped');
+      }
     };
   }, [enabled, adminId, connect, disconnect, fetchActiveChatsREST]);
 
