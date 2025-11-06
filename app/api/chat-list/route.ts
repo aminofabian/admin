@@ -1,9 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface BackendUser {
+  id?: number | string;
+  user_id?: number | string;
+  username?: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  profile_image?: string;
+  is_online?: boolean;
+  isOnline?: boolean;
+  last_message?: string;
+  lastMessage?: string;
+  last_message_time?: string;
+  lastMessageTime?: string;
+  balance?: number | string;
+  winning_balance?: number | string;
+  winningBalance?: number | string;
+  games_played?: number;
+  gamesPlayed?: number;
+  win_rate?: number;
+  winRate?: number;
+  phone?: string;
+  mobile?: string;
+  unread_count?: number;
+  unreadCount?: number;
+}
+
 /**
  * Transform backend user data (snake_case) to frontend format (camelCase)
  */
-function transformUser(backendUser: any) {
+function transformUser(backendUser: BackendUser) {
   return {
     id: String(backendUser.id || backendUser.user_id || ''),
     user_id: Number(backendUser.user_id || backendUser.id || 0),
