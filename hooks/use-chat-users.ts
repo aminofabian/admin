@@ -21,6 +21,7 @@ interface UseChatUsersReturn {
   error: string | null;
   refetch: () => void;
   fetchAllPlayers: () => Promise<void>;
+  updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
 }
 
 /**
@@ -83,6 +84,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // ✅ PERFORMANCE: Cache for fetchAllPlayers (5 min TTL)
   const playersCacheRef = useRef<{ data: ChatUser[]; timestamp: number } | null>(null);
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -110,20 +112,77 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          !IS_PROD && console.log('📨 Received WebSocket message:', data);
+          !IS_PROD && console.log('📨 [Chat List WS] Received message:', {
+            type: data.type || data.message?.type,
+            hasChats: !!data.chats || !!data.message?.chats,
+            chatId: data.chat_id || data.message?.chat_id,
+          });
+
+          // ✅ IGNORE typing events - they should not update the chat list
+          const messageType = data.type || data.message?.type;
+          if (messageType === 'typing') {
+            !IS_PROD && console.log('⌨️ [Chat List WS] Typing event received - ignoring for chat list');
+            return; // Don't update chat list for typing events
+          }
 
           // Handle "add_new_chats" message type
           if (data.message && data.message.type === 'add_new_chats' && Array.isArray(data.message.chats)) {
             const chatList = data.message.chats;
             const transformedUsers = chatList.map(transformChatToUser);
-            !IS_PROD && console.log(`✅ Received ${transformedUsers.length} chat users from WebSocket`);
+            !IS_PROD && console.log(`✅ [Chat List WS] Received ${transformedUsers.length} chat users`);
             setActiveChats(transformedUsers);
             setIsLoading(false);
+          }
+          // Handle "update_chat" or "new_message" to update existing chat in list
+          else if ((data.message && data.message.type === 'update_chat') || 
+                   (data.message && data.message.type === 'new_message') ||
+                   (data.type === 'update_chat') ||
+                   (data.type === 'new_message')) {
+            const updateData = data.message || data;
+            
+            // ✅ Only update if there's an actual message, not just typing
+            if (!updateData.last_message && !updateData.message) {
+              !IS_PROD && console.log('⚠️ [Chat List WS] Update event without message content - likely typing, ignoring');
+              return;
+            }
+            
+            !IS_PROD && console.log('🔄 [Chat List WS] Chat update received:', {
+              chatId: updateData.chat_id,
+              lastMessage: updateData.last_message?.substring(0, 30),
+              lastMessageTime: updateData.last_message_time,
+            });
+            
+            setActiveChats((prevChats) => {
+              const chatIndex = prevChats.findIndex(
+                (chat) => chat.id === String(updateData.chat_id)
+              );
+              
+              if (chatIndex === -1) {
+                // New chat - add it to the list
+                !IS_PROD && console.log('➕ [Chat List WS] New chat detected, adding to list');
+                const newChat = transformChatToUser(updateData);
+                return [newChat, ...prevChats];
+              }
+              
+              // Update existing chat
+              !IS_PROD && console.log('🔄 [Chat List WS] Updating existing chat at index', chatIndex);
+              const updatedChats = [...prevChats];
+              const updatedChat = {
+                ...updatedChats[chatIndex],
+                lastMessage: updateData.last_message || updatedChats[chatIndex].lastMessage,
+                lastMessageTime: updateData.last_message_time || updatedChats[chatIndex].lastMessageTime,
+                unreadCount: updateData.unread_message_count ?? updatedChats[chatIndex].unreadCount,
+              };
+              
+              // Move to top of list
+              updatedChats.splice(chatIndex, 1);
+              return [updatedChat, ...updatedChats];
+            });
           }
           // Handle "remove_chat_from_list" message type (format 1: wrapped in message)
           else if (data.message && data.message.type === 'remove_chat_from_list') {
             const chatIdToRemove = data.message.chat_id;
-            !IS_PROD && console.log(`🗑️ Removing chat with ID: ${chatIdToRemove}`);
+            !IS_PROD && console.log(`🗑️ [Chat List WS] Removing chat with ID: ${chatIdToRemove}`);
             setActiveChats((prevUsers) => 
               prevUsers.filter((user) => user.id !== String(chatIdToRemove))
             );
@@ -131,7 +190,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           // Handle "remove_chat_from_list" message type (format 2: direct)
           else if (data.type === 'remove_chat_from_list') {
             const chatIdToRemove = data.chat_id;
-            !IS_PROD && console.log(`🗑️ Removing chat with ID: ${chatIdToRemove}`);
+            !IS_PROD && console.log(`🗑️ [Chat List WS] Removing chat with ID: ${chatIdToRemove}`);
             setActiveChats((prevUsers) => 
               prevUsers.filter((user) => user.id !== String(chatIdToRemove))
             );
@@ -139,15 +198,41 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           // Fallback for other formats
           else if (data.chats && Array.isArray(data.chats)) {
             const transformedUsers = data.chats.map(transformChatToUser);
-            !IS_PROD && console.log(`✅ Received ${transformedUsers.length} chat users`);
+            !IS_PROD && console.log(`✅ [Chat List WS] Received ${transformedUsers.length} chat users (fallback format)`);
             setActiveChats(transformedUsers);
             setIsLoading(false);
           }
+          // Handle single chat update
+          else if (data.chat_id || (data.player && data.player.id)) {
+            !IS_PROD && console.log('🔄 [Chat List WS] Single chat update (direct format)');
+            const singleChat = transformChatToUser(data);
+            setActiveChats((prevChats) => {
+              const chatIndex = prevChats.findIndex(
+                (chat) => chat.id === singleChat.id
+              );
+              
+              if (chatIndex === -1) {
+                !IS_PROD && console.log('➕ [Chat List WS] Adding new chat to list');
+                return [singleChat, ...prevChats];
+              }
+              
+              !IS_PROD && console.log('🔄 [Chat List WS] Updating existing chat');
+              const updatedChats = [...prevChats];
+              updatedChats[chatIndex] = {
+                ...updatedChats[chatIndex],
+                ...singleChat,
+              };
+              
+              // Move to top
+              const [updated] = updatedChats.splice(chatIndex, 1);
+              return [updated, ...updatedChats];
+            });
+          }
           else {
-            !IS_PROD && console.log('ℹ️ Unknown message format:', data);
+            !IS_PROD && console.log('ℹ️ [Chat List WS] Unknown message format:', data);
           }
         } catch (error) {
-          console.error('❌ Failed to parse chat list WebSocket message:', error);
+          console.error('❌ [Chat List WS] Failed to parse message:', error);
         }
       };
 
@@ -184,12 +269,61 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       reconnectTimeoutRef.current = null;
     }
 
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
     if (wsRef.current) {
       console.log('🔌 Disconnecting chat list WebSocket');
       wsRef.current.close();
       wsRef.current = null;
     }
   }, []);
+
+  /**
+   * Fetch active chats via REST API (fallback method)
+   * Used for polling when WebSocket updates aren't working
+   */
+  const fetchActiveChatsREST = useCallback(async () => {
+    if (!adminId) return;
+
+    try {
+      const token = storage.get(TOKEN_KEY);
+      const response = await fetch(`/api/chat-list?user_id=${adminId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+
+      if (!response.ok) {
+        console.error('❌ [REST Polling] Failed to fetch active chats:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      !IS_PROD && console.log('📥 [REST Polling] Response received');
+      
+      // Handle different response formats
+      let chats: any[] = [];
+      if (data.chats && Array.isArray(data.chats)) {
+        chats = data.chats;
+      } else if (data.users && Array.isArray(data.users)) {
+        chats = data.users;
+      } else if (Array.isArray(data)) {
+        chats = data;
+      }
+      
+      if (chats.length > 0) {
+        const transformedUsers = chats.map(transformChatToUser);
+        !IS_PROD && console.log(`🔄 [REST Polling] Updated ${transformedUsers.length} active chats`);
+        setActiveChats(transformedUsers);
+      }
+    } catch (err) {
+      console.error('❌ [REST Polling] Error:', err);
+    }
+  }, [adminId]);
 
   const refetch = useCallback(() => {
     disconnect();
@@ -202,18 +336,17 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
    */
   const fetchAllPlayers = useCallback(async () => {
     // Set loading state IMMEDIATELY before any checks
-    console.log('🚀 fetchAllPlayers - Setting isLoadingAllPlayers to TRUE');
+    !IS_PROD && console.log('🚀 fetchAllPlayers - Starting');
     setIsLoadingAllPlayers(true);
     
     try {
       // ✅ PERFORMANCE: Check cache first
       const now = Date.now();
       if (playersCacheRef.current && (now - playersCacheRef.current.timestamp) < CACHE_TTL) {
-        console.log('✅ Using cached players data, count:', playersCacheRef.current.data.length);
+        !IS_PROD && console.log('✅ Using cached players data, count:', playersCacheRef.current.data.length);
         setAllPlayers(playersCacheRef.current.data);
         // Small delay to show skeleton briefly even with cache
         await new Promise(resolve => setTimeout(resolve, 150));
-        console.log('⏱️ Cache delay complete, setting isLoadingAllPlayers to FALSE');
         return;
       }
 
@@ -254,26 +387,89 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       console.error('❌ Error fetching all players:', errorMessage);
       setError(errorMessage);
     } finally {
-      console.log('🏁 fetchAllPlayers - Setting isLoadingAllPlayers to FALSE (finally)');
+      !IS_PROD && console.log('🏁 fetchAllPlayers - Complete');
       setIsLoadingAllPlayers(false); // Use separate loading state
     }
   }, [CACHE_TTL]);
 
-  // Connect on mount
+  // Connect on mount (WebSocket disabled, no polling)
   useEffect(() => {
     if (enabled && adminId) {
-      connect();
+      // Note: WebSocket connection is disabled, no automatic polling
+      connect(); // This will just log and return early
+      
+      // Fetch chat list once on mount (no polling)
+      fetchActiveChatsREST();
     }
 
     return () => {
       disconnect();
     };
-  }, [enabled, adminId, connect, disconnect]);
+  }, [enabled, adminId, connect, disconnect, fetchActiveChatsREST]);
 
   // ✅ PERFORMANCE: Memoize online users calculation (from active chats only)
   const onlineUsers = useMemo(() => {
     return activeChats.filter((user) => user.isOnline);
   }, [activeChats]);
+
+  /**
+   * Update a specific chat's last message and time in the active chats list
+   * This is called when a new message is received in real-time
+   */
+  const updateChatLastMessage = useCallback((
+    userId: number,
+    chatId: string,
+    lastMessage: string,
+    lastMessageTime: string
+  ) => {
+    !IS_PROD && console.log(`📝 Updating chat list - userId: ${userId}, chatId: ${chatId}, lastMessage: ${lastMessage.substring(0, 30)}...`);
+    
+    setActiveChats((prevChats) => {
+      // Find and update the matching chat
+      const chatIndex = prevChats.findIndex(
+        (chat) => chat.id === chatId || chat.user_id === userId
+      );
+      
+      if (chatIndex === -1) {
+        // Chat not found in active chats - this could be a new conversation
+        // The WebSocket should send an update to add it, but we can log this
+        !IS_PROD && console.log(`⚠️ Chat not found in active chats list - waiting for WebSocket update`);
+        return prevChats;
+      }
+      
+      // Create updated chat list with the new last message
+      const updatedChats = [...prevChats];
+      updatedChats[chatIndex] = {
+        ...updatedChats[chatIndex],
+        lastMessage,
+        lastMessageTime,
+      };
+      
+      // Move updated chat to the top of the list for better UX
+      const [updatedChat] = updatedChats.splice(chatIndex, 1);
+      return [updatedChat, ...updatedChats];
+    });
+
+    // Also update in allPlayers list if present
+    setAllPlayers((prevPlayers) => {
+      const playerIndex = prevPlayers.findIndex(
+        (player) => player.user_id === userId
+      );
+      
+      if (playerIndex === -1) {
+        return prevPlayers;
+      }
+      
+      const updatedPlayers = [...prevPlayers];
+      updatedPlayers[playerIndex] = {
+        ...updatedPlayers[playerIndex],
+        lastMessage,
+        lastMessageTime,
+      };
+      
+      return updatedPlayers;
+    });
+  }, []);
 
   return {
     users: activeChats, // For backward compatibility - return active chats as "users"
@@ -284,6 +480,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     error,
     refetch,
     fetchAllPlayers,
+    updateChatLastMessage,
   };
 }
 

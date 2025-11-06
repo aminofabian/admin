@@ -12,6 +12,7 @@ interface UseChatWebSocketParams {
   chatId: string | null; // The chatroom ID for fetching message history
   adminId: number;
   enabled: boolean;
+  onMessageReceived?: (message: ChatMessage) => void; // Callback to update chat list
 }
 
 interface UseChatWebSocketReturn {
@@ -32,6 +33,7 @@ export function useChatWebSocket({
   chatId,
   adminId,
   enabled,
+  onMessageReceived,
 }: UseChatWebSocketParams): UseChatWebSocketReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -45,6 +47,12 @@ export function useChatWebSocket({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+  
+  // Use ref to avoid reconnecting WebSocket when callback changes
+  const onMessageReceivedRef = useRef(onMessageReceived);
+  useEffect(() => {
+    onMessageReceivedRef.current = onMessageReceived;
+  }, [onMessageReceived]);
 
   // ✅ PERFORMANCE: Fetch recent message history (optimized to 20 messages)
   const fetchMessageHistory = useCallback(async () => {
@@ -225,7 +233,13 @@ export function useChatWebSocket({
       ws.onmessage = (event) => {
         try {
           const rawData = JSON.parse(event.data);
-          !IS_PROD && console.log('📨 Received WebSocket message:', rawData);
+          !IS_PROD && console.log('📨 Received WebSocket message:', {
+            type: rawData.type,
+            message: rawData.message?.substring(0, 50),
+            sender: rawData.is_player_sender ? 'player' : 'admin',
+            timestamp: rawData.sent_time,
+            userBalance: rawData.user_balance,
+          });
 
           // Handle different message types from backend
           const messageType = rawData.type;
@@ -251,15 +265,57 @@ export function useChatWebSocket({
               }),
               isRead: false,
               userId: rawData.sender_id || rawData.player_id,
+              // Include additional metadata from the backend
+              isFile: rawData.is_file || false,
+              fileExtension: rawData.file_extension || undefined,
+              isComment: rawData.is_comment || false,
             };
 
-            !IS_PROD && console.log('✅ Parsed message:', newMessage);
-            setMessages((prev) => [...prev, newMessage]);
+            !IS_PROD && console.log('✅ Parsed message and adding to state:', {
+              id: newMessage.id,
+              text: newMessage.text.substring(0, 50),
+              sender: newMessage.sender,
+              time: newMessage.time,
+              isFile: newMessage.isFile,
+              userBalance: rawData.user_balance,
+            });
+            
+            // ✅ Check for duplicate messages before adding
+            setMessages((prev) => {
+              // Prevent duplicate messages by checking if message with same ID exists
+              const isDuplicate = prev.some(msg => msg.id === newMessage.id);
+              if (isDuplicate) {
+                !IS_PROD && console.log('⚠️ Duplicate message detected, skipping:', newMessage.id);
+                return prev;
+              }
+              
+              const updated = [...prev, newMessage];
+              !IS_PROD && console.log(`📝 Messages state updated: ${prev.length} -> ${updated.length} messages`);
+              return updated;
+            });
+            
+            // ✅ Update user balance if provided in the message
+            if (rawData.user_balance !== undefined) {
+              !IS_PROD && console.log('💰 User balance update:', rawData.user_balance);
+              // You can emit this to a balance update callback if needed
+            }
+            
+            // Notify parent component to update chat list (ONLY for actual messages, not typing)
+            !IS_PROD && console.log('🔔 Calling onMessageReceived callback...');
+            if (onMessageReceivedRef.current) {
+              onMessageReceivedRef.current(newMessage);
+              !IS_PROD && console.log('✅ onMessageReceived callback executed');
+            } else {
+              !IS_PROD && console.warn('⚠️ onMessageReceived callback is not defined');
+            }
           } else if (messageType === 'typing') {
             !IS_PROD && console.log('⌨️ User is typing...');
             setIsTyping(true);
-            // ✅ PERFORMANCE: Clear typing indicator after 3 seconds
+            // ✅ Clear typing indicator after 3 seconds
             setTimeout(() => setIsTyping(false), 3000);
+            
+            // ✅ IMPORTANT: Do NOT call onMessageReceived for typing events
+            // This prevents the chat list from updating when user is just typing
           } else if (messageType === 'mark_message_as_read' || messageType === 'read') {
             const messageId = rawData.message_id || rawData.id;
             if (messageId) {

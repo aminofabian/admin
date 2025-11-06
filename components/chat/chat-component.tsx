@@ -11,6 +11,9 @@ import type { ChatUser, ChatMessage } from '@/types';
 type Player = ChatUser;
 type Message = ChatMessage;
 
+// Production mode check
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 // Get admin user ID from storage
 const getAdminUserId = (): number => {
   try {
@@ -19,13 +22,13 @@ const getAdminUserId = (): number => {
     if (userDataStr) {
       const userData = JSON.parse(userDataStr);
       const userId = userData.id || userData.user_id || 2;
-      console.log('📍 Admin User ID:', userId, 'from storage:', userData);
+      !IS_PROD && console.log('📍 Admin User ID:', userId);
       return userId;
     }
   } catch (error) {
     console.error('❌ Failed to parse user data from localStorage:', error);
   }
-  console.warn('⚠️ User not found in localStorage, using default admin user ID: 2');
+  !IS_PROD && console.warn('⚠️ User not found in localStorage, using default admin user ID: 2');
   return 2; // Default admin user ID
 };
 
@@ -91,6 +94,7 @@ export function ChatComponent() {
     isLoadingAllPlayers,
     error: usersError,
     fetchAllPlayers,
+    updateChatLastMessage,
   } = useChatUsers({
     adminId: adminUserId,
     enabled: true,
@@ -112,6 +116,31 @@ export function ChatComponent() {
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
     adminId: adminUserId,
     enabled: !!selectedPlayer,
+    onMessageReceived: useCallback((message: Message) => {
+      !IS_PROD && console.log('🔔 onMessageReceived callback fired:', {
+        messageText: message.text,
+        messageTime: message.time,
+        selectedPlayer: selectedPlayer?.username,
+        userId: selectedPlayer?.user_id,
+        chatId: selectedPlayer?.id,
+      });
+      
+      // Update the chat list when a new message is received
+      if (selectedPlayer?.user_id && selectedPlayer?.id) {
+        !IS_PROD && console.log('✅ Updating chat list with new message');
+        updateChatLastMessage(
+          selectedPlayer.user_id,
+          selectedPlayer.id,
+          message.text,
+          message.time || message.timestamp
+        );
+      } else {
+        !IS_PROD && console.warn('⚠️ Cannot update chat list - selectedPlayer missing:', {
+          hasUserId: !!selectedPlayer?.user_id,
+          hasId: !!selectedPlayer?.id,
+        });
+      }
+    }, [selectedPlayer, updateChatLastMessage]),
   });
 
   const groupedMessages = useMemo(() => groupMessagesByDate(wsMessages), [wsMessages]);
@@ -137,10 +166,10 @@ export function ChatComponent() {
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {
     if (activeTab === 'all-players') {
-      console.log('🔍 All Players tab - isLoadingAllPlayers:', isLoadingAllPlayers, 'allPlayers.length:', allPlayers.length);
+      !IS_PROD && console.log('🔍 All Players tab - isLoadingAllPlayers:', isLoadingAllPlayers, 'allPlayers.length:', allPlayers.length);
       return isLoadingAllPlayers;
     }
-    console.log('🔍 Other tab - isLoadingUsers:', isLoadingUsers);
+    !IS_PROD && console.log('🔍 Other tab - isLoadingUsers:', isLoadingUsers);
     return isLoadingUsers;
   }, [activeTab, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
 
@@ -161,7 +190,7 @@ export function ChatComponent() {
   // Fetch all players from HTTP endpoint when switching to 'all-players' tab
   useEffect(() => {
     if (activeTab === 'all-players') {
-      console.log('🔄 Switching to all-players tab, fetching...');
+      !IS_PROD && console.log('🔄 Switching to all-players tab, fetching...');
       fetchAllPlayers();
     }
   }, [activeTab, fetchAllPlayers]);
@@ -176,11 +205,27 @@ export function ChatComponent() {
   const handleSendMessage = useCallback(() => {
     if (!messageInput.trim() || !selectedPlayer) return;
     
+    const messageText = messageInput.trim();
+    
     // Send message via WebSocket
-    wsSendMessage(messageInput.trim());
+    wsSendMessage(messageText);
+    
+    // Update the chat list with the sent message
+    const currentTime = new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    
+    updateChatLastMessage(
+      selectedPlayer.user_id,
+      selectedPlayer.id,
+      messageText,
+      currentTime
+    );
+    
     setMessageInput('');
     scrollToBottom();
-  }, [messageInput, selectedPlayer, wsSendMessage, scrollToBottom]);
+  }, [messageInput, selectedPlayer, wsSendMessage, scrollToBottom, updateChatLastMessage]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -323,7 +368,7 @@ export function ChatComponent() {
         <div className="flex-1 overflow-y-auto">
           {(() => {
             const shouldShowSkeleton = isCurrentTabLoading || (activeTab === 'all-players' && allPlayers.length === 0 && !usersError);
-            console.log('💀 Should show skeleton?', shouldShowSkeleton, {
+            !IS_PROD && console.log('💀 Should show skeleton?', shouldShowSkeleton, {
               isCurrentTabLoading,
               activeTab,
               allPlayersLength: allPlayers.length,
@@ -636,9 +681,51 @@ export function ChatComponent() {
                                 isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
                               }`}
                             >
+                              {/* File indicator badge */}
+                              {message.isFile && (
+                                <div className={`flex items-center gap-1.5 mb-2 pb-2 border-b ${
+                                  isAdmin ? 'border-border/50' : 'border-white/20'
+                                }`}>
+                                  <svg className={`w-4 h-4 ${isAdmin ? 'text-primary' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                  </svg>
+                                  <span className={`text-xs font-medium ${isAdmin ? 'text-muted-foreground' : 'text-white/90'}`}>
+                                    File attachment{message.fileExtension && ` (.${message.fileExtension})`}
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {/* Comment badge */}
+                              {message.isComment && (
+                                <div className={`flex items-center gap-1.5 mb-2 pb-2 border-b ${
+                                  isAdmin ? 'border-border/50' : 'border-white/20'
+                                }`}>
+                                  <svg className={`w-4 h-4 ${isAdmin ? 'text-amber-500' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                  </svg>
+                                  <span className={`text-xs font-medium ${isAdmin ? 'text-amber-600 dark:text-amber-400' : 'text-white/90'}`}>
+                                    Comment
+                                  </span>
+                                </div>
+                              )}
+                              
                               <p className="text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words">
                                 {message.text}
                               </p>
+                              
+                              {/* User balance indicator (only for player messages) */}
+                              {!isAdmin && message.userBalance !== undefined && (
+                                <div className="mt-2 pt-2 border-t border-white/20">
+                                  <div className="flex items-center gap-1.5">
+                                    <svg className="w-3.5 h-3.5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="text-xs text-white/90 font-medium">
+                                      Balance: {formatCurrency(parseFloat(message.userBalance))}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                             
                             {/* Message Meta */}

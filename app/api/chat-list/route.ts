@@ -96,12 +96,11 @@ export async function GET(request: NextRequest) {
       
       // Return empty list if backend endpoint doesn't exist yet
       if (response.status === 404) {
-        console.warn('⚠️ Backend returned 404. URL:', apiUrl);
-        console.warn('⚠️ Error body:', errorText);
+        console.log('ℹ️ Chat list endpoint not yet implemented on backend (expected during development)');
         return NextResponse.json({
           status: 'success',
           users: [],
-          message: `Backend returned 404 for ${apiUrl}. Check if endpoint exists.`,
+          message: 'Chat list endpoint not yet available on backend',
         });
       }
 

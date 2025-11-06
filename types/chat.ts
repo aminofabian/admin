@@ -26,6 +26,9 @@ export interface ChatMessage {
   userId?: number;
   type?: string; // e.g., 'balanceUpdated', 'message', etc.
   isComment?: boolean; // Whether this is a comment vs a transaction
+  isFile?: boolean; // Whether this message contains a file
+  fileExtension?: string; // File extension if isFile is true
+  userBalance?: string; // User balance at the time of message
 }
 
 export interface ChatListResponse {
