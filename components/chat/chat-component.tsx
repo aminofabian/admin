@@ -603,44 +603,44 @@ export function ChatComponent() {
             </div>
 
             {/* Message Input */}
-            <div className="px-4 py-4 md:px-6 md:py-5 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
+            <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
               {/* Toolbar - Desktop Only */}
-              <div className="hidden md:flex items-center gap-1 mb-3 pb-3 border-b border-border/30">
+              <div className="hidden lg:flex items-center gap-1 mb-2 pb-2 border-b border-border/30">
                 <button 
-                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
                   title="Attach file"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </button>
                 <button 
-                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
                   title="Attach image"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </button>
                 <button 
-                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
                   title="Emoji"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
                 <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-                  <kbd className="px-2 py-1 bg-muted/50 rounded border border-border/50">Shift + Enter</kbd>
-                  <span>for new line</span>
+                  <kbd className="px-1.5 py-0.5 bg-muted/50 rounded border border-border/50 text-[10px]">Shift + Enter</kbd>
+                  <span className="text-[10px]">for new line</span>
                 </div>
               </div>
 
-              {/* Input Area */}
-              <div className="flex items-end gap-2 md:gap-3">
+              {/* Input Area - Creative: Send button inside textarea */}
+              <div className="flex items-start gap-2 md:gap-2.5">
                 {/* Mobile: Show attach button */}
                 <button 
-                  className="md:hidden p-3 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all active:scale-95 flex-shrink-0 mb-[2px]"
+                  className="md:hidden p-2.5 mt-1 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all active:scale-95 flex-shrink-0"
                   title="Attach"
                   aria-label="Attach file"
                 >
@@ -649,8 +649,8 @@ export function ChatComponent() {
                   </svg>
                 </button>
                 
-                {/* Textarea Container */}
-                <div className="flex-1 relative flex items-end">
+                {/* Textarea Container with Embedded Send Button */}
+                <div className="flex-1 relative">
                   <textarea
                     placeholder="Type your message... (Shift+Enter for new line)"
                     value={messageInput}
@@ -660,9 +660,10 @@ export function ChatComponent() {
                         setIsTyping(true);
                         setTimeout(() => setIsTyping(false), 2000);
                       }
-                      // Auto-resize
+                      // Auto-resize - responsive max height
                       e.target.style.height = 'auto';
-                      e.target.style.height = Math.min(e.target.scrollHeight, 300) + 'px';
+                      const maxHeight = window.innerWidth >= 768 ? 300 : 200;
+                      e.target.style.height = Math.min(e.target.scrollHeight, maxHeight) + 'px';
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
@@ -670,33 +671,59 @@ export function ChatComponent() {
                         handleSendMessage();
                       }
                     }}
-                    rows={2}
-                    className="w-full min-h-[80px] md:min-h-[100px] max-h-[300px] rounded-2xl bg-background/80 dark:bg-background border-2 border-border/50 focus:border-primary transition-all text-base md:text-lg py-4 md:py-5 px-5 md:px-6 pr-12 shadow-md resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50 text-foreground leading-relaxed"
+                    rows={1}
+                    className="w-full min-h-[80px] md:min-h-[140px] lg:min-h-[160px] max-h-[200px] md:max-h-[300px] rounded-2xl bg-background/80 dark:bg-background border-2 border-border/50 focus:border-primary transition-all text-sm md:text-base lg:text-lg py-3 md:py-4 lg:py-5 px-4 md:px-5 lg:px-6 pr-16 md:pr-20 pb-14 md:pb-16 shadow-md resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50 text-foreground leading-relaxed"
                   />
-                  {messageInput && (
+                  
+                  {/* Action Bar - Inside Textarea at Bottom */}
+                  <div className="absolute bottom-2 md:bottom-3 left-3 right-3 md:left-4 md:right-4 flex items-center justify-between gap-2">
+                    {/* Left: Quick Actions */}
+                    <div className="flex items-center gap-1">
+                      <button 
+                        className="p-1.5 md:p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-95"
+                        title="Attach file"
+                        aria-label="Attach file"
+                      >
+                        <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                      </button>
+                      <button 
+                        className="p-1.5 md:p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-95"
+                        title="Emoji"
+                        aria-label="Add emoji"
+                      >
+                        <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                      {messageInput && (
+                        <button
+                          onClick={() => setMessageInput('')}
+                          className="p-1.5 md:p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all active:scale-95"
+                          aria-label="Clear message"
+                        >
+                          <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Right: Send Button */}
                     <button
-                      onClick={() => setMessageInput('')}
-                      className="absolute right-4 top-4 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors active:scale-95"
-                      aria-label="Clear message"
+                      onClick={handleSendMessage}
+                      disabled={!messageInput.trim()}
+                      className="rounded-xl px-4 md:px-5 lg:px-6 py-2 md:py-2.5 transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground font-semibold text-sm md:text-base"
+                      aria-label="Send message"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <span className="hidden sm:inline">Send</span>
+                      <svg className="w-4.5 h-4.5 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                       </svg>
                     </button>
-                  )}
+                  </div>
                 </div>
-                
-                {/* Send Button */}
-                <Button 
-                  onClick={handleSendMessage} 
-                  disabled={!messageInput.trim()}
-                  className="rounded-2xl px-6 md:px-8 py-4 md:py-5 transition-all duration-200 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed h-[80px] md:h-[100px] shadow-lg flex-shrink-0 font-semibold text-base md:text-lg flex items-center justify-center"
-                >
-                  <svg className="w-6 h-6 md:mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                  <span className="hidden md:inline">Send</span>
-                </Button>
               </div>
 
               {/* Mobile hint */}
