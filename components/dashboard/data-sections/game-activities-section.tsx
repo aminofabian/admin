@@ -222,7 +222,6 @@ function HistoryGameActivitiesTable({ queues }: HistoryGameActivitiesTableProps)
                 <TableHead>Game</TableHead>
                 <TableHead>Game Username</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Game Balance</TableHead>
                 <TableHead>New Balance</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Dates</TableHead>
@@ -286,16 +285,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
   const formattedBonus = useMemo(() => {
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
   }, [bonusAmount]);
-
-  // Game balance from data object
-  const gameBalance = useMemo(() => {
-    const balance = activity.data?.game_balance;
-    if (balance === undefined || balance === null) return null;
-    const balanceValue = typeof balance === 'string' || typeof balance === 'number'
-      ? parseFloat(String(balance))
-      : null;
-    return balanceValue !== null && !isNaN(balanceValue) ? formatCurrency(String(balanceValue)) : null;
-  }, [activity.data?.game_balance]);
 
   const formattedBalance = useMemo(() => {
     return formatCurrency(String(activity.data?.balance ?? '0'));
@@ -430,15 +419,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
             </div>
           )}
         </div>
-      </TableCell>
-      <TableCell>
-        {gameBalance ? (
-          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            {gameBalance}
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">—</div>
-        )}
       </TableCell>
       <TableCell>
         {(newCreditsBalance || newWinningBalance) ? (
