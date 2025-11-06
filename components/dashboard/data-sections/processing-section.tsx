@@ -35,7 +35,7 @@ import { PROJECT_DOMAIN } from '@/lib/constants/api';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { ApiError } from '@/types';
-import { useToast } from '@/components/ui';
+import { useToast, ConfirmModal } from '@/components/ui';
 import { useProcessingWebSocket, type WebSocketMessage } from '@/hooks/use-processing-websocket';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
@@ -287,8 +287,8 @@ interface ProcessingTransactionRowProps {
   transaction: Transaction;
   getStatusVariant: (status: string) => 'success' | 'warning' | 'danger' | 'info';
   onView: () => void;
-  onComplete: () => Promise<void>;
-  onCancel: () => Promise<void>;
+  onComplete: () => void;
+  onCancel: () => void;
   isActionPending: boolean;
   viewType?: 'purchases' | 'cashouts';
 }
@@ -440,7 +440,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
                   e.preventDefault();
                   e.stopPropagation();
                   console.log('🔵 Complete button clicked');
-                  void onComplete();
+                  onComplete();
                 }}
                 disabled={disableActions}
               >
@@ -454,7 +454,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
                   e.preventDefault();
                   e.stopPropagation();
                   console.log('🔴 Cancel button clicked');
-                  void onCancel();
+                  onCancel();
                 }}
                 disabled={disableActions}
               >
@@ -482,8 +482,8 @@ interface MobileTransactionActionsProps {
   transaction: Transaction;
   isPending: boolean;
   onView: () => void;
-  onComplete: () => Promise<void>;
-  onCancel: () => Promise<void>;
+  onComplete: () => void;
+  onCancel: () => void;
 }
 
 function MobileTransactionActions({
@@ -547,8 +547,8 @@ function MobileTransactionActions({
             <>
               <div className="h-px bg-border" />
               <button
-                onClick={async () => {
-                  await onComplete();
+                onClick={() => {
+                  onComplete();
                   setIsOpen(false);
                 }}
                 disabled={isPending}
@@ -562,8 +562,8 @@ function MobileTransactionActions({
 
               <div className="h-px bg-border" />
               <button
-                onClick={async () => {
-                  await onCancel();
+                onClick={() => {
+                  onCancel();
                   setIsOpen(false);
                 }}
                 disabled={isPending}
@@ -653,6 +653,17 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const { addToast } = useToast();
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    transaction: Transaction | null;
+    action: 'completed' | 'cancelled' | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    transaction: null,
+    action: null,
+    isLoading: false,
+  });
 
   const isTransactionsView = viewType === 'purchases' || viewType === 'cashouts';
   const isGameActivitiesView = viewType === 'game_activities';
@@ -852,6 +863,49 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     } finally {
       setPendingTransactionId(null);
     }
+  };
+
+  const handleTransactionActionClick = (transaction: Transaction, action: 'completed' | 'cancelled') => {
+    // Only show confirmation for purchases
+    if (viewType === 'purchases' && transaction.type === 'purchase') {
+      setConfirmModal({
+        isOpen: true,
+        transaction,
+        action,
+        isLoading: false,
+      });
+    } else {
+      // For non-purchases, proceed directly
+      void handleTransactionAction(
+        transaction.id,
+        action,
+        transaction.id,
+        transaction.status
+      );
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmModal.transaction || !confirmModal.action) return;
+
+    setConfirmModal(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      await handleTransactionAction(
+        confirmModal.transaction.id,
+        confirmModal.action,
+        confirmModal.transaction.id,
+        confirmModal.transaction.status
+      );
+      setConfirmModal({ isOpen: false, transaction: null, action: null, isLoading: false });
+    } catch (error) {
+      // Error is already handled in handleTransactionAction
+      setConfirmModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleCancelConfirm = () => {
+    setConfirmModal({ isOpen: false, transaction: null, action: null, isLoading: false });
   };
 
   const handleActionClick = (queue: TransactionQueue) => {
@@ -1054,32 +1108,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                     viewType={viewType}
                     onView={() => handleViewTransaction(transaction)}
                     onComplete={async () => {
-                      try {
-                        await handleTransactionAction(
-                          transaction.id, 
-                          'completed',
-                          transaction.id,
-                          transaction.status
-                        );
-                      } catch (error) {
-                        // Error is already handled in handleTransactionAction
-                        // This catch prevents uncaught promise rejection
-                        console.error('Error in onComplete handler:', error);
-                      }
+                      handleTransactionActionClick(transaction, 'completed');
                     }}
                     onCancel={async () => {
-                      try {
-                        await handleTransactionAction(
-                          transaction.id, 
-                          'cancelled',
-                          transaction.id,
-                          transaction.status
-                        );
-                      } catch (error) {
-                        // Error is already handled in handleTransactionAction
-                        // This catch prevents uncaught promise rejection
-                        console.error('Error in onCancel handler:', error);
-                      }
+                      handleTransactionActionClick(transaction, 'cancelled');
                     }}
                     isActionPending={pendingTransactionId === transaction.id}
                   />
@@ -1176,28 +1208,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   isPending={pendingTransactionId === transaction.id}
                   onView={() => handleViewTransaction(transaction)}
                   onComplete={async () => {
-                    try {
-                      await handleTransactionAction(
-                        transaction.id,
-                        'completed',
-                        transaction.id,
-                        transaction.status
-                      );
-                    } catch (error) {
-                      console.error('Error in onComplete handler:', error);
-                    }
+                    handleTransactionActionClick(transaction, 'completed');
                   }}
                   onCancel={async () => {
-                    try {
-                      await handleTransactionAction(
-                        transaction.id,
-                        'cancelled',
-                        transaction.id,
-                        transaction.status
-                      );
-                    } catch (error) {
-                      console.error('Error in onCancel handler:', error);
-                    }
+                    handleTransactionActionClick(transaction, 'cancelled');
                   }}
                 />
               </div>
@@ -1224,6 +1238,25 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           transaction={selectedTransaction}
           isOpen={isViewModalOpen}
           onClose={handleCloseViewModal}
+        />
+      )}
+
+      {/* Confirmation Modal for Purchase Actions */}
+      {viewType === 'purchases' && (
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={handleCancelConfirm}
+          onConfirm={handleConfirmAction}
+          title={`${confirmModal.action === 'completed' ? 'Complete' : 'Cancel'} Purchase Transaction`}
+          description={
+            confirmModal.transaction
+              ? `Are you sure you want to ${confirmModal.action === 'completed' ? 'complete' : 'cancel'} this purchase transaction for ${formatCurrency(confirmModal.transaction.amount || '0')}?`
+              : ''
+          }
+          confirmText={confirmModal.action === 'completed' ? 'Complete' : 'Cancel'}
+          cancelText="Go Back"
+          variant={confirmModal.action === 'completed' ? 'info' : 'warning'}
+          isLoading={confirmModal.isLoading}
         />
       )}
       </>
