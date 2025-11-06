@@ -17,6 +17,7 @@ interface UseChatUsersReturn {
   allPlayers: ChatUser[]; // All players from REST API
   onlineUsers: ChatUser[];
   isLoading: boolean;
+  isLoadingAllPlayers: boolean; // Separate loading state for all players
   error: string | null;
   refetch: () => void;
   fetchAllPlayers: () => Promise<void>;
@@ -77,7 +78,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   // Separate state for active chats (WebSocket) and all players (REST API)
   const [activeChats, setActiveChats] = useState<ChatUser[]>([]);
   const [allPlayers, setAllPlayers] = useState<ChatUser[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // For WebSocket connection
+  const [isLoadingAllPlayers, setIsLoadingAllPlayers] = useState(false); // For REST API
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -199,16 +201,22 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
    * ✅ PERFORMANCE: Cached for 5 minutes to avoid redundant API calls
    */
   const fetchAllPlayers = useCallback(async () => {
+    // Set loading state IMMEDIATELY before any checks
+    console.log('🚀 fetchAllPlayers - Setting isLoadingAllPlayers to TRUE');
+    setIsLoadingAllPlayers(true);
+    
     try {
       // ✅ PERFORMANCE: Check cache first
       const now = Date.now();
       if (playersCacheRef.current && (now - playersCacheRef.current.timestamp) < CACHE_TTL) {
-        !IS_PROD && console.log('✅ Using cached players data');
+        console.log('✅ Using cached players data, count:', playersCacheRef.current.data.length);
         setAllPlayers(playersCacheRef.current.data);
+        // Small delay to show skeleton briefly even with cache
+        await new Promise(resolve => setTimeout(resolve, 150));
+        console.log('⏱️ Cache delay complete, setting isLoadingAllPlayers to FALSE');
         return;
       }
 
-      setIsLoading(true);
       setError(null);
       !IS_PROD && console.log('📥 Fetching all players via REST API...');
 
@@ -246,7 +254,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       console.error('❌ Error fetching all players:', errorMessage);
       setError(errorMessage);
     } finally {
-      setIsLoading(false);
+      console.log('🏁 fetchAllPlayers - Setting isLoadingAllPlayers to FALSE (finally)');
+      setIsLoadingAllPlayers(false); // Use separate loading state
     }
   }, [CACHE_TTL]);
 
@@ -271,6 +280,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     allPlayers,
     onlineUsers,
     isLoading,
+    isLoadingAllPlayers,
     error,
     refetch,
     fetchAllPlayers,

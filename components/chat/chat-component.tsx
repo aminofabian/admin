@@ -61,6 +61,13 @@ const formatMessageDate = (date: string) => {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+// Strip HTML tags and decode HTML entities for preview text
+const stripHtml = (html: string): string => {
+  const tmp = document.createElement('DIV');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+};
+
 export function ChatComponent() {
   const [adminUserId] = useState(() => getAdminUserId());
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -81,6 +88,7 @@ export function ChatComponent() {
     allPlayers, // All players (from REST API)
     onlineUsers: onlinePlayers, 
     isLoading: isLoadingUsers, 
+    isLoadingAllPlayers,
     error: usersError,
     fetchAllPlayers,
   } = useChatUsers({
@@ -126,6 +134,16 @@ export function ChatComponent() {
     );
   }, [activeTab, onlinePlayers, activeChatsUsers, allPlayers, searchQuery]);
 
+  // Determine which loading state to show based on active tab
+  const isCurrentTabLoading = useMemo(() => {
+    if (activeTab === 'all-players') {
+      console.log('🔍 All Players tab - isLoadingAllPlayers:', isLoadingAllPlayers, 'allPlayers.length:', allPlayers.length);
+      return isLoadingAllPlayers;
+    }
+    console.log('🔍 Other tab - isLoadingUsers:', isLoadingUsers);
+    return isLoadingUsers;
+  }, [activeTab, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -143,6 +161,7 @@ export function ChatComponent() {
   // Fetch all players from HTTP endpoint when switching to 'all-players' tab
   useEffect(() => {
     if (activeTab === 'all-players') {
+      console.log('🔄 Switching to all-players tab, fetching...');
       fetchAllPlayers();
     }
   }, [activeTab, fetchAllPlayers]);
@@ -302,15 +321,35 @@ export function ChatComponent() {
 
         {/* Player List */}
         <div className="flex-1 overflow-y-auto">
-          {isLoadingUsers ? (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-primary animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-foreground mb-1">Loading players...</p>
-              <p className="text-xs text-muted-foreground">Please wait</p>
+          {(() => {
+            const shouldShowSkeleton = isCurrentTabLoading || (activeTab === 'all-players' && allPlayers.length === 0 && !usersError);
+            console.log('💀 Should show skeleton?', shouldShowSkeleton, {
+              isCurrentTabLoading,
+              activeTab,
+              allPlayersLength: allPlayers.length,
+              usersError
+            });
+            return shouldShowSkeleton;
+          })() ? (
+            <div className="p-2 space-y-2">
+              {/* Skeleton loaders for player cards */}
+              {[...Array(5)].map((_, index) => (
+                <div key={index} className="w-full p-3 md:p-3.5 rounded-xl bg-muted/30 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    {/* Avatar skeleton */}
+                    <div className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-muted/60" />
+                    
+                    {/* Player info skeleton */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="h-4 w-24 bg-muted/60 rounded" />
+                        <div className="h-3 w-12 bg-muted/60 rounded" />
+                      </div>
+                      <div className="h-3 w-32 bg-muted/60 rounded" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : usersError ? (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -376,7 +415,7 @@ export function ChatComponent() {
                       </div>
                       {player.lastMessage && (
                         <p className="text-xs text-muted-foreground truncate leading-tight">
-                          {player.lastMessage}
+                          {stripHtml(player.lastMessage)}
                         </p>
                       )}
                       {player.isOnline && !player.lastMessage && (
@@ -504,11 +543,29 @@ export function ChatComponent() {
             >
               {/* Loading state for purchase history */}
               {chatViewMode === 'purchases' && isPurchaseHistoryLoading && (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                    <p className="text-sm text-muted-foreground">Loading purchase history...</p>
-                  </div>
+                <div className="space-y-4">
+                  {/* Skeleton loaders for purchase history */}
+                  {[...Array(3)].map((_, index) => (
+                    <div key={index} className="flex justify-start animate-pulse">
+                      <div className="flex items-start gap-2 md:gap-3 w-full max-w-[85%] md:max-w-[75%]">
+                        {/* System Icon skeleton */}
+                        <div className="w-7 md:w-8 h-7 md:h-8 rounded-full bg-muted/60 flex-shrink-0" />
+                        
+                        {/* Purchase Message skeleton */}
+                        <div className="flex flex-col gap-2 flex-1">
+                          <div className="bg-muted/40 rounded-2xl rounded-bl-sm px-4 py-3 space-y-2">
+                            <div className="h-4 w-3/4 bg-muted/60 rounded" />
+                            <div className="h-4 w-full bg-muted/60 rounded" />
+                            <div className="h-4 w-1/2 bg-muted/60 rounded" />
+                          </div>
+                          <div className="flex items-center gap-2 px-2">
+                            <div className="h-3 w-16 bg-muted/60 rounded" />
+                            <div className="h-3 w-20 bg-muted/60 rounded" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -642,9 +699,20 @@ export function ChatComponent() {
                       {/* Purchase Message */}
                       <div className="flex flex-col gap-1 flex-1">
                         <div className="bg-muted/80 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-md border border-border/50">
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <div dangerouslySetInnerHTML={{ __html: purchase.text }} />
-                          </div>
+                          <div 
+                            className="prose prose-sm dark:prose-invert max-w-none
+                              prose-headings:text-foreground prose-headings:font-semibold
+                              prose-p:text-foreground prose-p:leading-relaxed prose-p:my-1
+                              prose-strong:text-foreground prose-strong:font-bold
+                              prose-em:text-muted-foreground
+                              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                              prose-ul:my-1 prose-ul:list-disc prose-ul:pl-4
+                              prose-ol:my-1 prose-ol:list-decimal prose-ol:pl-4
+                              prose-li:text-foreground prose-li:my-0.5
+                              prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+                              [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                            dangerouslySetInnerHTML={{ __html: purchase.text }} 
+                          />
                         </div>
                         <div className="flex items-center gap-2 px-2">
                           <span className="text-[10px] md:text-xs text-muted-foreground">

@@ -43,7 +43,7 @@ export function ChatDrawer() {
 
       {/* Drawer - Slides from right (standard admin pattern) */}
       <div 
-        className="fixed inset-y-0 right-0 w-full sm:w-[90vw] md:w-[85vw] lg:w-[75vw] xl:max-w-6xl z-50 bg-background shadow-[0_0_50px_rgba(0,0,0,0.3)] animate-in slide-in-from-right duration-300 ease-out"
+        className="fixed inset-y-0 right-0 w-full sm:w-[90vw] md:w-[92vw] lg:w-[87vw] xl:max-w-7xl z-50 bg-background shadow-[0_0_50px_rgba(0,0,0,0.3)] animate-in slide-in-from-right duration-300 ease-out"
         role="dialog"
         aria-modal="true"
         aria-labelledby="chat-drawer-title"
