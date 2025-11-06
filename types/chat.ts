@@ -1,0 +1,49 @@
+export interface ChatUser {
+  id: string;
+  user_id: number;
+  username: string;
+  email: string;
+  avatar?: string;
+  isOnline: boolean;
+  lastMessage?: string;
+  lastMessageTime?: string;
+  balance?: string;
+  winningBalance?: string;
+  gamesPlayed?: number;
+  winRate?: number;
+  phone?: string;
+  unreadCount?: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'player' | 'admin';
+  timestamp: string;
+  date: string;
+  time?: string;
+  isRead?: boolean;
+  userId?: number;
+  type?: string; // e.g., 'balanceUpdated', 'message', etc.
+  isComment?: boolean; // Whether this is a comment vs a transaction
+}
+
+export interface ChatListResponse {
+  status: string;
+  users?: ChatUser[];
+  total?: number;
+  message?: string; // Optional message (e.g., when backend not ready)
+}
+
+export interface WebSocketMessage {
+  type: 'message' | 'typing' | 'read' | 'connected' | 'error';
+  data?: {
+    id?: string;
+    message?: string;
+    sender?: 'player' | 'admin';
+    timestamp?: string;
+    userId?: number;
+  };
+  error?: string;
+}
+

@@ -20,5 +20,6 @@ export * from './loading-state';
 export * from './error-state';
 export * from './empty-state';
 export * from './managers-list';
+export * from './auth-diagnostic';
 export * from '../dashboard/data-sections/action-modal/activity-details-modal';
 

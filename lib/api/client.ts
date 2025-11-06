@@ -29,18 +29,20 @@ class ApiClient {
   }
 
   private buildUrl(endpoint: string, params?: Record<string, string | number | boolean | undefined>): string {
+    let fullUrl: string;
+    
     // Handle local Next.js API routes (start with 'api/')
     if (endpoint.startsWith('api/')) {
-      return `/${endpoint}`;
+      fullUrl = `/${endpoint}`;
+    } else {
+      // Handle backend API routes
+      if (!this.baseUrl) {
+        throw new Error('API_BASE_URL is not configured. Please set NEXT_PUBLIC_API_URL in your .env.local file.');
+      }
+      fullUrl = `${this.baseUrl}${endpoint}`;
     }
-
-    // Handle backend API routes
-    if (!this.baseUrl) {
-      throw new Error('API_BASE_URL is not configured. Please set NEXT_PUBLIC_API_URL in your .env.local file.');
-    }
-
-    let fullUrl = `${this.baseUrl}${endpoint}`;
     
+    // Append query parameters for all routes
     if (params) {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
@@ -135,14 +137,20 @@ class ApiClient {
 
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
     const url = this.buildUrl(endpoint, config?.params);
+    const headers = this.getHeaders();
     
-    console.log('🔵 API GET:', { endpoint, url, params: config?.params });
+    console.log('🔵 API GET:', { 
+      endpoint, 
+      url, 
+      params: config?.params,
+      hasAuthToken: !!(headers as any)['Authorization'],
+    });
     
     try {
       const response = await fetch(url, {
         ...config,
         method: 'GET',
-        headers: this.getHeaders(),
+        headers,
       });
 
       return this.handleResponse<T>(response);

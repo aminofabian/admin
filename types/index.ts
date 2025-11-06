@@ -8,4 +8,5 @@ export * from './bonus';
 export * from './banner';
 export * from './affiliate';
 export * from './settings';
+export * from './chat';
 

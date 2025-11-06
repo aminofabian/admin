@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
 export const API_VERSION = 'v1';
 export const API_PREFIX = `/api/${API_VERSION}`;
 
@@ -64,6 +64,10 @@ export const API_ENDPOINTS = {
   PAYMENT_METHODS: {
     LIST: `${API_PREFIX}/payment-methods/`,
     DETAIL: (id: number) => `${API_PREFIX}/payment-methods/${id}/`,
+  },
+  CHAT: {
+    LIST: 'api/chat-list', // Using Next.js API route to proxy request
+    WEBSOCKET_BASE: '/ws/cschat/', // WebSocket endpoint base (backend)
   },
 } as const;
 

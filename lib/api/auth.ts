@@ -46,6 +46,7 @@ export const authApi = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      credentials: 'include', // ✅ CRITICAL: Accept Set-Cookie headers from API route
     });
     
     if (!response.ok) {

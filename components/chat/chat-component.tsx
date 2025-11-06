@@ -3,134 +3,43 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Button, Input } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { useChatUsers } from '@/hooks/use-chat-users';
+import { useChatWebSocket } from '@/hooks/use-chat-websocket';
+import { storage } from '@/lib/utils/storage';
+import type { ChatUser, ChatMessage } from '@/types';
 
-interface Message {
-  id: string;
-  text: string;
-  sender: 'player' | 'company';
-  timestamp: string;
-  date: string;
-  time?: string;
-  isRead?: boolean;
-}
+type Player = ChatUser;
+type Message = ChatMessage;
 
-interface Player {
-  id: string;
-  username: string;
-  email: string;
-  avatar: string;
-  isOnline: boolean;
-  lastMessage?: string;
-  lastMessageTime?: string;
-  balance: string;
-  winningBalance: string;
-  gamesPlayed: number;
-  winRate: number;
-  phone?: string;
-}
-
-const MOCK_PLAYERS: Player[] = [
-  {
-    id: '1',
-    username: 'Player 2',
-    email: 'aminofab@gmail.com',
-    avatar: 'P',
-    isOnline: true,
-    lastMessage: 'You successfully purchased $10.0...',
-    lastMessageTime: '1 day ago',
-    balance: '506.28',
-    winningBalance: '90.00',
-    gamesPlayed: 16,
-    winRate: 17.78,
-  },
-  {
-    id: '2',
-    username: 'Player 3',
-    email: 'player3@example.com',
-    avatar: 'P',
-    isOnline: true,
-    lastMessage: 'Hey, can you help me?',
-    lastMessageTime: '2 hours ago',
-    balance: '250.50',
-    winningBalance: '45.00',
-    gamesPlayed: 8,
-    winRate: 12.5,
-  },
-  {
-    id: '3',
-    username: 'Player 4',
-    email: 'player4@example.com',
-    avatar: 'P',
-    isOnline: false,
-    lastMessage: 'Thanks for the support!',
-    lastMessageTime: '3 days ago',
-    balance: '1200.00',
-    winningBalance: '200.00',
-    gamesPlayed: 24,
-    winRate: 25.0,
-  },
-];
-
-const MOCK_MESSAGES: Message[] = [
-  {
-    id: '1',
-    text: 'hhhhhhh ffff gggg ttttt',
-    sender: 'player',
-    timestamp: '9/18 13:08',
-    date: '2024-09-18',
-    time: '13:08',
-    isRead: true,
-  },
-  {
-    id: '2',
-    text: 'ffffffffffxxxxxxxxzz',
-    sender: 'company',
-    timestamp: '9/18 13:09',
-    date: '2024-09-18',
-    time: '13:09',
-    isRead: true,
-  },
-  {
-    id: '3',
-    text: 'ffffffffffxxxxxxxxzz',
-    sender: 'company',
-    timestamp: '9/18 13:09',
-    date: '2024-09-18',
-    time: '13:09',
-    isRead: true,
-  },
-  {
-    id: '4',
-    text: 'gggggdd',
-    sender: 'company',
-    timestamp: '9/18 13:09',
-    date: '2024-09-18',
-    time: '13:09',
-    isRead: true,
-  },
-  {
-    id: '5',
-    text: 'hhhhhhhhvbbb',
-    sender: 'player',
-    timestamp: '10/26 11:24',
-    date: '2024-10-26',
-    time: '11:24',
-    isRead: true,
-  },
-  {
-    id: '6',
-    text: 'You successfully purchased $10.0 credit. Credits: $506.28 Winnings: $90.00',
-    sender: 'company',
-    timestamp: '11/2 11:56',
-    date: '2024-11-02',
-    time: '11:56',
-    isRead: true,
-  },
-];
+// Get admin user ID from storage
+const getAdminUserId = (): number => {
+  try {
+    // User data is stored under 'user' key (not 'user_data')
+    const userDataStr = storage.get('user');
+    if (userDataStr) {
+      const userData = JSON.parse(userDataStr);
+      const userId = userData.id || userData.user_id || 2;
+      console.log('📍 Admin User ID:', userId, 'from storage:', userData);
+      return userId;
+    }
+  } catch (error) {
+    console.error('❌ Failed to parse user data from localStorage:', error);
+  }
+  console.warn('⚠️ User not found in localStorage, using default admin user ID: 2');
+  return 2; // Default admin user ID
+};
 
 const groupMessagesByDate = (messages: Message[]) => {
+  // Deduplicate messages by ID first
+  const uniqueMessages = messages.reduce((acc, msg) => {
+    if (!acc.some(m => m.id === msg.id)) {
+      acc.push(msg);
+    }
+    return acc;
+  }, [] as Message[]);
+
   const grouped: { [key: string]: Message[] } = {};
-  messages.forEach((msg) => {
+  uniqueMessages.forEach((msg) => {
     const dateKey = msg.date;
     if (!grouped[dateKey]) {
       grouped[dateKey] = [];
@@ -153,33 +62,69 @@ const formatMessageDate = (date: string) => {
 };
 
 export function ChatComponent() {
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(MOCK_PLAYERS[0] || null);
-  const [activeTab, setActiveTab] = useState<'online' | 'all'>('online');
+  const [adminUserId] = useState(() => getAdminUserId());
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [activeTab, setActiveTab] = useState<'online' | 'active-chats' | 'all-players'>('online');
+  const [chatViewMode, setChatViewMode] = useState<'messages' | 'purchases'>('messages');
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [availability, setAvailability] = useState(true);
   const [notes, setNotes] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
-  const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>(
-    MOCK_PLAYERS[0] ? 'chat' : 'list'
-  );
+  const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const onlinePlayers = useMemo(() => MOCK_PLAYERS.filter(p => p.isOnline), []);
-  const allPlayers = useMemo(() => MOCK_PLAYERS, []);
-  const groupedMessages = useMemo(() => groupMessagesByDate(messages), [messages]);
+  // Fetch chat users list
+  const { 
+    users: activeChatsUsers, // Users with active chats (from WebSocket)
+    allPlayers, // All players (from REST API)
+    onlineUsers: onlinePlayers, 
+    isLoading: isLoadingUsers, 
+    error: usersError,
+    fetchAllPlayers,
+  } = useChatUsers({
+    adminId: adminUserId,
+    enabled: true,
+  });
+
+  // WebSocket connection for real-time chat
+  const {
+    messages: wsMessages,
+    isConnected,
+    isTyping: remoteTyping,
+    isUserOnline,
+    sendMessage: wsSendMessage,
+    connectionError,
+    purchaseHistory,
+    fetchPurchaseHistory,
+    isPurchaseHistoryLoading,
+  } = useChatWebSocket({
+    userId: selectedPlayer?.user_id ?? null,
+    chatId: selectedPlayer?.id ?? null, // id field contains chat_id
+    adminId: adminUserId,
+    enabled: !!selectedPlayer,
+  });
+
+  const groupedMessages = useMemo(() => groupMessagesByDate(wsMessages), [wsMessages]);
 
   const displayedPlayers = useMemo(() => {
-    const players = activeTab === 'online' ? onlinePlayers : allPlayers;
+    let players: ChatUser[];
+    if (activeTab === 'online') {
+      players = onlinePlayers;
+    } else if (activeTab === 'active-chats') {
+      players = activeChatsUsers; // ✅ Users with active conversations (WebSocket)
+    } else {
+      // 'all-players' - All players from REST API
+      players = allPlayers; // ✅ All players (REST API)
+    }
+    
     if (!searchQuery.trim()) return players;
     const query = searchQuery.toLowerCase();
     return players.filter(
       p => p.username.toLowerCase().includes(query) || p.email.toLowerCase().includes(query)
     );
-  }, [activeTab, onlinePlayers, allPlayers, searchQuery]);
+  }, [activeTab, onlinePlayers, activeChatsUsers, allPlayers, searchQuery]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -187,7 +132,7 @@ export function ChatComponent() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [wsMessages, scrollToBottom]);
 
   useEffect(() => {
     if (selectedPlayer) {
@@ -195,23 +140,28 @@ export function ChatComponent() {
     }
   }, [selectedPlayer, scrollToBottom]);
 
+  // Fetch all players from HTTP endpoint when switching to 'all-players' tab
+  useEffect(() => {
+    if (activeTab === 'all-players') {
+      fetchAllPlayers();
+    }
+  }, [activeTab, fetchAllPlayers]);
+
+  // Fetch purchase history when switching to 'purchases' view
+  useEffect(() => {
+    if (chatViewMode === 'purchases' && selectedPlayer) {
+      fetchPurchaseHistory();
+    }
+  }, [chatViewMode, selectedPlayer, fetchPurchaseHistory]);
+
   const handleSendMessage = useCallback(() => {
     if (!messageInput.trim() || !selectedPlayer) return;
     
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text: messageInput.trim(),
-      sender: 'company',
-      timestamp: new Date().toLocaleString('en-US', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      isRead: false,
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
+    // Send message via WebSocket
+    wsSendMessage(messageInput.trim());
     setMessageInput('');
     scrollToBottom();
-  }, [messageInput, selectedPlayer, scrollToBottom]);
+  }, [messageInput, selectedPlayer, wsSendMessage, scrollToBottom]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -227,12 +177,18 @@ export function ChatComponent() {
     setTimeout(scrollToBottom, 100);
   }, [scrollToBottom]);
 
+  // Auto-select first player if none selected
+  useEffect(() => {
+    if (!selectedPlayer && activeChatsUsers.length > 0) {
+      setSelectedPlayer(activeChatsUsers[0]);
+      setMobileView('chat');
+    }
+  }, [selectedPlayer, activeChatsUsers]);
+
   return (
     <div className="h-full flex gap-0 md:gap-4 bg-background">
       {/* Left Column - Player List */}
-      <div className={`${
-        mobileView === 'list' ? 'flex' : 'hidden'
-      } md:flex w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-border/50 bg-gradient-to-b from-card to-card/50 flex-col`}>
+      <div className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-border/50 bg-gradient-to-b from-card to-card/50 flex-col`}>
         {/* Availability Toggle */}
         <div className="p-4 md:p-5 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
           <div className="flex items-center justify-between gap-3">
@@ -290,7 +246,7 @@ export function ChatComponent() {
           <div className="flex gap-2 p-1 bg-muted/30 rounded-xl">
             <button
               onClick={() => setActiveTab('online')}
-              className={`flex-1 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
+              className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
                 activeTab === 'online'
                   ? 'bg-primary text-primary-foreground shadow-md'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -302,9 +258,19 @@ export function ChatComponent() {
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('all')}
-              className={`flex-1 px-3 md:px-4 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
-                activeTab === 'all'
+              onClick={() => setActiveTab('active-chats')}
+              className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
+                activeTab === 'active-chats'
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              Active Chats
+            </button>
+            <button
+              onClick={() => setActiveTab('all-players')}
+              className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
+                activeTab === 'all-players'
                   ? 'bg-primary text-primary-foreground shadow-md'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
@@ -323,7 +289,7 @@ export function ChatComponent() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-foreground">Online Players</p>
-                <p className="text-[10px] text-muted-foreground">{allPlayers.length} total</p>
+                <p className="text-[10px] text-muted-foreground">{activeChatsUsers.length} with chats</p>
               </div>
             </div>
             <button className="p-2 hover:bg-muted rounded-lg transition-colors group">
@@ -336,7 +302,32 @@ export function ChatComponent() {
 
         {/* Player List */}
         <div className="flex-1 overflow-y-auto">
-          {displayedPlayers.length === 0 ? (
+          {isLoadingUsers ? (
+            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-primary animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-foreground mb-1">Loading players...</p>
+              <p className="text-xs text-muted-foreground">Please wait</p>
+            </div>
+          ) : usersError ? (
+            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-foreground mb-1">Chat Not Available</p>
+              <p className="text-xs text-muted-foreground max-w-xs">
+                {usersError.includes('Backend') || usersError.includes('404') 
+                  ? 'Backend chat service is not ready yet. This feature will be available once the backend is deployed.'
+                  : usersError
+                }
+              </p>
+            </div>
+          ) : displayedPlayers.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-6 text-center">
               <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -366,7 +357,7 @@ export function ChatComponent() {
                           ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' 
                           : 'group-hover:scale-105'
                       }`}>
-                        {player.avatar}
+                        {player.avatar || player.username.charAt(0).toUpperCase()}
                       </div>
                       {player.isOnline && (
                         <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse shadow-sm" />
@@ -411,9 +402,7 @@ export function ChatComponent() {
       </div>
 
       {/* Middle Column - Chat Conversation */}
-      <div className={`${
-        mobileView === 'chat' ? 'flex' : 'hidden'
-      } md:flex flex-1 flex-col border-r border-border bg-card w-full md:w-auto`}>
+      <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 flex-col border-r border-border bg-card w-full md:w-auto`}>
         {selectedPlayer ? (
           <>
             {/* Chat Header */}
@@ -431,9 +420,9 @@ export function ChatComponent() {
               
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="relative flex-shrink-0">
-                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm md:text-base font-bold shadow-md ring-2 ring-primary/10">
-                    {selectedPlayer.avatar}
-                  </div>
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm md:text-base font-bold shadow-md ring-2 ring-primary/10">
+                {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
+              </div>
                   {selectedPlayer.isOnline && (
                     <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-sm" />
                   )}
@@ -441,15 +430,20 @@ export function ChatComponent() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-foreground text-sm md:text-base truncate">{selectedPlayer.username}</h3>
-                    {selectedPlayer.isOnline && (
+                    {isConnected ? (
                       <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-medium">
                         <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                        Online
+                        Connected
+                      </span>
+                    ) : (
+                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-xs font-medium">
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                        Connecting...
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
-                    {selectedPlayer.isOnline ? 'Active now' : `Last seen ${selectedPlayer.lastMessageTime}`}
+                    {connectionError ? `Error: ${connectionError}` : selectedPlayer.isOnline ? 'Active now' : `Last seen ${selectedPlayer.lastMessageTime || 'recently'}`}
                   </p>
                 </div>
               </div>
@@ -477,12 +471,61 @@ export function ChatComponent() {
               </div>
             </div>
 
-            {/* Messages */}
+            {/* View Mode Toggle */}
+            <div className="px-4 py-2 border-b border-border/50 bg-muted/20">
+              <div className="flex gap-2 p-1 bg-muted/30 rounded-lg">
+                <button
+                  onClick={() => setChatViewMode('messages')}
+                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                    chatViewMode === 'messages'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  💬 Messages
+                </button>
+                <button
+                  onClick={() => setChatViewMode('purchases')}
+                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                    chatViewMode === 'purchases'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  💰 Purchases
+                </button>
+              </div>
+            </div>
+
+            {/* Messages / Purchase History */}
             <div 
               ref={messagesContainerRef}
               className="flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-6 space-y-6 scroll-smooth bg-gradient-to-b from-background/50 to-background"
             >
-              {Object.entries(groupedMessages).map(([date, dateMessages]) => (
+              {/* Loading state for purchase history */}
+              {chatViewMode === 'purchases' && isPurchaseHistoryLoading && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Loading purchase history...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state for purchases */}
+              {chatViewMode === 'purchases' && !isPurchaseHistoryLoading && purchaseHistory.length === 0 && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <svg className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <p className="text-sm text-muted-foreground">No purchase history available</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Render messages or purchase history based on view mode */}
+              {chatViewMode === 'messages' && Object.entries(groupedMessages).map(([date, dateMessages]) => (
                 <div key={date} className="space-y-3">
                   {/* Date Separator */}
                   <div className="flex items-center justify-center my-8 first:mt-0">
@@ -507,18 +550,19 @@ export function ChatComponent() {
                        Math.abs(new Date(`2000-01-01 ${prevMessage.time}`).getTime() - 
                                 new Date(`2000-01-01 ${message.time || ''}`).getTime()) > 5 * 60 * 1000)
                     );
-                    const isConsecutive = prevMessage && prevMessage.sender === message.sender;
+                                const isConsecutive = prevMessage && prevMessage.sender === message.sender;
+                    const isAdmin = message.sender === 'admin';
 
                     return (
                       <div
                         key={message.id}
-                        className={`flex ${message.sender === 'player' ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-200 ${isConsecutive ? 'mt-1' : 'mt-4'}`}
+                        className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200 ${isConsecutive ? 'mt-1' : 'mt-4'}`}
                       >
-                        <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] ${message.sender === 'player' ? 'flex-row' : 'flex-row-reverse'}`}>
+                        <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
                           {/* Avatar */}
                           {showAvatar ? (
                             <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-md ring-2 ring-blue-500/20">
-                              {selectedPlayer.avatar}
+                              {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
                             </div>
                           ) : (
                             <div className="w-7 md:w-8 shrink-0" />
@@ -528,11 +572,11 @@ export function ChatComponent() {
                           <div className="relative group flex flex-col">
                             <div
                               className={`rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 shadow-md transition-all duration-200 ${
-                                message.sender === 'player'
-                                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/25'
-                                  : 'bg-card border border-border/50 text-foreground shadow-black/5 dark:shadow-black/20'
+                                isAdmin
+                                  ? 'bg-card border border-border/50 text-foreground shadow-black/5 dark:shadow-black/20'
+                                  : 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/25'
                               } ${
-                                message.sender === 'player' ? 'rounded-bl-sm' : 'rounded-br-sm'
+                                isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
                               }`}
                             >
                               <p className="text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -542,12 +586,12 @@ export function ChatComponent() {
                             
                             {/* Message Meta */}
                             <div className={`flex items-center gap-1.5 mt-1 px-1 ${
-                              message.sender === 'player' ? 'justify-start' : 'justify-end'
+                              isAdmin ? 'justify-end' : 'justify-start'
                             }`}>
                               <span className="text-[10px] md:text-xs text-muted-foreground font-medium">
                                 {message.time || message.timestamp}
                               </span>
-                              {message.sender === 'company' && (
+                              {isAdmin && (
                                 <svg 
                                   className={`w-3.5 h-3.5 ${
                                     message.isRead 
@@ -564,7 +608,7 @@ export function ChatComponent() {
                             </div>
                             
                             {/* Options Button (Desktop) */}
-                            {message.sender === 'company' && (
+                            {isAdmin && (
                               <button
                                 onClick={() => setMessageMenuOpen(messageMenuOpen === message.id ? null : message.id)}
                                 className="hidden md:flex absolute -right-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-muted rounded-lg"
@@ -582,9 +626,58 @@ export function ChatComponent() {
                   })}
                 </div>
               ))}
+
+              {/* Render purchase history */}
+              {chatViewMode === 'purchases' && !isPurchaseHistoryLoading && purchaseHistory.length > 0 && 
+                purchaseHistory.map((purchase) => (
+                  <div key={purchase.id} className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="flex items-start gap-2 md:gap-3 w-full max-w-[85%] md:max-w-[75%]">
+                      {/* System Icon */}
+                      <div className="w-7 md:w-8 h-7 md:h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                      </div>
+                      
+                      {/* Purchase Message */}
+                      <div className="flex flex-col gap-1 flex-1">
+                        <div className="bg-muted/80 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-md border border-border/50">
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <div dangerouslySetInnerHTML={{ __html: purchase.text }} />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 px-2">
+                          <span className="text-[10px] md:text-xs text-muted-foreground">
+                            {purchase.time || new Date(purchase.timestamp).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/60">•</span>
+                          <span className="text-[10px] text-muted-foreground/60">
+                            {new Date(purchase.timestamp).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </span>
+                          {purchase.type && (
+                            <>
+                              <span className="text-[10px] text-muted-foreground/60">•</span>
+                              <span className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+                                {purchase.type}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              }
               
               {/* Typing Indicator */}
-              {isTyping && (
+              {chatViewMode === 'messages' && remoteTyping && (
                 <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200 mt-4">
                   <div className="flex items-center gap-2">
                     <div className="w-7 md:w-8 shrink-0" />
@@ -602,7 +695,8 @@ export function ChatComponent() {
               <div ref={messagesEndRef} className="h-1" />
             </div>
 
-            {/* Message Input */}
+            {/* Message Input - Only show in messages view */}
+            {chatViewMode === 'messages' && (
             <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
               {/* Toolbar - Desktop Only */}
               <div className="hidden lg:flex items-center gap-1 mb-2 pb-2 border-b border-border/30">
@@ -656,10 +750,6 @@ export function ChatComponent() {
                     value={messageInput}
                     onChange={(e) => {
                       setMessageInput(e.target.value);
-                      if (e.target.value.trim() && !isTyping) {
-                        setIsTyping(true);
-                        setTimeout(() => setIsTyping(false), 2000);
-                      }
                       // Auto-resize - responsive max height
                       e.target.style.height = 'auto';
                       const maxHeight = window.innerWidth >= 768 ? 300 : 200;
@@ -731,6 +821,7 @@ export function ChatComponent() {
                 Tap Send or Enter to send • Hold Shift for new line
               </div>
             </div>
+            )}
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-background/50 to-background">
@@ -760,9 +851,7 @@ export function ChatComponent() {
 
       {/* Right Column - Player Info */}
       {selectedPlayer && (
-        <div className={`${
-          mobileView === 'info' ? 'flex' : 'hidden'
-        } md:flex w-full md:w-80 lg:w-96 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
+        <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-80 lg:w-96 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
           {/* Header with Player Avatar */}
           <div className="p-4 md:p-6 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
             {/* Back button for mobile */}
@@ -777,22 +866,27 @@ export function ChatComponent() {
             </button>
             
             <div className="flex flex-col items-center text-center">
-              <div className="relative mb-4">
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-lg ring-4 ring-primary/20">
-                  {selectedPlayer.avatar}
+                <div className="relative mb-4">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-lg ring-4 ring-primary/20">
+                    {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
+                  </div>
+                  {isConnected && (
+                    <span className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-card animate-pulse shadow-lg" />
+                  )}
                 </div>
-                {selectedPlayer.isOnline && (
-                  <span className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-card animate-pulse shadow-lg" />
+                <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">{selectedPlayer.username}</h3>
+                <p className="text-sm text-muted-foreground">@{selectedPlayer.username.toLowerCase().replace(/\s+/g, '')}</p>
+                {isConnected ? (
+                  <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-medium">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    Connected
+                  </span>
+                ) : (
+                  <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-xs font-medium">
+                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                    Connecting...
+                  </span>
                 )}
-              </div>
-              <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">{selectedPlayer.username}</h3>
-              <p className="text-sm text-muted-foreground">@{selectedPlayer.username.toLowerCase().replace(/\s+/g, '')}</p>
-              {selectedPlayer.isOnline && (
-                <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-medium">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  Online Now
-                </span>
-              )}
             </div>
           </div>
 
@@ -810,7 +904,7 @@ export function ChatComponent() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
                   <span className="text-sm text-muted-foreground">Total Balance</span>
-                  <span className="text-lg font-bold text-foreground">{formatCurrency(selectedPlayer.balance)}</span>
+                  <span className="text-lg font-bold text-foreground">{formatCurrency(selectedPlayer.balance || '0')}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gradient-to-r from-yellow-500/10 to-yellow-600/5 rounded-lg border border-yellow-500/20">
                   <div className="flex items-center gap-2">
@@ -819,7 +913,7 @@ export function ChatComponent() {
                     </svg>
                     <span className="text-sm text-foreground font-medium">Winnings</span>
                   </div>
-                  <span className="text-base font-bold text-yellow-600 dark:text-yellow-500">{formatCurrency(selectedPlayer.winningBalance)}</span>
+                  <span className="text-base font-bold text-yellow-600 dark:text-yellow-500">{formatCurrency(selectedPlayer.winningBalance || '0')}</span>
                 </div>
               </div>
             </div>
@@ -873,11 +967,11 @@ export function ChatComponent() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-background/50 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Games Played</p>
-                  <p className="text-2xl font-bold text-foreground">{selectedPlayer.gamesPlayed}</p>
+                  <p className="text-2xl font-bold text-foreground">{selectedPlayer.gamesPlayed || 0}</p>
                 </div>
                 <div className="p-3 bg-background/50 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{selectedPlayer.winRate}%</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{selectedPlayer.winRate || 0}%</p>
                 </div>
               </div>
             </div>

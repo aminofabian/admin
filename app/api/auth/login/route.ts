@@ -25,12 +25,35 @@ export async function POST(request: NextRequest) {
     
     console.log('📥 Backend response data:', data);
 
-    // Always return 200 to Next.js, but include the backend status in the body
-    // This prevents CORS issues while still allowing the client to handle errors
-    return NextResponse.json({
+    // Create the response
+    const nextResponse = NextResponse.json({
       ...data,
       _status: response.status, // Include original status
     });
+
+    // ✅ CRITICAL: Forward ALL Set-Cookie headers from Django to browser
+    // Django sends multiple cookies (sessionid, csrftoken, etc.)
+    // Must use getSetCookie() to get all of them, not just the first one
+    const setCookieHeaders = response.headers.getSetCookie?.() || [];
+    
+    if (setCookieHeaders.length > 0) {
+      console.log(`🍪 Forwarding ${setCookieHeaders.length} session cookies to browser`);
+      setCookieHeaders.forEach(cookie => {
+        console.log('🍪 Cookie:', cookie.substring(0, 50) + '...');
+        nextResponse.headers.append('Set-Cookie', cookie);
+      });
+    } else {
+      // Fallback to old method for older Node versions
+      const singleCookie = response.headers.get('set-cookie');
+      if (singleCookie) {
+        console.log('🍪 Forwarding single session cookie (fallback method)');
+        nextResponse.headers.set('Set-Cookie', singleCookie);
+      } else {
+        console.warn('⚠️ No Set-Cookie headers in Django response');
+      }
+    }
+
+    return nextResponse;
   } catch (error) {
     console.error('❌ Login proxy error:', error);
     
