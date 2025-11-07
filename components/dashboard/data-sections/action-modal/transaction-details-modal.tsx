@@ -23,25 +23,23 @@ interface TransactionDetailsModalProps {
   transaction: Transaction;
   isOpen: boolean;
   onClose: () => void;
-}
-
-function mapStatusToVariant(status: string): 'success' | 'warning' | 'danger' | 'default' {
-  if (status === 'completed') return 'success';
-  if (status === 'pending') return 'warning';
-  if (status === 'failed' || status === 'cancelled') return 'danger';
-  return 'default';
+  onComplete?: () => void;
+  onCancel?: () => void;
+  isActionLoading?: boolean;
 }
 
 export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   transaction,
   isOpen,
   onClose,
+  onComplete,
+  onCancel,
+  isActionLoading = false,
 }: TransactionDetailsModalProps) {
   // Memoize expensive computations
-  const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
-  const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
+  const isPending = useMemo(() => transaction.status === 'pending', [transaction.status]);
   
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
@@ -80,6 +78,9 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   }, [invoiceUrl]);
 
   const statusColor = transaction.status === 'completed' ? 'green' : transaction.status === 'failed' || transaction.status === 'cancelled' ? 'red' : 'yellow';
+  const showActions = isPending && (typeof onComplete === 'function' || typeof onCancel === 'function');
+  const disableComplete = isActionLoading || !isPending;
+  const disableCancel = isActionLoading || !isPending;
 
   return (
     <DetailsModalWrapper isOpen={isOpen} onClose={onClose} title="Transaction Details">
@@ -181,6 +182,33 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
           {/* Remarks/Description */}
           {transaction.description && <DetailsRemarks remarks={transaction.description} />}
+
+          {showActions && (
+            <div className="mt-3 pt-3 border-t border-border space-y-2">
+              {typeof onComplete === 'function' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="w-full font-semibold"
+                  disabled={disableComplete}
+                  onClick={onComplete}
+                >
+                  {isActionLoading ? 'Processing...' : 'Complete Transaction'}
+                </Button>
+              )}
+              {typeof onCancel === 'function' && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="w-full font-semibold"
+                  disabled={disableCancel}
+                  onClick={onCancel}
+                >
+                  {isActionLoading ? 'Processing...' : 'Cancel Transaction'}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </DetailsCard>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import type { JSX } from 'react';
 import { 
   Table,
@@ -287,13 +287,10 @@ interface ProcessingTransactionRowProps {
   transaction: Transaction;
   getStatusVariant: (status: string) => 'success' | 'warning' | 'danger' | 'info';
   onView: () => void;
-  onComplete: () => void;
-  onCancel: () => void;
   isActionPending: boolean;
-  viewType?: 'purchases' | 'cashouts';
 }
 
-function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onComplete, onCancel, isActionPending, viewType }: ProcessingTransactionRowProps) {
+function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isActionPending }: ProcessingTransactionRowProps) {
   const bonusValue = parseFloat(transaction.bonus_amount || '0');
   const paymentMethod = transaction.payment_method ?? '—';
   const lowerPaymentMethod = paymentMethod.toLowerCase();
@@ -306,7 +303,6 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
       ? `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${transaction.id}/invoice/`
       : undefined;
   const isPending = transaction.status === 'pending';
-  const disableActions = isActionPending || !isPending;
 
   const isPurchase = transaction.type === 'purchase';
   const statusVariant = getStatusVariant(transaction.status);
@@ -417,52 +413,18 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, onCom
       {paymentCell}
       {datesCell}
       <TableCell className="text-right">
-        <div className="inline-flex flex-wrap items-center justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onView();
-            }}
-            disabled={isActionPending}
-          >
-            View
-          </Button>
-          {isPending && (
-            <>
-              <Button
-                variant="primary"
-                size="sm"
-                className="font-medium"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('🔵 Complete button clicked');
-                  onComplete();
-                }}
-                disabled={disableActions}
-              >
-                Complete
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                className="font-medium"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('🔴 Cancel button clicked');
-                  onCancel();
-                }}
-                disabled={disableActions}
-              >
-                Cancel
-              </Button>
-            </>
-          )}
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={isActionPending}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onView();
+          }}
+        >
+          View Details
+        </Button>
       </TableCell>
     </TableRow>
   );
@@ -477,110 +439,6 @@ const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'i
   }
 };
 
-
-interface MobileTransactionActionsProps {
-  transaction: Transaction;
-  isPending: boolean;
-  onView: () => void;
-  onComplete: () => void;
-  onCancel: () => void;
-}
-
-function MobileTransactionActions({
-  transaction,
-  isPending,
-  onView,
-  onComplete,
-  onCancel,
-}: MobileTransactionActionsProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
-  return (
-    <div className="relative pt-2 border-t border-border" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isPending}
-        className="w-full px-4 py-2.5 bg-card border border-border rounded-lg text-sm font-medium text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
-      >
-        <span>Actions</span>
-        <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div className="absolute bottom-full left-0 right-0 mb-2 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50">
-          <button
-            onClick={() => {
-              onView();
-              setIsOpen(false);
-            }}
-            className="w-full px-4 py-3 text-left text-sm font-medium text-foreground hover:bg-accent transition-colors flex items-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            View Details
-          </button>
-
-          {transaction.status === 'pending' && (
-            <>
-              <div className="h-px bg-border" />
-              <button
-                onClick={() => {
-                  onComplete();
-                  setIsOpen(false);
-                }}
-                disabled={isPending}
-                className="w-full px-4 py-3 text-left text-sm font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Complete Transaction
-              </button>
-
-              <div className="h-px bg-border" />
-              <button
-                onClick={() => {
-                  onCancel();
-                  setIsOpen(false);
-                }}
-                disabled={isPending}
-                className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Cancel Transaction
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function buildProcessingTransactionStats(transactions: Transaction[], totalCount: number): ProcessingStat[] {
   const queueSize = totalCount || transactions.length;
@@ -828,6 +686,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         description: `Transaction ${action} successfully`,
         duration: 3000,
       });
+
+      if (selectedTransaction?.id === transactionId) {
+        setIsViewModalOpen(false);
+        setSelectedTransaction(null);
+      }
     } catch (error) {
       // Extract error message from ApiError object
       let errorMessage = 'Failed to update transaction status';
@@ -926,6 +789,14 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     setIsViewModalOpen(false);
     setSelectedTransaction(null);
   };
+
+const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
+  if (!selectedTransaction) {
+    return;
+  }
+
+  handleTransactionActionClick(selectedTransaction, action);
+};
 
   const handleQuickAction = async (queue: TransactionQueue, action: string) => {
     if (action === 'view') {
@@ -1105,14 +976,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                     key={transaction.id}
                     transaction={transaction}
                     getStatusVariant={getStatusVariant}
-                    viewType={viewType}
                     onView={() => handleViewTransaction(transaction)}
-                    onComplete={async () => {
-                      handleTransactionActionClick(transaction, 'completed');
-                    }}
-                    onCancel={async () => {
-                      handleTransactionActionClick(transaction, 'cancelled');
-                    }}
                     isActionPending={pendingTransactionId === transaction.id}
                   />
                 ))}
@@ -1203,17 +1067,15 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 </div>
 
                 {/* Actions */}
-                <MobileTransactionActions
-                  transaction={transaction}
-                  isPending={pendingTransactionId === transaction.id}
-                  onView={() => handleViewTransaction(transaction)}
-                  onComplete={async () => {
-                    handleTransactionActionClick(transaction, 'completed');
-                  }}
-                  onCancel={async () => {
-                    handleTransactionActionClick(transaction, 'cancelled');
-                  }}
-                />
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="w-full"
+                  disabled={pendingTransactionId === transaction.id}
+                  onClick={() => handleViewTransaction(transaction)}
+                >
+                  View Details
+                </Button>
               </div>
             ))}
           </div>
@@ -1238,6 +1100,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           transaction={selectedTransaction}
           isOpen={isViewModalOpen}
           onClose={handleCloseViewModal}
+          onComplete={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('completed') : undefined}
+          onCancel={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('cancelled') : undefined}
+          isActionLoading={pendingTransactionId === selectedTransaction.id}
         />
       )}
 
