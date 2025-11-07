@@ -426,7 +426,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
             onView();
           }}
         >
-          View Details
+          View
         </Button>
       </TableCell>
     </TableRow>
@@ -809,7 +809,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
 
   const handleQuickAction = async (queue: TransactionQueue, action: string) => {
     if (action === 'view') {
-      // Open modal to view details and select action
+      // Open modal to View and select action
       handleActionClick(queue);
       return;
     }
@@ -1088,7 +1088,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                     disabled={pendingTransactionId === transaction.id}
                     onClick={() => handleViewTransaction(transaction)}
                   >
-                    View Details
+                    View
                   </Button>
                 </div>
               );

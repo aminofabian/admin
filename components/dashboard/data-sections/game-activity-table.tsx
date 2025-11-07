@@ -92,6 +92,10 @@ function GameActivityRow({
     return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
   }, [activity.data?.new_winning_balance]);
 
+  const zeroCurrency = formatCurrency('0');
+  const creditsDisplay = useMemo(() => newCreditsBalance ?? zeroCurrency, [newCreditsBalance, zeroCurrency]);
+  const winningsDisplay = useMemo(() => newWinningBalance ?? zeroCurrency, [newWinningBalance, zeroCurrency]);
+
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
     : null;
@@ -170,18 +174,14 @@ function GameActivityRow({
         </div>
       </TableCell>
       <TableCell>
-        {(newCreditsBalance || newWinningBalance) ? (
-          <div className="space-y-1">
-            <div className="text-sm text-gray-700 dark:text-gray-300">
-              C: {newCreditsBalance || formatCurrency('0')}
-            </div>
-            <div className="text-sm text-gray-700 dark:text-gray-300">
-              W: {newWinningBalance || formatCurrency('0')}
-            </div>
+        <div className="space-y-1">
+          <div className="text-sm font-semibold text-muted-foreground">
+            C: {creditsDisplay}
           </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">—</div>
-        )}
+          <div className="text-sm font-semibold text-muted-foreground">
+            W: {winningsDisplay}
+          </div>
+        </div>
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
@@ -204,7 +204,7 @@ function GameActivityRow({
             disabled={actionLoading}
             onClick={handleViewClick}
           >
-            View Details
+            View
           </Button>
         </TableCell>
       )}

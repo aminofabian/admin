@@ -270,7 +270,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     }
 
     if (isResetPassword) {
-      // For Reset Password: Type-Status, Game - Game username, User - Email
+      // For Reset: Type-Status, Game - Game username, User - Email
       return (
         <div className="space-y-2">
           {/* Transaction Type and Status */}
@@ -282,7 +282,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 </svg>
               </div>
               <div>
-                <div className="text-xs font-semibold text-foreground">Reset Password</div>
+                <div className="text-xs font-semibold text-foreground">Reset</div>
               </div>
             </div>
             <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
@@ -610,7 +610,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     }
 
     if (isResetPassword) {
-      // For Reset Password: Type-Status, Game - Game username, User - Email
+      // For Reset: Type-Status, Game - Game username, User - Email
       return (
         <div className="space-y-2">
           {/* Type - Status */}
@@ -622,7 +622,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 </svg>
               </div>
               <div>
-                <div className="text-xs font-semibold text-foreground">Reset Password</div>
+                <div className="text-xs font-semibold text-foreground">Reset</div>
               </div>
             </div>
             <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${

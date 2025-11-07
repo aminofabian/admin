@@ -334,10 +334,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
   }, [bonusAmount]);
 
-  const formattedBalance = useMemo(() => {
-    return formatCurrency(String(activity.data?.balance ?? '0'));
-  }, [activity.data?.balance]);
-
   const credit = useMemo(() => {
     const creditValue = activity.data?.credit;
     if (creditValue === undefined || creditValue === null) return null;
@@ -368,6 +364,20 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
       : null;
     return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
   }, [activity.data?.new_winning_balance]);
+
+  const zeroCurrency = formatCurrency('0');
+
+  const creditsDisplay = useMemo(() => {
+    if (newCreditsBalance) return newCreditsBalance;
+    if (credit) return credit;
+    return zeroCurrency;
+  }, [newCreditsBalance, credit, zeroCurrency]);
+
+  const winningsDisplay = useMemo(() => {
+    if (newWinningBalance) return newWinningBalance;
+    if (winnings) return winnings;
+    return zeroCurrency;
+  }, [newWinningBalance, winnings, zeroCurrency]);
 
   // Website user (actual user on the platform)
   const websiteUsername = useMemo(() => {
@@ -481,35 +491,14 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         </div>
       </TableCell>
       <TableCell>
-        {(newCreditsBalance || newWinningBalance) ? (
-          <div className="space-y-1">
-            {newCreditsBalance && (
-              <div className="text-sm font-semibold text-foreground">
-                Credits: {newCreditsBalance}
-              </div>
-            )}
-            {newWinningBalance && (
-              <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-                Winnings: {newWinningBalance}
-              </div>
-            )}
+        <div className="space-y-1">
+          <div className="text-sm font-semibold text-muted-foreground">
+            C: {creditsDisplay}
           </div>
-        ) : (credit || winnings) ? (
-          <div className="space-y-1">
-            {credit && (
-              <div className="text-sm font-semibold text-foreground">
-                Credit: {credit}
-              </div>
-            )}
-            {winnings && (
-              <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-                Winnings: {winnings}
-              </div>
-            )}
+          <div className="text-sm font-semibold text-muted-foreground">
+            W: {winningsDisplay}
           </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">—</div>
-        )}
+        </div>
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
@@ -531,7 +520,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
           className="min-w-[7.5rem]"
           onClick={handleViewClick}
         >
-          View Details
+          View
         </Button>
       </TableCell>
     </TableRow>
@@ -563,12 +552,12 @@ const mapTypeToLabel = (type: string): string => {
   if (type === 'recharge_game') return 'Recharge';
   if (type === 'redeem_game') return 'Redeem';
   if (type === 'add_user_game') return 'Add User';
-  if (type === 'change_password') return 'Reset password';
+  if (type === 'change_password') return 'Reset';
   return type;
 };
 
 const mapTypeToVariant = (type: string): 'success' | 'danger' | 'info' | 'default' => {
   if (type === 'recharge_game') return 'success'; // Green for recharge
   if (type === 'redeem_game') return 'danger'; // Red for cashout/redeem
-  return 'info'; // Default for other types (reset password, create game, etc.)
+  return 'info'; // Default for other types (Reset, create game, etc.)
 };

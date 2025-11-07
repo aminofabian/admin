@@ -642,7 +642,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
           className="min-w-[7.5rem]"
           onClick={handleViewClick}
         >
-          View Details
+          View
         </Button>
       </TableCell>
     </TableRow>
