@@ -2,31 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
-import {
-  DashboardActionBar,
-  DashboardSearchBar,
-  DashboardSectionContainer,
-  DashboardSectionHeader,
-  DashboardStatCard,
-  DashboardStatGrid,
-} from '@/components/dashboard/layout';
-import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
-import { EmptyState, GameForm, StoreBalanceModal } from '@/components/features';
+import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, SearchInput } from '@/components/ui';
+import { EmptyState, ErrorState, GameForm, LoadingState, StoreBalanceModal } from '@/components/features';
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import type { Game, UpdateGameRequest, CheckStoreBalanceResponse } from '@/types';
 import { useSearch } from '@/lib/hooks';
-
-const HEADER_ICON = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
-  </svg>
-);
-
-const EMPTY_STATE = (
-  <EmptyState title="No games found" description="No games matched your filters" />
-);
 
 export function GamesSection() {
   const { user } = useAuth();
@@ -72,58 +54,97 @@ export function GamesSection() {
 
   if (!canManageGames) {
     return (
-      <DashboardSectionContainer isLoading={false} error="" isEmpty={false}>
-        <AccessDeniedMessage role={user?.role ?? 'unknown'} />
-      </DashboardSectionContainer>
+      <div className="flex min-h-[400px] flex-col items-center justify-center space-y-4">
+        <div className="max-w-md rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center shadow-sm">
+          <svg className="mx-auto mb-4 h-16 w-16 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.64 5.64l12.72 12.72M4.93 4.93A10 10 0 1121 12 10 10 0 014.93 4.93z" />
+          </svg>
+          <h3 className="mb-2 text-xl font-semibold text-foreground">Access Denied</h3>
+          <p className="mb-4 text-sm text-muted-foreground">
+            You need <strong>company</strong> or <strong>superadmin</strong> privileges to manage games.
+          </p>
+          <div className="rounded-lg bg-white p-3 text-sm shadow-inner">
+            <p className="text-muted-foreground">
+              Your current role: <span className="font-semibold text-foreground">{user?.role ?? 'unknown'}</span>
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
 
-  const isInitialLoading = isLoading && !data;
-  const showEmptyState = !games.length && !searchTerm;
+  if (isLoading && !data) {
+    return <LoadingState />;
+  }
+
+  if (error) {
+    return <ErrorState message={error} onRetry={fetchGames} />;
+  }
+
+  if (!games.length && !searchTerm) {
+    return <EmptyState title="No games found" description="No games matched your filters" />;
+  }
 
   return (
-    <DashboardSectionContainer
-      isLoading={isInitialLoading}
-      error={error ?? ''}
-      onRetry={fetchGames}
-      isEmpty={showEmptyState}
-      emptyState={EMPTY_STATE}
-    >
-      <DashboardSectionHeader
-        title="Games"
-        description="Manage all available games and their status"
-        icon={HEADER_ICON}
-      />
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">Games</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Manage all available games and their status</p>
+            </div>
+          </div>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => {
+              setEditingGame(null);
+              setSubmitError('');
+              setIsDrawerOpen(true);
+            }}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-sm hover:bg-primary/90"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Game
+          </Button>
+        </div>
+      </section>
 
-      <DashboardActionBar>
-        <DashboardSearchBar
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search by title"
-        />
-      </DashboardActionBar>
+      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+        <SearchInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by title..." />
+      </section>
 
-      <DashboardStatGrid>
-        {stats.map((stat) => (
-          <DashboardStatCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            helperText={stat.helper}
-            icon={stat.icon}
-            variant={stat.variant}
-          />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map(stat => (
+          <div key={stat.title} className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">{stat.title}</div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">{stat.value}</div>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">{stat.icon}</div>
+            </div>
+            {stat.helper && <div className="mt-2 text-sm text-muted-foreground">{stat.helper}</div>}
+          </div>
         ))}
-      </DashboardStatGrid>
+      </div>
 
       <GamesTable
         games={games}
-        onEditGame={(game) => {
+        onEditGame={game => {
           setEditingGame(game);
           setSubmitError('');
           setIsDrawerOpen(true);
         }}
-        onCheckBalance={async (game) => {
+        onCheckBalance={async game => {
           setSelectedGame(game);
           setBalanceError(null);
           setBalanceData(null);
@@ -149,7 +170,7 @@ export function GamesSection() {
           setEditingGame(null);
           setSubmitError('');
         }}
-        onSubmit={async (formData) => {
+        onSubmit={async formData => {
           if (!editingGame) return;
           try {
             setIsSubmitting(true);
@@ -180,7 +201,7 @@ export function GamesSection() {
         isLoading={balanceCheckLoading}
         error={balanceError}
       />
-    </DashboardSectionContainer>
+    </div>
   );
 }
 
@@ -250,56 +271,56 @@ interface GamesTableProps {
   onCheckBalance: (game: Game) => Promise<void>;
 }
 
-function GamesTable({
-  games,
-  onEditGame,
-  onCheckBalance,
-}: GamesTableProps) {
+function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
   if (!games.length) {
     return null;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card">
+    <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Game</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="border-border/60">
+              <TableHead className="min-w-[220px] font-semibold uppercase tracking-wide text-muted-foreground">Game</TableHead>
+              <TableHead className="min-w-[160px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
+              <TableHead className="min-w-[200px] text-right font-semibold uppercase tracking-wide text-muted-foreground">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {games.map((game) => (
-              <TableRow key={game.id}>
-                <TableCell className="font-medium text-foreground">{game.title}</TableCell>
+            {games.map(game => (
+              <TableRow key={game.id} className="border-border/40 transition-colors hover:bg-slate-50">
+                <TableCell className="text-sm font-medium text-foreground">{game.title}</TableCell>
                 <TableCell>
-                  <Badge variant={game.game_status ? 'success' : 'danger'}>
+                  <Badge variant={game.game_status ? 'success' : 'danger'} className={game.game_status ? 'border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700' : 'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600'}>
                     {game.game_status ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-3">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => onCheckBalance(game)}
                       title="Check store balance"
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
+                      Balance
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => onEditGame(game)}
                       title="Edit game"
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
+                      Edit
                     </Button>
                   </div>
                 </TableCell>
@@ -308,7 +329,7 @@ function GamesTable({
           </TableBody>
         </Table>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -333,26 +354,6 @@ function GameEditor({ isOpen, game, isLoading, error, onClose, onSubmit }: GameE
         <GameForm game={game} onSubmit={onSubmit} onCancel={onClose} isLoading={isLoading} />
       )}
     </Drawer>
-  );
-}
-
-interface AccessDeniedMessageProps {
-  role: string;
-}
-
-function AccessDeniedMessage({ role }: AccessDeniedMessageProps) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-destructive/40 bg-destructive/5 p-8 text-center">
-      <svg className="h-12 w-12 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.64 5.64l12.72 12.72M4.93 4.93A10 10 0 1121 12 10 10 0 014.93 4.93z" />
-      </svg>
-      <div>
-        <h3 className="text-lg font-semibold text-foreground">Access denied</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          You need superadmin or company privileges to manage games. Current role: <span className="font-medium text-foreground">{role}</span>
-        </p>
-      </div>
-    </div>
   );
 }
 
