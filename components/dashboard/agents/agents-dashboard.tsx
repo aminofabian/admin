@@ -292,13 +292,7 @@ type AgentsTableContentProps = {
 function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions }: AgentsTableContentProps) {
   return (
     <section className="rounded-2xl border border-border bg-white shadow-sm">
-      <div className="border-b border-border/60 px-6 py-4">
-        <div className="flex items-center gap-3">
-         
-          <div>
-          </div>
-        </div>
-      </div>
+    
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
