@@ -40,6 +40,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
   const isPending = useMemo(() => transaction.status === 'pending', [transaction.status]);
+  const hasComplete = typeof onComplete === 'function';
+  const hasCancel = typeof onCancel === 'function';
   
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
@@ -78,7 +80,7 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   }, [invoiceUrl]);
 
   const statusColor = transaction.status === 'completed' ? 'green' : transaction.status === 'failed' || transaction.status === 'cancelled' ? 'red' : 'yellow';
-  const showActions = isPending && (typeof onComplete === 'function' || typeof onCancel === 'function');
+  const showActions = isPending && (hasComplete || hasCancel);
   const disableComplete = isActionLoading || !isPending;
   const disableCancel = isActionLoading || !isPending;
 
@@ -184,23 +186,23 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           {transaction.description && <DetailsRemarks remarks={transaction.description} />}
 
           {showActions && (
-            <div className="mt-3 pt-3 border-t border-border space-y-2">
-              {typeof onComplete === 'function' && (
+            <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2 sm:flex-row">
+              {hasComplete && (
                 <Button
                   variant="primary"
                   size="sm"
-                  className="w-full font-semibold"
+                  className={hasCancel ? 'flex-1 font-semibold' : 'w-full font-semibold'}
                   disabled={disableComplete}
                   onClick={onComplete}
                 >
                   {isActionLoading ? 'Processing...' : 'Complete Transaction'}
                 </Button>
               )}
-              {typeof onCancel === 'function' && (
+              {hasCancel && (
                 <Button
                   variant="danger"
                   size="sm"
-                  className="w-full font-semibold"
+                  className={hasComplete ? 'flex-1 font-semibold' : 'w-full font-semibold'}
                   disabled={disableCancel}
                   onClick={onCancel}
                 >

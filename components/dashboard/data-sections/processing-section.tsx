@@ -414,8 +414,9 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
       {datesCell}
       <TableCell className="text-right">
         <Button
-          variant="ghost"
+          variant="primary"
           size="sm"
+          className="min-w-[7.5rem]"
           disabled={isActionPending}
           onClick={(event) => {
             event.preventDefault();
