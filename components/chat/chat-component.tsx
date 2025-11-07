@@ -593,7 +593,7 @@ export function ChatComponent() {
       </div>
 
       {/* Middle Column - Chat Conversation */}
-      <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 flex-col border-r border-border bg-card w-full md:w-auto`}>
+      <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 min-w-0 flex-col border-r border-border bg-card w-full md:w-auto overflow-hidden`}>
         {selectedPlayer ? (
           <>
             {/* Chat Header */}
@@ -691,7 +691,7 @@ export function ChatComponent() {
             {/* Messages / Purchase History */}
             <div 
               ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-6 space-y-6 scroll-smooth bg-gradient-to-b from-background/50 to-background"
+              className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 scroll-smooth bg-gradient-to-b from-background/50 to-background"
             >
               {/* Loading state for purchase history */}
               {chatViewMode === 'purchases' && isPurchaseHistoryLoading && (
@@ -699,7 +699,7 @@ export function ChatComponent() {
                   {/* Skeleton loaders for purchase history */}
                   {[...Array(3)].map((_, index) => (
                     <div key={index} className="flex justify-start animate-pulse">
-                      <div className="flex items-start gap-2 md:gap-3 w-full max-w-[85%] md:max-w-[75%]">
+                      <div className="flex items-start gap-2 md:gap-3 w-full max-w-[85%] md:max-w-[75%] min-w-0">
                         {/* System Icon skeleton */}
                         <div className="w-7 md:w-8 h-7 md:h-8 rounded-full bg-muted/60 flex-shrink-0" />
                         
@@ -792,7 +792,7 @@ export function ChatComponent() {
                         key={message.id}
                         className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200 ${isConsecutive ? 'mt-1' : 'mt-4'}`}
                       >
-                        <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] min-w-0 ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
                           {/* Avatar */}
                           {showAvatar ? (
                             <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-md ring-2 ring-blue-500/20">
@@ -803,7 +803,7 @@ export function ChatComponent() {
                           )}
                           
                           {/* Message Bubble */}
-                          <div className="relative group flex flex-col">
+                          <div className="relative group flex flex-col min-w-0">
                             <div
                               className={`rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 shadow-md transition-all duration-200 ${
                                 isAdmin
@@ -935,7 +935,7 @@ export function ChatComponent() {
               {chatViewMode === 'purchases' && !isPurchaseHistoryLoading && purchaseHistory.length > 0 && 
                 purchaseHistory.map((purchase) => (
                   <div key={purchase.id} className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200">
-                    <div className="flex items-start gap-2 md:gap-3 w-full max-w-[85%] md:max-w-[75%]">
+                      <div className="flex items-start gap-2 md:gap-3 w-full max-w-[85%] md:max-w-[75%] min-w-0">
                       {/* System Icon */}
                       <div className="w-7 md:w-8 h-7 md:h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
