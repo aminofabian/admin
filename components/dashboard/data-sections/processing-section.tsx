@@ -333,14 +333,16 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
 
   const formattedAmount = formatCurrency(transaction.amount || '0');
   const formattedBonus = bonusValue !== 0 ? formatCurrency(String(bonusValue)) : null;
+  const amountColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+  const bonusColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
   const amountCell = (
     <TableCell>
-      <div className="text-sm font-bold text-green-600 dark:text-green-400">
+      <div className={`text-sm font-bold ${amountColorClass}`}>
         {formattedAmount}
       </div>
       {formattedBonus && (
-        <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
+        <div className={`text-xs font-semibold mt-0.5 ${bonusColorClass}`}>
           +{formattedBonus} bonus
         </div>
       )}
@@ -996,95 +998,101 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
         {/* Mobile Card View */}
         {transactionResults.length > 0 && (
           <div className="lg:hidden space-y-4">
-            {transactionResults.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="bg-card rounded-lg border border-border p-4 space-y-3"
-              >
-                {/* User Info */}
-                <div className="flex items-center gap-3 pb-3 border-b border-border">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
-                    {transaction.user_username?.charAt(0).toUpperCase() ?? '?'}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{transaction.user_username ?? '—'}</div>
-                    <div className="text-xs text-muted-foreground">{transaction.user_email ?? '—'}</div>
-                  </div>
-                  <Badge variant={transaction.type === 'purchase' ? 'success' : 'danger'} className="text-xs">
-                    {transaction.type?.toUpperCase() ?? '—'}
-                  </Badge>
-                </div>
+            {transactionResults.map((transaction) => {
+              const isPurchaseTransaction = transaction.type === 'purchase';
+              const amountClass = isPurchaseTransaction ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+              const bonusClass = amountClass;
 
-                {/* Amount and Balance */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Amount</div>
-                    <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                      {formatCurrency(transaction.amount || '0')}
+              return (
+                <div
+                  key={transaction.id}
+                  className="bg-card rounded-lg border border-border p-4 space-y-3"
+                >
+                  {/* User Info */}
+                  <div className="flex items-center gap-3 pb-3 border-b border-border">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+                      {transaction.user_username?.charAt(0).toUpperCase() ?? '?'}
                     </div>
-                    {transaction.bonus_amount && parseFloat(transaction.bonus_amount) > 0 && (
-                      <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
-                        +{formatCurrency(transaction.bonus_amount)} bonus
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Status</div>
-                    <Badge variant={getStatusVariant(transaction.status)}>
-                      {transaction.status}
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{transaction.user_username ?? '—'}</div>
+                      <div className="text-xs text-muted-foreground">{transaction.user_email ?? '—'}</div>
+                    </div>
+                    <Badge variant={transaction.type === 'purchase' ? 'success' : 'danger'} className="text-xs">
+                      {transaction.type?.toUpperCase() ?? '—'}
                     </Badge>
                   </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Previous Balance</div>
-                    <div className="space-y-0.5">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        C: {formatCurrency(transaction.previous_balance || '0')}
+
+                  {/* Amount and Balance */}
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Amount</div>
+                      <div className={`text-sm font-bold ${amountClass}`}>
+                        {formatCurrency(transaction.amount || '0')}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-                          ? formatCurrency(transaction.previous_winning_balance)
-                          : formatCurrency('0')}
+                      {transaction.bonus_amount && parseFloat(transaction.bonus_amount) > 0 && (
+                        <div className={`text-xs font-semibold mt-0.5 ${bonusClass}`}>
+                          +{formatCurrency(transaction.bonus_amount)} bonus
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Status</div>
+                      <Badge variant={getStatusVariant(transaction.status)}>
+                        {transaction.status}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">Previous Balance</div>
+                      <div className="space-y-0.5">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          C: {formatCurrency(transaction.previous_balance || '0')}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+                            ? formatCurrency(transaction.previous_winning_balance)
+                            : formatCurrency('0')}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-1">New Balance</div>
+                      <div className="space-y-0.5">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          C: {formatCurrency(transaction.new_balance || '0')}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+                            ? formatCurrency(transaction.new_winning_balance)
+                            : formatCurrency('0')}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">New Balance</div>
-                    <div className="space-y-0.5">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        C: {formatCurrency(transaction.new_balance || '0')}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-                          ? formatCurrency(transaction.new_winning_balance)
-                          : formatCurrency('0')}
-                      </div>
-                    </div>
+
+                  {/* Payment Method */}
+                  <div className="text-sm">
+                    <div className="text-xs text-muted-foreground mb-1">Payment Method</div>
+                    <div className="font-medium">{transaction.payment_method ?? '—'}</div>
                   </div>
-                </div>
 
-                {/* Payment Method */}
-                <div className="text-sm">
-                  <div className="text-xs text-muted-foreground mb-1">Payment Method</div>
-                  <div className="font-medium">{transaction.payment_method ?? '—'}</div>
-                </div>
+                  {/* Date */}
+                  <div className="text-xs text-muted-foreground">
+                    {formatDate(transaction.created)}
+                  </div>
 
-                {/* Date */}
-                <div className="text-xs text-muted-foreground">
-                  {formatDate(transaction.created)}
+                  {/* Actions */}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="w-full"
+                    disabled={pendingTransactionId === transaction.id}
+                    onClick={() => handleViewTransaction(transaction)}
+                  >
+                    View Details
+                  </Button>
                 </div>
-
-                {/* Actions */}
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="w-full"
-                  disabled={pendingTransactionId === transaction.id}
-                  onClick={() => handleViewTransaction(transaction)}
-                >
-                  View Details
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
