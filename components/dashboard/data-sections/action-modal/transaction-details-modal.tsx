@@ -19,6 +19,26 @@ import {
 
 const CRYPTO_PAYMENT_METHODS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'];
 
+const parseNumericValue = (value: string | number | null | undefined): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? null : value;
+  }
+
+  const trimmed = value.trim();
+
+  if (trimmed === '') {
+    return null;
+  }
+
+  const parsedValue = Number(trimmed);
+
+  return Number.isNaN(parsedValue) ? null : parsedValue;
+};
+
 interface TransactionDetailsModalProps {
   transaction: Transaction;
   isOpen: boolean;
@@ -38,19 +58,40 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 }: TransactionDetailsModalProps) {
   // Memoize expensive computations
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
-  const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
+  const formattedAmount = useMemo(
+    () => formatCurrency(parseNumericValue(transaction.amount) ?? 0),
+    [transaction.amount]
+  );
   const isPending = useMemo(() => transaction.status === 'pending', [transaction.status]);
   const hasComplete = typeof onComplete === 'function';
   const hasCancel = typeof onCancel === 'function';
-  
+
   const bonusAmount = useMemo(() => {
-    const bonus = parseFloat(transaction.bonus_amount || '0');
-    return bonus > 0 ? bonus : null;
+    const parsedBonus = parseNumericValue(transaction.bonus_amount);
+    return parsedBonus && parsedBonus > 0 ? parsedBonus : null;
   }, [transaction.bonus_amount]);
 
   const formattedBonus = useMemo(() => {
-    return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+    return bonusAmount ? formatCurrency(bonusAmount) : null;
   }, [bonusAmount]);
+
+  const previousBalanceValue = useMemo(
+    () => parseNumericValue(transaction.previous_balance) ?? 0,
+    [transaction.previous_balance]
+  );
+  const newBalanceValue = useMemo(
+    () => parseNumericValue(transaction.new_balance) ?? 0,
+    [transaction.new_balance]
+  );
+
+  const previousWinningValue = useMemo(
+    () => parseNumericValue(transaction.previous_winning_balance) ?? 0,
+    [transaction.previous_winning_balance]
+  );
+  const newWinningValue = useMemo(
+    () => parseNumericValue(transaction.new_winning_balance) ?? 0,
+    [transaction.new_winning_balance]
+  );
 
   const paymentMethod = useMemo(() => transaction.payment_method ?? '', [transaction.payment_method]);
   const lowerPaymentMethod = useMemo(() => paymentMethod.toLowerCase(), [paymentMethod]);
@@ -120,41 +161,29 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           <DetailsRow>
             <DetailsHighlightBox
               label="Previous Balance"
-              value={formatCurrency(transaction.previous_balance)}
+              value={formatCurrency(previousBalanceValue)}
               variant="blue"
             />
             <DetailsHighlightBox
               label="New Balance"
-              value={formatCurrency(transaction.new_balance)}
+              value={formatCurrency(newBalanceValue)}
               variant="green"
             />
           </DetailsRow>
 
           {/* Winning Balance Information */}
-          {(transaction.previous_winning_balance || transaction.new_winning_balance) && (
-            <DetailsRow>
-              <DetailsHighlightBox
-                label="Prev Winning"
-                value={
-                  transaction.previous_winning_balance &&
-                  !isNaN(parseFloat(transaction.previous_winning_balance))
-                    ? formatCurrency(transaction.previous_winning_balance)
-                    : '—'
-                }
-                variant="purple"
-              />
-              <DetailsHighlightBox
-                label="New Winning"
-                value={
-                  transaction.new_winning_balance &&
-                  !isNaN(parseFloat(transaction.new_winning_balance))
-                    ? formatCurrency(transaction.new_winning_balance)
-                    : '—'
-                }
-                variant="green"
-              />
-            </DetailsRow>
-          )}
+          <DetailsRow>
+            <DetailsHighlightBox
+              label="Prev Winning"
+              value={formatCurrency(previousWinningValue)}
+              variant="purple"
+            />
+            <DetailsHighlightBox
+              label="New Winning"
+              value={formatCurrency(newWinningValue)}
+              variant="green"
+            />
+          </DetailsRow>
 
           {/* Amount */}
           <DetailsAmountBox
