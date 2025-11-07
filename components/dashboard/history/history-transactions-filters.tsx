@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useMemo, useRef, useState } from 'react';
+
 import { Button } from '@/components/ui';
 
 export interface HistoryTransactionsFiltersState {
@@ -34,7 +36,6 @@ interface SelectFieldConfig {
 }
 
 const TEXT_FIELDS: InputFieldConfig[] = [
-  { key: 'username', label: 'Username', placeholder: 'Filter by username' },
   { key: 'email', label: 'Email', placeholder: 'Filter by email', type: 'email' },
   { key: 'transaction_id', label: 'Transaction ID', placeholder: 'Enter transaction ID' },
 ];
@@ -94,6 +95,9 @@ interface HistoryTransactionsFiltersProps {
   isAgentLoading?: boolean;
   paymentMethodOptions?: Array<{ value: string; label: string }>;
   isPaymentMethodLoading?: boolean;
+  usernameOptions?: Array<{ value: string; label: string }>;
+  isUsernameLoading?: boolean;
+  onUsernameInputChange?: (value: string) => void;
 }
 
 export function HistoryTransactionsFilters({
@@ -108,6 +112,9 @@ export function HistoryTransactionsFilters({
   isAgentLoading = false,
   paymentMethodOptions,
   isPaymentMethodLoading = false,
+  usernameOptions,
+  isUsernameLoading = false,
+  onUsernameInputChange,
 }: HistoryTransactionsFiltersProps) {
 const inputClasses = 'w-full px-3 py-2 rounded-lg border border-slate-700/70 bg-slate-900 text-slate-100 placeholder-slate-500 shadow-sm transition-all duration-150 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-slate-500/50';
 const selectClasses = 'w-full appearance-none px-3 py-2 pr-9 rounded-lg border border-slate-700/70 bg-slate-900 text-slate-100 text-sm shadow-sm transition-all duration-150 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-slate-500/50';
@@ -118,6 +125,43 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
   ];
+
+  const [isUsernameFocused, setIsUsernameFocused] = useState(false);
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const showUsernameDropdown = useMemo(() => {
+    if (!isUsernameFocused) return false;
+    if (isUsernameLoading) return true;
+    return (usernameOptions?.length ?? 0) > 0;
+  }, [isUsernameFocused, isUsernameLoading, usernameOptions?.length]);
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleUsernameFocus = () => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+    setIsUsernameFocused(true);
+  };
+
+  const handleUsernameBlur = () => {
+    blurTimeoutRef.current = setTimeout(() => {
+      setIsUsernameFocused(false);
+    }, 150);
+  };
+
+  const handleUsernameSelect = (value: string) => {
+    if (!value) return;
+    onFilterChange('username', value);
+    onUsernameInputChange?.(value);
+    setIsUsernameFocused(false);
+  };
 
   return (
     <div className="rounded-2xl border border-slate-800/70 bg-slate-900/95 p-5 shadow-lg shadow-slate-900/40 backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-950">
@@ -152,6 +196,76 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
 
       {isOpen && (
         <div className="grid grid-cols-1 gap-4 pt-5 text-slate-100 transition-colors md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="relative md:col-span-1">
+            <label className={labelClasses}>Player Username</label>
+            <input
+              type="text"
+              value={filters.username}
+              onChange={(event) => {
+                const value = event.target.value;
+                onFilterChange('username', value);
+                onUsernameInputChange?.(value);
+              }}
+              onFocus={handleUsernameFocus}
+              onBlur={handleUsernameBlur}
+              placeholder="Search by username..."
+              className={`${inputClasses} pr-9`}
+            />
+            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+              {isUsernameLoading ? (
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                  <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M21 21l-4.35-4.35M19 10.5a8.5 8.5 0 11-17 0 8.5 8.5 0 0117 0z"
+                  />
+                </svg>
+              )}
+            </div>
+            {showUsernameDropdown && (
+              <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-slate-800/70 bg-slate-900/98 shadow-2xl shadow-black/40 backdrop-blur-sm">
+                {isUsernameLoading ? (
+                  <div className="flex items-center gap-3 px-4 py-3 text-sm text-slate-400">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                    </svg>
+                    Searching users...
+                  </div>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                    {(usernameOptions ?? []).length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-slate-400">
+                        No users found. Try a different name.
+                      </div>
+                    ) : (
+                      usernameOptions?.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm text-slate-100 transition-colors hover:bg-slate-800/70"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => handleUsernameSelect(option.value)}
+                        >
+                          <span className="font-medium text-slate-100">{option.value}</span>
+                          {option.label !== option.value && (
+                            <span className="text-xs text-slate-400">{option.label.replace(`${option.value} · `, '')}</span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="relative">
             <label className={labelClasses}>Agent</label>
             <select

@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DashboardSectionContainer,
   DashboardSectionHeader,
@@ -9,8 +9,8 @@ import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, Tabl
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
-import { agentsApi, paymentMethodsApi } from '@/lib/api';
-import type { Agent, PaymentMethod, Transaction } from '@/types';
+import { agentsApi, paymentMethodsApi, playersApi } from '@/lib/api';
+import type { Agent, PaymentMethod, Player, Transaction } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 
 const HEADER_ICON = (
@@ -86,6 +86,10 @@ export function TransactionsSection() {
   const [isAgentLoading, setIsAgentLoading] = useState(false);
 const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
 const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
+  const [usernameOptions, setUsernameOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [isUsernameLoading, setIsUsernameLoading] = useState(false);
+  const [usernameQuery, setUsernameQuery] = useState('');
+  const usernameRequestIdRef = useRef(0);
 
   // Fetch transactions when dependencies change
   useEffect(() => {
@@ -99,6 +103,9 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
 
     if (Object.keys(advancedFilters).length > 0) {
       setAreFiltersOpen(true);
+    }
+    if (advancedFilters.username) {
+      setUsernameQuery(advancedFilters.username);
     }
   }, [advancedFilters]);
 
@@ -166,6 +173,48 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!usernameQuery || usernameQuery.trim().length < 2) {
+      setUsernameOptions([]);
+      setIsUsernameLoading(false);
+      return;
+    }
+
+    setIsUsernameLoading(true);
+    const requestId = ++usernameRequestIdRef.current;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await playersApi.list({ search: usernameQuery.trim(), page: 1, page_size: 15 });
+
+        if (usernameRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        const options = (response?.results ?? [])
+          .filter((player): player is Player => Boolean(player?.username))
+          .map((player) => ({
+            value: player.username,
+            label: player.email ? `${player.username} · ${player.email}` : player.username,
+          }));
+
+        setUsernameOptions(options);
+      } catch (error) {
+        if (usernameRequestIdRef.current === requestId) {
+          console.error('Failed to load username suggestions:', error);
+        }
+      } finally {
+        if (usernameRequestIdRef.current === requestId) {
+          setIsUsernameLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [usernameQuery]);
 
   useEffect(() => {
     let isMounted = true;
@@ -259,6 +308,10 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
     setAreFiltersOpen((previous) => !previous);
   }, []);
 
+  const handleUsernameInputChange = useCallback((value: string) => {
+    setUsernameQuery(value);
+  }, []);
+
   const results = useMemo(() => transactions?.results ?? [], [transactions?.results]);
   const totalCount = useMemo(() => transactions?.count ?? 0, [transactions?.count]);
   const isInitialLoading = useMemo(() => isLoading && !transactions, [isLoading, transactions]);
@@ -289,6 +342,9 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
         isAgentLoadingAgents={isAgentLoading}
         paymentMethodOptions={paymentMethodOptions}
         isPaymentMethodLoading={isPaymentMethodLoading}
+        usernameOptions={usernameOptions}
+        isUsernameLoading={isUsernameLoading}
+        onUsernameInputChange={handleUsernameInputChange}
       />
     </DashboardSectionContainer>
   );
@@ -311,6 +367,9 @@ interface TransactionsLayoutProps {
   isAgentLoadingAgents: boolean;
   paymentMethodOptions: Array<{ value: string; label: string }>;
   isPaymentMethodLoading: boolean;
+  usernameOptions: Array<{ value: string; label: string }>;
+  isUsernameLoading: boolean;
+  onUsernameInputChange: (value: string) => void;
 }
 
 function TransactionsLayout({
@@ -330,6 +389,9 @@ function TransactionsLayout({
   isAgentLoadingAgents,
   paymentMethodOptions,
   isPaymentMethodLoading,
+  usernameOptions,
+  isUsernameLoading,
+  onUsernameInputChange,
 }: TransactionsLayoutProps) {
   return (
     <>
@@ -362,6 +424,9 @@ function TransactionsLayout({
         isAgentLoading={isAgentLoadingAgents}
         paymentMethodOptions={paymentMethodOptions}
         isPaymentMethodLoading={isPaymentMethodLoading}
+        usernameOptions={usernameOptions}
+        isUsernameLoading={isUsernameLoading}
+        onUsernameInputChange={onUsernameInputChange}
       />
 
       <TransactionsTable
