@@ -72,6 +72,7 @@ const stripHtml = (html: string): string => {
 };
 
 const LOAD_MORE_SCROLL_THRESHOLD = 80;
+const SCROLL_BOTTOM_THRESHOLD = 64;
 
 const HTML_TAG_REGEX = /<\/?[a-z][^>]*>/i;
 
@@ -129,7 +130,10 @@ export function ChatComponent() {
   const [notes, setNotes] = useState('');
   const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
+  const [isUserAtLatest, setIsUserAtLatest] = useState(true);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const latestMessageIdRef = useRef<string | null>(null);
 
   // Fetch chat users list
   const { 
@@ -272,10 +276,42 @@ export function ChatComponent() {
     }
   }, [handleSendMessage]);
 
+  const scrollToLatest = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const container = messagesContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    container.scrollTo({ top: container.scrollHeight, behavior });
+    setIsUserAtLatest(true);
+    setAutoScrollEnabled(true);
+  }, []);
+
+  const evaluateScrollPosition = useCallback(() => {
+    if (chatViewMode !== 'messages') {
+      return;
+    }
+
+    const container = messagesContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    const isAtBottom = distanceFromBottom <= SCROLL_BOTTOM_THRESHOLD;
+
+    setIsUserAtLatest(isAtBottom);
+    setAutoScrollEnabled(isAtBottom);
+  }, [chatViewMode]);
+
   const handlePlayerSelect = useCallback((player: Player) => {
     setSelectedPlayer(player);
     setMessageMenuOpen(null);
     setMobileView('chat');
+    setAutoScrollEnabled(true);
+    setIsUserAtLatest(true);
+    latestMessageIdRef.current = null;
   }, []);
 
   const maybeLoadOlderMessages = useCallback(async () => {
@@ -312,6 +348,11 @@ export function ChatComponent() {
     }
   }, [chatViewMode, hasMoreHistory, isHistoryLoadingMessages, loadOlderMessages, selectedPlayer]);
 
+  const handleScroll = useCallback(() => {
+    evaluateScrollPosition();
+    void maybeLoadOlderMessages();
+  }, [evaluateScrollPosition, maybeLoadOlderMessages]);
+
   // Auto-select first player if none selected
   useEffect(() => {
     if (!selectedPlayer && activeChatsUsers.length > 0) {
@@ -321,18 +362,62 @@ export function ChatComponent() {
   }, [selectedPlayer, activeChatsUsers]);
 
   useEffect(() => {
+    if (!selectedPlayer || chatViewMode !== 'messages') {
+      return;
+    }
+
+    latestMessageIdRef.current = null;
+    setAutoScrollEnabled(true);
+    setIsUserAtLatest(true);
+
+    requestAnimationFrame(() => {
+      scrollToLatest('auto');
+    });
+  }, [selectedPlayer, chatViewMode, scrollToLatest]);
+
+  useEffect(() => {
     const container = messagesContainerRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
-    const handleScroll = () => {
-      void maybeLoadOlderMessages();
+    const handleContainerScroll = () => {
+      handleScroll();
     };
 
-    container.addEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleContainerScroll);
+
+    requestAnimationFrame(() => {
+      evaluateScrollPosition();
+    });
+
     return () => {
-      container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('scroll', handleContainerScroll);
     };
-  }, [maybeLoadOlderMessages]);
+  }, [handleScroll, evaluateScrollPosition, chatViewMode, selectedPlayer]);
+
+  useEffect(() => {
+    if (chatViewMode !== 'messages') {
+      return;
+    }
+
+    const lastMessage = wsMessages[wsMessages.length - 1];
+    if (!lastMessage) {
+      latestMessageIdRef.current = null;
+      return;
+    }
+
+    const hasNewLatest = latestMessageIdRef.current !== lastMessage.id;
+    latestMessageIdRef.current = lastMessage.id;
+
+    if (!hasNewLatest || !autoScrollEnabled) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      scrollToLatest('smooth');
+    });
+  }, [wsMessages, autoScrollEnabled, chatViewMode, scrollToLatest]);
 
   return (
     <div className="h-full flex gap-0 md:gap-4 bg-background">
@@ -958,6 +1043,19 @@ export function ChatComponent() {
                   </div>
                 ))
               }
+
+              {chatViewMode === 'messages' && !isUserAtLatest && (
+                <div className="sticky bottom-4 flex justify-center pointer-events-none">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => scrollToLatest()}
+                    className="pointer-events-auto rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    Jump to latest
+                  </Button>
+                </div>
+              )}
               
               {/* Typing Indicator */}
               {chatViewMode === 'messages' && remoteTyping && (
