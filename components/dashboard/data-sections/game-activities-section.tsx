@@ -18,12 +18,6 @@ const GAME_ICON: JSX.Element = (
   </svg>
 );
 
-const HISTORY_BADGE = (
-  <Badge variant="info" className="uppercase tracking-wide">
-    History Only
-  </Badge>
-);
-
 const HISTORY_EMPTY_STATE = (
   <EmptyState
     title="No game activity history"
@@ -208,7 +202,6 @@ function HistoryGameActivitiesLayout({
         title="Game Activity History"
         description="Audit completed and cancelled game operations across the platform"
         icon={GAME_ICON}
-        badge={HISTORY_BADGE}
       />
       <HistoryGameActivitiesFilters
         queueFilter={queueFilter}
