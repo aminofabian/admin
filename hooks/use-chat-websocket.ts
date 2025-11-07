@@ -47,6 +47,9 @@ export function useChatWebSocket({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+  const historyRequestRef = useRef(0);
+  const purchaseRequestRef = useRef(0);
+  const activeConnectionKeyRef = useRef('');
   
   // Use ref to avoid reconnecting WebSocket when callback changes
   const onMessageReceivedRef = useRef(onMessageReceived);
@@ -54,12 +57,27 @@ export function useChatWebSocket({
     onMessageReceivedRef.current = onMessageReceived;
   }, [onMessageReceived]);
 
+  useEffect(() => {
+    setMessages([]);
+    setPurchaseHistory([]);
+    setIsTyping(false);
+    setIsUserOnline(false);
+
+    if (enabled) {
+      setConnectionError(null);
+    }
+  }, [chatId, userId, enabled]);
+
   // ✅ PERFORMANCE: Fetch recent message history (optimized to 20 messages)
   const fetchMessageHistory = useCallback(async () => {
-    if (!chatId) return;
+    // Need either chatId or userId to identify the conversation
+    if (!chatId && !userId) return;
+
+    const requestId = historyRequestRef.current + 1;
+    historyRequestRef.current = requestId;
 
     try {
-      !IS_PROD && console.log(`📜 Fetching message history for chatroom ${chatId}...`);
+      !IS_PROD && console.log(`📜 Fetching message history...`, { chatId, userId });
       
       const token = storage.get(TOKEN_KEY);
       
@@ -70,8 +88,13 @@ export function useChatWebSocket({
       
       !IS_PROD && console.log('🔑 Using token:', token.substring(0, 20) + '...');
       
-      // ✅ PERFORMANCE: Reduced from 50 to 20 messages (most recent conversations)
-      const response = await fetch(`/api/chat-messages?chatroom_id=${chatId}&per_page=20`, {
+      // ✅ Try chatId first (could be chatroom_id), fallback to userId (player_id)
+      // This allows us to fetch messages whether we have a chatroom_id or just a user_id
+      const params = new URLSearchParams({ per_page: '20' });
+      if (chatId) params.append('chatroom_id', chatId);
+      if (userId) params.append('user_id', String(userId));
+      
+      const response = await fetch(`/api/chat-messages?${params.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -96,10 +119,11 @@ export function useChatWebSocket({
       const data = await response.json();
       
       if (data.messages && Array.isArray(data.messages)) {
-        // ✅ PERFORMANCE: Memoized transformation logic
+        // ✅ Transform messages from new JWT endpoint format
         const historyMessages: ChatMessage[] = data.messages.map((msg: any) => {
+          // Determine sender: "company" = admin, "player" = player
           const sender: 'player' | 'admin' = 
-            msg.sender === 'company' || msg.sender === 'admin' || msg.sender_id === adminId 
+            msg.sender === 'company' || msg.sender === 'admin'
               ? 'admin' 
               : 'player';
           
@@ -118,24 +142,36 @@ export function useChatWebSocket({
             }),
             isRead: msg.is_read ?? true,
             userId: msg.sender_id,
+            // Include file metadata from new endpoint
+            isFile: msg.is_file || false,
+            fileUrl: msg.file || undefined,
+            isComment: msg.is_comment || false,
           };
         });
 
-        !IS_PROD && console.log(`✅ Loaded ${historyMessages.length} messages from history`);
-        setMessages(historyMessages.reverse());
+        !IS_PROD && console.log(`✅ Loaded ${historyMessages.length} of ${data.total_count} messages (page ${data.page}/${data.total_pages})`);
+        if (historyRequestRef.current !== requestId) {
+          !IS_PROD && console.log('⚠️ Ignoring stale message history response');
+          return;
+        }
+
+        setMessages(historyMessages.reverse()); // Reverse to show oldest first
       }
     } catch (error) {
       console.error('❌ Failed to fetch message history:', error);
     }
-  }, [chatId, adminId]);
+  }, [chatId, userId]); // Include userId in dependency array
 
   // ✅ Fetch purchase/transaction history for the chatroom
   const fetchPurchaseHistory = useCallback(async () => {
-    if (!chatId) return;
+    if (!chatId && !userId) return;
+
+    const requestId = purchaseRequestRef.current + 1;
+    purchaseRequestRef.current = requestId;
 
     try {
       setIsPurchaseHistoryLoading(true);
-      !IS_PROD && console.log(`💰 Fetching purchase history for chatroom ${chatId}...`);
+      !IS_PROD && console.log(`💰 Fetching purchase history...`, { chatId, userId });
       
       const token = storage.get(TOKEN_KEY);
       
@@ -144,7 +180,12 @@ export function useChatWebSocket({
         return;
       }
       
-      const response = await fetch(`/api/chat-purchases?chatroom_id=${chatId}`, {
+      // ✅ Try chatId first (could be chatroom_id), fallback to userId (player_id)
+      const params = new URLSearchParams();
+      if (chatId) params.append('chatroom_id', chatId);
+      if (userId) params.append('user_id', String(userId));
+      
+      const response = await fetch(`/api/chat-purchases?${params.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -169,10 +210,11 @@ export function useChatWebSocket({
       const data = await response.json();
       
       if (data.messages && Array.isArray(data.messages)) {
-        // Transform purchase messages to ChatMessage format
+        // ✅ Transform purchase messages from new JWT endpoint format
         const purchases: ChatMessage[] = data.messages.map((msg: any) => {
+          // Determine sender: "company" = admin, "player" = player
           const sender: 'player' | 'admin' = 
-            msg.sender === 'company' || msg.sender === 'admin' || msg.sender_id === adminId 
+            msg.sender === 'company' || msg.sender === 'admin'
               ? 'admin' 
               : 'player';
           
@@ -191,12 +233,19 @@ export function useChatWebSocket({
             }),
             isRead: true, // Purchase history is always marked as read
             userId: msg.sender_id,
-            type: msg.type, // 'balanceUpdated' or other transaction types
-            isComment: msg.is_comment ?? false,
+            type: msg.type, // 'message' or other transaction types
+            isComment: msg.is_comment || false,
+            isFile: msg.is_file || false,
+            fileUrl: msg.file || undefined,
           };
         });
 
-        !IS_PROD && console.log(`✅ Loaded ${purchases.length} purchase records`);
+        !IS_PROD && console.log(`✅ Loaded ${purchases.length} purchase records (total: ${data.total_count || purchases.length})`);
+        if (purchaseRequestRef.current !== requestId) {
+          !IS_PROD && console.log('⚠️ Ignoring stale purchase history response');
+          return;
+        }
+
         setPurchaseHistory(purchases.reverse()); // Reverse to show oldest first
       }
     } catch (error) {
@@ -204,12 +253,15 @@ export function useChatWebSocket({
     } finally {
       setIsPurchaseHistoryLoading(false);
     }
-  }, [chatId, adminId]);
+  }, [chatId, userId]); // Include userId in dependency array
 
   const connect = useCallback(() => {
     if (!userId || !enabled) return;
 
     try {
+      const connectionKey = `${userId}:${chatId ?? 'none'}`;
+      activeConnectionKeyRef.current = connectionKey;
+
       // Build WebSocket URL
       const wsBaseUrl = API_BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
       const roomName = `P${userId}Chat`;
@@ -221,6 +273,12 @@ export function useChatWebSocket({
       wsRef.current = ws;
 
       ws.onopen = () => {
+        if (activeConnectionKeyRef.current !== connectionKey) {
+          !IS_PROD && console.log('⚠️ Stale WebSocket open event ignored');
+          ws.close();
+          return;
+        }
+
         !IS_PROD && console.log('✅ Chat WebSocket connected');
         setIsConnected(true);
         setConnectionError(null);
@@ -231,6 +289,11 @@ export function useChatWebSocket({
       };
 
       ws.onmessage = (event) => {
+        if (activeConnectionKeyRef.current !== connectionKey) {
+          !IS_PROD && console.log('⚠️ Ignoring message from stale WebSocket connection');
+          return;
+        }
+
         try {
           const rawData = JSON.parse(event.data);
           !IS_PROD && console.log('📨 Received WebSocket message:', {
@@ -353,6 +416,10 @@ export function useChatWebSocket({
       };
 
       ws.onclose = (event) => {
+        if (activeConnectionKeyRef.current !== connectionKey) {
+          return;
+        }
+
         !IS_PROD && console.log('🔌 Chat WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         wsRef.current = null;
@@ -379,7 +446,7 @@ export function useChatWebSocket({
     } catch (error) {
       console.error('❌ Failed to create WebSocket connection:', error);
     }
-  }, [userId, adminId, enabled, fetchMessageHistory]);
+  }, [userId, chatId, adminId, enabled, fetchMessageHistory]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {

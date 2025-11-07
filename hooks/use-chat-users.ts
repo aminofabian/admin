@@ -313,7 +313,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       setError(null);
       
       // Handle different response formats
-      let chats: any[] = [];
+      let chats: any[] | null = null;
       if (data.chats && Array.isArray(data.chats)) {
         chats = data.chats;
       } else if (data.users && Array.isArray(data.users)) {
@@ -321,14 +321,19 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       } else if (Array.isArray(data)) {
         chats = data;
       }
-      
-      if (chats.length > 0) {
+
+      if (Array.isArray(chats)) {
         const transformedUsers = chats.map(transformChatToUser);
+
+        if (transformedUsers.length === 0) {
+          !IS_PROD && console.log('ℹ️ [REST API] Empty chat list response - preserving existing active chats');
+          return;
+        }
+
         !IS_PROD && console.log(`🔄 [REST API] Updated ${transformedUsers.length} active chats`);
         setActiveChats(transformedUsers);
       } else {
-        !IS_PROD && console.log('ℹ️ [REST API] No active chats found');
-        setActiveChats([]);
+        !IS_PROD && console.log('ℹ️ [REST API] Unexpected chat list payload - keeping existing data');
       }
     } catch (err) {
       console.error('❌ [REST API] Error:', err);

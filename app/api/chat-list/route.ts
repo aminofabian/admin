@@ -63,7 +63,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
-    const apiUrl = `${backendUrl}/ws/chatlist/?user_id=${userId}`;
+    // ✅ Using new JWT-authenticated endpoint
+    // Note: Try without request_type first - backend might use user_id alone to determine chat list
+    const apiUrl = `${backendUrl}/api/v1/admin/chat/?user_id=${userId}`;
 
     const authHeader = request.headers.get('Authorization');
     
@@ -74,9 +76,15 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     };
     
-    // Only add Authorization header if it exists
+    // ✅ JWT authentication required
     if (authHeader) {
       headers['Authorization'] = authHeader;
+    } else {
+      console.warn('⚠️ No Authorization header provided');
+      return NextResponse.json({
+        status: 'error',
+        message: 'Authentication required. Please log in.',
+      }, { status: 401 });
     }
 
     const response = await fetch(apiUrl, {
@@ -87,24 +95,38 @@ export async function GET(request: NextRequest) {
     console.log('📥 Backend response status:', response.status, response.statusText);
 
     if (!response.ok) {
-      console.error('❌ Backend returned error:', response.status, response.statusText);
-      
-      // Get the error response body for debugging
       const errorText = await response.text();
-      console.error('❌ Backend error response body:', errorText.substring(0, 1000));
-      console.error('❌ Response headers:', Object.fromEntries(response.headers.entries()));
+      console.error('❌ Backend error response status:', response.status);
+      console.error('❌ Backend error headers:', Object.fromEntries(response.headers.entries()));
+      console.error('❌ Backend error body:', errorText.substring(0, 1000));
       
-      // Return empty list if backend endpoint doesn't exist yet
+      if (response.status === 401) {
+        return NextResponse.json({
+          status: 'error',
+          message: 'Authentication failed. Please log in again.',
+          detail: 'JWT token is invalid or expired.',
+        }, { status: 401 });
+      }
+      
       if (response.status === 404) {
-        console.log('ℹ️ Chat list endpoint not yet implemented on backend (expected during development)');
+        console.warn('⚠️ Backend returned 404. Chat list endpoint not found.');
         return NextResponse.json({
           status: 'success',
           users: [],
-          message: 'Chat list endpoint not yet available on backend',
+          message: 'Chat list endpoint not found. Please verify the endpoint with backend team.',
         });
       }
-
-      console.error('❌ Backend error response:', errorText.substring(0, 500));
+      
+      if (response.status === 400) {
+        console.error('⚠️ Backend returned 400. Invalid parameters or unsupported request.');
+        console.error('💡 Check if the endpoint supports: user_id parameter alone');
+        console.error('💡 Or if it needs a different request_type parameter');
+        return NextResponse.json({
+          status: 'success',
+          users: [],
+          message: 'Chat list endpoint returned 400. The /api/v1/admin/chat/ endpoint might need different parameters for fetching chat lists. Please check with the backend team about the correct way to fetch active chats.',
+        });
+      }
       
       return NextResponse.json(
         { 

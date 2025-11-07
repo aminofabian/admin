@@ -681,17 +681,34 @@ export function ChatComponent() {
                                 isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
                               }`}
                             >
-                              {/* File indicator badge */}
+                              {/* File indicator badge with download link */}
                               {message.isFile && (
-                                <div className={`flex items-center gap-1.5 mb-2 pb-2 border-b ${
+                                <div className={`flex items-center justify-between gap-2 mb-2 pb-2 border-b ${
                                   isAdmin ? 'border-border/50' : 'border-white/20'
                                 }`}>
-                                  <svg className={`w-4 h-4 ${isAdmin ? 'text-primary' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                  </svg>
-                                  <span className={`text-xs font-medium ${isAdmin ? 'text-muted-foreground' : 'text-white/90'}`}>
-                                    File attachment{message.fileExtension && ` (.${message.fileExtension})`}
-                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <svg className={`w-4 h-4 ${isAdmin ? 'text-primary' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                    </svg>
+                                    <span className={`text-xs font-medium ${isAdmin ? 'text-muted-foreground' : 'text-white/90'}`}>
+                                      File attachment{message.fileExtension && ` (.${message.fileExtension})`}
+                                    </span>
+                                  </div>
+                                  {message.fileUrl && (
+                                    <a
+                                      href={message.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`text-xs font-medium hover:underline flex items-center gap-1 ${
+                                        isAdmin ? 'text-primary hover:text-primary/80' : 'text-white hover:text-white/80'
+                                      }`}
+                                    >
+                                      Download
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </svg>
+                                    </a>
+                                  )}
                                 </div>
                               )}
                               

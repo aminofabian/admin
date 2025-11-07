@@ -3,65 +3,55 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const chatroomId = searchParams.get('chatroom_id');
+  const userId = searchParams.get('user_id');
   const page = searchParams.get('page') || '1';
   const perPage = searchParams.get('per_page') || '20';
 
-  if (!chatroomId) {
+  // Accept either chatroom_id OR user_id
+  if (!chatroomId && !userId) {
     return NextResponse.json(
-      { status: 'error', message: 'chatroom_id is required' },
+      { status: 'error', message: 'chatroom_id or user_id is required' },
       { status: 400 }
     );
   }
 
   try {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
-    const apiUrl = `${backendUrl}/admin/chat/?chatroom_id=${chatroomId}&request_type=recent_messages&page=${page}&per_page=${perPage}`;
+    // ✅ Using new JWT-authenticated endpoint
+    // Use chatroom_id if available, otherwise use user_id
+    const identifierParam = chatroomId 
+      ? `chatroom_id=${chatroomId}` 
+      : `user_id=${userId}`;
+    const apiUrl = `${backendUrl}/api/v1/admin/chat/?${identifierParam}&request_type=recent_messages&page=${page}&per_page=${perPage}`;
+    
+    console.log('📍 Fetching messages with:', chatroomId ? `chatroom_id=${chatroomId}` : `user_id=${userId}`);
 
     const authHeader = request.headers.get('Authorization');
-    const cookieHeader = request.headers.get('Cookie');
     
     console.log('🔵 Proxying chat messages request to:', apiUrl);
     console.log('🔑 Authorization header:', authHeader ? `Bearer ${authHeader.substring(7, 30)}...` : 'MISSING');
-    console.log('🍪 Cookie header:', cookieHeader ? `Present (${cookieHeader?.split(';').length} cookies)` : 'MISSING');
-    console.log('🍪 Cookies:', cookieHeader?.split(';').map(c => c.trim().split('=')[0]).join(', ') || 'none');
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
     
-    // Forward both Authorization header (JWT) and cookies (session)
+    // ✅ Use JWT authentication (Authorization header)
     if (authHeader) {
       headers['Authorization'] = authHeader;
-    }
-    
-    if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
+    } else {
+      console.warn('⚠️ No Authorization header provided');
+      return NextResponse.json({
+        status: 'error',
+        message: 'Authentication required. Please log in.',
+      }, { status: 401 });
     }
 
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers,
-      credentials: 'include', // Important: include credentials for session cookies
     });
 
     console.log('📥 Backend response status:', response.status, response.statusText);
-
-    // Check if response is HTML (login redirect) instead of JSON
-    const contentType = response.headers.get('content-type');
-    const isHtml = contentType?.includes('text/html');
-
-    if (isHtml) {
-      console.error('❌ Backend returned HTML instead of JSON - likely authentication failure');
-      console.error('🔍 Content-Type:', contentType);
-      console.error('🔍 Status:', response.status);
-      
-      // This means session cookie is missing or invalid
-      return NextResponse.json({
-        status: 'error',
-        message: 'Session authentication failed. Please log out and log back in.',
-        detail: 'Backend returned HTML (login page) instead of JSON. Session cookie is missing or expired.',
-      }, { status: 401 });
-    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -69,8 +59,16 @@ export async function GET(request: NextRequest) {
       console.error('❌ Backend error headers:', Object.fromEntries(response.headers.entries()));
       console.error('❌ Backend error body:', errorText.substring(0, 1000));
       
-      if (response.status === 404 || response.status === 302) {
-        console.warn('⚠️ Backend returned 404/302. Session cookie might be missing or invalid.');
+      if (response.status === 401) {
+        return NextResponse.json({
+          status: 'error',
+          message: 'Authentication failed. Please log in again.',
+          detail: 'JWT token is invalid or expired.',
+        }, { status: 401 });
+      }
+      
+      if (response.status === 404) {
+        console.warn('⚠️ Backend returned 404. No message history found.');
         return NextResponse.json({
           status: 'success',
           messages: [],
