@@ -264,13 +264,17 @@ export function ChatComponent() {
     }
   }, [selectedPlayer, scrollToBottom]);
 
-  // Fetch all players from HTTP endpoint when switching to 'all-players' tab
   useEffect(() => {
-    if (activeTab === 'all-players') {
-      !IS_PROD && console.log('🔄 Switching to all-players tab, fetching...');
-      fetchAllPlayers();
+    const shouldLoadAllPlayers = activeTab === 'all-players' || activeTab === 'online';
+    const hasPlayersCached = allPlayers.length > 0;
+
+    if (!shouldLoadAllPlayers || hasPlayersCached) {
+      return;
     }
-  }, [activeTab, fetchAllPlayers]);
+
+    !IS_PROD && console.log('🔄 Loading players for tab:', activeTab);
+    fetchAllPlayers();
+  }, [activeTab, allPlayers.length, fetchAllPlayers]);
 
   // Fetch purchase history when switching to 'purchases' view
   useEffect(() => {

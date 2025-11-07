@@ -439,10 +439,24 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     };
   }, [enabled, adminId, connect, disconnect, fetchActiveChatsREST]);
 
-  // ✅ PERFORMANCE: Memoize online users calculation (from active chats only)
+  // ✅ PERFORMANCE: Memoize online users using both chat list and player directory
   const onlineUsers = useMemo(() => {
-    return activeChats.filter((user) => user.isOnline);
-  }, [activeChats]);
+    const seen = new Set<string>();
+
+    return [...activeChats, ...allPlayers].filter((user) => {
+      if (!user.isOnline) {
+        return false;
+      }
+
+      const key = user.user_id ? String(user.user_id) : user.id;
+      if (!key || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+  }, [activeChats, allPlayers]);
 
   /**
    * Update a specific chat's last message and time in the active chats list
