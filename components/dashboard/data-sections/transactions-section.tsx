@@ -540,6 +540,8 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
   const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
+  const amountColorClass = useMemo(() => (isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase]);
+  const bonusColorClass = useMemo(() => (isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase]);
   
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
@@ -584,11 +586,11 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+        <div className={`text-sm font-bold ${amountColorClass}`}>
           {formattedAmount}
         </div>
         {formattedBonus && (
-          <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
+          <div className={`text-xs font-semibold mt-0.5 ${bonusColorClass}`}>
             +{formattedBonus} bonus
           </div>
         )}

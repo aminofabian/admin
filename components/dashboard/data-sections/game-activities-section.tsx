@@ -416,6 +416,18 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
     onView(activity);
   }, [activity, onView]);
 
+  const amountColorClass = useMemo(() => {
+    if (shouldShowDash) return '';
+    if (isRedeem) return 'text-red-600 dark:text-red-400';
+    if (isRecharge) return 'text-green-600 dark:text-green-400';
+    return 'text-foreground';
+  }, [isRedeem, isRecharge, shouldShowDash]);
+
+  const bonusColorClass = useMemo(() => {
+    if (shouldShowDash) return '';
+    return isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
+  }, [isRedeem, shouldShowDash]);
+
   return (
     <TableRow>
       <TableCell>
@@ -459,10 +471,10 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         )}
       </TableCell>
       <TableCell>
-        <div className={`text-sm font-bold ${shouldShowDash ? '' : 'text-green-600 dark:text-green-400'}`}>
+        <div className={`text-sm font-bold ${amountColorClass}`}>
           {shouldShowDash ? '-' : formattedAmount}
           {!shouldShowDash && formattedBonus && (
-            <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
+            <div className={`text-xs font-semibold mt-0.5 ${bonusColorClass}`}>
               +{formattedBonus} bonus
             </div>
           )}
