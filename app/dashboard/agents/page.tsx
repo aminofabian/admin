@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { agentsApi } from '@/lib/api';
 import { usePagination, useSearch } from '@/lib/hooks';
 import { 
@@ -25,6 +26,7 @@ import { formatDate } from '@/lib/utils/formatters';
 import type { Agent, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
 
 export default function AgentsPage() {
+  const router = useRouter();
   const [data, setData] = useState<PaginatedResponse<Agent> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -98,6 +100,10 @@ export default function AgentsPage() {
       agent,
       isLoading: false,
     });
+  };
+
+  const handleViewTransactions = (agent: Agent) => {
+    router.push(`/dashboard/transactions?agent=${encodeURIComponent(agent.username)}`);
   };
 
   const handleConfirmToggle = async () => {
@@ -294,17 +300,69 @@ export default function AgentsPage() {
 
                       {/* Actions */}
                       <TableCell>
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-3">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleViewTransactions(agent)}
+                            className={
+                              `flex items-center gap-2 rounded-full border bg-white/60 px-4 py-1.5 text-sm font-semibold shadow-sm transition-all duration-200 dark:bg-slate-900/70 ${
+                                agent.is_active
+                                  ? 'border-emerald-300/60 text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50/80 dark:border-emerald-400/40 dark:text-emerald-300 dark:hover:bg-emerald-900/50'
+                                  : 'border-amber-300/60 text-amber-600 hover:border-amber-400 hover:bg-amber-50/80 dark:border-amber-400/40 dark:text-amber-300 dark:hover:bg-amber-900/45'
+                              }`
+                            }
+                          >
+                            <svg
+                              aria-hidden="true"
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.5}
+                                d="M12 6.75a5.25 5.25 0 015.25 5.25 5.25 5.25 0 01-5.25 5.25A5.25 5.25 0 016.75 12 5.25 5.25 0 0112 6.75zm0 0v-2.5m0 15v-2.5M17.25 12h2.5m-15 0h2.5"
+                              />
+                            </svg>
+                            View Transactions
+                          </Button>
                           <Button
                             size="sm"
                             variant={agent.is_active ? 'danger' : 'secondary'}
                             onClick={() => handleToggleStatus(agent)}
                             title={agent.is_active ? 'Deactivate' : 'Activate'}
-                            className={agent.is_active 
-                              ? 'bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20 hover:border-red-500/30' 
-                              : 'bg-primary/10 hover:bg-primary/20 text-primary border-primary/20 hover:border-primary/30'
+                            className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold shadow-sm transition-all duration-200 ${agent.is_active 
+                              ? 'border border-rose-400/60 bg-rose-50/80 text-rose-600 hover:border-rose-500 hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/55' 
+                              : 'border border-sky-400/60 bg-sky-50/80 text-sky-600 hover:border-sky-500 hover:bg-sky-100 dark:border-sky-500/40 dark:bg-sky-900/40 dark:text-sky-300 dark:hover:bg-sky-900/55'
+                            }`
                             }
                           >
+                            <svg
+                              aria-hidden="true"
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              {agent.is_active ? (
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={1.5}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              ) : (
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={1.5}
+                                  d="M12 4v16m8-8H4"
+                                />
+                              )}
+                            </svg>
                             {agent.is_active ? 'Deactivate' : 'Activate'}
                           </Button>
                         </div>
