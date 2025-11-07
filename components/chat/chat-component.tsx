@@ -72,7 +72,6 @@ const stripHtml = (html: string): string => {
 };
 
 const LOAD_MORE_SCROLL_THRESHOLD = 80;
-const AUTO_SCROLL_BOTTOM_THRESHOLD = 160;
 
 const HTML_TAG_REGEX = /<\/?[a-z][^>]*>/i;
 
@@ -130,10 +129,7 @@ export function ChatComponent() {
   const [notes, setNotes] = useState('');
   const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const skipAutoScrollRef = useRef(false);
-  const previousMessageCountRef = useRef(0);
 
   // Fetch chat users list
   const { 
@@ -226,44 +222,6 @@ export function ChatComponent() {
     return isLoadingUsers;
   }, [activeTab, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
 
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
-  }, []);
-
-  useEffect(() => {
-    const previousCount = previousMessageCountRef.current;
-    previousMessageCountRef.current = wsMessages.length;
-
-    if (skipAutoScrollRef.current) {
-      return;
-    }
-
-    if (previousCount === 0) {
-      scrollToBottom('auto');
-      return;
-    }
-
-    if (wsMessages.length > previousCount) {
-      const container = messagesContainerRef.current;
-      if (!container) {
-        return;
-      }
-
-      const distanceFromBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight;
-
-      if (distanceFromBottom <= AUTO_SCROLL_BOTTOM_THRESHOLD) {
-        scrollToBottom();
-      }
-    }
-  }, [wsMessages, scrollToBottom]);
-
-  useEffect(() => {
-    if (selectedPlayer) {
-      scrollToBottom();
-    }
-  }, [selectedPlayer, scrollToBottom]);
-
   useEffect(() => {
     const shouldLoadAllPlayers = activeTab === 'all-players' || activeTab === 'online';
     const hasPlayersCached = allPlayers.length > 0;
@@ -305,8 +263,7 @@ export function ChatComponent() {
     );
     
     setMessageInput('');
-    scrollToBottom();
-  }, [messageInput, selectedPlayer, wsSendMessage, scrollToBottom, updateChatLastMessage]);
+  }, [messageInput, selectedPlayer, wsSendMessage, updateChatLastMessage]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -319,13 +276,11 @@ export function ChatComponent() {
     setSelectedPlayer(player);
     setMessageMenuOpen(null);
     setMobileView('chat');
-    setTimeout(scrollToBottom, 100);
-  }, [scrollToBottom]);
+  }, []);
 
   const maybeLoadOlderMessages = useCallback(async () => {
     if (chatViewMode !== 'messages') return;
     if (!selectedPlayer) return;
-    if (skipAutoScrollRef.current) return;
 
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -336,15 +291,12 @@ export function ChatComponent() {
     const previousScrollTop = container.scrollTop;
     const previousScrollHeight = container.scrollHeight;
 
-    skipAutoScrollRef.current = true;
-
     try {
       const result = await loadOlderMessages();
 
       requestAnimationFrame(() => {
         const updatedContainer = messagesContainerRef.current;
         if (!updatedContainer) {
-          skipAutoScrollRef.current = false;
           return;
         }
 
@@ -354,12 +306,9 @@ export function ChatComponent() {
         } else {
           updatedContainer.scrollTop = previousScrollTop;
         }
-
-        skipAutoScrollRef.current = false;
       });
     } catch (error) {
       console.error('❌ Failed to load older messages:', error);
-      skipAutoScrollRef.current = false;
     }
   }, [chatViewMode, hasMoreHistory, isHistoryLoadingMessages, loadOlderMessages, selectedPlayer]);
 
@@ -1026,7 +975,6 @@ export function ChatComponent() {
                 </div>
               )}
               
-              <div ref={messagesEndRef} className="h-1" />
             </div>
 
             {/* Message Input - Only show in messages view */}
