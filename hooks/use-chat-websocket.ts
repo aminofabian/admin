@@ -6,6 +6,68 @@ import type { ChatMessage, WebSocketMessage } from '@/types';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
+const MESSAGES_PER_PAGE = 20;
+
+type HistoryMergeMode = 'prepend' | 'replace';
+
+interface HistoryPayload {
+  messages: ChatMessage[];
+  page: number;
+  totalPages: number;
+}
+
+const mapHistoryMessage = (msg: any): ChatMessage => {
+  const sender: 'player' | 'admin' =
+    msg.sender === 'company' || msg.sender === 'admin' ? 'admin' : 'player';
+
+  const timestamp = msg.sent_time ?? msg.timestamp ?? new Date().toISOString();
+  const messageDate = new Date(timestamp);
+
+  return {
+    id: String(msg.id ?? msg.message_id ?? Date.now()),
+    text: msg.message ?? '',
+    sender,
+    timestamp: messageDate.toISOString(),
+    date: messageDate.toISOString().split('T')[0],
+    time: messageDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    isRead: msg.is_read ?? true,
+    userId: msg.sender_id,
+    type: msg.type,
+    isComment: msg.is_comment ?? false,
+    isFile: msg.is_file ?? false,
+    fileExtension: msg.file_extension ?? undefined,
+    fileUrl: msg.file ?? undefined,
+    userBalance: msg.user_balance ?? msg.balance,
+  };
+};
+
+const normalizeHistoryMessages = (rawMessages: any[]): ChatMessage[] =>
+  rawMessages.map(mapHistoryMessage).reverse();
+
+const mergeMessageLists = (
+  incoming: ChatMessage[],
+  existing: ChatMessage[],
+  mode: HistoryMergeMode,
+): ChatMessage[] => {
+  const combined = mode === 'prepend' ? [...incoming, ...existing] : incoming;
+  const deduped = new Map<string, ChatMessage>();
+
+  combined.forEach((message) => {
+    if (deduped.has(message.id)) {
+      return;
+    }
+    deduped.set(message.id, message);
+  });
+
+  return Array.from(deduped.values()).sort((left, right) => {
+    const leftTime = new Date(left.timestamp).getTime();
+    const rightTime = new Date(right.timestamp).getTime();
+    return leftTime - rightTime;
+  });
+};
 
 interface UseChatWebSocketParams {
   userId: number | null;
@@ -26,6 +88,9 @@ interface UseChatWebSocketReturn {
   purchaseHistory: ChatMessage[];
   fetchPurchaseHistory: () => Promise<void>;
   isPurchaseHistoryLoading: boolean;
+  loadOlderMessages: () => Promise<{ added: number }>;
+  hasMoreHistory: boolean;
+  isHistoryLoading: boolean;
 }
 
 export function useChatWebSocket({
@@ -42,6 +107,9 @@ export function useChatWebSocket({
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [purchaseHistory, setPurchaseHistory] = useState<ChatMessage[]>([]);
   const [isPurchaseHistoryLoading, setIsPurchaseHistoryLoading] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const [historyPagination, setHistoryPagination] = useState({ page: 0, totalPages: 0 });
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -62,44 +130,48 @@ export function useChatWebSocket({
     setPurchaseHistory([]);
     setIsTyping(false);
     setIsUserOnline(false);
+    setIsHistoryLoading(false);
+    setHasMoreHistory(false);
+    setHistoryPagination({ page: 0, totalPages: 0 });
 
     if (enabled) {
       setConnectionError(null);
     }
   }, [chatId, userId, enabled]);
 
-  // ✅ PERFORMANCE: Fetch recent message history (optimized to 20 messages)
-  const fetchMessageHistory = useCallback(async () => {
-    // Need either chatId or userId to identify the conversation
-    if (!chatId && !userId) return;
-
-    const requestId = historyRequestRef.current + 1;
-    historyRequestRef.current = requestId;
+  const requestHistory = useCallback(async (page: number): Promise<HistoryPayload | null> => {
+    if (!chatId && !userId) {
+      return null;
+    }
 
     try {
-      !IS_PROD && console.log(`📜 Fetching message history...`, { chatId, userId });
-      
+      !IS_PROD && console.log('📜 Fetching message history...', { chatId, userId, page });
+
       const token = storage.get(TOKEN_KEY);
-      
       if (!token) {
         console.error('❌ No authentication token found. Please log in again.');
-        return;
+        return null;
       }
-      
-      !IS_PROD && console.log('🔑 Using token:', token.substring(0, 20) + '...');
-      
-      // ✅ Try chatId first (could be chatroom_id), fallback to userId (player_id)
-      // This allows us to fetch messages whether we have a chatroom_id or just a user_id
-      const params = new URLSearchParams({ per_page: '20' });
-      if (chatId) params.append('chatroom_id', chatId);
-      if (userId) params.append('user_id', String(userId));
-      
+
+      const params = new URLSearchParams({
+        per_page: String(MESSAGES_PER_PAGE),
+        page: String(page),
+      });
+
+      if (chatId) {
+        params.append('chatroom_id', chatId);
+      }
+
+      if (userId) {
+        params.append('user_id', String(userId));
+      }
+
       const response = await fetch(`/api/chat-messages?${params.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-        credentials: 'include', // Important: sends cookies to Next.js API route
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -109,58 +181,90 @@ export function useChatWebSocket({
           statusText: response.statusText,
           error: errorText.substring(0, 200),
         });
-        
+
         if (response.status === 401) {
           console.error('🚨 Authentication failed. You may need to log out and log back in to refresh your session cookies.');
         }
-        return;
+
+        return null;
       }
 
       const data = await response.json();
-      
-      if (data.messages && Array.isArray(data.messages)) {
-        // ✅ Transform messages from new JWT endpoint format
-        const historyMessages: ChatMessage[] = data.messages.map((msg: any) => {
-          // Determine sender: "company" = admin, "player" = player
-          const sender: 'player' | 'admin' = 
-            msg.sender === 'company' || msg.sender === 'admin'
-              ? 'admin' 
-              : 'player';
-          
-          const timestamp = msg.sent_time || new Date().toISOString();
-          const messageDate = new Date(timestamp);
+      const payload: HistoryPayload = {
+        messages: Array.isArray(data.messages) ? normalizeHistoryMessages(data.messages) : [],
+        page: data.page ?? page,
+        totalPages: data.total_pages ?? data.totalPages ?? page,
+      };
 
-          return {
-            id: String(msg.id),
-            text: msg.message || '',
-            sender,
-            timestamp: messageDate.toISOString(),
-            date: messageDate.toISOString().split('T')[0],
-            time: messageDate.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-            isRead: msg.is_read ?? true,
-            userId: msg.sender_id,
-            // Include file metadata from new endpoint
-            isFile: msg.is_file || false,
-            fileUrl: msg.file || undefined,
-            isComment: msg.is_comment || false,
-          };
-        });
+      !IS_PROD && console.log(
+        `✅ Loaded ${payload.messages.length} of ${data.total_count ?? payload.messages.length} messages (page ${payload.page}/${payload.totalPages})`,
+      );
 
-        !IS_PROD && console.log(`✅ Loaded ${historyMessages.length} of ${data.total_count} messages (page ${data.page}/${data.total_pages})`);
-        if (historyRequestRef.current !== requestId) {
-          !IS_PROD && console.log('⚠️ Ignoring stale message history response');
-          return;
-        }
-
-        setMessages(historyMessages.reverse()); // Reverse to show oldest first
-      }
+      return payload;
     } catch (error) {
       console.error('❌ Failed to fetch message history:', error);
+      return null;
     }
-  }, [chatId, userId]); // Include userId in dependency array
+  }, [chatId, userId]);
+
+  const fetchMessageHistory = useCallback(
+    async (page: number, mode: HistoryMergeMode): Promise<number> => {
+      if (!chatId && !userId) {
+        return 0;
+      }
+
+      const requestId = historyRequestRef.current + 1;
+      historyRequestRef.current = requestId;
+      setIsHistoryLoading(true);
+
+      try {
+        const payload = await requestHistory(page);
+        if (!payload) {
+          return 0;
+        }
+
+        if (historyRequestRef.current !== requestId) {
+          !IS_PROD && console.log('⚠️ Ignoring stale message history response');
+          return 0;
+        }
+
+        let added = 0;
+        setMessages((prev) => {
+          const merged = mergeMessageLists(payload.messages, prev, mode);
+          added = merged.length - prev.length;
+          return merged;
+        });
+
+        setHistoryPagination({
+          page: payload.page,
+          totalPages: payload.totalPages,
+        });
+        setHasMoreHistory(payload.page < payload.totalPages);
+
+        return added;
+      } finally {
+        if (historyRequestRef.current === requestId) {
+          setIsHistoryLoading(false);
+        }
+      }
+    },
+    [chatId, userId, requestHistory],
+  );
+
+  const loadOlderMessages = useCallback(async () => {
+    if (isHistoryLoading) {
+      return { added: 0 };
+    }
+
+    const nextPage = historyPagination.page > 0 ? historyPagination.page + 1 : 1;
+    if (historyPagination.page > 0 && !hasMoreHistory) {
+      return { added: 0 };
+    }
+
+    const mode: HistoryMergeMode = historyPagination.page > 0 ? 'prepend' : 'replace';
+    const added = await fetchMessageHistory(nextPage, mode);
+    return { added };
+  }, [fetchMessageHistory, hasMoreHistory, historyPagination.page, isHistoryLoading]);
 
   // ✅ Fetch purchase/transaction history for the chatroom
   const fetchPurchaseHistory = useCallback(async () => {
@@ -285,7 +389,7 @@ export function useChatWebSocket({
         reconnectAttemptsRef.current = 0;
         
         // Fetch message history after connecting
-        fetchMessageHistory();
+        void fetchMessageHistory(1, 'replace');
       };
 
       ws.onmessage = (event) => {
@@ -580,6 +684,9 @@ export function useChatWebSocket({
     purchaseHistory,
     fetchPurchaseHistory,
     isPurchaseHistoryLoading,
+    loadOlderMessages,
+    hasMoreHistory,
+    isHistoryLoading,
   };
 }
 

@@ -71,6 +71,8 @@ const stripHtml = (html: string): string => {
   return tmp.textContent || tmp.innerText || '';
 };
 
+const LOAD_MORE_SCROLL_THRESHOLD = 80;
+
 export function ChatComponent() {
   const [adminUserId] = useState(() => getAdminUserId());
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -84,6 +86,7 @@ export function ChatComponent() {
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const skipAutoScrollRef = useRef(false);
 
   // Fetch chat users list
   const { 
@@ -111,6 +114,9 @@ export function ChatComponent() {
     purchaseHistory,
     fetchPurchaseHistory,
     isPurchaseHistoryLoading,
+    loadOlderMessages,
+    hasMoreHistory,
+    isHistoryLoading: isHistoryLoadingMessages,
   } = useChatWebSocket({
     userId: selectedPlayer?.user_id ?? null,
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
@@ -178,6 +184,7 @@ export function ChatComponent() {
   }, []);
 
   useEffect(() => {
+    if (skipAutoScrollRef.current) return;
     scrollToBottom();
   }, [wsMessages, scrollToBottom]);
 
@@ -241,6 +248,47 @@ export function ChatComponent() {
     setTimeout(scrollToBottom, 100);
   }, [scrollToBottom]);
 
+  const maybeLoadOlderMessages = useCallback(async () => {
+    if (chatViewMode !== 'messages') return;
+    if (!selectedPlayer) return;
+    if (skipAutoScrollRef.current) return;
+
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    if (container.scrollTop > LOAD_MORE_SCROLL_THRESHOLD) return;
+    if (isHistoryLoadingMessages) return;
+    if (!hasMoreHistory) return;
+
+    const previousScrollTop = container.scrollTop;
+    const previousScrollHeight = container.scrollHeight;
+
+    skipAutoScrollRef.current = true;
+
+    try {
+      const result = await loadOlderMessages();
+
+      requestAnimationFrame(() => {
+        const updatedContainer = messagesContainerRef.current;
+        if (!updatedContainer) {
+          skipAutoScrollRef.current = false;
+          return;
+        }
+
+        if (result.added > 0) {
+          const heightDelta = updatedContainer.scrollHeight - previousScrollHeight;
+          updatedContainer.scrollTop = previousScrollTop + heightDelta;
+        } else {
+          updatedContainer.scrollTop = previousScrollTop;
+        }
+
+        skipAutoScrollRef.current = false;
+      });
+    } catch (error) {
+      console.error('❌ Failed to load older messages:', error);
+      skipAutoScrollRef.current = false;
+    }
+  }, [chatViewMode, hasMoreHistory, isHistoryLoadingMessages, loadOlderMessages, selectedPlayer]);
+
   // Auto-select first player if none selected
   useEffect(() => {
     if (!selectedPlayer && activeChatsUsers.length > 0) {
@@ -248,6 +296,20 @@ export function ChatComponent() {
       setMobileView('chat');
     }
   }, [selectedPlayer, activeChatsUsers]);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      void maybeLoadOlderMessages();
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [maybeLoadOlderMessages]);
 
   return (
     <div className="h-full flex gap-0 md:gap-4 bg-background">
@@ -627,6 +689,30 @@ export function ChatComponent() {
               )}
 
               {/* Render messages or purchase history based on view mode */}
+              {chatViewMode === 'messages' && isHistoryLoadingMessages && (
+                <div className="flex justify-center py-3 text-muted-foreground">
+                  <svg
+                    className="h-5 w-5 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      d="M4 12a8 8 0 018-8"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+              )}
               {chatViewMode === 'messages' && Object.entries(groupedMessages).map(([date, dateMessages]) => (
                 <div key={date} className="space-y-3">
                   {/* Date Separator */}
