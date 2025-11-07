@@ -73,6 +73,51 @@ const stripHtml = (html: string): string => {
 
 const LOAD_MORE_SCROLL_THRESHOLD = 80;
 
+const HTML_TAG_REGEX = /<\/?[a-z][^>]*>/i;
+
+const hasHtmlContent = (value: string | null | undefined): boolean => {
+  if (!value) {
+    return false;
+  }
+  return HTML_TAG_REGEX.test(value);
+};
+
+const MESSAGE_HTML_CONTENT_CLASS = {
+  admin: [
+    'text-[13px] md:text-sm leading-relaxed break-words whitespace-pre-wrap',
+    'text-foreground',
+    '[&_b]:text-primary [&_b]:font-semibold [&_b]:bg-primary/5 [&_b]:px-1.5 [&_b]:py-0.5 [&_b]:rounded [&_b]:inline-flex [&_b]:items-center',
+    '[&_strong]:text-primary [&_strong]:font-semibold',
+    '[&_em]:text-muted-foreground',
+    '[&_br]:block [&_br]:h-2',
+  ].join(' '),
+  player: [
+    'text-[13px] md:text-sm leading-relaxed break-words whitespace-pre-wrap',
+    'text-white',
+    '[&_b]:text-white [&_b]:font-semibold [&_b]:bg-white/10 [&_b]:px-1.5 [&_b]:py-0.5 [&_b]:rounded [&_b]:inline-flex [&_b]:items-center',
+    '[&_strong]:text-white [&_strong]:font-semibold',
+    '[&_em]:text-white/80',
+    '[&_br]:block [&_br]:h-2',
+  ].join(' '),
+};
+
+const PURCHASE_HTML_CONTENT_CLASS = [
+  'prose prose-sm dark:prose-invert max-w-none',
+  'prose-headings:text-foreground prose-headings:font-semibold',
+  'prose-p:text-foreground prose-p:leading-relaxed prose-p:my-1',
+  'prose-strong:text-primary prose-strong:font-semibold',
+  'prose-em:text-muted-foreground',
+  'prose-a:text-primary prose-a:no-underline hover:prose-a:underline',
+  'prose-ul:my-1 prose-ul:list-disc prose-ul:pl-4',
+  'prose-ol:my-1 prose-ol:list-decimal prose-ol:pl-4',
+  'prose-li:text-foreground prose-li:my-0.5',
+  'prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded',
+  '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
+  'text-sm leading-6 text-foreground',
+  '[&_b]:text-primary [&_b]:font-semibold [&_b]:bg-primary/5 [&_b]:px-1.5 [&_b]:py-0.5 [&_b]:rounded [&_b]:inline-flex [&_b]:items-center',
+  '[&_br]:block [&_br]:h-3',
+].join(' ');
+
 export function ChatComponent() {
   const [adminUserId] = useState(() => getAdminUserId());
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -740,6 +785,7 @@ export function ChatComponent() {
                     );
                                 const isConsecutive = prevMessage && prevMessage.sender === message.sender;
                     const isAdmin = message.sender === 'admin';
+                    const messageHasHtml = hasHtmlContent(message.text);
 
                     return (
                       <div
@@ -812,9 +858,20 @@ export function ChatComponent() {
                                 </div>
                               )}
                               
-                              <p className="text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words">
-                                {message.text}
-                              </p>
+                              {messageHasHtml ? (
+                                <div
+                                  className={MESSAGE_HTML_CONTENT_CLASS[isAdmin ? 'admin' : 'player']}
+                                  dangerouslySetInnerHTML={{ __html: message.text ?? '' }}
+                                />
+                              ) : (
+                                <p
+                                  className={`text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                                    isAdmin ? 'text-foreground' : 'text-white'
+                                  }`}
+                                >
+                                  {message.text}
+                                </p>
+                              )}
                               
                               {/* User balance indicator (only for player messages) */}
                               {!isAdmin && message.userBalance !== undefined && (
@@ -889,19 +946,9 @@ export function ChatComponent() {
                       {/* Purchase Message */}
                       <div className="flex flex-col gap-1 flex-1">
                         <div className="bg-muted/80 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-md border border-border/50">
-                          <div 
-                            className="prose prose-sm dark:prose-invert max-w-none
-                              prose-headings:text-foreground prose-headings:font-semibold
-                              prose-p:text-foreground prose-p:leading-relaxed prose-p:my-1
-                              prose-strong:text-foreground prose-strong:font-bold
-                              prose-em:text-muted-foreground
-                              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                              prose-ul:my-1 prose-ul:list-disc prose-ul:pl-4
-                              prose-ol:my-1 prose-ol:list-decimal prose-ol:pl-4
-                              prose-li:text-foreground prose-li:my-0.5
-                              prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded
-                              [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                            dangerouslySetInnerHTML={{ __html: purchase.text }} 
+                          <div
+                            className={PURCHASE_HTML_CONTENT_CLASS}
+                            dangerouslySetInnerHTML={{ __html: purchase.text }}
                           />
                         </div>
                         <div className="flex items-center gap-2 px-2">
