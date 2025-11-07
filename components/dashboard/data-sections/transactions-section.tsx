@@ -9,7 +9,8 @@ import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, Tabl
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
-import type { Transaction } from '@/types';
+import { agentsApi, paymentMethodsApi } from '@/lib/api';
+import type { Agent, PaymentMethod, Transaction } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 
 const HEADER_ICON = (
@@ -81,6 +82,10 @@ export function TransactionsSection() {
 
   const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
+  const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [isAgentLoading, setIsAgentLoading] = useState(false);
+const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
+const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
 
   // Fetch transactions when dependencies change
   useEffect(() => {
@@ -96,6 +101,128 @@ export function TransactionsSection() {
       setAreFiltersOpen(true);
     }
   }, [advancedFilters]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAgents = async () => {
+      setIsAgentLoading(true);
+
+      try {
+        const aggregated: Agent[] = [];
+        const pageSize = 100;
+        let page = 1;
+        let hasNext = true;
+
+        while (hasNext) {
+          const response = await agentsApi.list({ page, page_size: pageSize });
+
+          if (!response?.results) {
+            break;
+          }
+
+          aggregated.push(...response.results);
+
+          if (!response.next) {
+            hasNext = false;
+          } else {
+            page += 1;
+          }
+
+          if (!hasNext) {
+            break;
+          }
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        const uniqueAgents = new Map<string, string>();
+
+        aggregated.forEach((agent) => {
+          if (agent?.username) {
+            uniqueAgents.set(agent.username, agent.username);
+          }
+        });
+
+        const mappedOptions = Array.from(uniqueAgents.entries())
+          .map(([value, label]) => ({ value, label }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+        setAgentOptions(mappedOptions);
+      } catch (error) {
+        console.error('Failed to load agents for transaction filters:', error);
+      } finally {
+        if (isMounted) {
+          setIsAgentLoading(false);
+        }
+      }
+    };
+
+    loadAgents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPaymentMethods = async () => {
+      setIsPaymentMethodLoading(true);
+
+      try {
+        const response = await paymentMethodsApi.list();
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (!response) {
+          setPaymentMethodOptions([]);
+          return;
+        }
+
+        const collection = Array.isArray(response) ? response : [];
+
+        const uniqueMethods = new Map<string, string>();
+
+        collection.forEach((method: PaymentMethod) => {
+          if (!method) {
+            return;
+          }
+
+          const value = method.payment_method?.trim();
+          if (!value) {
+            return;
+          }
+
+          const label = method.payment_method_display?.trim() || value;
+          uniqueMethods.set(value, label);
+        });
+
+        const mapped = Array.from(uniqueMethods.entries())
+          .map(([value, label]) => ({ value, label }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+        setPaymentMethodOptions(mapped);
+      } catch (error) {
+        console.error('Failed to load payment methods for transaction filters:', error);
+      } finally {
+        if (isMounted) {
+          setIsPaymentMethodLoading(false);
+        }
+      }
+    };
+
+    loadPaymentMethods();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleAdvancedFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
     setFilters((previous) => ({ ...previous, [key]: value }));
@@ -158,6 +285,10 @@ export function TransactionsSection() {
         totalCount={totalCount}
         pageSize={pageSize}
         onPageChange={setPage}
+        agentOptions={agentOptions}
+        isAgentLoadingAgents={isAgentLoading}
+        paymentMethodOptions={paymentMethodOptions}
+        isPaymentMethodLoading={isPaymentMethodLoading}
       />
     </DashboardSectionContainer>
   );
@@ -176,6 +307,10 @@ interface TransactionsLayoutProps {
   totalCount: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  agentOptions: Array<{ value: string; label: string }>;
+  isAgentLoadingAgents: boolean;
+  paymentMethodOptions: Array<{ value: string; label: string }>;
+  isPaymentMethodLoading: boolean;
 }
 
 function TransactionsLayout({
@@ -191,6 +326,10 @@ function TransactionsLayout({
   totalCount,
   pageSize,
   onPageChange,
+  agentOptions,
+  isAgentLoadingAgents,
+  paymentMethodOptions,
+  isPaymentMethodLoading,
 }: TransactionsLayoutProps) {
   return (
     <>
@@ -219,6 +358,10 @@ function TransactionsLayout({
           { value: 'completed', label: 'Completed' },
           { value: 'cancelled', label: 'Cancelled' },
         ]}
+        agentOptions={agentOptions}
+        isAgentLoading={isAgentLoadingAgents}
+        paymentMethodOptions={paymentMethodOptions}
+        isPaymentMethodLoading={isPaymentMethodLoading}
       />
 
       <TransactionsTable

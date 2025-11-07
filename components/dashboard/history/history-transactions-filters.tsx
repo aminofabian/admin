@@ -34,7 +34,6 @@ interface SelectFieldConfig {
 }
 
 const TEXT_FIELDS: InputFieldConfig[] = [
-  { key: 'agent', label: 'Agent', placeholder: 'Filter by agent' },
   { key: 'username', label: 'Username', placeholder: 'Filter by username' },
   { key: 'email', label: 'Email', placeholder: 'Filter by email', type: 'email' },
   { key: 'transaction_id', label: 'Transaction ID', placeholder: 'Enter transaction ID' },
@@ -59,18 +58,6 @@ const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
       { value: 'cashout', label: 'Cashout' },
     ],
   },
-  {
-    key: 'payment_method',
-    label: 'Payment Method',
-    options: [
-      { value: '', label: 'All Methods' },
-      { value: 'bitcoin', label: 'Bitcoin' },
-      { value: 'litecoin', label: 'Litecoin' },
-      { value: 'bitcoin_lightning', label: 'Bitcoin Lightning' },
-      { value: 'manual', label: 'Manual' },
-      { value: 'other', label: 'Other' },
-    ],
-  },
 ];
 
 const DATE_FIELDS: InputFieldConfig[] = [
@@ -84,8 +71,14 @@ const AMOUNT_FIELDS: InputFieldConfig[] = [
 ];
 
 const FILTER_ICON = (
-  <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+  <svg className="w-5 h-5 text-slate-600 transition-colors dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <defs>
+      <linearGradient id="filterIconGradient" x1="0%" x2="100%" y1="0%" y2="100%">
+        <stop offset="0%" stopColor="currentColor" stopOpacity="0.4" />
+        <stop offset="100%" stopColor="currentColor" />
+      </linearGradient>
+    </defs>
+    <path stroke="url(#filterIconGradient)" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
   </svg>
 );
 
@@ -97,6 +90,10 @@ interface HistoryTransactionsFiltersProps {
   isOpen: boolean;
   onToggle: () => void;
   statusOptions?: Array<{ value: string; label: string }>;
+  agentOptions?: Array<{ value: string; label: string }>;
+  isAgentLoading?: boolean;
+  paymentMethodOptions?: Array<{ value: string; label: string }>;
+  isPaymentMethodLoading?: boolean;
 }
 
 export function HistoryTransactionsFilters({
@@ -107,10 +104,14 @@ export function HistoryTransactionsFilters({
   isOpen,
   onToggle,
   statusOptions,
+  agentOptions,
+  isAgentLoading = false,
+  paymentMethodOptions,
+  isPaymentMethodLoading = false,
 }: HistoryTransactionsFiltersProps) {
-  const inputClasses = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors';
-  const selectClasses = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors';
-  const labelClasses = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors';
+const inputClasses = 'w-full px-3 py-2 rounded-lg border border-slate-700/70 bg-slate-900 text-slate-100 placeholder-slate-500 shadow-sm transition-all duration-150 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-slate-500/50';
+const selectClasses = 'w-full appearance-none px-3 py-2 pr-9 rounded-lg border border-slate-700/70 bg-slate-900 text-slate-100 text-sm shadow-sm transition-all duration-150 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-slate-500/50';
+const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-slate-300 dark:text-slate-300 mb-2 transition-colors';
   const effectiveStatusOptions = statusOptions ?? [
     { value: '', label: 'All Statuses' },
     { value: 'pending', label: 'Pending' },
@@ -119,9 +120,9 @@ export function HistoryTransactionsFilters({
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-black/20 p-4 space-y-4 transition-colors">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 transition-colors">
+    <div className="rounded-2xl border border-slate-800/70 bg-slate-900/95 p-5 shadow-lg shadow-slate-900/40 backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-950">
+      <div className="flex items-center justify-between text-slate-100">
+        <h3 className="flex items-center gap-3 text-base font-semibold text-slate-100 transition-colors">
           {FILTER_ICON}
           Filters
         </h3>
@@ -129,7 +130,7 @@ export function HistoryTransactionsFilters({
           variant="ghost"
           size="sm"
           onClick={onToggle}
-          className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+          className="rounded-full px-4 py-1.5 text-sm font-medium text-slate-300 transition-all duration-150 hover:bg-slate-800/70 hover:text-slate-100"
         >
           {isOpen ? (
             <>
@@ -150,7 +151,83 @@ export function HistoryTransactionsFilters({
       </div>
 
       {isOpen && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-800 transition-colors">
+        <div className="grid grid-cols-1 gap-4 pt-5 text-slate-100 transition-colors md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="relative">
+            <label className={labelClasses}>Agent</label>
+            <select
+              value={filters.agent}
+              onChange={(event) => onFilterChange('agent', event.target.value)}
+              className={`${selectClasses} ${isAgentLoading ? 'opacity-75' : ''}`}
+            >
+              <option value="">All Agents</option>
+              {isAgentLoading && (
+                <option value="" disabled>
+                  Loading agents...
+                </option>
+              )}
+              {!isAgentLoading && agentOptions?.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+              {!isAgentLoading && filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent) && (
+                <option value={filters.agent}>
+                  {filters.agent}
+                </option>
+              )}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500">
+              {isAgentLoading ? (
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                  <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+          </div>
+
+          <div className="relative">
+            <label className={labelClasses}>Payment Method</label>
+            <select
+              value={filters.payment_method}
+              onChange={(event) => onFilterChange('payment_method', event.target.value)}
+              className={`${selectClasses} ${isPaymentMethodLoading ? 'opacity-75' : ''}`}
+            >
+              <option value="">All Methods</option>
+              {isPaymentMethodLoading && (
+                <option value="" disabled>
+                  Loading methods...
+                </option>
+              )}
+              {!isPaymentMethodLoading && paymentMethodOptions?.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+              {!isPaymentMethodLoading && filters.payment_method && paymentMethodOptions && !paymentMethodOptions.some((option) => option.value === filters.payment_method) && (
+                <option value={filters.payment_method}>
+                  {filters.payment_method}
+                </option>
+              )}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500">
+              {isPaymentMethodLoading ? (
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                  <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+          </div>
+
           {TEXT_FIELDS.map(({ key, label, placeholder, type = 'text' }) => (
             <div key={key}>
               <label className={labelClasses}>{label}</label>
