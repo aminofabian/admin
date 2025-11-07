@@ -772,7 +772,7 @@ export function ChatComponent() {
             {/* Messages / Purchase History */}
             <div 
               ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 scroll-smooth bg-gradient-to-b from-background/50 to-background"
+              className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 scroll-smooth bg-gradient-to-b from-background/50 to-background"
             >
               {/* Loading state for purchase history */}
               {chatViewMode === 'purchases' && isPurchaseHistoryLoading && (
@@ -1063,15 +1063,37 @@ export function ChatComponent() {
               }
 
               {chatViewMode === 'messages' && !isUserAtLatest && (
-                <div className="sticky bottom-4 flex justify-center pointer-events-none">
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => scrollToLatest()}
-                    className="pointer-events-auto rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    Jump to latest
-                  </Button>
+                <div className="pointer-events-none sticky bottom-12 sm:bottom-16 z-20 flex justify-end pr-0">
+                  <div className="pointer-events-auto -mr-3 sm:-mr-8">
+                    <button
+                      type="button"
+                      onClick={() => scrollToLatest()}
+                      aria-label="Jump to latest messages"
+                      className="group relative flex w-12 flex-col items-center gap-3 rounded-full border border-border/40 bg-background/95 px-0 py-5 text-primary shadow-xl backdrop-blur-md transition-transform duration-200 hover:-translate-x-0.5 hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      <span className="absolute right-full mr-3 hidden translate-x-2 items-center gap-2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-lg opacity-0 transition-all duration-200 group-hover:flex group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:flex group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Jump to latest
+                      </span>
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-50" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                      </span>
+                      <span
+                        className="font-semibold uppercase tracking-[0.35em] text-[0.68rem] text-primary transition-all duration-200 group-hover:opacity-0 group-hover:delay-75"
+                        style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                      >
+                        Latest
+                      </span>
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary transition-transform duration-300 group-hover:translate-y-1 group-active:translate-y-1.5">
+                        <svg className="h-4 w-4 transition-transform duration-300 group-hover:translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </span>
+                    </button>
+                  </div>
                 </div>
               )}
               
