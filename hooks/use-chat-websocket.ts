@@ -10,6 +10,21 @@ const MESSAGES_PER_PAGE = 20;
 
 type HistoryMergeMode = 'prepend' | 'replace';
 
+const ensurePositiveInteger = (value: unknown, fallback: number): number => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.floor(value);
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+};
+
 interface HistoryPayload {
   messages: ChatMessage[];
   page: number;
@@ -190,10 +205,21 @@ export function useChatWebSocket({
       }
 
       const data = await response.json();
+      const requestedPage = ensurePositiveInteger(page, 1);
+      const resolvedPage = ensurePositiveInteger(
+        data.page ?? data.current_page,
+        requestedPage,
+      );
+
+      const resolvedTotalPages = ensurePositiveInteger(
+        data.total_pages ?? data.totalPages ?? data.page_count,
+        resolvedPage,
+      );
+
       const payload: HistoryPayload = {
         messages: Array.isArray(data.messages) ? normalizeHistoryMessages(data.messages) : [],
-        page: data.page ?? page,
-        totalPages: data.total_pages ?? data.totalPages ?? page,
+        page: resolvedPage,
+        totalPages: resolvedTotalPages,
       };
 
       !IS_PROD && console.log(
@@ -256,12 +282,16 @@ export function useChatWebSocket({
       return { added: 0 };
     }
 
-    const nextPage = historyPagination.page > 0 ? historyPagination.page + 1 : 1;
-    if (historyPagination.page > 0 && !hasMoreHistory) {
+    const currentPage = Number.isFinite(historyPagination.page)
+      ? historyPagination.page
+      : 0;
+    const nextPage = currentPage > 0 ? currentPage + 1 : 1;
+
+    if (currentPage > 0 && !hasMoreHistory) {
       return { added: 0 };
     }
 
-    const mode: HistoryMergeMode = historyPagination.page > 0 ? 'prepend' : 'replace';
+    const mode: HistoryMergeMode = currentPage > 0 ? 'prepend' : 'replace';
     const added = await fetchMessageHistory(nextPage, mode);
     return { added };
   }, [fetchMessageHistory, hasMoreHistory, historyPagination.page, isHistoryLoading]);

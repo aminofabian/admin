@@ -72,6 +72,7 @@ const stripHtml = (html: string): string => {
 };
 
 const LOAD_MORE_SCROLL_THRESHOLD = 80;
+const AUTO_SCROLL_BOTTOM_THRESHOLD = 160;
 
 const HTML_TAG_REGEX = /<\/?[a-z][^>]*>/i;
 
@@ -132,6 +133,7 @@ export function ChatComponent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const skipAutoScrollRef = useRef(false);
+  const previousMessageCountRef = useRef(0);
 
   // Fetch chat users list
   const { 
@@ -224,13 +226,36 @@ export function ChatComponent() {
     return isLoadingUsers;
   }, [activeTab, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
   }, []);
 
   useEffect(() => {
-    if (skipAutoScrollRef.current) return;
-    scrollToBottom();
+    const previousCount = previousMessageCountRef.current;
+    previousMessageCountRef.current = wsMessages.length;
+
+    if (skipAutoScrollRef.current) {
+      return;
+    }
+
+    if (previousCount === 0) {
+      scrollToBottom('auto');
+      return;
+    }
+
+    if (wsMessages.length > previousCount) {
+      const container = messagesContainerRef.current;
+      if (!container) {
+        return;
+      }
+
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+
+      if (distanceFromBottom <= AUTO_SCROLL_BOTTOM_THRESHOLD) {
+        scrollToBottom();
+      }
+    }
   }, [wsMessages, scrollToBottom]);
 
   useEffect(() => {
