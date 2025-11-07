@@ -171,7 +171,21 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   // Type checks for layout rendering
   const isRechargeOrRedeem = queue.type === 'recharge_game' || queue.type === 'redeem_game';
+  const isRedeem = queue.type === 'redeem_game';
   const isResetPassword = (queue.type as string).includes('password');
+
+  const amountContainerClass = isRedeem
+    ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30'
+    : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/30';
+  const amountTextClass = isRedeem
+    ? 'text-base font-bold text-red-600 dark:text-red-400'
+    : 'text-base font-bold text-green-600 dark:text-green-400';
+  const dividerColorClass = isRedeem
+    ? 'bg-red-300 dark:bg-red-700'
+    : 'bg-green-300 dark:bg-green-700';
+  const bonusTextClass = isRedeem
+    ? 'text-base font-bold text-red-500 dark:text-red-300'
+    : 'text-base font-bold text-emerald-600 dark:text-emerald-400';
 
   const renderCompleteFormDetails = () => {
     if (isRechargeOrRedeem) {
@@ -244,20 +258,20 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
           </div>
 
           {/* Transaction Amount */}
-          <div className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded">
+          <div className={`p-2 border rounded ${amountContainerClass}`}>
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="text-[10px] text-muted-foreground mb-0.5">Amount</div>
-                <div className="text-base font-bold text-green-600 dark:text-green-400">
+                <div className={amountTextClass}>
                   {formatCurrency(queue.amount || '0')}
                 </div>
               </div>
               {formattedBonus && (
                 <>
-                  <div className="h-6 w-px bg-green-300 dark:bg-green-700 mx-2" />
+                  <div className={`h-6 w-px ${dividerColorClass} mx-2`} />
                   <div className="flex-1 text-right">
                     <div className="text-[10px] text-muted-foreground mb-0.5">Bonus</div>
-                    <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className={bonusTextClass}>
                       +{formattedBonus}
                     </div>
                   </div>

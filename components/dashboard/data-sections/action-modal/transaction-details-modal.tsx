@@ -75,6 +75,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
     return bonusAmount ? formatCurrency(bonusAmount) : null;
   }, [bonusAmount]);
 
+  const amountVariant: 'positive' | 'negative' = transaction.type === 'cashout' ? 'negative' : 'positive';
+
   const previousBalanceValue = useMemo(
     () => parseNumericValue(transaction.previous_balance) ?? 0,
     [transaction.previous_balance]
@@ -189,6 +191,7 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           <DetailsAmountBox
             amount={formattedAmount}
             bonus={formattedBonus ? `+${formattedBonus}` : undefined}
+            variant={amountVariant}
           />
 
           {/* Dates */}

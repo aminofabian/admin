@@ -73,6 +73,10 @@ function GameActivityRow({
   }, [activity.bonus_amount, activity.data?.bonus_amount]);
 
   const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+  const amountColorClass = activity.type === 'redeem_game'
+    ? 'text-red-600 dark:text-red-400'
+    : 'text-green-600 dark:text-green-400';
+  const bonusColorClass = amountColorClass;
 
   const newCreditsBalance = useMemo(() => {
     const credits = activity.data?.new_credits_balance;
@@ -164,10 +168,10 @@ function GameActivityRow({
         )}
       </TableCell>
       <TableCell>
-        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+        <div className={`text-sm font-bold ${amountColorClass}`}>
           {formattedAmount}
           {formattedBonus && (
-            <div className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
+            <div className={`text-xs font-semibold ${bonusColorClass} mt-0.5`}>
               +{formattedBonus} bonus
             </div>
           )}

@@ -49,6 +49,8 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     return formatCurrency(String(activity.data?.balance ?? '0'));
   }, [activity.data?.balance]);
 
+  const amountVariant: 'positive' | 'negative' = activity.type === 'redeem_game' ? 'negative' : 'positive';
+
   const totalAmountSent = useMemo(() => {
     const dataAmount = activity.data?.amount;
     if (dataAmount === undefined || dataAmount === null) return null;
@@ -165,6 +167,7 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
           <DetailsAmountBox
             amount={formattedAmount}
             bonus={formattedBonus ? `+${formattedBonus}` : undefined}
+            variant={amountVariant}
           />
 
           {/* Dates */}
