@@ -134,6 +134,7 @@ export function ChatComponent() {
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
+  const wasHistoryLoadingRef = useRef(false);
 
   // Fetch chat users list
   const { 
@@ -370,10 +371,12 @@ export function ChatComponent() {
     setAutoScrollEnabled(true);
     setIsUserAtLatest(true);
 
+    wasHistoryLoadingRef.current = isHistoryLoadingMessages;
+
     requestAnimationFrame(() => {
       scrollToLatest('auto');
     });
-  }, [selectedPlayer, chatViewMode, scrollToLatest]);
+  }, [selectedPlayer, chatViewMode, scrollToLatest, isHistoryLoadingMessages]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -418,6 +421,21 @@ export function ChatComponent() {
       scrollToLatest('smooth');
     });
   }, [wsMessages, autoScrollEnabled, chatViewMode, scrollToLatest]);
+
+  useEffect(() => {
+    if (chatViewMode !== 'messages') {
+      return;
+    }
+
+    const wasLoading = wasHistoryLoadingRef.current;
+    wasHistoryLoadingRef.current = isHistoryLoadingMessages;
+
+    if (wasLoading && !isHistoryLoadingMessages && autoScrollEnabled) {
+      requestAnimationFrame(() => {
+        scrollToLatest('auto');
+      });
+    }
+  }, [isHistoryLoadingMessages, autoScrollEnabled, chatViewMode, scrollToLatest]);
 
   return (
     <div className="h-full flex gap-0 md:gap-4 bg-background">
