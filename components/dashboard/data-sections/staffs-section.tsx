@@ -99,191 +99,164 @@ export function StaffsSection() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Staff Members</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Manage all staff accounts and permissions
-          </p>
+      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 9V7a5 5 0 10-10 0v2M5 9h14l1 12H4L5 9zm4 4h6" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">Staff Members</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Manage all staff accounts and permissions</p>
+            </div>
+          </div>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-sm hover:bg-primary/90"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Staff
+          </Button>
         </div>
-        <Button 
-          variant="primary" 
-          size="md"
-          onClick={() => setIsDrawerOpen(true)}
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Staff
-        </Button>
-      </div>
+      </section>
 
       {/* Search */}
-      <div className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
         <SearchInput
           value={searchTerm}
           onChange={handleSearchChange}
           placeholder="Search by username or email..."
         />
-      </div>
+      </section>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Staff</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{staffs?.count || 0}</div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+          <div className="text-sm text-muted-foreground">Total Staff</div>
+          <div className="mt-1 text-2xl font-semibold text-foreground">{staffs?.count || 0}</div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
-          <div className="text-2xl font-bold text-green-500 mt-1">
-            {staffs?.results?.filter(s => s.is_active).length || 0}
-          </div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+          <div className="text-sm text-muted-foreground">Active</div>
+          <div className="mt-1 text-2xl font-semibold text-emerald-600">{staffs?.results?.filter(s => s.is_active).length || 0}</div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
-          <div className="text-2xl font-bold text-red-500 mt-1">
-            {staffs?.results?.filter(s => !s.is_active).length || 0}
-          </div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+          <div className="text-sm text-muted-foreground">Inactive</div>
+          <div className="mt-1 text-2xl font-semibold text-rose-600">{staffs?.results?.filter(s => !s.is_active).length || 0}</div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">This Page</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{staffs?.results?.length || 0}</div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+          <div className="text-sm text-muted-foreground">This Page</div>
+          <div className="mt-1 text-2xl font-semibold text-foreground">{staffs?.results?.length || 0}</div>
         </div>
       </div>
 
       {/* Enhanced Table with All Data */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[200px]">Username</TableHead>
-                <TableHead className="min-w-[200px]">Contact</TableHead>
-                <TableHead className="min-w-[100px]">Status</TableHead>
-                <TableHead className="min-w-[100px]">Role</TableHead>
-                <TableHead className="min-w-[180px]">Timestamps</TableHead>
-                <TableHead className="min-w-[200px] text-right">Actions</TableHead>
+              <TableRow className="border-border/60">
+                <TableHead className="min-w-[200px] font-semibold uppercase tracking-wide text-muted-foreground">Username</TableHead>
+                <TableHead className="min-w-[200px] font-semibold uppercase tracking-wide text-muted-foreground">Contact</TableHead>
+                <TableHead className="min-w-[100px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
+                <TableHead className="min-w-[100px] font-semibold uppercase tracking-wide text-muted-foreground">Role</TableHead>
+                <TableHead className="min-w-[180px] font-semibold uppercase tracking-wide text-muted-foreground">Timestamps</TableHead>
+                <TableHead className="min-w-[200px] text-right font-semibold uppercase tracking-wide text-muted-foreground">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {staffs?.results?.map((staff) => (
-                <TableRow key={staff.id}>
-                  {/* Username Info */}
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-sm font-bold">
-                        {staff.username.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 dark:text-gray-100">
-                          {staff.username}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          ID: {staff.id}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
+              {staffs?.results?.map(staff => {
+                const actionStyles = getStaffActionStyles(staff.is_active);
 
-                  {/* Contact */}
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="text-sm text-gray-900 dark:text-gray-100">
-                        {staff.email}
+                return (
+                  <TableRow key={staff.id} className="border-border/40 transition-colors hover:bg-slate-50">
+                    {/* Username Info */}
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold uppercase text-primary-foreground">
+                          {staff.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-foreground">{staff.username}</div>
+                          <div className="text-xs text-muted-foreground">ID: {staff.id}</div>
+                        </div>
                       </div>
-                      <Badge variant="default" className="text-xs">
-                        Email
+                    </TableCell>
+
+                    {/* Contact */}
+                    <TableCell>
+                      <div className="text-sm text-foreground">{staff.email}</div>
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell>
+                      <Badge variant={staff.is_active ? 'success' : 'danger'} className={actionStyles.statusClass}>
+                        {staff.is_active ? 'Active' : 'Inactive'}
                       </Badge>
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  {/* Status */}
-                  <TableCell>
-                    <div className="space-y-2">
-                      <Badge variant={staff.is_active ? 'success' : 'danger'} className="text-xs">
-                        {staff.is_active ? 'ACTIVE' : 'INACTIVE'}
+                    {/* Role */}
+                    <TableCell>
+                      <Badge variant="info" className="capitalize border border-sky-200 bg-sky-50 px-3 py-1 text-sky-700">
+                        {staff.role}
                       </Badge>
-                      {staff.is_active && (
-                        <div className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                          <span>✓</span>
-                          <span>Online</span>
-                        </div>
-                      )}
-                      {!staff.is_active && (
-                        <div className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                          <span>⊘</span>
-                          <span>Disabled</span>
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  {/* Role */}
-                  <TableCell>
-                    <Badge variant="info" className="capitalize">
-                      {staff.role}
-                    </Badge>
-                  </TableCell>
-
-                  {/* Timestamps */}
-                  <TableCell>
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <div className="text-gray-500 dark:text-gray-400 mb-0.5">Created</div>
-                        <div className="text-gray-900 dark:text-gray-100 font-medium">
-                          {formatDate(staff.created)}
+                    {/* Timestamps */}
+                    <TableCell>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <div>
+                          <span className="font-medium text-foreground">{formatDate(staff.created)}</span>
+                        </div>
+                        <div>
+                        <span className="font-medium text-foreground">{formatDate(staff.modified || staff.created)}</span>
                         </div>
                       </div>
-                      <div>
-                        <div className="text-gray-500 dark:text-gray-400 mb-0.5">Modified</div>
-                        <div className="text-gray-600 dark:text-gray-400">
-                          {formatDate(staff.modified || staff.created)}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  {/* Actions */}
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => openEditDrawer(staff)}
-                        title="Edit staff"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={staff.is_active ? 'danger' : 'primary'}
-                        onClick={() => handleUpdateStaff(staff.id, { is_active: !staff.is_active })}
-                        title={staff.is_active ? 'Deactivate' : 'Activate'}
-                      >
-                        {staff.is_active ? (
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    {/* Actions */}
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-3">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openEditDrawer(staff)}
+                          title="Edit staff"
+                          className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        )}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={staff.is_active ? 'danger' : 'primary'}
+                          onClick={() => handleUpdateStaff(staff.id, { is_active: !staff.is_active })}
+                          title={actionStyles.toggleLabel}
+                          className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold shadow-sm ${actionStyles.toggleClass}`}
+                        >
+                          {actionStyles.icon}
+                          {actionStyles.toggleLabel}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
-      </div>
+      </section>
 
       {/* Pagination */}
       {staffs && staffs.count > pageSize && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
           <Pagination
             currentPage={currentPage}
             totalPages={Math.ceil(staffs.count / pageSize)}
@@ -302,8 +275,8 @@ export function StaffsSection() {
         size="lg"
       >
         {operationError && (
-          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
-            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
             <span>{operationError}</span>
@@ -324,8 +297,8 @@ export function StaffsSection() {
         size="lg"
       >
         {operationError && (
-          <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
-            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
             <span>{operationError}</span>
@@ -342,5 +315,31 @@ export function StaffsSection() {
       </Drawer>
     </div>
   );
+}
+
+function getStaffActionStyles(isActive: boolean) {
+  if (isActive) {
+    return {
+      statusClass: 'border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700',
+      toggleClass: 'border border-transparent bg-rose-500 text-white hover:bg-rose-600',
+      toggleLabel: 'Deactivate',
+      icon: (
+        <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v4m-6 4h12a2 2 0 002-2v-7a2 2 0 00-2-2H6a2 2 0 00-2 2v7a2 2 0 002 2zm10-11V7a4 4 0 00-8 0v5" />
+        </svg>
+      ),
+    };
+  }
+
+  return {
+    statusClass: 'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600',
+    toggleClass: 'border border-transparent bg-emerald-500 text-white hover:bg-emerald-600',
+    toggleLabel: 'Activate',
+    icon: (
+      <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v4m0 0a4 4 0 014 4v2H8v-2a4 4 0 014-4zm0 0v12" />
+      </svg>
+    ),
+  };
 }
 
