@@ -24,6 +24,7 @@ import { formatDate } from '@/lib/utils/formatters';
 import type { Agent, CreateUserRequest, PaginatedResponse, UpdateUserRequest } from '@/types';
 
 const SUCCESS_MESSAGE_TIMEOUT_MS = 5000;
+const SEARCH_PLACEHOLDER_TEXT = 'Search by username or email...';
 
 type ConfirmModalState = { isOpen: boolean; agent: Agent | null; isLoading: boolean };
 
@@ -195,61 +196,61 @@ function useAgentsDashboard(): AgentsDashboardState {
 
 type AgentsHeaderProps = {
   onCreate: () => void;
-  search: string;
-  onSearchChange: (value: string) => void;
   successMessage: string;
   onDismissSuccess: () => void;
 };
 
-function AgentsHeader({ onCreate, search, onSearchChange, successMessage, onDismissSuccess }: AgentsHeaderProps) {
+function AgentsHeader({ onCreate, successMessage, onDismissSuccess }: AgentsHeaderProps) {
   return (
-    <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-      <div className="absolute inset-0 opacity-[0.015]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-      </div>
-
-      <div className="relative flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Agents</h1>
-              <p className="text-muted-foreground mt-1">Manage platform agents and their permissions</p>
-            </div>
-          </div>
-          <Button onClick={onCreate} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25">
-            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
             </svg>
-            Add Agent
-          </Button>
-        </div>
-
-        {successMessage && (
-          <div className="bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-green-500/20 text-green-500 px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>{successMessage}</span>
-            </div>
-            <button onClick={onDismissSuccess} className="text-green-500 hover:text-green-600 transition-colors" aria-label="Dismiss success message">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
-        )}
-
-        <div className="w-full lg:w-96">
-          <SearchInput value={search} onChange={event => onSearchChange(event.target.value)} placeholder="Search by username or email..." />
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Agents</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Manage all agent accounts and permissions</p>
+          </div>
         </div>
+        <Button onClick={onCreate} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-sm hover:bg-primary/90">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Agent
+        </Button>
       </div>
-    </div>
+      {successMessage && (
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span>{successMessage}</span>
+          </div>
+          <button onClick={onDismissSuccess} className="text-green-700 transition-colors hover:text-green-800" aria-label="Dismiss success message">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+type AgentsSearchBarProps = {
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function AgentsSearchBar({ value, onChange }: AgentsSearchBarProps) {
+  return (
+    <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+      <SearchInput value={value} onChange={event => onChange(event.target.value)} placeholder={SEARCH_PLACEHOLDER_TEXT} />
+    </section>
   );
 }
 
@@ -264,64 +265,78 @@ type AgentsTableSectionProps = {
 
 function AgentsTableSection({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions }: AgentsTableSectionProps) {
   if (!data || data.results.length === 0) {
-    return (
-      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.015]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-        </div>
-        <div className="relative py-12">
-          <EmptyState title="No agents found" description="Get started by creating a new agent" />
-        </div>
-      </div>
-    );
+    return <AgentsTableEmptyState />;
   }
 
   return (
-    <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden">
-      <div className="absolute inset-0 opacity-[0.015]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-      </div>
-      <div className="relative">
-        <div className="p-6 border-b border-border/30">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
-              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-foreground">Agent Directory</h3>
-              <p className="text-sm text-muted-foreground">Manage agent accounts and permissions</p>
-            </div>
+    <AgentsTableContent
+      data={data}
+      page={page}
+      pageSize={pageSize}
+      onPageChange={onPageChange}
+      onToggleStatus={onToggleStatus}
+      onViewTransactions={onViewTransactions}
+    />
+  );
+}
+
+type AgentsTableContentProps = {
+  data: PaginatedResponse<Agent>;
+  page: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onToggleStatus: (agent: Agent) => void;
+  onViewTransactions: (agent: Agent) => void;
+};
+
+function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions }: AgentsTableContentProps) {
+  return (
+    <section className="rounded-2xl border border-border bg-white shadow-sm">
+      <div className="border-b border-border/60 px-6 py-4">
+        <div className="flex items-center gap-3">
+         
+          <div>
           </div>
         </div>
-
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent border-border/30">
-                <TableHead className="font-semibold text-foreground">Username</TableHead>
-                <TableHead className="font-semibold text-foreground">Email</TableHead>
-                <TableHead className="font-semibold text-foreground">Status</TableHead>
-                <TableHead className="font-semibold text-foreground">Created</TableHead>
-                <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.results.map(agent => (
-                <AgentRow key={agent.id} agent={agent} onToggleStatus={onToggleStatus} onViewTransactions={onViewTransactions} />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {data.count > pageSize && (
-          <div className="px-6 py-4 border-t border-border/30">
-            <Pagination currentPage={page} totalPages={Math.ceil(data.count / pageSize)} onPageChange={onPageChange} hasNext={Boolean(data.next)} hasPrevious={Boolean(data.previous)} />
-          </div>
-        )}
       </div>
-    </div>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border/50">
+              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground">Username</TableHead>
+              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground">Email</TableHead>
+              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
+              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground">Dates</TableHead>
+              <TableHead className="text-right font-semibold uppercase tracking-wide text-muted-foreground">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.results.map(agent => (
+              <AgentRow key={agent.id} agent={agent} onToggleStatus={onToggleStatus} onViewTransactions={onViewTransactions} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {data.count > pageSize && (
+        <div className="border-t border-border/60 px-6 py-4">
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil(data.count / pageSize)}
+            onPageChange={onPageChange}
+            hasNext={Boolean(data.next)}
+            hasPrevious={Boolean(data.previous)}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AgentsTableEmptyState() {
+  return (
+    <section className="rounded-2xl border border-dashed border-border bg-white py-12 text-center shadow-sm">
+      <EmptyState title="No agents found" description="Get started by creating a new agent" />
+    </section>
   );
 }
 
@@ -332,72 +347,110 @@ type AgentRowProps = {
 };
 
 function AgentRow({ agent, onToggleStatus, onViewTransactions }: AgentRowProps) {
-  const statusVariant = agent.is_active ? 'success' : 'danger';
-  const statusClass = agent.is_active ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20';
-  const transactionClass = agent.is_active
-    ? 'border-emerald-300/60 text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50/80 dark:border-emerald-400/40 dark:text-emerald-300 dark:hover:bg-emerald-900/50'
-    : 'border-amber-300/60 text-amber-600 hover:border-amber-400 hover:bg-amber-50/80 dark:border-amber-400/40 dark:text-amber-300 dark:hover:bg-amber-900/45';
-  const toggleClass = agent.is_active
-    ? 'border border-rose-400/60 bg-rose-50/80 text-rose-600 hover:border-rose-500 hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/55'
-    : 'border border-sky-400/60 bg-sky-50/80 text-sky-600 hover:border-sky-500 hover:bg-sky-100 dark:border-sky-500/40 dark:bg-sky-900/40 dark:text-sky-300 dark:hover:bg-sky-900/55';
+  const styles = getAgentStyles(agent.is_active);
 
   return (
-    <TableRow className="hover:bg-card/50 border-border/20 transition-colors">
+    <TableRow className="border-border/40 hover:bg-slate-50">
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground text-sm font-semibold shadow-lg">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
             {agent.username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="font-medium text-foreground">{agent.username}</div>
-            <div className="text-xs text-muted-foreground">{agent.role || 'agent'}</div>
+            <p className="font-medium leading-5 text-foreground">{agent.username}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{agent.role}</p>
           </div>
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-foreground">{agent.email}</div>
+        <p className="text-sm text-foreground">{agent.email}</p>
       </TableCell>
       <TableCell>
-        <Badge variant={statusVariant} className={statusClass}>
-          {agent.is_active ? 'Active' : 'Inactive'}
+        <Badge variant={styles.statusVariant} className={styles.statusClass}>
+          {styles.statusLabel}
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-muted-foreground">{formatDate(agent.created)}</div>
+        <div className="text-sm text-foreground">{formatDate(agent.created)}</div>
+        <div className="text-xs text-muted-foreground">Updated {formatDate(agent.modified)}</div>
       </TableCell>
       <TableCell>
-        <div className="flex items-center justify-end gap-3">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => onViewTransactions(agent)}
-            className={`flex items-center gap-2 rounded-full border bg-white/60 px-4 py-1.5 text-sm font-semibold shadow-sm transition-all duration-200 dark:bg-slate-900/70 ${transactionClass}`}
-          >
-            <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.75a5.25 5.25 0 015.25 5.25 5.25 5.25 0 01-5.25 5.25A5.25 5.25 0 016.75 12 5.25 5.25 0 0112 6.75zm0 0v-2.5m0 15v-2.5M17.25 12h2.5m-15 0h2.5" />
-            </svg>
-            View Transactions
-          </Button>
-          <Button
-            size="sm"
-            variant={agent.is_active ? 'danger' : 'secondary'}
-            onClick={() => onToggleStatus(agent)}
-            title={agent.is_active ? 'Deactivate' : 'Activate'}
-            className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold shadow-sm transition-all duration-200 ${toggleClass}`}
-          >
-            <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {agent.is_active ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-              )}
-            </svg>
-            {agent.is_active ? 'Deactivate' : 'Activate'}
-          </Button>
-        </div>
+        <AgentActionButtons
+          agent={agent}
+          onToggleStatus={onToggleStatus}
+          onViewTransactions={onViewTransactions}
+          transactionClass={styles.transactionClass}
+          toggleClass={styles.toggleClass}
+          toggleLabel={styles.toggleLabel}
+        />
       </TableCell>
     </TableRow>
   );
+}
+
+type AgentActionButtonsProps = {
+  agent: Agent;
+  onToggleStatus: (agent: Agent) => void;
+  onViewTransactions: (agent: Agent) => void;
+  transactionClass: string;
+  toggleClass: string;
+  toggleLabel: string;
+};
+
+function AgentActionButtons({ agent, onToggleStatus, onViewTransactions, transactionClass, toggleClass, toggleLabel }: AgentActionButtonsProps) {
+  return (
+    <div className="flex items-center justify-end gap-3">
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => onViewTransactions(agent)}
+        className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium shadow-sm ${transactionClass}`}
+      >
+        <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.75a5.25 5.25 0 015.25 5.25 5.25 5.25 0 01-5.25 5.25A5.25 5.25 0 016.75 12 5.25 5.25 0 0112 6.75zm0 0v-2.5m0 15v-2.5M17.25 12h2.5m-15 0h2.5" />
+        </svg>
+        View Transactions
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => onToggleStatus(agent)}
+        title={toggleLabel}
+        className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold shadow-sm ${toggleClass}`}
+      >
+        <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {agent.is_active ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+          )}
+        </svg>
+        {toggleLabel}
+      </Button>
+    </div>
+  );
+}
+
+function getAgentStyles(isActive: boolean) {
+  if (isActive) {
+    return {
+      statusVariant: 'success' as const,
+      statusClass: 'border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-700',
+      statusLabel: 'Active',
+      transactionClass: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
+      toggleClass: 'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50',
+      toggleLabel: 'Deactivate',
+    };
+  }
+
+  return {
+    statusVariant: 'danger' as const,
+    statusClass: 'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600',
+    statusLabel: 'Inactive',
+    transactionClass: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
+    toggleClass: 'border border-emerald-200 bg-white text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50',
+    toggleLabel: 'Activate',
+  };
 }
 
 type CreateAgentModalProps = {
@@ -445,66 +498,110 @@ function ToggleConfirmModal({ confirmState, onConfirm, onCancel }: ToggleConfirm
   );
 }
 
+type AgentsDashboardViewProps = {
+  data: PaginatedResponse<Agent> | null;
+  isLoading: boolean;
+  error: string;
+  page: number;
+  pageSize: number;
+  search: string;
+  successMessage: string;
+  isCreateModalOpen: boolean;
+  isSubmitting: boolean;
+  submitError: string;
+  confirmModal: ConfirmModalState;
+  onRetry: () => Promise<void>;
+  onSearchChange: (value: string) => void;
+  onOpenCreate: () => void;
+  onCloseModals: () => void;
+  onDismissSuccess: () => void;
+  onPageChange: (page: number) => void;
+  onToggleStatus: (agent: Agent) => void;
+  onViewTransactions: (agent: Agent) => void;
+  onCreateAgent: (formData: CreateUserRequest | UpdateUserRequest) => Promise<void>;
+  onConfirmToggle: () => Promise<void>;
+  onCancelToggle: () => void;
+};
+
+function AgentsDashboardView({
+  data,
+  isLoading,
+  error,
+  page,
+  pageSize,
+  search,
+  successMessage,
+  isCreateModalOpen,
+  isSubmitting,
+  submitError,
+  confirmModal,
+  onRetry,
+  onSearchChange,
+  onOpenCreate,
+  onCloseModals,
+  onDismissSuccess,
+  onPageChange,
+  onToggleStatus,
+  onViewTransactions,
+  onCreateAgent,
+  onConfirmToggle,
+  onCancelToggle,
+}: AgentsDashboardViewProps) {
+  if (isLoading && !data) return <LoadingState />;
+  if (error && !data) return <ErrorState message={error} onRetry={onRetry} />;
+
+  return (
+    <>
+      <div className="flex flex-col gap-6">
+        <AgentsHeader onCreate={onOpenCreate} successMessage={successMessage} onDismissSuccess={onDismissSuccess} />
+        <AgentsSearchBar value={search} onChange={onSearchChange} />
+        <AgentsTableSection
+          data={data}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={onPageChange}
+          onToggleStatus={onToggleStatus}
+          onViewTransactions={onViewTransactions}
+        />
+      </div>
+      <CreateAgentModal isOpen={isCreateModalOpen} onClose={onCloseModals} onSubmit={onCreateAgent} isLoading={isSubmitting} error={submitError} />
+      <ToggleConfirmModal confirmState={confirmModal} onConfirm={onConfirmToggle} onCancel={onCancelToggle} />
+    </>
+  );
+}
+
 export default function AgentsDashboard() {
   const router = useRouter();
-  const {
-    data,
-    isLoading,
-    error,
-    page,
-    pageSize,
-    search,
-    successMessage,
-    isCreateModalOpen,
-    isSubmitting,
-    submitError,
-    confirmModal,
-    loadAgents,
-    setPage,
-    setSearch,
-    openCreateModal,
-    closeModals,
-    dismissSuccessMessage,
-    handleCreateAgent,
-    prepareToggle,
-    confirmToggle,
-    cancelToggle,
-  } = useAgentsDashboard();
+  const dashboard = useAgentsDashboard();
 
   const viewTransactions = useCallback((agent: Agent) => {
     router.push(`/dashboard/transactions?agent=${encodeURIComponent(agent.username)}`);
   }, [router]);
 
-  if (isLoading && !data) return <LoadingState />;
-  if (error && !data) return <ErrorState message={error} onRetry={loadAgents} />;
-
   return (
-    <div className="space-y-6">
-      <AgentsHeader
-        onCreate={openCreateModal}
-        search={search}
-        onSearchChange={setSearch}
-        successMessage={successMessage}
-        onDismissSuccess={dismissSuccessMessage}
-      />
-      <AgentsTableSection
-        data={data}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        onToggleStatus={prepareToggle}
-        onViewTransactions={viewTransactions}
-      />
-      <CreateAgentModal
-        isOpen={isCreateModalOpen}
-        onClose={closeModals}
-        onSubmit={handleCreateAgent}
-        isLoading={isSubmitting}
-        error={submitError}
-      />
-      <ToggleConfirmModal confirmState={confirmModal} onConfirm={confirmToggle} onCancel={cancelToggle} />
-    </div>
+    <AgentsDashboardView
+      data={dashboard.data}
+      isLoading={dashboard.isLoading}
+      error={dashboard.error}
+      page={dashboard.page}
+      pageSize={dashboard.pageSize}
+      search={dashboard.search}
+      successMessage={dashboard.successMessage}
+      isCreateModalOpen={dashboard.isCreateModalOpen}
+      isSubmitting={dashboard.isSubmitting}
+      submitError={dashboard.submitError}
+      confirmModal={dashboard.confirmModal}
+      onRetry={dashboard.loadAgents}
+      onSearchChange={dashboard.setSearch}
+      onOpenCreate={dashboard.openCreateModal}
+      onCloseModals={dashboard.closeModals}
+      onDismissSuccess={dashboard.dismissSuccessMessage}
+      onPageChange={dashboard.setPage}
+      onToggleStatus={dashboard.prepareToggle}
+      onViewTransactions={viewTransactions}
+      onCreateAgent={dashboard.handleCreateAgent}
+      onConfirmToggle={dashboard.confirmToggle}
+      onCancelToggle={dashboard.cancelToggle}
+    />
   );
 }
-
-
