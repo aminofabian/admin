@@ -291,7 +291,7 @@ type AgentsTableContentProps = {
 
 function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions }: AgentsTableContentProps) {
   return (
-    <section className="rounded-2xl border border-border bg-white shadow-sm">
+    <section className="rounded-xl border bg-white shadow-xm">
     
       <div className="overflow-x-auto">
         <Table>
