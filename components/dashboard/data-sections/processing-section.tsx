@@ -850,6 +850,13 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
     }
   };
 
+  const handleQueuePageChange = useCallback((page: number) => {
+    if (page === queuePage) {
+      return;
+    }
+    void setQueuePage(page);
+  }, [queuePage, setQueuePage]);
+
   const handleViewGameActivity = useCallback((queue: TransactionQueue) => {
     handleQuickAction(queue, 'view');
   }, []);
@@ -1148,12 +1155,6 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
   const isGameEmpty = gameResults.length === 0;
   const totalQueuePages = queuePageSize > 0 ? Math.max(1, Math.ceil(queueCount / queuePageSize)) : 1;
   const shouldShowQueuePagination = queueCount > queuePageSize || Boolean(queueNext) || Boolean(queuePrevious);
-  const handleQueuePageChange = useCallback((page: number) => {
-    if (page === queuePage) {
-      return;
-    }
-    void setQueuePage(page);
-  }, [queuePage, setQueuePage]);
   const gameEmptyState = (
     <EmptyState
       title={metadata.emptyTitle}
