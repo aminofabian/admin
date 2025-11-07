@@ -72,7 +72,7 @@ const AMOUNT_FIELDS: InputFieldConfig[] = [
 ];
 
 const FILTER_ICON = (
-  <svg className="w-5 h-5 text-slate-600 transition-colors dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-5 h-5 text-muted-foreground transition-colors dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <defs>
       <linearGradient id="filterIconGradient" x1="0%" x2="100%" y1="0%" y2="100%">
         <stop offset="0%" stopColor="currentColor" stopOpacity="0.4" />
@@ -116,9 +116,12 @@ export function HistoryTransactionsFilters({
   isUsernameLoading = false,
   onUsernameInputChange,
 }: HistoryTransactionsFiltersProps) {
-const inputClasses = 'w-full px-3 py-2 rounded-lg border border-slate-700/70 bg-slate-900 text-slate-100 placeholder-slate-500 shadow-sm transition-all duration-150 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-slate-500/50';
-const selectClasses = 'w-full appearance-none px-3 py-2 pr-9 rounded-lg border border-slate-700/70 bg-slate-900 text-slate-100 text-sm shadow-sm transition-all duration-150 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-slate-500/50';
-const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-slate-300 dark:text-slate-300 mb-2 transition-colors';
+  const inputClasses =
+    'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
+  const selectClasses =
+    'w-full appearance-none px-3 py-2 pr-9 rounded-lg border border-border bg-background text-foreground text-sm shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-primary/30';
+  const labelClasses =
+    'block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300';
   const effectiveStatusOptions = statusOptions ?? [
     { value: '', label: 'All Statuses' },
     { value: 'pending', label: 'Pending' },
@@ -164,9 +167,9 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
   };
 
   return (
-    <div className="rounded-2xl border border-slate-800/70 bg-slate-900/95 p-5 shadow-lg shadow-slate-900/40 backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-950">
-      <div className="flex items-center justify-between text-slate-100">
-        <h3 className="flex items-center gap-3 text-base font-semibold text-slate-100 transition-colors">
+    <div className="rounded-2xl border border-border bg-card p-5 shadow-md shadow-black/5 backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-slate-900/40">
+      <div className="flex items-center justify-between text-foreground">
+        <h3 className="flex items-center gap-3 text-base font-semibold text-foreground transition-colors">
           {FILTER_ICON}
           Filters
         </h3>
@@ -174,7 +177,7 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
           variant="ghost"
           size="sm"
           onClick={onToggle}
-          className="rounded-full px-4 py-1.5 text-sm font-medium text-slate-300 transition-all duration-150 hover:bg-slate-800/70 hover:text-slate-100"
+          className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground dark:hover:bg-slate-800/70"
         >
           {isOpen ? (
             <>
@@ -195,7 +198,7 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
       </div>
 
       {isOpen && (
-        <div className="grid grid-cols-1 gap-4 pt-5 text-slate-100 transition-colors md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 pt-5 text-foreground transition-colors md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div className="relative md:col-span-1">
             <label className={labelClasses}>Player Username</label>
             <div className="relative">
@@ -212,7 +215,7 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
                 placeholder="Search by username..."
                 className={`${inputClasses} pr-10`}
               />
-              <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 flex items-center pr-3 text-slate-400">
+              <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 flex items-center pr-3 text-muted-foreground">
                 {isUsernameLoading ? (
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
@@ -229,9 +232,9 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
                 )}
               </div>
               {showUsernameDropdown && (
-                <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-slate-800/70 bg-slate-900/98 shadow-2xl shadow-black/40 backdrop-blur-sm">
+                <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-black/10 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/40">
                   {isUsernameLoading ? (
-                    <div className="flex items-center gap-3 px-4 py-3 text-sm text-slate-400">
+                    <div className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground">
                       <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
                         <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
@@ -239,9 +242,9 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
                       Searching users...
                     </div>
                   ) : (
-                    <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                    <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 scrollbar-track-transparent dark:scrollbar-thumb-slate-700">
                       {(usernameOptions ?? []).length === 0 ? (
-                        <div className="px-4 py-3 text-sm text-slate-400">
+                        <div className="px-4 py-3 text-sm text-muted-foreground">
                           No users found. Try a different name.
                         </div>
                       ) : (
@@ -249,13 +252,15 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
                           <button
                             key={option.value}
                             type="button"
-                            className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm text-slate-100 transition-colors hover:bg-slate-800/70"
+                            className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted dark:hover:bg-slate-800/70"
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => handleUsernameSelect(option.value)}
                           >
-                            <span className="font-medium text-slate-100">{option.value}</span>
+                            <span className="font-medium text-foreground">{option.value}</span>
                             {option.label !== option.value && (
-                              <span className="text-xs text-slate-400">{option.label.replace(`${option.value} · `, '')}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {option.label.replace(`${option.value} · `, '')}
+                              </span>
                             )}
                           </button>
                         ))
@@ -291,7 +296,7 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
                 </option>
               )}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500">
+            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground dark:text-slate-500">
               {isAgentLoading ? (
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
@@ -329,7 +334,7 @@ const labelClasses = 'block text-xs font-semibold uppercase tracking-wide text-s
                 </option>
               )}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500">
+            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground dark:text-slate-500">
               {isPaymentMethodLoading ? (
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
