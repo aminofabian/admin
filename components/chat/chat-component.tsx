@@ -132,6 +132,7 @@ export function ChatComponent() {
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const [isUserAtLatest, setIsUserAtLatest] = useState(true);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+  const [unseenMessageCount, setUnseenMessageCount] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
   const wasHistoryLoadingRef = useRef(false);
@@ -286,6 +287,7 @@ export function ChatComponent() {
     container.scrollTo({ top: container.scrollHeight, behavior });
     setIsUserAtLatest(true);
     setAutoScrollEnabled(true);
+    setUnseenMessageCount(0);
   }, []);
 
   const evaluateScrollPosition = useCallback(() => {
@@ -304,6 +306,9 @@ export function ChatComponent() {
 
     setIsUserAtLatest(isAtBottom);
     setAutoScrollEnabled(isAtBottom);
+    if (isAtBottom) {
+      setUnseenMessageCount(0);
+    }
   }, [chatViewMode]);
 
   const handlePlayerSelect = useCallback((player: Player) => {
@@ -313,6 +318,7 @@ export function ChatComponent() {
     setAutoScrollEnabled(true);
     setIsUserAtLatest(true);
     latestMessageIdRef.current = null;
+    setUnseenMessageCount(0);
   }, []);
 
   const maybeLoadOlderMessages = useCallback(async () => {
@@ -372,6 +378,7 @@ export function ChatComponent() {
     setIsUserAtLatest(true);
 
     wasHistoryLoadingRef.current = isHistoryLoadingMessages;
+    setUnseenMessageCount(0);
 
     requestAnimationFrame(() => {
       scrollToLatest('auto');
@@ -407,19 +414,25 @@ export function ChatComponent() {
     const lastMessage = wsMessages[wsMessages.length - 1];
     if (!lastMessage) {
       latestMessageIdRef.current = null;
+      setUnseenMessageCount(0);
       return;
     }
 
     const hasNewLatest = latestMessageIdRef.current !== lastMessage.id;
     latestMessageIdRef.current = lastMessage.id;
 
-    if (!hasNewLatest || !autoScrollEnabled) {
+    if (!hasNewLatest) {
       return;
     }
 
-    requestAnimationFrame(() => {
-      scrollToLatest('smooth');
-    });
+    if (autoScrollEnabled) {
+      setUnseenMessageCount(0);
+      requestAnimationFrame(() => {
+        scrollToLatest('smooth');
+      });
+    } else {
+      setUnseenMessageCount((prev) => Math.min(prev + 1, 99));
+    }
   }, [wsMessages, autoScrollEnabled, chatViewMode, scrollToLatest]);
 
   useEffect(() => {
@@ -1076,11 +1089,26 @@ export function ChatComponent() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                         Jump to latest
+                        {unseenMessageCount > 0 && (
+                          <span className="rounded-full bg-primary-foreground/10 px-2 py-0.5 text-[0.65rem] font-semibold text-primary-foreground">
+                            {unseenMessageCount > 9 ? '9+' : unseenMessageCount}
+                          </span>
+                        )}
                       </span>
                       <span className="relative flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-50" />
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                       </span>
+                      {unseenMessageCount > 0 && (
+                        <span className="flex flex-col items-center gap-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.25em] text-primary">
+                          <span className="rounded-full bg-primary text-primary-foreground px-2 py-1">
+                            {unseenMessageCount > 9 ? '9+' : unseenMessageCount}
+                          </span>
+                          <span className="text-[0.55rem] tracking-[0.4em] text-primary/80">
+                            behind
+                          </span>
+                        </span>
+                      )}
                       <span
                         className="font-semibold uppercase tracking-[0.35em] text-[0.68rem] text-primary transition-all duration-200 group-hover:opacity-0 group-hover:delay-75"
                         style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
