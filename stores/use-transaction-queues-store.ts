@@ -21,6 +21,11 @@ interface TransactionQueuesState {
   filter: FilterType;
   actionLoading: boolean;
   advancedFilters: Record<string, string>;
+  count: number;
+  next: string | null;
+  previous: string | null;
+  currentPage: number;
+  pageSize: number;
 }
 
 interface TransactionQueuesActions {
@@ -30,6 +35,7 @@ interface TransactionQueuesActions {
   setAdvancedFilters: (filters: Record<string, string>) => void;
   clearAdvancedFilters: () => void;
   updateQueue: (updatedQueue: TransactionQueue) => void;
+  setPage: (page: number) => Promise<void>;
   reset: () => void;
 }
 
@@ -42,6 +48,11 @@ const initialState: TransactionQueuesState = {
   filter: 'processing',
   actionLoading: false,
   advancedFilters: {},
+  count: 0,
+  next: null,
+  previous: null,
+  currentPage: 1,
+  pageSize: 10,
 };
 
 export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, get) => ({
@@ -51,10 +62,12 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
     set({ isLoading: true, error: null });
 
     try {
-      const { filter, advancedFilters } = get();
+      const { filter, advancedFilters, currentPage, pageSize } = get();
       
       const filters: QueueFilters = {
         type: filter,
+        page: currentPage,
+        page_size: pageSize,
       };
 
       const cleanedAdvancedFilters = Object.fromEntries(
@@ -103,11 +116,14 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
             return !isCompleted;
           })
         : normalizedQueues;
-      
+
       set({ 
         queues: filteredQueues, 
         isLoading: false,
         error: null,
+        count: response.count ?? filteredQueues.length,
+        next: response.next ?? null,
+        previous: response.previous ?? null,
       });
     } catch (err: unknown) {
       let errorMessage = 'Failed to load transaction queues';
@@ -130,17 +146,23 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
   },
 
   setFilter: (filter: FilterType) => {
-    set({ filter });
+    set({ filter, currentPage: 1 });
     get().fetchQueues();
   },
 
   setAdvancedFilters: (filtersMap: Record<string, string>) => {
-    set({ advancedFilters: filtersMap });
+    set({ 
+      advancedFilters: filtersMap,
+      currentPage: 1,
+    });
     get().fetchQueues();
   },
 
   clearAdvancedFilters: () => {
-    set({ advancedFilters: {} });
+    set({ 
+      advancedFilters: {},
+      currentPage: 1,
+    });
     get().fetchQueues();
   },
 
@@ -235,6 +257,12 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
       set({ queues: updatedQueues });
       console.log('✅ New queue added:', updatedQueue.id, 'Status:', updatedQueue.status);
     }
+  },
+
+  setPage: async (page: number) => {
+    const nextPage = Math.max(1, page);
+    set({ currentPage: nextPage });
+    await get().fetchQueues();
   },
 
   reset: () => {

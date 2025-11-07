@@ -550,6 +550,12 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     actionLoading,
     fetchQueues,
     updateQueue,
+    count: queueCount,
+    next: queueNext,
+    previous: queuePrevious,
+    currentPage: queuePage,
+    pageSize: queuePageSize,
+    setPage: setQueuePage,
   } = useTransactionQueuesStore();
 
   // WebSocket connection for real-time updates (only for game activities)
@@ -1132,6 +1138,14 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
   const isGameInitialLoading = queuesLoading && !queues;
   const gameResults = queues ?? [];
   const isGameEmpty = gameResults.length === 0;
+  const totalQueuePages = queuePageSize > 0 ? Math.max(1, Math.ceil(queueCount / queuePageSize)) : 1;
+  const shouldShowQueuePagination = queueCount > queuePageSize || Boolean(queueNext) || Boolean(queuePrevious);
+  const handleQueuePageChange = useCallback((page: number) => {
+    if (page === queuePage) {
+      return;
+    }
+    void setQueuePage(page);
+  }, [queuePage, setQueuePage]);
   const gameEmptyState = (
     <EmptyState
       title={metadata.emptyTitle}
@@ -1197,6 +1211,17 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
             showActions={true}
             actionLoading={actionLoading}
           />
+          {shouldShowQueuePagination && (
+            <div className="pt-4 border-t border-border">
+              <Pagination
+                currentPage={queuePage}
+                totalPages={totalQueuePages}
+                hasNext={Boolean(queueNext)}
+                hasPrevious={Boolean(queuePrevious)}
+                onPageChange={handleQueuePageChange}
+              />
+            </div>
+          )}
         </div>
       </DashboardSectionContainer>
       <ActionModal

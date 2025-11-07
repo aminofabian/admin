@@ -5,7 +5,7 @@ import type { JSX } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { DashboardSectionHeader } from '@/components/dashboard/layout/dashboard-section-header';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
-import { Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
+import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
@@ -47,6 +47,15 @@ interface GameActivitiesSectionProps {
   showTabs?: boolean;
 }
 
+interface HistoryPaginationState {
+  totalCount: number;
+  pageSize: number;
+  currentPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  onPageChange: (page: number) => void;
+}
+
 export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectionProps) {
   // Selective store subscriptions - only subscribe to what we need
   const queues = useTransactionQueuesStore((state) => state.queues);
@@ -58,6 +67,12 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
   const setAdvancedFilters = useTransactionQueuesStore((state) => state.setAdvancedFilters);
   const clearAdvancedFilters = useTransactionQueuesStore((state) => state.clearAdvancedFilters);
+  const totalCount = useTransactionQueuesStore((state) => state.count);
+  const next = useTransactionQueuesStore((state) => state.next);
+  const previous = useTransactionQueuesStore((state) => state.previous);
+  const currentPage = useTransactionQueuesStore((state) => state.currentPage);
+  const pageSize = useTransactionQueuesStore((state) => state.pageSize);
+  const setPage = useTransactionQueuesStore((state) => state.setPage);
 
   const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(() => buildGameActivityFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
@@ -114,9 +129,15 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     setFilter(value);
   }, [setFilter]);
 
+  const handlePageChange = useCallback((page: number) => {
+    void setPage(page);
+  }, [setPage]);
+
   const results = useMemo(() => queues ?? [], [queues]);
   const isInitialLoading = useMemo(() => isLoading && !queues, [isLoading, queues]);
   const isEmpty = useMemo(() => !results.length, [results.length]);
+  const hasNext = useMemo(() => Boolean(next), [next]);
+  const hasPrevious = useMemo(() => Boolean(previous), [previous]);
 
   return (
     <DashboardSectionContainer
@@ -137,6 +158,14 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
         areFiltersOpen={areFiltersOpen}
         onToggleFilters={handleToggleFilters}
         queues={results}
+        pagination={{
+          totalCount,
+          pageSize,
+          currentPage,
+          hasNext,
+          hasPrevious,
+          onPageChange: handlePageChange,
+        }}
       />
     </DashboardSectionContainer>
   );
@@ -152,6 +181,7 @@ interface HistoryGameActivitiesLayoutProps {
   areFiltersOpen: boolean;
   onToggleFilters: () => void;
   queues: TransactionQueue[];
+  pagination: HistoryPaginationState;
 }
 
 function HistoryGameActivitiesLayout({
@@ -164,7 +194,14 @@ function HistoryGameActivitiesLayout({
   areFiltersOpen,
   onToggleFilters,
   queues,
+  pagination,
 }: HistoryGameActivitiesLayoutProps) {
+  const totalPages = pagination.pageSize > 0
+    ? Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))
+    : 1;
+
+  const shouldShowPagination = pagination.totalCount > pagination.pageSize || pagination.hasNext || pagination.hasPrevious;
+
   return (
     <>
       <DashboardSectionHeader
@@ -184,6 +221,17 @@ function HistoryGameActivitiesLayout({
         onToggle={onToggleFilters}
       />
       <HistoryGameActivitiesTable queues={queues} />
+      {shouldShowPagination && (
+        <div className="mt-4">
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={totalPages}
+            hasNext={pagination.hasNext}
+            hasPrevious={pagination.hasPrevious}
+            onPageChange={pagination.onPageChange}
+          />
+        </div>
+      )}
     </>
   );
 }
@@ -466,11 +514,12 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
       </TableCell>
       <TableCell className="text-right">
         <Button
-          variant="ghost"
+          variant="primary"
           size="sm"
+          className="min-w-[7.5rem]"
           onClick={handleViewClick}
         >
-          View
+          View Details
         </Button>
       </TableCell>
     </TableRow>
