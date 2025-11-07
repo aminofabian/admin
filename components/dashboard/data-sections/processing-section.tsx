@@ -737,24 +737,39 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     }
   };
 
+  const shouldConfirmTransactionAction = (transaction: Transaction): boolean => {
+    if (transaction.status !== 'pending') {
+      return false;
+    }
+
+    if (viewType === 'purchases') {
+      return transaction.type === 'purchase';
+    }
+
+    if (viewType === 'cashouts') {
+      return transaction.type === 'cashout';
+    }
+
+    return false;
+  };
+
   const handleTransactionActionClick = (transaction: Transaction, action: 'completed' | 'cancelled') => {
-    // Only show confirmation for purchases
-    if (viewType === 'purchases' && transaction.type === 'purchase') {
+    if (shouldConfirmTransactionAction(transaction)) {
       setConfirmModal({
         isOpen: true,
         transaction,
         action,
         isLoading: false,
       });
-    } else {
-      // For non-purchases, proceed directly
-      void handleTransactionAction(
-        transaction.id,
-        action,
-        transaction.id,
-        transaction.status
-      );
+      return;
     }
+
+    void handleTransactionAction(
+      transaction.id,
+      action,
+      transaction.id,
+      transaction.status
+    );
   };
 
   const handleConfirmAction = async () => {
@@ -946,6 +961,30 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
       />
     );
 
+    const confirmTransaction = confirmModal.transaction;
+    const confirmAction = confirmModal.action;
+    const transactionTypeLabel = confirmTransaction?.type
+      ? `${confirmTransaction.type.charAt(0).toUpperCase()}${confirmTransaction.type.slice(1)}`
+      : 'Transaction';
+    const actionLabel = confirmAction === 'completed'
+      ? 'Complete'
+      : confirmAction === 'cancelled'
+        ? 'Cancel'
+        : 'Confirm';
+    const actionVerb = confirmAction === 'completed'
+      ? 'complete'
+      : confirmAction === 'cancelled'
+        ? 'cancel'
+        : 'process';
+    const confirmTitle = confirmTransaction
+      ? `${actionLabel} ${transactionTypeLabel} Transaction`
+      : 'Confirm Transaction Action';
+    const confirmDescription = confirmTransaction
+      ? `Are you sure you want to ${actionVerb} this ${transactionTypeLabel.toLowerCase()} for ${formatCurrency(confirmTransaction.amount || '0')}?`
+      : '';
+    const confirmVariant = confirmAction === 'cancelled' ? 'warning' : 'info';
+    const confirmButtonText = actionLabel;
+
     return (
       <>
         <DashboardSectionContainer
@@ -1128,21 +1167,17 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
         />
       )}
 
-      {/* Confirmation Modal for Purchase Actions */}
-      {viewType === 'purchases' && (
+      {/* Confirmation Modal for Transaction Actions */}
+      {isTransactionsView && (
         <ConfirmModal
           isOpen={confirmModal.isOpen}
           onClose={handleCancelConfirm}
           onConfirm={handleConfirmAction}
-          title={`${confirmModal.action === 'completed' ? 'Complete' : 'Cancel'} Purchase Transaction`}
-          description={
-            confirmModal.transaction
-              ? `Are you sure you want to ${confirmModal.action === 'completed' ? 'complete' : 'cancel'} this purchase transaction for ${formatCurrency(confirmModal.transaction.amount || '0')}?`
-              : ''
-          }
-          confirmText={confirmModal.action === 'completed' ? 'Complete' : 'Cancel'}
+          title={confirmTitle}
+          description={confirmDescription}
+          confirmText={confirmButtonText}
           cancelText="Go Back"
-          variant={confirmModal.action === 'completed' ? 'info' : 'warning'}
+          variant={confirmVariant}
           isLoading={confirmModal.isLoading}
         />
       )}
