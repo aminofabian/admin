@@ -393,14 +393,17 @@ function TransactionsLayout({
   isUsernameLoading,
   onUsernameInputChange,
 }: TransactionsLayoutProps) {
+  const headingTitle = filter === 'history' ? 'Transactions History' : 'Transactions';
+  const shouldShowFilterBadge = filter !== 'all' && filter !== 'history';
+
   return (
     <>
       <DashboardSectionHeader
-        title="Transactions"
+        title={headingTitle}
         description="Comprehensive transaction management and analytics"
         icon={HEADER_ICON}
         badge={
-          filter !== 'all' ? (
+          shouldShowFilterBadge ? (
             <Badge variant="info" className="uppercase tracking-wide">
               {formatFilterLabel(filter)}
             </Badge>
