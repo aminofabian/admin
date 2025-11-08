@@ -229,12 +229,10 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
           return;
         }
 
-        if (!response) {
-          setPaymentMethodOptions([]);
-          return;
-        }
-
-        const collection = Array.isArray(response) ? response : [];
+        const collection = [
+          ...(response?.cashout ?? []),
+          ...(response?.purchase ?? []),
+        ];
 
         const uniqueMethods = new Map<string, string>();
 

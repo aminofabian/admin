@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { LoadingState, ErrorState } from '@/components/features';
 import { usePaymentMethodsStore } from '@/stores';
 import { useToast } from '@/components/ui/toast';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '@/components/ui';
+import type { PaymentMethod, PaymentMethodAction } from '@/types';
 
 const PAYMENT_ICON: JSX.Element = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -454,10 +455,38 @@ export function PaymentSettingsSection() {
   const error = usePaymentMethodsStore((state) => state.error);
   const fetchPaymentMethods = usePaymentMethodsStore((state) => state.fetchPaymentMethods);
   const { addToast } = useToast();
-  const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+  const [filterAction, setFilterAction] = useState<PaymentMethodAction>('cashout');
 
-  const results = paymentMethods ?? [];
-  const totalCount = results.length;
+  type PaymentMethodRow = PaymentMethod & {
+    action: PaymentMethodAction;
+    isEnabled: boolean;
+    loadingKey: string;
+  };
+
+  const methodsByAction = useMemo(() => {
+    const buildRows = (action: PaymentMethodAction, methods: PaymentMethod[] = []): PaymentMethodRow[] =>
+      methods.map((method) => ({
+        ...method,
+        action,
+        isEnabled: action === 'cashout' ? method.is_enabled_for_cashout : method.is_enabled_for_purchase,
+        loadingKey: `${action}-${method.id}`,
+      }));
+
+    return {
+      cashout: buildRows('cashout', paymentMethods?.cashout),
+      purchase: buildRows('purchase', paymentMethods?.purchase),
+    } as Record<PaymentMethodAction, PaymentMethodRow[]>;
+  }, [paymentMethods]);
+
+  const filteredResults = methodsByAction[filterAction] ?? [];
+  const totalCount = filteredResults.length;
+  const enabledCount = filteredResults.filter((method) => method.isEnabled).length;
+  const disabledCount = filteredResults.filter((method) => !method.isEnabled).length;
+  const actionCounts: Record<PaymentMethodAction, number> = {
+    cashout: methodsByAction.cashout.length,
+    purchase: methodsByAction.purchase.length,
+  };
 
   useEffect(() => {
     fetchPaymentMethods();
@@ -471,11 +500,8 @@ export function PaymentSettingsSection() {
     return <ErrorState message={error} onRetry={fetchPaymentMethods} />;
   }
 
-  const enabledCount = results.filter(m => m.is_enabled).length;
-  const disabledCount = results.filter(m => !m.is_enabled).length;
-
   // Sort payment methods: cryptos first, then others
-  const sortedResults = [...results].sort((a, b) => {
+  const sortedResults = [...filteredResults].sort((a, b) => {
     const aIsCrypto = a.method_type?.toLowerCase().includes('crypto') || a.payment_method?.toLowerCase().includes('crypto');
     const bIsCrypto = b.method_type?.toLowerCase().includes('crypto') || b.payment_method?.toLowerCase().includes('crypto');
     
@@ -493,6 +519,31 @@ export function PaymentSettingsSection() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Manage and configure available payment methods
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {(['cashout', 'purchase'] as PaymentMethodAction[]).map((action) => {
+            const isActive = filterAction === action;
+            const badgeClass = isActive
+              ? 'bg-primary-foreground/10 text-primary-foreground'
+              : 'bg-muted text-muted-foreground';
+            return (
+              <button
+                key={action}
+                type="button"
+                onClick={() => setFilterAction(action)}
+                className={`px-4 py-2 rounded-lg border text-sm font-medium capitalize transition-all ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90'
+                    : 'bg-white dark:bg-gray-900 text-muted-foreground border-gray-200 dark:border-gray-800 hover:text-primary hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/10'
+                }`}
+              >
+                {action}
+                <span className={`ml-2 inline-flex items-center justify-center rounded-full px-2 py-0 text-xs font-semibold ${badgeClass}`}>
+                  {actionCounts[action]}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -515,7 +566,7 @@ export function PaymentSettingsSection() {
       </div>
 
       {/* Payment Methods Table */}
-      {results.length === 0 ? (
+      {filteredResults.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -537,6 +588,7 @@ export function PaymentSettingsSection() {
                   <TableRow>
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Usage</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead>Last Updated</TableHead>
                     <TableHead className="text-right">Action</TableHead>
@@ -544,7 +596,7 @@ export function PaymentSettingsSection() {
                 </TableHeader>
                 <TableBody>
                   {sortedResults.map((method) => (
-                    <TableRow key={method.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <TableRow key={method.loadingKey} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0 font-semibold text-xs text-gray-600 dark:text-gray-300">
@@ -565,10 +617,15 @@ export function PaymentSettingsSection() {
                         {method.method_type}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 capitalize">
+                        {method.action}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-center">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${method.is_enabled ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${method.is_enabled ? 'bg-green-500' : 'bg-red-500'}`} />
-                        {method.is_enabled ? 'Active' : 'Inactive'}
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${method.isEnabled ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${method.isEnabled ? 'bg-green-500' : 'bg-red-500'}`} />
+                        {method.isEnabled ? 'Active' : 'Inactive'}
                       </span>
                     </TableCell>
                     <TableCell className="text-gray-600 dark:text-gray-400">
@@ -577,15 +634,17 @@ export function PaymentSettingsSection() {
                     <TableCell className="text-right">
                       <button
                         onClick={async () => {
-                          const isCurrentlyLoading = loadingIds.has(method.id);
+                          const isCurrentlyLoading = loadingIds.has(method.loadingKey);
                           if (isCurrentlyLoading) return;
 
-                          setLoadingIds((prev) => new Set(prev).add(method.id));
+                          setLoadingIds((prev) => new Set(prev).add(method.loadingKey));
                           
                           try {
-                            const newStatus = !method.is_enabled;
-                            await usePaymentMethodsStore.getState().updatePaymentMethod(method.id, {
-                              is_enabled: newStatus,
+                            const newStatus = !method.isEnabled;
+                            await usePaymentMethodsStore.getState().updatePaymentMethod({
+                              id: method.id,
+                              action: method.action,
+                              value: newStatus,
                             });
                             
                             addToast({
@@ -598,36 +657,36 @@ export function PaymentSettingsSection() {
                             addToast({
                               type: 'error',
                               title: 'Update failed',
-                              description: `Failed to ${method.is_enabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
+                              description: `Failed to ${method.isEnabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
                             });
                           } finally {
                             setLoadingIds((prev) => {
                               const next = new Set(prev);
-                              next.delete(method.id);
+                              next.delete(method.loadingKey);
                               return next;
                             });
                           }
                         }}
-                        disabled={loadingIds.has(method.id)}
+                        disabled={loadingIds.has(method.loadingKey)}
                         className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                          method.is_enabled
-                            ? loadingIds.has(method.id)
+                          method.isEnabled
+                            ? loadingIds.has(method.loadingKey)
                               ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 cursor-not-allowed opacity-70'
                               : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
-                            : loadingIds.has(method.id)
+                            : loadingIds.has(method.loadingKey)
                               ? 'bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 cursor-not-allowed opacity-70'
                               : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
                         }`}
                       >
-                        {loadingIds.has(method.id) ? (
+                        {loadingIds.has(method.loadingKey) ? (
                           <>
                             <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
                             <span className="whitespace-nowrap">
-                              {method.is_enabled ? 'Disabling...' : 'Enabling...'}
+                              {method.isEnabled ? 'Disabling...' : 'Enabling...'}
                             </span>
                           </>
                         ) : (
-                          <span className="whitespace-nowrap">{method.is_enabled ? 'Disable' : 'Enable'}</span>
+                          <span className="whitespace-nowrap">{method.isEnabled ? 'Disable' : 'Enable'}</span>
                         )}
                       </button>
                     </TableCell>
@@ -642,7 +701,7 @@ export function PaymentSettingsSection() {
           <div className="lg:hidden space-y-2">
             {sortedResults.map((method) => (
               <div
-                key={method.id}
+                key={method.loadingKey}
                 className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
               >
                 <div className="p-4">
@@ -665,15 +724,17 @@ export function PaymentSettingsSection() {
                     {/* Right: Action Button */}
                     <button
                       onClick={async () => {
-                        const isCurrentlyLoading = loadingIds.has(method.id);
+                        const isCurrentlyLoading = loadingIds.has(method.loadingKey);
                         if (isCurrentlyLoading) return;
 
-                        setLoadingIds((prev) => new Set(prev).add(method.id));
+                        setLoadingIds((prev) => new Set(prev).add(method.loadingKey));
                         
                         try {
-                          const newStatus = !method.is_enabled;
-                          await usePaymentMethodsStore.getState().updatePaymentMethod(method.id, {
-                            is_enabled: newStatus,
+                          const newStatus = !method.isEnabled;
+                          await usePaymentMethodsStore.getState().updatePaymentMethod({
+                            id: method.id,
+                            action: method.action,
+                            value: newStatus,
                           });
                           
                           addToast({
@@ -686,36 +747,36 @@ export function PaymentSettingsSection() {
                           addToast({
                             type: 'error',
                             title: 'Update failed',
-                            description: `Failed to ${method.is_enabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
+                            description: `Failed to ${method.isEnabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
                           });
                         } finally {
                           setLoadingIds((prev) => {
                             const next = new Set(prev);
-                            next.delete(method.id);
+                            next.delete(method.loadingKey);
                             return next;
                           });
                         }
                       }}
-                      disabled={loadingIds.has(method.id)}
+                      disabled={loadingIds.has(method.loadingKey)}
                       className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                        method.is_enabled
-                          ? loadingIds.has(method.id)
+                        method.isEnabled
+                          ? loadingIds.has(method.loadingKey)
                             ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 cursor-not-allowed opacity-70'
                             : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
-                          : loadingIds.has(method.id)
+                          : loadingIds.has(method.loadingKey)
                             ? 'bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 cursor-not-allowed opacity-70'
                             : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
                       }`}
                     >
-                      {loadingIds.has(method.id) ? (
+                      {loadingIds.has(method.loadingKey) ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
                           <span className="whitespace-nowrap">
-                            {method.is_enabled ? 'Disabling...' : 'Enabling...'}
+                            {method.isEnabled ? 'Disabling...' : 'Enabling...'}
                           </span>
                         </>
                       ) : (
-                        <span className="whitespace-nowrap">{method.is_enabled ? 'Disable' : 'Enable'}</span>
+                        <span className="whitespace-nowrap">{method.isEnabled ? 'Disable' : 'Enable'}</span>
                       )}
                     </button>
                   </div>
@@ -725,10 +786,13 @@ export function PaymentSettingsSection() {
                     <span className="inline-flex items-center px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 text-xs font-medium capitalize">
                       {method.method_type}
                     </span>
+                    <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800 text-xs font-medium capitalize">
+                      {method.action}
+                    </span>
                     
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${method.is_enabled ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${method.is_enabled ? 'bg-green-500' : 'bg-red-500'}`} />
-                      {method.is_enabled ? 'Active' : 'Inactive'}
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${method.isEnabled ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${method.isEnabled ? 'bg-green-500' : 'bg-red-500'}`} />
+                      {method.isEnabled ? 'Active' : 'Inactive'}
                     </span>
 
                     <span className="text-xs text-gray-600 dark:text-gray-400">

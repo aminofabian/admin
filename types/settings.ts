@@ -83,7 +83,8 @@ export interface PaymentMethod {
   payment_method: string;
   payment_method_display: string;
   method_type: string;
-  is_enabled: boolean;
+  is_enabled_for_cashout: boolean;
+  is_enabled_for_purchase: boolean;
   created: string;
   modified: string;
 }
@@ -92,8 +93,16 @@ export interface UpdatePaymentMethodRequest {
   payment_method?: string;
   payment_method_display?: string;
   method_type?: string;
-  is_enabled?: boolean;
+  is_enabled_for_cashout?: boolean;
+  is_enabled_for_purchase?: boolean;
 }
+
+export interface PaymentMethodsListResponse {
+  cashout: PaymentMethod[];
+  purchase: PaymentMethod[];
+}
+
+export type PaymentMethodAction = keyof PaymentMethodsListResponse;
 
 // API Response Types
 export interface CompanyCreateResponse {
