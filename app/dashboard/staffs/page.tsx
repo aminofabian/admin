@@ -80,7 +80,7 @@ export default function StaffsPage() {
 
       await staffsApi.create(formData as CreateUserRequest);
 
-      setSuccessMessage('Staff created successfully!');
+      setSuccessMessage('Manager created successfully!');
       setIsCreateModalOpen(false);
       await loadStaffs(); // Refresh the list
     } catch (err: unknown) {
@@ -112,7 +112,7 @@ export default function StaffsPage() {
       
       addToast({
         type: 'success',
-        title: 'Staff updated',
+        title: 'Manager updated',
         description: `"${confirmModal.staff.username}" has been ${actionPast} successfully!`,
       });
       
@@ -142,10 +142,10 @@ export default function StaffsPage() {
   if (error && !data) return <ErrorState message={error} onRetry={loadStaffs} />;
 
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border border-gray-200 shadow-sm dark:border-gray-800">
-        <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-4">
+    <div className="space-y-8">
+      <Card className="overflow-hidden border border-gray-200 shadow-md dark:border-gray-800 dark:shadow-none">
+        <CardContent className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
               <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -153,42 +153,24 @@ export default function StaffsPage() {
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Staff</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Managers</h1>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Manage all staff accounts and permissions
+                Manage all manager accounts and permissions
               </p>
             </div>
           </div>
-          <Button size="lg" onClick={() => setIsCreateModalOpen(true)}>
+          <Button
+            size="lg"
+            className="lg:ml-auto"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
             <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Staff
+            Add Manager
           </Button>
-        </div>
-        {successMessage && (
-          <div className="flex items-start justify-between gap-4 border-t border-gray-100 bg-green-50 px-6 py-4 dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-300 text-green-800">
-            <div className="flex items-center gap-3">
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  clipRule="evenodd"
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                />
-              </svg>
-              <span>{successMessage}</span>
-            </div>
-            <button
-              onClick={() => setSuccessMessage('')}
-              className="text-green-600 transition-colors hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
-        <div className="border-t border-gray-200 px-6 py-4 dark:border-gray-800">
+        </CardContent>
+        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-800 dark:bg-gray-900/40">
           <SearchInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -198,30 +180,53 @@ export default function StaffsPage() {
         </div>
       </Card>
 
-      <Card className="border border-gray-200 shadow-sm dark:border-gray-800">
+      {successMessage && (
+        <div className="flex items-start justify-between gap-4 rounded-2xl border border-green-200 bg-green-50 px-6 py-4 text-green-800 shadow-sm dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-300">
+          <div className="flex items-center gap-3">
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                clipRule="evenodd"
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              />
+            </svg>
+            <span className="text-sm font-semibold">{successMessage}</span>
+          </div>
+          <button
+            onClick={() => setSuccessMessage('')}
+            className="text-green-600 transition-colors hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      <Card className="overflow-hidden border border-gray-200 shadow-md dark:border-gray-800 dark:shadow-none">
         <CardContent className="p-0">
           {data?.results.length === 0 ? (
             <div className="py-12">
               <EmptyState 
-                title="No staff found" 
-                description="Get started by creating a new staff member"
+                title="No managers found" 
+                description="Get started by creating a new manager"
               />
             </div>
           ) : (
             <>
-              <Table>
+              <Table className="text-sm">
                 <TableHeader>
-                  <TableRow className="bg-transparent">
-                    <TableHead>Username</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dates</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                    <TableHead className="py-4">Username</TableHead>
+                    <TableHead className="py-4">Email</TableHead>
+                    <TableHead className="py-4">Status</TableHead>
+                    <TableHead className="py-4">Dates</TableHead>
+                    <TableHead className="py-4 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data?.results.map((staff) => (
-                    <TableRow key={staff.id}>
+                    <TableRow key={staff.id} className="border-b border-gray-100 last:border-b-0 dark:border-gray-800">
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
@@ -288,7 +293,7 @@ export default function StaffsPage() {
       <Modal
         isOpen={isCreateModalOpen}
         onClose={closeModals}
-        title="Create New Staff"
+        title="Create New Manager"
         size="md"
       >
         {submitError && (
@@ -308,7 +313,7 @@ export default function StaffsPage() {
         isOpen={confirmModal.isOpen}
         onClose={handleCancelToggle}
         onConfirm={handleConfirmToggle}
-        title={`${confirmModal.staff?.is_active ? 'Deactivate' : 'Activate'} Staff`}
+        title={`${confirmModal.staff?.is_active ? 'Deactivate' : 'Activate'} Manager`}
         description={`Are you sure you want to ${confirmModal.staff?.is_active ? 'deactivate' : 'activate'} "${confirmModal.staff?.username}"?`}
         confirmText={confirmModal.staff?.is_active ? 'Deactivate' : 'Activate'}
         variant={confirmModal.staff?.is_active ? 'warning' : 'info'}
