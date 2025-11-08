@@ -99,24 +99,24 @@ export function StaffsSection() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 9V7a5 5 0 10-10 0v2M5 9h14l1 12H4L5 9zm4 4h6" />
               </svg>
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-foreground">Staff Members</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Manage all staff accounts and permissions</p>
+              <h2 className="text-3xl font-bold text-foreground dark:text-white">Staff Members</h2>
+              <p className="mt-1 text-sm text-muted-foreground dark:text-slate-400">Manage all staff accounts and permissions</p>
             </div>
           </div>
           <Button
             variant="primary"
             size="md"
             onClick={() => setIsDrawerOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-sm hover:bg-primary/90"
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-sm hover:bg-primary/90 dark:bg-primary/80 dark:hover:bg-primary"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -127,7 +127,7 @@ export function StaffsSection() {
       </section>
 
       {/* Search */}
-      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
         <SearchInput
           value={searchTerm}
           onChange={handleSearchChange}
@@ -137,36 +137,36 @@ export function StaffsSection() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="text-sm text-muted-foreground">Total Staff</div>
-          <div className="mt-1 text-2xl font-semibold text-foreground">{staffs?.count || 0}</div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+          <div className="text-sm text-muted-foreground dark:text-slate-400">Total Staff</div>
+          <div className="mt-1 text-2xl font-semibold text-foreground dark:text-white">{staffs?.count || 0}</div>
         </div>
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="text-sm text-muted-foreground">Active</div>
-          <div className="mt-1 text-2xl font-semibold text-emerald-600">{staffs?.results?.filter(s => s.is_active).length || 0}</div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+          <div className="text-sm text-muted-foreground dark:text-slate-400">Active</div>
+          <div className="mt-1 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">{staffs?.results?.filter(s => s.is_active).length || 0}</div>
         </div>
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="text-sm text-muted-foreground">Inactive</div>
-          <div className="mt-1 text-2xl font-semibold text-rose-600">{staffs?.results?.filter(s => !s.is_active).length || 0}</div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+          <div className="text-sm text-muted-foreground dark:text-slate-400">Inactive</div>
+          <div className="mt-1 text-2xl font-semibold text-rose-600 dark:text-rose-400">{staffs?.results?.filter(s => !s.is_active).length || 0}</div>
         </div>
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="text-sm text-muted-foreground">This Page</div>
-          <div className="mt-1 text-2xl font-semibold text-foreground">{staffs?.results?.length || 0}</div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+          <div className="text-sm text-muted-foreground dark:text-slate-400">This Page</div>
+          <div className="mt-1 text-2xl font-semibold text-foreground dark:text-white">{staffs?.results?.length || 0}</div>
         </div>
       </div>
 
       {/* Enhanced Table with All Data */}
-      <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-border/60">
-                <TableHead className="min-w-[200px] font-semibold uppercase tracking-wide text-muted-foreground">Username</TableHead>
-                <TableHead className="min-w-[200px] font-semibold uppercase tracking-wide text-muted-foreground">Contact</TableHead>
-                <TableHead className="min-w-[100px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
-                <TableHead className="min-w-[100px] font-semibold uppercase tracking-wide text-muted-foreground">Role</TableHead>
-                <TableHead className="min-w-[180px] font-semibold uppercase tracking-wide text-muted-foreground">Timestamps</TableHead>
-                <TableHead className="min-w-[200px] text-right font-semibold uppercase tracking-wide text-muted-foreground">Actions</TableHead>
+              <TableRow className="border-border/60 dark:border-slate-700">
+                <TableHead className="min-w-[200px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Username</TableHead>
+                <TableHead className="min-w-[200px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Contact</TableHead>
+                <TableHead className="min-w-[100px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Status</TableHead>
+                <TableHead className="min-w-[100px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Role</TableHead>
+                <TableHead className="min-w-[180px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Timestamps</TableHead>
+                <TableHead className="min-w-[200px] text-right font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

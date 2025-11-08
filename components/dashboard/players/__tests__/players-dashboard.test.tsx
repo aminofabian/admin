@@ -31,8 +31,6 @@ vi.mock('@/lib/hooks', () => ({
 }));
 
 vi.mock('@/components/ui', () => {
-  const React = require('react');
-
   return {
     Card: ({ children }: { children: ReactNode }) => <div>{children}</div>,
     CardContent: ({ children }: { children: ReactNode }) => (
@@ -108,8 +106,6 @@ vi.mock('@/components/ui', () => {
 });
 
 vi.mock('@/components/features', () => {
-  const React = require('react');
-
   return {
     LoadingState: () => <div data-testid="loading-state">loading</div>,
     ErrorState: ({
