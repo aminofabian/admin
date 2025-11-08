@@ -188,14 +188,6 @@ export default function AffiliateSettingsPage() {
     }
   };
 
-  if (isLoading && !affiliateDefaults) {
-    return <LoadingState />;
-  }
-
-  if (error) {
-    return <ErrorState message={error} onRetry={fetchAffiliateDefaults} />;
-  }
-
   const filteredSettings = useMemo(
     () =>
       AFFILIATE_SETTINGS.filter((field) =>
@@ -203,6 +195,14 @@ export default function AffiliateSettingsPage() {
       ),
     [searchTerm],
   );
+
+  if (isLoading && !affiliateDefaults) {
+    return <LoadingState />;
+  }
+
+  if (error) {
+    return <ErrorState message={error} onRetry={fetchAffiliateDefaults} />;
+  }
 
   const handleFieldChange = (key: FormFieldKey, value: number) => {
     setFormData((previous) => ({
