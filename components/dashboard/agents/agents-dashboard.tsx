@@ -202,10 +202,10 @@ type AgentsHeaderProps = {
 
 function AgentsHeader({ onCreate, successMessage, onDismissSuccess }: AgentsHeaderProps) {
   return (
-    <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-border bg-card p-6 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
             </svg>
@@ -223,14 +223,18 @@ function AgentsHeader({ onCreate, successMessage, onDismissSuccess }: AgentsHead
         </Button>
       </div>
       {successMessage && (
-        <div className="mt-4 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 transition-colors dark:border-green-800/50 dark:bg-green-950/30 dark:text-green-300">
           <div className="flex items-center gap-2">
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <span>{successMessage}</span>
           </div>
-          <button onClick={onDismissSuccess} className="text-green-700 transition-colors hover:text-green-800" aria-label="Dismiss success message">
+          <button
+            onClick={onDismissSuccess}
+            className="text-green-700 transition-colors hover:text-green-800 dark:text-green-300 dark:hover:text-green-200"
+            aria-label="Dismiss success message"
+          >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -248,7 +252,7 @@ type AgentsSearchBarProps = {
 
 function AgentsSearchBar({ value, onChange }: AgentsSearchBarProps) {
   return (
-    <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
       <SearchInput value={value} onChange={event => onChange(event.target.value)} placeholder={SEARCH_PLACEHOLDER_TEXT} />
     </section>
   );
@@ -291,17 +295,16 @@ type AgentsTableContentProps = {
 
 function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions }: AgentsTableContentProps) {
   return (
-    <section className="rounded-xl border bg-white shadow-xm">
-    
+    <section className="rounded-xl border border-border bg-card shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="border-border/50">
-              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground">Username</TableHead>
-              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground">Email</TableHead>
-              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
-              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground">Dates</TableHead>
-              <TableHead className="text-right font-semibold uppercase tracking-wide text-muted-foreground">Actions</TableHead>
+            <TableRow className="border-border/50 bg-muted/40 transition-colors dark:border-slate-800/70 dark:bg-slate-900/60">
+              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Username</TableHead>
+              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Email</TableHead>
+              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Status</TableHead>
+              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Dates</TableHead>
+              <TableHead className="text-right font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -312,7 +315,7 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus
         </Table>
       </div>
       {data.count > pageSize && (
-        <div className="border-t border-border/60 px-6 py-4">
+        <div className="border-t border-border/60 px-6 py-4 transition-colors dark:border-slate-800/70">
           <Pagination
             currentPage={page}
             totalPages={Math.ceil(data.count / pageSize)}
@@ -328,7 +331,7 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus
 
 function AgentsTableEmptyState() {
   return (
-    <section className="rounded-2xl border border-dashed border-border bg-white py-12 text-center shadow-sm">
+    <section className="rounded-2xl border border-dashed border-border bg-card py-12 text-center shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
       <EmptyState title="No agents found" description="Get started by creating a new agent" />
     </section>
   );
@@ -344,10 +347,10 @@ function AgentRow({ agent, onToggleStatus, onViewTransactions }: AgentRowProps) 
   const styles = getAgentStyles(agent.is_active);
 
   return (
-    <TableRow className="border-border/40 hover:bg-slate-50">
+    <TableRow className="border-border/40 transition-colors hover:bg-slate-50 dark:border-slate-800/70 dark:hover:bg-slate-900/50">
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground dark:bg-primary/80">
             {agent.username.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -429,20 +432,26 @@ function getAgentStyles(isActive: boolean) {
   if (isActive) {
     return {
       statusVariant: 'success' as const,
-      statusClass: 'border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-700',
+      statusClass:
+        'border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-300',
       statusLabel: 'Active',
-      transactionClass: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
-      toggleClass: 'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50',
+      transactionClass:
+        'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800',
+      toggleClass:
+        'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-700/60 dark:bg-slate-900 dark:text-rose-300 dark:hover:border-rose-600 dark:hover:bg-rose-900/40',
       toggleLabel: 'Deactivate',
     };
   }
 
   return {
     statusVariant: 'danger' as const,
-    statusClass: 'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600',
+    statusClass:
+      'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600 dark:border-rose-700/60 dark:bg-rose-950/40 dark:text-rose-300',
     statusLabel: 'Inactive',
-    transactionClass: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
-    toggleClass: 'border border-emerald-200 bg-white text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50',
+    transactionClass:
+      'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800',
+    toggleClass:
+      'border border-emerald-200 bg-white text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-700/60 dark:bg-slate-900 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/40',
     toggleLabel: 'Activate',
   };
 }
