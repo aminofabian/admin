@@ -87,10 +87,10 @@ export function GamesSection() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
               </svg>
@@ -118,19 +118,24 @@ export function GamesSection() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
         <SearchInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by title..." />
       </section>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map(stat => (
-          <div key={stat.title} className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+          <div
+            key={stat.title}
+            className="rounded-2xl border border-border bg-card p-4 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-muted-foreground">{stat.title}</div>
                 <div className="mt-2 text-2xl font-semibold text-foreground">{stat.value}</div>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">{stat.icon}</div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
+                {stat.icon}
+              </div>
             </div>
             {stat.helper && <div className="mt-2 text-sm text-muted-foreground">{stat.helper}</div>}
           </div>
@@ -277,22 +282,32 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="border-border/60">
-              <TableHead className="min-w-[220px] font-semibold uppercase tracking-wide text-muted-foreground">Game</TableHead>
-              <TableHead className="min-w-[160px] font-semibold uppercase tracking-wide text-muted-foreground">Status</TableHead>
-              <TableHead className="min-w-[200px] text-right font-semibold uppercase tracking-wide text-muted-foreground">Actions</TableHead>
+            <TableRow className="border-border/60 bg-muted/40 transition-colors dark:border-slate-800/70 dark:bg-slate-900/60">
+              <TableHead className="min-w-[220px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Game</TableHead>
+              <TableHead className="min-w-[160px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Status</TableHead>
+              <TableHead className="min-w-[200px] text-right font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {games.map(game => (
-              <TableRow key={game.id} className="border-border/40 transition-colors hover:bg-slate-50">
+              <TableRow
+                key={game.id}
+                className="border-border/40 transition-colors hover:bg-slate-50 dark:border-slate-800/70 dark:hover:bg-slate-900/50"
+              >
                 <TableCell className="text-sm font-medium text-foreground">{game.title}</TableCell>
                 <TableCell>
-                  <Badge variant={game.game_status ? 'success' : 'danger'} className={game.game_status ? 'border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700' : 'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600'}>
+                  <Badge
+                    variant={game.game_status ? 'success' : 'danger'}
+                    className={
+                      game.game_status
+                        ? 'border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        : 'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600 dark:border-rose-700/60 dark:bg-rose-950/40 dark:text-rose-300'
+                    }
+                  >
                     {game.game_status ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
@@ -303,7 +318,7 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
                       size="sm"
                       onClick={() => onCheckBalance(game)}
                       title="Check store balance"
-                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -315,7 +330,7 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
                       size="sm"
                       onClick={() => onEditGame(game)}
                       title="Edit game"
-                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
