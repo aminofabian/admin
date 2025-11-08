@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { playersApi } from '@/lib/api';
 import { usePagination, useSearch } from '@/lib/hooks';
 import { 
@@ -26,6 +27,7 @@ import type { Player, PaginatedResponse, CreatePlayerRequest, UpdateUserRequest 
 import { PlayerViewModal } from '@/components/dashboard/data-sections/action-modal/player-view-modal';
 
 export default function PlayersPage() {
+  const router = useRouter();
   const [data, setData] = useState<PaginatedResponse<Player> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -153,6 +155,11 @@ export default function PlayersPage() {
   const handleViewPlayer = (player: Player) => {
     setSelectedPlayer(player);
     setIsViewModalOpen(true);
+  };
+
+  const handleOpenChat = (player: Player) => {
+    const chatUrl = `/dashboard/chat?playerId=${player.id}&username=${encodeURIComponent(player.username)}`;
+    router.push(chatUrl);
   };
 
   const closeModals = () => {
@@ -296,7 +303,11 @@ export default function PlayersPage() {
                       <TableRow key={player.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         {/* Username Info */}
                         <TableCell>
-                          <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenChat(player)}
+                            className="flex w-full items-center gap-3 rounded-md px-1 py-1 text-left transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 dark:hover:bg-gray-800"
+                          >
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
                               {player.username.charAt(0).toUpperCase()}
                             </div>
@@ -308,7 +319,7 @@ export default function PlayersPage() {
                                 {player.full_name}
                               </div>
                             </div>
-                          </div>
+                          </button>
                         </TableCell>
 
                         {/* Contact */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
@@ -120,6 +121,7 @@ const PURCHASE_HTML_CONTENT_CLASS = [
 ].join(' ');
 
 export function ChatComponent() {
+  const searchParams = useSearchParams();
   const [adminUserId] = useState(() => getAdminUserId());
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [activeTab, setActiveTab] = useState<'online' | 'active-chats' | 'all-players'>('online');
@@ -359,6 +361,46 @@ export function ChatComponent() {
     evaluateScrollPosition();
     void maybeLoadOlderMessages();
   }, [evaluateScrollPosition, maybeLoadOlderMessages]);
+
+  const queryPlayerId = searchParams.get('playerId');
+  const queryUsername = searchParams.get('username');
+
+  useEffect(() => {
+    if (!queryPlayerId && !queryUsername) {
+      return;
+    }
+
+    if (allPlayers.length === 0 && !isLoadingAllPlayers) {
+      void fetchAllPlayers();
+    }
+  }, [queryPlayerId, queryUsername, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers]);
+
+  useEffect(() => {
+    if (!queryPlayerId && !queryUsername) {
+      return;
+    }
+
+    const rawUserId = queryPlayerId ? Number(queryPlayerId) : NaN;
+    const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
+    const normalizedUsername = queryUsername?.trim().toLowerCase();
+
+    const candidate = [...activeChatsUsers, ...allPlayers].find((player) => {
+      const matchesId = targetUserId !== null && player.user_id === targetUserId;
+      const matchesUsername = normalizedUsername ? player.username.toLowerCase() === normalizedUsername : false;
+      return matchesId || matchesUsername;
+    });
+
+    if (candidate && (!selectedPlayer || selectedPlayer.user_id !== candidate.user_id)) {
+      handlePlayerSelect(candidate);
+    }
+  }, [
+    queryPlayerId,
+    queryUsername,
+    activeChatsUsers,
+    allPlayers,
+    selectedPlayer,
+    handlePlayerSelect,
+  ]);
 
   // Auto-select first player if none selected
   useEffect(() => {
