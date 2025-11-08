@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { Modal } from '@/components/ui';
+import { Drawer } from '@/components/ui';
 import { GameActivityTable } from './game-activity-table';
 import { useTransactionQueuesStore } from '@/stores/use-transaction-queues-store';
 import { useProcessingWebSocket } from '@/hooks/use-processing-websocket';
@@ -49,56 +49,58 @@ export function GameActivityModal({
   });
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="full">
-      {/* WebSocket Connection Status */}
-      <div className="mb-4 flex items-center justify-between gap-4">
-        {description && (
-          <div className="text-sm text-muted-foreground">
-            {description}
+    <Drawer isOpen={isOpen} onClose={onClose} title={title} size="full">
+      <div className="space-y-4">
+        {/* WebSocket Connection Status */}
+        <div className="flex items-center justify-between gap-4">
+          {description && (
+            <div className="text-sm text-muted-foreground">
+              {description}
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
+            {wsConnecting && (
+              <>
+                <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
+              </>
+            )}
+            {wsConnected && !wsConnecting && (
+              <>
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-xs font-medium text-green-600 dark:text-green-400">Live</span>
+              </>
+            )}
+            {!wsConnected && !wsConnecting && wsError && (
+              <>
+                <div className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
+              </>
+            )}
+            {!wsConnected && !wsConnecting && !wsError && (
+              <>
+                <div className="w-2 h-2 rounded-full bg-gray-400" />
+                <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
+              </>
+            )}
           </div>
-        )}
+        </div>
         
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
-          {wsConnecting && (
-            <>
-              <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-              <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
-            </>
-          )}
-          {wsConnected && !wsConnecting && (
-            <>
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-medium text-green-600 dark:text-green-400">Live</span>
-            </>
-          )}
-          {!wsConnected && !wsConnecting && wsError && (
-            <>
-              <div className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
-            </>
-          )}
-          {!wsConnected && !wsConnecting && !wsError && (
-            <>
-              <div className="w-2 h-2 rounded-full bg-gray-400" />
-              <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
-            </>
-          )}
-        </div>
+        {activities.length === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground">No activities to display</p>
+          </div>
+        ) : (
+          <GameActivityTable
+            activities={activities}
+            onViewDetails={onViewDetails}
+            showActions={true}
+            actionLoading={actionLoading}
+          />
+        )}
       </div>
-      
-      {activities.length === 0 ? (
-        <div className="py-12 text-center">
-          <p className="text-muted-foreground">No activities to display</p>
-        </div>
-      ) : (
-        <GameActivityTable
-          activities={activities}
-          onViewDetails={onViewDetails}
-          showActions={true}
-          actionLoading={actionLoading}
-        />
-      )}
-    </Modal>
+    </Drawer>
   );
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { Modal } from '@/components/ui';
+import { Drawer } from '@/components/ui';
 import { Button } from '@/components/ui/button';
 
 interface DetailsModalWrapperProps {
@@ -18,9 +18,9 @@ export function DetailsModalWrapper({
   children,
 }: DetailsModalWrapperProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title}>
-      <div className="space-y-2">{children}</div>
-    </Modal>
+    <Drawer isOpen={isOpen} onClose={onClose} title={title} size="lg">
+      <div className="space-y-4">{children}</div>
+    </Drawer>
   );
 }
 

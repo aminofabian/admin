@@ -1,13 +1,13 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { Modal } from '@/components/ui';
+import { Drawer } from '@/components/ui';
 
 interface ActionModalWrapperProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   children: ReactNode;
 }
 
@@ -19,9 +19,9 @@ export function ActionModalWrapper({
   children,
 }: ActionModalWrapperProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size={size}>
+    <Drawer isOpen={isOpen} onClose={onClose} title={title} size={size}>
       <div className="space-y-6">{children}</div>
-    </Modal>
+    </Drawer>
   );
 }
 

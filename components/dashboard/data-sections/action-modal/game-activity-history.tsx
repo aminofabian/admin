@@ -1,6 +1,6 @@
 'use client';
 
-import { Modal } from '@/components/ui';
+import { Drawer } from '@/components/ui';
 import { GameActionForm } from '@/components/features';
 import type { TransactionQueue, GameActionType } from '@/types';
 
@@ -39,16 +39,17 @@ export function ActionModal({ isOpen, queue, onSubmit, onClose }: ActionModalPro
   };
 
   return (
-    <Modal
+    <Drawer
       isOpen={isOpen}
       onClose={onClose}
       title="Manage Transaction Queue"
+      size="lg"
     >
       <GameActionForm
         queue={queue}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
       />
-    </Modal>
+    </Drawer>
   );
 }
