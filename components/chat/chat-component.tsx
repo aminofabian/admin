@@ -1364,8 +1364,13 @@ export function ChatComponent() {
                     <span className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-card animate-pulse shadow-lg" />
                   )}
                 </div>
-                <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">{selectedPlayer.username}</h3>
-                <p className="text-sm text-muted-foreground">@{selectedPlayer.username.toLowerCase().replace(/\s+/g, '')}</p>
+                <h3 className="text-lg md:text-xl font-bold text-foreground mb-1">
+                  {selectedPlayer.fullName || selectedPlayer.username}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-0.5">@{selectedPlayer.username}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedPlayer.email || 'Email not available'}
+                </p>
                 {isConnected ? (
                   <span className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-medium">
                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
@@ -1404,64 +1409,6 @@ export function ChatComponent() {
                     <span className="text-sm text-foreground font-medium">Winnings</span>
                   </div>
                   <span className="text-base font-bold text-yellow-600 dark:text-yellow-500">{formatCurrency(selectedPlayer.winningBalance || '0')}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Information */}
-            <div className="rounded-xl bg-card border border-border p-4 space-y-3 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <h4 className="font-semibold text-foreground">Contact Info</h4>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-start gap-3 p-2.5 hover:bg-muted/50 rounded-lg transition-colors group">
-                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 group-hover:bg-primary/10 transition-colors">
-                    <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground mb-0.5">Email</p>
-                    <p className="text-sm text-foreground font-medium truncate">{selectedPlayer.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-2.5 hover:bg-muted/50 rounded-lg transition-colors group">
-                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 group-hover:bg-primary/10 transition-colors">
-                    <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground mb-0.5">Phone</p>
-                    <p className="text-sm text-foreground font-medium">{selectedPlayer.phone || 'Not provided'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Game Statistics */}
-            <div className="rounded-xl bg-gradient-to-br from-green-500/10 via-green-500/5 to-transparent border border-green-500/20 p-4 space-y-3">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <h4 className="font-semibold text-foreground">Statistics</h4>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-background/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Games Played</p>
-                  <p className="text-2xl font-bold text-foreground">{selectedPlayer.gamesPlayed || 0}</p>
-                </div>
-                <div className="p-3 bg-background/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{selectedPlayer.winRate || 0}%</p>
                 </div>
               </div>
             </div>

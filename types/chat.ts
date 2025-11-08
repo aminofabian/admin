@@ -2,6 +2,7 @@ export interface ChatUser {
   id: string;
   user_id: number;
   username: string;
+  fullName?: string;
   email: string;
   avatar?: string;
   isOnline: boolean;
