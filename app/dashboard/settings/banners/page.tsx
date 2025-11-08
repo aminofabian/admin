@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useBannersStore } from '@/stores';
-import { 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableRow, 
-  TableHead, 
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
   TableCell,
   Badge,
   Button,
@@ -15,12 +15,183 @@ import {
   Pagination,
   Modal,
 } from '@/components/ui';
-import { BannerForm, LoadingState, ErrorState, EmptyState } from '@/components/features';
+import { BannerForm, LoadingState, ErrorState } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
+const SECTION_TITLE = 'Banners';
+const SECTION_SUBTITLE = 'Manage promotional banners and advertisements';
+const ADD_BUTTON_LABEL = 'Add Banner';
+const SEARCH_PLACEHOLDER = 'Search banners by title...';
+const EMPTY_ROW_TEXT = 'No banners found';
+
+function formatBannerLabel(value?: string | null) {
+  if (!value) return '—';
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+}
+
+function mapBannerTypeVariant(bannerType: Banner['banner_type']) {
+  return bannerType === 'HOMEPAGE' ? 'info' : 'success';
+}
+
+function BannersHeader({ onCreate }: { onCreate: () => void }) {
+  return (
+    <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex items-start gap-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#6366f1] dark:bg-[#312e81] dark:text-[#a5b4fc]">
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7h16M4 12h10M4 17h7" />
+          </svg>
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{SECTION_TITLE}</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{SECTION_SUBTITLE}</p>
+        </div>
+      </div>
+      <Button variant="primary" size="md" onClick={onCreate} className="lg:self-auto">
+        {ADD_BUTTON_LABEL}
+      </Button>
+    </section>
+  );
+}
+
+function BannersSearch({ value, onChange }: { value: string; onChange: (text: string) => void }) {
+  return (
+    <section className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <SearchInput value={value} onChange={(event) => onChange(event.target.value)} placeholder={SEARCH_PLACEHOLDER} />
+    </section>
+  );
+}
+
+function BannersTable({
+  data,
+  onEdit,
+  onDelete,
+}: {
+  data: Banner[];
+  onEdit: (banner: Banner) => void;
+  onDelete: (banner: Banner) => void;
+}) {
+  const hasBanners = data.length > 0;
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <Table>
+        <TableHeader>
+          <TableRow className="uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">
+            <TableHead className="w-[280px]">Title</TableHead>
+            <TableHead className="w-[180px]">Type</TableHead>
+            <TableHead className="w-[200px]">Category</TableHead>
+            <TableHead className="w-[160px]">Status</TableHead>
+            <TableHead className="w-[220px]">Dates</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {hasBanners
+            ? data.map((banner) => (
+                <BannersTableRow key={banner.id} banner={banner} onEdit={onEdit} onDelete={onDelete} />
+              ))
+            : (
+              <TableRow>
+                <TableCell colSpan={6} className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                  {EMPTY_ROW_TEXT}
+                </TableCell>
+              </TableRow>
+            )}
+        </TableBody>
+      </Table>
+    </section>
+  );
+}
+
+function BannersTableRow({
+  banner,
+  onEdit,
+  onDelete,
+}: {
+  banner: Banner;
+  onEdit: (item: Banner) => void;
+  onDelete: (item: Banner) => void;
+}) {
+  return (
+    <TableRow className="border-b border-border/40 last:border-0 dark:border-slate-700/80">
+      <TableCell>
+        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{banner.title}</span>
+      </TableCell>
+      <TableCell>
+        <Badge variant={mapBannerTypeVariant(banner.banner_type)}>
+          {formatBannerLabel(banner.banner_type)}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <Badge variant="warning">{formatBannerLabel(banner.banner_category)}</Badge>
+      </TableCell>
+      <TableCell>
+        <Badge variant={banner.is_active ? 'success' : 'default'}>
+          {banner.is_active ? 'Active' : 'Inactive'}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-col text-sm text-gray-600 dark:text-gray-300">
+          <span>{formatDate(banner.created)}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Updated {formatDate(banner.modified)}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" size="sm" onClick={() => onEdit(banner)}>
+            Edit
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => onDelete(banner)}>
+            Delete
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function BannersPagination({
+  totalCount,
+  pageSize,
+  currentPage,
+  hasNext,
+  hasPrevious,
+  onPageChange,
+}: {
+  totalCount: number;
+  pageSize: number;
+  currentPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalCount <= pageSize) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <Pagination
+        currentPage={currentPage}
+        totalPages={Math.ceil(totalCount / pageSize)}
+        hasNext={hasNext}
+        hasPrevious={hasPrevious}
+        onPageChange={onPageChange}
+      />
+    </section>
+  );
+}
+
 export default function BannersPage() {
-  const { 
+  const {
     banners,
     isLoading,
     error,
@@ -32,6 +203,7 @@ export default function BannersPage() {
     deleteBanner,
     setPage,
     setSearchTerm,
+    pageSize,
   } = useBannersStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,8 +211,7 @@ export default function BannersPage() {
 
   useEffect(() => {
     fetchBanners();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchBanners]);
 
   const handleSubmit = async (formData: CreateBannerRequest | UpdateBannerRequest) => {
     try {
@@ -61,13 +232,13 @@ export default function BannersPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this banner?')) {
-      try {
-        await deleteBanner(id);
-      } catch (err) {
-        console.error('Error deleting banner:', err);
-      }
+  const handleDelete = async (banner: Banner) => {
+    const confirmed = confirm(`Delete banner "${banner.title}"?`);
+    if (!confirmed) return;
+    try {
+      await deleteBanner(banner.id);
+    } catch (err) {
+      console.error('Error deleting banner:', err);
     }
   };
 
@@ -84,141 +255,22 @@ export default function BannersPage() {
     return <ErrorState message={error} onRetry={fetchBanners} />;
   }
 
+  const list = banners?.results ?? [];
+  const totalCount = banners?.count ?? 0;
+
   return (
-    <div className="space-y-8">
-      <div className="rounded-2xl border border-gray-200 bg-white shadow-md dark:border-gray-800 dark:bg-gray-900">
-        <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
-              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7h16M4 12h10M4 17h7" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Banners</h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Manage promotional banners and advertisements
-              </p>
-            </div>
-          </div>
-          <div className="flex w-full flex-col gap-4 lg:ml-auto lg:max-w-sm lg:border-l lg:border-gray-100 lg:pl-6 dark:lg:border-gray-800/60">
-            <Button
-              size="lg"
-              className="justify-center lg:self-end"
-              onClick={handleCreate}
-            >
-              <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Banner
-            </Button>
-            <SearchInput
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search banners by title..."
-              className="h-12 rounded-xl border-gray-200 text-base dark:border-gray-700"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Total Banners</p>
-          <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{banners?.count ?? 0}</p>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Active</p>
-          <p className="mt-2 text-2xl font-semibold text-emerald-600">
-            {banners?.results?.filter((banner) => banner.is_active).length ?? 0}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Inactive</p>
-          <p className="mt-2 text-2xl font-semibold text-gray-500 dark:text-gray-300">
-            {banners?.results?.filter((banner) => !banner.is_active).length ?? 0}
-          </p>
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md dark:border-gray-800 dark:bg-gray-900">
-        {banners?.results.length === 0 ? (
-          <div className="py-12">
-            <EmptyState 
-              title="No banners found" 
-              description="Get started by creating your first banner"
-            />
-          </div>
-        ) : (
-          <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Dates</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {banners?.results.map((banner) => (
-                  <TableRow key={banner.id}>
-                    <TableCell className="align-top">
-                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{banner.title}</span>
-                    </TableCell>
-                    <TableCell className="align-top">
-                      <Badge variant={banner.banner_type === 'HOMEPAGE' ? 'info' : 'success'}>
-                        {banner.banner_type.toLowerCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="align-top">
-                      <Badge variant="warning">{banner.banner_category.toLowerCase()}</Badge>
-                    </TableCell>
-                    <TableCell className="align-top">
-                      <Badge variant={banner.is_active ? 'success' : 'default'}>
-                        {banner.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="align-top">
-                      <div className="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
-                        <span>{formatDate(banner.created)}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-500">
-                          Updated {formatDate(banner.modified)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => handleEdit(banner)}>
-                          Edit
-                        </Button>
-                        <Button variant="danger" size="sm" onClick={() => handleDelete(banner.id)}>
-                          Delete
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {banners && banners.count > 10 && (
-              <div className="border-t border-border px-4 py-4">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={Math.ceil(banners.count / 10)}
-                  onPageChange={setPage}
-                  hasNext={!!banners.next}
-                  hasPrevious={!!banners.previous}
-                />
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Banner Form Modal */}
+    <div className="space-y-6">
+      <BannersHeader onCreate={handleCreate} />
+      <BannersSearch value={searchTerm} onChange={setSearchTerm} />
+      <BannersTable data={list} onEdit={handleEdit} onDelete={handleDelete} />
+      <BannersPagination
+        totalCount={totalCount}
+        pageSize={pageSize}
+        currentPage={currentPage}
+        hasNext={Boolean(banners?.next)}
+        hasPrevious={Boolean(banners?.previous)}
+        onPageChange={setPage}
+      />
       <Modal
         isOpen={isModalOpen}
         onClose={() => {
