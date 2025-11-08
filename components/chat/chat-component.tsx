@@ -14,23 +14,45 @@ type Message = ChatMessage;
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
+const ADMIN_STORAGE_KEY = 'user';
+const NO_ADMIN_USER_ID = 0;
+
+const asPositiveNumber = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > NO_ADMIN_USER_ID) {
+    return Math.floor(value);
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > NO_ADMIN_USER_ID) {
+      return parsed;
+    }
+  }
+
+  return NO_ADMIN_USER_ID;
+};
 
 // Get admin user ID from storage
 const getAdminUserId = (): number => {
   try {
-    // User data is stored under 'user' key (not 'user_data')
-    const userDataStr = storage.get('user');
+    const userDataStr = storage.get(ADMIN_STORAGE_KEY);
     if (userDataStr) {
       const userData = JSON.parse(userDataStr);
-      const userId = userData.id || userData.user_id || 2;
-      !IS_PROD && console.log('📍 Admin User ID:', userId);
-      return userId;
+      const candidateId = asPositiveNumber(userData.id ?? userData.user_id);
+
+      if (candidateId > NO_ADMIN_USER_ID) {
+        !IS_PROD && console.log('📍 Admin User ID:', candidateId);
+        return candidateId;
+      }
+
+      !IS_PROD && console.warn('⚠️ Stored user data is missing a valid admin ID.');
     }
   } catch (error) {
     console.error('❌ Failed to parse user data from localStorage:', error);
   }
-  !IS_PROD && console.warn('⚠️ User not found in localStorage, using default admin user ID: 2');
-  return 2; // Default admin user ID
+
+  !IS_PROD && console.warn('⚠️ Admin user ID unavailable. Chat endpoints remain disabled until authentication completes.');
+  return NO_ADMIN_USER_ID;
 };
 
 const groupMessagesByDate = (messages: Message[]) => {
@@ -123,8 +145,9 @@ const PURCHASE_HTML_CONTENT_CLASS = [
 export function ChatComponent() {
   const searchParams = useSearchParams();
   const [adminUserId] = useState(() => getAdminUserId());
+  const hasValidAdminUser = adminUserId > NO_ADMIN_USER_ID;
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [activeTab, setActiveTab] = useState<'online' | 'active-chats' | 'all-players'>('online');
+  const [activeTab, setActiveTab] = useState<'online' | 'all-chats'>('online');
   const [chatViewMode, setChatViewMode] = useState<'messages' | 'purchases'>('messages');
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
@@ -151,7 +174,7 @@ export function ChatComponent() {
     updateChatLastMessage,
   } = useChatUsers({
     adminId: adminUserId,
-    enabled: true,
+    enabled: hasValidAdminUser,
   });
 
   // WebSocket connection for real-time chat
@@ -172,7 +195,7 @@ export function ChatComponent() {
     userId: selectedPlayer?.user_id ?? null,
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
     adminId: adminUserId,
-    enabled: !!selectedPlayer,
+    enabled: !!selectedPlayer && hasValidAdminUser,
     onMessageReceived: useCallback((message: Message) => {
       !IS_PROD && console.log('🔔 onMessageReceived callback fired:', {
         messageText: message.text,
@@ -203,35 +226,38 @@ export function ChatComponent() {
   const groupedMessages = useMemo(() => groupMessagesByDate(wsMessages), [wsMessages]);
 
   const displayedPlayers = useMemo(() => {
-    let players: ChatUser[];
-    if (activeTab === 'online') {
-      players = onlinePlayers;
-    } else if (activeTab === 'active-chats') {
-      players = activeChatsUsers; // ✅ Users with active conversations (WebSocket)
-    } else {
-      // 'all-players' - All players from REST API
-      players = allPlayers; // ✅ All players (REST API)
-    }
+    const players = activeTab === 'online' ? onlinePlayers : activeChatsUsers;
     
-    if (!searchQuery.trim()) return players;
+    if (!searchQuery.trim()) {
+      return players;
+    }
+
     const query = searchQuery.toLowerCase();
-    return players.filter(
-      p => p.username.toLowerCase().includes(query) || p.email.toLowerCase().includes(query)
-    );
-  }, [activeTab, onlinePlayers, activeChatsUsers, allPlayers, searchQuery]);
+    return players.filter((player) => {
+      const username = player.username.toLowerCase();
+      const email = player.email.toLowerCase();
+      return username.includes(query) || email.includes(query);
+    });
+  }, [activeTab, onlinePlayers, activeChatsUsers, searchQuery]);
 
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {
-    if (activeTab === 'all-players') {
-      !IS_PROD && console.log('🔍 All Players tab - isLoadingAllPlayers:', isLoadingAllPlayers, 'allPlayers.length:', allPlayers.length);
-      return isLoadingAllPlayers;
+    if (activeTab === 'online') {
+      const isLoading = isLoadingAllPlayers || isLoadingUsers;
+      !IS_PROD && console.log('🔍 Online tab loading state:', {
+        isLoadingAllPlayers,
+        isLoadingUsers,
+        computed: isLoading,
+      });
+      return isLoading;
     }
-    !IS_PROD && console.log('🔍 Other tab - isLoadingUsers:', isLoadingUsers);
+
+    !IS_PROD && console.log('🔍 All Chats tab - isLoadingUsers:', isLoadingUsers);
     return isLoadingUsers;
-  }, [activeTab, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
+  }, [activeTab, isLoadingUsers, isLoadingAllPlayers]);
 
   useEffect(() => {
-    const shouldLoadAllPlayers = activeTab === 'all-players' || activeTab === 'online';
+    const shouldLoadAllPlayers = activeTab === 'online';
     const hasPlayersCached = allPlayers.length > 0;
 
     if (!shouldLoadAllPlayers || hasPlayersCached) {
@@ -565,24 +591,14 @@ export function ChatComponent() {
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('active-chats')}
+              onClick={() => setActiveTab('all-chats')}
               className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
-                activeTab === 'active-chats'
+                activeTab === 'all-chats'
                   ? 'bg-primary text-primary-foreground shadow-md'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
-              Active Chats
-            </button>
-            <button
-              onClick={() => setActiveTab('all-players')}
-              className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
-                activeTab === 'all-players'
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              }`}
-            >
-              All Players
+              All Chats
             </button>
           </div>
         </div>
@@ -610,12 +626,12 @@ export function ChatComponent() {
         {/* Player List */}
         <div className="flex-1 overflow-y-auto">
           {(() => {
-            const shouldShowSkeleton = isCurrentTabLoading || (activeTab === 'all-players' && allPlayers.length === 0 && !usersError);
+            const shouldShowSkeleton = isCurrentTabLoading && displayedPlayers.length === 0 && !usersError;
             !IS_PROD && console.log('💀 Should show skeleton?', shouldShowSkeleton, {
               isCurrentTabLoading,
               activeTab,
-              allPlayersLength: allPlayers.length,
-              usersError
+              displayedPlayersLength: displayedPlayers.length,
+              usersError,
             });
             return shouldShowSkeleton;
           })() ? (
