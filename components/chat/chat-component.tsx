@@ -226,7 +226,32 @@ export function ChatComponent() {
   const groupedMessages = useMemo(() => groupMessagesByDate(wsMessages), [wsMessages]);
 
   const displayedPlayers = useMemo(() => {
-    const players = activeTab === 'online' ? onlinePlayers : activeChatsUsers;
+    let players: Player[];
+    
+    if (activeTab === 'online') {
+      players = onlinePlayers;
+    } else {
+      // For "all-chats" tab: combine activeChatsUsers and allPlayers
+      // Active chats are prioritized, then add any players not in active chats
+      const activeChatsMap = new Map<number, Player>();
+      activeChatsUsers.forEach((player) => {
+        if (player.user_id) {
+          activeChatsMap.set(player.user_id, player);
+        }
+      });
+      
+      // Start with active chats
+      const combinedPlayers = [...activeChatsUsers];
+      
+      // Add players from allPlayers that aren't in active chats
+      allPlayers.forEach((player) => {
+        if (player.user_id && !activeChatsMap.has(player.user_id)) {
+          combinedPlayers.push(player);
+        }
+      });
+      
+      players = combinedPlayers;
+    }
     
     if (!searchQuery.trim()) {
       return players;
@@ -238,7 +263,7 @@ export function ChatComponent() {
       const email = player.email.toLowerCase();
       return username.includes(query) || email.includes(query);
     });
-  }, [activeTab, onlinePlayers, activeChatsUsers, searchQuery]);
+  }, [activeTab, onlinePlayers, activeChatsUsers, allPlayers, searchQuery]);
 
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {
@@ -252,12 +277,22 @@ export function ChatComponent() {
       return isLoading;
     }
 
-    !IS_PROD && console.log('🔍 All Chats tab - isLoadingUsers:', isLoadingUsers);
-    return isLoadingUsers;
-  }, [activeTab, isLoadingUsers, isLoadingAllPlayers]);
+    // For "all-chats" tab, we need both activeChatsUsers and allPlayers
+    // Show loading if either is loading (but prioritize activeChatsUsers loading)
+    const isLoading = isLoadingUsers || (allPlayers.length === 0 && isLoadingAllPlayers);
+    !IS_PROD && console.log('🔍 All Chats tab loading state:', {
+      isLoadingUsers,
+      isLoadingAllPlayers,
+      allPlayersLength: allPlayers.length,
+      computed: isLoading,
+    });
+    return isLoading;
+  }, [activeTab, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
 
   useEffect(() => {
-    const shouldLoadAllPlayers = activeTab === 'online';
+    // Load all players for both "online" and "all-chats" tabs
+    // "all-chats" needs all players to show everyone, not just those with active chats
+    const shouldLoadAllPlayers = activeTab === 'online' || activeTab === 'all-chats';
     const hasPlayersCached = allPlayers.length > 0;
 
     if (!shouldLoadAllPlayers || hasPlayersCached) {
@@ -396,9 +431,15 @@ export function ChatComponent() {
       return;
     }
 
+    // When a player is selected via query params, ensure we have all players loaded
+    // and switch to "all-chats" tab so the player appears in the list
     if (allPlayers.length === 0 && !isLoadingAllPlayers) {
       void fetchAllPlayers();
     }
+    
+    // Switch to "all-chats" tab when query params are present
+    // This ensures the selected player is visible in the first column
+    setActiveTab('all-chats');
   }, [queryPlayerId, queryUsername, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers]);
 
   useEffect(() => {
@@ -417,6 +458,9 @@ export function ChatComponent() {
     });
 
     if (candidate && (!selectedPlayer || selectedPlayer.user_id !== candidate.user_id)) {
+      // Switch to "all-chats" tab when a player is selected via query params
+      // This ensures the player appears in the first column
+      setActiveTab('all-chats');
       handlePlayerSelect(candidate);
     }
   }, [
