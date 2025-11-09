@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Input } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
@@ -144,6 +144,7 @@ const PURCHASE_HTML_CONTENT_CLASS = [
 
 export function ChatComponent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [adminUserId] = useState(() => getAdminUserId());
   const hasValidAdminUser = adminUserId > NO_ADMIN_USER_ID;
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -383,6 +384,12 @@ export function ChatComponent() {
     latestMessageIdRef.current = null;
     setUnseenMessageCount(0);
   }, []);
+
+  const handleNavigateToPlayer = useCallback(() => {
+    if (selectedPlayer?.user_id) {
+      router.push(`/dashboard/players?highlight=${selectedPlayer.user_id}`);
+    }
+  }, [selectedPlayer, router]);
 
   const maybeLoadOlderMessages = useCallback(async () => {
     if (chatViewMode !== 'messages') return;
@@ -807,16 +814,26 @@ export function ChatComponent() {
               
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm md:text-base font-bold shadow-md ring-2 ring-primary/10">
+              <button
+                onClick={handleNavigateToPlayer}
+                className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm md:text-base font-bold shadow-md ring-2 ring-primary/10 hover:ring-4 hover:ring-primary/20 transition-all cursor-pointer"
+                title="View player profile"
+              >
                 {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
-              </div>
+              </button>
                   {selectedPlayer.isOnline && (
                     <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-sm" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-foreground text-sm md:text-base truncate">{selectedPlayer.username}</h3>
+                    <button
+                      onClick={handleNavigateToPlayer}
+                      className="font-semibold text-foreground text-sm md:text-base truncate hover:text-primary transition-colors cursor-pointer"
+                      title="View player profile"
+                    >
+                      {selectedPlayer.username}
+                    </button>
                     {isConnected ? (
                       <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-medium">
                         <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
@@ -1417,16 +1434,24 @@ export function ChatComponent() {
             
             <div className="flex flex-col items-center text-center">
                 <div className="relative mb-2">
-                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-lg ring-2 ring-primary/20">
+                  <button
+                    onClick={handleNavigateToPlayer}
+                    className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-lg ring-2 ring-primary/20 hover:ring-4 hover:ring-primary/30 transition-all cursor-pointer"
+                    title="View player profile"
+                  >
                     {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
-                  </div>
+                  </button>
                   {isConnected && (
                     <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-lg" />
                   )}
                 </div>
-                <h3 className="text-base md:text-lg font-bold text-foreground mb-0.5">
+                <button
+                  onClick={handleNavigateToPlayer}
+                  className="text-base md:text-lg font-bold text-foreground mb-0.5 hover:text-primary transition-colors cursor-pointer"
+                  title="View player profile"
+                >
                   {selectedPlayer.fullName || selectedPlayer.username}
-                </h3>
+                </button>
                 <p className="text-xs text-muted-foreground mb-0.5">@{selectedPlayer.username}</p>
                 <p className="text-[10px] text-muted-foreground truncate max-w-full px-2">
                   {selectedPlayer.email || 'Email not available'}
