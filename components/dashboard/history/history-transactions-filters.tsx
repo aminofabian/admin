@@ -6,6 +6,7 @@ import { Button } from '@/components/ui';
 
 export interface HistoryTransactionsFiltersState {
   agent: string;
+  agent_id: string;
   username: string;
   email: string;
   transaction_id: string;

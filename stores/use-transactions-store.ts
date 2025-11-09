@@ -69,28 +69,88 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         ...(searchTerm && { search: searchTerm }),
       };
 
-      const cleanedAdvancedFilters = Object.fromEntries(
-        Object.entries(advancedFilters).filter(([, value]) => value !== undefined && value !== '')
-      );
+      // Clean and process advanced filters
+      const cleanedAdvancedFilters: Record<string, string | number> = {};
+      
+      Object.entries(advancedFilters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          // Convert agent_id to number if it's a valid number
+          if (key === 'agent_id') {
+            const agentIdNum = Number(value);
+            if (!isNaN(agentIdNum)) {
+              cleanedAdvancedFilters[key] = agentIdNum;
+            } else {
+              cleanedAdvancedFilters[key] = value;
+            }
+          } else {
+            cleanedAdvancedFilters[key] = value;
+          }
+        }
+      });
 
       Object.assign(filters, cleanedAdvancedFilters);
 
       // Apply filter logic based on the selected filter type
-      if (filter === 'purchases') {
-        filters.type = 'purchase';
-      } else if (filter === 'cashouts') {
-        filters.type = 'cashout';
-      } else if (filter === 'pending-purchases') {
-        filters.txn = 'purchases';
-      } else if (filter === 'pending-cashouts') {
-        filters.txn = 'cashouts';
-      } else if (filter === 'processing') {
-        filters.type = 'processing';
-      } else if (filter === 'history') {
-        filters.type = 'history';
+      // IMPORTANT: When agent filters are present, don't apply type filters
+      // Agent filters should return all transaction types for that agent
+      const hasAgentFilter = cleanedAdvancedFilters.agent || cleanedAdvancedFilters.agent_id;
+      
+      // Only apply type filters if no agent filters are present
+      if (!hasAgentFilter) {
+        if (filter === 'purchases') {
+          filters.type = 'purchase';
+        } else if (filter === 'cashouts') {
+          filters.type = 'cashout';
+        } else if (filter === 'pending-purchases') {
+          filters.txn = 'purchases';
+        } else if (filter === 'pending-cashouts') {
+          filters.txn = 'cashouts';
+        } else if (filter === 'processing') {
+          filters.type = 'processing';
+        } else if (filter === 'history') {
+          filters.type = 'history';
+        }
+      } else {
+        // When agent filters are present, remove any type/txn filters that might conflict
+        // This ensures agent filters work with all transaction types
+        delete filters.type;
+        delete filters.txn;
+        console.log('🚫 Removed type/txn filters because agent filter is present');
       }
 
-      console.log('Fetching transactions with filters:', { filter, filters });
+      // Log agent filter parameters for debugging
+      if (filters.agent || filters.agent_id) {
+        console.log('🔍 Agent filter applied:', {
+          agent: filters.agent,
+          agent_id: filters.agent_id,
+          agent_id_type: typeof filters.agent_id,
+          hasAgentFilter,
+          fullFilters: filters,
+        });
+        
+        // Log what will be sent to API
+        const apiParams = Object.entries(filters)
+          .filter(([, value]) => value !== undefined && value !== '')
+          .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
+          .join('&');
+        console.log('🌐 API Request URL: /api/v1/transactions/?' + apiParams);
+        console.log('📋 Filter Summary:', {
+          hasAgentFilter: true,
+          agent: filters.agent,
+          agent_id: filters.agent_id,
+          page: filters.page,
+          page_size: filters.page_size,
+          otherFilters: Object.keys(filters).filter(k => !['agent', 'agent_id', 'page', 'page_size'].includes(k)),
+        });
+      }
+
+      console.log('📊 Fetching transactions:', {
+        filter,
+        filters,
+        cleanedAdvancedFilters,
+        originalAdvancedFilters: advancedFilters,
+        hasAgentFilter,
+      });
 
       const data = await transactionsApi.list(filters);
       

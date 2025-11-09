@@ -5,7 +5,7 @@ import {
   DashboardSectionContainer,
   DashboardSectionHeader,
 } from '@/components/dashboard/layout';
-import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
+import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useToast } from '@/components/ui';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
@@ -28,6 +28,7 @@ const EMPTY_STATE = (
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
   agent: '',
+  agent_id: '',
   username: '',
   email: '',
   transaction_id: '',
@@ -52,6 +53,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
 
   return {
     agent: advanced.agent ?? '',
+    agent_id: advanced.agent_id ?? '',
     username: advanced.username ?? '',
     email: advanced.email ?? '',
     transaction_id: advanced.transaction_id ?? '',
@@ -79,10 +81,13 @@ export function TransactionsSection() {
   const fetchTransactions = useTransactionsStore((state) => state.fetchTransactions);
   const setAdvancedFilters = useTransactionsStore((state) => state.setAdvancedFilters);
   const clearAdvancedFilters = useTransactionsStore((state) => state.clearAdvancedFilters);
+  const getStoreState = useTransactionsStore.getState;
+  const { addToast } = useToast();
 
   const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
   const [isAgentLoading, setIsAgentLoading] = useState(false);
 const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
 const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
@@ -90,6 +95,7 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
   const [isUsernameLoading, setIsUsernameLoading] = useState(false);
   const [usernameQuery, setUsernameQuery] = useState('');
   const usernameRequestIdRef = useRef(0);
+  const agentFilterClearedRef = useRef<string | null>(null);
 
   // Fetch transactions when dependencies change
   useEffect(() => {
@@ -97,9 +103,74 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, filter, advancedFilters]);
 
-  // Sync filters with advanced filters
+  // Auto-clear agent filter if no transactions found for that agent
   useEffect(() => {
-    setFilters(buildHistoryFilterState(advancedFilters));
+    // Check if we have an agent filter applied and the result is empty
+    const currentAgent = advancedFilters.agent || advancedFilters.agent_id || '';
+    const hasAgentFilter = Boolean(currentAgent);
+    const hasNoResults = transactions?.count === 0;
+    const isNotLoading = !isLoading;
+    const notAlreadyCleared = agentFilterClearedRef.current !== currentAgent;
+    
+    if (hasAgentFilter && hasNoResults && isNotLoading && notAlreadyCleared) {
+      console.log('🔍 No transactions found for agent filter, clearing filter to show all transactions');
+      
+      // Mark this agent filter as cleared to prevent infinite loop
+      agentFilterClearedRef.current = currentAgent;
+      
+      // Show toast notification
+      addToast({
+        type: 'info',
+        title: 'No transactions found',
+        description: `No transactions found for agent "${advancedFilters.agent || 'selected agent'}". Showing all transactions instead.`,
+      });
+      
+      // Clear agent filters to show all transactions
+      const updatedFilters = { ...advancedFilters };
+      delete updatedFilters.agent;
+      delete updatedFilters.agent_id;
+      setAdvancedFilters(updatedFilters);
+    } else if (!hasAgentFilter) {
+      // Reset the cleared ref when no agent filter is present
+      agentFilterClearedRef.current = null;
+    }
+  }, [transactions, isLoading, advancedFilters, addToast, setAdvancedFilters]);
+
+  // Sync filters with advanced filters and resolve agent/agent_id mappings
+  useEffect(() => {
+    const filterState = buildHistoryFilterState(advancedFilters);
+    let needsUpdate = false;
+    const updatedFilters = { ...advancedFilters };
+    
+    // If we have agent_id but no agent, try to resolve it from the agent map
+    if (filterState.agent_id && !filterState.agent && agentIdMap.size > 0) {
+      const agentUsername = Array.from(agentIdMap.entries()).find(
+        ([, id]) => String(id) === filterState.agent_id
+      )?.[0];
+      
+      if (agentUsername && advancedFilters.agent !== agentUsername) {
+        filterState.agent = agentUsername;
+        updatedFilters.agent = agentUsername;
+        needsUpdate = true;
+      }
+    }
+    
+    // If we have agent but no agent_id, try to resolve it from the agent map
+    if (filterState.agent && !filterState.agent_id && agentIdMap.size > 0) {
+      const agentId = agentIdMap.get(filterState.agent);
+      if (agentId && advancedFilters.agent_id !== String(agentId)) {
+        filterState.agent_id = String(agentId);
+        updatedFilters.agent_id = String(agentId);
+        needsUpdate = true;
+      }
+    }
+    
+    // Only update if we resolved a missing value
+    if (needsUpdate) {
+      setAdvancedFilters(updatedFilters);
+    }
+    
+    setFilters(filterState);
 
     if (Object.keys(advancedFilters).length > 0) {
       setAreFiltersOpen(true);
@@ -107,7 +178,7 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
     if (advancedFilters.username) {
       setUsernameQuery(advancedFilters.username);
     }
-  }, [advancedFilters]);
+  }, [advancedFilters, agentIdMap, setAdvancedFilters]);
 
   useEffect(() => {
     let isMounted = true;
@@ -146,10 +217,12 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
         }
 
         const uniqueAgents = new Map<string, string>();
+        const idMap = new Map<string, number>();
 
         aggregated.forEach((agent) => {
           if (agent?.username) {
             uniqueAgents.set(agent.username, agent.username);
+            idMap.set(agent.username, agent.id);
           }
         });
 
@@ -158,6 +231,47 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
         setAgentOptions(mappedOptions);
+        setAgentIdMap(idMap);
+        
+        // After agents are loaded, if we have agent filter but no agent_id, resolve it
+        if (isMounted && idMap.size > 0) {
+          const currentFilters = getStoreState().advancedFilters;
+          if (currentFilters.agent && !currentFilters.agent_id) {
+            // Try exact match first
+            let agentId = idMap.get(currentFilters.agent);
+            
+            // If not found, try case-insensitive match
+            if (!agentId) {
+              const agentKey = Array.from(idMap.keys()).find(
+                (key) => key.toLowerCase() === currentFilters.agent.toLowerCase()
+              );
+              if (agentKey) {
+                agentId = idMap.get(agentKey);
+                // Update the agent name to the correct case
+                console.log('🔍 Found agent with case-insensitive match:', currentFilters.agent, '→', agentKey);
+              }
+            }
+            
+            if (agentId) {
+              console.log('🔍 Resolved agent_id for agent:', currentFilters.agent, '→', agentId);
+              const updatedFilters: Record<string, string> = {
+                ...currentFilters,
+                agent_id: String(agentId),
+              };
+              // Update agent name if we found a case-insensitive match
+              const agentKey = Array.from(idMap.keys()).find(
+                (key) => idMap.get(key) === agentId
+              );
+              if (agentKey && agentKey !== currentFilters.agent) {
+                updatedFilters.agent = agentKey;
+                console.log('🔍 Updated agent name to match case:', agentKey);
+              }
+              setAdvancedFilters(updatedFilters);
+            } else {
+              console.warn('⚠️ Agent not found in loaded agents:', currentFilters.agent);
+            }
+          }
+        }
       } catch (error) {
         console.error('Failed to load agents for transaction filters:', error);
       } finally {
@@ -172,7 +286,7 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [setAdvancedFilters]);
 
   useEffect(() => {
     if (!usernameQuery || usernameQuery.trim().length < 2) {
@@ -272,8 +386,34 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
   }, []);
 
   const handleAdvancedFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
-    setFilters((previous) => ({ ...previous, [key]: value }));
-  }, []);
+    setFilters((previous) => {
+      const updated = { ...previous, [key]: value };
+      
+      // When agent is changed, also update agent_id if we have a mapping
+      if (key === 'agent') {
+        const agentId = agentIdMap.get(value);
+        if (agentId) {
+          updated.agent_id = String(agentId);
+        } else {
+          updated.agent_id = '';
+        }
+      }
+      
+      // When agent_id is changed, try to find the corresponding agent username
+      if (key === 'agent_id') {
+        if (value) {
+          const agentUsername = Array.from(agentIdMap.entries()).find(([, id]) => String(id) === value)?.[0];
+          if (agentUsername) {
+            updated.agent = agentUsername;
+          }
+        } else {
+          updated.agent = '';
+        }
+      }
+      
+      return updated;
+    });
+  }, [agentIdMap]);
 
   const handleApplyAdvancedFilters = useCallback(() => {
     const sanitized = Object.fromEntries(
@@ -294,8 +434,21 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
       delete sanitized.type;
     }
 
+    // Ensure both agent and agent_id are included if either is present
+    // This ensures the API receives both parameters as expected: ?agent=agent2&agent_id=24
+    if (sanitized.agent && !sanitized.agent_id) {
+      const agentId = agentIdMap.get(sanitized.agent);
+      if (agentId) {
+        sanitized.agent_id = String(agentId);
+      }
+    }
+    
+    // If agent_id is provided but agent is not (e.g., from URL), keep agent_id
+    // The agent username will be resolved when agents are loaded
+    // Both parameters will be sent to API: ?agent_id=24 (and agent if resolved)
+
     setAdvancedFilters(sanitized);
-  }, [filters, setAdvancedFilters]);
+  }, [filters, setAdvancedFilters, agentIdMap]);
 
   const handleClearAdvancedFilters = useCallback(() => {
     setFilters({ ...DEFAULT_HISTORY_FILTERS });

@@ -139,12 +139,26 @@ class ApiClient {
     const url = this.buildUrl(endpoint, config?.params);
     const headers = this.getHeaders();
     
-    console.log('🔵 API GET:', { 
-      endpoint, 
-      url, 
-      params: config?.params,
-      hasAuthToken: !!((headers as Record<string, string>)['Authorization']),
-    });
+    // Enhanced logging for agent filter requests
+    const hasAgentFilter = config?.params && ('agent' in config.params || 'agent_id' in config.params);
+    
+    if (hasAgentFilter) {
+      console.log('🔵 API GET (Agent Filter):', { 
+        endpoint, 
+        fullUrl: url,
+        params: config?.params,
+        agent: config?.params?.agent,
+        agent_id: config?.params?.agent_id,
+        hasAuthToken: !!((headers as Record<string, string>)['Authorization']),
+      });
+    } else {
+      console.log('🔵 API GET:', { 
+        endpoint, 
+        url, 
+        params: config?.params,
+        hasAuthToken: !!((headers as Record<string, string>)['Authorization']),
+      });
+    }
     
     try {
       const response = await fetch(url, {
@@ -153,7 +167,29 @@ class ApiClient {
         headers,
       });
 
-      return this.handleResponse<T>(response);
+      // Log response for agent filter requests
+      if (hasAgentFilter) {
+        console.log('📥 API Response (Agent Filter):', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          ok: response.ok,
+        });
+      }
+
+      const result = await this.handleResponse<T>(response);
+      
+      // Log result for agent filter requests
+      if (hasAgentFilter && result && typeof result === 'object') {
+        const resultObj = result as { count?: number; results?: unknown[] };
+        console.log('✅ API Result (Agent Filter):', {
+          count: resultObj.count,
+          resultsLength: resultObj.results?.length ?? 0,
+          hasResults: (resultObj.results?.length ?? 0) > 0,
+        });
+      }
+      
+      return result;
     } catch (error: unknown) {
       // Handle network errors
       if (error instanceof Error && error.name === 'TypeError' && error.message === 'Failed to fetch') {

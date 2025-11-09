@@ -47,11 +47,33 @@ async function normalizePaginatedResponse<T>(
 
 export const transactionsApi = {
   list: async (filters?: TransactionFilters) => {
+    // Log filters before sending
+    if (filters?.agent || filters?.agent_id) {
+      console.log('📤 Sending to transactionsApi.list:', {
+        endpoint: API_ENDPOINTS.TRANSACTIONS.LIST,
+        filters,
+        agent: filters.agent,
+        agent_id: filters.agent_id,
+      });
+    }
+    
     const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
       API_ENDPOINTS.TRANSACTIONS.LIST, 
       { params: filters }
     );
-    return normalizePaginatedResponse(response);
+    
+    const result = await normalizePaginatedResponse(response);
+    
+    // Log result for agent filters
+    if (filters?.agent || filters?.agent_id) {
+      console.log('📥 Received from transactionsApi.list:', {
+        count: result.count,
+        resultsLength: result.results.length,
+        hasResults: result.results.length > 0,
+      });
+    }
+    
+    return result;
   },
 
   queues: async (filters?: QueueFilters) => {

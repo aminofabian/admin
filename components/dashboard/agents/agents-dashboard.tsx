@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { agentsApi } from '@/lib/api';
+import { agentsApi, transactionsApi } from '@/lib/api';
 import { usePagination, useSearch } from '@/lib/hooks';
 import {
   Badge,
@@ -264,7 +264,7 @@ type AgentsTableSectionProps = {
   pageSize: number;
   onPageChange: (page: number) => void;
   onToggleStatus: (agent: Agent) => void;
-  onViewTransactions: (agent: Agent) => void;
+  onViewTransactions: (agent: Agent) => Promise<void>;
 };
 
 function AgentsTableSection({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions }: AgentsTableSectionProps) {
@@ -290,7 +290,7 @@ type AgentsTableContentProps = {
   pageSize: number;
   onPageChange: (page: number) => void;
   onToggleStatus: (agent: Agent) => void;
-  onViewTransactions: (agent: Agent) => void;
+  onViewTransactions: (agent: Agent) => Promise<void>;
 };
 
 function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions }: AgentsTableContentProps) {
@@ -340,7 +340,7 @@ function AgentsTableEmptyState() {
 type AgentRowProps = {
   agent: Agent;
   onToggleStatus: (agent: Agent) => void;
-  onViewTransactions: (agent: Agent) => void;
+  onViewTransactions: (agent: Agent) => Promise<void>;
 };
 
 function AgentRow({ agent, onToggleStatus, onViewTransactions }: AgentRowProps) {
@@ -388,7 +388,7 @@ function AgentRow({ agent, onToggleStatus, onViewTransactions }: AgentRowProps) 
 type AgentActionButtonsProps = {
   agent: Agent;
   onToggleStatus: (agent: Agent) => void;
-  onViewTransactions: (agent: Agent) => void;
+  onViewTransactions: (agent: Agent) => Promise<void>;
   transactionClass: string;
   toggleClass: string;
   toggleLabel: string;
@@ -400,7 +400,7 @@ function AgentActionButtons({ agent, onToggleStatus, onViewTransactions, transac
       <Button
         size="sm"
         variant="ghost"
-        onClick={() => onViewTransactions(agent)}
+        onClick={() => void onViewTransactions(agent)}
         className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium shadow-sm ${transactionClass}`}
       >
         <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -520,7 +520,7 @@ type AgentsDashboardViewProps = {
   onDismissSuccess: () => void;
   onPageChange: (page: number) => void;
   onToggleStatus: (agent: Agent) => void;
-  onViewTransactions: (agent: Agent) => void;
+  onViewTransactions: (agent: Agent) => Promise<void>;
   onCreateAgent: (formData: CreateUserRequest | UpdateUserRequest) => Promise<void>;
   onConfirmToggle: () => Promise<void>;
   onCancelToggle: () => void;
@@ -576,10 +576,48 @@ function AgentsDashboardView({
 export default function AgentsDashboard() {
   const router = useRouter();
   const dashboard = useAgentsDashboard();
+  const { addToast } = useToast();
 
-  const viewTransactions = useCallback((agent: Agent) => {
-    router.push(`/dashboard/transactions?agent=${encodeURIComponent(agent.username)}`);
-  }, [router]);
+  const viewTransactions = useCallback(async (agent: Agent) => {
+    try {
+      console.log('🔍 Checking transactions for agent:', agent.username, agent.id);
+      
+      // Check if agent has any transactions
+      const response = await transactionsApi.list({ 
+        agent: agent.username, 
+        agent_id: agent.id,
+        page: 1, 
+        page_size: 1 
+      });
+      
+      console.log('📊 Transaction check result:', {
+        count: response.count,
+        hasResults: response.results.length > 0,
+      });
+      
+      if (response.count === 0) {
+        // No transactions found - show toast notification and stay on page
+        console.log('✅ Showing toast notification for no transactions');
+        addToast({
+          type: 'info',
+          title: 'No transactions found',
+          description: 'This agent has no transactions',
+        });
+      } else {
+        // Transactions exist - redirect to transactions page with agent filter
+        console.log('🔀 Redirecting to transactions page');
+        router.push(`/dashboard/transactions?agent=${encodeURIComponent(agent.username)}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to check agent transactions:', error);
+      // On error, show toast instead of redirecting to avoid empty page
+      addToast({
+        type: 'error',
+        title: 'Could not check transactions',
+        description: 'Please try again or view all transactions',
+      });
+    }
+  }, [router, addToast]);
 
   return (
     <AgentsDashboardView
