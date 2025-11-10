@@ -10,6 +10,8 @@ import { useOnlinePlayers } from '@/hooks/use-online-players';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
+import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
+import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 
 type Player = ChatUser;
 type Message = ChatMessage;
@@ -1214,425 +1216,50 @@ export function ChatComponent() {
     }
   }, [isHistoryLoadingMessages, autoScrollEnabled, scrollToLatest]);
 
-  // Handle ESC key to close expanded image modal
-  useEffect(() => {
-    if (!expandedImage) return;
-
-    const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setExpandedImage(null);
-      }
-    };
-
-    window.addEventListener('keydown', handleEscKey);
-    return () => {
-      window.removeEventListener('keydown', handleEscKey);
-    };
-  }, [expandedImage]);
 
   return (
     <div className="h-full flex gap-0 md:gap-4 bg-background">
       {/* Left Column - Player List */}
-      <div className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-64 lg:w-80 flex-shrink-0 border-r border-border/50 bg-gradient-to-b from-card to-card/50 flex-col`}>
-        {/* Availability Toggle */}
-        <div className="p-4 md:p-5 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <svg className={`w-4 h-4 transition-colors ${availability ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <span className="text-sm font-semibold text-foreground">Availability</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-medium ${availability ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-                {availability ? 'Available' : 'Away'}
-              </span>
-              <button
-                onClick={() => setAvailability(!availability)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 shadow-inner ${
-                  availability ? 'bg-green-500' : 'bg-muted'
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
-                    availability ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-                />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="p-4 md:p-5 border-b border-border/50">
-          <div className="relative">
-            <svg
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <Input
-              type="text"
-              placeholder="Search players..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 rounded-xl bg-muted/50 dark:bg-muted/30 border-2 border-transparent focus:border-primary focus:bg-background transition-all shadow-sm"
-            />
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="px-4 md:px-5 pt-2 pb-3 border-b border-border/50">
-          <div className="flex gap-2 p-1 bg-muted/30 rounded-xl">
-            <button
-              onClick={() => setActiveTab('online')}
-              className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
-                activeTab === 'online'
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'online' ? 'bg-white' : 'bg-green-500'}`} />
-                Online
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('all-chats')}
-              className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
-                activeTab === 'all-chats'
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-              }`}
-            >
-              All Chats
-            </button>
-          </div>
-        </div>
-
-        {/* Player Count */}
-        <div className="px-4 md:px-5 py-3 border-b border-border/50 bg-muted/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                  {activeTab === 'online' ? displayedPlayers.length : onlinePlayers.length}
-                </span>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-foreground">Online Players</p>
-                <p className="text-[10px] text-muted-foreground">{activeChatsUsers.length} with chats</p>
-              </div>
-            </div>
-            <button
-              onClick={handleRefreshOnlinePlayers}
-              disabled={isLoadingApiOnlinePlayers}
-              className="p-2 hover:bg-muted rounded-lg transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Refresh online players"
-              title="Refresh online players"
-            >
-              <svg
-                className={`w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ${
-                  isLoadingApiOnlinePlayers ? 'animate-spin' : ''
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Player List */}
-        <div className="flex-1 overflow-y-auto">
-          {(() => {
-            const shouldShowSkeleton = isCurrentTabLoading && displayedPlayers.length === 0 && !usersError;
-            !IS_PROD && console.log('💀 Should show skeleton?', shouldShowSkeleton, {
-              isCurrentTabLoading,
-              activeTab,
-              displayedPlayersLength: displayedPlayers.length,
-              usersError,
-            });
-            return shouldShowSkeleton;
-          })() ? (
-            <div className="p-2 space-y-2">
-              {/* Skeleton loaders for player cards */}
-              {[...Array(5)].map((_, index) => (
-                <div key={index} className="w-full p-3 md:p-3.5 rounded-xl bg-muted/30 animate-pulse">
-                  <div className="flex items-center gap-3">
-                    {/* Avatar skeleton */}
-                    <div className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-muted/60" />
-                    
-                    {/* Player info skeleton */}
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="h-4 w-24 bg-muted/60 rounded" />
-                        <div className="h-3 w-12 bg-muted/60 rounded" />
-                      </div>
-                      <div className="h-3 w-32 bg-muted/60 rounded" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : usersError ? (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-foreground mb-1">Chat Not Available</p>
-              <p className="text-xs text-muted-foreground max-w-xs">
-                {usersError.includes('Backend') || usersError.includes('404') 
-                  ? 'Backend chat service is not ready yet. This feature will be available once the backend is deployed.'
-                  : usersError
-                }
-              </p>
-            </div>
-          ) : displayedPlayers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-foreground mb-1">No players found</p>
-              <p className="text-xs text-muted-foreground">Try a different search term</p>
-            </div>
-          ) : (
-            <div className="p-2">
-              {displayedPlayers.map((player) => {
-                const isSelected = selectedPlayer?.user_id === player.user_id;
-                const unreadCount = player.unreadCount ?? 0;
-                const shouldDisplayUnreadBadge = !isSelected && unreadCount > 0;
-                const unreadBadgeValue = unreadCount > MAX_UNREAD_BADGE_COUNT
-                  ? `${MAX_UNREAD_BADGE_COUNT}+`
-                  : String(unreadCount);
-                return (
-                <button
-                  key={`${player.user_id}-${player.id}`}
-                  onClick={() => handlePlayerSelect(player)}
-                  className={`w-full p-3 md:p-3.5 rounded-xl mb-2 transition-all duration-200 group ${
-                    isSelected
-                      ? 'bg-primary/10 shadow-md ring-2 ring-primary/20' 
-                      : 'hover:bg-muted/50 active:scale-[0.98]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Avatar */}
-                    <div className="relative flex-shrink-0">
-                      <div className={`w-11 h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-200 ${
-                        isSelected
-                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' 
-                          : 'group-hover:scale-105'
-                      }`}>
-                        {player.avatar || player.username.charAt(0).toUpperCase()}
-                      </div>
-                      {player.isOnline && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse shadow-sm" />
-                      )}
-                    </div>
-                    
-                    {/* Player Info */}
-                    <div className="flex-1 min-w-0 text-left">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <h4 className="font-semibold text-sm text-foreground truncate">{player.username}</h4>
-                        {player.lastMessageTime && (
-                          <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
-                            {player.lastMessageTime}
-                          </span>
-                        )}
-                      </div>
-                      {player.lastMessage && (
-                        <p className="text-xs text-muted-foreground truncate leading-tight">
-                          {stripHtml(player.lastMessage)}
-                        </p>
-                      )}
-                      {player.isOnline && !player.lastMessage && (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="w-1 h-1 bg-green-500 rounded-full" />
-                          <span className="text-xs text-green-600 dark:text-green-400 font-medium">Active now</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Unread Badge */}
-                    {shouldDisplayUnreadBadge && (
-                      <div className="min-w-[20px] h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0 px-1.5">
-                        <span className="text-[10px] font-bold text-primary-foreground leading-none">
-                          {unreadBadgeValue}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </button>
-              );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+      <PlayerListSidebar
+        mobileView={mobileView}
+        availability={availability}
+        setAvailability={setAvailability}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        displayedPlayers={displayedPlayers}
+        selectedPlayer={selectedPlayer}
+        onlinePlayersCount={onlinePlayers.length}
+        activeChatsCount={activeChatsUsers.length}
+        isCurrentTabLoading={isCurrentTabLoading}
+        isLoadingApiOnlinePlayers={isLoadingApiOnlinePlayers}
+        usersError={usersError}
+        onPlayerSelect={handlePlayerSelect}
+        onRefreshOnlinePlayers={handleRefreshOnlinePlayers}
+      />
 
       {/* Middle Column - Chat Conversation */}
       <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 min-w-0 flex-col border-r border-border bg-card w-full md:w-auto overflow-hidden`}>
         {selectedPlayer ? (
           <>
             {/* Chat Header */}
-            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border/50 flex items-center justify-between bg-gradient-to-r from-card via-card/95 to-card backdrop-blur-sm sticky top-0 z-10 shadow-sm">
-              {/* Back button for mobile */}
-              <button
-                onClick={() => setMobileView('list')}
-                className="md:hidden p-2 -ml-2 hover:bg-muted rounded-lg transition-colors mr-1"
-                aria-label="Back to list"
-              >
-                <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="relative flex-shrink-0">
-              <button
-                onClick={handleNavigateToPlayer}
-                className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm md:text-base font-bold shadow-md ring-2 ring-primary/10 hover:ring-4 hover:ring-primary/20 transition-all cursor-pointer"
-                title="View player profile"
-              >
-                {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
-              </button>
-                  {selectedPlayer.isOnline && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-sm" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleNavigateToPlayer}
-                      className="font-semibold text-foreground text-sm md:text-base truncate hover:text-primary transition-colors cursor-pointer"
-                      title="View player profile"
-                    >
-                      {selectedPlayer.username}
-                    </button>
-                    {isConnected ? (
-                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-medium">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                        Connected
-                      </span>
-                    ) : (
-                      <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-xs font-medium">
-                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
-                        Connecting...
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {connectionError ? `Error: ${connectionError}` : selectedPlayer.isOnline ? 'Active now' : `Last seen ${selectedPlayer.lastMessageTime || 'recently'}`}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <button 
-                  onClick={() => setMobileView('info')}
-                  className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
-                  aria-label="View info"
-                >
-                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </button>
-                <button 
-                  onClick={() => setIsNotesDrawerOpen(true)}
-                  className="hidden md:flex p-2 hover:bg-muted rounded-lg transition-colors" 
-                  aria-label="View Notes"
-                  title="View player notes"
-                >
-                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <button className="hidden md:flex p-2 hover:bg-muted rounded-lg transition-colors" aria-label="More options">
-                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+            <ChatHeader
+              selectedPlayer={selectedPlayer}
+              isConnected={isConnected}
+              connectionError={connectionError}
+              mobileView={mobileView}
+              setMobileView={setMobileView}
+              onNavigateToPlayer={handleNavigateToPlayer}
+              onOpenNotesDrawer={() => setIsNotesDrawerOpen(true)}
+            />
 
             {/* Pinned Messages Section */}
-            {(() => {
-              const pinnedMessages = wsMessages.filter(msg => msg.isPinned);
-              if (pinnedMessages.length === 0) return null;
-              
-              return (
-                <div className="border-b border-border/50 bg-amber-500/5">
-                  {/* Collapsible Header */}
-                  <button
-                    onClick={() => setIsPinnedMessagesExpanded(!isPinnedMessagesExpanded)}
-                    className="w-full px-4 py-2 flex items-center justify-between gap-2 hover:bg-amber-500/10 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <svg className="h-4 w-4 text-amber-600 dark:text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
-                      </svg>
-                      <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
-                        Pinned Messages ({pinnedMessages.length})
-                      </span>
-                    </div>
-                    <svg
-                      className={`h-4 w-4 text-amber-600 dark:text-amber-400 transition-transform duration-200 ${
-                        isPinnedMessagesExpanded ? 'rotate-180' : ''
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  
-                  {/* Expandable Content */}
-                  {isPinnedMessagesExpanded && (
-                    <div className="px-4 pb-2 space-y-2 max-h-32 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
-                      {pinnedMessages.map((msg) => (
-                        <div key={msg.id} className="text-xs bg-background/50 rounded-lg p-2 border border-amber-500/20">
-                          <div className="flex items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-foreground line-clamp-2">
-                                {(() => {
-                                  const hasHtml = hasHtmlContent(msg.text);
-                                  const linkedText = hasHtml ? msg.text : linkifyText(msg.text ?? '');
-                                  const shouldRenderAsHtml = hasHtml || linkedText !== msg.text;
-                                  
-                                  return shouldRenderAsHtml ? (
-                                    <span 
-                                      className="[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80"
-                                      dangerouslySetInnerHTML={{ __html: linkedText }} 
-                                    />
-                                  ) : (
-                                    msg.text
-                                  );
-                                })()}
-                              </p>
-                              <p className="text-muted-foreground text-[10px] mt-1">
-                                {msg.time || msg.timestamp}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+            <PinnedMessagesSection
+              messages={wsMessages}
+              isExpanded={isPinnedMessagesExpanded}
+              onToggleExpanded={() => setIsPinnedMessagesExpanded(!isPinnedMessagesExpanded)}
+            />
 
             {/* Messages / Purchase History */}
             <div 
@@ -2063,864 +1690,82 @@ export function ChatComponent() {
             </div>
 
             {/* Message Input */}
-            <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-
-              {/* Image Preview */}
-              {imagePreviewUrl && (
-                <div className="mb-3 p-3 bg-muted/30 rounded-xl border-2 border-primary/20">
-                  <div className="flex items-start gap-3">
-                    <div className="relative group">
-                      <img
-                        src={imagePreviewUrl}
-                        alt="Preview"
-                        className="w-20 h-20 object-cover rounded-lg"
-                      />
-                      <button
-                        onClick={handleClearImage}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                        aria-label="Remove image"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{selectedImage?.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedImage && (selectedImage.size / 1024).toFixed(1)} KB
-                      </p>
-                      <p className="text-xs text-primary mt-1">Ready to send</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Toolbar - Desktop Only */}
-              <div className="hidden lg:flex items-center gap-1 mb-2 pb-2 border-border/30">
-                <button 
-                  onClick={handleAttachClick}
-                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
-                  title="Attach image"
-                  disabled={isUploadingImage}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </button>
-                <button 
-                  onClick={toggleEmojiPicker}
-                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
-                  title="Emoji"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </button>
-                <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-                  <kbd className="px-1.5 py-0.5 bg-muted/50 rounded border border-border/50 text-[10px]">Shift + Enter</kbd>
-                  <span className="text-[10px]">for new line</span>
-                </div>
-              </div>
-
-              {/* Input Area - Creative: Send button inside textarea */}
-              <div className="flex items-start gap-2 md:gap-2.5">
-                {/* Mobile: Show attach button */}
-                <button 
-                  onClick={handleAttachClick}
-                  className="md:hidden p-2.5 mt-1 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all active:scale-95 flex-shrink-0"
-                  title="Attach image"
-                  aria-label="Attach image"
-                  disabled={isUploadingImage}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </button>
-                
-                {/* Textarea Container with Embedded Send Button */}
-                <div className="flex-1 relative">
-                  <textarea
-                    placeholder="Type your message... (Shift+Enter for new line)"
-                    value={messageInput}
-                    onChange={(e) => {
-                      setMessageInput(e.target.value);
-                      // Auto-resize - responsive max height
-                      e.target.style.height = 'auto';
-                      const maxHeight = window.innerWidth >= 768 ? 300 : 200;
-                      e.target.style.height = Math.min(e.target.scrollHeight, maxHeight) + 'px';
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    rows={1}
-                    className="w-full min-h-[80px] md:min-h-[140px] lg:min-h-[160px] max-h-[200px] md:max-h-[300px] rounded-2xl bg-background/80 dark:bg-background border-2 border-border/50 focus:border-primary transition-all text-sm md:text-base lg:text-lg py-3 md:py-4 lg:py-5 px-4 md:px-5 lg:px-6 pr-16 md:pr-20 pb-14 md:pb-16 shadow-md resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50 text-foreground leading-relaxed"
-                  />
-                  
-                  {/* Action Bar - Inside Textarea at Bottom */}
-                  <div className="absolute bottom-2 md:bottom-3 left-3 right-3 md:left-4 md:right-4 flex items-center justify-between gap-2">
-                    {/* Left: Quick Actions */}
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={handleAttachClick}
-                        className="p-1.5 md:p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-95"
-                        title="Attach image"
-                        aria-label="Attach image"
-                        disabled={isUploadingImage}
-                      >
-                        <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </button>
-                      <div className="relative">
-                        <button 
-                          onClick={toggleEmojiPicker}
-                          className="p-1.5 md:p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-95"
-                          title="Emoji"
-                          aria-label="Add emoji"
-                        >
-                          <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </button>
-                        {/* Emoji Picker Popup */}
-                        {showEmojiPicker && (
-                          <div 
-                            ref={emojiPickerRef}
-                            className="absolute bottom-full left-0 mb-2 bg-card border border-border rounded-xl shadow-xl p-3 z-50 w-64 animate-in fade-in zoom-in-95 duration-200"
-                          >
-                            <div className="flex items-center justify-between mb-2 pb-2 border-b border-border">
-                              <span className="text-sm font-semibold text-foreground">Pick an emoji</span>
-                              <button 
-                                onClick={() => setShowEmojiPicker(false)}
-                                className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                            <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
-                              {commonEmojis.map((emoji, index) => (
-                                <button
-                                  key={index}
-                                  onClick={() => handleEmojiSelect(emoji)}
-                                  className="text-xl hover:bg-muted rounded p-1 transition-colors active:scale-95 hover:scale-110"
-                                  title={emoji}
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      {messageInput && (
-                        <button
-                          onClick={() => setMessageInput('')}
-                          className="p-1.5 md:p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all active:scale-95"
-                          aria-label="Clear message"
-                        >
-                          <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                    
-                    {/* Right: Send Button */}
-                    <button
-                      onClick={handleSendMessage}
-                      disabled={(!messageInput.trim() && !selectedImage) || isUploadingImage}
-                      className="rounded-xl px-4 md:px-5 lg:px-6 py-2 md:py-2.5 transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground font-semibold text-sm md:text-base"
-                      aria-label="Send message"
-                    >
-                      {isUploadingImage ? (
-                        <>
-                          <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                            <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                          </svg>
-                          <span className="hidden sm:inline">Sending...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="hidden sm:inline">Send</span>
-                          <svg className="w-4.5 h-4.5 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                          </svg>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mobile hint */}
-              <div className="md:hidden mt-2 text-xs text-muted-foreground/60 text-center">
-                Tap Send or Enter to send • Hold Shift for new line
-              </div>
-            </div>
+            <MessageInputArea
+              messageInput={messageInput}
+              setMessageInput={setMessageInput}
+              selectedImage={selectedImage}
+              imagePreviewUrl={imagePreviewUrl}
+              isUploadingImage={isUploadingImage}
+              showEmojiPicker={showEmojiPicker}
+              setShowEmojiPicker={setShowEmojiPicker}
+              commonEmojis={commonEmojis}
+              emojiPickerRef={emojiPickerRef}
+              fileInputRef={fileInputRef}
+              onSendMessage={handleSendMessage}
+              onKeyPress={handleKeyPress}
+              onImageSelect={handleImageSelect}
+              onClearImage={handleClearImage}
+              onAttachClick={handleAttachClick}
+              onEmojiSelect={handleEmojiSelect}
+              toggleEmojiPicker={toggleEmojiPicker}
+            />
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-background/50 to-background">
-            <div className="relative mb-6">
-              <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center ring-8 ring-primary/5">
-                <svg className="w-12 h-12 md:w-14 md:h-14 text-primary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center animate-pulse">
-                <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            </div>
-            <h3 className="text-lg md:text-xl font-bold text-foreground mb-2">No Conversation Selected</h3>
-            <p className="text-sm md:text-base text-muted-foreground max-w-sm mb-6">
-              Choose a player from the list to start messaging and provide support
-            </p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span>{displayedPlayers.filter(p => p.isOnline).length} players online</span>
-            </div>
-          </div>
+          <EmptyState onlinePlayersCount={displayedPlayers.filter(p => p.isOnline).length} />
         )}
       </div>
 
       {/* Right Column - Player Info */}
       {selectedPlayer && (
-        <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-80 lg:w-96 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
-          {/* Header with Player Avatar */}
-          <div className="p-3 md:p-4 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
-            {/* Back button for mobile */}
-            <button
-              onClick={() => setMobileView('chat')}
-              className="md:hidden mb-3 p-2 hover:bg-muted rounded-lg transition-colors inline-flex items-center gap-2 text-muted-foreground"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="text-sm">Back to chat</span>
-            </button>
-            
-            <div className="flex flex-col items-center text-center">
-                <div className="relative mb-2">
-                  <button
-                    onClick={handleNavigateToPlayer}
-                    className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-lg ring-2 ring-primary/20 hover:ring-4 hover:ring-primary/30 transition-all cursor-pointer"
-                    title="View player profile"
-                  >
-                    {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
-                  </button>
-                  {isConnected && (
-                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-lg" />
-                  )}
-                </div>
-                <button
-                  onClick={handleNavigateToPlayer}
-                  className="text-base md:text-lg font-bold text-foreground mb-0.5 hover:text-primary transition-colors cursor-pointer"
-                  title="View player profile"
-                >
-                  {selectedPlayer.fullName || selectedPlayer.username}
-                </button>
-                <p className="text-xs text-muted-foreground mb-0.5">@{selectedPlayer.username}</p>
-                <p className="text-[10px] text-muted-foreground truncate max-w-full px-2">
-                  {selectedPlayer.email || 'Email not available'}
-                </p>
-                {isConnected ? (
-                  <span className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-[10px] font-medium">
-                    <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                    Connected
-                  </span>
-                ) : (
-                  <span className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-medium">
-                    <span className="w-1 h-1 bg-amber-500 rounded-full" />
-                    Connecting...
-                  </span>
-                )}
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3">
-            {/* Financial Summary */}
-            <div className="rounded-lg bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3 space-y-2">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 rounded-md bg-primary/20 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h4 className="font-semibold text-sm text-foreground">Balance</h4>
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between p-2 bg-background/50 rounded-md">
-                  <span className="text-xs text-muted-foreground">Total Balance</span>
-                  <span className="text-sm font-bold text-foreground">{formatCurrency(selectedPlayer.balance || '0')}</span>
-                </div>
-                <div className="flex items-center justify-between p-2 bg-gradient-to-r from-yellow-500/10 to-yellow-600/5 rounded-md border border-yellow-500/20">
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span className="text-xs text-foreground font-medium">Winnings</span>
-                  </div>
-                  <span className="text-sm font-bold text-yellow-600 dark:text-yellow-500">{formatCurrency(selectedPlayer.winningBalance || '0')}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button 
-                variant="primary" 
-                className="w-full shadow-md hover:shadow-lg transition-shadow text-xs py-2"
-                onClick={handleOpenEditBalance}
-              >
-                <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Edit Balance
-              </Button>
-              <Button 
-                variant="secondary" 
-                className="w-full hover:bg-muted/50 text-xs py-2"
-                onClick={handleOpenEditProfile}
-              >
-                <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit Info
-              </Button>
-            </div>
-
-            {/* Activity Sections */}
-            <div className="rounded-lg bg-card border border-border p-3 space-y-1.5 shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 rounded-md bg-purple-500/10 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h4 className="font-semibold text-sm text-foreground">Activity</h4>
-              </div>
-              {[
-                { name: 'Purchases', count: 0, icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
-                { name: 'Cashouts', count: 0, icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
-                { name: 'Game Activities', count: 0, icon: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z' },
-                { name: 'Games', count: 0, icon: 'M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z' }
-              ].map((section, idx) => (
-                <button
-                  key={idx}
-                  className="w-full flex items-center justify-between p-2 hover:bg-muted/50 rounded-md transition-colors group"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                      <svg className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={section.icon} />
-                      </svg>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs font-medium text-foreground">{section.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{section.count} items</p>
-                    </div>
-                  </div>
-                  <svg className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              ))}
-            </div>
-
-            {/* Add Game Button */}
-            <Button variant="primary" className="w-full shadow-md hover:shadow-lg transition-shadow text-xs py-2">
-              <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add New Game
-            </Button>
-
-            {/* Notes Section */}
-            <div className="rounded-lg bg-card border border-border p-3 space-y-2 shadow-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </div>
-                <h4 className="font-semibold text-sm text-foreground">Notes</h4>
-              </div>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-                    e.preventDefault();
-                    handleSaveNotes();
-                  }
-                }}
-                placeholder="Add private notes about this player..."
-                className="w-full min-h-[80px] p-2.5 border border-border rounded-md bg-background dark:bg-background text-foreground text-xs resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-muted-foreground"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="primary" 
-                  className="w-full text-xs py-2" 
-                  onClick={handleSaveNotes}
-                  disabled={isSavingNotes}
-                >
-                  {isSavingNotes ? (
-                    <svg className="w-3.5 h-3.5 mr-1.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                    </svg>
-                  ) : (
-                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                  {isSavingNotes ? 'Saving...' : 'Save'}
-                </Button>
-                <Button variant="secondary" className="w-full text-xs py-2" onClick={() => setNotes('')}>
-                  <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Clear
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PlayerInfoSidebar
+          selectedPlayer={selectedPlayer}
+          isConnected={isConnected}
+          mobileView={mobileView}
+          setMobileView={setMobileView}
+          notes={notes}
+          setNotes={setNotes}
+          isSavingNotes={isSavingNotes}
+          onNavigateToPlayer={handleNavigateToPlayer}
+          onOpenEditBalance={handleOpenEditBalance}
+          onOpenEditProfile={handleOpenEditProfile}
+          onSaveNotes={handleSaveNotes}
+        />
       )}
 
       {/* Edit Profile Drawer */}
-      <div className={`fixed inset-0 z-50 overflow-hidden transition-opacity duration-300 ${isEditProfileModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {/* Backdrop */}
-        <div 
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={() => !isUpdatingProfile && setIsEditProfileModalOpen(false)}
-        />
-        
-        {/* Drawer Panel */}
-        <div 
-          className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isEditProfileModalOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        >
-          {/* Drawer Header */}
-          <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-foreground">Edit Profile Details</h2>
-            <button
-              onClick={() => setIsEditProfileModalOpen(false)}
-              className="p-1 hover:bg-muted rounded-lg transition-colors"
-              disabled={isUpdatingProfile}
-            >
-              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Drawer Body */}
-          <div className="p-6 space-y-4 overflow-y-auto h-[calc(100vh-73px)]">
-              {/* Username */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Username
-                </label>
-                <Input
-                  type="text"
-                  value={profileFormData.username}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, username: e.target.value }))}
-                  className="w-full"
-                  disabled={isUpdatingProfile}
-                />
-              </div>
-
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Full name
-                </label>
-                <Input
-                  type="text"
-                  value={profileFormData.full_name}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                  className="w-full"
-                  disabled={isUpdatingProfile}
-                />
-              </div>
-
-              {/* DOB */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  DOB
-                </label>
-                <Input
-                  type="date"
-                  value={profileFormData.dob}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, dob: e.target.value }))}
-                  className="w-full"
-                  disabled={isUpdatingProfile}
-                />
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Email
-                </label>
-                <Input
-                  type="email"
-                  value={profileFormData.email}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full"
-                  disabled={isUpdatingProfile}
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Password
-                </label>
-                <Input
-                  type="password"
-                  value={profileFormData.password}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Leave blank to keep current password"
-                  className="w-full"
-                  disabled={isUpdatingProfile}
-                />
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Confirm Password
-                </label>
-                <Input
-                  type="password"
-                  value={profileFormData.confirmPassword}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  placeholder="Confirm new password"
-                  className="w-full"
-                  disabled={isUpdatingProfile}
-                />
-              </div>
-
-              {/* Save Button */}
-              <Button
-                variant="primary"
-                className="w-full mt-6"
-                onClick={handleUpdateProfile}
-                disabled={isUpdatingProfile}
-              >
-                {isUpdatingProfile ? (
-                  <>
-                    <svg className="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                    </svg>
-                    Saving...
-                  </>
-                ) : (
-                  'Save'
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
+      <EditProfileDrawer
+        isOpen={isEditProfileModalOpen}
+        onClose={() => setIsEditProfileModalOpen(false)}
+        profileFormData={profileFormData}
+        setProfileFormData={setProfileFormData}
+        isUpdating={isUpdatingProfile}
+        onUpdate={handleUpdateProfile}
+      />
 
       {/* Edit Balance Drawer */}
-      <div className={`fixed inset-0 z-[60] overflow-hidden transition-opacity duration-300 ${isEditBalanceModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {/* Backdrop */}
-        <div 
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={() => !isUpdatingBalance && setIsEditBalanceModalOpen(false)}
-        />
-        
-        {/* Drawer Panel */}
-        <div 
-          className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isEditBalanceModalOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        >
-          {/* Drawer Header */}
-          <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-foreground">Edit Balance</h2>
-            <button
-              onClick={() => setIsEditBalanceModalOpen(false)}
-              className="p-1 hover:bg-muted rounded-lg transition-colors"
-              disabled={isUpdatingBalance}
-            >
-              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Drawer Body */}
-          <div className="p-6 space-y-6 overflow-y-auto h-[calc(100vh-73px)]">
-            {/* Balance Display with +/- Buttons */}
-            <div className="flex items-center justify-center gap-4">
-              <button
-                onClick={() => setBalanceValue(prev => Math.max(0, prev - 1))}
-                className="w-14 h-14 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-foreground text-2xl font-semibold transition-colors"
-                disabled={isUpdatingBalance}
-              >
-                -
-              </button>
-              <div className="text-5xl font-bold text-primary min-w-[120px] text-center">
-                {balanceValue}
-              </div>
-              <button
-                onClick={() => setBalanceValue(prev => prev + 1)}
-                className="w-14 h-14 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-foreground text-2xl font-semibold transition-colors"
-                disabled={isUpdatingBalance}
-              >
-                +
-              </button>
-            </div>
-
-            {/* Quick Amount Buttons */}
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-3">
-                Quick Amounts
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[5, 10, 15, 20].map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => setBalanceValue(amount)}
-                    className="py-3 px-4 border-2 border-primary/20 hover:border-primary rounded-lg text-primary font-semibold transition-colors"
-                    disabled={isUpdatingBalance}
-                  >
-                    ${amount}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Manual Amount Entry */}
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">
-                Manual Amount
-              </label>
-              <Input
-                type="number"
-                value={balanceValue === 0 ? '' : balanceValue}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '') {
-                    setBalanceValue(0);
-                  } else {
-                    setBalanceValue(Math.max(0, parseFloat(val) || 0));
-                  }
-                }}
-                placeholder="Enter amount"
-                className="w-full"
-                disabled={isUpdatingBalance}
-                min="0"
-                step="1"
-              />
-            </div>
-
-            {/* Balance Type Selection */}
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-3">
-                Balance Type
-              </label>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border-2 rounded-lg transition-colors hover:bg-muted/50" 
-                  style={{ borderColor: balanceType === 'main' ? 'rgb(34, 197, 94)' : 'transparent' }}>
-                  <input
-                    type="radio"
-                    name="balanceType"
-                    checked={balanceType === 'main'}
-                    onChange={() => setBalanceType('main')}
-                    className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-500"
-                    disabled={isUpdatingBalance}
-                  />
-                  <span className="text-sm font-medium text-foreground">Main Balance</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border-2 rounded-lg transition-colors hover:bg-muted/50"
-                  style={{ borderColor: balanceType === 'winning' ? 'rgb(234, 179, 8)' : 'transparent' }}>
-                  <input
-                    type="radio"
-                    name="balanceType"
-                    checked={balanceType === 'winning'}
-                    onChange={() => setBalanceType('winning')}
-                    className="w-4 h-5 text-yellow-500 border-gray-300 focus:ring-yellow-500"
-                    disabled={isUpdatingBalance}
-                  />
-                  <span className="text-sm font-medium text-foreground">Winning Balance</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-3 pt-4">
-              <Button
-                variant="primary"
-                onClick={() => handleUpdateBalance('increase')}
-                disabled={isUpdatingBalance || balanceValue <= 0}
-                className="w-full"
-              >
-                {isUpdatingBalance ? (
-                  <svg className="w-5 h-5 mx-auto animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  'Topup'
-                )}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => handleUpdateBalance('decrease')}
-                disabled={isUpdatingBalance || balanceValue <= 0}
-                className="w-full"
-              >
-                {isUpdatingBalance ? (
-                  <svg className="w-5 h-5 mx-auto animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  'Withdraw'
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <EditBalanceDrawer
+        isOpen={isEditBalanceModalOpen}
+        onClose={() => setIsEditBalanceModalOpen(false)}
+        balanceValue={balanceValue}
+        setBalanceValue={setBalanceValue}
+        balanceType={balanceType}
+        setBalanceType={setBalanceType}
+        isUpdating={isUpdatingBalance}
+        onUpdate={handleUpdateBalance}
+      />
 
       {/* Notes Drawer */}
-      {isNotesDrawerOpen && (
-        <div 
-          className="fixed inset-0 z-[9998] bg-black/50 animate-in fade-in duration-200"
-          onClick={() => setIsNotesDrawerOpen(false)}
-        >
-          <div 
-            className="absolute right-0 top-0 h-full w-full max-w-md bg-background shadow-2xl animate-in slide-in-from-right duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="border-b border-border/50 p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <h3 className="text-lg font-semibold">Player Notes</h3>
-              </div>
-              <button
-                onClick={() => setIsNotesDrawerOpen(false)}
-                className="p-2 hover:bg-muted rounded-lg transition-colors"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      <NotesDrawer
+        isOpen={isNotesDrawerOpen}
+        onClose={() => setIsNotesDrawerOpen(false)}
+        selectedPlayer={selectedPlayer}
+      />
 
-            {/* Content */}
-            <div className="p-6">
-              {selectedPlayer ? (
-                <div className="space-y-4">
-                  {/* Player Info */}
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg font-bold text-primary">
-                        {selectedPlayer.username.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{selectedPlayer.username}</p>
-                      <p className="text-xs text-muted-foreground truncate">{selectedPlayer.email}</p>
-                    </div>
-                  </div>
-
-                  {/* Notes Content */}
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground block mb-2">
-                      Notes
-                    </label>
-                    {selectedPlayer.notes ? (
-                      <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
-                        <p className="text-sm text-foreground whitespace-pre-wrap">
-                          {selectedPlayer.notes}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="p-8 text-center">
-                        <svg className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p className="text-sm text-muted-foreground">No notes available for this player</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <svg className="w-16 h-16 text-muted-foreground/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <p className="text-sm text-muted-foreground">No player selected</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {expandedImage && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
-          onClick={() => setExpandedImage(null)}
-        >
-          {/* Close button */}
-          <button
-            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-            onClick={() => setExpandedImage(null)}
-            title="Close (ESC)"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          {/* Download button */}
-          <a
-            href={expandedImage || undefined}
-            download
-            className="absolute top-4 right-16 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-            onClick={(e) => e.stopPropagation()}
-            title="Download image"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-          </a>
-
-          {/* Expanded image */}
-          <img
-            src={expandedImage || undefined}
-            alt="Expanded view"
-            className="max-w-full max-h-full object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      {/* Expanded Image Modal */}
+      <ExpandedImageModal
+        imageUrl={expandedImage}
+        onClose={() => setExpandedImage(null)}
+      />
     </div>
   );
 }
