@@ -17,8 +17,6 @@ import {
   DashboardActionBar,
   DashboardSectionContainer,
   DashboardSectionHeader,
-  DashboardStatCard,
-  DashboardStatGrid,
 } from '@/components/dashboard/layout';
 import { 
   EmptyState,
@@ -31,12 +29,11 @@ import {
   useTransactionQueuesStore 
 } from '@/stores';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
-import { PROJECT_DOMAIN } from '@/lib/constants/api';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
-import { useProcessingWebSocket, type WebSocketMessage } from '@/hooks/use-processing-websocket';
+import { useProcessingWebSocket } from '@/hooks/use-processing-websocket';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
@@ -183,22 +180,6 @@ function ProcessingQueueTableSkeleton() {
   );
 }
 
-function ProcessingStatsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
-      {[...Array(4)].map((_, i) => (
-        <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24" />
-            <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded" />
-          </div>
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20 mb-2" />
-          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16" />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 const PURCHASE_ICON: JSX.Element = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,8 +198,6 @@ const GAME_ICON: JSX.Element = (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z" />
   </svg>
 );
-
-const CRYPTO_PAYMENT_METHODS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'];
 
 const PROCESSING_CONFIG: Record<ViewType, {
   title: string;
@@ -254,35 +233,6 @@ const PROCESSING_CONFIG: Record<ViewType, {
   },
 };
 
-type ProcessingStat = {
-  title: string;
-  value: string;
-  helper?: string;
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
-  icon: JSX.Element;
-};
-
-function ProcessingTransactionsStats({ stats }: { stats: ProcessingStat[] }) {
-  if (!stats.length) {
-    return null;
-  }
-
-  return (
-    <DashboardStatGrid>
-      {stats.map((stat) => (
-        <DashboardStatCard
-          key={stat.title}
-          title={stat.title}
-          value={stat.value}
-          helperText={stat.helper}
-          icon={stat.icon}
-          variant={stat.variant}
-        />
-      ))}
-    </DashboardStatGrid>
-  );
-}
-
 interface ProcessingTransactionRowProps {
   transaction: Transaction;
   getStatusVariant: (status: string) => 'success' | 'warning' | 'danger' | 'info';
@@ -293,16 +243,6 @@ interface ProcessingTransactionRowProps {
 function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isActionPending }: ProcessingTransactionRowProps) {
   const bonusValue = parseFloat(transaction.bonus_amount || '0');
   const paymentMethod = transaction.payment_method ?? '—';
-  const lowerPaymentMethod = paymentMethod.toLowerCase();
-  const isCryptoPayment = CRYPTO_PAYMENT_METHODS.some((method) => lowerPaymentMethod.includes(method));
-  const explicitInvoiceUrl = transaction.payment_url ?? transaction.invoice_url;
-  const sanitizedInvoiceUrl = typeof explicitInvoiceUrl === 'string' ? explicitInvoiceUrl.trim() : '';
-  const invoiceUrl = sanitizedInvoiceUrl.length > 0
-    ? sanitizedInvoiceUrl
-    : transaction.id
-      ? `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${transaction.id}/invoice/`
-      : undefined;
-  const isPending = transaction.status === 'pending';
 
   const isPurchase = transaction.type === 'purchase';
   const statusVariant = getStatusVariant(transaction.status);
@@ -442,70 +382,6 @@ const getStatusVariant = (status: string): 'success' | 'warning' | 'danger' | 'i
   }
 };
 
-
-function buildProcessingTransactionStats(transactions: Transaction[], totalCount: number): ProcessingStat[] {
-  const queueSize = totalCount || transactions.length;
-
-  if (!queueSize) {
-    return [];
-  }
-
-  const pending = transactions.filter((tx) => tx.status === 'pending').length;
-  const completed = transactions.filter((tx) => tx.status === 'completed').length;
-  const cancelled = transactions.filter((tx) => tx.status === 'cancelled').length;
-  const volume = transactions.reduce((sum, tx) => sum + parseFloat(tx.amount || '0'), 0);
-  const bonuses = transactions.reduce((sum, tx) => sum + parseFloat(tx.bonus_amount || '0'), 0);
-
-  const percentage = (count: number) => (queueSize ? Math.round((count / queueSize) * 100) : 0);
-
-  return [
-    {
-      title: 'Queue Size',
-      value: queueSize.toLocaleString(),
-      helper: `Volume ${formatCurrency(volume)} · Bonuses ${formatCurrency(bonuses)}`,
-      variant: 'info',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5h6m-6 4h6m-6 4h6m-9 4h12" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Pending',
-      value: pending.toLocaleString(),
-      helper: `${percentage(pending)}% of queue`,
-      variant: 'warning',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Completed',
-      value: completed.toLocaleString(),
-      helper: `${percentage(completed)}% resolved`,
-      variant: 'success',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ),
-    },
-    {
-      title: 'Cancelled',
-      value: cancelled.toLocaleString(),
-      helper: `${percentage(cancelled)}% rejected`,
-      variant: 'danger',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      ),
-    },
-  ];
-}
-
 export function ProcessingSection({ type }: ProcessingSectionProps) {
   const viewType = type;
   const [queueFilter] = useState<QueueFilterType>('processing');
@@ -540,7 +416,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     fetchTransactions,
     setPage: setTransactionsPage,
     setFilter: setTransactionsFilter,
-    updateTransactionStatus,
   } = useTransactionsStore();
 
   const {
@@ -632,7 +507,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     [transactions?.results]
   );
   const transactionCount = transactions?.count ?? 0;
-  const transactionStats = useMemo(() => buildProcessingTransactionStats(transactionResults, transactionCount), [transactionResults, transactionCount]);
 
   useEffect(() => {
     if (viewType === 'purchases') {
@@ -785,7 +659,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         confirmModal.transaction.status
       );
       setConfirmModal({ isOpen: false, transaction: null, action: null, isLoading: false });
-    } catch (error) {
+    } catch {
       // Error is already handled in handleTransactionAction
       setConfirmModal(prev => ({ ...prev, isLoading: false }));
     }
@@ -795,10 +669,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     setConfirmModal({ isOpen: false, transaction: null, action: null, isLoading: false });
   };
 
-  const handleActionClick = (queue: TransactionQueue) => {
+  const handleActionClick = useCallback((queue: TransactionQueue) => {
     setSelectedQueue(queue);
     setIsActionModalOpen(true);
-  };
+  }, []);
 
   const handleActionSubmit = async (data: Parameters<typeof handleGameAction>[0]) => {
     await handleGameAction(data);
@@ -822,7 +696,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
   handleTransactionActionClick(selectedTransaction, action);
 };
 
-  const handleQuickAction = async (queue: TransactionQueue, action: string) => {
+  const handleQuickAction = useCallback(async (queue: TransactionQueue, action: string) => {
     if (action === 'view') {
       // Open modal to View and select action
       handleActionClick(queue);
@@ -863,7 +737,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
         duration: 6000,
       });
     }
-  };
+  }, [handleGameAction, addToast, handleActionClick]);
 
   const handleQueuePageChange = useCallback((page: number) => {
     if (page === queuePage) {
@@ -874,7 +748,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
 
   const handleViewGameActivity = useCallback((queue: TransactionQueue) => {
     handleQuickAction(queue, 'view');
-  }, []);
+  }, [handleQuickAction]);
 
   if (isTransactionsView) {
     const isInitialLoading = transactionsLoading && !transactions;

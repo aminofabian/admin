@@ -286,7 +286,7 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
     return () => {
       isMounted = false;
     };
-  }, [setAdvancedFilters]);
+  }, [setAdvancedFilters, getStoreState]);
 
   useEffect(() => {
     if (!usernameQuery || usernameQuery.trim().length < 2) {
