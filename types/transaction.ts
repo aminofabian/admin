@@ -92,3 +92,21 @@ export interface ChatPurchase {
   type: string;
 }
 
+export interface GameActivity {
+  id: string;
+  user_id: number;
+  username: string;
+  full_name: string;
+  game_id: number;
+  game_title: string;
+  game_code: string;
+  amount: string;
+  bonus_amount: string;
+  total_amount: string;
+  type: string;
+  status: string;
+  operator: string;
+  remarks: string;
+  created_at: string;
+}
+

@@ -7,6 +7,7 @@ import type {
   Player,
   PlayerGame,
   ChatPurchase,
+  GameActivity,
   CreateUserRequest,
   UpdateUserRequest,
   PaginatedResponse
@@ -125,6 +126,23 @@ export const playersApi = {
     }).then(response => {
       console.log('💰 Cashouts response:', response);
       return response.cashouts || [];
+    });
+  },
+
+  gameActivities: (userId?: number) => {
+    console.log('🔍 Fetching game activities for user_id:', userId);
+    const params: Record<string, string | number> = { 
+      request_type: 'game_activities'
+    };
+    // Add user_id filter if provided
+    if (userId) {
+      params.user_id = userId;
+    }
+    return apiClient.get<{ game_activities: GameActivity[] }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
+      params,
+    }).then(response => {
+      console.log('🎮 Game activities response:', response);
+      return response.game_activities || [];
     });
   },
 };
