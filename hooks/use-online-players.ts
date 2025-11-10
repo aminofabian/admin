@@ -45,12 +45,13 @@ function transformPlayerToUser(data: any): ChatUser {
       isOnline: true, // Players in online list are online
       lastMessage: data.last_message || undefined,
       lastMessageTime: data.last_message_timestamp || data.last_message_time || undefined,
-      balance: undefined, // Not included in chats format
-      winningBalance: undefined,
-      gamesPlayed: undefined,
-      winRate: undefined,
-      phone: undefined,
+      balance: data.player_balance !== undefined ? String(data.player_balance) : undefined,
+      winningBalance: data.player_winning_balance !== undefined ? String(data.player_winning_balance) : undefined,
+      gamesPlayed: data.player_games_played || undefined,
+      winRate: data.player_win_rate || undefined,
+      phone: data.player_phone_number || undefined,
       unreadCount: data.unread_messages_count || data.unread_message_count || 0,
+      notes: data.player_notes || undefined,
     };
   }
   
@@ -75,6 +76,7 @@ function transformPlayerToUser(data: any): ChatUser {
     winRate: player.win_rate || undefined,
     phone: player.phone_number || player.mobile_number || undefined,
     unreadCount: data.unread_message_count || 0,
+    notes: player.notes || undefined,
   };
 }
 
@@ -131,12 +133,44 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       !IS_PROD && console.log('📊 [Online Players] API response:', data);
 
       // Parse different response formats
-      // ✅ IMPORTANT: Check 'chats' FIRST - it has the correct chatroom_id mapping
+      // ✅ IMPORTANT: Merge chats + player arrays when both are present
       let players: any[] = [];
       if (Array.isArray(data)) {
         players = data;
+      } else if (data.chats && Array.isArray(data.chats) && data.player && Array.isArray(data.player)) {
+        // ✅ BEST CASE: Merge chats with player details
+        // Create a map of player details by player_id
+        const playerDetailsMap = new Map();
+        data.player.forEach((p: any) => {
+          if (p.id) {
+            playerDetailsMap.set(p.id, p);
+          }
+        });
+        
+        // Merge chat data with player details
+        players = data.chats.map((chat: any) => {
+          const playerDetails = playerDetailsMap.get(chat.player_id);
+          if (playerDetails) {
+            // Merge chat info with full player details
+            return {
+              ...chat,
+              player_notes: playerDetails.notes,
+              player_full_name: playerDetails.full_name || chat.player_full_name,
+              player_email: playerDetails.email || chat.player_email,
+              player_profile_pic: playerDetails.profile_pic || chat.player_profile_pic,
+              player_balance: playerDetails.balance,
+              player_winning_balance: playerDetails.winning_balance,
+              player_phone_number: playerDetails.phone_number,
+              player_dob: playerDetails.dob,
+              player_gems: playerDetails.gems,
+              player_timezone: playerDetails.timezone,
+            };
+          }
+          return chat;
+        });
+        !IS_PROD && console.log('📋 [Online Players] Merged chats + player arrays');
       } else if (data.chats && Array.isArray(data.chats)) {
-        // ✅ PRIORITY: Use chats array - it has proper chat_id + player data
+        // Use chats array only
         players = data.chats;
         !IS_PROD && console.log('📋 [Online Players] Using chats array format');
       } else if (data.players && Array.isArray(data.players)) {

@@ -14,6 +14,7 @@ export interface ChatUser {
   winRate?: number;
   phone?: string;
   unreadCount?: number;
+  notes?: string;
 }
 
 export interface ChatMessage {
