@@ -6,6 +6,7 @@ import { Button, Input, useToast } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
+import { useOnlinePlayers } from '@/hooks/use-online-players';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
@@ -200,11 +201,7 @@ export function ChatComponent() {
   const [isUserAtLatest, setIsUserAtLatest] = useState(true);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [unseenMessageCount, setUnseenMessageCount] = useState(0);
-  const [isRefreshingOnlinePlayers, setIsRefreshingOnlinePlayers] = useState(false);
-  const [apiOnlinePlayers, setApiOnlinePlayers] = useState<Player[]>([]);
-  const [isLoadingApiOnlinePlayers, setIsLoadingApiOnlinePlayers] = useState(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
-  const hasFetchedOnlinePlayersRef = useRef(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
   const wasHistoryLoadingRef = useRef(false);
@@ -225,6 +222,18 @@ export function ChatComponent() {
   } = useChatUsers({
     adminId: adminUserId,
     enabled: hasValidAdminUser,
+  });
+
+  // ✨ OPTIMIZED: Fetch online players using hybrid REST + WebSocket approach
+  const {
+    onlinePlayers: apiOnlinePlayers,
+    isLoading: isLoadingApiOnlinePlayers,
+    error: onlinePlayersError,
+    refetch: refetchOnlinePlayers,
+    isConnected: isOnlinePlayersWSConnected,
+  } = useOnlinePlayers({
+    adminId: adminUserId,
+    enabled: hasValidAdminUser && activeTab === 'online', // Only fetch when online tab is active
   });
 
   // WebSocket connection for real-time chat
@@ -280,23 +289,23 @@ export function ChatComponent() {
     let players: Player[];
     
     if (activeTab === 'online') {
-      // Use API online players as base, then merge/append WebSocket updates
+      // ✨ OPTIMIZED: Use hybrid REST + WebSocket online players
+      // apiOnlinePlayers already combines REST API data with real-time WebSocket updates
       const seenUserIds = new Map<number, Player>();
       
-      // First, add API online players (base list)
-      apiOnlinePlayers.forEach((player) => {
+      // First, add all online players from the optimized hook
+      apiOnlinePlayers.forEach((player: Player) => {
         if (player.user_id) {
           seenUserIds.set(player.user_id, player);
         }
       });
       
-      // Then, append/update with WebSocket active chats (only if not already present)
-      activeChatsUsers.forEach((player) => {
+      // Then, merge with active chat data for real-time message updates
+      activeChatsUsers.forEach((player: Player) => {
         if (player.user_id && player.isOnline) {
-          // Update existing player with WebSocket data, or add new one
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
-            // Merge: keep API data but update with WebSocket chat info
+            // Merge: keep online player data but update with chat info
             seenUserIds.set(player.user_id, {
               ...existing,
               lastMessage: player.lastMessage || existing.lastMessage,
@@ -304,7 +313,7 @@ export function ChatComponent() {
               unreadCount: player.unreadCount ?? existing.unreadCount ?? 0,
             });
           } else {
-            // Append new player from WebSocket
+            // Add player from active chats if not in online list
             seenUserIds.set(player.user_id, player);
           }
         }
@@ -318,7 +327,7 @@ export function ChatComponent() {
       const combinedPlayers: Player[] = [];
       
       // First, add active chats (prioritized)
-      activeChatsUsers.forEach((player) => {
+      activeChatsUsers.forEach((player: Player) => {
         if (player.user_id && !seenUserIds.has(player.user_id)) {
           seenUserIds.add(player.user_id);
           combinedPlayers.push(player);
@@ -326,7 +335,7 @@ export function ChatComponent() {
       });
       
       // Then, add players from allPlayers that aren't in active chats
-      allPlayers.forEach((player) => {
+      allPlayers.forEach((player: Player) => {
         if (player.user_id && !seenUserIds.has(player.user_id)) {
           seenUserIds.add(player.user_id);
           combinedPlayers.push(player);
@@ -351,10 +360,10 @@ export function ChatComponent() {
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {
     if (activeTab === 'online') {
-      const isLoading = isLoadingApiOnlinePlayers || isRefreshingOnlinePlayers;
+      // ✨ OPTIMIZED: Use the new hook's loading state
+      const isLoading = isLoadingApiOnlinePlayers;
       !IS_PROD && console.log('🔍 Online tab loading state:', {
         isLoadingApiOnlinePlayers,
-        isRefreshingOnlinePlayers,
         computed: isLoading,
       });
       return isLoading;
@@ -370,7 +379,7 @@ export function ChatComponent() {
       computed: isLoading,
     });
     return isLoading;
-  }, [activeTab, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
+  }, [activeTab, isLoadingApiOnlinePlayers, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
 
   useEffect(() => {
     // Load all players for "all-chats" tab only
@@ -451,6 +460,14 @@ export function ChatComponent() {
     const { markAsRead } = options ?? {};
     const shouldMarkAsRead = markAsRead ?? DEFAULT_MARK_AS_READ;
 
+    // Debug: Log player selection to verify IDs
+    !IS_PROD && console.log('👤 [Player Select]', {
+      username: player.username,
+      chatId: player.id,
+      userId: player.user_id,
+      tab: activeTab,
+    });
+
     if (shouldMarkAsRead) {
       markChatAsRead({
         chatId: player.id,
@@ -504,100 +521,13 @@ export function ChatComponent() {
     };
   }, [messageMenuOpen]);
 
-  // Transform API response to Player format
-  const transformApiPlayerToUser = useCallback((player: Record<string, unknown>): Player => {
-    return {
-      id: String(player.id || ''),
-      user_id: Number(player.id || 0),
-      username: (player.username as string) || (player.full_name as string) || 'Unknown',
-      fullName: (player.full_name as string) || (player.name as string) || undefined,
-      email: (player.email as string) || '',
-      avatar: (player.profile_pic as string) || (player.profile_image as string) || (player.avatar as string) || undefined,
-      isOnline: player.is_online !== undefined ? Boolean(player.is_online) : true, // Online players from API are online
-      lastMessage: undefined,
-      lastMessageTime: undefined,
-      balance: player.balance !== undefined ? String(player.balance) : undefined,
-      winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
-      gamesPlayed: (player.games_played as number) || undefined,
-      winRate: (player.win_rate as number) || undefined,
-      phone: (player.phone_number as string) || (player.mobile_number as string) || undefined,
-      unreadCount: 0,
-    };
-  }, []);
-
-  // Fetch online players from API endpoint
-  const fetchOnlinePlayers = useCallback(async () => {
+  // ✨ OPTIMIZED: Refresh handler now uses the new hook
+  const handleRefreshOnlinePlayers = useCallback(async () => {
     if (!hasValidAdminUser) {
       return;
     }
-
-    setIsLoadingApiOnlinePlayers(true);
-    try {
-      const token = storage.get(TOKEN_KEY);
-      const response = await fetch('/api/chat-online-players', {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' })) as { message?: string };
-        console.error('❌ Failed to fetch online players:', errorData.message);
-        hasFetchedOnlinePlayersRef.current = true; // Mark as fetched even on error to prevent retry loop
-        return;
-      }
-
-      const data = await response.json() as Record<string, unknown> | Record<string, unknown>[];
-      !IS_PROD && console.log('✅ Fetched online players from API:', data);
-
-      // Transform API response to Player format
-      // Handle different response formats
-      let players: Record<string, unknown>[] = [];
-      if (Array.isArray(data)) {
-        players = data;
-      } else if (typeof data === 'object' && data !== null) {
-        const dataObj = data as Record<string, unknown>;
-        if (dataObj.players && Array.isArray(dataObj.players)) {
-          players = dataObj.players as Record<string, unknown>[];
-        } else if (dataObj.results && Array.isArray(dataObj.results)) {
-          players = dataObj.results as Record<string, unknown>[];
-        } else if (dataObj.online_players && Array.isArray(dataObj.online_players)) {
-          players = dataObj.online_players as Record<string, unknown>[];
-        } else if (dataObj.player && Array.isArray(dataObj.player)) {
-          // Handle the format: {"chats":[],"player":[]}
-          players = dataObj.player as Record<string, unknown>[];
-        }
-      }
-
-      const transformedPlayers = players.map(transformApiPlayerToUser);
-      setApiOnlinePlayers(transformedPlayers);
-      hasFetchedOnlinePlayersRef.current = true; // Mark as fetched (even if empty)
-      !IS_PROD && console.log(`✅ Set ${transformedPlayers.length} online players from API`);
-    } catch (error) {
-      console.error('❌ Error fetching online players:', error);
-      hasFetchedOnlinePlayersRef.current = true; // Mark as fetched even on error to prevent retry loop
-    } finally {
-      setIsLoadingApiOnlinePlayers(false);
-    }
-  }, [hasValidAdminUser, transformApiPlayerToUser]);
-
-  const handleRefreshOnlinePlayers = useCallback(async () => {
-    if (!hasValidAdminUser || isRefreshingOnlinePlayers) {
-      return;
-    }
-
-    setIsRefreshingOnlinePlayers(true);
-    // Reset the ref to allow refresh
-    hasFetchedOnlinePlayersRef.current = false;
-    try {
-      await fetchOnlinePlayers();
-    } catch (error) {
-      console.error('❌ Error refreshing online players:', error);
-    } finally {
-      setIsRefreshingOnlinePlayers(false);
-    }
-  }, [hasValidAdminUser, isRefreshingOnlinePlayers, fetchOnlinePlayers]);
+    await refetchOnlinePlayers();
+  }, [hasValidAdminUser, refetchOnlinePlayers]);
 
   const handleTogglePin = useCallback(async (messageId: string, isPinned: boolean) => {
     if (!selectedPlayer) {
@@ -835,18 +765,17 @@ export function ChatComponent() {
     }
   }, [selectedPlayer, profileFormData, isUpdatingProfile, addToast]);
 
-  // Fetch online players when switching to "online" tab or on mount
+  // Log online players connection status
   useEffect(() => {
-    if (
-      activeTab === 'online' &&
-      hasValidAdminUser &&
-      !hasFetchedOnlinePlayersRef.current &&
-      !isLoadingApiOnlinePlayers
-    ) {
-      !IS_PROD && console.log('🔄 Loading online players for online tab');
-      fetchOnlinePlayers();
+    if (!IS_PROD && activeTab === 'online') {
+      console.log('🌐 [Online Players] Status:', {
+        loading: isLoadingApiOnlinePlayers,
+        count: apiOnlinePlayers.length,
+        wsConnected: isOnlinePlayersWSConnected,
+        error: onlinePlayersError,
+      });
     }
-  }, [activeTab, hasValidAdminUser, isLoadingApiOnlinePlayers, fetchOnlinePlayers]);
+  }, [activeTab, isLoadingApiOnlinePlayers, apiOnlinePlayers.length, isOnlinePlayersWSConnected, onlinePlayersError]);
 
   const maybeLoadOlderMessages = useCallback(async () => {
     if (!selectedPlayer) return;
@@ -1133,14 +1062,14 @@ export function ChatComponent() {
             </div>
             <button
               onClick={handleRefreshOnlinePlayers}
-              disabled={isRefreshingOnlinePlayers}
+              disabled={isLoadingApiOnlinePlayers}
               className="p-2 hover:bg-muted rounded-lg transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Refresh online players"
               title="Refresh online players"
             >
               <svg
                 className={`w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ${
-                  isRefreshingOnlinePlayers ? 'animate-spin' : ''
+                  isLoadingApiOnlinePlayers ? 'animate-spin' : ''
                 }`}
                 fill="none"
                 stroke="currentColor"
