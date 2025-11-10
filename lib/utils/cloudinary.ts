@@ -48,7 +48,6 @@ export async function uploadToCloudinary(
   // Generate unique filename
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 15);
-  const fileExtension = file.name.split('.').pop() || 'jpg';
   const uniqueFileName = `${timestamp}_${randomStr}`;
 
   // Upload to Cloudinary using promise wrapper
@@ -57,12 +56,16 @@ export async function uploadToCloudinary(
       {
         folder: folder,
         public_id: uniqueFileName,
-        resource_type: 'image',
-        format: fileExtension,
+        resource_type: 'auto', // Let Cloudinary auto-detect the resource type
+        // Don't specify format - let Cloudinary auto-detect it
       },
       (error, result) => {
         if (error) {
-          console.error('❌ Cloudinary upload error:', error);
+          console.error('❌ Cloudinary upload error:', {
+            message: error.message,
+            http_code: error.http_code,
+            name: error.name,
+          });
           reject(new Error(`Cloudinary upload failed: ${error.message}`));
         } else if (result) {
           console.log('✅ Cloudinary upload success:', result.secure_url);
