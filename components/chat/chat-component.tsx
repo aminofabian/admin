@@ -206,11 +206,30 @@ export function ChatComponent() {
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [unseenMessageCount, setUnseenMessageCount] = useState(0);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
   const wasHistoryLoadingRef = useRef(false);
   const messageMenuRef = useRef<HTMLDivElement | null>(null);
+  const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const { addToast } = useToast();
+
+  // Common emojis for quick access
+  const commonEmojis = [
+    '😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊',
+    '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘',
+    '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪',
+    '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒',
+    '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖',
+    '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡',
+    '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰',
+    '👍', '👎', '👏', '🙌', '👐', '🤝', '🙏', '✌️',
+    '🤞', '🤟', '🤘', '🤙', '💪', '🦾', '🖕', '✍️',
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+    '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘',
+    '🔥', '⭐', '✨', '💫', '🌟', '💥', '💯', '✅',
+    '❌', '⚠️', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇'
+  ];
 
   // Fetch chat users list
   const { 
@@ -524,6 +543,39 @@ export function ChatComponent() {
       document.removeEventListener('mousedown', handleOutsideClick);
     };
   }, [messageMenuOpen]);
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    if (!showEmojiPicker) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!emojiPickerRef.current) {
+        return;
+      }
+
+      if (emojiPickerRef.current.contains(event.target as Node)) {
+        return;
+      }
+
+      setShowEmojiPicker(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [showEmojiPicker]);
+
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    setMessageInput(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  }, []);
+
+  const toggleEmojiPicker = useCallback(() => {
+    setShowEmojiPicker(prev => !prev);
+  }, []);
 
   // ✨ OPTIMIZED: Refresh handler now uses the new hook
   const handleRefreshOnlinePlayers = useCallback(async () => {
@@ -1859,6 +1911,7 @@ export function ChatComponent() {
                   </svg>
                 </button>
                 <button 
+                  onClick={toggleEmojiPicker}
                   className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
                   title="Emoji"
                 >
@@ -1920,15 +1973,49 @@ export function ChatComponent() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
                       </button>
-                      <button 
-                        className="p-1.5 md:p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-95"
-                        title="Emoji"
-                        aria-label="Add emoji"
-                      >
-                        <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </button>
+                      <div className="relative">
+                        <button 
+                          onClick={toggleEmojiPicker}
+                          className="p-1.5 md:p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-95"
+                          title="Emoji"
+                          aria-label="Add emoji"
+                        >
+                          <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+                        {/* Emoji Picker Popup */}
+                        {showEmojiPicker && (
+                          <div 
+                            ref={emojiPickerRef}
+                            className="absolute bottom-full left-0 mb-2 bg-card border border-border rounded-xl shadow-xl p-3 z-50 w-64 animate-in fade-in zoom-in-95 duration-200"
+                          >
+                            <div className="flex items-center justify-between mb-2 pb-2 border-b border-border">
+                              <span className="text-sm font-semibold text-foreground">Pick an emoji</span>
+                              <button 
+                                onClick={() => setShowEmojiPicker(false)}
+                                className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
+                              {commonEmojis.map((emoji, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => handleEmojiSelect(emoji)}
+                                  className="text-xl hover:bg-muted rounded p-1 transition-colors active:scale-95 hover:scale-110"
+                                  title={emoji}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       {messageInput && (
                         <button
                           onClick={() => setMessageInput('')}
