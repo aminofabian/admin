@@ -10,7 +10,7 @@ cloudinary.config({
 export interface CloudinaryUploadResult {
   secure_url: string;
   public_id: string;
-  asset_id: string;
+  asset_id?: string; // Optional: not always provided by Cloudinary
   width: number;
   height: number;
   format: string;
