@@ -505,22 +505,22 @@ export function ChatComponent() {
   }, [messageMenuOpen]);
 
   // Transform API response to Player format
-  const transformApiPlayerToUser = useCallback((player: any): Player => {
+  const transformApiPlayerToUser = useCallback((player: Record<string, unknown>): Player => {
     return {
       id: String(player.id || ''),
       user_id: Number(player.id || 0),
-      username: player.username || player.full_name || 'Unknown',
-      fullName: player.full_name || player.name || undefined,
-      email: player.email || '',
-      avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
-      isOnline: player.is_online !== undefined ? player.is_online : true, // Online players from API are online
+      username: (player.username as string) || (player.full_name as string) || 'Unknown',
+      fullName: (player.full_name as string) || (player.name as string) || undefined,
+      email: (player.email as string) || '',
+      avatar: (player.profile_pic as string) || (player.profile_image as string) || (player.avatar as string) || undefined,
+      isOnline: player.is_online !== undefined ? Boolean(player.is_online) : true, // Online players from API are online
       lastMessage: undefined,
       lastMessageTime: undefined,
       balance: player.balance !== undefined ? String(player.balance) : undefined,
       winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
-      gamesPlayed: player.games_played || undefined,
-      winRate: player.win_rate || undefined,
-      phone: player.phone_number || player.mobile_number || undefined,
+      gamesPlayed: (player.games_played as number) || undefined,
+      winRate: (player.win_rate as number) || undefined,
+      phone: (player.phone_number as string) || (player.mobile_number as string) || undefined,
       unreadCount: 0,
     };
   }, []);
@@ -542,29 +542,32 @@ export function ChatComponent() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' })) as { message?: string };
         console.error('❌ Failed to fetch online players:', errorData.message);
         hasFetchedOnlinePlayersRef.current = true; // Mark as fetched even on error to prevent retry loop
         return;
       }
 
-      const data = await response.json();
+      const data = await response.json() as Record<string, unknown> | Record<string, unknown>[];
       !IS_PROD && console.log('✅ Fetched online players from API:', data);
 
       // Transform API response to Player format
       // Handle different response formats
-      let players: any[] = [];
+      let players: Record<string, unknown>[] = [];
       if (Array.isArray(data)) {
         players = data;
-      } else if (data.players && Array.isArray(data.players)) {
-        players = data.players;
-      } else if (data.results && Array.isArray(data.results)) {
-        players = data.results;
-      } else if (data.online_players && Array.isArray(data.online_players)) {
-        players = data.online_players;
-      } else if (data.player && Array.isArray(data.player)) {
-        // Handle the format: {"chats":[],"player":[]}
-        players = data.player;
+      } else if (typeof data === 'object' && data !== null) {
+        const dataObj = data as Record<string, unknown>;
+        if (dataObj.players && Array.isArray(dataObj.players)) {
+          players = dataObj.players as Record<string, unknown>[];
+        } else if (dataObj.results && Array.isArray(dataObj.results)) {
+          players = dataObj.results as Record<string, unknown>[];
+        } else if (dataObj.online_players && Array.isArray(dataObj.online_players)) {
+          players = dataObj.online_players as Record<string, unknown>[];
+        } else if (dataObj.player && Array.isArray(dataObj.player)) {
+          // Handle the format: {"chats":[],"player":[]}
+          players = dataObj.player as Record<string, unknown>[];
+        }
       }
 
       const transformedPlayers = players.map(transformApiPlayerToUser);
@@ -774,7 +777,7 @@ export function ChatComponent() {
     setIsUpdatingProfile(true);
     try {
       // Build update payload, only include password if it's provided
-      const updatePayload: any = {
+      const updatePayload: Record<string, string | undefined> = {
         username: profileFormData.username,
         full_name: profileFormData.full_name,
         email: profileFormData.email,

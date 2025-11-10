@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     });
 
     const rawText = await backendResponse.text();
-    let payload: any = null;
+    let payload: unknown = null;
 
     if (rawText) {
       try {
@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (!backendResponse.ok) {
-      const message = payload?.message || payload?.detail || `Backend error ${backendResponse.status}`;
+      const payloadObj = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+      const message = (payloadObj.message as string) || (payloadObj.detail as string) || `Backend error ${backendResponse.status}`;
       return NextResponse.json(
         {
           status: 'error',
