@@ -109,6 +109,21 @@ const hasHtmlContent = (value: string | null | undefined): boolean => {
   return HTML_TAG_REGEX.test(value);
 };
 
+// Check if a URL points to an image
+const isImageUrl = (url: string): boolean => {
+  if (!url) return false;
+  const imageExtensions = /\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff|ico|heic|heif)(\?.*)?$/i;
+  return imageExtensions.test(url);
+};
+
+// Extract image URLs from text
+const extractImageUrls = (text: string): string[] => {
+  if (!text) return [];
+  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff|ico|heic|heif)(\?[^\s]*)?)/gi;
+  const matches = text.match(urlRegex);
+  return matches || [];
+};
+
 const MESSAGE_HTML_CONTENT_CLASS = {
   admin: [
     'text-[13px] md:text-sm leading-relaxed break-words whitespace-pre-wrap',
@@ -1463,36 +1478,97 @@ export function ChatComponent() {
                                 isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
                               } ${message.isPinned ? 'ring-2 ring-amber-400/60' : ''}`}
                             >
-                              {/* File indicator badge with download link */}
-                              {message.isFile && (
-                                <div className={`flex items-center justify-between gap-2 mb-2 pb-2 border-b ${
-                                  isAdmin ? 'border-border/50' : 'border-white/20'
-                                }`}>
-                                  <div className="flex items-center gap-1.5">
-                                    <svg className={`w-4 h-4 ${isAdmin ? 'text-primary' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                    </svg>
-                                    <span className={`text-xs font-medium ${isAdmin ? 'text-muted-foreground' : 'text-white/90'}`}>
-                                      File attachment{message.fileExtension && ` (.${message.fileExtension})`}
-                                    </span>
-                                  </div>
-                                  {message.fileUrl && (
-                                    <a
-                                      href={message.fileUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className={`text-xs font-medium hover:underline flex items-center gap-1 ${
-                                        isAdmin ? 'text-primary hover:text-primary/80' : 'text-white hover:text-white/80'
-                                      }`}
-                                    >
-                                      Download
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                      </svg>
-                                    </a>
-                                  )}
-                                </div>
-                              )}
+                              {/* Image or File indicator badge with download link */}
+                              {(() => {
+                                const imageUrls = extractImageUrls(message.text);
+                                const fileUrl = message.fileUrl || imageUrls[0];
+                                const isImage = fileUrl && isImageUrl(fileUrl);
+                                
+                                if (isImage) {
+                                  // Display image
+                                  return (
+                                    <div className="mb-2 space-y-2">
+                                      <div className="relative rounded-lg overflow-hidden">
+                                        <img 
+                                          src={fileUrl} 
+                                          alt="Uploaded image"
+                                          className="max-w-full h-auto max-h-96 rounded-lg object-contain w-full"
+                                          onError={(e) => {
+                                            // Fallback if image fails to load
+                                            e.currentTarget.style.display = 'none';
+                                            const parent = e.currentTarget.parentElement;
+                                            if (parent) {
+                                              parent.innerHTML = `<div class="flex items-center gap-2 p-2 rounded-md bg-muted/20"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span class="text-xs">Failed to load image</span></div>`;
+                                            }
+                                          }}
+                                        />
+                                      </div>
+                                      {/* Action buttons below image */}
+                                      <div className="flex items-center gap-2">
+                                        <a
+                                          href={fileUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95 shadow-sm ${
+                                            isAdmin 
+                                              ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                                              : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
+                                          }`}
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                          </svg>
+                                          Open
+                                        </a>
+                                        <a
+                                          href={fileUrl}
+                                          download
+                                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95 shadow-sm ${
+                                            isAdmin 
+                                              ? 'bg-muted text-foreground hover:bg-muted/80' 
+                                              : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
+                                          }`}
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                          </svg>
+                                          Download
+                                        </a>
+                                      </div>
+                                    </div>
+                                  );
+                                } else if (message.isFile && fileUrl) {
+                                  // Display file attachment badge
+                                  return (
+                                    <div className={`flex items-center justify-between gap-2 mb-2 pb-2 border-b ${
+                                      isAdmin ? 'border-border/50' : 'border-white/20'
+                                    }`}>
+                                      <div className="flex items-center gap-1.5">
+                                        <svg className={`w-4 h-4 ${isAdmin ? 'text-primary' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                        </svg>
+                                        <span className={`text-xs font-medium ${isAdmin ? 'text-muted-foreground' : 'text-white/90'}`}>
+                                          File attachment{message.fileExtension && ` (.${message.fileExtension})`}
+                                        </span>
+                                      </div>
+                                      <a
+                                        href={fileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`text-xs font-medium hover:underline flex items-center gap-1 ${
+                                          isAdmin ? 'text-primary hover:text-primary/80' : 'text-white hover:text-white/80'
+                                        }`}
+                                      >
+                                        Download
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                      </a>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                               
                               {/* Comment badge */}
                               {message.isComment && (
@@ -1508,20 +1584,39 @@ export function ChatComponent() {
                                 </div>
                               )}
                               
-                              {messageHasHtml ? (
-                                <div
-                                  className={MESSAGE_HTML_CONTENT_CLASS[isAdmin ? 'admin' : 'player']}
-                                  dangerouslySetInnerHTML={{ __html: message.text ?? '' }}
-                                />
-                              ) : (
-                                <p
-                                  className={`text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                                    isAdmin ? 'text-foreground' : 'text-white'
-                                  }`}
-                                >
-                                  {message.text}
-                                </p>
-                              )}
+                              {(() => {
+                                const imageUrls = extractImageUrls(message.text);
+                                const hasImages = imageUrls.length > 0;
+                                
+                                // Remove image URLs from text for display
+                                let displayText = message.text;
+                                if (hasImages) {
+                                  imageUrls.forEach(url => {
+                                    displayText = displayText.replace(url, '');
+                                  });
+                                  displayText = displayText.trim();
+                                }
+                                
+                                // Only show text if there's non-URL content
+                                if (!displayText && hasImages) {
+                                  return null;
+                                }
+                                
+                                return messageHasHtml ? (
+                                  <div
+                                    className={MESSAGE_HTML_CONTENT_CLASS[isAdmin ? 'admin' : 'player']}
+                                    dangerouslySetInnerHTML={{ __html: displayText ?? '' }}
+                                  />
+                                ) : (
+                                  <p
+                                    className={`text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                                      isAdmin ? 'text-foreground' : 'text-white'
+                                    }`}
+                                  >
+                                    {displayText}
+                                  </p>
+                                );
+                              })()}
                               
                               {/* User balance indicator (only for player messages) */}
                               {!isAdmin && message.userBalance !== undefined && (
