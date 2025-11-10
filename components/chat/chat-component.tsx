@@ -224,11 +224,15 @@ export function ChatComponent() {
   const [unseenMessageCount, setUnseenMessageCount] = useState(0);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
   const wasHistoryLoadingRef = useRef(false);
   const messageMenuRef = useRef<HTMLDivElement | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { addToast } = useToast();
 
   // Common emojis for quick access
@@ -436,12 +440,95 @@ export function ChatComponent() {
   }, [activeTab, allPlayers.length, fetchAllPlayers]);
 
 
-  const handleSendMessage = useCallback(() => {
-    if (!messageInput.trim() || !selectedPlayer) return;
+  const handleSendMessage = useCallback(async () => {
+    if ((!messageInput.trim() && !selectedImage) || !selectedPlayer) return;
     
+    // If there's an image to upload
+    if (selectedImage) {
+      setIsUploadingImage(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedImage);
+        formData.append('chat_type', 'csr');
+        formData.append('sender_id', String(adminUserId));
+        formData.append('receiver_id', String(selectedPlayer.user_id));
+        
+        // Add text message if there is one
+        if (messageInput.trim()) {
+          formData.append('message', messageInput.trim());
+        }
+        
+        const token = storage.get(TOKEN_KEY);
+        
+        // Upload to local Next.js API endpoint
+        const response = await fetch('/api/chat-upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to upload image');
+        }
+        
+        const result = await response.json();
+        !IS_PROD && console.log('✅ Image uploaded successfully:', result);
+        
+        // The backend should return the file URL in the format:
+        // https://serverhub.biz/media/csr/chats/filename.jpeg
+        const imageUrl = result.file_url || result.url || result.file;
+        !IS_PROD && console.log('📷 Image URL:', imageUrl);
+        
+        // If there's also a text message, send it via WebSocket with the image URL
+        if (imageUrl) {
+          const messageWithImage = messageInput.trim() 
+            ? `${messageInput.trim()}\n${imageUrl}` 
+            : imageUrl;
+          
+          // Send message with image URL via WebSocket
+          wsSendMessage(messageWithImage);
+        }
+        
+        // Clear image preview and input
+        setSelectedImage(null);
+        setImagePreviewUrl(null);
+        setMessageInput('');
+        
+        // Update the chat list with the sent message
+        const currentTime = new Date().toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        
+        updateChatLastMessage(
+          selectedPlayer.user_id,
+          selectedPlayer.id,
+          messageInput.trim() || '📷 Image',
+          currentTime
+        );
+        
+        addToast({
+          type: 'success',
+          title: 'Image sent successfully',
+        });
+      } catch (error) {
+        console.error('❌ Failed to upload image:', error);
+        addToast({
+          type: 'error',
+          title: 'Failed to send image',
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } finally {
+        setIsUploadingImage(false);
+      }
+      return;
+    }
+    
+    // Send text message via WebSocket
     const messageText = messageInput.trim();
-    
-    // Send message via WebSocket
     wsSendMessage(messageText);
     
     // Update the chat list with the sent message
@@ -458,7 +545,7 @@ export function ChatComponent() {
     );
     
     setMessageInput('');
-  }, [messageInput, selectedPlayer, wsSendMessage, updateChatLastMessage]);
+  }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -466,6 +553,55 @@ export function ChatComponent() {
       handleSendMessage();
     }
   }, [handleSendMessage]);
+
+  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      addToast({
+        type: 'error',
+        title: 'Invalid file type',
+        description: 'Please select an image file',
+      });
+      return;
+    }
+    
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      addToast({
+        type: 'error',
+        title: 'File too large',
+        description: 'Image must be less than 10MB',
+      });
+      return;
+    }
+    
+    setSelectedImage(file);
+    
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Clear file input
+    if (e.target) {
+      e.target.value = '';
+    }
+  }, [addToast]);
+
+  const handleClearImage = useCallback(() => {
+    setSelectedImage(null);
+    setImagePreviewUrl(null);
+  }, []);
+
+  const handleAttachClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
   const scrollToLatest = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const container = messagesContainerRef.current;
@@ -1922,19 +2058,53 @@ export function ChatComponent() {
 
             {/* Message Input */}
             <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+
+              {/* Image Preview */}
+              {imagePreviewUrl && (
+                <div className="mb-3 p-3 bg-muted/30 rounded-xl border-2 border-primary/20">
+                  <div className="flex items-start gap-3">
+                    <div className="relative group">
+                      <img
+                        src={imagePreviewUrl}
+                        alt="Preview"
+                        className="w-20 h-20 object-cover rounded-lg"
+                      />
+                      <button
+                        onClick={handleClearImage}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        aria-label="Remove image"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{selectedImage?.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedImage && (selectedImage.size / 1024).toFixed(1)} KB
+                      </p>
+                      <p className="text-xs text-primary mt-1">Ready to send</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Toolbar - Desktop Only */}
-              <div className="hidden lg:flex items-center gap-1 mb-2 pb-2 border-b border-border/30">
+              <div className="hidden lg:flex items-center gap-1 mb-2 pb-2 border-border/30">
                 <button 
-                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
-                  title="Attach file"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </button>
-                <button 
+                  onClick={handleAttachClick}
                   className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
                   title="Attach image"
+                  disabled={isUploadingImage}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1959,12 +2129,14 @@ export function ChatComponent() {
               <div className="flex items-start gap-2 md:gap-2.5">
                 {/* Mobile: Show attach button */}
                 <button 
+                  onClick={handleAttachClick}
                   className="md:hidden p-2.5 mt-1 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all active:scale-95 flex-shrink-0"
-                  title="Attach"
-                  aria-label="Attach file"
+                  title="Attach image"
+                  aria-label="Attach image"
+                  disabled={isUploadingImage}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </button>
                 
@@ -1995,12 +2167,14 @@ export function ChatComponent() {
                     {/* Left: Quick Actions */}
                     <div className="flex items-center gap-1">
                       <button 
+                        onClick={handleAttachClick}
                         className="p-1.5 md:p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-95"
-                        title="Attach file"
-                        aria-label="Attach file"
+                        title="Attach image"
+                        aria-label="Attach image"
+                        disabled={isUploadingImage}
                       >
                         <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </button>
                       <div className="relative">
@@ -2062,14 +2236,26 @@ export function ChatComponent() {
                     {/* Right: Send Button */}
                     <button
                       onClick={handleSendMessage}
-                      disabled={!messageInput.trim()}
+                      disabled={(!messageInput.trim() && !selectedImage) || isUploadingImage}
                       className="rounded-xl px-4 md:px-5 lg:px-6 py-2 md:py-2.5 transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground font-semibold text-sm md:text-base"
                       aria-label="Send message"
                     >
-                      <span className="hidden sm:inline">Send</span>
-                      <svg className="w-4.5 h-4.5 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
+                      {isUploadingImage ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                            <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                          </svg>
+                          <span className="hidden sm:inline">Sending...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="hidden sm:inline">Send</span>
+                          <svg className="w-4.5 h-4.5 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

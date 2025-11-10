@@ -54,7 +54,7 @@ const mapHistoryMessage = (msg: any): ChatMessage => {
     isComment: msg.is_comment ?? false,
     isFile: msg.is_file ?? false,
     fileExtension: msg.file_extension ?? undefined,
-    fileUrl: msg.file ?? undefined,
+    fileUrl: msg.file || msg.file_url || undefined,
     userBalance: msg.user_balance ?? msg.balance,
     isPinned: msg.is_pinned ?? msg.isPinned ?? false,
   };
@@ -467,6 +467,7 @@ export function useChatWebSocket({
               // Include additional metadata from the backend
               isFile: rawData.is_file || false,
               fileExtension: rawData.file_extension || undefined,
+              fileUrl: rawData.file || rawData.file_url || undefined,
               isComment: rawData.is_comment || false,
               isPinned: rawData.is_pinned ?? false,
             };
