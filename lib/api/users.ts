@@ -6,6 +6,7 @@ import type {
   Staff,
   Player,
   PlayerGame,
+  ChatPurchase,
   CreateUserRequest,
   UpdateUserRequest,
   PaginatedResponse
@@ -100,5 +101,18 @@ export const playersApi = {
       username: string;
       password: string;
     }>(API_ENDPOINTS.GAMES.PLAYER_GAMES, data),
+
+  purchases: (chatroomId: string | number) => {
+    console.log('🔍 Fetching purchases for chatroom_id:', chatroomId);
+    return apiClient.get<{ pending_cashout: ChatPurchase[] }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
+      params: { 
+        request_type: 'purchases_list',
+        chatroom_id: chatroomId 
+      },
+    }).then(response => {
+      console.log('📦 Purchases response:', response);
+      return response.pending_cashout || [];
+    });
+  },
 };
 

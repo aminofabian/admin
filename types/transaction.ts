@@ -82,3 +82,13 @@ export interface GameActionResponse {
   queue_id: string | number;
 }
 
+export interface ChatPurchase {
+  id: string;
+  user_id: number;
+  amount: number;
+  status: string;
+  transaction_id: string;
+  operator: string;
+  type: string;
+}
+
