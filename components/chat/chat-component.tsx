@@ -161,6 +161,16 @@ export function ChatComponent() {
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const [isPinnedMessagesExpanded, setIsPinnedMessagesExpanded] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [profileFormData, setProfileFormData] = useState({
+    username: '',
+    full_name: '',
+    dob: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
   const [isUserAtLatest, setIsUserAtLatest] = useState(true);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [unseenMessageCount, setUnseenMessageCount] = useState(0);
@@ -694,6 +704,106 @@ export function ChatComponent() {
       setIsSavingNotes(false);
     }
   }, [selectedPlayer, notes, isSavingNotes, addToast]);
+
+  const handleOpenEditProfile = useCallback(() => {
+    if (!selectedPlayer) return;
+    
+    setProfileFormData({
+      username: selectedPlayer.username || '',
+      full_name: selectedPlayer.fullName || '',
+      dob: '', // You may need to add this field to the player data
+      email: selectedPlayer.email || '',
+      password: '',
+      confirmPassword: '',
+    });
+    setIsEditProfileModalOpen(true);
+  }, [selectedPlayer]);
+
+  const handleUpdateProfile = useCallback(async () => {
+    if (!selectedPlayer || isUpdatingProfile) {
+      return;
+    }
+
+    // Validate passwords match if provided
+    if (profileFormData.password && profileFormData.password !== profileFormData.confirmPassword) {
+      addToast({
+        type: 'error',
+        title: 'Password mismatch',
+        description: 'Password and Confirm Password must match.',
+      });
+      return;
+    }
+
+    const token = storage.get(TOKEN_KEY);
+    if (!token) {
+      addToast({
+        type: 'error',
+        title: 'Authentication required',
+        description: 'Please sign in again to update profile.',
+      });
+      return;
+    }
+
+    setIsUpdatingProfile(true);
+    try {
+      // Build update payload, only include password if it's provided
+      const updatePayload: any = {
+        username: profileFormData.username,
+        full_name: profileFormData.full_name,
+        email: profileFormData.email,
+      };
+
+      if (profileFormData.dob) {
+        updatePayload.dob = profileFormData.dob;
+      }
+
+      if (profileFormData.password) {
+        updatePayload.password = profileFormData.password;
+      }
+
+      const response = await fetch(`/api/admin/players/${selectedPlayer.user_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatePayload),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const errorMessage =
+          (result && (result.message || result.detail)) ||
+          'Unable to update profile right now.';
+        throw new Error(errorMessage);
+      }
+
+      addToast({
+        type: 'success',
+        title: 'Profile updated successfully',
+      });
+      
+      setIsEditProfileModalOpen(false);
+      
+      // Update the selected player with new data
+      setSelectedPlayer(prev => prev ? {
+        ...prev,
+        username: profileFormData.username,
+        fullName: profileFormData.full_name,
+        email: profileFormData.email,
+      } : null);
+    } catch (error) {
+      const description = error instanceof Error ? error.message : 'Unknown error';
+      addToast({
+        type: 'error',
+        title: 'Failed to update profile',
+        description,
+      });
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  }, [selectedPlayer, profileFormData, isUpdatingProfile, addToast]);
 
   // Fetch online players when switching to "online" tab or on mount
   useEffect(() => {
@@ -1830,7 +1940,11 @@ export function ChatComponent() {
                 </svg>
                 Edit Balance
               </Button>
-              <Button variant="secondary" className="w-full hover:bg-muted/50 text-xs py-2">
+              <Button 
+                variant="secondary" 
+                className="w-full hover:bg-muted/50 text-xs py-2"
+                onClick={handleOpenEditProfile}
+              >
                 <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -1936,7 +2050,144 @@ export function ChatComponent() {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Edit Profile Drawer */}
+      <div className={`fixed inset-0 z-50 overflow-hidden transition-opacity duration-300 ${isEditProfileModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={() => !isUpdatingProfile && setIsEditProfileModalOpen(false)}
+        />
+        
+        {/* Drawer Panel */}
+        <div 
+          className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isEditProfileModalOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        >
+          {/* Drawer Header */}
+          <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground">Edit Profile Details</h2>
+            <button
+              onClick={() => setIsEditProfileModalOpen(false)}
+              className="p-1 hover:bg-muted rounded-lg transition-colors"
+              disabled={isUpdatingProfile}
+            >
+              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Drawer Body */}
+          <div className="p-6 space-y-4 overflow-y-auto h-[calc(100vh-73px)]">
+              {/* Username */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Username
+                </label>
+                <Input
+                  type="text"
+                  value={profileFormData.username}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, username: e.target.value }))}
+                  className="w-full"
+                  disabled={isUpdatingProfile}
+                />
+              </div>
+
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Full name
+                </label>
+                <Input
+                  type="text"
+                  value={profileFormData.full_name}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                  className="w-full"
+                  disabled={isUpdatingProfile}
+                />
+              </div>
+
+              {/* DOB */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  DOB
+                </label>
+                <Input
+                  type="date"
+                  value={profileFormData.dob}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, dob: e.target.value }))}
+                  className="w-full"
+                  disabled={isUpdatingProfile}
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  value={profileFormData.email}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full"
+                  disabled={isUpdatingProfile}
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Password
+                </label>
+                <Input
+                  type="password"
+                  value={profileFormData.password}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Leave blank to keep current password"
+                  className="w-full"
+                  disabled={isUpdatingProfile}
+                />
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Confirm Password
+                </label>
+                <Input
+                  type="password"
+                  value={profileFormData.confirmPassword}
+                  onChange={(e) => setProfileFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm new password"
+                  className="w-full"
+                  disabled={isUpdatingProfile}
+                />
+              </div>
+
+              {/* Save Button */}
+              <Button
+                variant="primary"
+                className="w-full mt-6"
+                onClick={handleUpdateProfile}
+                disabled={isUpdatingProfile}
+              >
+                {isUpdatingProfile ? (
+                  <>
+                    <svg className="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
   );
 }
 
