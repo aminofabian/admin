@@ -50,12 +50,24 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
-    // Generate URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
-                    `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`;
+    // Generate URL - properly detect production domain
+    let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    
+    if (!baseUrl) {
+      // Try to get from request headers (works in production)
+      const proto = request.headers.get('x-forwarded-proto') || 
+                    request.headers.get('x-forwarded-protocol') || 
+                    'https';
+      const host = request.headers.get('x-forwarded-host') || 
+                   request.headers.get('host') || 
+                   'localhost:3000';
+      baseUrl = `${proto}://${host}`;
+    }
+    
     const fileUrl = `${baseUrl}/uploads/chat/${uniqueFileName}`;
 
     console.log('✅ Image uploaded successfully:', fileUrl);
+    console.log('🌐 Base URL used:', baseUrl);
     
     return NextResponse.json({
       status: 'success',
