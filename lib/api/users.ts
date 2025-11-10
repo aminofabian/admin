@@ -5,6 +5,7 @@ import type {
   Manager,
   Staff,
   Player,
+  PlayerGame,
   CreateUserRequest,
   UpdateUserRequest,
   PaginatedResponse
@@ -84,5 +85,10 @@ export const playersApi = {
       player_bal: number; 
       player_winning_bal: number 
     }>('/api/v1/admin/manual-payment/', data),
+
+  games: (playerId: number) =>
+    apiClient.get<PlayerGame[]>(API_ENDPOINTS.GAMES.PLAYER_GAMES, {
+      params: { player_id: playerId },
+    }),
 };
 

@@ -21,6 +21,17 @@ export interface UserGame {
   updated_at: string;
 }
 
+export interface PlayerGame {
+  id: number;
+  game__id: number;
+  username: string;
+  game__title: string;
+  status: 'active' | 'inactive';
+  game_state: 'active' | 'inactive';
+  created: string;
+  modified: string;
+}
+
 export interface UpdateGameRequest {
   title?: string;
   game_status?: boolean;
