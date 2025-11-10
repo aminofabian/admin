@@ -1195,7 +1195,7 @@ export function ChatComponent() {
     requestAnimationFrame(() => {
       scrollToLatest('auto');
     });
-  }, [selectedPlayer, scrollToLatest, isHistoryLoadingMessages]);
+  }, [selectedPlayer, scrollToLatest]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -1247,12 +1247,8 @@ export function ChatComponent() {
     const wasLoading = wasHistoryLoadingRef.current;
     wasHistoryLoadingRef.current = isHistoryLoadingMessages;
 
-    if (wasLoading && !isHistoryLoadingMessages && autoScrollEnabled) {
-      requestAnimationFrame(() => {
-        scrollToLatest('auto');
-      });
-    }
-  }, [isHistoryLoadingMessages, autoScrollEnabled, scrollToLatest]);
+    // Removed auto-scroll after history loads to allow users to scroll up freely
+  }, [isHistoryLoadingMessages]);
 
 
   return (
