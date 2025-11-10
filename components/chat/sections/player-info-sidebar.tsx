@@ -17,6 +17,7 @@ interface PlayerInfoSidebarProps {
   onNavigateToPlayer: () => void;
   onOpenEditBalance: () => void;
   onOpenEditProfile: () => void;
+  onOpenAddGame: () => void;
   onSaveNotes: () => void;
 }
 
@@ -31,6 +32,7 @@ export function PlayerInfoSidebar({
   onNavigateToPlayer,
   onOpenEditBalance,
   onOpenEditProfile,
+  onOpenAddGame,
   onSaveNotes,
 }: PlayerInfoSidebarProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -259,7 +261,11 @@ export function PlayerInfoSidebar({
         </div>
 
         {/* Add Game Button */}
-        <Button variant="primary" className="w-full shadow-md hover:shadow-lg transition-shadow text-xs py-2">
+        <Button 
+          variant="primary" 
+          className="w-full shadow-md hover:shadow-lg transition-shadow text-xs py-2"
+          onClick={onOpenAddGame}
+        >
           <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>

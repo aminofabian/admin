@@ -90,5 +90,15 @@ export const playersApi = {
     apiClient.get<PlayerGame[]>(API_ENDPOINTS.GAMES.PLAYER_GAMES, {
       params: { player_id: playerId },
     }),
+
+  createGame: (data: { username: string; password: string; code: string; user_id: number }) =>
+    apiClient.post<{ 
+      status: string; 
+      message: string;
+      game_name: string;
+      game_url: string | null;
+      username: string;
+      password: string;
+    }>(API_ENDPOINTS.GAMES.PLAYER_GAMES, data),
 };
 

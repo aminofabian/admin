@@ -7,10 +7,11 @@ import { formatCurrency } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
 import { useOnlinePlayers } from '@/hooks/use-online-players';
+import { usePlayerGames } from '@/hooks/use-player-games';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
-import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
+import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal, AddGameDrawer } from './modals';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 
 type Player = ChatUser;
@@ -230,6 +231,8 @@ export function ChatComponent() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
+  const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
+  const [isAddingGame, setIsAddingGame] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
   const wasHistoryLoadingRef = useRef(false);
@@ -237,6 +240,7 @@ export function ChatComponent() {
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { addToast } = useToast();
+  const { games: playerGames, isLoading: isLoadingPlayerGames } = usePlayerGames(selectedPlayer?.user_id || null);
 
   // Common emojis for quick access
   const commonEmojis = [
@@ -976,6 +980,40 @@ export function ChatComponent() {
       setIsUpdatingProfile(false);
     }
   }, [selectedPlayer, profileFormData, isUpdatingProfile, addToast]);
+
+  const handleOpenAddGame = useCallback(() => {
+    if (!selectedPlayer) return;
+    setIsAddGameDrawerOpen(true);
+  }, [selectedPlayer]);
+
+  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
+    if (!selectedPlayer || isAddingGame) {
+      return;
+    }
+
+    setIsAddingGame(true);
+    try {
+      const { playersApi } = await import('@/lib/api/users');
+      const result = await playersApi.createGame(data);
+
+      addToast({
+        type: 'success',
+        title: 'Game added successfully',
+        description: `${result.game_name} account created for ${result.username}`,
+      });
+      
+      setIsAddGameDrawerOpen(false);
+    } catch (error) {
+      const description = error instanceof Error ? error.message : 'Unknown error';
+      addToast({
+        type: 'error',
+        title: 'Failed to add game',
+        description,
+      });
+    } finally {
+      setIsAddingGame(false);
+    }
+  }, [selectedPlayer, isAddingGame, addToast]);
 
   const handleOpenEditBalance = useCallback(() => {
     if (!selectedPlayer) return;
@@ -1728,6 +1766,7 @@ export function ChatComponent() {
           onNavigateToPlayer={handleNavigateToPlayer}
           onOpenEditBalance={handleOpenEditBalance}
           onOpenEditProfile={handleOpenEditProfile}
+          onOpenAddGame={handleOpenAddGame}
           onSaveNotes={handleSaveNotes}
         />
       )}
@@ -1760,6 +1799,22 @@ export function ChatComponent() {
         onClose={() => setIsNotesDrawerOpen(false)}
         selectedPlayer={selectedPlayer}
       />
+
+      {/* Add Game Drawer */}
+      {selectedPlayer && (
+        <AddGameDrawer
+          isOpen={isAddGameDrawerOpen}
+          onClose={() => setIsAddGameDrawerOpen(false)}
+          playerId={selectedPlayer.user_id}
+          playerUsername={selectedPlayer.username}
+          playerGames={playerGames}
+          onGameAdded={() => {
+            // Refresh games list by closing and reopening if needed
+          }}
+          onSubmit={handleAddGame}
+          isSubmitting={isAddingGame}
+        />
+      )}
 
       {/* Expanded Image Modal */}
       <ExpandedImageModal
