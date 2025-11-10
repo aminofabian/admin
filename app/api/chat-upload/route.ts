@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { uploadToCloudinary, isCloudinaryConfigured } from '@/lib/utils/cloudinary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,49 +30,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 15);
-    const fileExtension = file.name.split('.').pop() || 'jpg';
-    const uniqueFileName = `${timestamp}_${randomStr}.${fileExtension}`;
-
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'chat');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
+    // Check if Cloudinary is configured
+    if (!isCloudinaryConfigured()) {
+      return NextResponse.json({
+        status: 'error',
+        message: 'Image upload service not configured',
+        detail: 'Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables',
+      }, { status: 500 });
     }
 
-    // Save file
-    const filePath = join(uploadsDir, uniqueFileName);
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    // Upload to Cloudinary
+    console.log('☁️ Uploading image to Cloudinary...');
+    const result = await uploadToCloudinary(file, 'chat');
 
-    // Generate URL - properly detect production domain
-    let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    
-    if (!baseUrl) {
-      // Try to get from request headers (works in production)
-      const proto = request.headers.get('x-forwarded-proto') || 
-                    request.headers.get('x-forwarded-protocol') || 
-                    'https';
-      const host = request.headers.get('x-forwarded-host') || 
-                   request.headers.get('host') || 
-                   'localhost:3000';
-      baseUrl = `${proto}://${host}`;
-    }
-    
-    const fileUrl = `${baseUrl}/uploads/chat/${uniqueFileName}`;
-
-    console.log('✅ Image uploaded successfully:', fileUrl);
-    console.log('🌐 Base URL used:', baseUrl);
+    console.log('✅ Image uploaded successfully:', result.secure_url);
     
     return NextResponse.json({
       status: 'success',
-      file_url: fileUrl,
-      url: fileUrl,
-      file: fileUrl,
-      filename: uniqueFileName,
+      file_url: result.secure_url,
+      url: result.secure_url,
+      file: result.secure_url,
+      filename: result.public_id,
+      cloudinary: {
+        public_id: result.public_id,
+        asset_id: result.asset_id,
+        width: result.width,
+        height: result.height,
+        format: result.format,
+        bytes: result.bytes,
+      }
     });
   } catch (error) {
     console.error('❌ Error uploading image:', error);

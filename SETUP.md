@@ -13,6 +13,11 @@ NEXT_PUBLIC_API_URL=https://admin.serverhub.biz
 # For local development
 # NEXT_PUBLIC_API_URL=http://localhost:8000
 
+# Cloudinary Configuration - REQUIRED for image uploads
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
 # Environment
 NODE_ENV=development
 ```
@@ -65,6 +70,52 @@ After creating `.env.local`, restart your dev server. The app will now use:
 
 ---
 
+## Cloudinary Setup (For Image Uploads)
+
+Image uploads require Cloudinary cloud storage (filesystem uploads don't work in serverless environments like Vercel).
+
+### 1. Install Cloudinary Package
+
+```bash
+npm install cloudinary
+# or
+bun add cloudinary
+```
+
+### 2. Get Cloudinary Credentials
+
+1. **Sign up** at https://cloudinary.com (free tier available - 25GB storage, 25GB bandwidth/month)
+2. **Go to Dashboard**: https://console.cloudinary.com/
+3. **Copy these values**:
+   - **Cloud Name** → Use for `CLOUDINARY_CLOUD_NAME`
+   - **API Key** → Use for `CLOUDINARY_API_KEY`
+   - **API Secret** → Use for `CLOUDINARY_API_SECRET`
+
+### 3. Add to `.env.local`
+
+```bash
+CLOUDINARY_CLOUD_NAME=your_cloud_name_here
+CLOUDINARY_API_KEY=your_api_key_here
+CLOUDINARY_API_SECRET=your_api_secret_here
+```
+
+### 4. Restart Dev Server
+
+```bash
+# Stop the server (Ctrl+C) then restart
+npm run dev
+# or
+bun dev
+```
+
+### 5. Test Image Upload
+
+Try uploading an image in the chat. It should now upload to Cloudinary and return a `https://res.cloudinary.com/...` URL.
+
+**Note:** Without Cloudinary configuration, image uploads will fail with an error message asking you to configure it.
+
+---
+
 ## Backend API Requirements
 
 Your backend must be running and accessible at the URL you configured. The app expects these endpoints:
@@ -88,16 +139,22 @@ For production deployment:
    - Netlify: Site Settings → Build & Deploy → Environment
    - AWS: Use parameter store or secrets manager
 
-2. **Use HTTPS** for the API URL:
+2. **Required environment variables for production**:
    ```
    NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
    ```
 
 3. **Build and deploy:**
    ```bash
-   bun run build
-   bun run start
+   npm install
+   npm run build
+   npm run start
    ```
+
+**Important:** Image uploads will NOT work in production without Cloudinary configuration. The filesystem is read-only on platforms like Vercel, Netlify, and AWS Lambda.
 
 ---
 
