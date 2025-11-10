@@ -5,6 +5,7 @@ import { Button } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerPurchases } from '@/hooks/use-player-purchases';
+import { usePlayerCashouts } from '@/hooks/use-player-cashouts';
 import type { ChatUser } from '@/types';
 
 interface PlayerInfoSidebarProps {
@@ -38,8 +39,9 @@ export function PlayerInfoSidebar({
 }: PlayerInfoSidebarProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const { games, isLoading: isLoadingGames } = usePlayerGames(selectedPlayer.user_id || null);
-  // Use the chat 'id' field (chatroom ID) for purchases, not user_id
+  // Use the chat 'id' field (chatroom ID) for purchases and cashouts, not user_id
   const { purchases, isLoading: isLoadingPurchases } = usePlayerPurchases(selectedPlayer.id || null);
+  const { cashouts, isLoading: isLoadingCashouts } = usePlayerCashouts(selectedPlayer.id || null);
 
   const toggleSection = (sectionName: string) => {
     setExpandedSection(expandedSection === sectionName ? null : sectionName);
@@ -242,8 +244,90 @@ export function PlayerInfoSidebar({
             )}
           </div>
 
+          {/* Cashouts Section - Expandable */}
+          <div className="w-full">
+            <button
+              onClick={() => toggleSection('cashouts')}
+              className="w-full flex items-center justify-between p-2 hover:bg-muted/50 rounded-md transition-colors group"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                  <svg className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-medium text-foreground">Cashouts</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {isLoadingCashouts ? 'Loading...' : `${cashouts.length} items`}
+                  </p>
+                </div>
+              </div>
+              <svg 
+                className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all ${
+                  expandedSection === 'cashouts' ? 'rotate-90' : ''
+                }`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Expanded Cashouts List */}
+            {expandedSection === 'cashouts' && (
+              <div className="mt-1 pl-8 space-y-1 max-h-60 overflow-y-auto">
+                {isLoadingCashouts ? (
+                  <div className="flex items-center justify-center py-4">
+                    <svg className="w-5 h-5 animate-spin text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                ) : cashouts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2">No cashouts found</p>
+                ) : (
+                  cashouts.map((cashout) => (
+                    <div
+                      key={cashout.id}
+                      className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-bold text-foreground">{formatCurrency(cashout.amount.toString())}</p>
+                        <span
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            cashout.status === 'completed'
+                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                              : cashout.status === 'pending'
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                          }`}
+                        >
+                          <span
+                            className={`w-1 h-1 rounded-full ${
+                              cashout.status === 'completed' 
+                                ? 'bg-green-500' 
+                                : cashout.status === 'pending'
+                                ? 'bg-amber-500'
+                                : 'bg-red-500'
+                            }`}
+                          />
+                          {cashout.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>ID: {cashout.transaction_id.slice(0, 8)}...</span>
+                        <span>{cashout.operator}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
           {[
-            { name: 'Cashouts', count: 0, icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
             { name: 'Game Activities', count: 0, icon: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z' },
           ].map((section, idx) => (
             <button

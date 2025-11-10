@@ -114,5 +114,18 @@ export const playersApi = {
       return response.pending_cashout || [];
     });
   },
+
+  cashouts: (chatroomId: string | number) => {
+    console.log('🔍 Fetching cashouts for chatroom_id:', chatroomId);
+    return apiClient.get<{ cashouts: ChatPurchase[] }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
+      params: { 
+        request_type: 'cashouts_list',
+        chatroom_id: chatroomId 
+      },
+    }).then(response => {
+      console.log('💰 Cashouts response:', response);
+      return response.cashouts || [];
+    });
+  },
 };
 
