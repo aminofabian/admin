@@ -160,6 +160,7 @@ export function ChatComponent() {
   const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const [isPinnedMessagesExpanded, setIsPinnedMessagesExpanded] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isUserAtLatest, setIsUserAtLatest] = useState(true);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [unseenMessageCount, setUnseenMessageCount] = useState(0);
@@ -428,6 +429,7 @@ export function ChatComponent() {
     setIsUserAtLatest(true);
     latestMessageIdRef.current = null;
     setUnseenMessageCount(0);
+    setNotes(''); // Clear notes when switching players
   }, [markChatAsRead]);
 
   const handleNavigateToPlayer = useCallback(() => {
@@ -638,6 +640,60 @@ export function ChatComponent() {
       setPendingPinMessageId(null);
     }
   }, [selectedPlayer, pendingPinMessageId, addToast, updateMessagePinnedState]);
+
+  const handleSaveNotes = useCallback(async () => {
+    if (!selectedPlayer || isSavingNotes) {
+      return;
+    }
+
+    const token = storage.get(TOKEN_KEY);
+    if (!token) {
+      addToast({
+        type: 'error',
+        title: 'Authentication required',
+        description: 'Please sign in again to save notes.',
+      });
+      return;
+    }
+
+    setIsSavingNotes(true);
+    try {
+      const response = await fetch('/api/admin/save-notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          notes: notes,
+          player_id: selectedPlayer.user_id,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const errorMessage =
+          (result && (result.message || result.detail)) ||
+          'Unable to save notes right now.';
+        throw new Error(errorMessage);
+      }
+
+      addToast({
+        type: 'success',
+        title: result?.message || 'Notes saved successfully',
+      });
+    } catch (error) {
+      const description = error instanceof Error ? error.message : 'Unknown error';
+      addToast({
+        type: 'error',
+        title: 'Failed to save notes',
+        description,
+      });
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }, [selectedPlayer, notes, isSavingNotes, addToast]);
 
   // Fetch online players when switching to "online" tab or on mount
   useEffect(() => {
@@ -1841,15 +1897,33 @@ export function ChatComponent() {
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                    e.preventDefault();
+                    handleSaveNotes();
+                  }
+                }}
                 placeholder="Add private notes about this player..."
                 className="w-full min-h-[80px] p-2.5 border border-border rounded-md bg-background dark:bg-background text-foreground text-xs resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-muted-foreground"
               />
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="primary" className="w-full text-xs py-2">
-                  <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Save
+                <Button 
+                  variant="primary" 
+                  className="w-full text-xs py-2" 
+                  onClick={handleSaveNotes}
+                  disabled={isSavingNotes}
+                >
+                  {isSavingNotes ? (
+                    <svg className="w-3.5 h-3.5 mr-1.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {isSavingNotes ? 'Saving...' : 'Save'}
                 </Button>
                 <Button variant="secondary" className="w-full text-xs py-2" onClick={() => setNotes('')}>
                   <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
