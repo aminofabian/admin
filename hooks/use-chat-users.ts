@@ -22,6 +22,7 @@ interface UseChatUsersReturn {
   refetch: () => void;
   fetchAllPlayers: () => Promise<void>;
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
+  markChatAsRead: (params: { chatId?: string; userId?: number }) => void;
 }
 
 /**
@@ -86,7 +87,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // ✅ PERFORMANCE: Cache for fetchAllPlayers (5 min TTL)
   const playersCacheRef = useRef<{ data: ChatUser[]; timestamp: number } | null>(null);
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -271,11 +271,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       reconnectTimeoutRef.current = null;
     }
 
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-
     if (wsRef.current) {
       console.log('🔌 Disconnecting chat list WebSocket');
       wsRef.current.close();
@@ -283,67 +278,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     }
   }, []);
 
-  /**
-   * Fetch active chats via REST API (primary method when WebSocket is disabled)
-   * Used for polling to keep chat list updated
-   */
-  const fetchActiveChatsREST = useCallback(async () => {
-    if (!adminId) return;
-
-    try {
-      const token = storage.get(TOKEN_KEY);
-      const response = await fetch(`/api/chat-list?user_id=${adminId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
-
-      if (!response.ok) {
-        console.error('❌ [REST API] Failed to fetch active chats:', response.status);
-        // Only set error if it's a real backend error (not 404 or backend not ready)
-        if (response.status !== 404) {
-          setError(`Failed to fetch chats: ${response.status}`);
-        }
-        return;
-      }
-
-      const data = await response.json();
-      !IS_PROD && console.log('📥 [REST API] Response received');
-      
-      // ✅ Clear any previous errors since REST API is working
-      setError(null);
-      
-      // Handle different response formats
-      let chats: any[] | null = null;
-      if (data.chats && Array.isArray(data.chats)) {
-        chats = data.chats;
-      } else if (data.users && Array.isArray(data.users)) {
-        chats = data.users;
-      } else if (Array.isArray(data)) {
-        chats = data;
-      }
-
-      if (Array.isArray(chats)) {
-        const transformedUsers = chats.map(transformChatToUser);
-
-        if (transformedUsers.length === 0) {
-          !IS_PROD && console.log('ℹ️ [REST API] Empty chat list response - preserving existing active chats');
-          return;
-        }
-
-        !IS_PROD && console.log(`🔄 [REST API] Updated ${transformedUsers.length} active chats`);
-        setActiveChats(transformedUsers);
-      } else {
-        !IS_PROD && console.log('ℹ️ [REST API] Unexpected chat list payload - keeping existing data');
-      }
-    } catch (err) {
-      console.error('❌ [REST API] Error:', err);
-      // Only set error if we couldn't fetch at all
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch chats';
-      setError(errorMessage);
-    }
-  }, [adminId]);
 
   const refetch = useCallback(() => {
     disconnect();
@@ -412,34 +346,16 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     }
   }, [CACHE_TTL]);
 
-  // Connect on mount and setup polling
+  // Connect on mount
   useEffect(() => {
     if (enabled && adminId) {
-      // WebSocket connection is disabled
-      connect(); // This will just log and return early
-      
-      // ✅ Fetch chat list immediately
-      fetchActiveChatsREST();
-      
-      // ✅ Setup polling to keep chat list updated (every 10 seconds)
-      const POLL_INTERVAL = 10000; // 10 seconds
-      pollIntervalRef.current = setInterval(() => {
-        !IS_PROD && console.log('🔄 [REST API] Polling for chat updates...');
-        fetchActiveChatsREST();
-      }, POLL_INTERVAL);
-      
-      !IS_PROD && console.log(`✅ Chat list polling enabled (every ${POLL_INTERVAL / 1000}s)`);
+      connect();
     }
 
     return () => {
       disconnect();
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-        !IS_PROD && console.log('🛑 Chat list polling stopped');
-      }
     };
-  }, [enabled, adminId, connect, disconnect, fetchActiveChatsREST]);
+  }, [enabled, adminId, connect, disconnect]);
 
   // ✅ PERFORMANCE: Memoize online users using both chat list and player directory
   const onlineUsers = useMemo(() => {
@@ -519,6 +435,62 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     });
   }, []);
 
+  /**
+   * Reset unread count for a specific chat. Called when the admin opens a conversation.
+   */
+  const markChatAsRead = useCallback(({ chatId, userId }: { chatId?: string; userId?: number }) => {
+    const normalizedChatId = chatId ? String(chatId) : null;
+    const normalizedUserId = typeof userId === 'number' && Number.isFinite(userId) ? userId : null;
+
+    if (!normalizedChatId && !normalizedUserId) {
+      return;
+    }
+
+    setActiveChats((prevChats) => {
+      let hasChanges = false;
+
+      const updatedChats = prevChats.map((chat) => {
+        const isMatch =
+          (normalizedChatId && chat.id === normalizedChatId) ||
+          (normalizedUserId !== null && chat.user_id === normalizedUserId);
+
+        if (!isMatch || !chat.unreadCount) {
+          return chat;
+        }
+
+        hasChanges = true;
+        return {
+          ...chat,
+          unreadCount: 0,
+        };
+      });
+
+      return hasChanges ? updatedChats : prevChats;
+    });
+
+    setAllPlayers((prevPlayers) => {
+      let hasChanges = false;
+
+      const updatedPlayers = prevPlayers.map((player) => {
+        const isMatch =
+          (normalizedChatId && player.id === normalizedChatId) ||
+          (normalizedUserId !== null && player.user_id === normalizedUserId);
+
+        if (!isMatch || !player.unreadCount) {
+          return player;
+        }
+
+        hasChanges = true;
+        return {
+          ...player,
+          unreadCount: 0,
+        };
+      });
+
+      return hasChanges ? updatedPlayers : prevPlayers;
+    });
+  }, []);
+
   return {
     users: activeChats, // For backward compatibility - return active chats as "users"
     allPlayers,
@@ -529,6 +501,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     refetch,
     fetchAllPlayers,
     updateChatLastMessage,
+    markChatAsRead,
   };
 }
 

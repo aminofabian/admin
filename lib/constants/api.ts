@@ -66,7 +66,6 @@ export const API_ENDPOINTS = {
     DETAIL: (id: number) => `${API_PREFIX}/payment-methods/${id}/`,
   },
   CHAT: {
-    LIST: 'api/chat-list', // Using Next.js API route to proxy request
     MESSAGES: 'api/chat-messages', // Chat messages history
     PURCHASES: 'api/chat-purchases', // Purchase history
     ADMIN_CHAT: `${API_PREFIX}/admin/chat/`, // New JWT-authenticated endpoint

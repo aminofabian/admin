@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
 import { storage } from '@/lib/utils/storage';
+import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
 
 type Player = ChatUser;
@@ -96,6 +97,8 @@ const stripHtml = (html: string): string => {
 
 const LOAD_MORE_SCROLL_THRESHOLD = 80;
 const SCROLL_BOTTOM_THRESHOLD = 64;
+const MAX_UNREAD_BADGE_COUNT = 99;
+const DEFAULT_MARK_AS_READ = true;
 
 const HTML_TAG_REGEX = /<\/?[a-z][^>]*>/i;
 
@@ -159,6 +162,10 @@ export function ChatComponent() {
   const [isUserAtLatest, setIsUserAtLatest] = useState(true);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [unseenMessageCount, setUnseenMessageCount] = useState(0);
+  const [isRefreshingOnlinePlayers, setIsRefreshingOnlinePlayers] = useState(false);
+  const [apiOnlinePlayers, setApiOnlinePlayers] = useState<Player[]>([]);
+  const [isLoadingApiOnlinePlayers, setIsLoadingApiOnlinePlayers] = useState(false);
+  const hasFetchedOnlinePlayersRef = useRef(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
   const wasHistoryLoadingRef = useRef(false);
@@ -173,6 +180,7 @@ export function ChatComponent() {
     error: usersError,
     fetchAllPlayers,
     updateChatLastMessage,
+    markChatAsRead,
   } = useChatUsers({
     adminId: adminUserId,
     enabled: hasValidAdminUser,
@@ -230,23 +238,55 @@ export function ChatComponent() {
     let players: Player[];
     
     if (activeTab === 'online') {
-      players = onlinePlayers;
-    } else {
-      // For "all-chats" tab: combine activeChatsUsers and allPlayers
-      // Active chats are prioritized, then add any players not in active chats
-      const activeChatsMap = new Map<number, Player>();
-      activeChatsUsers.forEach((player) => {
+      // Use API online players as base, then merge/append WebSocket updates
+      const seenUserIds = new Map<number, Player>();
+      
+      // First, add API online players (base list)
+      apiOnlinePlayers.forEach((player) => {
         if (player.user_id) {
-          activeChatsMap.set(player.user_id, player);
+          seenUserIds.set(player.user_id, player);
         }
       });
       
-      // Start with active chats
-      const combinedPlayers = [...activeChatsUsers];
+      // Then, append/update with WebSocket active chats (only if not already present)
+      activeChatsUsers.forEach((player) => {
+        if (player.user_id && player.isOnline) {
+          // Update existing player with WebSocket data, or add new one
+          const existing = seenUserIds.get(player.user_id);
+          if (existing) {
+            // Merge: keep API data but update with WebSocket chat info
+            seenUserIds.set(player.user_id, {
+              ...existing,
+              lastMessage: player.lastMessage || existing.lastMessage,
+              lastMessageTime: player.lastMessageTime || existing.lastMessageTime,
+              unreadCount: player.unreadCount ?? existing.unreadCount ?? 0,
+            });
+          } else {
+            // Append new player from WebSocket
+            seenUserIds.set(player.user_id, player);
+          }
+        }
+      });
       
-      // Add players from allPlayers that aren't in active chats
+      players = Array.from(seenUserIds.values());
+    } else {
+      // For "all-chats" tab: combine activeChatsUsers and allPlayers
+      // Active chats are prioritized, then add any players not in active chats
+      const seenUserIds = new Set<number>();
+      const combinedPlayers: Player[] = [];
+      
+      // First, add active chats (prioritized)
+      activeChatsUsers.forEach((player) => {
+        if (player.user_id && !seenUserIds.has(player.user_id)) {
+          seenUserIds.add(player.user_id);
+          combinedPlayers.push(player);
+        }
+      });
+      
+      // Then, add players from allPlayers that aren't in active chats
       allPlayers.forEach((player) => {
-        if (player.user_id && !activeChatsMap.has(player.user_id)) {
+        if (player.user_id && !seenUserIds.has(player.user_id)) {
+          seenUserIds.add(player.user_id);
           combinedPlayers.push(player);
         }
       });
@@ -264,15 +304,15 @@ export function ChatComponent() {
       const email = player.email.toLowerCase();
       return username.includes(query) || email.includes(query);
     });
-  }, [activeTab, onlinePlayers, activeChatsUsers, allPlayers, searchQuery]);
+  }, [activeTab, apiOnlinePlayers, activeChatsUsers, allPlayers, searchQuery]);
 
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {
     if (activeTab === 'online') {
-      const isLoading = isLoadingAllPlayers || isLoadingUsers;
+      const isLoading = isLoadingApiOnlinePlayers || isRefreshingOnlinePlayers;
       !IS_PROD && console.log('🔍 Online tab loading state:', {
-        isLoadingAllPlayers,
-        isLoadingUsers,
+        isLoadingApiOnlinePlayers,
+        isRefreshingOnlinePlayers,
         computed: isLoading,
       });
       return isLoading;
@@ -291,9 +331,9 @@ export function ChatComponent() {
   }, [activeTab, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
 
   useEffect(() => {
-    // Load all players for both "online" and "all-chats" tabs
+    // Load all players for "all-chats" tab only
     // "all-chats" needs all players to show everyone, not just those with active chats
-    const shouldLoadAllPlayers = activeTab === 'online' || activeTab === 'all-chats';
+    const shouldLoadAllPlayers = activeTab === 'all-chats';
     const hasPlayersCached = allPlayers.length > 0;
 
     if (!shouldLoadAllPlayers || hasPlayersCached) {
@@ -375,7 +415,17 @@ export function ChatComponent() {
     }
   }, [chatViewMode]);
 
-  const handlePlayerSelect = useCallback((player: Player) => {
+  const handlePlayerSelect = useCallback((player: Player, options?: { markAsRead?: boolean }) => {
+    const { markAsRead } = options ?? {};
+    const shouldMarkAsRead = markAsRead ?? DEFAULT_MARK_AS_READ;
+
+    if (shouldMarkAsRead) {
+      markChatAsRead({
+        chatId: player.id,
+        userId: player.user_id,
+      });
+    }
+
     setSelectedPlayer(player);
     setMessageMenuOpen(null);
     setMobileView('chat');
@@ -383,13 +433,118 @@ export function ChatComponent() {
     setIsUserAtLatest(true);
     latestMessageIdRef.current = null;
     setUnseenMessageCount(0);
-  }, []);
+  }, [markChatAsRead]);
 
   const handleNavigateToPlayer = useCallback(() => {
     if (selectedPlayer?.user_id) {
       router.push(`/dashboard/players?highlight=${selectedPlayer.user_id}`);
     }
   }, [selectedPlayer, router]);
+
+  // Transform API response to Player format
+  const transformApiPlayerToUser = useCallback((player: any): Player => {
+    return {
+      id: String(player.id || ''),
+      user_id: Number(player.id || 0),
+      username: player.username || player.full_name || 'Unknown',
+      fullName: player.full_name || player.name || undefined,
+      email: player.email || '',
+      avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
+      isOnline: player.is_online !== undefined ? player.is_online : true, // Online players from API are online
+      lastMessage: undefined,
+      lastMessageTime: undefined,
+      balance: player.balance !== undefined ? String(player.balance) : undefined,
+      winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
+      gamesPlayed: player.games_played || undefined,
+      winRate: player.win_rate || undefined,
+      phone: player.phone_number || player.mobile_number || undefined,
+      unreadCount: 0,
+    };
+  }, []);
+
+  // Fetch online players from API endpoint
+  const fetchOnlinePlayers = useCallback(async () => {
+    if (!hasValidAdminUser) {
+      return;
+    }
+
+    setIsLoadingApiOnlinePlayers(true);
+    try {
+      const token = storage.get(TOKEN_KEY);
+      const response = await fetch('/api/chat-online-players', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('❌ Failed to fetch online players:', errorData.message);
+        hasFetchedOnlinePlayersRef.current = true; // Mark as fetched even on error to prevent retry loop
+        return;
+      }
+
+      const data = await response.json();
+      !IS_PROD && console.log('✅ Fetched online players from API:', data);
+
+      // Transform API response to Player format
+      // Handle different response formats
+      let players: any[] = [];
+      if (Array.isArray(data)) {
+        players = data;
+      } else if (data.players && Array.isArray(data.players)) {
+        players = data.players;
+      } else if (data.results && Array.isArray(data.results)) {
+        players = data.results;
+      } else if (data.online_players && Array.isArray(data.online_players)) {
+        players = data.online_players;
+      } else if (data.player && Array.isArray(data.player)) {
+        // Handle the format: {"chats":[],"player":[]}
+        players = data.player;
+      }
+
+      const transformedPlayers = players.map(transformApiPlayerToUser);
+      setApiOnlinePlayers(transformedPlayers);
+      hasFetchedOnlinePlayersRef.current = true; // Mark as fetched (even if empty)
+      !IS_PROD && console.log(`✅ Set ${transformedPlayers.length} online players from API`);
+    } catch (error) {
+      console.error('❌ Error fetching online players:', error);
+      hasFetchedOnlinePlayersRef.current = true; // Mark as fetched even on error to prevent retry loop
+    } finally {
+      setIsLoadingApiOnlinePlayers(false);
+    }
+  }, [hasValidAdminUser, transformApiPlayerToUser]);
+
+  const handleRefreshOnlinePlayers = useCallback(async () => {
+    if (!hasValidAdminUser || isRefreshingOnlinePlayers) {
+      return;
+    }
+
+    setIsRefreshingOnlinePlayers(true);
+    // Reset the ref to allow refresh
+    hasFetchedOnlinePlayersRef.current = false;
+    try {
+      await fetchOnlinePlayers();
+    } catch (error) {
+      console.error('❌ Error refreshing online players:', error);
+    } finally {
+      setIsRefreshingOnlinePlayers(false);
+    }
+  }, [hasValidAdminUser, isRefreshingOnlinePlayers, fetchOnlinePlayers]);
+
+  // Fetch online players when switching to "online" tab or on mount
+  useEffect(() => {
+    if (
+      activeTab === 'online' &&
+      hasValidAdminUser &&
+      !hasFetchedOnlinePlayersRef.current &&
+      !isLoadingApiOnlinePlayers
+    ) {
+      !IS_PROD && console.log('🔄 Loading online players for online tab');
+      fetchOnlinePlayers();
+    }
+  }, [activeTab, hasValidAdminUser, isLoadingApiOnlinePlayers, fetchOnlinePlayers]);
 
   const maybeLoadOlderMessages = useCallback(async () => {
     if (chatViewMode !== 'messages') return;
@@ -482,10 +637,9 @@ export function ChatComponent() {
   // Auto-select first player if none selected
   useEffect(() => {
     if (!selectedPlayer && activeChatsUsers.length > 0) {
-      setSelectedPlayer(activeChatsUsers[0]);
-      setMobileView('chat');
+      handlePlayerSelect(activeChatsUsers[0], { markAsRead: false });
     }
-  }, [selectedPlayer, activeChatsUsers]);
+  }, [selectedPlayer, activeChatsUsers, handlePlayerSelect]);
 
   useEffect(() => {
     if (!selectedPlayer || chatViewMode !== 'messages') {
@@ -659,15 +813,30 @@ export function ChatComponent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <span className="text-sm font-bold text-green-600 dark:text-green-400">{onlinePlayers.length}</span>
+                <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                  {activeTab === 'online' ? displayedPlayers.length : onlinePlayers.length}
+                </span>
               </div>
               <div>
                 <p className="text-xs font-semibold text-foreground">Online Players</p>
                 <p className="text-[10px] text-muted-foreground">{activeChatsUsers.length} with chats</p>
               </div>
             </div>
-            <button className="p-2 hover:bg-muted rounded-lg transition-colors group">
-              <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button
+              onClick={handleRefreshOnlinePlayers}
+              disabled={isRefreshingOnlinePlayers}
+              className="p-2 hover:bg-muted rounded-lg transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Refresh online players"
+              title="Refresh online players"
+            >
+              <svg
+                className={`w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ${
+                  isRefreshingOnlinePlayers ? 'animate-spin' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </button>
@@ -733,12 +902,19 @@ export function ChatComponent() {
             </div>
           ) : (
             <div className="p-2">
-              {displayedPlayers.map((player, index) => (
+              {displayedPlayers.map((player) => {
+                const isSelected = selectedPlayer?.user_id === player.user_id;
+                const unreadCount = player.unreadCount ?? 0;
+                const shouldDisplayUnreadBadge = !isSelected && unreadCount > 0;
+                const unreadBadgeValue = unreadCount > MAX_UNREAD_BADGE_COUNT
+                  ? `${MAX_UNREAD_BADGE_COUNT}+`
+                  : String(unreadCount);
+                return (
                 <button
-                  key={player.id}
+                  key={`${player.user_id}-${player.id}`}
                   onClick={() => handlePlayerSelect(player)}
                   className={`w-full p-3 md:p-3.5 rounded-xl mb-2 transition-all duration-200 group ${
-                    selectedPlayer?.id === player.id 
+                    isSelected
                       ? 'bg-primary/10 shadow-md ring-2 ring-primary/20' 
                       : 'hover:bg-muted/50 active:scale-[0.98]'
                   }`}
@@ -747,7 +923,7 @@ export function ChatComponent() {
                     {/* Avatar */}
                     <div className="relative flex-shrink-0">
                       <div className={`w-11 h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-200 ${
-                        selectedPlayer?.id === player.id 
+                        isSelected
                           ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' 
                           : 'group-hover:scale-105'
                       }`}>
@@ -781,15 +957,18 @@ export function ChatComponent() {
                       )}
                     </div>
                     
-                    {/* Unread Badge (optional) */}
-                    {selectedPlayer?.id !== player.id && index === 0 && (
-                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <span className="text-[10px] font-bold text-primary-foreground">3</span>
+                    {/* Unread Badge */}
+                    {shouldDisplayUnreadBadge && (
+                      <div className="min-w-[20px] h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0 px-1.5">
+                        <span className="text-[10px] font-bold text-primary-foreground leading-none">
+                          {unreadBadgeValue}
+                        </span>
                       </div>
                     )}
                   </div>
                 </button>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>
