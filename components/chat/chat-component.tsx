@@ -119,9 +119,20 @@ const isImageUrl = (url: string): boolean => {
 // Extract image URLs from text
 const extractImageUrls = (text: string): string[] => {
   if (!text) return [];
-  const urlRegex = /(https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff|ico|heic|heif)(\?[^\s]*)?)/gi;
+  // Updated regex to handle URLs with spaces and query parameters
+  // Matches URLs until the image extension, including any query params after it
+  const urlRegex = /(https?:\/\/\S+?\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff|ico|heic|heif)(?:\?[^\s<>"]*)?)/gi;
   const matches = text.match(urlRegex);
-  return matches || [];
+  if (!matches) return [];
+  
+  // Also try to extract URLs that might have spaces (edge case for malformed URLs)
+  // This catches URLs like "https://example.com/Screenshot 2025-11-10 at 12.11.34 PM.png"
+  const spaceUrlRegex = /(https?:\/\/[^\s<>"]*(?:\s+[^\s<>"]+)*\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff|ico|heic|heif)(?:[^\s<>"]*)?)/gi;
+  const spaceMatches = text.match(spaceUrlRegex) || [];
+  
+  // Combine both matches and deduplicate
+  const allMatches = [...new Set([...matches, ...spaceMatches])];
+  return allMatches;
 };
 
 const MESSAGE_HTML_CONTENT_CLASS = {
@@ -192,6 +203,7 @@ export function ChatComponent() {
   const [isRefreshingOnlinePlayers, setIsRefreshingOnlinePlayers] = useState(false);
   const [apiOnlinePlayers, setApiOnlinePlayers] = useState<Player[]>([]);
   const [isLoadingApiOnlinePlayers, setIsLoadingApiOnlinePlayers] = useState(false);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const hasFetchedOnlinePlayersRef = useRef(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
@@ -1001,6 +1013,22 @@ export function ChatComponent() {
     }
   }, [isHistoryLoadingMessages, autoScrollEnabled, scrollToLatest]);
 
+  // Handle ESC key to close expanded image modal
+  useEffect(() => {
+    if (!expandedImage) return;
+
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setExpandedImage(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscKey);
+    return () => {
+      window.removeEventListener('keydown', handleEscKey);
+    };
+  }, [expandedImage]);
+
   return (
     <div className="h-full flex gap-0 md:gap-4 bg-background">
       {/* Left Column - Player List */}
@@ -1488,7 +1516,11 @@ export function ChatComponent() {
                                   // Display image
                                   return (
                                     <div className="mb-2 space-y-2">
-                                      <div className="relative rounded-lg overflow-hidden">
+                                      <div 
+                                        className="relative rounded-lg overflow-hidden cursor-pointer group/image hover:opacity-90 transition-opacity"
+                                        onClick={() => setExpandedImage(fileUrl)}
+                                        title="Click to expand"
+                                      >
                                         <img 
                                           src={fileUrl} 
                                           alt="Uploaded image"
@@ -1502,34 +1534,43 @@ export function ChatComponent() {
                                             }
                                           }}
                                         />
+                                        {/* Expand icon overlay */}
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity bg-black/20">
+                                          <div className="bg-white/90 dark:bg-gray-900/90 rounded-full p-2">
+                                            <svg className="w-5 h-5 text-gray-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                                            </svg>
+                                          </div>
+                                        </div>
                                       </div>
-                                      {/* Action buttons below image */}
-                                      <div className="flex items-center gap-2">
+                                      {/* Subtle action buttons below image */}
+                                      <div className="flex items-center gap-1.5">
                                         <a
                                           href={fileUrl}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95 shadow-sm ${
+                                          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-opacity hover:opacity-70 ${
                                             isAdmin 
-                                              ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                                              : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
+                                              ? 'text-muted-foreground' 
+                                              : 'text-white/50'
                                           }`}
                                         >
-                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                           </svg>
                                           Open
                                         </a>
+                                        <span className={isAdmin ? 'text-muted-foreground/30' : 'text-white/20'}>•</span>
                                         <a
                                           href={fileUrl}
                                           download
-                                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105 active:scale-95 shadow-sm ${
+                                          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-opacity hover:opacity-70 ${
                                             isAdmin 
-                                              ? 'bg-muted text-foreground hover:bg-muted/80' 
-                                              : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
+                                              ? 'text-muted-foreground' 
+                                              : 'text-white/50'
                                           }`}
                                         >
-                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                           </svg>
                                           Download
@@ -1586,18 +1627,27 @@ export function ChatComponent() {
                               
                               {(() => {
                                 const imageUrls = extractImageUrls(message.text);
+                                const fileUrl = message.fileUrl || imageUrls[0];
+                                const hasRenderedImage = fileUrl && isImageUrl(fileUrl);
                                 const hasImages = imageUrls.length > 0;
                                 
-                                // Remove image URLs from text for display
+                                // If an image is being rendered above, hide the text completely
+                                // This prevents the URL from showing when Open/Download buttons are present
+                                if (hasRenderedImage) {
+                                  return null;
+                                }
+                                
+                                // Remove all image URLs from text for display
                                 let displayText = message.text;
                                 if (hasImages) {
                                   imageUrls.forEach(url => {
-                                    displayText = displayText.replace(url, '');
+                                    // Remove the URL and any surrounding whitespace
+                                    displayText = displayText.replace(new RegExp(url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');
                                   });
                                   displayText = displayText.trim();
                                 }
                                 
-                                // Only show text if there's non-URL content
+                                // Don't show text if there's no text left after removing URLs
                                 if (!displayText && hasImages) {
                                   return null;
                                 }
@@ -2282,7 +2332,46 @@ export function ChatComponent() {
             </div>
           </div>
         </div>
-      </div>
+
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setExpandedImage(null)}
+        >
+          {/* Close button */}
+          <button
+            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            onClick={() => setExpandedImage(null)}
+            title="Close (ESC)"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Download button */}
+          <a
+            href={expandedImage || undefined}
+            download
+            className="absolute top-4 right-16 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            onClick={(e) => e.stopPropagation()}
+            title="Download image"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </a>
+
+          {/* Expanded image */}
+          <img
+            src={expandedImage || undefined}
+            alt="Expanded view"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
