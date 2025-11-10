@@ -117,6 +117,21 @@ const isImageUrl = (url: string): boolean => {
   return imageExtensions.test(url);
 };
 
+// Convert plain text URLs to clickable links
+const linkifyText = (text: string): string => {
+  if (!text) return text;
+  
+  // Regex to match URLs (http, https, or www)
+  const urlRegex = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/gi;
+  
+  return text.replace(urlRegex, (url) => {
+    // Ensure URL has protocol
+    const href = url.startsWith('http') ? url : `https://${url}`;
+    // Open in new tab for security
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+  });
+};
+
 // Extract image URLs from text
 const extractImageUrls = (text: string): string[] => {
   if (!text) return [];
@@ -144,6 +159,7 @@ const MESSAGE_HTML_CONTENT_CLASS = {
     '[&_strong]:text-primary [&_strong]:font-semibold',
     '[&_em]:text-muted-foreground',
     '[&_br]:block [&_br]:h-2',
+    '[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer hover:[&_a]:text-primary/80',
   ].join(' '),
   player: [
     'text-[13px] md:text-sm leading-relaxed break-words whitespace-pre-wrap',
@@ -152,6 +168,7 @@ const MESSAGE_HTML_CONTENT_CLASS = {
     '[&_strong]:text-white [&_strong]:font-semibold',
     '[&_em]:text-white/80',
     '[&_br]:block [&_br]:h-2',
+    '[&_a]:text-blue-300 [&_a]:underline [&_a]:cursor-pointer hover:[&_a]:text-blue-200',
   ].join(' '),
 };
 
@@ -1447,11 +1464,20 @@ export function ChatComponent() {
                           <div className="flex items-start gap-2">
                             <div className="flex-1 min-w-0">
                               <p className="text-foreground line-clamp-2">
-                                {hasHtmlContent(msg.text) ? (
-                                  <span dangerouslySetInnerHTML={{ __html: msg.text }} />
-                                ) : (
-                                  msg.text
-                                )}
+                                {(() => {
+                                  const hasHtml = hasHtmlContent(msg.text);
+                                  const linkedText = hasHtml ? msg.text : linkifyText(msg.text ?? '');
+                                  const shouldRenderAsHtml = hasHtml || linkedText !== msg.text;
+                                  
+                                  return shouldRenderAsHtml ? (
+                                    <span 
+                                      className="[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80"
+                                      dangerouslySetInnerHTML={{ __html: linkedText }} 
+                                    />
+                                  ) : (
+                                    msg.text
+                                  );
+                                })()}
                               </p>
                               <p className="text-muted-foreground text-[10px] mt-1">
                                 {msg.time || msg.timestamp}
@@ -1699,10 +1725,14 @@ export function ChatComponent() {
                                   return null;
                                 }
                                 
-                                return messageHasHtml ? (
+                                // Convert plain text URLs to links
+                                const linkedText = messageHasHtml ? displayText : linkifyText(displayText ?? '');
+                                const shouldRenderAsHtml = messageHasHtml || linkedText !== displayText;
+                                
+                                return shouldRenderAsHtml ? (
                                   <div
                                     className={MESSAGE_HTML_CONTENT_CLASS[isAdmin ? 'admin' : 'player']}
-                                    dangerouslySetInnerHTML={{ __html: displayText ?? '' }}
+                                    dangerouslySetInnerHTML={{ __html: linkedText ?? '' }}
                                   />
                                 ) : (
                                   <p
