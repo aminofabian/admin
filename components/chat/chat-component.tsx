@@ -198,6 +198,10 @@ export function ChatComponent() {
     password: '',
     confirmPassword: '',
   });
+  const [isEditBalanceModalOpen, setIsEditBalanceModalOpen] = useState(false);
+  const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
+  const [balanceValue, setBalanceValue] = useState(0);
+  const [balanceType, setBalanceType] = useState<'main' | 'winning'>('main');
   const [isUserAtLatest, setIsUserAtLatest] = useState(true);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [unseenMessageCount, setUnseenMessageCount] = useState(0);
@@ -764,6 +768,65 @@ export function ChatComponent() {
       setIsUpdatingProfile(false);
     }
   }, [selectedPlayer, profileFormData, isUpdatingProfile, addToast]);
+
+  const handleOpenEditBalance = useCallback(() => {
+    if (!selectedPlayer) return;
+    setBalanceValue(0);
+    setBalanceType('main');
+    setIsEditBalanceModalOpen(true);
+  }, [selectedPlayer]);
+
+  const handleUpdateBalance = useCallback(async (operation: 'increase' | 'decrease') => {
+    if (!selectedPlayer || isUpdatingBalance || balanceValue <= 0) {
+      if (balanceValue <= 0) {
+        addToast({
+          type: 'error',
+          title: 'Invalid amount',
+          description: 'Please enter a valid amount greater than 0.',
+        });
+      }
+      return;
+    }
+
+    setIsUpdatingBalance(true);
+    try {
+      const { playersApi } = await import('@/lib/api/users');
+      
+      const response = await playersApi.manualPayment({
+        player_id: selectedPlayer.user_id,
+        value: balanceValue,
+        type: operation,
+        balanceType: balanceType,
+      });
+
+      addToast({
+        type: 'success',
+        title: `Balance ${operation === 'increase' ? 'increased' : 'decreased'} successfully`,
+        description: `${balanceType === 'main' ? 'Main' : 'Winning'} balance updated to ${formatCurrency(
+          balanceType === 'main' ? response.player_bal : response.player_winning_bal
+        )}`,
+      });
+      
+      setIsEditBalanceModalOpen(false);
+      setBalanceValue(0);
+      
+      // Update the selected player balance
+      setSelectedPlayer(prev => prev ? {
+        ...prev,
+        balance: String(response.player_bal),
+        winningBalance: String(response.player_winning_bal),
+      } : null);
+    } catch (error) {
+      const description = error instanceof Error ? error.message : 'Unknown error';
+      addToast({
+        type: 'error',
+        title: 'Failed to update balance',
+        description,
+      });
+    } finally {
+      setIsUpdatingBalance(false);
+    }
+  }, [selectedPlayer, balanceValue, balanceType, isUpdatingBalance, addToast]);
 
   // Log online players connection status
   useEffect(() => {
@@ -2011,7 +2074,11 @@ export function ChatComponent() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="primary" className="w-full shadow-md hover:shadow-lg transition-shadow text-xs py-2">
+              <Button 
+                variant="primary" 
+                className="w-full shadow-md hover:shadow-lg transition-shadow text-xs py-2"
+                onClick={handleOpenEditBalance}
+              >
                 <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -2264,6 +2331,168 @@ export function ChatComponent() {
             </div>
           </div>
         </div>
+
+      {/* Edit Balance Drawer */}
+      <div className={`fixed inset-0 z-[60] overflow-hidden transition-opacity duration-300 ${isEditBalanceModalOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={() => !isUpdatingBalance && setIsEditBalanceModalOpen(false)}
+        />
+        
+        {/* Drawer Panel */}
+        <div 
+          className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isEditBalanceModalOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        >
+          {/* Drawer Header */}
+          <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground">Edit Balance</h2>
+            <button
+              onClick={() => setIsEditBalanceModalOpen(false)}
+              className="p-1 hover:bg-muted rounded-lg transition-colors"
+              disabled={isUpdatingBalance}
+            >
+              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Drawer Body */}
+          <div className="p-6 space-y-6 overflow-y-auto h-[calc(100vh-73px)]">
+            {/* Balance Display with +/- Buttons */}
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={() => setBalanceValue(prev => Math.max(0, prev - 1))}
+                className="w-14 h-14 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-foreground text-2xl font-semibold transition-colors"
+                disabled={isUpdatingBalance}
+              >
+                -
+              </button>
+              <div className="text-5xl font-bold text-primary min-w-[120px] text-center">
+                {balanceValue}
+              </div>
+              <button
+                onClick={() => setBalanceValue(prev => prev + 1)}
+                className="w-14 h-14 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-foreground text-2xl font-semibold transition-colors"
+                disabled={isUpdatingBalance}
+              >
+                +
+              </button>
+            </div>
+
+            {/* Quick Amount Buttons */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-3">
+                Quick Amounts
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[5, 10, 15, 20].map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => setBalanceValue(amount)}
+                    className="py-3 px-4 border-2 border-primary/20 hover:border-primary rounded-lg text-primary font-semibold transition-colors"
+                    disabled={isUpdatingBalance}
+                  >
+                    ${amount}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Manual Amount Entry */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">
+                Manual Amount
+              </label>
+              <Input
+                type="number"
+                value={balanceValue === 0 ? '' : balanceValue}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setBalanceValue(0);
+                  } else {
+                    setBalanceValue(Math.max(0, parseFloat(val) || 0));
+                  }
+                }}
+                placeholder="Enter amount"
+                className="w-full"
+                disabled={isUpdatingBalance}
+                min="0"
+                step="1"
+              />
+            </div>
+
+            {/* Balance Type Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-3">
+                Balance Type
+              </label>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border-2 rounded-lg transition-colors hover:bg-muted/50" 
+                  style={{ borderColor: balanceType === 'main' ? 'rgb(34, 197, 94)' : 'transparent' }}>
+                  <input
+                    type="radio"
+                    name="balanceType"
+                    checked={balanceType === 'main'}
+                    onChange={() => setBalanceType('main')}
+                    className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-500"
+                    disabled={isUpdatingBalance}
+                  />
+                  <span className="text-sm font-medium text-foreground">Main Balance</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border-2 rounded-lg transition-colors hover:bg-muted/50"
+                  style={{ borderColor: balanceType === 'winning' ? 'rgb(234, 179, 8)' : 'transparent' }}>
+                  <input
+                    type="radio"
+                    name="balanceType"
+                    checked={balanceType === 'winning'}
+                    onChange={() => setBalanceType('winning')}
+                    className="w-4 h-5 text-yellow-500 border-gray-300 focus:ring-yellow-500"
+                    disabled={isUpdatingBalance}
+                  />
+                  <span className="text-sm font-medium text-foreground">Winning Balance</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-4">
+              <Button
+                variant="primary"
+                onClick={() => handleUpdateBalance('increase')}
+                disabled={isUpdatingBalance || balanceValue <= 0}
+                className="w-full"
+              >
+                {isUpdatingBalance ? (
+                  <svg className="w-5 h-5 mx-auto animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  'Topup'
+                )}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => handleUpdateBalance('decrease')}
+                disabled={isUpdatingBalance || balanceValue <= 0}
+                className="w-full"
+              >
+                {isUpdatingBalance ? (
+                  <svg className="w-5 h-5 mx-auto animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  'Withdraw'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {expandedImage && (
         <div 

@@ -225,7 +225,6 @@ class ApiClient {
         method: 'POST',
         headers,
         body: isFormData ? data : JSON.stringify(data),
-        credentials: 'include', // Include cookies for CSRF token
       });
 
       console.log('📥 Response Status:', response.status, response.statusText);

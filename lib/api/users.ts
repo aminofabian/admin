@@ -72,5 +72,17 @@ export const playersApi = {
     apiClient.get<{ total_purchases: number; total_cashouts: number; total_transfers: number }>(
       `api/view-player/${id}`
     ),
+
+  manualPayment: (data: {
+    player_id: number;
+    value: number;
+    type: 'increase' | 'decrease';
+    balanceType: 'main' | 'winning';
+  }) =>
+    apiClient.post<{ 
+      status: string; 
+      player_bal: number; 
+      player_winning_bal: number 
+    }>('/api/v1/admin/manual-payment/', data),
 };
 
