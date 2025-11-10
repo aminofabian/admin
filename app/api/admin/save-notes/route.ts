@@ -8,6 +8,12 @@ interface SaveNotesRequestBody {
   player_id?: number;
 }
 
+interface BackendResponse {
+  message?: string;
+  detail?: string;
+  status?: string;
+}
+
 const resolvePositiveInteger = (value: unknown): number | null => {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric <= 0) {
@@ -58,7 +64,7 @@ export async function POST(request: NextRequest) {
     });
 
     const rawText = await backendResponse.text();
-    let payload: any = null;
+    let payload: unknown = null;
 
     if (rawText) {
       try {
@@ -69,7 +75,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (!backendResponse.ok) {
-      const message = payload?.message || payload?.detail || `Backend error ${backendResponse.status}`;
+      const backendPayload = payload as BackendResponse;
+      const message = backendPayload?.message || backendPayload?.detail || `Backend error ${backendResponse.status}`;
       return NextResponse.json(
         {
           status: 'error',
