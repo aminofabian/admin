@@ -56,6 +56,7 @@ const mapHistoryMessage = (msg: any): ChatMessage => {
     fileExtension: msg.file_extension ?? undefined,
     fileUrl: msg.file ?? undefined,
     userBalance: msg.user_balance ?? msg.balance,
+    isPinned: msg.is_pinned ?? msg.isPinned ?? false,
   };
 };
 
@@ -106,6 +107,7 @@ interface UseChatWebSocketReturn {
   loadOlderMessages: () => Promise<{ added: number }>;
   hasMoreHistory: boolean;
   isHistoryLoading: boolean;
+  updateMessagePinnedState: (messageId: string, pinned: boolean) => void;
 }
 
 export function useChatWebSocket({
@@ -466,6 +468,7 @@ export function useChatWebSocket({
               isFile: rawData.is_file || false,
               fileExtension: rawData.file_extension || undefined,
               isComment: rawData.is_comment || false,
+              isPinned: rawData.is_pinned ?? false,
             };
 
             !IS_PROD && console.log('✅ Parsed message and adding to state:', {
@@ -656,6 +659,7 @@ export function useChatWebSocket({
           }),
           isRead: false,
           userId: adminId,
+          isPinned: false,
         };
 
         setMessages((prev) => [...prev, newMessage]);
@@ -690,6 +694,14 @@ export function useChatWebSocket({
     }
   }, [adminId]);
 
+  const updateMessagePinnedState = useCallback((messageId: string, pinned: boolean) => {
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.id === messageId ? { ...message, isPinned: pinned } : message,
+      ),
+    );
+  }, []);
+
   // Connect/disconnect based on enabled state and userId
   useEffect(() => {
     if (enabled && userId) {
@@ -717,6 +729,7 @@ export function useChatWebSocket({
     loadOlderMessages,
     hasMoreHistory,
     isHistoryLoading,
+    updateMessagePinnedState,
   };
 }
 

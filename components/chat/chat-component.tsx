@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, useToast } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
@@ -158,6 +158,7 @@ export function ChatComponent() {
   const [availability, setAvailability] = useState(true);
   const [notes, setNotes] = useState('');
   const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
+  const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const [isUserAtLatest, setIsUserAtLatest] = useState(true);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
@@ -169,6 +170,8 @@ export function ChatComponent() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
   const wasHistoryLoadingRef = useRef(false);
+  const messageMenuRef = useRef<HTMLDivElement | null>(null);
+  const { addToast } = useToast();
 
   // Fetch chat users list
   const { 
@@ -200,6 +203,7 @@ export function ChatComponent() {
     loadOlderMessages,
     hasMoreHistory,
     isHistoryLoading: isHistoryLoadingMessages,
+    updateMessagePinnedState,
   } = useChatWebSocket({
     userId: selectedPlayer?.user_id ?? null,
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
@@ -428,6 +432,7 @@ export function ChatComponent() {
 
     setSelectedPlayer(player);
     setMessageMenuOpen(null);
+    setPendingPinMessageId(null);
     setMobileView('chat');
     setAutoScrollEnabled(true);
     setIsUserAtLatest(true);
@@ -440,6 +445,35 @@ export function ChatComponent() {
       router.push(`/dashboard/players?highlight=${selectedPlayer.user_id}`);
     }
   }, [selectedPlayer, router]);
+
+  useEffect(() => {
+    if (!selectedPlayer) {
+      setPendingPinMessageId(null);
+    }
+  }, [selectedPlayer]);
+
+  useEffect(() => {
+    if (!messageMenuOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!messageMenuRef.current) {
+        return;
+      }
+
+      if (messageMenuRef.current.contains(event.target as Node)) {
+        return;
+      }
+
+      setMessageMenuOpen(null);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [messageMenuOpen]);
 
   // Transform API response to Player format
   const transformApiPlayerToUser = useCallback((player: any): Player => {
@@ -532,6 +566,88 @@ export function ChatComponent() {
       setIsRefreshingOnlinePlayers(false);
     }
   }, [hasValidAdminUser, isRefreshingOnlinePlayers, fetchOnlinePlayers]);
+
+  const handleTogglePin = useCallback(async (messageId: string, isPinned: boolean) => {
+    if (!selectedPlayer) {
+      addToast({
+        type: 'error',
+        title: 'Select a conversation first',
+      });
+      return;
+    }
+
+    if (pendingPinMessageId === messageId) {
+      return;
+    }
+
+    const token = storage.get(TOKEN_KEY);
+    if (!token) {
+      addToast({
+        type: 'error',
+        title: 'Authentication required',
+        description: 'Please sign in again to manage pinned messages.',
+      });
+      return;
+    }
+
+    const chatId = asPositiveNumber(selectedPlayer.id);
+    const numericMessageId = asPositiveNumber(messageId);
+
+    if (!chatId || !numericMessageId) {
+      addToast({
+        type: 'error',
+        title: 'Invalid message reference',
+        description: 'Unable to resolve chat or message identifiers for pinning.',
+      });
+      return;
+    }
+
+    const action = isPinned ? 'unpin' : 'pin';
+
+    try {
+      setPendingPinMessageId(messageId);
+
+      const response = await fetch('/api/chat-message-pin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: numericMessageId,
+          action,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const errorMessage =
+          (result && (result.message || result.detail)) ||
+          `Unable to ${action} this message right now.`;
+        throw new Error(errorMessage);
+      }
+
+      const pinnedState = Boolean(result?.is_pinned ?? action === 'pin');
+      updateMessagePinnedState(messageId, pinnedState);
+      setMessageMenuOpen(null);
+
+      addToast({
+        type: 'success',
+        title: result?.message ?? (pinnedState ? 'Message pinned' : 'Message unpinned'),
+      });
+    } catch (error) {
+      const description = error instanceof Error ? error.message : 'Unknown error';
+      addToast({
+        type: 'error',
+        title: 'Failed to update pin status',
+        description,
+      });
+    } finally {
+      setPendingPinMessageId(null);
+    }
+  }, [selectedPlayer, pendingPinMessageId, addToast, updateMessagePinnedState]);
 
   // Fetch online players when switching to "online" tab or on mount
   useEffect(() => {
@@ -1178,6 +1294,8 @@ export function ChatComponent() {
                                 const isConsecutive = prevMessage && prevMessage.sender === message.sender;
                     const isAdmin = message.sender === 'admin';
                     const messageHasHtml = hasHtmlContent(message.text);
+                    const isPinning = pendingPinMessageId === message.id;
+                    const pinButtonLabel = message.isPinned ? 'Unpin message' : 'Pin message';
 
                     return (
                       <div
@@ -1203,7 +1321,7 @@ export function ChatComponent() {
                                   : 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/25'
                               } ${
                                 isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
-                              }`}
+                              } ${message.isPinned ? 'ring-2 ring-amber-400/60' : ''}`}
                             >
                               {/* File indicator badge with download link */}
                               {message.isFile && (
@@ -1287,6 +1405,14 @@ export function ChatComponent() {
                               <span className="text-[10px] md:text-xs text-muted-foreground font-medium">
                                 {message.time || message.timestamp}
                               </span>
+                              {message.isPinned && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                                  <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
+                                  </svg>
+                                  Pinned
+                                </span>
+                              )}
                               {isAdmin && (
                                 <svg 
                                   className={`w-3.5 h-3.5 ${
@@ -1314,6 +1440,47 @@ export function ChatComponent() {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                 </svg>
                               </button>
+                            )}
+                            {isAdmin && messageMenuOpen === message.id && (
+                              <div
+                                ref={messageMenuRef}
+                                className="absolute right-0 top-full z-40 mt-2 w-48 overflow-hidden rounded-xl border border-border/60 bg-background/95 shadow-2xl backdrop-blur"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePin(message.id, Boolean(message.isPinned))}
+                                  disabled={isPinning}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {isPinning ? (
+                                    <svg
+                                      className="h-4 w-4 animate-spin text-primary"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                    >
+                                      <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        strokeWidth="4"
+                                      />
+                                      <path
+                                        className="opacity-75"
+                                        d="M4 12a8 8 0 018-8"
+                                        strokeWidth="4"
+                                        strokeLinecap="round"
+                                      />
+                                    </svg>
+                                  ) : (
+                                    <svg className="h-4 w-4 text-amber-600 dark:text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                                      <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
+                                    </svg>
+                                  )}
+                                  <span>{pinButtonLabel}</span>
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>

@@ -31,6 +31,7 @@ export interface ChatMessage {
   fileExtension?: string; // File extension if isFile is true (WebSocket)
   fileUrl?: string; // File URL from REST API endpoint
   userBalance?: string; // User balance at the time of message
+  isPinned?: boolean;
 }
 
 export interface ChatListResponse {
