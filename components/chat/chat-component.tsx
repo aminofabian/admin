@@ -152,7 +152,6 @@ export function ChatComponent() {
   const hasValidAdminUser = adminUserId > NO_ADMIN_USER_ID;
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [activeTab, setActiveTab] = useState<'online' | 'all-chats'>('online');
-  const [chatViewMode, setChatViewMode] = useState<'messages' | 'purchases'>('messages');
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [availability, setAvailability] = useState(true);
@@ -160,6 +159,7 @@ export function ChatComponent() {
   const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
   const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
+  const [isPinnedMessagesExpanded, setIsPinnedMessagesExpanded] = useState(false);
   const [isUserAtLatest, setIsUserAtLatest] = useState(true);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [unseenMessageCount, setUnseenMessageCount] = useState(0);
@@ -348,12 +348,6 @@ export function ChatComponent() {
     fetchAllPlayers();
   }, [activeTab, allPlayers.length, fetchAllPlayers]);
 
-  // Fetch purchase history when switching to 'purchases' view
-  useEffect(() => {
-    if (chatViewMode === 'purchases' && selectedPlayer) {
-      fetchPurchaseHistory();
-    }
-  }, [chatViewMode, selectedPlayer, fetchPurchaseHistory]);
 
   const handleSendMessage = useCallback(() => {
     if (!messageInput.trim() || !selectedPlayer) return;
@@ -399,10 +393,6 @@ export function ChatComponent() {
   }, []);
 
   const evaluateScrollPosition = useCallback(() => {
-    if (chatViewMode !== 'messages') {
-      return;
-    }
-
     const container = messagesContainerRef.current;
     if (!container) {
       return;
@@ -417,7 +407,7 @@ export function ChatComponent() {
     if (isAtBottom) {
       setUnseenMessageCount(0);
     }
-  }, [chatViewMode]);
+  }, []);
 
   const handlePlayerSelect = useCallback((player: Player, options?: { markAsRead?: boolean }) => {
     const { markAsRead } = options ?? {};
@@ -663,7 +653,6 @@ export function ChatComponent() {
   }, [activeTab, hasValidAdminUser, isLoadingApiOnlinePlayers, fetchOnlinePlayers]);
 
   const maybeLoadOlderMessages = useCallback(async () => {
-    if (chatViewMode !== 'messages') return;
     if (!selectedPlayer) return;
 
     const container = messagesContainerRef.current;
@@ -694,7 +683,7 @@ export function ChatComponent() {
     } catch (error) {
       console.error('❌ Failed to load older messages:', error);
     }
-  }, [chatViewMode, hasMoreHistory, isHistoryLoadingMessages, loadOlderMessages, selectedPlayer]);
+  }, [hasMoreHistory, isHistoryLoadingMessages, loadOlderMessages, selectedPlayer]);
 
   const handleScroll = useCallback(() => {
     evaluateScrollPosition();
@@ -758,7 +747,7 @@ export function ChatComponent() {
   }, [selectedPlayer, activeChatsUsers, handlePlayerSelect]);
 
   useEffect(() => {
-    if (!selectedPlayer || chatViewMode !== 'messages') {
+    if (!selectedPlayer) {
       return;
     }
 
@@ -772,7 +761,7 @@ export function ChatComponent() {
     requestAnimationFrame(() => {
       scrollToLatest('auto');
     });
-  }, [selectedPlayer, chatViewMode, scrollToLatest, isHistoryLoadingMessages]);
+  }, [selectedPlayer, scrollToLatest, isHistoryLoadingMessages]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -793,13 +782,9 @@ export function ChatComponent() {
     return () => {
       container.removeEventListener('scroll', handleContainerScroll);
     };
-  }, [handleScroll, evaluateScrollPosition, chatViewMode, selectedPlayer]);
+  }, [handleScroll, evaluateScrollPosition, selectedPlayer]);
 
   useEffect(() => {
-    if (chatViewMode !== 'messages') {
-      return;
-    }
-
     const lastMessage = wsMessages[wsMessages.length - 1];
     if (!lastMessage) {
       latestMessageIdRef.current = null;
@@ -822,13 +807,9 @@ export function ChatComponent() {
     } else {
       setUnseenMessageCount((prev) => Math.min(prev + 1, 99));
     }
-  }, [wsMessages, autoScrollEnabled, chatViewMode, scrollToLatest]);
+  }, [wsMessages, autoScrollEnabled, scrollToLatest]);
 
   useEffect(() => {
-    if (chatViewMode !== 'messages') {
-      return;
-    }
-
     const wasLoading = wasHistoryLoadingRef.current;
     wasHistoryLoadingRef.current = isHistoryLoadingMessages;
 
@@ -837,7 +818,7 @@ export function ChatComponent() {
         scrollToLatest('auto');
       });
     }
-  }, [isHistoryLoadingMessages, autoScrollEnabled, chatViewMode, scrollToLatest]);
+  }, [isHistoryLoadingMessages, autoScrollEnabled, scrollToLatest]);
 
   return (
     <div className="h-full flex gap-0 md:gap-4 bg-background">
@@ -1170,79 +1151,72 @@ export function ChatComponent() {
               </div>
             </div>
 
-            {/* View Mode Toggle */}
-            <div className="px-4 py-2 border-b border-border/50 bg-muted/20">
-              <div className="flex gap-2 p-1 bg-muted/30 rounded-lg">
-                <button
-                  onClick={() => setChatViewMode('messages')}
-                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                    chatViewMode === 'messages'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }`}
-                >
-                  💬 Messages
-                </button>
-                <button
-                  onClick={() => setChatViewMode('purchases')}
-                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
-                    chatViewMode === 'purchases'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }`}
-                >
-                  💰 Purchases
-                </button>
-              </div>
-            </div>
+            {/* Pinned Messages Section */}
+            {(() => {
+              const pinnedMessages = wsMessages.filter(msg => msg.isPinned);
+              if (pinnedMessages.length === 0) return null;
+              
+              return (
+                <div className="border-b border-border/50 bg-amber-500/5">
+                  {/* Collapsible Header */}
+                  <button
+                    onClick={() => setIsPinnedMessagesExpanded(!isPinnedMessagesExpanded)}
+                    className="w-full px-4 py-2 flex items-center justify-between gap-2 hover:bg-amber-500/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <svg className="h-4 w-4 text-amber-600 dark:text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
+                      </svg>
+                      <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+                        Pinned Messages ({pinnedMessages.length})
+                      </span>
+                    </div>
+                    <svg
+                      className={`h-4 w-4 text-amber-600 dark:text-amber-400 transition-transform duration-200 ${
+                        isPinnedMessagesExpanded ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Expandable Content */}
+                  {isPinnedMessagesExpanded && (
+                    <div className="px-4 pb-2 space-y-2 max-h-32 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+                      {pinnedMessages.map((msg) => (
+                        <div key={msg.id} className="text-xs bg-background/50 rounded-lg p-2 border border-amber-500/20">
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-foreground line-clamp-2">
+                                {hasHtmlContent(msg.text) ? (
+                                  <span dangerouslySetInnerHTML={{ __html: msg.text }} />
+                                ) : (
+                                  msg.text
+                                )}
+                              </p>
+                              <p className="text-muted-foreground text-[10px] mt-1">
+                                {msg.time || msg.timestamp}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Messages / Purchase History */}
             <div 
               ref={messagesContainerRef}
               className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 scroll-smooth bg-gradient-to-b from-background/50 to-background"
             >
-              {/* Loading state for purchase history */}
-              {chatViewMode === 'purchases' && isPurchaseHistoryLoading && (
-                <div className="space-y-4">
-                  {/* Skeleton loaders for purchase history */}
-                  {[...Array(3)].map((_, index) => (
-                    <div key={index} className="flex justify-start animate-pulse">
-                      <div className="flex items-start gap-2 md:gap-3 w-full max-w-[85%] md:max-w-[75%] min-w-0">
-                        {/* System Icon skeleton */}
-                        <div className="w-7 md:w-8 h-7 md:h-8 rounded-full bg-muted/60 flex-shrink-0" />
-                        
-                        {/* Purchase Message skeleton */}
-                        <div className="flex flex-col gap-2 flex-1">
-                          <div className="bg-muted/40 rounded-2xl rounded-bl-sm px-4 py-3 space-y-2">
-                            <div className="h-4 w-3/4 bg-muted/60 rounded" />
-                            <div className="h-4 w-full bg-muted/60 rounded" />
-                            <div className="h-4 w-1/2 bg-muted/60 rounded" />
-                          </div>
-                          <div className="flex items-center gap-2 px-2">
-                            <div className="h-3 w-16 bg-muted/60 rounded" />
-                            <div className="h-3 w-20 bg-muted/60 rounded" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Empty state for purchases */}
-              {chatViewMode === 'purchases' && !isPurchaseHistoryLoading && purchaseHistory.length === 0 && (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <svg className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                    <p className="text-sm text-muted-foreground">No purchase history available</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Render messages or purchase history based on view mode */}
-              {chatViewMode === 'messages' && isHistoryLoadingMessages && (
+              {/* Loading indicator for message history */}
+              {isHistoryLoadingMessages && (
                 <div className="flex justify-center py-3 text-muted-foreground">
                   <svg
                     className="h-5 w-5 animate-spin"
@@ -1266,7 +1240,7 @@ export function ChatComponent() {
                   </svg>
                 </div>
               )}
-              {chatViewMode === 'messages' && Object.entries(groupedMessages).map(([date, dateMessages]) => (
+              {Object.entries(groupedMessages).map(([date, dateMessages]) => (
                 <div key={date} className="space-y-3">
                   {/* Date Separator */}
                   <div className="flex items-center justify-center my-8 first:mt-0">
@@ -1490,57 +1464,7 @@ export function ChatComponent() {
                 </div>
               ))}
 
-              {/* Render purchase history */}
-              {chatViewMode === 'purchases' && !isPurchaseHistoryLoading && purchaseHistory.length > 0 && 
-                purchaseHistory.map((purchase) => (
-                  <div key={purchase.id} className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200">
-                      <div className="flex items-start gap-2 md:gap-3 w-full max-w-[85%] md:max-w-[75%] min-w-0">
-                      {/* System Icon */}
-                      <div className="w-7 md:w-8 h-7 md:h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                      </div>
-                      
-                      {/* Purchase Message */}
-                      <div className="flex flex-col gap-1 flex-1">
-                        <div className="bg-muted/80 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-md border border-border/50">
-                          <div
-                            className={PURCHASE_HTML_CONTENT_CLASS}
-                            dangerouslySetInnerHTML={{ __html: purchase.text }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2 px-2">
-                          <span className="text-[10px] md:text-xs text-muted-foreground">
-                            {purchase.time || new Date(purchase.timestamp).toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/60">•</span>
-                          <span className="text-[10px] text-muted-foreground/60">
-                            {new Date(purchase.timestamp).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </span>
-                          {purchase.type && (
-                            <>
-                              <span className="text-[10px] text-muted-foreground/60">•</span>
-                              <span className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full">
-                                {purchase.type}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              }
-
-              {chatViewMode === 'messages' && !isUserAtLatest && (
+              {!isUserAtLatest && (
                 <div className="pointer-events-none sticky bottom-12 sm:bottom-16 z-20 flex justify-end pr-0">
                   <div className="pointer-events-auto -mr-3 sm:-mr-8">
                     <button
@@ -1591,7 +1515,7 @@ export function ChatComponent() {
               )}
               
               {/* Typing Indicator */}
-              {chatViewMode === 'messages' && remoteTyping && (
+              {remoteTyping && (
                 <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200 mt-4">
                   <div className="flex items-center gap-2">
                     <div className="w-7 md:w-8 shrink-0" />
@@ -1608,8 +1532,7 @@ export function ChatComponent() {
               
             </div>
 
-            {/* Message Input - Only show in messages view */}
-            {chatViewMode === 'messages' && (
+            {/* Message Input */}
             <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
               {/* Toolbar - Desktop Only */}
               <div className="hidden lg:flex items-center gap-1 mb-2 pb-2 border-b border-border/30">
@@ -1734,7 +1657,6 @@ export function ChatComponent() {
                 Tap Send or Enter to send • Hold Shift for new line
               </div>
             </div>
-            )}
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-background/50 to-background">
