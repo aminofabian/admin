@@ -241,6 +241,7 @@ export function ChatComponent() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isAutoScrollingRef = useRef(false);
   const isTransitioningRef = useRef(false);
+  const hasScrolledToInitialLoadRef = useRef(false);
   const { addToast } = useToast();
   const { games: playerGames, isLoading: isLoadingPlayerGames } = usePlayerGames(selectedPlayer?.user_id || null);
 
@@ -1204,41 +1205,53 @@ export function ChatComponent() {
     latestMessageIdRef.current = null;
     wasHistoryLoadingRef.current = isHistoryLoadingMessages;
     setUnseenMessageCount(0);
+    hasScrolledToInitialLoadRef.current = false; // Reset for new player
 
     // Mark that we're transitioning and auto-scrolling
     isTransitioningRef.current = true;
     isAutoScrollingRef.current = true;
 
-    // Use requestAnimationFrame for better synchronization with DOM rendering
-    // Double RAF ensures layout is complete before scrolling
-    requestAnimationFrame(() => {
+    // If messages are already loaded, scroll immediately
+    // Otherwise, wait for messages to load (handled in other useEffects)
+    if (wsMessages.length > 0) {
+      // Use requestAnimationFrame for better synchronization with DOM rendering
+      // Double RAF ensures layout is complete before scrolling
       requestAnimationFrame(() => {
-        const container = messagesContainerRef.current;
-        if (container) {
-          // Temporarily disable smooth scrolling for instant positioning
-          const originalScrollBehavior = container.style.scrollBehavior;
-          container.style.scrollBehavior = 'auto';
-          container.scrollTop = container.scrollHeight;
-          container.style.scrollBehavior = originalScrollBehavior;
-          
-          // Set states after scroll is complete
-          setAutoScrollEnabled(true);
-          setIsUserAtLatest(true);
-          
-          // Allow position evaluation and re-enable animations after transition
-          setTimeout(() => {
-            isAutoScrollingRef.current = false;
-            isTransitioningRef.current = false;
-          }, 300);
-        }
+        requestAnimationFrame(() => {
+          const container = messagesContainerRef.current;
+          if (container) {
+            // Temporarily disable smooth scrolling for instant positioning
+            const originalScrollBehavior = container.style.scrollBehavior;
+            container.style.scrollBehavior = 'auto';
+            container.scrollTop = container.scrollHeight;
+            container.style.scrollBehavior = originalScrollBehavior;
+            
+            // Set states after scroll is complete
+            setAutoScrollEnabled(true);
+            setIsUserAtLatest(true);
+            hasScrolledToInitialLoadRef.current = true;
+            
+            // Allow position evaluation and re-enable animations after transition
+            setTimeout(() => {
+              isAutoScrollingRef.current = false;
+              isTransitioningRef.current = false;
+            }, 300);
+          }
+        });
       });
-    });
+    } else {
+      // Messages not loaded yet - will be handled when messages load
+      setTimeout(() => {
+        isAutoScrollingRef.current = false;
+        isTransitioningRef.current = false;
+      }, 300);
+    }
 
     return () => {
       isAutoScrollingRef.current = false;
       isTransitioningRef.current = false;
     };
-  }, [selectedPlayer]);
+  }, [selectedPlayer, wsMessages.length]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -1281,6 +1294,19 @@ export function ChatComponent() {
       return;
     }
 
+    // On initial load when messages first appear, scroll to bottom immediately
+    if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0 && !isHistoryLoadingMessages) {
+      hasScrolledToInitialLoadRef.current = true;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToLatest('auto');
+          setAutoScrollEnabled(true);
+          setIsUserAtLatest(true);
+        });
+      });
+      return;
+    }
+
     if (autoScrollEnabled) {
       requestAnimationFrame(() => {
         scrollToLatest('smooth');
@@ -1288,14 +1314,25 @@ export function ChatComponent() {
     } else {
       setUnseenMessageCount((prev) => Math.min(prev + 1, 99));
     }
-  }, [wsMessages, autoScrollEnabled, scrollToLatest]);
+  }, [wsMessages, autoScrollEnabled, scrollToLatest, isHistoryLoadingMessages]);
 
   useEffect(() => {
     const wasLoading = wasHistoryLoadingRef.current;
     wasHistoryLoadingRef.current = isHistoryLoadingMessages;
 
-    // Removed auto-scroll after history loads to allow users to scroll up freely
-  }, [isHistoryLoadingMessages]);
+    // On initial load (when history finishes loading and we haven't scrolled yet), scroll to latest
+    if (wasLoading && !isHistoryLoadingMessages && !hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
+      hasScrolledToInitialLoadRef.current = true;
+      // Use double RAF to ensure messages are rendered
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToLatest('auto');
+          setAutoScrollEnabled(true);
+          setIsUserAtLatest(true);
+        });
+      });
+    }
+  }, [isHistoryLoadingMessages, wsMessages.length, scrollToLatest]);
 
 
   return (
