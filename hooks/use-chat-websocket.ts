@@ -199,8 +199,12 @@ export function useChatWebSocket({
           error: errorText.substring(0, 200),
         });
 
-        if (response.status === 401) {
-          console.error('🚨 Authentication failed. You may need to log out and log back in to refresh your session cookies.');
+        if (response.status === 401 || response.status === 403) {
+          console.error('🚨 Authentication failed - redirecting to login');
+          storage.clear();
+          if (typeof window !== 'undefined') {
+            window.location.replace('/login');
+          }
         }
 
         return null;
@@ -337,8 +341,12 @@ export function useChatWebSocket({
           error: errorText.substring(0, 200),
         });
         
-        if (response.status === 401) {
-          console.error('🚨 Authentication failed. You may need to log out and log back in to refresh your session cookies.');
+        if (response.status === 401 || response.status === 403) {
+          console.error('🚨 Authentication failed - redirecting to login');
+          storage.clear();
+          if (typeof window !== 'undefined') {
+            window.location.replace('/login');
+          }
         }
         return;
       }
@@ -642,6 +650,13 @@ export function useChatWebSocket({
     })
       .then(response => {
         if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            console.error('🚨 Authentication failed - redirecting to login');
+            storage.clear();
+            if (typeof window !== 'undefined') {
+              window.location.replace('/login');
+            }
+          }
           throw new Error(`Failed to send message: ${response.status}`);
         }
         !IS_PROD && console.log('✅ Message sent successfully via REST API');

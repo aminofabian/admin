@@ -104,11 +104,8 @@ class ApiClient {
         errorMessage.includes('Token has expired') ||
         errorMessage.includes('Invalid token') ||
         errorCode === 'token_not_valid' ||
-        (response.status === 401 && (
-          errorMessage.toLowerCase().includes('token') || 
-          errorMessage.toLowerCase().includes('authentication') ||
-          errorMessage.toLowerCase().includes('unauthorized')
-        ));
+        response.status === 401 ||
+        response.status === 403;
 
       if (isInvalidToken) {
         console.warn('🚨 Invalid token detected - redirecting to login page');
