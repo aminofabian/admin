@@ -245,6 +245,7 @@ export function ChatComponent() {
   const hasScrolledToInitialLoadRef = useRef(false);
   const isLoadingOlderMessagesRef = useRef(false);
   const pendingLoadRequestRef = useRef(false);
+  const hasShownEndOfHistoryToastRef = useRef(false);
   const { addToast } = useToast();
   const { games: playerGames, isLoading: isLoadingPlayerGames } = usePlayerGames(selectedPlayer?.user_id || null);
 
@@ -1189,6 +1190,18 @@ export function ChatComponent() {
     
     if (!hasMoreHistory) {
       pendingLoadRequestRef.current = false;
+      
+      // Show toast once per player session when user reaches the end of history
+      if (!hasShownEndOfHistoryToastRef.current && scrollTop <= LOAD_MORE_SCROLL_THRESHOLD) {
+        hasShownEndOfHistoryToastRef.current = true;
+        addToast({
+          type: 'info',
+          title: 'End of conversation',
+          description: "You've reached the beginning of this chat",
+        });
+        !IS_PROD && console.log('📢 Showed end of history toast');
+      }
+      
       return;
     }
     
@@ -1352,6 +1365,7 @@ export function ChatComponent() {
     hasScrolledToInitialLoadRef.current = false; // Reset for new player
     isLoadingOlderMessagesRef.current = false; // Reset for new player
     pendingLoadRequestRef.current = false; // Reset for new player
+    hasShownEndOfHistoryToastRef.current = false; // Reset for new player
 
     // Mark that we're transitioning and auto-scrolling
     isTransitioningRef.current = true;
