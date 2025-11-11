@@ -1197,7 +1197,7 @@ export function ChatComponent() {
         addToast({
           type: 'info',
           title: 'End of conversation',
-          description: "You've reached the beginning of this chat",
+          description: "You've scrolled to the beginning of the conversation history ... No more messages to load.",
         });
         !IS_PROD && console.log('📢 Showed end of history toast');
       }
