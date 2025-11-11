@@ -56,27 +56,29 @@ function transformChatToUser(chat: any): ChatUser {
 
 /**
  * Transform REST API player data to frontend ChatUser format
- * REST API format: simple player object from /api/v1/players/
- * Note: Last messages come from WebSocket and are merged in the frontend
+ * REST API format: player object from /api/v1/admin/chat/?request_type=all_players
+ * This endpoint includes chat context (last message, unread count, chatroom info)
  */
 function transformPlayerToUser(player: any): ChatUser {
   return {
-    // Use player.id as the main ID (no chatroom_id in REST API response)
-    id: String(player.id || ''),
+    // Use chatroom_id if available (for chat context), otherwise use player.id
+    id: String(player.chatroom_id || player.id || ''),
     user_id: Number(player.id || 0),
     username: player.username || player.full_name || 'Unknown',
     fullName: player.full_name || player.name || undefined,
     email: player.email || '',
     avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
     isOnline: player.is_online || false,
-    lastMessage: undefined, // Will be merged from WebSocket activeChats in the frontend
-    lastMessageTime: undefined, // Will be merged from WebSocket activeChats in the frontend
+    // Use last_message from API if available (new endpoint provides this)
+    lastMessage: player.last_message || undefined,
+    lastMessageTime: player.last_message_timestamp || undefined,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
-    gamesPlayed: player.games_played || undefined,
+    gamesPlayed: player.games_played || player.gems || undefined,
     winRate: player.win_rate || undefined,
     phone: player.phone_number || player.mobile_number || undefined,
-    unreadCount: 0, // Will be merged from WebSocket activeChats in the frontend
+    // Use unread_messages_count from API if available
+    unreadCount: player.unread_messages_count || 0,
     notes: player.notes || undefined,
   };
 }
@@ -325,10 +327,15 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       const data = await response.json();
-      !IS_PROD && console.log(`📊 REST API returned ${data.results?.length || 0} of ${data.count || 0} players`);
+      
+      // Handle both response formats: 'player' array (new endpoint) or 'results' array (old endpoint)
+      const playersArray = data.player || data.results;
+      const totalCount = data.count || playersArray?.length || 0;
+      
+      !IS_PROD && console.log(`📊 REST API returned ${playersArray?.length || 0} of ${totalCount} players`);
 
-      if (data.results && Array.isArray(data.results)) {
-        const transformedUsers = data.results.map(transformPlayerToUser);
+      if (playersArray && Array.isArray(playersArray)) {
+        const transformedUsers = playersArray.map(transformPlayerToUser);
         setAllPlayers(transformedUsers);
         
         // ✅ PERFORMANCE: Update cache
@@ -337,7 +344,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           timestamp: now,
         };
       } else {
-        console.warn('⚠️ No results array in response');
+        console.warn('⚠️ No player or results array in response');
         setAllPlayers([]);
       }
     } catch (err) {

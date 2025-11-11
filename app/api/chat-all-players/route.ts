@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * API Proxy for REST API endpoint: /api/v1/players/
+ * API Proxy for REST API endpoint: /api/v1/admin/chat/?request_type=all_players
  * This endpoint uses JWT authentication (not session cookies)
- * Returns all players in the system
+ * Returns all players in the system with chat context
  * Note: Last messages come from WebSocket (active chats) and are merged in the frontend
  */
 export async function GET(request: NextRequest) {
@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
-    // Use the players API endpoint
-    const apiUrl = `${backendUrl}/api/v1/players/?page=${page}&page_size=${pageSize}`;
+    // Use the admin chat API endpoint for all players
+    const apiUrl = `${backendUrl}/api/v1/admin/chat/?request_type=all_players&page=${page}&page_size=${pageSize}`;
 
     const authHeader = request.headers.get('Authorization');
     
