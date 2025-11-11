@@ -42,9 +42,18 @@ export function PlayerInfoSidebar({
   const { games, isLoading: isLoadingGames } = usePlayerGames(selectedPlayer.user_id || null);
   // Use the chat 'id' field (chatroom ID) for purchases and cashouts
   const { purchases, isLoading: isLoadingPurchases } = usePlayerPurchases(selectedPlayer.id || null);
-  const { cashouts, isLoading: isLoadingCashouts } = usePlayerCashouts(selectedPlayer.id || null);
+  const { cashouts: allCashouts, isLoading: isLoadingCashouts } = usePlayerCashouts(selectedPlayer.id || null);
   // Use user_id for game activities
-  const { activities, isLoading: isLoadingActivities } = usePlayerGameActivities(selectedPlayer.user_id || null);
+  const { activities: allActivities, isLoading: isLoadingActivities } = usePlayerGameActivities(selectedPlayer.user_id || null);
+
+  // Filter cashouts and activities to only show data for the selected player
+  const cashouts = allCashouts.filter(cashout => 
+    cashout.user_id === selectedPlayer.user_id
+  );
+  
+  const activities = allActivities.filter(activity => 
+    activity.user_id === selectedPlayer.user_id
+  );
 
   const toggleSection = (sectionName: string) => {
     setExpandedSection(expandedSection === sectionName ? null : sectionName);

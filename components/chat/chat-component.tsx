@@ -239,6 +239,7 @@ export function ChatComponent() {
   const messageMenuRef = useRef<HTMLDivElement | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isAutoScrollingRef = useRef(false);
   const { addToast } = useToast();
   const { games: playerGames, isLoading: isLoadingPlayerGames } = usePlayerGames(selectedPlayer?.user_id || null);
 
@@ -616,13 +617,26 @@ export function ChatComponent() {
       return;
     }
 
-    container.scrollTo({ top: container.scrollHeight, behavior });
-    setIsUserAtLatest(true);
-    setAutoScrollEnabled(true);
-    setUnseenMessageCount(0);
+    if (behavior === 'smooth') {
+      container.scrollTo({ top: container.scrollHeight, behavior });
+      // Reset unseen count immediately since we're scrolling to bottom
+      setUnseenMessageCount(0);
+      // Other states will be updated by evaluateScrollPosition when scroll completes
+    } else {
+      // For instant/auto, update immediately
+      container.scrollTop = container.scrollHeight;
+      setIsUserAtLatest(true);
+      setAutoScrollEnabled(true);
+      setUnseenMessageCount(0);
+    }
   }, []);
 
   const evaluateScrollPosition = useCallback(() => {
+    // Don't evaluate if we're in the middle of an auto-scroll
+    if (isAutoScrollingRef.current) {
+      return;
+    }
+
     const container = messagesContainerRef.current;
     if (!container) {
       return;
@@ -1186,16 +1200,32 @@ export function ChatComponent() {
     }
 
     latestMessageIdRef.current = null;
-    setAutoScrollEnabled(true);
-    setIsUserAtLatest(true);
-
     wasHistoryLoadingRef.current = isHistoryLoadingMessages;
     setUnseenMessageCount(0);
 
-    requestAnimationFrame(() => {
-      scrollToLatest('auto');
-    });
-  }, [selectedPlayer, scrollToLatest]);
+    // Mark that we're auto-scrolling
+    isAutoScrollingRef.current = true;
+
+    // Use setTimeout to ensure messages are fully rendered in DOM
+    const scrollTimeout = setTimeout(() => {
+      const container = messagesContainerRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+        // Set states after scroll is complete
+        setAutoScrollEnabled(true);
+        setIsUserAtLatest(true);
+        // Allow position evaluation again after a short delay
+        setTimeout(() => {
+          isAutoScrollingRef.current = false;
+        }, 150);
+      }
+    }, 50);
+
+    return () => {
+      clearTimeout(scrollTimeout);
+      isAutoScrollingRef.current = false;
+    };
+  }, [selectedPlayer]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -1209,12 +1239,14 @@ export function ChatComponent() {
 
     container.addEventListener('scroll', handleContainerScroll);
 
-    requestAnimationFrame(() => {
+    // Delay evaluation after player change to let auto-scroll complete
+    const timeoutId = setTimeout(() => {
       evaluateScrollPosition();
-    });
+    }, 250);
 
     return () => {
       container.removeEventListener('scroll', handleContainerScroll);
+      clearTimeout(timeoutId);
     };
   }, [handleScroll, evaluateScrollPosition, selectedPlayer]);
 
@@ -1234,7 +1266,6 @@ export function ChatComponent() {
     }
 
     if (autoScrollEnabled) {
-      setUnseenMessageCount(0);
       requestAnimationFrame(() => {
         scrollToLatest('smooth');
       });
