@@ -47,7 +47,7 @@ export function MessagesContainer({
   return (
     <div 
       ref={messagesContainerRef}
-      className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 scroll-smooth bg-gradient-to-b from-background/50 to-background"
+      className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 bg-gradient-to-b from-background/50 to-background"
     >
       {/* Loading indicator for message history */}
       {isHistoryLoadingMessages && (
@@ -110,6 +110,7 @@ export function MessagesContainer({
               <div
                 key={message.id}
                 className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200 ${isConsecutive ? 'mt-1' : 'mt-4'}`}
+                style={{ willChange: 'transform, opacity' }}
               >
                 <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] min-w-0 ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
                   {/* Avatar */}
@@ -151,6 +152,8 @@ export function MessagesContainer({
                                   src={fileUrl} 
                                   alt="Uploaded image"
                                   className="max-w-full h-auto max-h-96 rounded-lg object-contain w-full"
+                                  loading="lazy"
+                                  decoding="async"
                                   onError={(e) => {
                                     // Fallback if image fails to load
                                     e.currentTarget.style.display = 'none';
@@ -450,7 +453,7 @@ export function MessagesContainer({
       
       {/* Typing Indicator */}
       {remoteTyping && (
-        <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200 mt-4">
+        <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200 mt-4" style={{ willChange: 'transform, opacity' }}>
           <div className="flex items-center gap-2">
             <div className="w-7 md:w-8 shrink-0" />
             <div className="flex items-center gap-2 bg-muted/80 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-md border border-border/50">

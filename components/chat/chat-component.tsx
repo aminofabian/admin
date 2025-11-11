@@ -240,6 +240,7 @@ export function ChatComponent() {
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isAutoScrollingRef = useRef(false);
+  const isTransitioningRef = useRef(false);
   const { addToast } = useToast();
   const { games: playerGames, isLoading: isLoadingPlayerGames } = usePlayerGames(selectedPlayer?.user_id || null);
 
@@ -617,17 +618,18 @@ export function ChatComponent() {
       return;
     }
 
-    if (behavior === 'smooth') {
-      container.scrollTo({ top: container.scrollHeight, behavior });
-      // Reset unseen count immediately since we're scrolling to bottom
-      setUnseenMessageCount(0);
-      // Other states will be updated by evaluateScrollPosition when scroll completes
-    } else {
-      // For instant/auto, update immediately
+    // During transitions, always use instant scroll to prevent jitter
+    if (isTransitioningRef.current || behavior !== 'smooth') {
       container.scrollTop = container.scrollHeight;
       setIsUserAtLatest(true);
       setAutoScrollEnabled(true);
       setUnseenMessageCount(0);
+    } else {
+      // Only use smooth scrolling for user-initiated scrolls when not transitioning
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      // Reset unseen count immediately since we're scrolling to bottom
+      setUnseenMessageCount(0);
+      // Other states will be updated by evaluateScrollPosition when scroll completes
     }
   }, []);
 
@@ -1203,27 +1205,38 @@ export function ChatComponent() {
     wasHistoryLoadingRef.current = isHistoryLoadingMessages;
     setUnseenMessageCount(0);
 
-    // Mark that we're auto-scrolling
+    // Mark that we're transitioning and auto-scrolling
+    isTransitioningRef.current = true;
     isAutoScrollingRef.current = true;
 
-    // Use setTimeout to ensure messages are fully rendered in DOM
-    const scrollTimeout = setTimeout(() => {
-      const container = messagesContainerRef.current;
-      if (container) {
-        container.scrollTop = container.scrollHeight;
-        // Set states after scroll is complete
-        setAutoScrollEnabled(true);
-        setIsUserAtLatest(true);
-        // Allow position evaluation again after a short delay
-        setTimeout(() => {
-          isAutoScrollingRef.current = false;
-        }, 150);
-      }
-    }, 50);
+    // Use requestAnimationFrame for better synchronization with DOM rendering
+    // Double RAF ensures layout is complete before scrolling
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const container = messagesContainerRef.current;
+        if (container) {
+          // Temporarily disable smooth scrolling for instant positioning
+          const originalScrollBehavior = container.style.scrollBehavior;
+          container.style.scrollBehavior = 'auto';
+          container.scrollTop = container.scrollHeight;
+          container.style.scrollBehavior = originalScrollBehavior;
+          
+          // Set states after scroll is complete
+          setAutoScrollEnabled(true);
+          setIsUserAtLatest(true);
+          
+          // Allow position evaluation and re-enable animations after transition
+          setTimeout(() => {
+            isAutoScrollingRef.current = false;
+            isTransitioningRef.current = false;
+          }, 300);
+        }
+      });
+    });
 
     return () => {
-      clearTimeout(scrollTimeout);
       isAutoScrollingRef.current = false;
+      isTransitioningRef.current = false;
     };
   }, [selectedPlayer]);
 
@@ -1239,10 +1252,13 @@ export function ChatComponent() {
 
     container.addEventListener('scroll', handleContainerScroll);
 
-    // Delay evaluation after player change to let auto-scroll complete
+    // Delay evaluation after player change to let auto-scroll and transition complete
     const timeoutId = setTimeout(() => {
-      evaluateScrollPosition();
-    }, 250);
+      // Only evaluate if we're not in the middle of a transition
+      if (!isTransitioningRef.current) {
+        evaluateScrollPosition();
+      }
+    }, 350);
 
     return () => {
       container.removeEventListener('scroll', handleContainerScroll);
@@ -1329,7 +1345,7 @@ export function ChatComponent() {
             {/* Messages / Purchase History */}
             <div 
               ref={messagesContainerRef}
-              className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 scroll-smooth bg-gradient-to-b from-background/50 to-background"
+              className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 bg-gradient-to-b from-background/50 to-background"
             >
               {/* Loading indicator for message history */}
               {isHistoryLoadingMessages && (
@@ -1391,6 +1407,7 @@ export function ChatComponent() {
                       <div
                         key={message.id}
                         className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200 ${isConsecutive ? 'mt-1' : 'mt-4'}`}
+                        style={{ willChange: 'transform, opacity' }}
                       >
                         <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] min-w-0 ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
                           {/* Avatar */}
@@ -1738,7 +1755,7 @@ export function ChatComponent() {
               
               {/* Typing Indicator */}
               {remoteTyping && (
-                <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200 mt-4">
+                <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200 mt-4" style={{ willChange: 'transform, opacity' }}>
                   <div className="flex items-center gap-2">
                     <div className="w-7 md:w-8 shrink-0" />
                     <div className="flex items-center gap-2 bg-muted/80 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-md border border-border/50">
