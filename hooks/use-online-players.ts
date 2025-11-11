@@ -35,7 +35,7 @@ interface UseOnlinePlayersReturn {
 function transformPlayerToUser(data: any): ChatUser {
   // Format 1: Chats array format - player data is at root level with 'player_' prefix
   if (data.player_id && data.player_username) {
-    return {
+    const transformed = {
       id: String(data.id || ''), // chatroom_id
       user_id: Number(data.player_id || 0),
       username: data.player_username || data.player_full_name || 'Unknown',
@@ -53,6 +53,15 @@ function transformPlayerToUser(data: any): ChatUser {
       unreadCount: data.unread_messages_count || data.unread_message_count || 0,
       notes: data.player_notes || undefined,
     };
+    
+    !IS_PROD && console.log('🔍 [Transform Format 1]', {
+      player_id: data.player_id,
+      player_username: data.player_username,
+      player_notes: data.player_notes,
+      transformed_notes: transformed.notes,
+    });
+    
+    return transformed;
   }
   
   // Format 2 & 3: Chat object with nested player OR direct player object
@@ -152,7 +161,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
           const playerDetails = playerDetailsMap.get(chat.player_id);
           if (playerDetails) {
             // Merge chat info with full player details
-            return {
+            const merged = {
               ...chat,
               player_notes: playerDetails.notes,
               player_full_name: playerDetails.full_name || chat.player_full_name,
@@ -165,6 +174,15 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
               player_gems: playerDetails.gems,
               player_timezone: playerDetails.timezone,
             };
+            
+            !IS_PROD && console.log('🔍 [Merge]', {
+              chat_id: chat.id,
+              player_id: chat.player_id,
+              original_notes: playerDetails.notes,
+              merged_player_notes: merged.player_notes,
+            });
+            
+            return merged;
           }
           return chat;
         });

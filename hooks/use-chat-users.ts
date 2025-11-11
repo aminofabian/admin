@@ -50,6 +50,7 @@ function transformChatToUser(chat: any): ChatUser {
     winRate: player.win_rate || player.winRate || undefined,
     phone: player.phone_number || player.mobile_number || player.phone || player.mobile || undefined,
     unreadCount: chat.unread_message_count || chat.unreadCount || 0,
+    notes: player.notes || undefined,
   };
 }
 
@@ -75,6 +76,7 @@ function transformPlayerToUser(player: any): ChatUser {
     winRate: player.win_rate || undefined,
     phone: player.phone_number || player.mobile_number || undefined,
     unreadCount: 0, // REST API doesn't include unread count
+    notes: player.notes || undefined,
   };
 }
 

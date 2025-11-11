@@ -13,6 +13,15 @@ export function NotesDrawer({
   onClose,
   selectedPlayer,
 }: NotesDrawerProps) {
+  // Debug: Log the selected player data
+  console.log('🔍 [NotesDrawer] Selected Player:', {
+    username: selectedPlayer?.username,
+    user_id: selectedPlayer?.user_id,
+    notes: selectedPlayer?.notes,
+    hasNotes: !!selectedPlayer?.notes,
+    fullPlayer: selectedPlayer,
+  });
+
   if (!isOpen) return null;
 
   return (
