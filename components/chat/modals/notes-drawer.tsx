@@ -13,14 +13,21 @@ export function NotesDrawer({
   onClose,
   selectedPlayer,
 }: NotesDrawerProps) {
-  // Debug: Log the selected player data
+  // Debug: Log the selected player data with ALL fields
   console.log('🔍 [NotesDrawer] Selected Player:', {
     username: selectedPlayer?.username,
     user_id: selectedPlayer?.user_id,
     notes: selectedPlayer?.notes,
     hasNotes: !!selectedPlayer?.notes,
-    fullPlayer: selectedPlayer,
+    // Show ALL keys to verify what's actually in the object
+    allKeys: selectedPlayer ? Object.keys(selectedPlayer) : [],
+    // Check if notes exists as a key
+    hasNotesKey: selectedPlayer ? 'notes' in selectedPlayer : false,
+    notesValue: selectedPlayer?.notes,
+    notesType: typeof selectedPlayer?.notes,
   });
+  
+  console.log('🔍 [NotesDrawer] Full Player Object:', selectedPlayer);
 
   if (!isOpen) return null;
 

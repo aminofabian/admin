@@ -57,6 +57,7 @@ function transformChatToUser(chat: any): ChatUser {
 /**
  * Transform REST API player data to frontend ChatUser format
  * REST API format: simple player object from /api/v1/players/
+ * Note: Last messages come from WebSocket and are merged in the frontend
  */
 function transformPlayerToUser(player: any): ChatUser {
   return {
@@ -68,14 +69,14 @@ function transformPlayerToUser(player: any): ChatUser {
     email: player.email || '',
     avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
     isOnline: player.is_online || false,
-    lastMessage: undefined, // REST API doesn't include chat-specific data
-    lastMessageTime: undefined,
+    lastMessage: undefined, // Will be merged from WebSocket activeChats in the frontend
+    lastMessageTime: undefined, // Will be merged from WebSocket activeChats in the frontend
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
     gamesPlayed: player.games_played || undefined,
     winRate: player.win_rate || undefined,
     phone: player.phone_number || player.mobile_number || undefined,
-    unreadCount: 0, // REST API doesn't include unread count
+    unreadCount: 0, // Will be merged from WebSocket activeChats in the frontend
     notes: player.notes || undefined,
   };
 }
@@ -289,6 +290,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   /**
    * Fetch ALL players from REST API endpoint
    * ✅ PERFORMANCE: Cached for 5 minutes to avoid redundant API calls
+   * Note: Last messages are provided by WebSocket and merged in chat-component
    */
   const fetchAllPlayers = useCallback(async () => {
     // Set loading state IMMEDIATELY before any checks
@@ -299,7 +301,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       // ✅ PERFORMANCE: Check cache first
       const now = Date.now();
       if (playersCacheRef.current && (now - playersCacheRef.current.timestamp) < CACHE_TTL) {
-        !IS_PROD && console.log('✅ Using cached players data, count:', playersCacheRef.current.data.length);
+        !IS_PROD && console.log('✅ Using cached chats data, count:', playersCacheRef.current.data.length);
         setAllPlayers(playersCacheRef.current.data);
         // Small delay to show skeleton briefly even with cache
         await new Promise(resolve => setTimeout(resolve, 150));

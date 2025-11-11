@@ -54,12 +54,15 @@ function transformPlayerToUser(data: any): ChatUser {
       notes: data.player_notes || undefined,
     };
     
-    !IS_PROD && console.log('🔍 [Transform Format 1]', {
-      player_id: data.player_id,
-      player_username: data.player_username,
-      player_notes: data.player_notes,
-      transformed_notes: transformed.notes,
-    });
+    // Log only if notes exist to reduce noise
+    if (data.player_notes) {
+      !IS_PROD && console.log('✅ [Transform Format 1] Player with notes:', {
+        player_id: data.player_id,
+        player_username: data.player_username,
+        player_notes: data.player_notes,
+        transformed_notes: transformed.notes,
+      });
+    }
     
     return transformed;
   }
@@ -68,7 +71,7 @@ function transformPlayerToUser(data: any): ChatUser {
   const hasNestedPlayer = data.player && typeof data.player === 'object';
   const player = hasNestedPlayer ? data.player : data;
   
-  return {
+  const transformed = {
     // Use chat_id/chatroom_id if available, otherwise fall back to player.id
     id: String(data.chat_id || data.chatroom_id || data.id || player.id || ''),
     user_id: Number(player.id || data.player_id || 0),
@@ -87,6 +90,19 @@ function transformPlayerToUser(data: any): ChatUser {
     unreadCount: data.unread_message_count || 0,
     notes: player.notes || undefined,
   };
+  
+  // Log only if notes exist to reduce noise
+  if (player.notes) {
+    !IS_PROD && console.log('✅ [Transform Format 2/3] Player with notes:', {
+      player_id: player.id,
+      player_username: player.username,
+      hasNestedPlayer,
+      player_notes: player.notes,
+      transformed_notes: transformed.notes,
+    });
+  }
+  
+  return transformed;
 }
 
 /**
@@ -139,7 +155,24 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       }
 
       const data = await response.json();
-      !IS_PROD && console.log('📊 [Online Players] API response:', data);
+      !IS_PROD && console.log('📊 [Online Players] API response structure:', {
+        hasChats: !!data.chats,
+        hasPlayer: !!data.player,
+        chatsCount: data.chats?.length || 0,
+        playerCount: data.player?.length || 0,
+      });
+      
+      // Log sample player data to see notes field
+      if (!IS_PROD && data.player && Array.isArray(data.player) && data.player.length > 0) {
+        const playersWithNotes = data.player.filter((p: any) => p.notes);
+        if (playersWithNotes.length > 0) {
+          console.log('📝 [Online Players] Sample player with notes from API:', {
+            id: playersWithNotes[0].id,
+            username: playersWithNotes[0].username,
+            notes: playersWithNotes[0].notes,
+          });
+        }
+      }
 
       // Parse different response formats
       // ✅ IMPORTANT: Merge chats + player arrays when both are present
@@ -175,12 +208,16 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
               player_timezone: playerDetails.timezone,
             };
             
-            !IS_PROD && console.log('🔍 [Merge]', {
-              chat_id: chat.id,
-              player_id: chat.player_id,
-              original_notes: playerDetails.notes,
-              merged_player_notes: merged.player_notes,
-            });
+            // Log if notes exist to track the issue
+            if (playerDetails.notes) {
+              !IS_PROD && console.log('✅ [Merge] Player with notes:', {
+                chat_id: chat.id,
+                player_id: chat.player_id,
+                player_username: chat.player_username,
+                original_notes: playerDetails.notes,
+                merged_player_notes: merged.player_notes,
+              });
+            }
             
             return merged;
           }
@@ -211,7 +248,22 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
           id: transformedPlayers[0].id,
           user_id: transformedPlayers[0].user_id,
           username: transformedPlayers[0].username,
+          notes: transformedPlayers[0].notes,
+          hasNotes: !!transformedPlayers[0].notes,
         });
+        
+        // Log all players with notes for debugging
+        const playersWithNotes = transformedPlayers.filter(p => p.notes);
+        if (playersWithNotes.length > 0) {
+          console.log(`✅ [Online Players] Found ${playersWithNotes.length} players with notes:`, 
+            playersWithNotes.map(p => ({
+              username: p.username,
+              notes: p.notes?.substring(0, 50),
+            }))
+          );
+        } else {
+          console.warn('⚠️ [Online Players] No players have notes in transformed data');
+        }
       }
       
       // Update cache

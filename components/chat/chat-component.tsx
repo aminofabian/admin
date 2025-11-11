@@ -363,11 +363,13 @@ export function ChatComponent() {
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
             // Merge: keep online player data but update with chat info
+            // ✅ IMPORTANT: Preserve notes from existing player data
             seenUserIds.set(player.user_id, {
               ...existing,
               lastMessage: player.lastMessage || existing.lastMessage,
               lastMessageTime: player.lastMessageTime || existing.lastMessageTime,
               unreadCount: player.unreadCount ?? existing.unreadCount ?? 0,
+              notes: existing.notes || player.notes, // Preserve notes
             });
           } else {
             // Add player from active chats if not in online list
@@ -377,29 +379,60 @@ export function ChatComponent() {
       });
       
       players = Array.from(seenUserIds.values());
+      
+      // Log players with notes for debugging
+      if (!IS_PROD) {
+        const playersWithNotes = players.filter(p => p.notes);
+        if (playersWithNotes.length > 0) {
+          console.log(`📋 [displayedPlayers - online] ${playersWithNotes.length} players with notes:`,
+            playersWithNotes.map(p => ({ username: p.username, notes: p.notes?.substring(0, 30) }))
+          );
+        }
+      }
     } else {
       // For "all-chats" tab: combine activeChatsUsers and allPlayers
-      // Active chats are prioritized, then add any players not in active chats
-      const seenUserIds = new Set<number>();
-      const combinedPlayers: Player[] = [];
+      // ✅ FIXED: Merge last message data from activeChats into allPlayers
+      const seenUserIds = new Map<number, Player>();
       
-      // First, add active chats (prioritized)
+      // First, add active chats with last messages (from WebSocket)
       activeChatsUsers.forEach((player: Player) => {
-        if (player.user_id && !seenUserIds.has(player.user_id)) {
-          seenUserIds.add(player.user_id);
-          combinedPlayers.push(player);
+        if (player.user_id) {
+          seenUserIds.set(player.user_id, player);
         }
       });
       
-      // Then, add players from allPlayers that aren't in active chats
+      // Then, add/merge players from allPlayers (from REST API)
       allPlayers.forEach((player: Player) => {
-        if (player.user_id && !seenUserIds.has(player.user_id)) {
-          seenUserIds.add(player.user_id);
-          combinedPlayers.push(player);
+        if (player.user_id) {
+          const existing = seenUserIds.get(player.user_id);
+          if (existing) {
+            // ✅ Player exists in activeChats - merge to preserve last message and notes
+            seenUserIds.set(player.user_id, {
+              ...player,
+              lastMessage: existing.lastMessage || player.lastMessage,
+              lastMessageTime: existing.lastMessageTime || player.lastMessageTime,
+              unreadCount: existing.unreadCount ?? player.unreadCount ?? 0,
+              isOnline: existing.isOnline || player.isOnline,
+              notes: player.notes || existing.notes, // Preserve notes from allPlayers or activeChats
+            });
+          } else {
+            // Player not in activeChats - add as is (with notes if present)
+            seenUserIds.set(player.user_id, player);
+          }
         }
       });
       
-      players = combinedPlayers;
+      players = Array.from(seenUserIds.values());
+      
+      // Log players with notes for debugging
+      if (!IS_PROD) {
+        const playersWithNotes = players.filter(p => p.notes);
+        if (playersWithNotes.length > 0) {
+          console.log(`📋 [displayedPlayers - all-chats] ${playersWithNotes.length} players with notes:`,
+            playersWithNotes.map(p => ({ username: p.username, notes: p.notes?.substring(0, 30) }))
+          );
+        }
+      }
     }
     
     if (!searchQuery.trim()) {
@@ -675,12 +708,15 @@ export function ChatComponent() {
     const { markAsRead } = options ?? {};
     const shouldMarkAsRead = markAsRead ?? DEFAULT_MARK_AS_READ;
 
-    // Debug: Log player selection to verify IDs
+    // Debug: Log player selection to verify IDs and notes
     !IS_PROD && console.log('👤 [Player Select]', {
       username: player.username,
       chatId: player.id,
       userId: player.user_id,
       tab: activeTab,
+      notes: player.notes,
+      hasNotes: !!player.notes,
+      fullPlayer: player,
     });
 
     if (shouldMarkAsRead) {
@@ -699,7 +735,7 @@ export function ChatComponent() {
     latestMessageIdRef.current = null;
     setUnseenMessageCount(0);
     setNotes(''); // Clear notes when switching players
-  }, [markChatAsRead]);
+  }, [markChatAsRead, activeTab]);
 
   const handleNavigateToPlayer = useCallback(() => {
     if (selectedPlayer?.user_id) {
@@ -1269,7 +1305,9 @@ export function ChatComponent() {
     const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
     const normalizedUsername = queryUsername?.trim().toLowerCase();
 
-    const candidate = [...activeChatsUsers, ...allPlayers].find((player) => {
+    // ✅ FIXED: Use displayedPlayers which has notes properly merged
+    // Search allPlayers first (has notes), then activeChatsUsers as fallback
+    const candidate = [...allPlayers, ...activeChatsUsers].find((player) => {
       const matchesId = targetUserId !== null && player.user_id === targetUserId;
       const matchesUsername = normalizedUsername ? player.username.toLowerCase() === normalizedUsername : false;
       return matchesId || matchesUsername;
@@ -1291,11 +1329,17 @@ export function ChatComponent() {
   ]);
 
   // Auto-select first player if none selected
+  // ✅ FIXED: Use displayedPlayers instead of activeChatsUsers to preserve notes
   useEffect(() => {
-    if (!selectedPlayer && activeChatsUsers.length > 0) {
-      handlePlayerSelect(activeChatsUsers[0], { markAsRead: false });
+    if (!selectedPlayer && displayedPlayers.length > 0) {
+      !IS_PROD && console.log('🔄 [Auto-Select] Selecting first player from displayedPlayers:', {
+        player: displayedPlayers[0].username,
+        notes: displayedPlayers[0].notes,
+        hasNotes: !!displayedPlayers[0].notes,
+      });
+      handlePlayerSelect(displayedPlayers[0], { markAsRead: false });
     }
-  }, [selectedPlayer, activeChatsUsers, handlePlayerSelect]);
+  }, [selectedPlayer, displayedPlayers, handlePlayerSelect]);
 
   useEffect(() => {
     if (!selectedPlayer) {

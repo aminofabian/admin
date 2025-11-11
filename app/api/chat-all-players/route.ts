@@ -4,15 +4,17 @@ import { NextRequest, NextResponse } from 'next/server';
  * API Proxy for REST API endpoint: /api/v1/players/
  * This endpoint uses JWT authentication (not session cookies)
  * Returns all players in the system
+ * Note: Last messages come from WebSocket (active chats) and are merged in the frontend
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const page = searchParams.get('page') || '1';
+  const pageSize = searchParams.get('page_size') || '50';
 
   try {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
-    // Use the REST API endpoint for players (JWT authenticated)
-    const apiUrl = `${backendUrl}/api/v1/players/?page=${page}&page_size=100`;
+    // Use the players API endpoint
+    const apiUrl = `${backendUrl}/api/v1/players/?page=${page}&page_size=${pageSize}`;
 
     const authHeader = request.headers.get('Authorization');
     
