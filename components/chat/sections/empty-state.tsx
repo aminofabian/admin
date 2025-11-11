@@ -1,10 +1,12 @@
 'use client';
 
+import { memo } from 'react';
+
 interface EmptyStateProps {
   onlinePlayersCount: number;
 }
 
-export function EmptyState({ onlinePlayersCount }: EmptyStateProps) {
+export const EmptyState = memo(function EmptyState({ onlinePlayersCount }: EmptyStateProps) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-background/50 to-background">
       <div className="relative mb-6">
@@ -29,4 +31,4 @@ export function EmptyState({ onlinePlayersCount }: EmptyStateProps) {
       </div>
     </div>
   );
-}
+});

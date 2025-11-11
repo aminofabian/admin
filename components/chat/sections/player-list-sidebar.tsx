@@ -1,6 +1,8 @@
 'use client';
 
+import { memo } from 'react';
 import { Input } from '@/components/ui';
+import { PlayerListSkeleton } from '../components/chat-skeletons';
 import type { ChatUser } from '@/types';
 
 // Strip HTML tags for preview text
@@ -31,7 +33,7 @@ interface PlayerListSidebarProps {
   onRefreshOnlinePlayers: () => void;
 }
 
-export function PlayerListSidebar({
+export const PlayerListSidebar = memo(function PlayerListSidebar({
   mobileView,
   availability,
   setAvailability,
@@ -170,25 +172,8 @@ export function PlayerListSidebar({
       {/* Player List */}
       <div className="flex-1 overflow-y-auto">
         {isCurrentTabLoading && displayedPlayers.length === 0 && !usersError ? (
-          <div className="p-2 space-y-2">
-            {/* Skeleton loaders for player cards */}
-            {[...Array(5)].map((_, index) => (
-              <div key={index} className="w-full p-3 md:p-3.5 rounded-xl bg-muted/30 animate-pulse">
-                <div className="flex items-center gap-3">
-                  {/* Avatar skeleton */}
-                  <div className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-muted/60" />
-                  
-                  {/* Player info skeleton */}
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="h-4 w-24 bg-muted/60 rounded" />
-                      <div className="h-3 w-12 bg-muted/60 rounded" />
-                    </div>
-                    <div className="h-3 w-32 bg-muted/60 rounded" />
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="p-2">
+            <PlayerListSkeleton count={5} />
           </div>
         ) : usersError ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
@@ -289,4 +274,4 @@ export function PlayerListSidebar({
       </div>
     </div>
   );
-}
+});

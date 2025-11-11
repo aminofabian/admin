@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Button } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerPurchases } from '@/hooks/use-player-purchases';
 import { usePlayerCashouts } from '@/hooks/use-player-cashouts';
 import { usePlayerGameActivities } from '@/hooks/use-player-game-activities';
+import { PlayerInfoSkeleton } from '../components/chat-skeletons';
 import type { ChatUser } from '@/types';
 
 interface PlayerInfoSidebarProps {
@@ -24,7 +25,7 @@ interface PlayerInfoSidebarProps {
   onSaveNotes: () => void;
 }
 
-export function PlayerInfoSidebar({
+export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   selectedPlayer,
   isConnected,
   mobileView,
@@ -567,4 +568,4 @@ export function PlayerInfoSidebar({
       </div>
     </div>
   );
-}
+});

@@ -1,3 +1,14 @@
+/**
+ * Utility function to merge class names
+ * Simple implementation without external dependencies
+ */
+export function cn(...inputs: (string | undefined | null | boolean)[]): string {
+  return inputs
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+}
+
 export const formatCurrency = (amount: string | number): string => {
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
   return new Intl.NumberFormat('en-US', {

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { ChatUser } from '@/types';
 
 interface ChatHeaderProps {
@@ -12,7 +13,7 @@ interface ChatHeaderProps {
   onOpenNotesDrawer: () => void;
 }
 
-export function ChatHeader({
+export const ChatHeader = memo(function ChatHeader({
   selectedPlayer,
   isConnected,
   connectionError,
@@ -102,4 +103,4 @@ export function ChatHeader({
       </div>
     </div>
   );
-}
+});

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { memo } from 'react';
 
 interface MessageInputAreaProps {
   messageInput: string;
@@ -22,7 +22,7 @@ interface MessageInputAreaProps {
   toggleEmojiPicker: () => void;
 }
 
-export function MessageInputArea({
+export const MessageInputArea = memo(function MessageInputArea({
   messageInput,
   setMessageInput,
   selectedImage,
@@ -247,4 +247,4 @@ export function MessageInputArea({
       </div>
     </div>
   );
-}
+});

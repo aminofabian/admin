@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { ChatMessage, ChatUser } from '@/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { 
@@ -10,6 +11,7 @@ import {
   MESSAGE_HTML_CONTENT_CLASS,
   formatMessageDate
 } from '../utils/message-helpers';
+import { LoadingMoreSkeleton } from '../components/chat-skeletons';
 
 interface MessagesContainerProps {
   messagesContainerRef: React.RefObject<HTMLDivElement>;
@@ -28,7 +30,7 @@ interface MessagesContainerProps {
   scrollToLatest: (behavior?: ScrollBehavior) => void;
 }
 
-export function MessagesContainer({
+export const MessagesContainer = memo(function MessagesContainer({
   messagesContainerRef,
   groupedMessages,
   isHistoryLoadingMessages,
@@ -50,30 +52,7 @@ export function MessagesContainer({
       className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 bg-gradient-to-b from-background/50 to-background"
     >
       {/* Loading indicator for message history */}
-      {isHistoryLoadingMessages && (
-        <div className="flex justify-center py-3 text-muted-foreground">
-          <svg
-            className="h-5 w-5 animate-spin"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              d="M4 12a8 8 0 018-8"
-              strokeWidth="4"
-              strokeLinecap="round"
-            />
-          </svg>
-        </div>
-      )}
+      {isHistoryLoadingMessages && <LoadingMoreSkeleton />}
       
       {Object.entries(groupedMessages).map(([date, dateMessages]) => (
         <div key={date} className="space-y-3">
@@ -468,4 +447,4 @@ export function MessagesContainer({
       )}
     </div>
   );
-}
+});

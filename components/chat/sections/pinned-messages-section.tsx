@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import type { ChatMessage } from '@/types';
 
 // Check if a URL points to an image
@@ -26,7 +27,7 @@ interface PinnedMessagesSectionProps {
   onToggleExpanded: () => void;
 }
 
-export function PinnedMessagesSection({
+export const PinnedMessagesSection = memo(function PinnedMessagesSection({
   messages,
   isExpanded,
   onToggleExpanded,
@@ -96,4 +97,4 @@ export function PinnedMessagesSection({
       )}
     </div>
   );
-}
+});
