@@ -86,3 +86,74 @@ export const formatPercentage = (value: string | number): string => {
   return `${numValue.toFixed(2)}%`;
 };
 
+/**
+ * Formats a timestamp to a human-readable format for chat messages
+ * Examples:
+ * - "2m ago" for messages less than an hour old
+ * - "3h ago" for messages less than 24 hours old
+ * - "Yesterday" for messages from yesterday
+ * - "Nov 7" for older messages
+ */
+export const formatChatTimestamp = (timestamp: string | null | undefined): string => {
+  if (!timestamp || timestamp.trim() === '') {
+    return '';
+  }
+
+  try {
+    const date = new Date(timestamp);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    // Less than 1 minute ago
+    if (diffMins < 1) {
+      return 'Just now';
+    }
+
+    // Less than 1 hour ago - show minutes
+    if (diffMins < 60) {
+      return `${diffMins}m ago`;
+    }
+
+    // Less than 24 hours ago - show hours
+    if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    }
+
+    // Yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear()
+    ) {
+      return 'Yesterday';
+    }
+
+    // Less than 7 days ago - show day name and date
+    if (diffDays < 7) {
+      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    // Same year - show month and day
+    if (date.getFullYear() === now.getFullYear()) {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    // Different year - show month, day, and year
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch (error) {
+    console.warn('Failed to format chat timestamp:', timestamp, error);
+    return '';
+  }
+};
+

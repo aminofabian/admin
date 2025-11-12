@@ -1,6 +1,7 @@
 'use client';
 
 import { memo } from 'react';
+import { formatChatTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 
 interface ChatHeaderProps {
@@ -70,7 +71,7 @@ export const ChatHeader = memo(function ChatHeader({
             )}
           </div>
           <p className="text-xs text-muted-foreground truncate">
-            {connectionError ? `Error: ${connectionError}` : selectedPlayer.isOnline ? 'Active now' : `Last seen ${selectedPlayer.lastMessageTime || 'recently'}`}
+            {connectionError ? `Error: ${connectionError}` : selectedPlayer.isOnline ? 'Active now' : `Last seen ${selectedPlayer.lastMessageTime ? formatChatTimestamp(selectedPlayer.lastMessageTime) : 'recently'}`}
           </p>
         </div>
       </div>

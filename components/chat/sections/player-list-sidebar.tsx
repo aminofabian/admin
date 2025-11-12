@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { Input } from '@/components/ui';
 import { PlayerListSkeleton } from '../components/chat-skeletons';
+import { formatChatTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 
 // Strip HTML tags for preview text
@@ -240,7 +241,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
                       <h4 className="font-semibold text-sm text-foreground truncate">{player.username}</h4>
                       {player.lastMessageTime && (
                         <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
-                          {player.lastMessageTime}
+                          {formatChatTimestamp(player.lastMessageTime)}
                         </span>
                       )}
                     </div>
