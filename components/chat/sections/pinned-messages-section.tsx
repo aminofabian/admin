@@ -37,7 +37,7 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
   if (pinnedMessages.length === 0) return null;
 
   return (
-    <div className="border-b border-border/50 bg-amber-500/5">
+    <div className="relative z-30 border-b border-border/50 bg-amber-500/5">
       {/* Collapsible Header */}
       <button
         onClick={onToggleExpanded}

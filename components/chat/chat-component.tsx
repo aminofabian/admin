@@ -205,7 +205,6 @@ export function ChatComponent() {
   const [messageInput, setMessageInput] = useState('');
   const [availability, setAvailability] = useState(true);
   const [notes, setNotes] = useState('');
-  const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
   const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const [isPinnedMessagesExpanded, setIsPinnedMessagesExpanded] = useState(false);
@@ -238,7 +237,6 @@ export function ChatComponent() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
   const wasHistoryLoadingRef = useRef(false);
-  const messageMenuRef = useRef<HTMLDivElement | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isAutoScrollingRef = useRef(false);
@@ -751,7 +749,6 @@ export function ChatComponent() {
     }
 
     setSelectedPlayer(player);
-    setMessageMenuOpen(null);
     setPendingPinMessageId(null);
     setMobileView('chat');
     setAutoScrollEnabled(true);
@@ -772,29 +769,6 @@ export function ChatComponent() {
       setPendingPinMessageId(null);
     }
   }, [selectedPlayer]);
-
-  useEffect(() => {
-    if (!messageMenuOpen) {
-      return;
-    }
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (!messageMenuRef.current) {
-        return;
-      }
-
-      if (messageMenuRef.current.contains(event.target as Node)) {
-        return;
-      }
-
-      setMessageMenuOpen(null);
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    };
-  }, [messageMenuOpen]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -901,7 +875,6 @@ export function ChatComponent() {
 
       const pinnedState = Boolean(result?.is_pinned ?? action === 'pin');
       updateMessagePinnedState(messageId, pinnedState);
-      setMessageMenuOpen(null);
 
       addToast({
         type: 'success',
@@ -1710,10 +1683,7 @@ export function ChatComponent() {
                 showAvatar={Boolean(showAvatar)}
                 isConsecutive={Boolean(isConsecutive)}
                 isPinning={isPinning}
-                messageMenuOpen={messageMenuOpen}
-                messageMenuRef={messageMenuRef}
                 onExpandImage={setExpandedImage}
-                onToggleMenu={setMessageMenuOpen}
                 onTogglePin={handleTogglePin}
               />
             );

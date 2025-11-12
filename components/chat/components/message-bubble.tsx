@@ -19,10 +19,7 @@ interface MessageBubbleProps {
   showAvatar: boolean;
   isConsecutive: boolean;
   isPinning: boolean;
-  messageMenuOpen: string | null;
-  messageMenuRef: React.RefObject<HTMLDivElement | null>;
   onExpandImage: (url: string) => void;
-  onToggleMenu: (id: string | null) => void;
   onTogglePin: (messageId: string, isPinned: boolean) => void;
 }
 
@@ -37,14 +34,10 @@ export const MessageBubble = memo(function MessageBubble({
   showAvatar,
   isConsecutive,
   isPinning,
-  messageMenuOpen,
-  messageMenuRef,
   onExpandImage,
-  onToggleMenu,
   onTogglePin,
 }: MessageBubbleProps) {
   const messageHasHtml = hasHtmlContent(message.text);
-  const pinButtonLabel = message.isPinned ? 'Unpin message' : 'Pin message';
   const isAuto = isAutoMessage(message);
 
   // Debug logging for auto message detection
@@ -145,23 +138,12 @@ export const MessageBubble = memo(function MessageBubble({
             isAdmin={isAdmin}
           />
           
-          {/* Options Button (Desktop) */}
+          {/* Pin Button (Desktop) */}
           {isAdmin && (
-            <MessageOptionsButton
-              messageId={message.id}
-              isOpen={messageMenuOpen === message.id}
-              onToggle={onToggleMenu}
-            />
-          )}
-          
-          {/* Pin menu */}
-          {isAdmin && messageMenuOpen === message.id && (
-            <PinMenu
+            <PinButton
               messageId={message.id}
               isPinned={message.isPinned}
               isPinning={isPinning}
-              pinButtonLabel={pinButtonLabel}
-              menuRef={messageMenuRef}
               onTogglePin={onTogglePin}
             />
           )}
@@ -384,72 +366,55 @@ function MessageMeta({ message, isAdmin }: {
   );
 }
 
-function MessageOptionsButton({ messageId, isOpen, onToggle }: {
-  messageId: string;
-  isOpen: boolean;
-  onToggle: (id: string | null) => void;
-}) {
-  return (
-    <button
-      onClick={() => onToggle(isOpen ? null : messageId)}
-      className="hidden md:flex absolute -right-10 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-muted rounded-lg"
-      aria-label="Message options"
-    >
-      <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-      </svg>
-    </button>
-  );
-}
-
-function PinMenu({ messageId, isPinned, isPinning, pinButtonLabel, menuRef, onTogglePin }: {
+function PinButton({ messageId, isPinned, isPinning, onTogglePin }: {
   messageId: string;
   isPinned?: boolean;
   isPinning: boolean;
-  pinButtonLabel: string;
-  menuRef: React.RefObject<HTMLDivElement | null>;
   onTogglePin: (messageId: string, isPinned: boolean) => void;
 }) {
   return (
-    <div
-      ref={menuRef}
-      className="absolute right-0 top-full z-40 mt-2 w-48 overflow-hidden rounded-xl border border-border/60 bg-background/95 shadow-2xl backdrop-blur"
+    <button
+      onClick={() => onTogglePin(messageId, Boolean(isPinned))}
+      disabled={isPinning}
+      className="absolute -right-6 top-1/2 -translate-y-1/2 p-1 opacity-0 group-hover:opacity-60 hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40 transition-opacity duration-200"
+      aria-label={isPinned ? 'Unpin message' : 'Pin message'}
+      title={isPinned ? 'Unpin message' : 'Pin message'}
     >
-      <button
-        type="button"
-        onClick={() => onTogglePin(messageId, Boolean(isPinned))}
-        disabled={isPinning}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isPinning ? (
-          <svg
-            className="h-4 w-4 animate-spin text-primary"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              d="M4 12a8 8 0 018-8"
-              strokeWidth="4"
-              strokeLinecap="round"
-            />
-          </svg>
-        ) : (
-          <svg className="h-4 w-4 text-amber-600 dark:text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
-          </svg>
-        )}
-        <span>{pinButtonLabel}</span>
-      </button>
-    </div>
+      {isPinning ? (
+        <svg
+          className="h-3.5 w-3.5 animate-spin text-muted-foreground/70"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            d="M4 12a8 8 0 018-8"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+        </svg>
+      ) : (
+        <svg 
+          className={`h-3.5 w-3.5 transition-colors ${
+            isPinned 
+              ? 'text-amber-500/70 dark:text-amber-400/70 hover:text-amber-600 dark:hover:text-amber-400' 
+              : 'text-muted-foreground/50 hover:text-muted-foreground'
+          }`} 
+          viewBox="0 0 20 20" 
+          fill="currentColor"
+        >
+          <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
