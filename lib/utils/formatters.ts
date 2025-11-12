@@ -87,12 +87,15 @@ export const formatPercentage = (value: string | number): string => {
 };
 
 /**
- * Formats a timestamp to a human-readable format for chat messages
+ * Formats a timestamp to a human-readable relative format for chat messages
  * Examples:
+ * - "Just now" for messages less than 1 minute old
  * - "2m ago" for messages less than an hour old
  * - "3h ago" for messages less than 24 hours old
- * - "Yesterday" for messages from yesterday
- * - "Nov 7" for older messages
+ * - "2 days ago" for messages less than a week old
+ * - "3 weeks ago" for messages less than a month old
+ * - "2 months ago" for messages less than a year old
+ * - "1 year ago" for older messages
  */
 export const formatChatTimestamp = (timestamp: string | null | undefined): string => {
   if (!timestamp || timestamp.trim() === '') {
@@ -112,6 +115,9 @@ export const formatChatTimestamp = (timestamp: string | null | undefined): strin
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffWeeks = Math.floor(diffDays / 7);
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
 
     // Less than 1 minute ago
     if (diffMins < 1) {
@@ -128,29 +134,23 @@ export const formatChatTimestamp = (timestamp: string | null | undefined): strin
       return `${diffHours}h ago`;
     }
 
-    // Yesterday
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (
-      date.getDate() === yesterday.getDate() &&
-      date.getMonth() === yesterday.getMonth() &&
-      date.getFullYear() === yesterday.getFullYear()
-    ) {
-      return 'Yesterday';
-    }
-
-    // Less than 7 days ago - show day name and date
+    // Less than 7 days ago - show days
     if (diffDays < 7) {
-      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
     }
 
-    // Same year - show month and day
-    if (date.getFullYear() === now.getFullYear()) {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    // Less than 4 weeks (approximately 1 month) - show weeks
+    if (diffWeeks < 4) {
+      return `${diffWeeks} ${diffWeeks === 1 ? 'week' : 'weeks'} ago`;
     }
 
-    // Different year - show month, day, and year
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    // Less than 12 months (approximately 1 year) - show months
+    if (diffMonths < 12) {
+      return `${diffMonths} ${diffMonths === 1 ? 'month' : 'months'} ago`;
+    }
+
+    // 1 year or more - show years
+    return `${diffYears} ${diffYears === 1 ? 'year' : 'years'} ago`;
   } catch (error) {
     console.warn('Failed to format chat timestamp:', timestamp, error);
     return '';
