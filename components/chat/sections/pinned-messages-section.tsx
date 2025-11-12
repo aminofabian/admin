@@ -66,33 +66,62 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
       {/* Expandable Content */}
       {isExpanded && (
         <div className="px-4 pb-2 space-y-2 max-h-32 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
-          {pinnedMessages.map((msg) => (
-            <div key={msg.id} className="text-xs bg-background/50 rounded-lg p-2 border border-amber-500/20">
-              <div className="flex items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-foreground line-clamp-2">
-                    {(() => {
-                      const hasHtml = hasHtmlContent(msg.text);
-                      const linkedText = hasHtml ? msg.text : linkifyText(msg.text ?? '');
-                      const shouldRenderAsHtml = hasHtml || linkedText !== msg.text;
-                      
-                      return shouldRenderAsHtml ? (
-                        <span 
-                          className="[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80"
-                          dangerouslySetInnerHTML={{ __html: linkedText }} 
-                        />
-                      ) : (
-                        msg.text
-                      );
-                    })()}
-                  </p>
-                  <p className="text-muted-foreground text-[10px] mt-1">
-                    {msg.time || msg.timestamp}
-                  </p>
+          {pinnedMessages.map((msg) => {
+            const isAdmin = msg.sender === 'admin';
+            return (
+              <div 
+                key={msg.id} 
+                className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
+              >
+                <div 
+                  className={`text-xs rounded-lg p-2.5 max-w-[85%] ${
+                    isAdmin 
+                      ? 'bg-card border border-border/50 text-foreground rounded-br-sm' 
+                      : 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-bl-sm'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {/* Visual indicator bar */}
+                    <div 
+                      className={`w-1 rounded-full shrink-0 ${
+                        isAdmin 
+                          ? 'bg-amber-500/60' 
+                          : 'bg-white/40'
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={`line-clamp-2 ${
+                        isAdmin ? 'text-foreground' : 'text-white'
+                      }`}>
+                        {(() => {
+                          const hasHtml = hasHtmlContent(msg.text);
+                          const linkedText = hasHtml ? msg.text : linkifyText(msg.text ?? '');
+                          const shouldRenderAsHtml = hasHtml || linkedText !== msg.text;
+                          
+                          return shouldRenderAsHtml ? (
+                            <span 
+                              className={isAdmin 
+                                ? '[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80'
+                                : '[&_a]:text-blue-200 [&_a]:underline hover:[&_a]:text-blue-100'
+                              }
+                              dangerouslySetInnerHTML={{ __html: linkedText }} 
+                            />
+                          ) : (
+                            msg.text
+                          );
+                        })()}
+                      </p>
+                      <p className={`text-[10px] mt-1.5 ${
+                        isAdmin ? 'text-muted-foreground' : 'text-white/70'
+                      }`}>
+                        {msg.time || msg.timestamp}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
