@@ -7,6 +7,21 @@ import type { ChatUser } from '@/types';
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+/**
+ * Check if two chat objects have meaningful differences
+ * Used to prevent unnecessary re-renders
+ */
+const hasSignificantChanges = (existing: ChatUser, incoming: ChatUser): boolean => {
+  return (
+    existing.lastMessage !== incoming.lastMessage ||
+    existing.lastMessageTime !== incoming.lastMessageTime ||
+    existing.unreadCount !== incoming.unreadCount ||
+    existing.isOnline !== incoming.isOnline ||
+    existing.balance !== incoming.balance ||
+    existing.winningBalance !== incoming.winningBalance
+  );
+};
+
 interface UseChatUsersParams {
   adminId: number;
   enabled?: boolean;
@@ -21,22 +36,27 @@ interface UseChatUsersReturn {
   error: string | null;
   refetch: () => void;
   fetchAllPlayers: () => Promise<void>;
+  refreshActiveChats: () => Promise<void>; // Refresh chat list from API
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
   markChatAsRead: (params: { chatId?: string; userId?: number }) => void;
 }
 
 /**
  * Transform backend chat data to frontend ChatUser format
- * WebSocket format: chat object with nested player data
+ * WebSocket format: chat object with nested player data OR re_arrange format
  */
 function transformChatToUser(chat: any): ChatUser {
   const player = chat.player || {};
   
+  // Handle re_arrange format where user_id is at top level
+  const userId = Number(chat.user_id || player.id || 0);
+  const username = chat.username || player.username || player.full_name || 'Unknown';
+  
   return {
     // Use chat_id as the main ID so we can match remove_chat_from_list messages
     id: String(chat.chat_id || chat.id || player.id || ''),
-    user_id: Number(player.id || 0),
-    username: player.username || player.full_name || 'Unknown',
+    user_id: userId,
+    username: username,
     fullName: player.full_name || player.name || undefined,
     email: player.email || '',
     avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
@@ -95,6 +115,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   // ✅ PERFORMANCE: Cache for fetchAllPlayers (5 min TTL)
   const playersCacheRef = useRef<{ data: ChatUser[]; timestamp: number } | null>(null);
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  
+  // ✅ Track last API refresh to prevent WebSocket from overwriting fresh API data
+  const lastApiRefreshRef = useRef<number>(0);
+  const API_REFRESH_COOLDOWN = 2000; // 2 seconds - ignore WebSocket updates after API refresh
 
   const connect = useCallback(() => {
     if (!enabled || !adminId) return;
@@ -111,7 +135,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       wsRef.current = ws;
 
       ws.onopen = () => {
-        !IS_PROD && console.log('✅ Chat list WebSocket connected');
+        !IS_PROD && console.log('✅ Chat list WebSocket connected to:', wsUrl);
+        !IS_PROD && console.log('   Ready to receive unread count updates in real-time');
         setError(null);
         setIsLoading(false);
       };
@@ -124,6 +149,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             hasChats: !!data.chats || !!data.message?.chats,
             chatId: data.chat_id || data.message?.chat_id,
           });
+          !IS_PROD && console.log('📨 [Chat List WS] Full message data:', data);
 
           // ✅ IGNORE typing events - they should not update the chat list
           const messageType = data.type || data.message?.type;
@@ -131,13 +157,113 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             !IS_PROD && console.log('⌨️ [Chat List WS] Typing event received - ignoring for chat list');
             return; // Don't update chat list for typing events
           }
+          
+          // ✅ Handle "message" type from chat list WebSocket (if it sends them)
+          if (messageType === 'message' && data.player_id) {
+            !IS_PROD && console.log('💬 [Chat List WS] Message event received:', {
+              playerId: data.player_id,
+              message: data.message?.substring(0, 30),
+              isPlayerSender: data.is_player_sender,
+            });
+            
+            // Refresh chat list from API to get latest counts and messages
+            !IS_PROD && console.log('🔄 [Chat List WS] Refreshing chat list after message...');
+            refreshActiveChats();
+            
+            // ✅ Return early to prevent other handlers from overwriting API data
+            return;
+          }
 
           // Handle "add_new_chats" message type
           if (data.message && data.message.type === 'add_new_chats' && Array.isArray(data.message.chats)) {
+            // ✅ Check if we recently refreshed from API - if so, skip WebSocket update
+            const timeSinceLastRefresh = Date.now() - lastApiRefreshRef.current;
+            if (timeSinceLastRefresh < API_REFRESH_COOLDOWN) {
+              !IS_PROD && console.log(`⏭️ [Chat List WS] Skipping add_new_chats - API refresh happened ${timeSinceLastRefresh}ms ago (cooldown: ${API_REFRESH_COOLDOWN}ms)`);
+              return; // Skip this WebSocket update to prevent overwriting fresh API data
+            }
+            
             const chatList = data.message.chats;
-            const transformedUsers = chatList.map(transformChatToUser);
-            !IS_PROD && console.log(`✅ [Chat List WS] Received ${transformedUsers.length} chat users`);
-            setActiveChats(transformedUsers);
+            
+            // Log raw data to debug unread counts
+            if (!IS_PROD) {
+              console.log(`✅ [Chat List WS] Received ${chatList.length} chat users`);
+              const chatsWithUnread = chatList.filter((c: any) => (c.unread_message_count ?? 0) > 0);
+              if (chatsWithUnread.length > 0) {
+                console.log(`📬 [Chat List WS] RAW data - ${chatsWithUnread.length} chats with unread_message_count:`,
+                  chatsWithUnread.map((c: any) => ({
+                    chat_id: c.chat_id,
+                    username: c.player?.username,
+                    unread_message_count: c.unread_message_count
+                  }))
+                );
+              }
+            }
+            
+            const incomingUsers = chatList.map(transformChatToUser);
+            
+            // ✅ PERFORMANCE: Smart merge - preserve existing data and only update what changed
+            setActiveChats((prevChats) => {
+              // If this is the initial load (prevChats is empty), just use incoming data
+              if (prevChats.length === 0) {
+                return incomingUsers;
+              }
+              
+              // Build a map of incoming users by ID for O(1) lookup
+              const incomingMap = new Map(
+                incomingUsers.map(user => [user.id, user])
+              );
+              
+              // Update existing chats and preserve order if possible
+              const updatedChats = prevChats.map(existingChat => {
+                const incomingChat = incomingMap.get(existingChat.id);
+                
+                if (incomingChat) {
+                  incomingMap.delete(existingChat.id); // Mark as processed
+                  
+                  // ✅ PERFORMANCE: Only create new object if there are actual changes
+                  if (!hasSignificantChanges(existingChat, incomingChat)) {
+                    return existingChat; // No changes, return same reference to prevent re-render
+                  }
+                  
+                  // Merge: preserve local state but update server data
+                  return {
+                    ...existingChat,
+                    // Update fields that come from server
+                    lastMessage: incomingChat.lastMessage ?? existingChat.lastMessage,
+                    lastMessageTime: incomingChat.lastMessageTime ?? existingChat.lastMessageTime,
+                    unreadCount: incomingChat.unreadCount ?? existingChat.unreadCount,
+                    isOnline: incomingChat.isOnline ?? existingChat.isOnline,
+                    balance: incomingChat.balance ?? existingChat.balance,
+                    winningBalance: incomingChat.winningBalance ?? existingChat.winningBalance,
+                    // Preserve notes and other local data
+                    notes: existingChat.notes || incomingChat.notes,
+                  };
+                }
+                
+                // Chat not in incoming list - keep it but mark as potentially stale
+                return existingChat;
+              });
+              
+              // Add any new chats that weren't in the previous list
+              const newChats = Array.from(incomingMap.values());
+              if (newChats.length > 0) {
+                !IS_PROD && console.log(`➕ [Chat List WS] Adding ${newChats.length} new chats`);
+              }
+              
+              // Log unread count updates
+              if (!IS_PROD) {
+                const chatsWithUnread = [...updatedChats, ...newChats].filter(c => (c.unreadCount ?? 0) > 0);
+                if (chatsWithUnread.length > 0) {
+                  console.log(`📬 [Chat List WS] Updated unread counts for ${chatsWithUnread.length} chats:`,
+                    chatsWithUnread.map(c => ({ username: c.username, unreadCount: c.unreadCount }))
+                  );
+                }
+              }
+              
+              return newChats.length > 0 ? [...newChats, ...updatedChats] : updatedChats;
+            });
+            
             setIsLoading(false);
           }
           // Handle "update_chat" or "new_message" to update existing chat in list
@@ -157,6 +283,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
               chatId: updateData.chat_id,
               lastMessage: updateData.last_message?.substring(0, 30),
               lastMessageTime: updateData.last_message_time,
+              unreadCount: updateData.unread_message_count,
             });
             
             setActiveChats((prevChats) => {
@@ -202,8 +329,34 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
               prevUsers.filter((user) => user.id !== String(chatIdToRemove))
             );
           }
+          // Handle "re_arrange" message type - single chat update with unread count
+          else if ((data.message && data.message.type === 're_arrange') || data.type === 're_arrange') {
+            const chatData = data.message || data;
+            !IS_PROD && console.log('🔄 [Chat List WS] Re-arrange event (RAW):', chatData);
+            !IS_PROD && console.log('🔄 [Chat List WS] Re-arrange event:', {
+              chatId: chatData.chat_id,
+              username: chatData.username || chatData.player?.username,
+              unreadCount: chatData.unread_message_count,
+              lastMessage: chatData.last_message,
+              lastMessageTime: chatData.last_message_time,
+            });
+            
+            // Refresh chat list from API to get canonical state from backend
+            !IS_PROD && console.log('🔄 [Chat List WS] Refreshing chat list after re_arrange...');
+            refreshActiveChats();
+            
+            // ✅ Return early - API refresh provides the latest data
+            return;
+          }
           // Fallback for other formats
           else if (data.chats && Array.isArray(data.chats)) {
+            // ✅ Check if we recently refreshed from API - if so, skip WebSocket update
+            const timeSinceLastRefresh = Date.now() - lastApiRefreshRef.current;
+            if (timeSinceLastRefresh < API_REFRESH_COOLDOWN) {
+              !IS_PROD && console.log(`⏭️ [Chat List WS] Skipping fallback chats - API refresh happened ${timeSinceLastRefresh}ms ago`);
+              return;
+            }
+            
             const transformedUsers = data.chats.map(transformChatToUser);
             !IS_PROD && console.log(`✅ [Chat List WS] Received ${transformedUsers.length} chat users (fallback format)`);
             setActiveChats(transformedUsers);
@@ -211,6 +364,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           }
           // Handle single chat update
           else if (data.chat_id || (data.player && data.player.id)) {
+            // ✅ Check if we recently refreshed from API - if so, skip WebSocket update
+            const timeSinceLastRefresh = Date.now() - lastApiRefreshRef.current;
+            if (timeSinceLastRefresh < API_REFRESH_COOLDOWN) {
+              !IS_PROD && console.log(`⏭️ [Chat List WS] Skipping single chat update - API refresh happened ${timeSinceLastRefresh}ms ago`);
+              return;
+            }
+            
             !IS_PROD && console.log('🔄 [Chat List WS] Single chat update (direct format)');
             const singleChat = transformChatToUser(data);
             setActiveChats((prevChats) => {
@@ -288,6 +448,93 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     disconnect();
     connect();
   }, [connect, disconnect]);
+
+  /**
+   * Refresh active chats from backend API
+   * Called when a new message arrives to get updated counts and last messages
+   * Uses the admin chat endpoint which returns chat data (unread counts, last messages, etc.)
+   * 
+   * API Response Format:
+   * {
+   *   chats: [...],           // Chat objects with basic info
+   *   player: [...],          // Player objects with FULL data including chat context
+   *   pagination: {...}
+   * }
+   */
+  const refreshActiveChats = useCallback(async () => {
+    !IS_PROD && console.log('🔄 [refreshActiveChats] Fetching latest chat list from backend...');
+    
+    try {
+      const token = storage.get(TOKEN_KEY);
+      // ✅ Use the correct admin chat endpoint that returns chat context
+      const response = await fetch('/api/chat-all-players?page=1&page_size=100', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+
+      if (!response.ok) {
+        console.error('❌ [refreshActiveChats] Failed to fetch:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      !IS_PROD && console.log('🔄 [refreshActiveChats] Raw API response:', {
+        hasPlayer: !!data.player,
+        playerCount: data.player?.length,
+        hasChats: !!data.chats,
+        chatsCount: data.chats?.length,
+        hasPagination: !!data.pagination,
+      });
+      
+      // ✅ Use the 'player' array - it has complete data including chat context
+      if (data.player && Array.isArray(data.player)) {
+        const transformedUsers = data.player.map(transformPlayerToUser);
+        !IS_PROD && console.log(`✅ [refreshActiveChats] Fetched ${transformedUsers.length} players with chat data`);
+        
+        // Log raw data for first player to verify unread_messages_count is present
+        if (!IS_PROD && data.player.length > 0) {
+          console.log('🔍 [refreshActiveChats] Sample player data:', {
+            username: data.player[0].username,
+            unread_messages_count: data.player[0].unread_messages_count,
+            last_message: data.player[0].last_message?.substring(0, 30),
+            chatroom_id: data.player[0].chatroom_id,
+          });
+        }
+        
+        // Update state with fresh data from backend
+        setActiveChats(transformedUsers);
+        
+        // ✅ Mark the time of this API refresh to prevent WebSocket from overwriting it
+        lastApiRefreshRef.current = Date.now();
+        !IS_PROD && console.log('🕐 [refreshActiveChats] API refresh timestamp set:', lastApiRefreshRef.current);
+        
+        // Log chats with unread counts for debugging
+        const chatsWithUnread = transformedUsers.filter(c => (c.unreadCount ?? 0) > 0);
+        if (!IS_PROD && chatsWithUnread.length > 0) {
+          console.log(`📬 [refreshActiveChats] ${chatsWithUnread.length} chats with unread messages:`,
+            chatsWithUnread.map(c => ({ 
+              username: c.username, 
+              unreadCount: c.unreadCount, 
+              lastMessage: c.lastMessage?.substring(0, 30) 
+            }))
+          );
+        } else {
+          !IS_PROD && console.log('📭 [refreshActiveChats] No unread messages');
+        }
+      } else if (data.chats && Array.isArray(data.chats)) {
+        // Fallback to chats format if player array is not present
+        const transformedUsers = data.chats.map(transformChatToUser);
+        !IS_PROD && console.log(`✅ [refreshActiveChats] Fetched ${transformedUsers.length} chats (fallback format)`);
+        setActiveChats(transformedUsers);
+      } else {
+        console.warn('⚠️ [refreshActiveChats] Unexpected API response format - no player or chats array');
+      }
+    } catch (error) {
+      console.error('❌ [refreshActiveChats] Error:', error);
+    }
+  }, []);
 
   /**
    * Fetch ALL players from REST API endpoint
@@ -397,20 +644,37 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     lastMessage: string,
     lastMessageTime: string
   ) => {
-    !IS_PROD && console.log(`📝 Updating chat list - userId: ${userId}, chatId: ${chatId}, lastMessage: ${lastMessage.substring(0, 30)}...`);
+    !IS_PROD && console.log(`📝 [updateChatLastMessage] Called with:`, {
+      userId,
+      chatId,
+      lastMessage: lastMessage.substring(0, 30),
+      lastMessageTime,
+    });
     
     setActiveChats((prevChats) => {
+      !IS_PROD && console.log(`📝 [updateChatLastMessage] Current activeChats count: ${prevChats.length}`);
+      
       // Find and update the matching chat
       const chatIndex = prevChats.findIndex(
         (chat) => chat.id === chatId || chat.user_id === userId
       );
       
+      !IS_PROD && console.log(`📝 [updateChatLastMessage] Found chat at index: ${chatIndex}`);
+      
       if (chatIndex === -1) {
         // Chat not found in active chats - this could be a new conversation
         // The WebSocket should send an update to add it, but we can log this
-        !IS_PROD && console.log(`⚠️ Chat not found in active chats list - waiting for WebSocket update`);
+        !IS_PROD && console.warn(`⚠️ [updateChatLastMessage] Chat not found! Looking for chatId: ${chatId} or userId: ${userId}`);
+        !IS_PROD && console.log(`⚠️ [updateChatLastMessage] Available chats:`, prevChats.map(c => ({ id: c.id, user_id: c.user_id, username: c.username })));
         return prevChats;
       }
+      
+      const oldChat = prevChats[chatIndex];
+      !IS_PROD && console.log(`📝 [updateChatLastMessage] Updating chat:`, {
+        username: oldChat.username,
+        oldLastMessage: oldChat.lastMessage?.substring(0, 30),
+        newLastMessage: lastMessage.substring(0, 30),
+      });
       
       // Create updated chat list with the new last message
       const updatedChats = [...prevChats];
@@ -422,6 +686,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       
       // Move updated chat to the top of the list for better UX
       const [updatedChat] = updatedChats.splice(chatIndex, 1);
+      !IS_PROD && console.log(`✅ [updateChatLastMessage] Chat updated and moved to top`);
       return [updatedChat, ...updatedChats];
     });
 
@@ -511,6 +776,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     error,
     refetch,
     fetchAllPlayers,
+    refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
   };

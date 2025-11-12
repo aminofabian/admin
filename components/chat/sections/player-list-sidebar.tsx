@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui';
 import { PlayerListSkeleton } from '../components/chat-skeletons';
 import { formatChatTimestamp } from '@/lib/utils/formatters';
@@ -14,6 +14,137 @@ const stripHtml = (html: string): string => {
 };
 
 const MAX_UNREAD_BADGE_COUNT = 99;
+
+// ✅ Memoized player item component to prevent unnecessary re-renders
+interface PlayerItemProps {
+  player: ChatUser;
+  isSelected: boolean;
+  onSelect: (player: ChatUser) => void;
+}
+
+const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: PlayerItemProps) {
+  const unreadCount = player.unreadCount ?? 0;
+  const prevUnreadCountRef = useRef(unreadCount);
+  const [isNewMessage, setIsNewMessage] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const itemRef = useRef<HTMLButtonElement>(null);
+  
+  const unreadBadgeValue = 
+    unreadCount > MAX_UNREAD_BADGE_COUNT
+      ? `${MAX_UNREAD_BADGE_COUNT}+`
+      : String(unreadCount);
+
+  // Detect when unread count increases (new message)
+  useEffect(() => {
+    if (unreadCount > prevUnreadCountRef.current && prevUnreadCountRef.current >= 0) {
+      // New message arrived! Trigger anticipation animation
+      setIsNewMessage(true);
+      setIsAnimating(true);
+      
+      // Reset animation state after animation completes
+      const timer = setTimeout(() => {
+        setIsNewMessage(false);
+        setIsAnimating(false);
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+    prevUnreadCountRef.current = unreadCount;
+  }, [unreadCount]);
+
+  return (
+    <button
+      ref={itemRef}
+      onClick={() => onSelect(player)}
+      className={`w-full p-3 md:p-3.5 rounded-xl transition-all duration-300 group relative ${
+        isSelected
+          ? 'bg-primary/10 shadow-md ring-2 ring-primary/20' 
+          : 'hover:bg-muted/50 active:scale-[0.98]'
+      } ${
+        isNewMessage ? 'bg-primary/5 ring-2 ring-primary/30 animate-new-message-pulse' : ''
+      }`}
+    >
+      {/* New Message Indicator - Glowing bar on the left */}
+      {isNewMessage && (
+        <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full animate-message-glow shadow-lg shadow-primary/50" />
+      )}
+        
+        <div className="flex items-center gap-3">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            <div className={`w-11 h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-300 ${
+              isSelected
+                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' 
+                : 'group-hover:scale-105'
+            } ${
+              isNewMessage ? 'ring-2 ring-primary/50 scale-110' : ''
+            }`}>
+              {player.avatar || player.username.charAt(0).toUpperCase()}
+            </div>
+            {player.isOnline && (
+              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse shadow-sm" />
+            )}
+          </div>
+          
+          {/* Player Info */}
+          <div className="flex-1 min-w-0 text-left">
+            <div className="flex items-center justify-between gap-2">
+              <p className={`text-sm font-semibold truncate transition-colors duration-200 ${
+                isSelected ? 'text-primary' : 'text-foreground'
+              } ${
+                isNewMessage ? 'text-primary font-bold' : ''
+              }`}>
+                {player.fullName || player.username}
+              </p>
+              {player.lastMessageTime && (
+                <span className={`text-[10px] shrink-0 transition-colors duration-200 ${
+                  isNewMessage ? 'text-primary font-semibold' : 'text-muted-foreground'
+                }`}>
+                  {formatChatTimestamp(player.lastMessageTime)}
+                </span>
+              )}
+            </div>
+            
+            {player.lastMessage && (
+              <p className={`text-xs truncate mt-0.5 transition-all duration-200 ${
+                isNewMessage 
+                  ? 'text-foreground font-medium' 
+                  : 'text-muted-foreground'
+              }`}>
+                {stripHtml(player.lastMessage)}
+              </p>
+            )}
+          </div>
+          
+          {/* Unread Badge */}
+          {unreadCount > 0 && (
+            <div className="flex-shrink-0 ml-auto">
+              <span 
+                className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full shadow-lg transition-all duration-300 ${
+                  isNewMessage ? 'animate-badge-pop' : ''
+                }`}
+              >
+                {unreadBadgeValue}
+              </span>
+            </div>
+          )}
+        </div>
+      </button>
+  );
+}, (prevProps, nextProps) => {
+  // ✅ Custom comparison: only re-render if relevant fields changed
+  return (
+    prevProps.player.user_id === nextProps.player.user_id &&
+    prevProps.player.lastMessage === nextProps.player.lastMessage &&
+    prevProps.player.lastMessageTime === nextProps.player.lastMessageTime &&
+    prevProps.player.unreadCount === nextProps.player.unreadCount &&
+    prevProps.player.isOnline === nextProps.player.isOnline &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.player.fullName === nextProps.player.fullName &&
+    prevProps.player.username === nextProps.player.username &&
+    prevProps.player.avatar === nextProps.player.avatar
+  );
+});
 
 interface PlayerListSidebarProps {
   mobileView: 'list' | 'chat' | 'info';
@@ -202,74 +333,22 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
             <p className="text-xs text-muted-foreground">Try a different search term</p>
           </div>
         ) : (
-          <div className="p-2">
-            {displayedPlayers.map((player) => {
-              const isSelected = selectedPlayer?.user_id === player.user_id;
-              const unreadCount = player.unreadCount ?? 0;
-              const shouldDisplayUnreadBadge = !isSelected && unreadCount > 0;
-              const unreadBadgeValue = unreadCount > MAX_UNREAD_BADGE_COUNT
-                ? `${MAX_UNREAD_BADGE_COUNT}+`
-                : String(unreadCount);
-              return (
-              <button
+          <div className="p-2 space-y-2">
+            {displayedPlayers.map((player, index) => (
+              <div
                 key={`${player.user_id}-${player.id}`}
-                onClick={() => onPlayerSelect(player)}
-                className={`w-full p-3 md:p-3.5 rounded-xl mb-2 transition-all duration-200 group ${
-                  isSelected
-                    ? 'bg-primary/10 shadow-md ring-2 ring-primary/20' 
-                    : 'hover:bg-muted/50 active:scale-[0.98]'
-                }`}
+                className="transition-all duration-500 ease-out"
+                style={{
+                  animationDelay: `${index * 20}ms`,
+                }}
               >
-                <div className="flex items-center gap-3">
-                  {/* Avatar */}
-                  <div className="relative flex-shrink-0">
-                    <div className={`w-11 h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-200 ${
-                      isSelected
-                        ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' 
-                        : 'group-hover:scale-105'
-                    }`}>
-                      {player.avatar || player.username.charAt(0).toUpperCase()}
-                    </div>
-                    {player.isOnline && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse shadow-sm" />
-                    )}
-                  </div>
-                  
-                  {/* Player Info */}
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <h4 className="font-semibold text-sm text-foreground truncate">{player.username}</h4>
-                      {player.lastMessageTime && (
-                        <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
-                          {formatChatTimestamp(player.lastMessageTime)}
-                        </span>
-                      )}
-                    </div>
-                    {player.lastMessage && (
-                      <p className="text-xs text-muted-foreground truncate leading-tight">
-                        {stripHtml(player.lastMessage)}
-                      </p>
-                    )}
-                    {player.isOnline && !player.lastMessage && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <span className="w-1 h-1 bg-green-500 rounded-full" />
-                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">Active now</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Unread Badge */}
-                  {shouldDisplayUnreadBadge && (
-                    <div className="min-w-[20px] h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0 px-1.5">
-                      <span className="text-[10px] font-bold text-primary-foreground leading-none">
-                        {unreadBadgeValue}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </button>
-            );
-            })}
+                <PlayerItem
+                  player={player}
+                  isSelected={selectedPlayer?.user_id === player.user_id}
+                  onSelect={onPlayerSelect}
+                />
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -276,6 +276,7 @@ export function ChatComponent() {
     isLoadingAllPlayers,
     error: usersError,
     fetchAllPlayers,
+    refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
   } = useChatUsers({
@@ -316,7 +317,7 @@ export function ChatComponent() {
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
     adminId: adminUserId,
     enabled: !!selectedPlayer && hasValidAdminUser,
-    onMessageReceived: useCallback((message: Message) => {
+    onMessageReceived: useCallback(async (message: Message) => {
       !IS_PROD && console.log('🔔 onMessageReceived callback fired:', {
         messageText: message.text,
         messageTime: message.time,
@@ -325,27 +326,24 @@ export function ChatComponent() {
         chatId: selectedPlayer?.id,
       });
       
-      // Update the chat list when a new message is received
-      if (selectedPlayer?.user_id && selectedPlayer?.id) {
-        !IS_PROD && console.log('✅ Updating chat list with new message');
-        updateChatLastMessage(
-          selectedPlayer.user_id,
-          selectedPlayer.id,
-          message.text,
-          message.time || message.timestamp
-        );
-      } else {
-        !IS_PROD && console.warn('⚠️ Cannot update chat list - selectedPlayer missing:', {
-          hasUserId: !!selectedPlayer?.user_id,
-          hasId: !!selectedPlayer?.id,
-        });
-      }
-    }, [selectedPlayer, updateChatLastMessage]),
+      // Refresh chat list from backend API when a new message is received
+      // This ensures we get the latest unread counts and last messages from the server
+      !IS_PROD && console.log('🔄 Refreshing chat list from backend after message...');
+      await refreshActiveChats();
+      !IS_PROD && console.log('✅ Chat list refreshed with latest backend data');
+    }, [selectedPlayer, refreshActiveChats]),
   });
 
   const groupedMessages = useMemo(() => groupMessagesByDate(wsMessages), [wsMessages]);
 
   const displayedPlayers = useMemo(() => {
+    !IS_PROD && console.log('🔄 [displayedPlayers] Memo recalculating...', {
+      activeTab,
+      apiOnlinePlayersCount: apiOnlinePlayers.length,
+      activeChatsUsersCount: activeChatsUsers.length,
+      allPlayersCount: allPlayers.length,
+    });
+    
     let players: Player[];
     
     if (activeTab === 'online') {
@@ -365,13 +363,14 @@ export function ChatComponent() {
         if (player.user_id && player.isOnline) {
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
-            // Merge: keep online player data but update with chat info
-            // ✅ IMPORTANT: Preserve notes from existing player data
+            // ✅ FIXED: Prioritize WebSocket data (real-time) over REST API data
             seenUserIds.set(player.user_id, {
               ...existing,
+              // WebSocket data takes priority for real-time fields
               lastMessage: player.lastMessage || existing.lastMessage,
               lastMessageTime: player.lastMessageTime || existing.lastMessageTime,
-              unreadCount: player.unreadCount ?? existing.unreadCount ?? 0,
+              unreadCount: player.unreadCount ?? existing.unreadCount ?? 0, // WebSocket first!
+              isOnline: player.isOnline ?? existing.isOnline, // WebSocket status is authoritative
               notes: existing.notes || player.notes, // Preserve notes
             });
           } else {
@@ -389,6 +388,14 @@ export function ChatComponent() {
         if (playersWithNotes.length > 0) {
           console.log(`📋 [displayedPlayers - online] ${playersWithNotes.length} players with notes:`,
             playersWithNotes.map(p => ({ username: p.username, notes: p.notes?.substring(0, 30) }))
+          );
+        }
+        
+        // Log unread counts for debugging
+        const playersWithUnread = players.filter(p => (p.unreadCount ?? 0) > 0);
+        if (playersWithUnread.length > 0) {
+          console.log(`📬 [displayedPlayers - online] ${playersWithUnread.length} players with unread messages:`,
+            playersWithUnread.map(p => ({ username: p.username, unreadCount: p.unreadCount }))
           );
         }
       }
@@ -409,14 +416,20 @@ export function ChatComponent() {
         if (player.user_id) {
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
-            // ✅ Player exists in activeChats - merge to preserve last message and notes
+            // ✅ FIXED: Prioritize WebSocket data (real-time) over REST API data (stale)
+            // Start with WebSocket data, only add missing fields from REST API
             seenUserIds.set(player.user_id, {
-              ...player,
-              lastMessage: existing.lastMessage || player.lastMessage,
-              lastMessageTime: existing.lastMessageTime || player.lastMessageTime,
-              unreadCount: existing.unreadCount ?? player.unreadCount ?? 0,
-              isOnline: existing.isOnline || player.isOnline,
-              notes: player.notes || existing.notes, // Preserve notes from allPlayers or activeChats
+              ...existing, // WebSocket data (real-time unreadCount, lastMessage, etc.)
+              // Only override with REST API data for fields not in WebSocket
+              fullName: player.fullName || existing.fullName,
+              email: player.email || existing.email,
+              avatar: player.avatar || existing.avatar,
+              balance: player.balance || existing.balance,
+              winningBalance: player.winningBalance || existing.winningBalance,
+              gamesPlayed: player.gamesPlayed || existing.gamesPlayed,
+              winRate: player.winRate || existing.winRate,
+              phone: player.phone || existing.phone,
+              notes: player.notes || existing.notes, // Preserve notes from REST API
             });
           } else {
             // Player not in activeChats - add as is (with notes if present)
@@ -433,6 +446,14 @@ export function ChatComponent() {
         if (playersWithNotes.length > 0) {
           console.log(`📋 [displayedPlayers - all-chats] ${playersWithNotes.length} players with notes:`,
             playersWithNotes.map(p => ({ username: p.username, notes: p.notes?.substring(0, 30) }))
+          );
+        }
+        
+        // Log unread counts for debugging
+        const playersWithUnread = players.filter(p => (p.unreadCount ?? 0) > 0);
+        if (playersWithUnread.length > 0) {
+          console.log(`📬 [displayedPlayers - all-chats] ${playersWithUnread.length} players with unread messages:`,
+            playersWithUnread.map(p => ({ username: p.username, unreadCount: p.unreadCount }))
           );
         }
       }
