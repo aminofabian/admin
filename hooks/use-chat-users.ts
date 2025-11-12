@@ -211,7 +211,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
               
               // Build a map of incoming users by ID for O(1) lookup
               const incomingMap = new Map(
-                incomingUsers.map(user => [user.id, user])
+                incomingUsers.map((user: ChatUser) => [user.id, user])
               );
               
               // Update existing chats and preserve order if possible

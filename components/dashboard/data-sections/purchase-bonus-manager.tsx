@@ -21,13 +21,11 @@ import type { CreatePurchaseBonusRequest, PurchaseBonus } from '@/types';
 interface PurchaseBonusManagerProps {
   showHeader?: boolean;
   showStats?: boolean;
-  compact?: boolean;
 }
 
 export function PurchaseBonusManager({ 
   showHeader = true, 
   showStats = true,
-  compact = false 
 }: PurchaseBonusManagerProps) {
   const { 
     purchaseBonuses,
