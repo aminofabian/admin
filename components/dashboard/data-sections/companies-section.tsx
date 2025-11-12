@@ -99,110 +99,47 @@ export function CompaniesSection() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-[0.015]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-        </div>
-        
-        <div className="relative flex items-center justify-between">
+      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-foreground">Companies</h2>
-              <p className="text-muted-foreground mt-1">
-                Manage all companies and their projects
-              </p>
+              <h2 className="text-3xl font-bold text-foreground dark:text-white">Companies</h2>
+              <p className="mt-1 text-sm text-muted-foreground dark:text-slate-400">Manage all company accounts and permissions</p>
             </div>
           </div>
-          <Button 
-            variant="primary" 
-            size="md" 
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => setIsDrawerOpen(true)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-sm hover:bg-primary/90 dark:bg-primary/80 dark:hover:bg-primary"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add Company
           </Button>
         </div>
-      </div>
+      </section>
 
       {/* Search */}
-      <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-[0.015]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-        </div>
-        
-        <div className="relative flex items-center gap-4">
-          <SearchInput
-            value={searchTerm}
-            onChange={handleSearchChange}
-            placeholder="Search by username, email, or project name..."
-          />
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
-          <div className="absolute inset-0 opacity-[0.015]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-          </div>
-          <div className="relative">
-            <div className="text-sm text-muted-foreground">Total Companies</div>
-            <div className="text-2xl font-bold text-foreground mt-1">{data?.count || 0}</div>
-          </div>
-        </div>
-        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
-          <div className="absolute inset-0 opacity-[0.015]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-          </div>
-          <div className="relative">
-            <div className="text-sm text-muted-foreground">Active</div>
-            <div className="text-2xl font-bold text-green-500 mt-1">
-              {data?.results?.filter(c => c.is_active).length || 0}
-            </div>
-          </div>
-        </div>
-        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
-          <div className="absolute inset-0 opacity-[0.015]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-          </div>
-          <div className="relative">
-            <div className="text-sm text-muted-foreground">Inactive</div>
-            <div className="text-2xl font-bold text-red-500 mt-1">
-              {data?.results?.filter(c => !c.is_active).length || 0}
-            </div>
-          </div>
-        </div>
-        <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
-          <div className="absolute inset-0 opacity-[0.015]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-          </div>
-          <div className="relative">
-            <div className="text-sm text-muted-foreground">This Page</div>
-            <div className="text-2xl font-bold text-foreground mt-1">{data?.results?.length || 0}</div>
-          </div>
-        </div>
-      </div>
+      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <SearchInput
+          value={searchTerm}
+          onChange={handleSearchChange}
+          placeholder="Search by username or email..."
+        />
+      </section>
 
       {/* Table */}
-      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-[0.015]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-        </div>
-        
-        <div className="relative">
+      <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -240,25 +177,18 @@ export function CompaniesSection() {
           </TableBody>
         </Table>
         </div>
-      </div>
+      </section>
 
       {/* Pagination */}
       {data && data.count > pageSize && (
-        <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-          {/* Subtle background pattern */}
-          <div className="absolute inset-0 opacity-[0.015]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-          </div>
-          
-          <div className="relative">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={Math.ceil(data.count / pageSize)}
-              hasNext={!!data.next}
-              hasPrevious={!!data.previous}
-              onPageChange={handlePageChange}
-            />
-          </div>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(data.count / pageSize)}
+            hasNext={!!data.next}
+            hasPrevious={!!data.previous}
+            onPageChange={handlePageChange}
+          />
         </div>
       )}
 
