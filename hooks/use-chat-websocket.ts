@@ -100,6 +100,7 @@ interface UseChatWebSocketReturn {
   isUserOnline: boolean;
   sendMessage: (text: string) => void;
   markAsRead: (messageId: string) => void;
+  markAllAsRead: () => void;
   connectionError: string | null;
   purchaseHistory: ChatMessage[];
   fetchPurchaseHistory: () => Promise<void>;
@@ -527,12 +528,31 @@ export function useChatWebSocket({
             // This prevents the chat list from updating when user is just typing
           } else if (messageType === 'mark_message_as_read' || messageType === 'read') {
             const messageId = rawData.message_id || rawData.id;
+            const senderId = rawData.sender_id;
+            const isPlayerSender = rawData.is_player_sender ?? true;
+            
             if (messageId) {
+              // Mark specific message as read
               !IS_PROD && console.log('✅ Message marked as read:', messageId);
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === messageId ? { ...msg, isRead: true } : msg
                 )
+              );
+            } else if (senderId) {
+              // When a user reads messages, mark all messages from the OTHER side as read
+              // If admin (is_player_sender: false) read, mark all player messages as read
+              // If player (is_player_sender: true) read, mark all admin messages as read
+              const targetSender: 'player' | 'admin' = isPlayerSender ? 'admin' : 'player';
+              !IS_PROD && console.log(`✅ Marking all ${targetSender} messages as read (read by ${isPlayerSender ? 'player' : 'admin'} with sender_id: ${senderId})`);
+              setMessages((prev) =>
+                prev.map((msg) => {
+                  // Mark messages from the opposite sender as read
+                  if (msg.sender === targetSender) {
+                    return { ...msg, isRead: true };
+                  }
+                  return msg;
+                })
               );
             }
           } else if (messageType === 'live_status') {
@@ -710,6 +730,27 @@ export function useChatWebSocket({
     }
   }, [adminId]);
 
+  const markAllAsRead = useCallback(() => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      !IS_PROD && console.log('⚠️ Cannot mark all as read: WebSocket not connected');
+      return;
+    }
+
+    try {
+      // Send mark_message_as_read without message_id to mark all player messages as read
+      const message = {
+        type: 'mark_message_as_read',
+        sender_id: adminId,
+        is_player_sender: false,
+      };
+
+      wsRef.current.send(JSON.stringify(message));
+      !IS_PROD && console.log('✅ Sent mark all as read message to backend');
+    } catch (error) {
+      console.error('❌ Failed to mark all messages as read:', error);
+    }
+  }, [adminId]);
+
   const updateMessagePinnedState = useCallback((messageId: string, pinned: boolean) => {
     setMessages((prev) =>
       prev.map((message) =>
@@ -738,6 +779,7 @@ export function useChatWebSocket({
     isUserOnline,
     sendMessage,
     markAsRead,
+    markAllAsRead,
     connectionError,
     purchaseHistory,
     fetchPurchaseHistory,

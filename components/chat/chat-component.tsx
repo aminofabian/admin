@@ -310,6 +310,7 @@ export function ChatComponent() {
     hasMoreHistory,
     isHistoryLoading: isHistoryLoadingMessages,
     updateMessagePinnedState,
+    markAllAsRead,
   } = useChatWebSocket({
     userId: selectedPlayer?.user_id ?? null,
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
@@ -1155,6 +1156,18 @@ export function ChatComponent() {
       });
     }
   }, [activeTab, isLoadingApiOnlinePlayers, apiOnlinePlayers.length, isOnlinePlayersWSConnected, onlinePlayersError]);
+
+  // Mark all messages as read when WebSocket connects and chat is opened
+  useEffect(() => {
+    if (isConnected && selectedPlayer) {
+      !IS_PROD && console.log('📬 WebSocket connected, marking all messages as read for player:', selectedPlayer.username);
+      // Use a small delay to ensure the WebSocket is fully ready
+      const timeoutId = setTimeout(() => {
+        markAllAsRead();
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isConnected, selectedPlayer, markAllAsRead]);
 
   const maybeLoadOlderMessages = useCallback(async () => {
     if (!selectedPlayer) return;
