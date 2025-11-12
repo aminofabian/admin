@@ -225,7 +225,7 @@ export function BonusesSection() {
       {activeTab === 'purchase' ? (
         <PurchaseBonusManager 
           showHeader={false} 
-          showStats={true} 
+          showStats={false} 
           compact={false}
         />
       ) : (

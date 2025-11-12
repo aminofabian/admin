@@ -204,38 +204,16 @@ export function PurchaseBonusManager({
       )}
 
       {/* Bonuses Table */}
-      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.015]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-        </div>
-        
+      <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
         {purchaseBonuses?.results.length === 0 ? (
-          <div className="relative py-12">
+          <div className="py-12">
             <EmptyState 
               title="No purchase bonuses" 
               description="Get started by creating your first purchase bonus"
             />
           </div>
         ) : (
-          <div className="relative">
-            {/* Table Header */}
-            {!compact && (
-              <div className="p-6 border-b border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
-                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground">Purchase Bonuses</h3>
-                    <p className="text-sm text-muted-foreground">Manage bonus configurations</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="overflow-x-auto">
+          <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-border/30">
@@ -286,10 +264,9 @@ export function PurchaseBonusManager({
                   ))}
                 </TableBody>
               </Table>
-            </div>
           </div>
         )}
-      </div>
+      </section>
 
       {/* Create/Edit Bonus Modal */}
       <Modal
