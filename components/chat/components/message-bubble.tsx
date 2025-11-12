@@ -138,15 +138,13 @@ export const MessageBubble = memo(function MessageBubble({
             isAdmin={isAdmin}
           />
           
-          {/* Pin Button (Desktop) */}
-          {isAdmin && (
-            <PinButton
-              messageId={message.id}
-              isPinned={message.isPinned}
-              isPinning={isPinning}
-              onTogglePin={onTogglePin}
-            />
-          )}
+          {/* Pin Button */}
+          <PinButton
+            messageId={message.id}
+            isPinned={message.isPinned}
+            isPinning={isPinning}
+            onTogglePin={onTogglePin}
+          />
         </div>
       </div>
     </div>
