@@ -166,73 +166,60 @@ export function BonusesSection() {
     }
   };
 
-  const getActiveCount = () => {
-    const data = getCurrentData();
-    if (activeTab === 'affiliate') return 0; // AffiliateDefaults doesn't have is_enabled
-    return data.filter((item: AllItems) => 'is_enabled' in item && item.is_enabled).length;
-  };
-
-  const getInactiveCount = () => {
-    const data = getCurrentData();
-    if (activeTab === 'affiliate') return 0; // AffiliateDefaults doesn't have is_enabled
-    return data.filter((item: AllItems) => 'is_enabled' in item && !item.is_enabled).length;
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="relative bg-card/95 backdrop-blur-sm p-6 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-[0.015]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-        </div>
-        
-        <div className="relative flex items-center justify-between">
+      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center border border-primary/20">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-foreground">Bonus Management</h2>
-              <p className="text-muted-foreground mt-1">
-                Manage all types of bonuses and affiliate settings
-              </p>
+              <h2 className="text-3xl font-bold text-foreground dark:text-white">Bonuses</h2>
+              <p className="mt-1 text-sm text-muted-foreground dark:text-slate-400">Manage all bonus accounts and permissions</p>
             </div>
           </div>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => {/* Handle add bonus */}}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-sm hover:bg-primary/90 dark:bg-primary/80 dark:hover:bg-primary"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Bonus
+          </Button>
         </div>
-      </div>
+      </section>
 
       {/* Tabs */}
-      <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-[0.015]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
+      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <div className="flex space-x-1">
+          {[
+            { key: 'purchase', label: 'Purchase', count: purchaseBonuses?.count || 0 },
+            { key: 'recharge', label: 'Recharge', count: rechargeBonuses?.count || 0 },
+            { key: 'transfer', label: 'Transfer', count: transferBonuses?.count || 0 },
+            { key: 'signup', label: 'Signup', count: signupBonuses?.count || 0 },
+            { key: 'affiliate', label: 'Affiliate', count: affiliateDefaults?.count || 0 },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as 'purchase' | 'recharge' | 'transfer' | 'signup' | 'affiliate')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.key
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
         </div>
-        
-        <div className="relative flex space-x-1 p-1">
-        {[
-          { key: 'purchase', label: 'Purchase', count: purchaseBonuses?.count || 0 },
-          { key: 'recharge', label: 'Recharge', count: rechargeBonuses?.count || 0 },
-          { key: 'transfer', label: 'Transfer', count: transferBonuses?.count || 0 },
-          { key: 'signup', label: 'Signup', count: signupBonuses?.count || 0 },
-          { key: 'affiliate', label: 'Affiliate', count: affiliateDefaults?.count || 0 },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as 'purchase' | 'recharge' | 'transfer' | 'signup' | 'affiliate')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-              activeTab === tab.key
-                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
-                : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
-            }`}
-          >
-            {tab.label} ({tab.count})
-          </button>
-        ))}
-        </div>
-      </div>
+      </section>
 
       {/* Render Purchase Bonus Manager for Purchase Tab */}
       {activeTab === 'purchase' ? (
@@ -244,69 +231,17 @@ export function BonusesSection() {
       ) : (
         <>
           {/* Search */}
-          <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-            {/* Subtle background pattern */}
-            <div className="absolute inset-0 opacity-[0.015]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-            </div>
-            
-            <div className="relative flex items-center gap-4">
-              <SearchInput
-                value={searchTerm}
-                onChange={handleSearchChange}
-                placeholder={`Search ${activeTab} bonuses...`}
-              />
-            </div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
-              <div className="absolute inset-0 opacity-[0.015]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-              </div>
-              <div className="relative">
-                <div className="text-sm text-muted-foreground">Total {activeTab} Bonuses</div>
-                <div className="text-2xl font-bold text-foreground mt-1">{getCurrentCount()}</div>
-              </div>
-            </div>
-            <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
-              <div className="absolute inset-0 opacity-[0.015]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-              </div>
-              <div className="relative">
-                <div className="text-sm text-muted-foreground">Active</div>
-                <div className="text-2xl font-bold text-green-500 mt-1">{getActiveCount()}</div>
-              </div>
-            </div>
-            <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
-              <div className="absolute inset-0 opacity-[0.015]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-              </div>
-              <div className="relative">
-                <div className="text-sm text-muted-foreground">Inactive</div>
-                <div className="text-2xl font-bold text-red-500 mt-1">{getInactiveCount()}</div>
-              </div>
-            </div>
-            <div className="relative bg-card/95 backdrop-blur-sm p-4 border border-border/50 shadow-lg hover:shadow-md transition-all duration-200">
-              <div className="absolute inset-0 opacity-[0.015]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-              </div>
-              <div className="relative">
-                <div className="text-sm text-muted-foreground">This Page</div>
-                <div className="text-2xl font-bold text-foreground mt-1">{getCurrentData().length}</div>
-              </div>
-            </div>
-          </div>
+          <section className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+            <SearchInput
+              value={searchTerm}
+              onChange={handleSearchChange}
+              placeholder={`Search ${activeTab} bonuses...`}
+            />
+          </section>
 
           {/* Table */}
-          <div className="relative bg-card/95 backdrop-blur-sm border border-border/50 shadow-lg overflow-hidden hover:shadow-md transition-all duration-200">
-            {/* Subtle background pattern */}
-            <div className="absolute inset-0 opacity-[0.015]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)),transparent_40%)]" />
-            </div>
-            
-            <div className="relative">
+          <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 {activeTab === 'affiliate' ? (
@@ -406,7 +341,7 @@ export function BonusesSection() {
           </TableBody>
         </Table>
         </div>
-      </div>
+      </section>
 
       {/* Empty State */}
       {getCurrentData().length === 0 && (
@@ -415,13 +350,15 @@ export function BonusesSection() {
 
       {/* Pagination */}
       {getCurrentCount() > pageSize && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(getCurrentCount() / pageSize)}
-          hasNext={false}
-          hasPrevious={false}
-          onPageChange={setPage}
-        />
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(getCurrentCount() / pageSize)}
+            hasNext={false}
+            hasPrevious={false}
+            onPageChange={setPage}
+          />
+        </div>
       )}
         </>
       )}
