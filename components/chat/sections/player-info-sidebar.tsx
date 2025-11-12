@@ -61,81 +61,92 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   };
   return (
     <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-80 lg:w-96 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
-      {/* Header with Player Avatar */}
-      <div className="p-3 md:p-4 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
+      {/* Header with Player Avatar - Compact */}
+      <div className="p-3 border-b border-border/50 bg-card/50">
         {/* Back button for mobile */}
         <button
           onClick={() => setMobileView('chat')}
-          className="md:hidden mb-3 p-2 hover:bg-muted rounded-lg transition-colors inline-flex items-center gap-2 text-muted-foreground"
+          className="md:hidden mb-2 p-1.5 hover:bg-muted/50 rounded transition-colors inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          <span className="text-sm">Back to chat</span>
+          <span className="text-xs">Back</span>
         </button>
         
-        <div className="flex flex-col items-center text-center">
-          <div className="relative mb-2">
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0">
             <button
               onClick={onNavigateToPlayer}
-              className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-lg ring-2 ring-primary/20 hover:ring-4 hover:ring-primary/30 transition-all cursor-pointer"
+              className="relative w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm hover:shadow transition-all cursor-pointer"
               title="View player profile"
             >
               {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
             </button>
             {isConnected && (
-              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-lg" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card shadow-sm" />
             )}
           </div>
-          <button
-            onClick={onNavigateToPlayer}
-            className="text-base md:text-lg font-bold text-foreground mb-0.5 hover:text-primary transition-colors cursor-pointer"
-            title="View player profile"
-          >
-            {selectedPlayer.fullName || selectedPlayer.username}
-          </button>
-          <p className="text-xs text-muted-foreground mb-0.5">@{selectedPlayer.username}</p>
-          <p className="text-[10px] text-muted-foreground truncate max-w-full px-2">
-            {selectedPlayer.email || 'Email not available'}
-          </p>
-          {isConnected ? (
-            <span className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-[10px] font-medium">
-              <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-              Connected
-            </span>
-          ) : (
-            <span className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-medium">
-              <span className="w-1 h-1 bg-amber-500 rounded-full" />
-              Connecting...
-            </span>
-          )}
+          
+          <div className="flex-1 min-w-0">
+            <button
+              onClick={onNavigateToPlayer}
+              className="text-sm font-semibold text-foreground hover:text-primary transition-colors cursor-pointer truncate block w-full text-left"
+              title="View player profile"
+            >
+              {selectedPlayer.fullName || selectedPlayer.username}
+            </button>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <p className="text-[10px] text-muted-foreground truncate">@{selectedPlayer.username}</p>
+              {isConnected ? (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded text-[9px] font-medium shrink-0">
+                  <span className="w-1 h-1 bg-green-500 rounded-full" />
+                  Online
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded text-[9px] font-medium shrink-0">
+                  <span className="w-1 h-1 bg-amber-500 rounded-full" />
+                  Offline
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+              {selectedPlayer.email || 'No email'}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3">
-        {/* Financial Summary */}
-        <div className="rounded-lg bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3 space-y-2">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-6 h-6 rounded-md bg-primary/20 flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {/* Financial Summary - Compact */}
+        <div className="rounded-lg border border-border/50 bg-card/50 p-2.5">
+          <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Credits and Winnings</h4>
+          
+          <div className="grid grid-cols-2 gap-2">
+            {/* Credits */}
+            <div className="rounded-md bg-blue-500/5 border border-blue-500/20 p-2">
+              <div className="flex items-center gap-1 mb-1">
+                <svg className="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-[9px] font-medium text-muted-foreground uppercase">Credits</span>
+              </div>
+              <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                {formatCurrency(selectedPlayer.balance || '0')}
+              </p>
             </div>
-            <h4 className="font-semibold text-sm text-foreground">Balance</h4>
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between p-2 bg-background/50 rounded-md">
-              <span className="text-xs text-muted-foreground">Total Balance</span>
-              <span className="text-sm font-bold text-foreground">{formatCurrency(selectedPlayer.balance || '0')}</span>
-            </div>
-            <div className="flex items-center justify-between p-2 bg-gradient-to-r from-yellow-500/10 to-yellow-600/5 rounded-md border border-yellow-500/20">
-              <div className="flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+
+            {/* Winnings */}
+            <div className="rounded-md bg-yellow-500/5 border border-yellow-500/20 p-2">
+              <div className="flex items-center gap-1 mb-1">
+                <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                <span className="text-xs text-foreground font-medium">Winnings</span>
+                <span className="text-[9px] font-medium text-muted-foreground uppercase">Winnings</span>
               </div>
-              <span className="text-sm font-bold text-yellow-600 dark:text-yellow-500">{formatCurrency(selectedPlayer.winningBalance || '0')}</span>
+              <p className="text-sm font-bold text-yellow-600 dark:text-yellow-500">
+                {formatCurrency(selectedPlayer.winningBalance || '0')}
+              </p>
             </div>
           </div>
         </div>
@@ -144,23 +155,23 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
         <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="primary" 
-            className="w-full shadow-md hover:shadow-lg transition-shadow text-xs py-2"
+            className="w-full text-xs py-1.5 h-8"
             onClick={onOpenEditBalance}
           >
-            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Edit Balance
+            Balance
           </Button>
           <Button 
             variant="secondary" 
-            className="w-full hover:bg-muted/50 text-xs py-2"
+            className="w-full text-xs py-1.5 h-8"
             onClick={onOpenEditProfile}
           >
-            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            Edit Info
+            Profile
           </Button>
         </div>
 
