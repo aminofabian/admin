@@ -14,6 +14,7 @@ import type { ChatUser, ChatMessage } from '@/types';
 import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal, AddGameDrawer } from './modals';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
+import { isAutoMessage } from './utils/message-helpers';
 
 type Player = ChatUser;
 type Message = ChatMessage;
@@ -1655,14 +1656,15 @@ export function ChatComponent() {
           {/* Messages for this date */}
           {dateMessages.map((message, idx) => {
             const prevMessage = idx > 0 ? dateMessages[idx - 1] : null;
-            const showAvatar = message.sender === 'player' && (
+            const isAuto = isAutoMessage(message);
+            const showAvatar = !isAuto && message.sender === 'player' && (
               !prevMessage || prevMessage.sender !== message.sender || 
               (prevMessage.time && message.time && 
                Math.abs(new Date(`2000-01-01 ${prevMessage.time}`).getTime() - 
                         new Date(`2000-01-01 ${message.time || ''}`).getTime()) > 5 * 60 * 1000)
             );
-            const isConsecutive = prevMessage && prevMessage.sender === message.sender;
-            const isAdmin = message.sender === 'admin';
+            const isConsecutive = !isAuto && prevMessage && !isAutoMessage(prevMessage) && prevMessage.sender === message.sender;
+            const isAdmin = !isAuto && message.sender === 'admin';
             const isPinning = pendingPinMessageId === message.id;
 
             return (

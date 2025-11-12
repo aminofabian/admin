@@ -9,6 +9,7 @@ import {
   hasHtmlContent,
   linkifyText,
   MESSAGE_HTML_CONTENT_CLASS,
+  isAutoMessage,
 } from '../utils/message-helpers';
 
 interface MessageBubbleProps {
@@ -44,6 +45,48 @@ export const MessageBubble = memo(function MessageBubble({
 }: MessageBubbleProps) {
   const messageHasHtml = hasHtmlContent(message.text);
   const pinButtonLabel = message.isPinned ? 'Unpin message' : 'Pin message';
+  const isAuto = isAutoMessage(message);
+
+  // Debug logging for auto message detection
+  if (process.env.NODE_ENV !== 'production' && message.sender === 'admin') {
+    console.log('🔍 Checking message for auto detection:', {
+      text: message.text.substring(0, 50),
+      sender: message.sender,
+      userId: message.userId,
+      type: message.type,
+      isAuto,
+    });
+  }
+
+  // Render auto messages in a centered, neutral style with italics
+  if (isAuto) {
+    // Convert <br> tags to line breaks and preserve HTML formatting
+    const formattedText = message.text
+      .replace(/<br\s*\/?>/gi, '<br />')
+      .replace(/<b>/gi, '<b>')
+      .replace(/<\/b>/gi, '</b>');
+
+    return (
+      <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-200 my-4">
+        <div className="max-w-[85%] md:max-w-[75%]">
+          <div className="bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm">
+            <div 
+              className="text-center text-[13px] md:text-sm leading-relaxed break-words text-muted-foreground italic [&_b]:not-italic [&_b]:font-semibold space-y-1"
+              dangerouslySetInnerHTML={{ __html: formattedText }}
+            />
+            
+            {message.time && (
+              <div className="flex items-center justify-center gap-1.5 mt-2.5 pt-2 border-t border-border/30">
+                <span className="text-[10px] md:text-xs text-muted-foreground/70 font-medium italic">
+                  {message.time}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -68,3 +68,42 @@ export const formatMessageDate = (dateString: string): string => {
     year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined 
   });
 };
+
+// Check if a message is an auto/system message (not sent by staff)
+export const isAutoMessage = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
+  if (!message.text) return false;
+  
+  // Strip HTML tags for pattern matching
+  const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
+  const textWithHtml = message.text.toLowerCase();
+  
+  // Check for auto message patterns in the text (works with or without HTML)
+  const autoPatterns = [
+    /<b>recharge<\/b>/i,
+    /recharge/i,
+    /you successfully/i,
+    /successfully recharged/i,
+    /recharge.*credits/i,
+    /credits:.*\$/i,
+    /winnings:.*\$/i,
+    /^system:/i,
+    /^auto:/i,
+    /^notification:/i,
+    /transaction (completed|pending|failed)/i,
+    /balance updated/i,
+  ];
+  
+  // Check if message type indicates it's an auto message
+  const autoTypes = ['system', 'auto', 'notification', 'recharge', 'transaction', 'balance_update'];
+  if (message.type && autoTypes.includes(message.type.toLowerCase())) {
+    return true;
+  }
+  
+  // Check if userId is 0 or undefined (system messages often have no user ID)
+  if (message.userId === 0 || message.userId === undefined) {
+    return true;
+  }
+  
+  // Check if text matches auto message patterns (check both HTML and plain text)
+  return autoPatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
+};
