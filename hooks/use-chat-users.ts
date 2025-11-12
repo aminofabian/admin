@@ -210,7 +210,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
               }
               
               // Build a map of incoming users by ID for O(1) lookup
-              const incomingMap = new Map(
+              const incomingMap = new Map<string, ChatUser>(
                 incomingUsers.map((user: ChatUser) => [user.id, user])
               );
               
@@ -511,10 +511,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         !IS_PROD && console.log('🕐 [refreshActiveChats] API refresh timestamp set:', lastApiRefreshRef.current);
         
         // Log chats with unread counts for debugging
-        const chatsWithUnread = transformedUsers.filter(c => (c.unreadCount ?? 0) > 0);
+        const chatsWithUnread = transformedUsers.filter((c: ChatUser) => (c.unreadCount ?? 0) > 0);
         if (!IS_PROD && chatsWithUnread.length > 0) {
           console.log(`📬 [refreshActiveChats] ${chatsWithUnread.length} chats with unread messages:`,
-            chatsWithUnread.map(c => ({ 
+            chatsWithUnread.map((c: ChatUser) => ({ 
               username: c.username, 
               unreadCount: c.unreadCount, 
               lastMessage: c.lastMessage?.substring(0, 30) 
