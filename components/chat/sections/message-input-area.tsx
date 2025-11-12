@@ -83,48 +83,8 @@ export const MessageInputArea = memo(function MessageInputArea({
         </div>
       )}
 
-      {/* Toolbar - Desktop Only */}
-      <div className="hidden lg:flex items-center gap-1 mb-2 pb-2 border-border/30">
-        <button 
-          onClick={onAttachClick}
-          className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
-          title="Attach image"
-          disabled={isUploadingImage}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </button>
-        <button 
-          onClick={toggleEmojiPicker}
-          className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
-          title="Emoji"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
-        <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-          <kbd className="px-1.5 py-0.5 bg-muted/50 rounded border border-border/50 text-[10px]">Shift + Enter</kbd>
-          <span className="text-[10px]">for new line</span>
-        </div>
-      </div>
-
       {/* Input Area - Creative: Send button inside textarea */}
       <div className="flex items-start gap-2 md:gap-2.5">
-        {/* Mobile: Show attach button */}
-        <button 
-          onClick={onAttachClick}
-          className="md:hidden p-2.5 mt-1 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-all active:scale-95 flex-shrink-0"
-          title="Attach image"
-          aria-label="Attach image"
-          disabled={isUploadingImage}
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </button>
-        
         {/* Textarea Container with Embedded Send Button */}
         <div className="flex-1 relative">
           <textarea
