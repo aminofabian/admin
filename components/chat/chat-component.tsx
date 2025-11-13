@@ -1348,7 +1348,6 @@ export function ChatComponent() {
     }
 
     const hasNewLatest = latestMessageIdRef.current !== lastMessage.id;
-    latestMessageIdRef.current = lastMessage.id;
 
     !IS_PROD && console.log('📝 wsMessages effect:', {
       hasNewLatest,
@@ -1359,6 +1358,16 @@ export function ChatComponent() {
       lastMessageId: lastMessage.id,
       isRefreshing: isRefreshingMessagesRef.current,
     });
+
+    // ✅ FIX: If we're refreshing, just update the ref without scrolling
+    // The ID changed from temporary to real, but it's not a "new" message
+    if (isRefreshingMessagesRef.current) {
+      !IS_PROD && console.log('⏭️ Refreshing in progress, updating ID ref without scroll');
+      latestMessageIdRef.current = lastMessage.id;
+      return;
+    }
+
+    latestMessageIdRef.current = lastMessage.id;
 
     if (!hasNewLatest) {
       return;
@@ -1380,7 +1389,55 @@ export function ChatComponent() {
       return;
     }
 
+    // ✅ FIX: Refresh messages silently in background to get real database IDs
+    // This prevents "Message not found" errors when pinning/unpinning
+    // Do this BEFORE scrolling to avoid conflicts
+    const shouldRefresh = hasScrolledToInitialLoadRef.current && !isHistoryLoadingMessages && !isRefreshingMessagesRef.current;
+    
+    if (shouldRefresh) {
+      !IS_PROD && console.log('🔄 Scheduling silent refresh to get real database IDs...');
+      
+      // Mark that we're refreshing IMMEDIATELY to block all scroll logic
+      isRefreshingMessagesRef.current = true;
+      
+      // Delay to let WebSocket message render, then refresh
+      setTimeout(() => {
+        !IS_PROD && console.log('🔄 Executing refresh...');
+        
+        refreshMessages()
+          .then(() => {
+            !IS_PROD && console.log('✅ Messages refreshed with real IDs');
+            
+            // After refresh completes, clear flag and let scroll happen naturally
+            setTimeout(() => {
+              isRefreshingMessagesRef.current = false;
+              !IS_PROD && console.log('🔓 Refresh complete, enabling scroll');
+              
+              // Now trigger a scroll to latest if user is at bottom
+              if (autoScrollEnabled) {
+                const container = messagesContainerRef.current;
+                if (container) {
+                  !IS_PROD && console.log('✅ Scrolling to latest after refresh');
+                  container.scrollTo({ 
+                    top: container.scrollHeight, 
+                    behavior: 'smooth' 
+                  });
+                }
+              }
+            }, 100);
+          })
+          .catch((error) => {
+            !IS_PROD && console.warn('⚠️ Failed to refresh messages for ID sync:', error);
+            isRefreshingMessagesRef.current = false;
+          });
+      }, 500);
+      
+      // Return early to prevent any scroll until refresh is done
+      return;
+    }
+
     // ✅ OPTIMIZED: For new messages, use browser-optimized smooth scroll
+    // Only if we're NOT refreshing
     if (autoScrollEnabled && !isRefreshingMessagesRef.current) {
       !IS_PROD && console.log('✅ Auto-scrolling to new message');
       const container = messagesContainerRef.current;
@@ -1389,7 +1446,7 @@ export function ChatComponent() {
         container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
       }
     }
-  }, [wsMessages, autoScrollEnabled, isHistoryLoadingMessages, setIsUserAtLatest, setAutoScrollEnabled]);
+  }, [wsMessages, autoScrollEnabled, isHistoryLoadingMessages, setIsUserAtLatest, setAutoScrollEnabled, refreshMessages]);
 
   useEffect(() => {
     const wasLoading = wasHistoryLoadingRef.current;
