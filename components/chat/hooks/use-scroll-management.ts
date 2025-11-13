@@ -45,6 +45,7 @@ export function useScrollManagement({
   const hasShownEndOfHistoryToastRef = useRef(false);
   const isPaginationModeRef = useRef(false); // Track if we're loading older messages via pagination
   const previousPlayerIdRef = useRef<number | null>(null);
+  const hasUserScrolledRef = useRef(false); // Track if user has manually scrolled
 
   const scrollToLatest = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const container = messagesContainerRef.current;
@@ -187,8 +188,8 @@ export function useScrollManagement({
     if (!hasMoreHistory) {
       pendingLoadRequestRef.current = false;
 
-      // Show toast once per player session when user reaches the end of history
-      if (!hasShownEndOfHistoryToastRef.current && scrollTop <= LOAD_MORE_SCROLL_THRESHOLD && addToast) {
+      // Show toast only if user has manually scrolled (not on initial load)
+      if (!hasShownEndOfHistoryToastRef.current && hasUserScrolledRef.current && scrollTop <= LOAD_MORE_SCROLL_THRESHOLD && addToast) {
         hasShownEndOfHistoryToastRef.current = true;
         addToast({
           type: 'info',
@@ -322,6 +323,13 @@ export function useScrollManagement({
           scrollHeight: container.scrollHeight,
           clientHeight: container.clientHeight,
         });
+        
+        // Only mark as user-scrolled when scrolling UP (away from bottom)
+        // This prevents programmatic scrolls to bottom from triggering the flag
+        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+        if (distanceFromBottom > SCROLL_BOTTOM_THRESHOLD) {
+          hasUserScrolledRef.current = true;
+        }
       }
       
       evaluateScrollPosition();
@@ -343,6 +351,7 @@ export function useScrollManagement({
     isTransitioningRef.current = false;
     isAutoScrollingRef.current = false;
     lastScrollTimeRef.current = 0;
+    hasUserScrolledRef.current = false; // Reset scroll tracking
     
     // Cancel scroll RAF
     if (scrollRafRef.current !== null) {
