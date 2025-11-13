@@ -347,6 +347,11 @@ export function ChatComponent() {
     loadOlderMessages,
     selectedPlayerId: selectedPlayer?.user_id ?? null,
     addToast,
+    // ✅ Pass refresh functionality to hook
+    refreshMessages,
+    isConnected,
+    messagesCount: wsMessages.length,
+    isRefreshingMessagesRef,
   });
 
   const groupedMessages = useMemo(() => groupMessagesByDate(wsMessages), [wsMessages]);
@@ -600,42 +605,26 @@ export function ChatComponent() {
           title: 'Image sent successfully',
         });
 
-        // ✅ OPTIMIZED: Batch state updates and use browser-optimized scroll
-        Promise.resolve().then(() => {
-          setIsUserAtLatest(true);
-          setAutoScrollEnabled(true);
-          
-          const container = messagesContainerRef.current;
-          if (container) {
-            // Let browser handle smooth scrolling - more performant
-            container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
-          }
-        });
+        // ✅ Use hook's scroll function
+        scrollToLatest('auto');
 
         // ✅ OPTIMIZED: Faster refresh with efficient scroll
         if (refreshTimeoutRef.current) {
           clearTimeout(refreshTimeoutRef.current);
         }
         refreshTimeoutRef.current = setTimeout(() => {
-          const container = messagesContainerRef.current;
-          if (container && autoScrollEnabled) {
+          if (autoScrollEnabled) {
             isRefreshingMessagesRef.current = true;
             refreshMessages().catch((error) => {
               !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending image:', error);
             }).finally(() => {
-              // Use microtask for immediate execution
               Promise.resolve().then(() => {
-                const refreshContainer = messagesContainerRef.current;
-                if (refreshContainer) {
-                  refreshContainer.scrollTo({ top: refreshContainer.scrollHeight, behavior: 'auto' });
-                }
-                setIsUserAtLatest(true);
-                setAutoScrollEnabled(true);
+                scrollToLatest('auto');
                 isRefreshingMessagesRef.current = false;
               });
             });
           }
-        }, 250); // ✅ OPTIMIZED: Reduced for faster response
+        }, 250);
       } catch (error) {
         console.error('❌ Failed to upload image:', error);
         addToast({
@@ -668,43 +657,27 @@ export function ChatComponent() {
     
     setMessageInput('');
 
-    // ✅ OPTIMIZED: Batch state updates and use browser-optimized scroll
-    Promise.resolve().then(() => {
-      setIsUserAtLatest(true);
-      setAutoScrollEnabled(true);
-      
-      const container = messagesContainerRef.current;
-      if (container) {
-        // Let browser handle smooth scrolling - more performant
-        container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
-      }
-    });
+    // ✅ Use hook's scroll function
+    scrollToLatest('auto');
 
     // ✅ OPTIMIZED: Faster refresh with efficient scroll
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
     refreshTimeoutRef.current = setTimeout(() => {
-      const container = messagesContainerRef.current;
-      if (container && autoScrollEnabled) {
+      if (autoScrollEnabled) {
         isRefreshingMessagesRef.current = true;
         refreshMessages().catch((error) => {
           !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending:', error);
         }).finally(() => {
-          // Use microtask for immediate execution
           Promise.resolve().then(() => {
-            const refreshContainer = messagesContainerRef.current;
-            if (refreshContainer) {
-              refreshContainer.scrollTo({ top: refreshContainer.scrollHeight, behavior: 'auto' });
-            }
-            setIsUserAtLatest(true);
-            setAutoScrollEnabled(true);
+            scrollToLatest('auto');
             isRefreshingMessagesRef.current = false;
           });
         });
       }
-    }, 250); // ✅ OPTIMIZED: Reduced for faster response
-  }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast, refreshMessages, autoScrollEnabled, setIsUserAtLatest, setAutoScrollEnabled]);
+    }, 250);
+  }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast, refreshMessages, autoScrollEnabled, scrollToLatest]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -1376,26 +1349,7 @@ export function ChatComponent() {
       latestMessageId: latestMessageIdRef.current,
       currentMessagesCount: wsMessages.length,
     });
-    
-    // ✅ OPTIMIZED: Fallback scroll after messages are rendered
-    const fallbackScrollTimer = setTimeout(() => {
-      if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
-        !IS_PROD && console.log('🔄 Fallback scroll triggered for new player', {
-          messagesCount: wsMessages.length,
-          hasScrolledToInitial: hasScrolledToInitialLoadRef.current,
-        });
-        const container = messagesContainerRef.current;
-        if (container) {
-          container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-          setIsUserAtLatest(true);
-          setAutoScrollEnabled(true);
-          hasScrolledToInitialLoadRef.current = true;
-        }
-      }
-    }, 300); // ✅ OPTIMIZED: Reduced from 500ms to 300ms
-    
-    return () => clearTimeout(fallbackScrollTimer);
-  }, [selectedPlayer, resetScrollState, setIsUserAtLatest, setAutoScrollEnabled, wsMessages.length]);
+  }, [selectedPlayer, resetScrollState, wsMessages.length]);
 
   useEffect(() => {
     const lastMessage = wsMessages[wsMessages.length - 1];
@@ -1434,28 +1388,16 @@ export function ChatComponent() {
     if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0 && !isHistoryLoadingMessages) {
       !IS_PROD && console.log('📍 Initial scroll condition met - scrolling to latest');
       hasScrolledToInitialLoadRef.current = true;
-      // Use microtask for immediate execution after render
-      Promise.resolve().then(() => {
-        const container = messagesContainerRef.current;
-        if (container) {
-          container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
-        }
-        setIsUserAtLatest(true);
-        setAutoScrollEnabled(true);
-      });
+      scrollToLatest('auto');
       return;
     }
 
-    // ✅ OPTIMIZED: For new messages, use browser-optimized smooth scroll
+    // ✅ OPTIMIZED: For new messages, use hook's scroll function
     if (autoScrollEnabled && !isRefreshingMessagesRef.current) {
       !IS_PROD && console.log('✅ Auto-scrolling to new message');
-      const container = messagesContainerRef.current;
-      if (container) {
-        // Let browser handle smooth scrolling - more performant than RAF
-        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-      }
+      scrollToLatest('smooth');
     }
-  }, [wsMessages, autoScrollEnabled, isHistoryLoadingMessages, setIsUserAtLatest, setAutoScrollEnabled, refreshMessages]);
+  }, [wsMessages, autoScrollEnabled, isHistoryLoadingMessages, scrollToLatest]);
 
   useEffect(() => {
     const wasLoading = wasHistoryLoadingRef.current;
@@ -1470,17 +1412,9 @@ export function ChatComponent() {
     if (wasLoading && !isHistoryLoadingMessages && !hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
       hasScrolledToInitialLoadRef.current = true;
       !IS_PROD && console.log('📍 Initial history load complete, scrolling to latest');
-      // Use microtask for immediate execution after render
-      Promise.resolve().then(() => {
-        const container = messagesContainerRef.current;
-        if (container) {
-          container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
-        }
-        setIsUserAtLatest(true);
-        setAutoScrollEnabled(true);
-      });
+      scrollToLatest('auto');
     }
-  }, [isHistoryLoadingMessages, wsMessages.length, setIsUserAtLatest, setAutoScrollEnabled]);
+  }, [isHistoryLoadingMessages, wsMessages.length, scrollToLatest]);
 
   // Cleanup: Clear refresh timeout on unmount
   useEffect(() => {

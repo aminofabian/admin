@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
-    // ✅ Using new JWT-authenticated endpoint
+    // Using new JWT-authenticated endpoint
     // Use chatroom_id if available, otherwise use user_id
     const identifierParam = chatroomId 
       ? `chatroom_id=${chatroomId}` 

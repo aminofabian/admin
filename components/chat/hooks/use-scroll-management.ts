@@ -12,6 +12,11 @@ interface UseScrollManagementProps {
   loadOlderMessages: () => Promise<{ added: number }>;
   selectedPlayerId: number | null;
   addToast?: (toast: { type: 'info' | 'success' | 'error' | 'warning'; title: string; description?: string }) => void;
+  // Refresh functionality
+  refreshMessages?: () => Promise<void>;
+  isConnected?: boolean;
+  messagesCount?: number;
+  isRefreshingMessagesRef?: React.MutableRefObject<boolean>;
 }
 
 interface UseScrollManagementReturn {
@@ -33,6 +38,10 @@ export function useScrollManagement({
   loadOlderMessages,
   selectedPlayerId,
   addToast,
+  refreshMessages,
+  isConnected,
+  messagesCount = 0,
+  isRefreshingMessagesRef,
 }: UseScrollManagementProps): UseScrollManagementReturn {
   const [isUserAtLatest, setIsUserAtLatest] = useState(true);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
@@ -46,6 +55,7 @@ export function useScrollManagement({
   const isPaginationModeRef = useRef(false); // Track if we're loading older messages via pagination
   const previousPlayerIdRef = useRef<number | null>(null);
   const hasUserScrolledRef = useRef(false); // Track if user has manually scrolled
+  const hasRefreshedForPlayerRef = useRef<number | null>(null); // Track refresh per player
 
   const scrollToLatest = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const container = messagesContainerRef.current;
@@ -364,9 +374,67 @@ export function useScrollManagement({
   useEffect(() => {
     if (selectedPlayerId !== previousPlayerIdRef.current) {
       resetScrollState();
+      hasRefreshedForPlayerRef.current = null; // Reset to allow refresh for new player
       previousPlayerIdRef.current = selectedPlayerId;
+      
+      !IS_PROD && console.log('🔄 [useScrollManagement] Player changed, reset complete', {
+        newPlayerId: selectedPlayerId,
+        hasRefreshedReset: hasRefreshedForPlayerRef.current === null,
+      });
     }
   }, [selectedPlayerId, resetScrollState]);
+
+  // ✅ FIX: Refresh messages after WebSocket connects and loads initial messages for a new player
+  // This ensures we always have the absolute latest chat history
+  useEffect(() => {
+    // Skip if refresh function not provided
+    if (!refreshMessages || !isRefreshingMessagesRef) {
+      return;
+    }
+
+    // Debug: Always log the evaluation
+    !IS_PROD && console.log('🔍 [useScrollManagement] Refresh effect evaluating:', {
+      hasSelectedPlayer: !!selectedPlayerId,
+      selectedPlayerId,
+      isConnected,
+      messagesCount,
+      isHistoryLoading: isHistoryLoadingMessages,
+      hasRefreshedForPlayer: hasRefreshedForPlayerRef.current,
+      shouldRefresh: selectedPlayerId && 
+        isConnected && 
+        messagesCount > 0 && 
+        !isHistoryLoadingMessages &&
+        hasRefreshedForPlayerRef.current !== selectedPlayerId
+    });
+    
+    // Only refresh if all conditions are met
+    if (
+      selectedPlayerId && 
+      isConnected && 
+      messagesCount > 0 && 
+      !isHistoryLoadingMessages &&
+      hasRefreshedForPlayerRef.current !== selectedPlayerId
+    ) {
+      !IS_PROD && console.log('✅ [useScrollManagement] Conditions met! Refreshing messages for player:', selectedPlayerId);
+      hasRefreshedForPlayerRef.current = selectedPlayerId;
+      
+      // Small delay to ensure initial messages are fully rendered
+      const refreshTimer = setTimeout(() => {
+        isRefreshingMessagesRef.current = true;
+        refreshMessages().catch((error) => {
+          !IS_PROD && console.warn('⚠️ [useScrollManagement] Failed to refresh messages:', error);
+        }).finally(() => {
+          // Use microtask for immediate execution
+          Promise.resolve().then(() => {
+            isRefreshingMessagesRef.current = false;
+            !IS_PROD && console.log('✅ [useScrollManagement] Refresh complete for player:', selectedPlayerId);
+          });
+        });
+      }, 300);
+      
+      return () => clearTimeout(refreshTimer);
+    }
+  }, [selectedPlayerId, isConnected, messagesCount, isHistoryLoadingMessages, refreshMessages, isRefreshingMessagesRef]);
 
   // Set up scroll listener with passive option for better performance
   useEffect(() => {
