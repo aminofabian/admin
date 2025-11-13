@@ -203,7 +203,7 @@ export function ChatComponent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [availability, setAvailability] = useState(true);
-  const [notes, setNotes] = useState('');
+  const [editedNotes, setEditedNotes] = useState(''); // Local state for editing notes
   const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const [isPinnedMessagesExpanded, setIsPinnedMessagesExpanded] = useState(false);
@@ -307,6 +307,7 @@ export function ChatComponent() {
     updateMessagePinnedState,
     markAllAsRead,
     refreshMessages,
+    notes,
   } = useChatWebSocket({
     userId: selectedPlayer?.user_id ?? null,
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
@@ -774,7 +775,6 @@ export function ChatComponent() {
       setIsUserAtLatest(true);
       latestMessageIdRef.current = null;
       setUnseenMessageCount(0);
-      setNotes(''); // Clear notes when switching players
       // Clear any pending refresh
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
@@ -797,6 +797,11 @@ export function ChatComponent() {
       setPendingPinMessageId(null);
     }
   }, [selectedPlayer]);
+
+  // Sync editedNotes with notes from API
+  useEffect(() => {
+    setEditedNotes(notes);
+  }, [notes]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -999,7 +1004,7 @@ export function ChatComponent() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          notes: notes,
+          notes: editedNotes,
           player_id: selectedPlayer.user_id,
         }),
       });
@@ -1017,6 +1022,9 @@ export function ChatComponent() {
         type: 'success',
         title: result?.message || 'Notes saved successfully',
       });
+      
+      // Refresh messages to get updated notes from backend
+      await refreshMessages();
     } catch (error) {
       const description = error instanceof Error ? error.message : 'Unknown error';
       addToast({
@@ -1027,7 +1035,7 @@ export function ChatComponent() {
     } finally {
       setIsSavingNotes(false);
     }
-  }, [selectedPlayer, notes, isSavingNotes, addToast]);
+  }, [selectedPlayer, editedNotes, isSavingNotes, addToast, refreshMessages]);
 
   const handleOpenEditProfile = useCallback(() => {
     if (!selectedPlayer) return;
@@ -1676,8 +1684,8 @@ export function ChatComponent() {
     isConnected={isConnected}
     mobileView={mobileView}
     setMobileView={setMobileView}
-    notes={notes}
-    setNotes={setNotes}
+    notes={editedNotes}
+    setNotes={setEditedNotes}
     isSavingNotes={isSavingNotes}
     onNavigateToPlayer={handleNavigateToPlayer}
     onOpenEditBalance={handleOpenEditBalance}
@@ -1712,6 +1720,7 @@ export function ChatComponent() {
   isOpen={isNotesDrawerOpen}
   onClose={() => setIsNotesDrawerOpen(false)}
   selectedPlayer={selectedPlayer as ChatUser}
+  notes={editedNotes}
 />
 
 {selectedPlayer && (

@@ -29,6 +29,7 @@ interface HistoryPayload {
   messages: ChatMessage[];
   page: number;
   totalPages: number;
+  notes?: string;
 }
 
 const mapHistoryMessage = (msg: any): ChatMessage => {
@@ -110,6 +111,7 @@ interface UseChatWebSocketReturn {
   isHistoryLoading: boolean;
   updateMessagePinnedState: (messageId: string, pinned: boolean) => void;
   refreshMessages: () => Promise<void>;
+  notes: string;
 }
 
 export function useChatWebSocket({
@@ -129,6 +131,7 @@ export function useChatWebSocket({
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
   const [historyPagination, setHistoryPagination] = useState({ page: 0, totalPages: 0 });
+  const [notes, setNotes] = useState<string>('');
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -148,6 +151,7 @@ export function useChatWebSocket({
     setMessages([]);
     setPurchaseHistory([]);
     setIsTyping(false);
+    setNotes('');
     setIsUserOnline(false);
     setIsHistoryLoading(false);
     setHasMoreHistory(false);
@@ -228,11 +232,14 @@ export function useChatWebSocket({
         messages: Array.isArray(data.messages) ? normalizeHistoryMessages(data.messages) : [],
         page: resolvedPage,
         totalPages: resolvedTotalPages,
+        notes: data.notes ?? '',
       };
 
       !IS_PROD && console.log(
         `✅ Loaded ${payload.messages.length} of ${data.total_count ?? payload.messages.length} messages (page ${payload.page}/${payload.totalPages})`,
       );
+      
+      !IS_PROD && console.log('📝 Notes from API:', data.notes);
 
       return payload;
     } catch (error) {
@@ -274,6 +281,11 @@ export function useChatWebSocket({
           totalPages: payload.totalPages,
         });
         setHasMoreHistory(payload.page < payload.totalPages);
+        
+        // Update notes from the first page response
+        if (payload.page === 1 && payload.notes !== undefined) {
+          setNotes(payload.notes);
+        }
 
         return added;
       } finally {
@@ -801,6 +813,7 @@ export function useChatWebSocket({
     isHistoryLoading,
     updateMessagePinnedState,
     refreshMessages,
+    notes,
   };
 }
 

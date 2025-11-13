@@ -6,28 +6,15 @@ interface NotesDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   selectedPlayer: ChatUser | null;
+  notes: string;
 }
 
 export function NotesDrawer({
   isOpen,
   onClose,
   selectedPlayer,
+  notes,
 }: NotesDrawerProps) {
-  // Debug: Log the selected player data with ALL fields
-  console.log('🔍 [NotesDrawer] Selected Player:', {
-    username: selectedPlayer?.username,
-    user_id: selectedPlayer?.user_id,
-    notes: selectedPlayer?.notes,
-    hasNotes: !!selectedPlayer?.notes,
-    // Show ALL keys to verify what's actually in the object
-    allKeys: selectedPlayer ? Object.keys(selectedPlayer) : [],
-    // Check if notes exists as a key
-    hasNotesKey: selectedPlayer ? 'notes' in selectedPlayer : false,
-    notesValue: selectedPlayer?.notes,
-    notesType: typeof selectedPlayer?.notes,
-  });
-  
-  console.log('🔍 [NotesDrawer] Full Player Object:', selectedPlayer);
 
   if (!isOpen) return null;
 
@@ -81,10 +68,10 @@ export function NotesDrawer({
                 <label className="text-sm font-medium text-muted-foreground block mb-2">
                   Notes
                 </label>
-                {selectedPlayer.notes ? (
+                {notes ? (
                   <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
                     <p className="text-sm text-foreground whitespace-pre-wrap">
-                      {selectedPlayer.notes}
+                      {notes}
                     </p>
                   </div>
                 ) : (
