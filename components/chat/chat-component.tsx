@@ -1469,6 +1469,8 @@ export function ChatComponent() {
               messages={wsMessages}
               isExpanded={isPinnedMessagesExpanded}
               onToggleExpanded={() => setIsPinnedMessagesExpanded(!isPinnedMessagesExpanded)}
+              onTogglePin={handleTogglePin}
+              pendingPinMessageId={pendingPinMessageId}
             />
 
             {/* Messages / Purchase History */}
