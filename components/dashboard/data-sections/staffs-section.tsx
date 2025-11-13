@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { CreateUserRequest, UpdateUserRequest, Staff } from '@/types';
 import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, Drawer } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, Badge, Button, Drawer } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
 import { useStaffsStore } from '@/stores/use-staffs-store';
 
@@ -13,7 +13,6 @@ export function StaffsSection() {
     isLoading,
     error,
     currentPage,
-    searchTerm,
     pageSize,
     isCreating,
     operationError,
@@ -21,7 +20,6 @@ export function StaffsSection() {
     createStaff,
     updateStaff,
     setPage,
-    setSearchTerm,
     clearErrors,
   } = useStaffsStore();
 
@@ -77,10 +75,6 @@ export function StaffsSection() {
     setSelectedStaff(null);
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
   // Show loading state
   if (isLoading && !staffs) {
     return <LoadingState />;
@@ -92,7 +86,7 @@ export function StaffsSection() {
   }
 
   // Show empty state
-  if (!staffs?.results?.length && !searchTerm) {
+  if (!staffs?.results?.length) {
     return <EmptyState title="No staff members found" />;
   }
 
@@ -124,15 +118,6 @@ export function StaffsSection() {
             Add Staff
           </Button>
         </div>
-      </section>
-
-      {/* Search */}
-      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-        <SearchInput
-          value={searchTerm}
-          onChange={handleSearchChange}
-          placeholder="Search by username or email..."
-        />
       </section>
 
       {/* Stats Cards */}

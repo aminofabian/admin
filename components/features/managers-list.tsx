@@ -14,7 +14,6 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  SearchInput,
   Badge,
   Button,
   Drawer,
@@ -85,18 +84,15 @@ export function ManagersList() {
     error,
     currentPage,
     pageSize,
-    searchTerm: storeSearchTerm,
     fetchManagers,
     createManager,
     updateManager,
     setPage,
-    setSearchTerm,
   } = useManagersStore();
 
   const { addToast } = useToast();
 
   // Local State
-  const [localSearchTerm, setLocalSearchTerm] = useState(storeSearchTerm);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -115,19 +111,10 @@ export function ManagersList() {
     fetchManagers();
   }, [fetchManagers]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localSearchTerm !== storeSearchTerm) {
-        setSearchTerm(localSearchTerm);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [localSearchTerm, storeSearchTerm, setSearchTerm]);
-
   // Early Returns
   if (isLoading && !managers) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={fetchManagers} />;
-  if (!managers?.results?.length && !storeSearchTerm) {
+  if (!managers?.results?.length) {
     return <EmptyState title="No managers found" />;
   }
 
@@ -351,15 +338,6 @@ export function ManagersList() {
             Add Manager
           </Button>
         </div>
-      </div>
-
-      {/* Search */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-        <SearchInput
-          value={localSearchTerm}
-          onChange={(e) => setLocalSearchTerm(e.target.value)}
-          placeholder="Search by username or email..."
-        />
       </div>
 
       {/* Desktop Table */}

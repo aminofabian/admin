@@ -3,14 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { agentsApi, transactionsApi } from '@/lib/api';
-import { usePagination, useSearch } from '@/lib/hooks';
+import { usePagination } from '@/lib/hooks';
 import {
   Badge,
   Button,
   ConfirmModal,
   Modal,
   Pagination,
-  SearchInput,
   Table,
   TableBody,
   TableCell,
@@ -24,7 +23,6 @@ import { formatDate } from '@/lib/utils/formatters';
 import type { Agent, CreateUserRequest, PaginatedResponse, UpdateUserRequest } from '@/types';
 
 const SUCCESS_MESSAGE_TIMEOUT_MS = 5000;
-const SEARCH_PLACEHOLDER_TEXT = 'Search by username or email...';
 
 type ConfirmModalState = { isOpen: boolean; agent: Agent | null; isLoading: boolean };
 
@@ -34,7 +32,6 @@ type AgentsDashboardState = {
   error: string;
   page: number;
   pageSize: number;
-  search: string;
   successMessage: string;
   isCreateModalOpen: boolean;
   isSubmitting: boolean;
@@ -42,7 +39,6 @@ type AgentsDashboardState = {
   confirmModal: ConfirmModalState;
   loadAgents: () => Promise<void>;
   setPage: (page: number) => void;
-  setSearch: (value: string) => void;
   openCreateModal: () => void;
   closeModals: () => void;
   dismissSuccessMessage: () => void;
@@ -62,21 +58,20 @@ function useAgentsDashboard(): AgentsDashboardState {
   const [successMessage, setSuccessMessage] = useState('');
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({ isOpen: false, agent: null, isLoading: false });
   const { page, pageSize, setPage } = usePagination();
-  const { search, debouncedSearch, setSearch } = useSearch();
   const { addToast } = useToast();
 
   const loadAgents = useCallback(async () => {
     try {
       setIsLoading(true);
       setError('');
-      const response = await agentsApi.list({ page, page_size: pageSize, search: debouncedSearch || undefined });
+      const response = await agentsApi.list({ page, page_size: pageSize });
       setData(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load agents');
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, page, pageSize]);
+  }, [page, pageSize]);
 
   useEffect(() => {
     void loadAgents();
@@ -153,7 +148,6 @@ function useAgentsDashboard(): AgentsDashboardState {
     error,
     page,
     pageSize,
-    search,
     successMessage,
     isCreateModalOpen,
     isSubmitting,
@@ -161,7 +155,6 @@ function useAgentsDashboard(): AgentsDashboardState {
     confirmModal,
     loadAgents,
     setPage,
-    setSearch,
     openCreateModal,
     closeModals,
     dismissSuccessMessage,
@@ -186,9 +179,7 @@ function useAgentsDashboard(): AgentsDashboardState {
     page,
     pageSize,
     prepareToggle,
-    search,
     setPage,
-    setSearch,
     submitError,
     successMessage,
   ]);
@@ -245,18 +236,6 @@ function AgentsHeader({ onCreate, successMessage, onDismissSuccess }: AgentsHead
   );
 }
 
-type AgentsSearchBarProps = {
-  value: string;
-  onChange: (value: string) => void;
-};
-
-function AgentsSearchBar({ value, onChange }: AgentsSearchBarProps) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
-      <SearchInput value={value} onChange={event => onChange(event.target.value)} placeholder={SEARCH_PLACEHOLDER_TEXT} />
-    </section>
-  );
-}
 
 type AgentsTableSectionProps = {
   data: PaginatedResponse<Agent> | null;
@@ -507,14 +486,12 @@ type AgentsDashboardViewProps = {
   error: string;
   page: number;
   pageSize: number;
-  search: string;
   successMessage: string;
   isCreateModalOpen: boolean;
   isSubmitting: boolean;
   submitError: string;
   confirmModal: ConfirmModalState;
   onRetry: () => Promise<void>;
-  onSearchChange: (value: string) => void;
   onOpenCreate: () => void;
   onCloseModals: () => void;
   onDismissSuccess: () => void;
@@ -532,14 +509,12 @@ function AgentsDashboardView({
   error,
   page,
   pageSize,
-  search,
   successMessage,
   isCreateModalOpen,
   isSubmitting,
   submitError,
   confirmModal,
   onRetry,
-  onSearchChange,
   onOpenCreate,
   onCloseModals,
   onDismissSuccess,
@@ -557,7 +532,6 @@ function AgentsDashboardView({
     <>
       <div className="flex flex-col gap-6">
         <AgentsHeader onCreate={onOpenCreate} successMessage={successMessage} onDismissSuccess={onDismissSuccess} />
-        <AgentsSearchBar value={search} onChange={onSearchChange} />
         <AgentsTableSection
           data={data}
           page={page}
@@ -626,14 +600,12 @@ export default function AgentsDashboard() {
       error={dashboard.error}
       page={dashboard.page}
       pageSize={dashboard.pageSize}
-      search={dashboard.search}
       successMessage={dashboard.successMessage}
       isCreateModalOpen={dashboard.isCreateModalOpen}
       isSubmitting={dashboard.isSubmitting}
       submitError={dashboard.submitError}
       confirmModal={dashboard.confirmModal}
       onRetry={dashboard.loadAgents}
-      onSearchChange={dashboard.setSearch}
       onOpenCreate={dashboard.openCreateModal}
       onCloseModals={dashboard.closeModals}
       onDismissSuccess={dashboard.dismissSuccessMessage}
