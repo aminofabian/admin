@@ -1308,20 +1308,7 @@ export function ChatComponent() {
     handlePlayerSelect,
   ]);
 
-  // Auto-select first player if none selected
-  // ✅ FIXED: Use displayedPlayers instead of activeChatsUsers to preserve notes
-  useEffect(() => {
-    if (!selectedPlayer && displayedPlayers.length > 0) {
-      const firstPlayer = displayedPlayers[0];
-      !IS_PROD && console.log('🔄 [Auto-Select] Selecting first player from displayedPlayers:', {
-        player: firstPlayer.username,
-        notes: firstPlayer.notes,
-        hasNotes: !!firstPlayer.notes,
-        isPreviousPlayer: previousPlayerIdRef.current === firstPlayer.user_id,
-      });
-      handlePlayerSelect(firstPlayer, { markAsRead: false });
-    }
-  }, [selectedPlayer, displayedPlayers, handlePlayerSelect]);
+  // Removed auto-selection of first player - users should manually select a player to chat with
 
   useEffect(() => {
     if (!selectedPlayer) {
