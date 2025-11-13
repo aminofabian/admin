@@ -97,19 +97,43 @@ class ApiClient {
       const errorMessage = errorData.message || errorData.detail || errorData.error || '';
       const errorCode = errorData.code || '';
       
+      // Parse detail field if it's a JSON string (common in nested error responses)
+      let parsedDetail: any = null;
+      let detailCode = '';
+      if (errorData.detail && typeof errorData.detail === 'string') {
+        try {
+          parsedDetail = JSON.parse(errorData.detail);
+          if (parsedDetail && typeof parsedDetail === 'object') {
+            detailCode = parsedDetail.code || '';
+          }
+        } catch {
+          // detail is not JSON, that's fine
+        }
+      }
+      
+      // Check for the specific error structure the user mentioned
       const isInvalidToken = 
         errorMessage.includes('Given token not valid for any token type') ||
         errorMessage.includes('token_not_valid') ||
         errorMessage.includes('Token is invalid') ||
+        errorMessage.includes('Token is invalid or expired') ||
         errorMessage.includes('Token has expired') ||
         errorMessage.includes('Invalid token') ||
         errorCode === 'token_not_valid' ||
+        detailCode === 'token_not_valid' ||
+        (parsedDetail && parsedDetail.code === 'token_not_valid') ||
         response.status === 401 ||
         response.status === 403;
 
       if (isInvalidToken) {
         console.warn('🚨 Invalid token detected - redirecting to login page');
-        console.warn('Error details:', { status: response.status, message: errorMessage, code: errorCode });
+        console.warn('Error details:', { 
+          status: response.status, 
+          message: errorMessage, 
+          code: errorCode,
+          detailCode,
+          parsedDetail 
+        });
         
         // Clear all stored authentication data
         storage.clear();
