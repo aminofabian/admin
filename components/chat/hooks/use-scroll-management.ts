@@ -3,6 +3,7 @@ import { useCallback, useRef, useEffect, useState } from 'react';
 const LOAD_MORE_SCROLL_THRESHOLD = 80;
 const SCROLL_BOTTOM_THRESHOLD = 64;
 const IS_PROD = process.env.NODE_ENV === 'production';
+const SCROLL_THROTTLE_MS = 16; // ~60fps
 
 interface UseScrollManagementProps {
   messagesContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -89,21 +90,24 @@ export function useScrollManagement({
       return;
     }
 
-    // During transitions, always use instant scroll to prevent jitter
-    if (isTransitioningRef.current || behavior !== 'smooth') {
-      !IS_PROD && console.log('✅ Scrolling to bottom (instant)', { newScrollTop: container.scrollHeight });
-      container.scrollTop = container.scrollHeight;
+    // ✅ OPTIMIZED: Direct DOM manipulation for all scrolls - let CSS handle smooth behavior
+    // This is more performant than RAF and respects browser optimizations
+    isAutoScrollingRef.current = true;
+    !IS_PROD && console.log('✅ Scrolling to bottom', { behavior });
+    
+    // Use scrollTo with behavior option - browser optimized
+    container.scrollTo({ 
+      top: container.scrollHeight, 
+      behavior: isTransitioningRef.current || behavior === 'auto' ? 'auto' : 'smooth' 
+    });
+    
+    // Batch state updates to reduce re-renders - use single microtask
+    Promise.resolve().then(() => {
       setIsUserAtLatest(true);
       setAutoScrollEnabled(true);
       setUnseenMessageCount(0);
-    } else {
-      // Only use smooth scrolling for user-initiated scrolls when not transitioning
-      !IS_PROD && console.log('✅ Scrolling to bottom (smooth)', { target: container.scrollHeight });
-      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-      // Reset unseen count immediately since we're scrolling to bottom
-      setUnseenMessageCount(0);
-      // Other states will be updated by evaluateScrollPosition when scroll completes
-    }
+      isAutoScrollingRef.current = false;
+    });
   }, []);
 
   const evaluateScrollPosition = useCallback(() => {
@@ -139,9 +143,12 @@ export function useScrollManagement({
 
     const scrollTop = container.scrollTop;
 
+    // ✅ OPTIMIZED: More aggressive pagination - load when within 100px of top
+    const isNearTop = scrollTop <= LOAD_MORE_SCROLL_THRESHOLD * 1.5;
+
     // ✅ CRITICAL: Set pagination mode as soon as user is near the top
     // This prevents auto-scroll from triggering before we start loading
-    if (scrollTop <= LOAD_MORE_SCROLL_THRESHOLD * 2 && hasMoreHistory) {
+    if (isNearTop && hasMoreHistory) {
       isPaginationModeRef.current = true;
       !IS_PROD && console.log('🔒 Entered pagination mode: user near top');
     } else if (scrollTop > LOAD_MORE_SCROLL_THRESHOLD * 3) {
@@ -154,6 +161,7 @@ export function useScrollManagement({
     !IS_PROD && console.log('📜 maybeLoadOlderMessages check:', {
       scrollTop,
       threshold: LOAD_MORE_SCROLL_THRESHOLD,
+      isNearTop,
       isHistoryLoading: isHistoryLoadingMessages,
       hasMoreHistory,
       isLoadingOlder: isLoadingOlderMessagesRef.current,
@@ -161,7 +169,8 @@ export function useScrollManagement({
       isPaginationMode: isPaginationModeRef.current,
     });
 
-    if (scrollTop > LOAD_MORE_SCROLL_THRESHOLD) {
+    // ✅ OPTIMIZED: More aggressive threshold - load when within 100px of top
+    if (scrollTop > LOAD_MORE_SCROLL_THRESHOLD * 1.5) {
       pendingLoadRequestRef.current = false;
       return;
     }
@@ -213,6 +222,7 @@ export function useScrollManagement({
         previousScrollHeight,
       });
 
+      // ✅ OPTIMIZED: Single RAF for scroll position restoration (no double RAF needed)
       requestAnimationFrame(() => {
         const updatedContainer = messagesContainerRef.current;
         if (!updatedContainer) {
@@ -231,14 +241,14 @@ export function useScrollManagement({
             currentScrollHeight: updatedContainer.scrollHeight,
           });
 
+          // Direct scroll position restoration - instant, no animation needed
           updatedContainer.scrollTop = newScrollTop;
         } else {
           updatedContainer.scrollTop = previousScrollTop;
         }
 
-        // Reset flag after scroll position is restored
-        // ✅ FIXED: Use a longer delay (500ms) to ensure scroll position is stable
-        setTimeout(() => {
+        // ✅ OPTIMIZED: Use microtask instead of setTimeout for faster flag clearing
+        Promise.resolve().then(() => {
           isLoadingOlderMessagesRef.current = false;
           !IS_PROD && console.log('🔓 Cleared isLoadingOlder flag');
 
@@ -254,19 +264,22 @@ export function useScrollManagement({
           // Check if there's a pending load request
           if (pendingLoadRequestRef.current) {
             const pendingContainer = messagesContainerRef.current;
-            if (pendingContainer && pendingContainer.scrollTop <= LOAD_MORE_SCROLL_THRESHOLD) {
+            if (pendingContainer && pendingContainer.scrollTop <= LOAD_MORE_SCROLL_THRESHOLD * 1.5) {
               !IS_PROD && console.log('🔄 Executing pending load request...');
               pendingLoadRequestRef.current = false;
 
-              // Trigger the scroll handler to check and load
-              setTimeout(() => {
-                handleScroll();
-              }, 50);
+              // Use microtask for immediate execution
+              Promise.resolve().then(() => {
+                const pendingScrollContainer = messagesContainerRef.current;
+                if (pendingScrollContainer) {
+                  pendingScrollContainer.dispatchEvent(new Event('scroll', { bubbles: false }));
+                }
+              });
             } else {
               pendingLoadRequestRef.current = false;
             }
           }
-        }, 500);
+        });
       });
     } catch (error) {
       console.error('❌ Failed to load older messages:', error);
@@ -276,17 +289,49 @@ export function useScrollManagement({
     }
   }, [hasMoreHistory, isHistoryLoadingMessages, loadOlderMessages, addToast]);
 
+  // ✅ OPTIMIZED: Throttle scroll events with RAF for 60fps performance
+  const scrollRafRef = useRef<number | null>(null);
+  const lastScrollTimeRef = useRef<number>(0);
+  
   const handleScroll = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (container) {
-      !IS_PROD && console.log('📜 Scroll event:', {
-        scrollTop: container.scrollTop,
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight,
-      });
+    // Skip if auto-scrolling to prevent feedback loop
+    if (isAutoScrollingRef.current) {
+      return;
     }
-    evaluateScrollPosition();
-    void maybeLoadOlderMessages();
+
+    // Cancel existing RAF if any (throttling)
+    if (scrollRafRef.current !== null) {
+      cancelAnimationFrame(scrollRafRef.current);
+    }
+
+    // Use RAF for smooth, frame-synced scroll handling
+    scrollRafRef.current = requestAnimationFrame(() => {
+      const now = performance.now();
+      
+      // Throttle to ~60fps max
+      if (now - lastScrollTimeRef.current < SCROLL_THROTTLE_MS) {
+        scrollRafRef.current = null;
+        return;
+      }
+      
+      lastScrollTimeRef.current = now;
+      const container = messagesContainerRef.current;
+      if (container) {
+        !IS_PROD && console.log('📜 Scroll event:', {
+          scrollTop: container.scrollTop,
+          scrollHeight: container.scrollHeight,
+          clientHeight: container.clientHeight,
+        });
+      }
+      
+      evaluateScrollPosition();
+      
+      // ✅ CRITICAL: Call load immediately - no debouncing for pagination
+      // Debouncing would prevent loading when user scrolls to top
+      void maybeLoadOlderMessages();
+      
+      scrollRafRef.current = null;
+    });
   }, [evaluateScrollPosition, maybeLoadOlderMessages]);
 
   // Reset scroll state when player changes
@@ -297,6 +342,13 @@ export function useScrollManagement({
     pendingLoadRequestRef.current = false;
     isTransitioningRef.current = false;
     isAutoScrollingRef.current = false;
+    lastScrollTimeRef.current = 0;
+    
+    // Cancel scroll RAF
+    if (scrollRafRef.current !== null) {
+      cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = null;
+    }
   }, []);
 
   // Track player changes to reset state
@@ -307,15 +359,21 @@ export function useScrollManagement({
     }
   }, [selectedPlayerId, resetScrollState]);
 
-  // Set up scroll listener
+  // Set up scroll listener with passive option for better performance
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    container.addEventListener('scroll', handleScroll);
+    // ✅ OPTIMIZED: Use passive listener for better scroll performance
+    // Passive listeners don't block scrolling while JS runs
+    container.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
       container.removeEventListener('scroll', handleScroll);
+      // Clean up any pending operations
+      if (scrollRafRef.current !== null) {
+        cancelAnimationFrame(scrollRafRef.current);
+      }
     };
   }, [handleScroll]);
 
