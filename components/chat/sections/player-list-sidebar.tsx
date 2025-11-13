@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useRef, useEffect, useCallback, useState } from 'react';
 import { Input } from '@/components/ui';
 import { PlayerListSkeleton } from '../components/chat-skeletons';
 import { formatChatTimestamp } from '@/lib/utils/formatters';
@@ -160,9 +160,12 @@ interface PlayerListSidebarProps {
   activeChatsCount: number;
   isCurrentTabLoading: boolean;
   isLoadingApiOnlinePlayers: boolean;
+  isLoadingMore: boolean;
+  hasMorePlayers: boolean;
   usersError: string | null;
   onPlayerSelect: (player: ChatUser) => void;
   onRefreshOnlinePlayers: () => void;
+  onLoadMore: () => void;
 }
 
 export const PlayerListSidebar = memo(function PlayerListSidebar({
@@ -179,10 +182,48 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   activeChatsCount,
   isCurrentTabLoading,
   isLoadingApiOnlinePlayers,
+  isLoadingMore,
+  hasMorePlayers,
   usersError,
   onPlayerSelect,
   onRefreshOnlinePlayers,
+  onLoadMore,
 }: PlayerListSidebarProps) {
+  // Refs for infinite scroll
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
+  
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    // Only observe when on all-chats tab and there's more to load
+    if (activeTab !== 'all-chats' || !hasMorePlayers || isLoadingMore || isCurrentTabLoading) {
+      return;
+    }
+
+    const trigger = loadMoreTriggerRef.current;
+    if (!trigger) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && hasMorePlayers && !isLoadingMore) {
+          console.log('📜 Trigger visible - loading more players...');
+          onLoadMore();
+        }
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '100px', // Start loading 100px before reaching the bottom
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(trigger);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeTab, hasMorePlayers, isLoadingMore, isCurrentTabLoading, onLoadMore]);
   return (
     <div className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-64 lg:w-80 flex-shrink-0 border-r border-border/50 bg-gradient-to-b from-card to-card/50 flex-col`}>
       {/* Availability Toggle */}
@@ -302,7 +343,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
       </div>
 
       {/* Player List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
         {isCurrentTabLoading && displayedPlayers.length === 0 && !usersError ? (
           <div className="p-2">
             <PlayerListSkeleton count={5} />
@@ -349,6 +390,22 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
                 />
               </div>
             ))}
+            
+            {/* Infinite scroll trigger */}
+            {activeTab === 'all-chats' && hasMorePlayers && (
+              <div ref={loadMoreTriggerRef} className="py-4">
+                {isLoadingMore && (
+                  <div className="flex items-center justify-center">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span className="text-xs">Loading more...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

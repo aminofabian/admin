@@ -33,9 +33,12 @@ interface UseChatUsersReturn {
   onlineUsers: ChatUser[];
   isLoading: boolean;
   isLoadingAllPlayers: boolean; // Separate loading state for all players
+  isLoadingMore: boolean; // Loading state for pagination
   error: string | null;
   refetch: () => void;
   fetchAllPlayers: () => Promise<void>;
+  loadMorePlayers: () => Promise<void>; // Load next page
+  hasMorePlayers: boolean; // Whether there are more pages
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
   markChatAsRead: (params: { chatId?: string; userId?: number }) => void;
@@ -109,12 +112,19 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [allPlayers, setAllPlayers] = useState<ChatUser[]>([]);
   const [isLoading, setIsLoading] = useState(false); // For WebSocket connection
   const [isLoadingAllPlayers, setIsLoadingAllPlayers] = useState(false); // For REST API
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // For pagination
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // ✅ PERFORMANCE: Cache for fetchAllPlayers (5 min TTL)
   const playersCacheRef = useRef<{ data: ChatUser[]; timestamp: number } | null>(null);
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  
+  // ✅ Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePlayers, setHasMorePlayers] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 50;
   
   // ✅ Track last API refresh to prevent WebSocket from overwriting fresh API data
   const lastApiRefreshRef = useRef<number>(0);
@@ -560,7 +570,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   }, []);
 
   /**
-   * Fetch ALL players from REST API endpoint
+   * Fetch ALL players from REST API endpoint (First page)
    * ✅ PERFORMANCE: Cached for 5 minutes to avoid redundant API calls
    * Note: Last messages are provided by WebSocket and merged in chat-component
    */
@@ -581,10 +591,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       setError(null);
-      !IS_PROD && console.log('📥 Fetching all players via REST API...');
+      !IS_PROD && console.log('📥 Fetching all players via REST API (page 1)...');
 
       const token = storage.get(TOKEN_KEY);
-      const response = await fetch('/api/chat-all-players?page=1&page_size=50', { // ✅ PERFORMANCE: Reduced from 100 to 50
+      const response = await fetch(`/api/chat-all-players?page=1&page_size=${pageSize}`, {
         headers: {
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -600,13 +610,25 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       
       // Handle both response formats: 'player' array (new endpoint) or 'results' array (old endpoint)
       const playersArray = data.player || data.results;
-      const totalCount = data.count || playersArray?.length || 0;
+      const pagination = data.pagination;
+      const totalCount = data.count || pagination?.total_count || playersArray?.length || 0;
       
       !IS_PROD && console.log(`📊 REST API returned ${playersArray?.length || 0} of ${totalCount} players`);
+      !IS_PROD && console.log(`📄 Pagination:`, pagination);
 
       if (playersArray && Array.isArray(playersArray)) {
         const transformedUsers = playersArray.map(transformPlayerToUser);
         setAllPlayers(transformedUsers);
+        
+        // Update pagination state
+        if (pagination) {
+          setCurrentPage(pagination.page || 1);
+          setTotalPages(pagination.total_pages || 1);
+          setHasMorePlayers(pagination.has_next || false);
+        } else {
+          setCurrentPage(1);
+          setHasMorePlayers(false);
+        }
         
         // ✅ PERFORMANCE: Update cache
         playersCacheRef.current = {
@@ -616,6 +638,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       } else {
         console.warn('⚠️ No player or results array in response');
         setAllPlayers([]);
+        setHasMorePlayers(false);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch all players';
@@ -625,7 +648,69 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       !IS_PROD && console.log('🏁 fetchAllPlayers - Complete');
       setIsLoadingAllPlayers(false); // Use separate loading state
     }
-  }, [CACHE_TTL]);
+  }, [CACHE_TTL, pageSize]);
+
+  /**
+   * Load more players (next page) for infinite scroll
+   */
+  const loadMorePlayers = useCallback(async () => {
+    if (!hasMorePlayers || isLoadingMore || isLoadingAllPlayers) {
+      !IS_PROD && console.log('🚫 Cannot load more:', { hasMorePlayers, isLoadingMore, isLoadingAllPlayers });
+      return;
+    }
+
+    const nextPage = currentPage + 1;
+    !IS_PROD && console.log(`🔄 Loading more players - page ${nextPage}...`);
+    setIsLoadingMore(true);
+
+    try {
+      const token = storage.get(TOKEN_KEY);
+      const response = await fetch(`/api/chat-all-players?page=${nextPage}&page_size=${pageSize}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || 'Failed to load more players');
+      }
+
+      const data = await response.json();
+      const playersArray = data.player || data.results;
+      const pagination = data.pagination;
+
+      !IS_PROD && console.log(`📊 Loaded ${playersArray?.length || 0} more players (page ${nextPage})`);
+      !IS_PROD && console.log(`📄 Pagination:`, pagination);
+
+      if (playersArray && Array.isArray(playersArray)) {
+        const transformedUsers = playersArray.map(transformPlayerToUser);
+        
+        // Append new players to existing list
+        setAllPlayers((prev) => [...prev, ...transformedUsers]);
+        
+        // Update pagination state
+        if (pagination) {
+          setCurrentPage(pagination.page || nextPage);
+          setTotalPages(pagination.total_pages || totalPages);
+          setHasMorePlayers(pagination.has_next || false);
+        } else {
+          setHasMorePlayers(false);
+        }
+        
+        // Invalidate cache since we now have more data
+        playersCacheRef.current = null;
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load more players';
+      console.error('❌ Error loading more players:', errorMessage);
+      // Don't set main error to avoid disrupting the UI
+    } finally {
+      setIsLoadingMore(false);
+      !IS_PROD && console.log('🏁 loadMorePlayers - Complete');
+    }
+  }, [hasMorePlayers, isLoadingMore, isLoadingAllPlayers, currentPage, pageSize, totalPages]);
 
   // Connect on mount
   useEffect(() => {
@@ -796,9 +881,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     onlineUsers,
     isLoading,
     isLoadingAllPlayers,
+    isLoadingMore,
     error,
     refetch,
     fetchAllPlayers,
+    loadMorePlayers,
+    hasMorePlayers,
     refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,

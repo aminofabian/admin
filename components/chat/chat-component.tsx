@@ -268,8 +268,11 @@ export function ChatComponent() {
     onlineUsers: onlinePlayers, 
     isLoading: isLoadingUsers, 
     isLoadingAllPlayers,
+    isLoadingMore,
     error: usersError,
     fetchAllPlayers,
+    loadMorePlayers,
+    hasMorePlayers,
     refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
@@ -1451,9 +1454,12 @@ export function ChatComponent() {
         activeChatsCount={activeChatsUsers.length}
         isCurrentTabLoading={isCurrentTabLoading}
         isLoadingApiOnlinePlayers={isLoadingApiOnlinePlayers}
+        isLoadingMore={isLoadingMore}
+        hasMorePlayers={hasMorePlayers}
         usersError={usersError}
         onPlayerSelect={handlePlayerSelect}
         onRefreshOnlinePlayers={handleRefreshOnlinePlayers}
+        onLoadMore={loadMorePlayers}
       />
 
       {/* Middle Column - Chat Conversation */}
