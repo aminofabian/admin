@@ -240,6 +240,7 @@ export function ChatComponent() {
   const isRefreshingMessagesRef = useRef(false); // Track if we're refreshing messages to prevent scroll conflicts
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Debounce refresh calls
   const scrollPositionBeforeRefreshRef = useRef<number | null>(null); // Preserve scroll position during refresh
+  const displayedMessageIdsRef = useRef<Set<string>>(new Set()); // Track displayed messages for animation
   const { addToast } = useToast();
   const { games: playerGames, isLoading: isLoadingPlayerGames } = usePlayerGames(selectedPlayer?.user_id || null);
 
@@ -808,6 +809,7 @@ export function ChatComponent() {
       }
       isRefreshingMessagesRef.current = false;
       scrollPositionBeforeRefreshRef.current = null;
+      displayedMessageIdsRef.current.clear(); // Reset animation tracking
     }
   }, [markChatAsRead, activeTab, resetScrollState, setAutoScrollEnabled, setIsUserAtLatest, setUnseenMessageCount]);
 
@@ -1612,19 +1614,36 @@ export function ChatComponent() {
             const isConsecutive = !isAuto && prevMessage && !isAutoMessage(prevMessage) && prevMessage.sender === message.sender;
             const isAdmin = !isAuto && message.sender === 'admin';
             const isPinning = pendingPinMessageId === message.id;
+            
+            // ✅ ANIMATION: Check if this is a new message (not seen before)
+            const isNewMessage = !displayedMessageIdsRef.current.has(message.id);
+            if (isNewMessage) {
+              displayedMessageIdsRef.current.add(message.id);
+            }
 
             return (
-              <MessageBubble
+              <div
                 key={message.id}
-                message={message}
-                selectedPlayer={selectedPlayer}
-                isAdmin={isAdmin}
-                showAvatar={Boolean(showAvatar)}
-                isConsecutive={Boolean(isConsecutive)}
-                isPinning={isPinning}
-                onExpandImage={setExpandedImage}
-                onTogglePin={handleTogglePin}
-              />
+                className={isNewMessage && hasScrolledToInitialLoadRef.current ? 
+                  'animate-slide-in-from-bottom-4' : 
+                  ''
+                }
+                style={{
+                  // Hardware acceleration for smooth animation
+                  willChange: isNewMessage && hasScrolledToInitialLoadRef.current ? 'transform, opacity' : 'auto',
+                }}
+              >
+                <MessageBubble
+                  message={message}
+                  selectedPlayer={selectedPlayer}
+                  isAdmin={isAdmin}
+                  showAvatar={Boolean(showAvatar)}
+                  isConsecutive={Boolean(isConsecutive)}
+                  isPinning={isPinning}
+                  onExpandImage={setExpandedImage}
+                  onTogglePin={handleTogglePin}
+                />
+              </div>
             );
           })}
         </div>
