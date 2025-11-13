@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { playersApi } from '@/lib/api';
-import { usePagination, useSearch } from '@/lib/hooks';
+import { usePagination } from '@/lib/hooks';
 import {
   Badge,
   Button,
@@ -13,7 +13,6 @@ import {
   ConfirmModal,
   Modal,
   Pagination,
-  SearchInput,
   Table,
   TableBody,
   TableCell,
@@ -38,9 +37,9 @@ import type {
 } from '@/types';
 
 type FilterState = {
-  date: string;
-  state: string;
-  status: string;
+  username: string;
+  full_name: string;
+  email: string;
 };
 
 type ModalState = {
@@ -70,7 +69,6 @@ type PlayersPageContext = {
   modalState: ReturnType<typeof usePlayerModals>;
   pagination: ReturnType<typeof usePagination>;
   router: ReturnType<typeof useRouter>;
-  searchState: ReturnType<typeof useSearch>;
   statusHandlers: ReturnType<typeof usePlayerStatusActions>;
 };
 
@@ -82,7 +80,6 @@ export default function PlayersDashboard(): ReactElement {
     modalState,
     pagination,
     router,
-    searchState,
     statusHandlers,
   } = usePlayersPageContext();
 
@@ -105,8 +102,8 @@ export default function PlayersDashboard(): ReactElement {
       <PlayersFilters
         filters={filters.values}
         onFilterChange={filters.setFilter}
-        onSearchChange={searchState.setSearch}
-        search={searchState.search}
+        onApplyFilters={filters.applyFilters}
+        onClearFilters={filters.clearFilters}
         successMessage={modalState.state.successMessage}
         onDismissSuccess={modalState.clearSuccessMessage}
       />
@@ -151,14 +148,12 @@ export default function PlayersDashboard(): ReactElement {
 function usePlayersPageContext(): PlayersPageContext {
   const router = useRouter();
   const pagination = usePagination();
-  const searchState = useSearch();
   const filters = usePlayerFilters();
   const modalState = usePlayerModals();
   const toast = useToast();
   const dataState = usePlayersData({
-    filters: filters.values,
+    filters: filters.appliedFilters,
     pagination,
-    search: searchState.debouncedSearch,
   });
   const statusHandlers = usePlayerStatusActions({
     addToast: toast.addToast,
@@ -188,7 +183,6 @@ function usePlayersPageContext(): PlayersPageContext {
     modalState,
     pagination,
     router,
-    searchState,
     statusHandlers,
   };
 }
@@ -196,11 +190,9 @@ function usePlayersPageContext(): PlayersPageContext {
 function usePlayersData({
   filters,
   pagination,
-  search,
 }: {
   filters: FilterState;
   pagination: ReturnType<typeof usePagination>;
-  search: string;
 }): {
   data: PaginatedResponse<Player> | null;
   error: string;
@@ -218,15 +210,23 @@ function usePlayersData({
   const loadPlayers = useCallback(async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true, error: '' }));
-      const response = await playersApi.list({
+      const params: Record<string, string | number | boolean | undefined> = {
         page: pagination.page,
         page_size: pagination.pageSize,
-        search: search || undefined,
-        is_active:
-          filters.status === 'all' ? undefined : filters.status === 'active',
-        state: filters.state === 'all' ? undefined : filters.state,
-        date_filter: filters.date === 'all' ? undefined : filters.date,
-      });
+      };
+
+      // Add username, full_name, email params if they have values
+      if (filters.username.trim()) {
+        params.username = filters.username.trim();
+      }
+      if (filters.full_name.trim()) {
+        params.full_name = filters.full_name.trim();
+      }
+      if (filters.email.trim()) {
+        params.email = filters.email.trim();
+      }
+
+      const response = await playersApi.list(params);
       setState({ data: response, error: '', isLoading: false });
     } catch (error) {
       const message =
@@ -234,12 +234,11 @@ function usePlayersData({
       setState((prev) => ({ ...prev, error: message, isLoading: false }));
     }
   }, [
-    filters.date,
-    filters.state,
-    filters.status,
+    filters.username,
+    filters.full_name,
+    filters.email,
     pagination.page,
     pagination.pageSize,
-    search,
   ]);
 
   useEffect(() => {
@@ -257,20 +256,49 @@ function usePlayersData({
 }
 
 function usePlayerFilters(): {
+  applyFilters: () => void;
+  clearFilters: () => void;
   setFilter: (key: keyof FilterState, value: string) => void;
+  appliedFilters: FilterState;
   values: FilterState;
 } {
   const [filters, setFilters] = useState<FilterState>({
-    date: 'all',
-    state: 'all',
-    status: 'all',
+    username: '',
+    full_name: '',
+    email: '',
+  });
+
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>({
+    username: '',
+    full_name: '',
+    email: '',
   });
 
   const setFilter = useCallback((key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  return { setFilter, values: filters };
+  const applyFilters = useCallback(() => {
+    setAppliedFilters(filters);
+  }, [filters]);
+
+  const clearFilters = useCallback(() => {
+    const clearedFilters: FilterState = {
+      username: '',
+      full_name: '',
+      email: '',
+    };
+    setFilters(clearedFilters);
+    setAppliedFilters(clearedFilters);
+  }, []);
+
+  return {
+    applyFilters,
+    clearFilters,
+    setFilter,
+    appliedFilters,
+    values: filters,
+  };
 }
 
 function usePlayerModals(): {
@@ -513,27 +541,6 @@ function useSuccessMessageTimer(
   }, [clear, successMessage]);
 }
 
-const STATUS_OPTIONS = [
-  { label: 'All Status', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Inactive', value: 'inactive' },
-] as const;
-
-const STATE_OPTIONS = [
-  { label: 'All States', value: 'all' },
-  { label: 'California', value: 'CA' },
-  { label: 'New York', value: 'NY' },
-  { label: 'Texas', value: 'TX' },
-  { label: 'Florida', value: 'FL' },
-] as const;
-
-const DATE_OPTIONS = [
-  { label: 'All Time', value: 'all' },
-  { label: 'Today', value: 'today' },
-  { label: 'This Week', value: 'week' },
-  { label: 'This Month', value: 'month' },
-  { label: 'This Year', value: 'year' },
-] as const;
 
 function PlayersHeader({ onAddPlayer }: { onAddPlayer: () => void }): ReactElement {
   return (
@@ -570,53 +577,75 @@ function PlayersHeader({ onAddPlayer }: { onAddPlayer: () => void }): ReactEleme
 
 type PlayersFiltersProps = {
   filters: FilterState;
+  onApplyFilters: () => void;
+  onClearFilters: () => void;
   onDismissSuccess: () => void;
   onFilterChange: (key: keyof FilterState, value: string) => void;
-  onSearchChange: (value: string) => void;
-  search: string;
   successMessage: string;
 };
 
 function PlayersFilters({
   filters,
+  onApplyFilters,
+  onClearFilters,
   onDismissSuccess,
   onFilterChange,
-  onSearchChange,
-  search,
   successMessage,
 }: PlayersFiltersProps): ReactElement {
+  const inputClasses =
+    'w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 shadow-sm transition-all duration-150 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:ring-blue-500/30';
+
   return (
     <Card>
       <CardContent className="space-y-4 p-6">
         {successMessage && (
           <SuccessBanner message={successMessage} onDismiss={onDismissSuccess} />
         )}
-        <div className="w-full">
-          <SearchInput
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search by username, full name, or email..."
-          />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Username
+            </label>
+            <input
+              type="text"
+              value={filters.username}
+              onChange={(event) => onFilterChange('username', event.target.value)}
+              placeholder="Filter by username"
+              className={inputClasses}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={filters.full_name}
+              onChange={(event) => onFilterChange('full_name', event.target.value)}
+              placeholder="Filter by full name"
+              className={inputClasses}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Email
+            </label>
+            <input
+              type="email"
+              value={filters.email}
+              onChange={(event) => onFilterChange('email', event.target.value)}
+              placeholder="Filter by email"
+              className={inputClasses}
+            />
+          </div>
         </div>
-        <div className="flex flex-wrap gap-4">
-          <FilterSelect
-            label="Status"
-            options={STATUS_OPTIONS}
-            value={filters.status}
-            onChange={(value) => onFilterChange('status', value)}
-          />
-          <FilterSelect
-            label="State"
-            options={STATE_OPTIONS}
-            value={filters.state}
-            onChange={(value) => onFilterChange('state', value)}
-          />
-          <FilterSelect
-            label="Date"
-            options={DATE_OPTIONS}
-            value={filters.date}
-            onChange={(value) => onFilterChange('date', value)}
-          />
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={onClearFilters}>
+            Clear Filters
+          </Button>
+          <Button size="sm" onClick={onApplyFilters}>
+            Apply Filters
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -652,38 +681,6 @@ function SuccessBanner({
   );
 }
 
-type FilterSelectProps = {
-  label: string;
-  onChange: (value: string) => void;
-  options: readonly { label: string; value: string }[];
-  value: string;
-};
-
-function FilterSelect({
-  label,
-  onChange,
-  options,
-  value,
-}: FilterSelectProps): ReactElement {
-  return (
-    <div className="min-w-[160px] flex-1 sm:flex-none">
-      <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 type PlayersTableSectionProps = {
   data: PaginatedResponse<Player> | null;

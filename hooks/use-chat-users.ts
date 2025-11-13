@@ -403,8 +403,31 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
       };
 
-      ws.onerror = (error) => {
-        console.error('❌ Chat list WebSocket error:', error);
+      ws.onerror = (event: Event) => {
+        // WebSocket error events may be ErrorEvent or generic Event
+        // Extract meaningful information safely
+        const errorInfo: Record<string, unknown> = {
+          type: event.type,
+          timestamp: event.timeStamp,
+        };
+
+        // If it's an ErrorEvent, extract additional properties
+        if (event instanceof ErrorEvent) {
+          errorInfo.message = event.message || 'Unknown WebSocket error';
+          errorInfo.filename = event.filename || 'unknown';
+          errorInfo.lineno = event.lineno || 'unknown';
+          errorInfo.colno = event.colno || 'unknown';
+          errorInfo.error = event.error || null;
+        } else {
+          // For generic Event, try to get more info from the WebSocket state
+          const currentWs = wsRef.current;
+          if (currentWs) {
+            errorInfo.readyState = currentWs.readyState;
+            errorInfo.url = currentWs.url;
+          }
+        }
+
+        !IS_PROD && console.error('❌ Chat list WebSocket error:', errorInfo);
         // ✅ Don't set error - we have REST API fallback
         setIsLoading(false);
       };
