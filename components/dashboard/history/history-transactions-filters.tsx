@@ -203,7 +203,7 @@ export function HistoryTransactionsFilters({
       {isOpen && (
         <div className="pt-5 text-foreground transition-colors">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
-          <div className="relative md:col-span-1 min-w-0">
+          <div className="relative md:col-span-1 min-w-0 z-50">
             <label className={labelClasses}>Player Username</label>
               <div className="relative">
                 <input
@@ -236,7 +236,10 @@ export function HistoryTransactionsFilters({
                   )}
                 </div>
                 {showUsernameDropdown && (
-                  <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-black/10 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/40">
+                  <div 
+                    className="absolute left-0 right-0 top-full z-[9999] mt-2 overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/20 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/60"
+                    style={{ position: 'absolute', zIndex: 9999 }}
+                  >
                     {isUsernameLoading ? (
                       <div className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground">
                         <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -246,28 +249,30 @@ export function HistoryTransactionsFilters({
                         Searching users...
                       </div>
                     ) : (
-                      <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 scrollbar-track-transparent dark:scrollbar-thumb-slate-700">
+                      <div className="max-h-80 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-slate-400 scrollbar-track-slate-100 dark:scrollbar-thumb-slate-600 dark:scrollbar-track-slate-900">
                         {(usernameOptions ?? []).length === 0 ? (
                           <div className="px-4 py-3 text-sm text-muted-foreground">
                             No users found. Try a different name.
                           </div>
                         ) : (
-                          usernameOptions?.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted dark:hover:bg-slate-800/70"
-                              onMouseDown={(event) => event.preventDefault()}
-                              onClick={() => handleUsernameSelect(option.value)}
-                            >
-                              <span className="font-medium text-foreground">{option.value}</span>
-                              {option.label !== option.value && (
-                                <span className="text-xs text-muted-foreground">
-                                  {option.label.replace(`${option.value} · `, '')}
-                                </span>
-                              )}
-                            </button>
-                          ))
+                          <div className="divide-y divide-border dark:divide-slate-800">
+                            {usernameOptions?.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-muted dark:hover:bg-slate-800/70 focus:bg-muted focus:outline-none dark:focus:bg-slate-800/70"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => handleUsernameSelect(option.value)}
+                              >
+                                <span className="font-medium text-foreground truncate">{option.value}</span>
+                                {option.label !== option.value && (
+                                  <span className="text-xs text-muted-foreground truncate ml-2">
+                                    {option.label.replace(`${option.value} · `, '')}
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
                         )}
                       </div>
                     )}
