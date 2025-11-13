@@ -99,6 +99,7 @@ interface HistoryTransactionsFiltersProps {
   usernameOptions?: Array<{ value: string; label: string }>;
   isUsernameLoading?: boolean;
   onUsernameInputChange?: (value: string) => void;
+  isLoading?: boolean;
 }
 
 export function HistoryTransactionsFilters({
@@ -116,6 +117,7 @@ export function HistoryTransactionsFilters({
   usernameOptions,
   isUsernameLoading = false,
   onUsernameInputChange,
+  isLoading = false,
 }: HistoryTransactionsFiltersProps) {
   const inputClasses =
     'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
@@ -200,7 +202,7 @@ export function HistoryTransactionsFilters({
 
       {isOpen && (
         <div className="pt-5 text-foreground transition-colors">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
           <div className="relative md:col-span-1 min-w-0">
             <label className={labelClasses}>Player Username</label>
               <div className="relative">
@@ -402,7 +404,8 @@ export function HistoryTransactionsFilters({
                 type={type}
                 value={filters[key]}
                 onChange={(event) => onFilterChange(key, event.target.value)}
-                className={`${inputClasses} relative z-10 cursor-pointer`}
+                className={`${inputClasses} relative z-20 cursor-pointer pointer-events-auto`}
+                style={{ position: 'relative', zIndex: 20 }}
               />
             </div>
           ))}
@@ -421,12 +424,36 @@ export function HistoryTransactionsFilters({
             </div>
           ))}
 
-          <div className="col-span-full flex flex-wrap justify-end gap-2 mt-2">
-            <Button variant="ghost" size="sm" onClick={onClear}>
+          <div className="col-span-full flex flex-wrap justify-end gap-2 mt-4 pt-4 border-t border-border">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onClear}
+              type="button"
+              disabled={isLoading}
+              className="hover:bg-muted/80 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Clear Filters
             </Button>
-            <Button size="sm" onClick={onApply}>
-              Apply Filters
+            <Button 
+              size="sm" 
+              onClick={onApply}
+              type="button"
+              isLoading={isLoading}
+              disabled={isLoading}
+              className="hover:opacity-90 active:scale-95 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                  Applying...
+                </>
+              ) : (
+                'Apply Filters'
+              )}
             </Button>
           </div>
           </div>

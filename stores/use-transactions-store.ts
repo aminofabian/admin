@@ -150,6 +150,10 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         cleanedAdvancedFilters,
         originalAdvancedFilters: advancedFilters,
         hasAgentFilter,
+        dateFilters: {
+          date_from: filters.date_from,
+          date_to: filters.date_to,
+        },
       });
 
       const data = await transactionsApi.list(filters);

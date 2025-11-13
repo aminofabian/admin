@@ -96,6 +96,9 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
   const [usernameQuery, setUsernameQuery] = useState('');
   const usernameRequestIdRef = useRef(0);
   const agentFilterClearedRef = useRef<string | null>(null);
+  const dateFilterNotifiedRef = useRef<string | null>(null);
+  const emptyStateNotifiedRef = useRef<boolean>(false);
+  const filterKeyRef = useRef<string>('');
 
   // Fetch transactions when dependencies change
   useEffect(() => {
@@ -136,6 +139,123 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
     }
   }, [transactions, isLoading, advancedFilters, addToast, setAdvancedFilters]);
 
+  // Show toast notification when no transactions found for selected date range
+  useEffect(() => {
+    const hasDateFrom = Boolean(advancedFilters.date_from);
+    const hasDateTo = Boolean(advancedFilters.date_to);
+    const hasDateFilter = hasDateFrom || hasDateTo;
+    const hasNoResults = transactions?.count === 0;
+    const isNotLoading = !isLoading;
+    
+    if (hasDateFilter && hasNoResults && isNotLoading) {
+      // Create a unique key for this date range to prevent duplicate notifications
+      const dateRangeKey = `${advancedFilters.date_from || ''}_${advancedFilters.date_to || ''}`;
+      const notAlreadyNotified = dateFilterNotifiedRef.current !== dateRangeKey;
+      
+      if (notAlreadyNotified) {
+        // Mark this date range as notified
+        dateFilterNotifiedRef.current = dateRangeKey;
+        emptyStateNotifiedRef.current = true; // Mark as notified to prevent general empty state toast
+        
+        // Format dates for display
+        const formatDateForDisplay = (dateString: string | undefined): string => {
+          if (!dateString) return '';
+          try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+          } catch {
+            return dateString;
+          }
+        };
+        
+        const dateFromDisplay = formatDateForDisplay(advancedFilters.date_from);
+        const dateToDisplay = formatDateForDisplay(advancedFilters.date_to);
+        
+        let dateRangeText = '';
+        if (dateFromDisplay && dateToDisplay) {
+          dateRangeText = `from ${dateFromDisplay} to ${dateToDisplay}`;
+        } else if (dateFromDisplay) {
+          dateRangeText = `from ${dateFromDisplay}`;
+        } else if (dateToDisplay) {
+          dateRangeText = `until ${dateToDisplay}`;
+        }
+        
+        // Show toast notification
+        addToast({
+          type: 'info',
+          title: 'No transactions found',
+          description: `No transactions found for the selected date range ${dateRangeText}. Please try adjusting your date filters.`,
+        });
+      }
+    } else if (!hasDateFilter) {
+      // Reset the notified ref when no date filter is present
+      dateFilterNotifiedRef.current = null;
+    }
+  }, [transactions, isLoading, advancedFilters, addToast]);
+
+  // Show general toast notification when no transactions are found (replaces empty state)
+  useEffect(() => {
+    const hasNoResults = transactions?.count === 0;
+    const isNotLoading = !isLoading;
+    const hasAnyFilters = Object.keys(advancedFilters).length > 0;
+    const hasDateFilter = Boolean(advancedFilters.date_from || advancedFilters.date_to);
+    
+    // Create a unique key based on current filters to detect filter changes
+    const filterKey = JSON.stringify(advancedFilters);
+    
+    // Reset notification ref if filters have changed
+    if (filterKeyRef.current !== filterKey) {
+      filterKeyRef.current = filterKey;
+      emptyStateNotifiedRef.current = false;
+    }
+    
+    // Only show toast if:
+    // 1. No results
+    // 2. Not loading
+    // 3. Not already notified for this filter combination
+    // 4. Either has filters (but not date filters, as those have their own toast) OR no filters at all
+    if (hasNoResults && isNotLoading && !emptyStateNotifiedRef.current) {
+      // Skip if date filter toast was already shown
+      if (hasDateFilter) {
+        return;
+      }
+      
+      emptyStateNotifiedRef.current = true;
+      
+      if (hasAnyFilters) {
+        // Build filter description for active filters
+        const activeFilters: string[] = [];
+        if (advancedFilters.agent) activeFilters.push(`agent: ${advancedFilters.agent}`);
+        if (advancedFilters.username) activeFilters.push(`username: ${advancedFilters.username}`);
+        if (advancedFilters.email) activeFilters.push(`email: ${advancedFilters.email}`);
+        if (advancedFilters.status) activeFilters.push(`status: ${advancedFilters.status}`);
+        if (advancedFilters.type) activeFilters.push(`type: ${advancedFilters.type}`);
+        if (advancedFilters.payment_method) activeFilters.push(`payment method: ${advancedFilters.payment_method}`);
+        
+        const filterText = activeFilters.length > 0 
+          ? ` with filters: ${activeFilters.join(', ')}`
+          : '';
+        
+        addToast({
+          type: 'info',
+          title: 'No transactions found',
+          description: `No transactions found${filterText}. Please try adjusting your filters.`,
+        });
+      } else {
+        // No filters applied
+        addToast({
+          type: 'info',
+          title: 'No transactions found',
+          description: 'No transactions found. Please try adjusting your filters or search criteria.',
+        });
+      }
+    } else if (!hasNoResults) {
+      // Reset when results are found
+      emptyStateNotifiedRef.current = false;
+    }
+  }, [transactions, isLoading, advancedFilters, addToast]);
+
   // Sync filters with advanced filters and resolve agent/agent_id mappings
   useEffect(() => {
     const filterState = buildHistoryFilterState(advancedFilters);
@@ -169,6 +289,39 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
     if (needsUpdate) {
       setAdvancedFilters(updatedFilters);
     }
+    
+    // Ensure date values are properly formatted for HTML date inputs (YYYY-MM-DD)
+    // and preserve them when syncing
+    if (filterState.date_from) {
+      // Ensure date_from is in YYYY-MM-DD format
+      const dateFromValue = filterState.date_from.trim();
+      if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
+        // Try to parse and reformat if needed
+        const parsedDate = new Date(dateFromValue);
+        if (!isNaN(parsedDate.getTime())) {
+          filterState.date_from = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    }
+    
+    if (filterState.date_to) {
+      // Ensure date_to is in YYYY-MM-DD format
+      const dateToValue = filterState.date_to.trim();
+      if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
+        // Try to parse and reformat if needed
+        const parsedDate = new Date(dateToValue);
+        if (!isNaN(parsedDate.getTime())) {
+          filterState.date_to = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    }
+    
+    console.log('🔄 Syncing filters:', {
+      advancedFilters,
+      filterState,
+      dateFrom: filterState.date_from,
+      dateTo: filterState.date_to,
+    });
     
     setFilters(filterState);
 
@@ -416,10 +569,50 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
   }, [agentIdMap]);
 
   const handleApplyAdvancedFilters = useCallback(() => {
+    // Sanitize filters - keep only non-empty values
+    // Handle both string and non-string values properly
     const sanitized = Object.fromEntries(
-      Object.entries(filters).filter(([, value]) => value.trim() !== '')
+      Object.entries(filters).filter(([key, value]) => {
+        // Keep date filters even if they might be empty initially
+        // They will be filtered out if truly empty
+        if (typeof value === 'string') {
+          return value.trim() !== '';
+        }
+        // For non-string values, keep if truthy
+        return Boolean(value);
+      })
     ) as Record<string, string>;
 
+    // Ensure date values are properly formatted (YYYY-MM-DD) before applying
+    if (sanitized.date_from) {
+      const dateFromValue = sanitized.date_from.trim();
+      if (dateFromValue) {
+        // If already in YYYY-MM-DD format, keep it
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
+          // Try to parse and reformat if needed
+          const parsedDate = new Date(dateFromValue);
+          if (!isNaN(parsedDate.getTime())) {
+            sanitized.date_from = parsedDate.toISOString().split('T')[0];
+          }
+        }
+      }
+    }
+
+    if (sanitized.date_to) {
+      const dateToValue = sanitized.date_to.trim();
+      if (dateToValue) {
+        // If already in YYYY-MM-DD format, keep it
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
+          // Try to parse and reformat if needed
+          const parsedDate = new Date(dateToValue);
+          if (!isNaN(parsedDate.getTime())) {
+            sanitized.date_to = parsedDate.toISOString().split('T')[0];
+          }
+        }
+      }
+    }
+
+    // Handle transaction type conversion
     if (sanitized.type) {
       const txnValue = sanitized.type === 'purchase'
         ? 'purchases'
@@ -447,6 +640,18 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
     // The agent username will be resolved when agents are loaded
     // Both parameters will be sent to API: ?agent_id=24 (and agent if resolved)
 
+    // Date filters (date_from, date_to) are now included in sanitized if they have values
+    // They will be passed through to the API via setAdvancedFilters
+
+    console.log('🔍 Applying filters:', {
+      originalFilters: filters,
+      sanitizedFilters: sanitized,
+      dateFrom: sanitized.date_from,
+      dateTo: sanitized.date_to,
+      hasDateFrom: Boolean(sanitized.date_from),
+      hasDateTo: Boolean(sanitized.date_to),
+    });
+
     setAdvancedFilters(sanitized);
   }, [filters, setAdvancedFilters, agentIdMap]);
 
@@ -463,18 +668,34 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
     setUsernameQuery(value);
   }, []);
 
-  const results = useMemo(() => transactions?.results ?? [], [transactions?.results]);
-  const totalCount = useMemo(() => transactions?.count ?? 0, [transactions?.count]);
+  // Only show results when not loading - this ensures filtered results are shown
+  // and stale data is hidden while new filters are being applied
+  const results = useMemo(() => {
+    // If loading, return empty array to hide stale data while fetching filtered results
+    if (isLoading) {
+      return [];
+    }
+    return transactions?.results ?? [];
+  }, [transactions?.results, isLoading]);
+  
+  const totalCount = useMemo(() => {
+    // If loading, return 0 to hide stale count while fetching filtered results
+    if (isLoading) {
+      return 0;
+    }
+    return transactions?.count ?? 0;
+  }, [transactions?.count, isLoading]);
+  
   const isInitialLoading = useMemo(() => isLoading && !transactions, [isLoading, transactions]);
-  const isEmpty = useMemo(() => !results.length, [results.length]);
+  const isEmpty = useMemo(() => !results.length && !isLoading, [results.length, isLoading]);
 
   return (
     <DashboardSectionContainer
       isLoading={isInitialLoading}
       error={error ?? ''}
       onRetry={fetchTransactions}
-      isEmpty={isEmpty}
-      emptyState={EMPTY_STATE}
+      isEmpty={false}
+      emptyState={null}
     >
       <TransactionsLayout
         filter={filter}
@@ -496,6 +717,7 @@ const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
         usernameOptions={usernameOptions}
         isUsernameLoading={isUsernameLoading}
         onUsernameInputChange={handleUsernameInputChange}
+        isLoading={isLoading}
       />
     </DashboardSectionContainer>
   );
@@ -521,6 +743,7 @@ interface TransactionsLayoutProps {
   usernameOptions: Array<{ value: string; label: string }>;
   isUsernameLoading: boolean;
   onUsernameInputChange: (value: string) => void;
+  isLoading: boolean;
 }
 
 function TransactionsLayout({
@@ -543,6 +766,7 @@ function TransactionsLayout({
   usernameOptions,
   isUsernameLoading,
   onUsernameInputChange,
+  isLoading,
 }: TransactionsLayoutProps) {
   const headingTitle = filter === 'history' ? 'Transactions History' : 'Transactions';
   const shouldShowFilterBadge = filter !== 'all' && filter !== 'history';
@@ -581,6 +805,7 @@ function TransactionsLayout({
         usernameOptions={usernameOptions}
         isUsernameLoading={isUsernameLoading}
         onUsernameInputChange={onUsernameInputChange}
+        isLoading={isLoading}
       />
 
       <TransactionsTable
