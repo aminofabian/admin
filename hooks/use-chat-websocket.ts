@@ -109,6 +109,7 @@ interface UseChatWebSocketReturn {
   hasMoreHistory: boolean;
   isHistoryLoading: boolean;
   updateMessagePinnedState: (messageId: string, pinned: boolean) => void;
+  refreshMessages: () => Promise<void>;
 }
 
 export function useChatWebSocket({
@@ -759,6 +760,17 @@ export function useChatWebSocket({
     );
   }, []);
 
+  // Refresh the latest messages to get real IDs from backend
+  const refreshMessages = useCallback(async () => {
+    if (!chatId && !userId) {
+      return;
+    }
+
+    !IS_PROD && console.log('🔄 Refreshing messages to get real IDs...');
+    // Fetch page 1 (latest messages) and merge with existing, replacing temporary IDs
+    await fetchMessageHistory(1, 'replace');
+  }, [chatId, userId, fetchMessageHistory]);
+
   // Connect/disconnect based on enabled state and userId
   useEffect(() => {
     if (enabled && userId) {
@@ -788,6 +800,7 @@ export function useChatWebSocket({
     hasMoreHistory,
     isHistoryLoading,
     updateMessagePinnedState,
+    refreshMessages,
   };
 }
 

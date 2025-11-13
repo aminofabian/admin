@@ -310,6 +310,7 @@ export function ChatComponent() {
     isHistoryLoading: isHistoryLoadingMessages,
     updateMessagePinnedState,
     markAllAsRead,
+    refreshMessages,
   } = useChatWebSocket({
     userId: selectedPlayer?.user_id ?? null,
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
@@ -582,6 +583,13 @@ export function ChatComponent() {
           type: 'success',
           title: 'Image sent successfully',
         });
+
+        // Revalidate messages after a short delay to get real IDs from backend
+        setTimeout(() => {
+          refreshMessages().catch((error) => {
+            !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending image:', error);
+          });
+        }, 500); // Wait 500ms for backend to process the message
       } catch (error) {
         console.error('❌ Failed to upload image:', error);
         addToast({
@@ -613,7 +621,14 @@ export function ChatComponent() {
     );
     
     setMessageInput('');
-  }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast]);
+
+    // Revalidate messages after a short delay to get real IDs from backend
+    setTimeout(() => {
+      refreshMessages().catch((error) => {
+        !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending:', error);
+      });
+    }, 500); // Wait 500ms for backend to process the message
+  }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast, refreshMessages]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
