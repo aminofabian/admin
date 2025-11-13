@@ -134,20 +134,20 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                     disabled={isPinning}
                     className={`shrink-0 p-1.5 rounded-md transition-colors ${
                       isAdmin
-                        ? 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                        : 'hover:bg-blue-400/20 text-white/70 hover:text-white'
+                        ? 'hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300'
+                        : 'hover:bg-amber-500/20 text-amber-400 hover:text-amber-300'
                     } ${isPinning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     title="Unpin message"
                     aria-label="Unpin message"
                   >
                     {isPinning ? (
-                      <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <svg className="h-3.5 w-3.5 animate-spin text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                     ) : (
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5l14 14M5 19l14-14" />
+                      <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
                       </svg>
                     )}
                   </button>
