@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui';
 
@@ -96,9 +95,6 @@ interface HistoryTransactionsFiltersProps {
   isAgentLoading?: boolean;
   paymentMethodOptions?: Array<{ value: string; label: string }>;
   isPaymentMethodLoading?: boolean;
-  usernameOptions?: Array<{ value: string; label: string }>;
-  isUsernameLoading?: boolean;
-  onUsernameInputChange?: (value: string) => void;
   isLoading?: boolean;
 }
 
@@ -114,9 +110,6 @@ export function HistoryTransactionsFilters({
   isAgentLoading = false,
   paymentMethodOptions,
   isPaymentMethodLoading = false,
-  usernameOptions,
-  isUsernameLoading = false,
-  onUsernameInputChange,
   isLoading = false,
 }: HistoryTransactionsFiltersProps) {
   const inputClasses =
@@ -132,42 +125,6 @@ export function HistoryTransactionsFilters({
     { value: 'cancelled', label: 'Cancelled' },
   ];
 
-  const [isUsernameFocused, setIsUsernameFocused] = useState(false);
-  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const showUsernameDropdown = useMemo(() => {
-    if (!isUsernameFocused) return false;
-    if (isUsernameLoading) return true;
-    return (usernameOptions?.length ?? 0) > 0;
-  }, [isUsernameFocused, isUsernameLoading, usernameOptions?.length]);
-
-  useEffect(() => {
-    return () => {
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleUsernameFocus = () => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current);
-      blurTimeoutRef.current = null;
-    }
-    setIsUsernameFocused(true);
-  };
-
-  const handleUsernameBlur = () => {
-    blurTimeoutRef.current = setTimeout(() => {
-      setIsUsernameFocused(false);
-    }, 150);
-  };
-
-  const handleUsernameSelect = (value: string) => {
-    if (!value) return;
-    onFilterChange('username', value);
-    onUsernameInputChange?.(value);
-    setIsUsernameFocused(false);
-  };
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-md shadow-black/5 backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-slate-900/40">
@@ -203,83 +160,16 @@ export function HistoryTransactionsFilters({
       {isOpen && (
         <div className="pt-5 text-foreground transition-colors">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
-          <div className="relative md:col-span-1 min-w-0 z-50">
+          <div className="min-w-0">
             <label className={labelClasses}>Player Username</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={filters.username}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    onFilterChange('username', value);
-                    onUsernameInputChange?.(value);
-                  }}
-                  onFocus={handleUsernameFocus}
-                  onBlur={handleUsernameBlur}
-                  placeholder="Search by username..."
-                  className={`${inputClasses} pr-10`}
-                />
-                <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 flex items-center pr-3 text-muted-foreground">
-                  {isUsernameLoading ? (
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                    </svg>
-                  ) : (
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M21 21l-4.35-4.35M19 10.5a8.5 8.5 0 11-17 0 8.5 8.5 0 0117 0z"
-                      />
-                    </svg>
-                  )}
-                </div>
-                {showUsernameDropdown && (
-                  <div 
-                    className="absolute left-0 right-0 top-full z-[9999] mt-2 overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/20 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/60"
-                    style={{ position: 'absolute', zIndex: 9999 }}
-                  >
-                    {isUsernameLoading ? (
-                      <div className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground">
-                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                          <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                        </svg>
-                        Searching users...
-                      </div>
-                    ) : (
-                      <div className="max-h-80 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-slate-400 scrollbar-track-slate-100 dark:scrollbar-thumb-slate-600 dark:scrollbar-track-slate-900">
-                        {(usernameOptions ?? []).length === 0 ? (
-                          <div className="px-4 py-3 text-sm text-muted-foreground">
-                            No users found. Try a different name.
-                          </div>
-                        ) : (
-                          <div className="divide-y divide-border dark:divide-slate-800">
-                            {usernameOptions?.map((option) => (
-                              <button
-                                key={option.value}
-                                type="button"
-                                className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-muted dark:hover:bg-slate-800/70 focus:bg-muted focus:outline-none dark:focus:bg-slate-800/70"
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => handleUsernameSelect(option.value)}
-                              >
-                                <span className="font-medium text-foreground truncate">{option.value}</span>
-                                {option.label !== option.value && (
-                                  <span className="text-xs text-muted-foreground truncate ml-2">
-                                    {option.label.replace(`${option.value} · `, '')}
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <input
+              type="text"
+              value={filters.username}
+              onChange={(event) => onFilterChange('username', event.target.value)}
+              placeholder="Enter username..."
+              className={inputClasses}
+            />
+          </div>
 
           <div className="relative min-w-0">
             <label className={labelClasses}>Agent</label>
