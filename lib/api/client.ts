@@ -98,13 +98,14 @@ class ApiClient {
       const errorCode = errorData.code || '';
       
       // Parse detail field if it's a JSON string (common in nested error responses)
-      let parsedDetail: any = null;
+      let parsedDetail: Record<string, unknown> | null = null;
       let detailCode = '';
       if (errorData.detail && typeof errorData.detail === 'string') {
         try {
-          parsedDetail = JSON.parse(errorData.detail);
-          if (parsedDetail && typeof parsedDetail === 'object') {
-            detailCode = parsedDetail.code || '';
+          const parsed = JSON.parse(errorData.detail);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            parsedDetail = parsed as Record<string, unknown>;
+            detailCode = (typeof parsedDetail.code === 'string' ? parsedDetail.code : '') || '';
           }
         } catch {
           // detail is not JSON, that's fine
@@ -121,7 +122,7 @@ class ApiClient {
         errorMessage.includes('Invalid token') ||
         errorCode === 'token_not_valid' ||
         detailCode === 'token_not_valid' ||
-        (parsedDetail && parsedDetail.code === 'token_not_valid') ||
+        (parsedDetail && typeof parsedDetail.code === 'string' && parsedDetail.code === 'token_not_valid') ||
         response.status === 401 ||
         response.status === 403;
 
