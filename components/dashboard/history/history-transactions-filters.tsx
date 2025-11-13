@@ -199,81 +199,82 @@ export function HistoryTransactionsFilters({
       </div>
 
       {isOpen && (
-        <div className="grid grid-cols-1 gap-4 pt-5 text-foreground transition-colors md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <div className="relative md:col-span-1">
+        <div className="pt-5 text-foreground transition-colors">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
+          <div className="relative md:col-span-1 min-w-0">
             <label className={labelClasses}>Player Username</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={filters.username}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  onFilterChange('username', value);
-                  onUsernameInputChange?.(value);
-                }}
-                onFocus={handleUsernameFocus}
-                onBlur={handleUsernameBlur}
-                placeholder="Search by username..."
-                className={`${inputClasses} pr-10`}
-              />
-              <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 flex items-center pr-3 text-muted-foreground">
-                {isUsernameLoading ? (
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M21 21l-4.35-4.35M19 10.5a8.5 8.5 0 11-17 0 8.5 8.5 0 0117 0z"
-                    />
-                  </svg>
-                )}
-              </div>
-              {showUsernameDropdown && (
-                <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-black/10 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/40">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={filters.username}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    onFilterChange('username', value);
+                    onUsernameInputChange?.(value);
+                  }}
+                  onFocus={handleUsernameFocus}
+                  onBlur={handleUsernameBlur}
+                  placeholder="Search by username..."
+                  className={`${inputClasses} pr-10`}
+                />
+                <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 flex items-center pr-3 text-muted-foreground">
                   {isUsernameLoading ? (
-                    <div className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground">
-                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                        <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                      </svg>
-                      Searching users...
-                    </div>
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                    </svg>
                   ) : (
-                    <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 scrollbar-track-transparent dark:scrollbar-thumb-slate-700">
-                      {(usernameOptions ?? []).length === 0 ? (
-                        <div className="px-4 py-3 text-sm text-muted-foreground">
-                          No users found. Try a different name.
-                        </div>
-                      ) : (
-                        usernameOptions?.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted dark:hover:bg-slate-800/70"
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => handleUsernameSelect(option.value)}
-                          >
-                            <span className="font-medium text-foreground">{option.value}</span>
-                            {option.label !== option.value && (
-                              <span className="text-xs text-muted-foreground">
-                                {option.label.replace(`${option.value} · `, '')}
-                              </span>
-                            )}
-                          </button>
-                        ))
-                      )}
-                    </div>
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M21 21l-4.35-4.35M19 10.5a8.5 8.5 0 11-17 0 8.5 8.5 0 0117 0z"
+                      />
+                    </svg>
                   )}
                 </div>
-              )}
+                {showUsernameDropdown && (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-black/10 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/40">
+                    {isUsernameLoading ? (
+                      <div className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground">
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                          <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                        </svg>
+                        Searching users...
+                      </div>
+                    ) : (
+                      <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 scrollbar-track-transparent dark:scrollbar-thumb-slate-700">
+                        {(usernameOptions ?? []).length === 0 ? (
+                          <div className="px-4 py-3 text-sm text-muted-foreground">
+                            No users found. Try a different name.
+                          </div>
+                        ) : (
+                          usernameOptions?.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted dark:hover:bg-slate-800/70"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => handleUsernameSelect(option.value)}
+                            >
+                              <span className="font-medium text-foreground">{option.value}</span>
+                              {option.label !== option.value && (
+                                <span className="text-xs text-muted-foreground">
+                                  {option.label.replace(`${option.value} · `, '')}
+                                </span>
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="relative">
+          <div className="relative min-w-0">
             <label className={labelClasses}>Agent</label>
             <select
               value={filters.agent}
@@ -311,7 +312,7 @@ export function HistoryTransactionsFilters({
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative min-w-0">
             <label className={labelClasses}>Payment Method</label>
             <select
               value={filters.payment_method}
@@ -350,7 +351,7 @@ export function HistoryTransactionsFilters({
           </div>
 
           {TEXT_FIELDS.map(({ key, label, placeholder, type = 'text' }) => (
-            <div key={key}>
+            <div key={key} className="min-w-0">
               <label className={labelClasses}>{label}</label>
               <input
                 type={type}
@@ -363,7 +364,7 @@ export function HistoryTransactionsFilters({
           ))}
 
           {BASE_SELECT_FIELDS.map(({ key, label, options }) => (
-            <div key={key}>
+            <div key={key} className="min-w-0">
               <label className={labelClasses}>{label}</label>
               <select
                 value={filters[key]}
@@ -379,7 +380,7 @@ export function HistoryTransactionsFilters({
             </div>
           ))}
 
-          <div>
+          <div className="min-w-0">
             <label className={labelClasses}>Status</label>
             <select
               value={filters.status}
@@ -395,19 +396,19 @@ export function HistoryTransactionsFilters({
           </div>
 
           {DATE_FIELDS.map(({ key, label, type = 'date' }) => (
-            <div key={key}>
+            <div key={key} className="relative min-w-0">
               <label className={labelClasses}>{label}</label>
               <input
                 type={type}
                 value={filters[key]}
                 onChange={(event) => onFilterChange(key, event.target.value)}
-                className={inputClasses}
+                className={`${inputClasses} relative z-10 cursor-pointer`}
               />
             </div>
           ))}
 
           {AMOUNT_FIELDS.map(({ key, label, placeholder, type = 'number', step }) => (
-            <div key={key}>
+            <div key={key} className="min-w-0">
               <label className={labelClasses}>{label}</label>
               <input
                 type={type}
@@ -420,13 +421,14 @@ export function HistoryTransactionsFilters({
             </div>
           ))}
 
-          <div className="col-span-full flex justify-end gap-2">
+          <div className="col-span-full flex flex-wrap justify-end gap-2 mt-2">
             <Button variant="ghost" size="sm" onClick={onClear}>
               Clear Filters
             </Button>
             <Button size="sm" onClick={onApply}>
               Apply Filters
             </Button>
+          </div>
           </div>
         </div>
       )}
