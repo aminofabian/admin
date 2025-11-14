@@ -56,7 +56,7 @@ export function PasswordResetDrawer({
       setPassword('');
       setConfirmPassword('');
       setErrors({});
-    } catch (error) {
+    } catch (_error) {
       // Error handling is done by parent component
     }
   };

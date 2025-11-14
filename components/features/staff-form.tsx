@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Input, Button } from '@/components/ui';
+import { Input } from '@/components/ui';
 import type { Staff, CreateUserRequest, UpdateUserRequest } from '@/types';
 
 interface StaffFormProps {
@@ -11,7 +11,7 @@ interface StaffFormProps {
   isLoading?: boolean;
 }
 
-export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormProps) => {
+export const StaffForm = ({ staff, onSubmit, onCancel: _onCancel, isLoading }: StaffFormProps) => {
   const isEditMode = !!staff;
   
   const [formData, setFormData] = useState<CreateUserRequest>({
@@ -146,7 +146,7 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-xs text-amber-800 dark:text-amber-300">
-                <span className="font-medium">Password Requirements:</span> Must be at least 5 characters long. Choose a strong password to secure the manager's account.
+                <span className="font-medium">Password Requirements:</span> Must be at least 5 characters long. Choose a strong password to secure the manager&apos;s account.
               </p>
             </div>
           </div>
