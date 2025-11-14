@@ -2,13 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
-import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, SearchInput } from '@/components/ui';
+import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
 import { EmptyState, ErrorState, GameForm, LoadingState, StoreBalanceModal } from '@/components/features';
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import type { Game, UpdateGameRequest, CheckStoreBalanceResponse } from '@/types';
-import { useSearch } from '@/lib/hooks';
 
 export function GamesSection() {
   const { user } = useAuth();
@@ -16,15 +15,11 @@ export function GamesSection() {
     games: data,
     isLoading,
     error,
-    searchTerm,
     balanceCheckLoading,
     fetchGames,
     updateGame,
     checkStoreBalance,
-    setSearchTerm,
   } = useGamesStore();
-
-  const { search, debouncedSearch, setSearch } = useSearch(searchTerm);
 
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -36,7 +31,11 @@ export function GamesSection() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   const canManageGames = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
-  const games = useMemo<Game[]>(() => data ?? [], [data]);
+  const games = useMemo<Game[]>(() => {
+    const gamesList = data ?? [];
+    // Sort alphabetically by title (A to Z)
+    return [...gamesList].sort((a, b) => a.title.localeCompare(b.title));
+  }, [data]);
   const totalCount = games.length;
   const stats = useMemo(() => buildGameStats(games, totalCount), [games, totalCount]);
 
@@ -45,12 +44,6 @@ export function GamesSection() {
       fetchGames();
     }
   }, [fetchGames, canManageGames]);
-
-  useEffect(() => {
-    if (debouncedSearch !== undefined && debouncedSearch !== searchTerm) {
-      setSearchTerm(debouncedSearch);
-    }
-  }, [debouncedSearch, searchTerm, setSearchTerm]);
 
   if (!canManageGames) {
     return (
@@ -81,48 +74,27 @@ export function GamesSection() {
     return <ErrorState message={error} onRetry={fetchGames} />;
   }
 
-  if (!games.length && !searchTerm) {
-    return <EmptyState title="No games found" description="No games matched your filters" />;
+  if (!games.length) {
+    return <EmptyState title="No games found" description="No games available" />;
   }
 
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold text-foreground">Games</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Manage all available games and their status</p>
-            </div>
-          </div>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => {
-              setEditingGame(null);
-              setSubmitError('');
-              setIsDrawerOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-sm hover:bg-primary/90"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
             </svg>
-            Add Game
-          </Button>
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-foreground">Games</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Manage all available games and their status</p>
+          </div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-4 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
-        <SearchInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by title..." />
-      </section>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map(stat => (
           <div
             key={stat.title}
@@ -221,7 +193,6 @@ interface GameStat {
 function buildGameStats(games: Game[], total: number): GameStat[] {
   const active = games.filter((game) => game.game_status).length;
   const inactive = games.filter((game) => !game.game_status).length;
-  const categories = new Set(games.map((game) => game.game_category)).size;
 
   return [
     {
@@ -256,17 +227,6 @@ function buildGameStats(games: Game[], total: number): GameStat[] {
         </svg>
       ),
     },
-    {
-      title: 'Categories',
-      value: categories.toLocaleString(),
-      helper: 'Unique game categories',
-      variant: 'info',
-      icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-        </svg>
-      ),
-    },
   ];
 }
 
@@ -289,6 +249,7 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
             <TableRow className="border-border/60 bg-muted/40 transition-colors dark:border-slate-800/70 dark:bg-slate-900/60">
               <TableHead className="min-w-[220px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Game</TableHead>
               <TableHead className="min-w-[160px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Status</TableHead>
+              <TableHead className="min-w-[200px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Dashboard URL</TableHead>
               <TableHead className="min-w-[200px] text-right font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -310,6 +271,20 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
                   >
                     {game.game_status ? 'Active' : 'Inactive'}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-sm text-foreground">
+                  {game.dashboard_url ? (
+                    <a
+                      href={game.dashboard_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {game.dashboard_url}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-3">
