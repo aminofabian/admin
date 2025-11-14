@@ -8,7 +8,7 @@ import {
   Badge,
   Button,
   ConfirmModal,
-  Modal,
+  Drawer,
   Pagination,
   Table,
   TableBody,
@@ -435,7 +435,7 @@ function getAgentStyles(isActive: boolean) {
   };
 }
 
-type CreateAgentModalProps = {
+type CreateAgentDrawerProps = {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: CreateUserRequest | UpdateUserRequest) => Promise<void>;
@@ -443,16 +443,16 @@ type CreateAgentModalProps = {
   error: string;
 };
 
-function CreateAgentModal({ isOpen, onClose, onSubmit, isLoading, error }: CreateAgentModalProps) {
+function CreateAgentDrawer({ isOpen, onClose, onSubmit, isLoading, error }: CreateAgentDrawerProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Agent" size="md">
+    <Drawer isOpen={isOpen} onClose={onClose} title="Create New Agent" size="md">
       {error && (
         <div className="mb-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
       <AgentForm onSubmit={onSubmit} onCancel={onClose} isLoading={isLoading} />
-    </Modal>
+    </Drawer>
   );
 }
 
@@ -541,7 +541,7 @@ function AgentsDashboardView({
           onViewTransactions={onViewTransactions}
         />
       </div>
-      <CreateAgentModal isOpen={isCreateModalOpen} onClose={onCloseModals} onSubmit={onCreateAgent} isLoading={isSubmitting} error={submitError} />
+      <CreateAgentDrawer isOpen={isCreateModalOpen} onClose={onCloseModals} onSubmit={onCreateAgent} isLoading={isSubmitting} error={submitError} />
       <ToggleConfirmModal confirmState={confirmModal} onConfirm={onConfirmToggle} onCancel={onCancelToggle} />
     </>
   );
