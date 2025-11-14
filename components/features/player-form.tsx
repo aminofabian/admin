@@ -100,50 +100,83 @@ export const PlayerForm = ({ player, onSubmit, onCancel, isLoading }: PlayerForm
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Username *"
-          type="text"
-          value={formData.username}
-          onChange={(e) => handleChange('username', e.target.value)}
-          error={errors.username}
-          placeholder="player123"
-          disabled={isLoading || isEditMode}
-        />
+    <form id="create-player-form" onSubmit={handleSubmit} className="space-y-6">
+      {/* Basic Information Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+          <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full" />
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+            Basic Information
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Username *"
+            type="text"
+            value={formData.username}
+            onChange={(e) => handleChange('username', e.target.value)}
+            error={errors.username}
+            placeholder="player123"
+            disabled={isLoading || isEditMode}
+            className="transition-all duration-200"
+          />
 
-        <Input
-          label="Full Name *"
-          type="text"
-          value={formData.full_name}
-          onChange={(e) => handleChange('full_name', e.target.value)}
-          error={errors.full_name}
-          placeholder="John Doe"
-          disabled={isLoading}
-        />
+          <Input
+            label="Full Name *"
+            type="text"
+            value={formData.full_name}
+            onChange={(e) => handleChange('full_name', e.target.value)}
+            error={errors.full_name}
+            placeholder="John Doe"
+            disabled={isLoading}
+            className="transition-all duration-200"
+          />
+        </div>
+      </div>
 
-        <Input
-          label="Email *"
-          type="email"
-          value={formData.email}
-          onChange={(e) => handleChange('email', e.target.value)}
-          error={errors.email}
-          placeholder="player@example.com"
-          disabled={isLoading || isEditMode}
-        />
+      {/* Contact Information Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+          <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full" />
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+            Contact Information
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Email *"
+            type="email"
+            value={formData.email}
+            onChange={(e) => handleChange('email', e.target.value)}
+            error={errors.email}
+            placeholder="player@example.com"
+            disabled={isLoading || isEditMode}
+            className="transition-all duration-200"
+          />
 
-        <Input
-          label="Mobile Number *"
-          type="tel"
-          value={formData.mobile_number}
-          onChange={(e) => handleChange('mobile_number', e.target.value)}
-          error={errors.mobile_number}
-          placeholder="+1234567890"
-          disabled={isLoading}
-        />
+          <Input
+            label="Mobile Number *"
+            type="tel"
+            value={formData.mobile_number}
+            onChange={(e) => handleChange('mobile_number', e.target.value)}
+            error={errors.mobile_number}
+            placeholder="+1234567890"
+            disabled={isLoading}
+            className="transition-all duration-200"
+          />
+        </div>
+      </div>
 
-        {!isEditMode && (
-          <>
+      {/* Account Security Section */}
+      {!isEditMode && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+              Account Security
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="Date of Birth *"
               type="date"
@@ -152,6 +185,7 @@ export const PlayerForm = ({ player, onSubmit, onCancel, isLoading }: PlayerForm
               error={errors.dob}
               placeholder="YYYY-MM-DD"
               disabled={isLoading}
+              className="transition-all duration-200"
             />
 
             <Input
@@ -162,28 +196,21 @@ export const PlayerForm = ({ player, onSubmit, onCancel, isLoading }: PlayerForm
               error={errors.password}
               placeholder="Minimum 5 characters"
               disabled={isLoading}
+              className="transition-all duration-200"
             />
-          </>
-        )}
-      </div>
-
-      <div className="flex justify-end gap-3 pt-4">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={onCancel}
-          disabled={isLoading}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          isLoading={isLoading}
-          disabled={isLoading}
-        >
-          {isEditMode ? 'Update Player' : 'Create Player'}
-        </Button>
-      </div>
+          </div>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-950/30">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-xs text-amber-800 dark:text-amber-300">
+                <span className="font-medium">Password Requirements:</span> Must be at least 5 characters long. Choose a strong password to secure the player's account.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };
