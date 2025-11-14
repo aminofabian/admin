@@ -35,6 +35,9 @@ export interface Player extends BaseUser {
   total_purchases?: number;
   total_cashouts?: number;
   total_transfers?: number;
+  agent_id?: number;
+  agent?: Agent | { id: number; username: string };
+  agent_username?: string;
 }
 
 export type User = Agent | Manager | Staff | Player;

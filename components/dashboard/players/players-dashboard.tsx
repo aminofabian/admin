@@ -774,6 +774,7 @@ function PlayersTable({
           <TableRow>
             <TableHead>Username</TableHead>
             <TableHead>Contact</TableHead>
+            <TableHead>Agent</TableHead>
             <TableHead>Credit</TableHead>
             <TableHead>Winning</TableHead>
             <TableHead>Status</TableHead>
@@ -834,6 +835,17 @@ function PlayersTableRow({
       <TableCell>
         <div className="text-sm text-gray-700 dark:text-gray-300">
           {player.email}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          {(() => {
+            if (player.agent_username) return player.agent_username;
+            if (player.agent && typeof player.agent === 'object' && 'username' in player.agent) {
+              return player.agent.username;
+            }
+            return '-';
+          })()}
         </div>
       </TableCell>
       <TableCell>
