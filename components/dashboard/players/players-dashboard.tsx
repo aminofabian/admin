@@ -11,7 +11,7 @@ import {
   Card,
   CardContent,
   ConfirmModal,
-  Modal,
+  Drawer,
   Pagination,
   Table,
   TableBody,
@@ -120,7 +120,7 @@ export default function PlayersDashboard(): ReactElement {
         page={pagination.page}
         pageSize={pagination.pageSize}
       />
-      <CreatePlayerModal
+      <CreatePlayerDrawer
         isOpen={modalState.state.isCreateOpen}
         isSubmitting={modalState.state.isSubmitting}
         onClose={modalState.closeCreateModal}
@@ -928,7 +928,7 @@ function PlayersTableRow({
   );
 }
 
-type CreatePlayerModalProps = {
+type CreatePlayerDrawerProps = {
   isOpen: boolean;
   isSubmitting: boolean;
   onClose: () => void;
@@ -936,15 +936,15 @@ type CreatePlayerModalProps = {
   submitError: string;
 };
 
-function CreatePlayerModal({
+function CreatePlayerDrawer({
   isOpen,
   isSubmitting,
   onClose,
   onSubmit,
   submitError,
-}: CreatePlayerModalProps): ReactElement {
+}: CreatePlayerDrawerProps): ReactElement {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Player" size="md">
+    <Drawer isOpen={isOpen} onClose={onClose} title="Create New Player" size="md">
       {submitError && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300">
           {submitError}
@@ -955,7 +955,7 @@ function CreatePlayerModal({
         onCancel={onClose}
         isLoading={isSubmitting}
       />
-    </Modal>
+    </Drawer>
   );
 }
 
