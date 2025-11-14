@@ -267,9 +267,8 @@ export function ManagersList() {
       </TableCell>
 
       <TableCell>
-        <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-          <div>{formatDate(manager.created)}</div>
-          <div className="text-xs">{formatDate(manager.modified)}</div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {formatDate(manager.created)}
         </div>
       </TableCell>
 
@@ -346,10 +345,9 @@ export function ManagersList() {
           </div>
 
           <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dates</div>
-            <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-              <div>{formatDate(manager.created)}</div>
-              <div className="text-xs">{formatDate(manager.modified)}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Created Date</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {formatDate(manager.created)}
             </div>
           </div>
 
@@ -432,7 +430,7 @@ export function ManagersList() {
                 <TableHead>Username</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Dates</TableHead>
+                <TableHead>Created Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
