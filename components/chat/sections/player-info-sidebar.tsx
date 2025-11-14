@@ -120,7 +120,6 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {/* Financial Summary - Compact */}
         <div className="rounded-lg border border-border/50 bg-card/50 p-2.5">
-          <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Credits and Winnings</h4>
           
           <div className="grid grid-cols-2 gap-2">
             {/* Credits */}
