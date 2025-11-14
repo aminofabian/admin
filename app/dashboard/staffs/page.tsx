@@ -218,7 +218,7 @@ export default function StaffsPage() {
             <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Manager
+            Add Staff
           </Button>
         </CardContent>
         <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-800 dark:bg-gray-900/40">
@@ -411,10 +411,10 @@ export default function StaffsPage() {
               </svg>
               <div>
                 <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                  Manager Account Information
+                  Staff Account Information
                 </p>
                 <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                  All fields marked with * are required. The manager will be able to log in immediately after creation.
+                  All fields marked with * are required. The staff will be able to log in immediately after creation.
                 </p>
               </div>
             </div>
