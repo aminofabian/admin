@@ -8,7 +8,6 @@ import { useChatUsers } from '@/hooks/use-chat-users';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
 import { useOnlinePlayers } from '@/hooks/use-online-players';
 import { usePlayerGames } from '@/hooks/use-player-games';
-import { useScrollManagement } from './hooks/use-scroll-management';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
@@ -16,6 +15,7 @@ import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal, 
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
 import { isAutoMessage } from './utils/message-helpers';
+import { useScrollManagement } from './hooks/use-scroll-management';
 
 type Player = ChatUser;
 type Message = ChatMessage;
@@ -335,15 +335,8 @@ export function ChatComponent() {
 
   // Use scroll management hook
   const {
-    isUserAtLatest,
-    autoScrollEnabled,
-    unseenMessageCount,
-    scrollToLatest,
-    setIsUserAtLatest,
-    setAutoScrollEnabled,
-    setUnseenMessageCount,
-    resetScrollState,
-    handleScroll,
+    isUserAtBottom,
+    scrollToBottom,
   } = useScrollManagement({
     messagesContainerRef,
     isHistoryLoadingMessages,
@@ -351,11 +344,6 @@ export function ChatComponent() {
     loadOlderMessages,
     selectedPlayerId: selectedPlayer?.user_id ?? null,
     addToast,
-    // ✅ Pass refresh functionality to hook
-    refreshMessages,
-    isConnected,
-    messagesCount: wsMessages.length,
-    isRefreshingMessagesRef,
   });
 
   const groupedMessages = useMemo(() => groupMessagesByDate(wsMessages), [wsMessages]);
@@ -609,25 +597,23 @@ export function ChatComponent() {
           title: 'Image sent successfully',
         });
 
-        // ✅ Use hook's scroll function
-        scrollToLatest('auto');
+        // Rule 2: User sends a message → Force scroll to bottom (bypasses cooldown)
+        scrollToBottom(true);
 
-        // ✅ OPTIMIZED: Faster refresh with efficient scroll
+        // Refresh messages after sending
         if (refreshTimeoutRef.current) {
           clearTimeout(refreshTimeoutRef.current);
         }
         refreshTimeoutRef.current = setTimeout(() => {
-          if (autoScrollEnabled) {
-            isRefreshingMessagesRef.current = true;
-            refreshMessages().catch((error) => {
-              !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending image:', error);
-            }).finally(() => {
-              Promise.resolve().then(() => {
-                scrollToLatest('auto');
-                isRefreshingMessagesRef.current = false;
-              });
+          isRefreshingMessagesRef.current = true;
+          refreshMessages().catch((error) => {
+            !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending image:', error);
+          }).finally(() => {
+            Promise.resolve().then(() => {
+              scrollToBottom(true);
+              isRefreshingMessagesRef.current = false;
             });
-          }
+          });
         }, 250);
       } catch (error) {
         console.error('❌ Failed to upload image:', error);
@@ -661,27 +647,25 @@ export function ChatComponent() {
     
     setMessageInput('');
 
-    // ✅ Use hook's scroll function
-    scrollToLatest('auto');
+    // Rule 2: User sends a message → Force scroll to bottom (bypasses cooldown)
+    scrollToBottom(true);
 
-    // ✅ OPTIMIZED: Faster refresh with efficient scroll
+    // Refresh messages after sending
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
     refreshTimeoutRef.current = setTimeout(() => {
-      if (autoScrollEnabled) {
-        isRefreshingMessagesRef.current = true;
-        refreshMessages().catch((error) => {
-          !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending:', error);
-        }).finally(() => {
-          Promise.resolve().then(() => {
-            scrollToLatest('auto');
-            isRefreshingMessagesRef.current = false;
-          });
+      isRefreshingMessagesRef.current = true;
+      refreshMessages().catch((error) => {
+        !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending:', error);
+      }).finally(() => {
+        Promise.resolve().then(() => {
+          scrollToBottom(true);
+          isRefreshingMessagesRef.current = false;
         });
-      }
+      });
     }, 250);
-  }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast, refreshMessages, autoScrollEnabled, scrollToLatest]);
+  }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast, refreshMessages, scrollToBottom]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -773,11 +757,7 @@ export function ChatComponent() {
     // Otherwise, preserve current scroll position and state
     if (isPlayerChange) {
       // Reset scroll state to ensure we start fresh
-      resetScrollState();
-      setAutoScrollEnabled(true);
-      setIsUserAtLatest(true);
       latestMessageIdRef.current = null;
-      setUnseenMessageCount(0);
       // Clear any pending refresh
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
@@ -787,7 +767,7 @@ export function ChatComponent() {
       scrollPositionBeforeRefreshRef.current = null;
       displayedMessageIdsRef.current.clear(); // Reset animation tracking
     }
-  }, [markChatAsRead, activeTab, resetScrollState, setAutoScrollEnabled, setIsUserAtLatest, setUnseenMessageCount]);
+  }, [markChatAsRead, activeTab]);
 
   const handleNavigateToPlayer = useCallback(() => {
     if (selectedPlayer?.user_id) {
@@ -1335,9 +1315,7 @@ export function ChatComponent() {
 
     !IS_PROD && console.log('🔄 Player changed, resetting scroll state');
 
-    // Reset all scroll-related state via the hook
-    resetScrollState();
-    
+    // Reset all scroll-related state
     latestMessageIdRef.current = null;
     wasHistoryLoadingRef.current = false; // Reset to allow initial history load
     hasScrolledToInitialLoadRef.current = false; // Reset for new player
@@ -1347,7 +1325,7 @@ export function ChatComponent() {
       latestMessageId: latestMessageIdRef.current,
       currentMessagesCount: wsMessages.length,
     });
-  }, [selectedPlayer, resetScrollState, wsMessages.length]);
+  }, [selectedPlayer, wsMessages.length]);
 
   useEffect(() => {
     const lastMessage = wsMessages[wsMessages.length - 1];
@@ -1363,7 +1341,6 @@ export function ChatComponent() {
       hasScrolledToInitial: hasScrolledToInitialLoadRef.current,
       messagesLength: wsMessages.length,
       isHistoryLoading: isHistoryLoadingMessages,
-      autoScrollEnabled,
       lastMessageId: lastMessage.id,
       isRefreshing: isRefreshingMessagesRef.current,
     });
@@ -1382,20 +1359,26 @@ export function ChatComponent() {
       return;
     }
 
-    // ✅ OPTIMIZED: On initial load, scroll after messages are rendered
+    // Rule 1: Initial load → Force scroll to bottom (bypasses cooldown)
     if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0 && !isHistoryLoadingMessages) {
       !IS_PROD && console.log('📍 Initial scroll condition met - scrolling to latest');
       hasScrolledToInitialLoadRef.current = true;
-      scrollToLatest('auto');
+      scrollToBottom(true); // Force initial scroll
       return;
     }
 
-    // ✅ OPTIMIZED: For new messages, use hook's scroll function
-    if (autoScrollEnabled && !isRefreshingMessagesRef.current) {
-      !IS_PROD && console.log('✅ Auto-scrolling to new message');
-      scrollToLatest('smooth');
+    // Rule 4: New messages only auto-scroll if user is at bottom
+    // When user is at bottom, force scroll (bypass cooldown) because they're actively viewing latest
+    if (!isRefreshingMessagesRef.current && isUserAtBottom) {
+      !IS_PROD && console.log('✅ Auto-scrolling to new message (user at bottom)');
+      // Wait for DOM to update before scrolling
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom(true); // Force scroll when user is at bottom
+        });
+      });
     }
-  }, [wsMessages, autoScrollEnabled, isHistoryLoadingMessages, scrollToLatest]);
+  }, [wsMessages, isHistoryLoadingMessages, scrollToBottom, isUserAtBottom]);
 
   useEffect(() => {
     const wasLoading = wasHistoryLoadingRef.current;
@@ -1406,13 +1389,13 @@ export function ChatComponent() {
       return;
     }
 
-    // ✅ OPTIMIZED: On initial load, scroll after messages are rendered
+    // Rule 1: Initial load → Force scroll to bottom (bypasses cooldown)
     if (wasLoading && !isHistoryLoadingMessages && !hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
       hasScrolledToInitialLoadRef.current = true;
       !IS_PROD && console.log('📍 Initial history load complete, scrolling to latest');
-      scrollToLatest('auto');
+      scrollToBottom(true); // Force initial scroll
     }
-  }, [isHistoryLoadingMessages, wsMessages.length, scrollToLatest]);
+  }, [isHistoryLoadingMessages, wsMessages.length, scrollToBottom]);
 
   // Cleanup: Clear refresh timeout on unmount
   useEffect(() => {
@@ -1586,12 +1569,13 @@ export function ChatComponent() {
         </div>
       ))}
 
-      {!isUserAtLatest && (
+      {/* Rule 10 & 11: Scroll-to-bottom button - show when away from bottom, hide when at bottom */}
+      {!isUserAtBottom && (
         <div className="pointer-events-none sticky bottom-12 sm:bottom-16 z-20 flex justify-end pr-0">
           <div className="pointer-events-auto -mr-3 sm:-mr-8">
             <button
               type="button"
-              onClick={() => scrollToLatest()}
+              onClick={() => scrollToBottom(true)} // Rule 6: Force scroll (bypasses cooldown)
               aria-label="Jump to latest messages"
               className="group relative flex w-12 flex-col items-center gap-3 rounded-full border border-border/40 bg-background/95 px-0 py-5 text-primary shadow-xl backdrop-blur-md transition-transform duration-200 hover:-translate-x-0.5 hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40"
             >
@@ -1601,11 +1585,6 @@ export function ChatComponent() {
                 </svg>
                 Jump to latest
               </span>
-              {unseenMessageCount > 0 && (
-                <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground shadow-lg ring-2 ring-background">
-                  {unseenMessageCount > 99 ? '99+' : unseenMessageCount}
-                </div>
-              )}
               <svg
                 className="h-5 w-5"
                 fill="none"

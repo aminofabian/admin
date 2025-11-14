@@ -27,7 +27,7 @@ interface MessagesContainerProps {
   setExpandedImage: (url: string | null) => void;
   setMessageMenuOpen: (id: string | null) => void;
   handleTogglePin: (messageId: string, isPinned: boolean) => void;
-  scrollToLatest: (behavior?: ScrollBehavior) => void;
+  scrollToLatest: (behavior?: ScrollBehavior, force?: boolean) => void;
 }
 
 export const MessagesContainer = memo(function MessagesContainer({
@@ -51,6 +51,9 @@ export const MessagesContainer = memo(function MessagesContainer({
       ref={messagesContainerRef}
       className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 bg-gradient-to-b from-background/50 to-background"
     >
+      {/* Top buffer spacer - ensures visible scroll space at top when loading older messages */}
+      <div className="h-[500px] shrink-0" aria-hidden="true" />
+      
       {/* Loading indicator for message history */}
       {isHistoryLoadingMessages && <LoadingMoreSkeleton />}
       
@@ -393,7 +396,7 @@ export const MessagesContainer = memo(function MessagesContainer({
           <div className="pointer-events-auto -mr-3 sm:-mr-8">
             <button
               type="button"
-              onClick={() => scrollToLatest()}
+              onClick={() => scrollToLatest('smooth', true)}
               aria-label="Jump to latest messages"
               className="group relative flex w-12 flex-col items-center gap-3 rounded-full border border-border/40 bg-background/95 px-0 py-5 text-primary shadow-xl backdrop-blur-md transition-transform duration-200 hover:-translate-x-0.5 hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40"
             >
