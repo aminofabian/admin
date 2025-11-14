@@ -460,9 +460,69 @@ export function ManagersList() {
       )}
 
       {/* Create Drawer */}
-      <Drawer isOpen={isCreateOpen} onClose={closeModals} title="Create New Manager" size="lg">
-        {submitError && <ErrorMessage message={submitError} />}
-        <ManagerForm onSubmit={handleCreate} onCancel={closeModals} isLoading={isSubmitting} />
+      <Drawer 
+        isOpen={isCreateOpen} 
+        onClose={closeModals} 
+        title="Create New Manager" 
+        size="lg"
+        footer={
+          <div className="flex items-center justify-end gap-3 w-full">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={closeModals}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="create-manager-form"
+              isLoading={isSubmitting}
+              disabled={isSubmitting}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Manager
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          {/* Error Alert */}
+          {submitError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300 flex items-start gap-3">
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-medium">Error creating manager</p>
+                <p className="text-sm mt-0.5">{submitError}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Info Banner */}
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800/50 dark:bg-blue-950/30">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                  Manager Account Information
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  All fields marked with * are required. The manager will be able to log in immediately after creation.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Form */}
+          <ManagerForm onSubmit={handleCreate} onCancel={closeModals} isLoading={isSubmitting} />
+        </div>
       </Drawer>
 
       {/* Confirmation Modal */}
