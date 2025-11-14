@@ -27,7 +27,7 @@ import {
   LoadingState,
   PlayerForm,
 } from '@/components/features';
-import { PlayerViewModal } from '@/components/dashboard/data-sections/action-modal/player-view-modal';
+import { PlayerDetailView } from '@/components/dashboard/data-sections/action-modal/player-detail-view';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   CreatePlayerRequest,
@@ -109,6 +109,7 @@ export default function PlayersDashboard(): ReactElement {
       />
       <PlayersTableSection
         data={dataState.data}
+        hasActiveFilters={filters.hasActiveFilters}
         onOpenChat={(player) => {
           const chatUrl = `/dashboard/chat?playerId=${player.id}&username=${encodeURIComponent(player.username)}`;
           router.push(chatUrl);
@@ -126,10 +127,11 @@ export default function PlayersDashboard(): ReactElement {
         onSubmit={creationHandlers.handleSubmit}
         submitError={modalState.state.submitError}
       />
-      <PlayerViewModal
+      <PlayerDetailView
         isOpen={modalState.state.isViewOpen}
         onClose={modalState.closeViewModal}
         player={modalState.state.selectedPlayer}
+        onPlayerUpdated={dataState.refresh}
       />
       <ConfirmModal
         isOpen={modalState.state.confirm.isOpen}
@@ -275,6 +277,7 @@ function usePlayerFilters(): {
   setFilter: (key: keyof FilterState, value: string) => void;
   appliedFilters: FilterState;
   values: FilterState;
+  hasActiveFilters: boolean;
 } {
   const [filters, setFilters] = useState<FilterState>({
     username: '',
@@ -306,12 +309,21 @@ function usePlayerFilters(): {
     setAppliedFilters(clearedFilters);
   }, []);
 
+  const hasActiveFilters = useMemo(() => {
+    return (
+      appliedFilters.username.trim() !== '' ||
+      appliedFilters.full_name.trim() !== '' ||
+      appliedFilters.email.trim() !== ''
+    );
+  }, [appliedFilters]);
+
   return {
     applyFilters,
     clearFilters,
     setFilter,
     appliedFilters,
     values: filters,
+    hasActiveFilters,
   };
 }
 
@@ -698,6 +710,7 @@ function SuccessBanner({
 
 type PlayersTableSectionProps = {
   data: PaginatedResponse<Player> | null;
+  hasActiveFilters: boolean;
   onOpenChat: (player: Player) => void;
   onPageChange: (page: number) => void;
   onToggleStatus: (player: Player) => void;
@@ -708,6 +721,7 @@ type PlayersTableSectionProps = {
 
 function PlayersTableSection({
   data,
+  hasActiveFilters,
   onOpenChat,
   onPageChange,
   onToggleStatus,
@@ -715,7 +729,7 @@ function PlayersTableSection({
   page,
   pageSize,
 }: PlayersTableSectionProps): ReactElement {
-  const shouldShowEmpty = data?.results.length === 0;
+  const shouldShowEmpty = data !== null && data.results.length === 0;
   const showPagination = !!data && data.count > pageSize;
 
   return (
@@ -724,8 +738,12 @@ function PlayersTableSection({
         {shouldShowEmpty ? (
           <div className="py-12">
             <EmptyState
-              title="No players found"
-              description="Get started by creating a new player"
+              title={hasActiveFilters ? 'No players match your filters' : 'No players found'}
+              description={
+                hasActiveFilters
+                  ? 'Try adjusting your search criteria or clear the filters to see all players'
+                  : 'Get started by creating a new player'
+              }
             />
           </div>
         ) : (

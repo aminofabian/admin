@@ -67,5 +67,9 @@ export interface UpdateUserRequest {
   mobile_number?: string;
   full_name?: string;
   password?: string;
+  email?: string;
+  dob?: string;
+  state?: string;
+  agent_id?: number;
 }
 
