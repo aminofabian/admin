@@ -10,6 +10,7 @@ import {
   ConfirmModal,
   Drawer,
   Pagination,
+  PasswordResetDrawer,
   Table,
   TableBody,
   TableCell,
@@ -242,12 +243,10 @@ type AgentsTableSectionProps = {
   page: number;
   pageSize: number;
   onPageChange: (page: number) => void;
-  onToggleStatus: (agent: Agent) => void;
-  onViewTransactions: (agent: Agent) => Promise<void>;
-  onViewPlayers: (agent: Agent) => void;
+  onOpenActions: (agent: Agent) => void;
 };
 
-function AgentsTableSection({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions, onViewPlayers }: AgentsTableSectionProps) {
+function AgentsTableSection({ data, page, pageSize, onPageChange, onOpenActions }: AgentsTableSectionProps) {
   if (!data || data.results.length === 0) {
     return <AgentsTableEmptyState />;
   }
@@ -258,9 +257,7 @@ function AgentsTableSection({ data, page, pageSize, onPageChange, onToggleStatus
       page={page}
       pageSize={pageSize}
       onPageChange={onPageChange}
-      onToggleStatus={onToggleStatus}
-      onViewTransactions={onViewTransactions}
-      onViewPlayers={onViewPlayers}
+      onOpenActions={onOpenActions}
     />
   );
 }
@@ -270,12 +267,10 @@ type AgentsTableContentProps = {
   page: number;
   pageSize: number;
   onPageChange: (page: number) => void;
-  onToggleStatus: (agent: Agent) => void;
-  onViewTransactions: (agent: Agent) => Promise<void>;
-  onViewPlayers: (agent: Agent) => void;
+  onOpenActions: (agent: Agent) => void;
 };
 
-function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions, onViewPlayers }: AgentsTableContentProps) {
+function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions }: AgentsTableContentProps) {
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
       <div className="overflow-x-auto">
@@ -291,7 +286,7 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus
           </TableHeader>
           <TableBody>
             {data.results.map(agent => (
-              <AgentRow key={agent.id} agent={agent} onToggleStatus={onToggleStatus} onViewTransactions={onViewTransactions} onViewPlayers={onViewPlayers} />
+              <AgentRow key={agent.id} agent={agent} onOpenActions={onOpenActions} />
             ))}
           </TableBody>
         </Table>
@@ -321,12 +316,10 @@ function AgentsTableEmptyState() {
 
 type AgentRowProps = {
   agent: Agent;
-  onToggleStatus: (agent: Agent) => void;
-  onViewTransactions: (agent: Agent) => Promise<void>;
-  onViewPlayers: (agent: Agent) => void;
+  onOpenActions: (agent: Agent) => void;
 };
 
-function AgentRow({ agent, onToggleStatus, onViewTransactions, onViewPlayers }: AgentRowProps) {
+function AgentRow({ agent, onOpenActions }: AgentRowProps) {
   const styles = getAgentStyles(agent.is_active);
 
   return (
@@ -352,18 +345,11 @@ function AgentRow({ agent, onToggleStatus, onViewTransactions, onViewPlayers }: 
       </TableCell>
       <TableCell>
         <div className="text-sm text-foreground">{formatDate(agent.created)}</div>
-        <div className="text-xs text-muted-foreground">Updated {formatDate(agent.modified)}</div>
       </TableCell>
       <TableCell>
         <AgentActionButtons
           agent={agent}
-          onToggleStatus={onToggleStatus}
-          onViewTransactions={onViewTransactions}
-          onViewPlayers={onViewPlayers}
-          transactionClass={styles.transactionClass}
-          playersClass={styles.playersClass}
-          toggleClass={styles.toggleClass}
-          toggleLabel={styles.toggleLabel}
+          onOpenActions={onOpenActions}
         />
       </TableCell>
     </TableRow>
@@ -372,73 +358,34 @@ function AgentRow({ agent, onToggleStatus, onViewTransactions, onViewPlayers }: 
 
 type AgentActionButtonsProps = {
   agent: Agent;
-  onToggleStatus: (agent: Agent) => void;
-  onViewTransactions: (agent: Agent) => Promise<void>;
-  onViewPlayers: (agent: Agent) => void;
-  transactionClass: string;
-  playersClass: string;
-  toggleClass: string;
-  toggleLabel: string;
+  onOpenActions: (agent: Agent) => void;
 };
 
-function AgentActionButtons({ agent, onToggleStatus, onViewTransactions, onViewPlayers, transactionClass, playersClass, toggleClass, toggleLabel }: AgentActionButtonsProps) {
+function AgentActionButtons({ agent, onOpenActions }: AgentActionButtonsProps) {
   return (
-    <div className="flex items-center justify-end gap-3">
+    <div className="flex items-center justify-end">
       <Button
         size="sm"
         variant="ghost"
-        onClick={() => void onViewTransactions(agent)}
-        className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium shadow-sm ${transactionClass}`}
+        onClick={() => onOpenActions(agent)}
+        className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        title="Actions"
       >
-        <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.75a5.25 5.25 0 015.25 5.25 5.25 5.25 0 01-5.25 5.25A5.25 5.25 0 016.75 12 5.25 5.25 0 0112 6.75zm0 0v-2.5m0 15v-2.5M17.25 12h2.5m-15 0h2.5" />
+        <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
         </svg>
-        View Transactions
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => onViewPlayers(agent)}
-        className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium shadow-sm ${playersClass}`}
-      >
-        <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-        </svg>
-        View Players
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => onToggleStatus(agent)}
-        title={toggleLabel}
-        className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold shadow-sm ${toggleClass}`}
-      >
-        <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          {agent.is_active ? (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-          ) : (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-          )}
-        </svg>
-        {toggleLabel}
       </Button>
     </div>
   );
 }
 
 function getAgentStyles(isActive: boolean) {
-  const baseButtonClass = 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800';
-  
   if (isActive) {
     return {
       statusVariant: 'success' as const,
       statusClass:
         'border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-300',
       statusLabel: 'Active',
-      transactionClass: baseButtonClass,
-      playersClass: baseButtonClass,
-      toggleClass:
-        'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-700/60 dark:bg-slate-900 dark:text-rose-300 dark:hover:border-rose-600 dark:hover:bg-rose-900/40',
       toggleLabel: 'Deactivate',
     };
   }
@@ -448,10 +395,6 @@ function getAgentStyles(isActive: boolean) {
     statusClass:
       'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600 dark:border-rose-700/60 dark:bg-rose-950/40 dark:text-rose-300',
     statusLabel: 'Inactive',
-    transactionClass: baseButtonClass,
-    playersClass: baseButtonClass,
-    toggleClass:
-      'border border-emerald-200 bg-white text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-700/60 dark:bg-slate-900 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/40',
     toggleLabel: 'Activate',
   };
 }
@@ -501,6 +444,99 @@ function ToggleConfirmModal({ confirmState, onConfirm, onCancel }: ToggleConfirm
   );
 }
 
+type AgentActionsDrawerProps = {
+  isOpen: boolean;
+  agent: Agent | null;
+  onClose: () => void;
+  onViewTransactions: () => void;
+  onViewPlayers: () => void;
+  onResetPassword: () => void;
+  onToggleStatus: () => void;
+  toggleLabel: string;
+};
+
+function AgentActionsDrawer({
+  isOpen,
+  agent,
+  onClose,
+  onViewTransactions,
+  onViewPlayers,
+  onResetPassword,
+  onToggleStatus,
+  toggleLabel,
+}: AgentActionsDrawerProps) {
+  if (!agent) return null;
+
+  return (
+    <Drawer isOpen={isOpen} onClose={onClose} title={`Actions for ${agent.username}`} size="sm">
+      <div className="space-y-3">
+        <Button
+          variant="ghost"
+          onClick={onViewTransactions}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.75a5.25 5.25 0 015.25 5.25 5.25 5.25 0 01-5.25 5.25A5.25 5.25 0 016.75 12 5.25 5.25 0 0112 6.75zm0 0v-2.5m0 15v-2.5M17.25 12h2.5m-15 0h2.5" />
+          </svg>
+          <span>View Transactions</span>
+        </Button>
+        
+        <Button
+          variant="ghost"
+          onClick={onViewPlayers}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+          </svg>
+          <span>View Players</span>
+        </Button>
+        
+        <Button
+          variant="ghost"
+          onClick={onResetPassword}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+          <span>Reset Password</span>
+        </Button>
+        
+        <Button
+          variant="ghost"
+          onClick={onToggleStatus}
+          className={`w-full justify-start gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold shadow-sm ${
+            agent.is_active
+              ? 'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-700/60 dark:bg-slate-900 dark:text-rose-300 dark:hover:border-rose-600 dark:hover:bg-rose-900/40'
+              : 'border border-emerald-200 bg-white text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-700/60 dark:bg-slate-900 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/40'
+          }`}
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {agent.is_active ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+            )}
+          </svg>
+          <span>{toggleLabel}</span>
+        </Button>
+      </div>
+    </Drawer>
+  );
+}
+
+type PasswordResetState = {
+  isOpen: boolean;
+  agent: Agent | null;
+  isLoading: boolean;
+};
+
+type ActionDrawerState = {
+  isOpen: boolean;
+  agent: Agent | null;
+};
+
 type AgentsDashboardViewProps = {
   data: PaginatedResponse<Agent> | null;
   isLoading: boolean;
@@ -512,6 +548,8 @@ type AgentsDashboardViewProps = {
   isSubmitting: boolean;
   submitError: string;
   confirmModal: ConfirmModalState;
+  passwordResetState: PasswordResetState;
+  actionDrawerState: ActionDrawerState;
   onRetry: () => Promise<void>;
   onOpenCreate: () => void;
   onCloseModals: () => void;
@@ -520,6 +558,11 @@ type AgentsDashboardViewProps = {
   onToggleStatus: (agent: Agent) => void;
   onViewTransactions: (agent: Agent) => Promise<void>;
   onViewPlayers: (agent: Agent) => void;
+  onResetPassword: (agent: Agent) => void;
+  onConfirmPasswordReset: (password: string) => Promise<void>;
+  onCancelPasswordReset: () => void;
+  onOpenActions: (agent: Agent) => void;
+  onCloseActions: () => void;
   onCreateAgent: (formData: CreateUserRequest | UpdateUserRequest) => Promise<void>;
   onConfirmToggle: () => Promise<void>;
   onCancelToggle: () => void;
@@ -536,6 +579,8 @@ function AgentsDashboardView({
   isSubmitting,
   submitError,
   confirmModal,
+  passwordResetState,
+  actionDrawerState,
   onRetry,
   onOpenCreate,
   onCloseModals,
@@ -544,12 +589,20 @@ function AgentsDashboardView({
   onToggleStatus,
   onViewTransactions,
   onViewPlayers,
+  onResetPassword,
+  onConfirmPasswordReset,
+  onCancelPasswordReset,
+  onOpenActions,
+  onCloseActions,
   onCreateAgent,
   onConfirmToggle,
   onCancelToggle,
 }: AgentsDashboardViewProps) {
   if (isLoading && !data) return <LoadingState />;
   if (error && !data) return <ErrorState message={error} onRetry={onRetry} />;
+
+  const agent = actionDrawerState.agent;
+  const styles = agent ? getAgentStyles(agent.is_active) : null;
 
   return (
     <>
@@ -560,13 +613,41 @@ function AgentsDashboardView({
           page={page}
           pageSize={pageSize}
           onPageChange={onPageChange}
-          onToggleStatus={onToggleStatus}
-          onViewTransactions={onViewTransactions}
-          onViewPlayers={onViewPlayers}
+          onOpenActions={onOpenActions}
         />
       </div>
       <CreateAgentDrawer isOpen={isCreateModalOpen} onClose={onCloseModals} onSubmit={onCreateAgent} isLoading={isSubmitting} error={submitError} />
       <ToggleConfirmModal confirmState={confirmModal} onConfirm={onConfirmToggle} onCancel={onCancelToggle} />
+      <PasswordResetDrawer
+        isOpen={passwordResetState.isOpen}
+        onClose={onCancelPasswordReset}
+        onConfirm={onConfirmPasswordReset}
+        username={passwordResetState.agent?.username}
+        isLoading={passwordResetState.isLoading}
+        title="Reset Agent Password"
+      />
+      <AgentActionsDrawer
+        isOpen={actionDrawerState.isOpen}
+        agent={agent}
+        onClose={onCloseActions}
+        onViewTransactions={() => {
+          onCloseActions();
+          if (agent) void onViewTransactions(agent);
+        }}
+        onViewPlayers={() => {
+          onCloseActions();
+          if (agent) onViewPlayers(agent);
+        }}
+        onResetPassword={() => {
+          onCloseActions();
+          if (agent) onResetPassword(agent);
+        }}
+        onToggleStatus={() => {
+          onCloseActions();
+          if (agent) onToggleStatus(agent);
+        }}
+        toggleLabel={styles?.toggleLabel || ''}
+      />
     </>
   );
 }
@@ -575,6 +656,15 @@ export default function AgentsDashboard() {
   const router = useRouter();
   const dashboard = useAgentsDashboard();
   const { addToast } = useToast();
+  const [passwordResetState, setPasswordResetState] = useState<PasswordResetState>({
+    isOpen: false,
+    agent: null,
+    isLoading: false,
+  });
+  const [actionDrawerState, setActionDrawerState] = useState<ActionDrawerState>({
+    isOpen: false,
+    agent: null,
+  });
 
   const viewTransactions = useCallback(async (agent: Agent) => {
     try {
@@ -622,6 +712,54 @@ export default function AgentsDashboard() {
     router.push(`/dashboard/players?agent_id=${agent.id}`);
   }, [router]);
 
+  const handleResetPassword = useCallback((agent: Agent) => {
+    setPasswordResetState({
+      isOpen: true,
+      agent,
+      isLoading: false,
+    });
+  }, []);
+
+  const handleConfirmPasswordReset = useCallback(async (password: string) => {
+    if (!passwordResetState.agent) return;
+
+    setPasswordResetState((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      await agentsApi.update(passwordResetState.agent.id, { password });
+
+      addToast({
+        type: 'success',
+        title: 'Password reset',
+        description: `Password for "${passwordResetState.agent.username}" has been reset successfully!`,
+      });
+
+      setPasswordResetState({ isOpen: false, agent: null, isLoading: false });
+      await dashboard.loadAgents();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reset password';
+      addToast({
+        type: 'error',
+        title: 'Reset failed',
+        description: errorMessage,
+      });
+      setPasswordResetState((prev) => ({ ...prev, isLoading: false }));
+      throw err;
+    }
+  }, [passwordResetState.agent, addToast, dashboard]);
+
+  const handleCancelPasswordReset = useCallback(() => {
+    setPasswordResetState({ isOpen: false, agent: null, isLoading: false });
+  }, []);
+
+  const handleOpenActions = useCallback((agent: Agent) => {
+    setActionDrawerState({ isOpen: true, agent });
+  }, []);
+
+  const handleCloseActions = useCallback(() => {
+    setActionDrawerState({ isOpen: false, agent: null });
+  }, []);
+
   return (
     <AgentsDashboardView
       data={dashboard.data}
@@ -634,6 +772,8 @@ export default function AgentsDashboard() {
       isSubmitting={dashboard.isSubmitting}
       submitError={dashboard.submitError}
       confirmModal={dashboard.confirmModal}
+      passwordResetState={passwordResetState}
+      actionDrawerState={actionDrawerState}
       onRetry={dashboard.loadAgents}
       onOpenCreate={dashboard.openCreateModal}
       onCloseModals={dashboard.closeModals}
@@ -642,6 +782,11 @@ export default function AgentsDashboard() {
       onToggleStatus={dashboard.prepareToggle}
       onViewTransactions={viewTransactions}
       onViewPlayers={viewPlayers}
+      onResetPassword={handleResetPassword}
+      onConfirmPasswordReset={handleConfirmPasswordReset}
+      onCancelPasswordReset={handleCancelPasswordReset}
+      onOpenActions={handleOpenActions}
+      onCloseActions={handleCloseActions}
       onCreateAgent={dashboard.handleCreateAgent}
       onConfirmToggle={dashboard.confirmToggle}
       onCancelToggle={dashboard.cancelToggle}
