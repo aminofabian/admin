@@ -71,33 +71,22 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
       {isExpanded && (
         <div className="px-4 pb-2 space-y-2 max-h-32 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
           {pinnedMessages.map((msg) => {
-            const isAdmin = msg.sender === 'admin';
             const isPinning = pendingPinMessageId === msg.id;
             return (
               <div 
                 key={msg.id} 
-                className={`flex items-start gap-2 ${isAdmin ? 'justify-end' : 'justify-start'}`}
+                className="flex items-start gap-2 justify-start"
               >
                 <div 
-                  className={`text-xs rounded-lg p-2.5 max-w-[85%] flex-1 ${
-                    isAdmin 
-                      ? 'bg-card border border-border/50 text-foreground rounded-br-sm' 
-                      : 'bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-bl-sm'
-                  }`}
+                  className="text-xs rounded-lg p-2.5 max-w-[85%] flex-1 bg-card border border-border/50 text-foreground"
                 >
                   <div className="flex items-start gap-2">
                     {/* Visual indicator bar */}
                     <div 
-                      className={`w-1 rounded-full shrink-0 ${
-                        isAdmin 
-                          ? 'bg-amber-500/60' 
-                          : 'bg-white/40'
-                      }`}
+                      className="w-1 rounded-full shrink-0 bg-amber-500/60"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className={`line-clamp-2 ${
-                        isAdmin ? 'text-foreground' : 'text-white'
-                      }`}>
+                      <p className="line-clamp-2 text-foreground">
                         {(() => {
                           const hasHtml = hasHtmlContent(msg.text);
                           const linkedText = hasHtml ? msg.text : linkifyText(msg.text ?? '');
@@ -105,10 +94,7 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                           
                           return shouldRenderAsHtml ? (
                             <span 
-                              className={isAdmin 
-                                ? '[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80'
-                                : '[&_a]:text-blue-200 [&_a]:underline hover:[&_a]:text-blue-100'
-                              }
+                              className="[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80"
                               dangerouslySetInnerHTML={{ __html: linkedText }} 
                             />
                           ) : (
@@ -116,9 +102,7 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                           );
                         })()}
                       </p>
-                      <p className={`text-[10px] mt-1.5 ${
-                        isAdmin ? 'text-muted-foreground' : 'text-white/70'
-                      }`}>
+                      <p className="text-[10px] mt-1.5 text-muted-foreground">
                         {msg.time || msg.timestamp}
                       </p>
                     </div>
@@ -132,11 +116,7 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                       onTogglePin(msg.id, true);
                     }}
                     disabled={isPinning}
-                    className={`shrink-0 p-1.5 rounded-md transition-colors ${
-                      isAdmin
-                        ? 'hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300'
-                        : 'hover:bg-amber-500/20 text-amber-400 hover:text-amber-300'
-                    } ${isPinning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    className={`shrink-0 p-1.5 rounded-md transition-colors hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 ${isPinning ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     title="Unpin message"
                     aria-label="Unpin message"
                   >
