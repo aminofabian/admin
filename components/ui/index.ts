@@ -12,4 +12,5 @@ export * from './skeleton';
 export * from './toast';
 export * from './confirm-modal';
 export * from './truncated-text-copy';
+export * from './password-reset-drawer';
 

@@ -63,5 +63,6 @@ export interface UpdateUserRequest {
   is_active?: boolean;
   mobile_number?: string;
   full_name?: string;
+  password?: string;
 }
 

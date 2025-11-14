@@ -18,6 +18,7 @@ import {
   Button,
   Drawer,
   ConfirmModal,
+  PasswordResetDrawer,
   useToast,
   Card,
   CardContent,
@@ -105,6 +106,15 @@ export function ManagersList() {
     manager: null,
     isLoading: false,
   });
+  const [passwordResetModal, setPasswordResetModal] = useState<{
+    isOpen: boolean;
+    manager: Manager | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    manager: null,
+    isLoading: false,
+  });
 
   // Effects
   useEffect(() => {
@@ -184,6 +194,46 @@ export function ManagersList() {
     setConfirmModal({ isOpen: false, manager: null, isLoading: false });
   };
 
+  const handleResetPassword = (manager: Manager) => {
+    setPasswordResetModal({
+      isOpen: true,
+      manager,
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmPasswordReset = async (password: string) => {
+    if (!passwordResetModal.manager) return;
+
+    setPasswordResetModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      await updateManager(passwordResetModal.manager.id, { password });
+
+      addToast({
+        type: 'success',
+        title: 'Password reset',
+        description: `Password for "${passwordResetModal.manager.username}" has been reset successfully!`,
+      });
+
+      setPasswordResetModal({ isOpen: false, manager: null, isLoading: false });
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to reset password';
+      addToast({
+        type: 'error',
+        title: 'Reset failed',
+        description: errorMessage,
+      });
+      setPasswordResetModal((prev) => ({ ...prev, isLoading: false }));
+      throw err;
+    }
+  };
+
+  const handleCancelPasswordReset = () => {
+    setPasswordResetModal({ isOpen: false, manager: null, isLoading: false });
+  };
+
   const closeModals = () => {
     setIsCreateOpen(false);
     setSubmitError('');
@@ -225,6 +275,23 @@ export function ManagersList() {
 
       <TableCell>
         <div className="flex items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleResetPassword(manager)}
+            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
+            title="Reset password"
+          >
+            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+              />
+            </svg>
+            Reset Password
+          </Button>
           <Button
             size="sm"
             variant={manager.is_active ? 'danger' : 'primary'}
@@ -286,7 +353,23 @@ export function ManagersList() {
             </div>
           </div>
 
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-3 space-y-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleResetPassword(manager)}
+              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
+            >
+              <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                />
+              </svg>
+              Reset Password
+            </Button>
             <Button
               size="sm"
               variant={manager.is_active ? 'danger' : 'primary'}
@@ -400,6 +483,15 @@ export function ManagersList() {
         confirmText={confirmModal.manager?.is_active ? 'Deactivate' : 'Activate'}
         variant={confirmModal.manager?.is_active ? 'warning' : 'info'}
         isLoading={confirmModal.isLoading}
+      />
+
+      {/* Password Reset Drawer */}
+      <PasswordResetDrawer
+        isOpen={passwordResetModal.isOpen}
+        onClose={handleCancelPasswordReset}
+        onConfirm={handleConfirmPasswordReset}
+        username={passwordResetModal.manager?.username}
+        isLoading={passwordResetModal.isLoading}
       />
     </div>
   );

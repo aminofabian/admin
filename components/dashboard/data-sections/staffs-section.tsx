@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { CreateUserRequest, UpdateUserRequest, Staff } from '@/types';
 import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, Badge, Button, Drawer } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, Badge, Button, Drawer, PasswordResetDrawer, useToast } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
 import { useStaffsStore } from '@/stores/use-staffs-store';
 
@@ -23,10 +23,21 @@ export function StaffsSection() {
     clearErrors,
   } = useStaffsStore();
 
+  const { addToast } = useToast();
+
   // Local state for UI
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [passwordResetModal, setPasswordResetModal] = useState<{
+    isOpen: boolean;
+    staff: Staff | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    staff: null,
+    isLoading: false,
+  });
 
   // Initialize data on component mount
   useEffect(() => {
@@ -73,6 +84,46 @@ export function StaffsSection() {
     setIsDrawerOpen(false);
     setIsEditDrawerOpen(false);
     setSelectedStaff(null);
+  };
+
+  const handleResetPassword = (staff: Staff) => {
+    setPasswordResetModal({
+      isOpen: true,
+      staff,
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmPasswordReset = async (password: string) => {
+    if (!passwordResetModal.staff) return;
+
+    setPasswordResetModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      await updateStaff(passwordResetModal.staff.id, { password });
+
+      addToast({
+        type: 'success',
+        title: 'Password reset',
+        description: `Password for "${passwordResetModal.staff.username}" has been reset successfully!`,
+      });
+
+      setPasswordResetModal({ isOpen: false, staff: null, isLoading: false });
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to reset password';
+      addToast({
+        type: 'error',
+        title: 'Reset failed',
+        description: errorMessage,
+      });
+      setPasswordResetModal((prev) => ({ ...prev, isLoading: false }));
+      throw err;
+    }
+  };
+
+  const handleCancelPasswordReset = () => {
+    setPasswordResetModal({ isOpen: false, staff: null, isLoading: false });
   };
 
   // Show loading state
@@ -210,6 +261,23 @@ export function StaffsSection() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          onClick={() => handleResetPassword(staff)}
+                          title="Reset password"
+                          className="flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700 shadow-sm hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                            />
+                          </svg>
+                          Reset Password
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => openEditDrawer(staff)}
                           title="Edit staff"
                           className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50"
@@ -298,6 +366,15 @@ export function StaffsSection() {
           />
         )}
       </Drawer>
+
+      {/* Password Reset Drawer */}
+      <PasswordResetDrawer
+        isOpen={passwordResetModal.isOpen}
+        onClose={handleCancelPasswordReset}
+        onConfirm={handleConfirmPasswordReset}
+        username={passwordResetModal.staff?.username}
+        isLoading={passwordResetModal.isLoading}
+      />
     </div>
   );
 }
