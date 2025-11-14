@@ -2,7 +2,7 @@
 
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { playersApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
 import {
@@ -147,13 +147,19 @@ export default function PlayersDashboard(): ReactElement {
 
 function usePlayersPageContext(): PlayersPageContext {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const pagination = usePagination();
   const filters = usePlayerFilters();
   const modalState = usePlayerModals();
   const toast = useToast();
+  
+  // Read agent_id from URL params
+  const agentIdFromUrl = searchParams.get('agent_id');
+  
   const dataState = usePlayersData({
     filters: filters.appliedFilters,
     pagination,
+    agentId: agentIdFromUrl ? parseInt(agentIdFromUrl, 10) : undefined,
   });
   const statusHandlers = usePlayerStatusActions({
     addToast: toast.addToast,
@@ -190,9 +196,11 @@ function usePlayersPageContext(): PlayersPageContext {
 function usePlayersData({
   filters,
   pagination,
+  agentId,
 }: {
   filters: FilterState;
   pagination: ReturnType<typeof usePagination>;
+  agentId?: number;
 }): {
   data: PaginatedResponse<Player> | null;
   error: string;
@@ -225,6 +233,11 @@ function usePlayersData({
       if (filters.email.trim()) {
         params.email = filters.email.trim();
       }
+      
+      // Add agent_id if provided (from URL params)
+      if (agentId && !isNaN(agentId)) {
+        params.agent_id = agentId;
+      }
 
       const response = await playersApi.list(params);
       setState({ data: response, error: '', isLoading: false });
@@ -237,6 +250,7 @@ function usePlayersData({
     filters.username,
     filters.full_name,
     filters.email,
+    agentId,
     pagination.page,
     pagination.pageSize,
   ]);

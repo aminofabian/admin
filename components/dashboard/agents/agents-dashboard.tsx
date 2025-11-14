@@ -244,9 +244,10 @@ type AgentsTableSectionProps = {
   onPageChange: (page: number) => void;
   onToggleStatus: (agent: Agent) => void;
   onViewTransactions: (agent: Agent) => Promise<void>;
+  onViewPlayers: (agent: Agent) => void;
 };
 
-function AgentsTableSection({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions }: AgentsTableSectionProps) {
+function AgentsTableSection({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions, onViewPlayers }: AgentsTableSectionProps) {
   if (!data || data.results.length === 0) {
     return <AgentsTableEmptyState />;
   }
@@ -259,6 +260,7 @@ function AgentsTableSection({ data, page, pageSize, onPageChange, onToggleStatus
       onPageChange={onPageChange}
       onToggleStatus={onToggleStatus}
       onViewTransactions={onViewTransactions}
+      onViewPlayers={onViewPlayers}
     />
   );
 }
@@ -270,9 +272,10 @@ type AgentsTableContentProps = {
   onPageChange: (page: number) => void;
   onToggleStatus: (agent: Agent) => void;
   onViewTransactions: (agent: Agent) => Promise<void>;
+  onViewPlayers: (agent: Agent) => void;
 };
 
-function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions }: AgentsTableContentProps) {
+function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus, onViewTransactions, onViewPlayers }: AgentsTableContentProps) {
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
       <div className="overflow-x-auto">
@@ -288,7 +291,7 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onToggleStatus
           </TableHeader>
           <TableBody>
             {data.results.map(agent => (
-              <AgentRow key={agent.id} agent={agent} onToggleStatus={onToggleStatus} onViewTransactions={onViewTransactions} />
+              <AgentRow key={agent.id} agent={agent} onToggleStatus={onToggleStatus} onViewTransactions={onViewTransactions} onViewPlayers={onViewPlayers} />
             ))}
           </TableBody>
         </Table>
@@ -320,9 +323,10 @@ type AgentRowProps = {
   agent: Agent;
   onToggleStatus: (agent: Agent) => void;
   onViewTransactions: (agent: Agent) => Promise<void>;
+  onViewPlayers: (agent: Agent) => void;
 };
 
-function AgentRow({ agent, onToggleStatus, onViewTransactions }: AgentRowProps) {
+function AgentRow({ agent, onToggleStatus, onViewTransactions, onViewPlayers }: AgentRowProps) {
   const styles = getAgentStyles(agent.is_active);
 
   return (
@@ -355,7 +359,9 @@ function AgentRow({ agent, onToggleStatus, onViewTransactions }: AgentRowProps) 
           agent={agent}
           onToggleStatus={onToggleStatus}
           onViewTransactions={onViewTransactions}
+          onViewPlayers={onViewPlayers}
           transactionClass={styles.transactionClass}
+          playersClass={styles.playersClass}
           toggleClass={styles.toggleClass}
           toggleLabel={styles.toggleLabel}
         />
@@ -368,12 +374,14 @@ type AgentActionButtonsProps = {
   agent: Agent;
   onToggleStatus: (agent: Agent) => void;
   onViewTransactions: (agent: Agent) => Promise<void>;
+  onViewPlayers: (agent: Agent) => void;
   transactionClass: string;
+  playersClass: string;
   toggleClass: string;
   toggleLabel: string;
 };
 
-function AgentActionButtons({ agent, onToggleStatus, onViewTransactions, transactionClass, toggleClass, toggleLabel }: AgentActionButtonsProps) {
+function AgentActionButtons({ agent, onToggleStatus, onViewTransactions, onViewPlayers, transactionClass, playersClass, toggleClass, toggleLabel }: AgentActionButtonsProps) {
   return (
     <div className="flex items-center justify-end gap-3">
       <Button
@@ -386,6 +394,17 @@ function AgentActionButtons({ agent, onToggleStatus, onViewTransactions, transac
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.75a5.25 5.25 0 015.25 5.25 5.25 5.25 0 01-5.25 5.25A5.25 5.25 0 016.75 12 5.25 5.25 0 0112 6.75zm0 0v-2.5m0 15v-2.5M17.25 12h2.5m-15 0h2.5" />
         </svg>
         View Transactions
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => onViewPlayers(agent)}
+        className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium shadow-sm ${playersClass}`}
+      >
+        <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+        </svg>
+        View Players
       </Button>
       <Button
         size="sm"
@@ -408,14 +427,16 @@ function AgentActionButtons({ agent, onToggleStatus, onViewTransactions, transac
 }
 
 function getAgentStyles(isActive: boolean) {
+  const baseButtonClass = 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800';
+  
   if (isActive) {
     return {
       statusVariant: 'success' as const,
       statusClass:
         'border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-300',
       statusLabel: 'Active',
-      transactionClass:
-        'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800',
+      transactionClass: baseButtonClass,
+      playersClass: baseButtonClass,
       toggleClass:
         'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-700/60 dark:bg-slate-900 dark:text-rose-300 dark:hover:border-rose-600 dark:hover:bg-rose-900/40',
       toggleLabel: 'Deactivate',
@@ -427,8 +448,8 @@ function getAgentStyles(isActive: boolean) {
     statusClass:
       'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600 dark:border-rose-700/60 dark:bg-rose-950/40 dark:text-rose-300',
     statusLabel: 'Inactive',
-    transactionClass:
-      'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800',
+    transactionClass: baseButtonClass,
+    playersClass: baseButtonClass,
     toggleClass:
       'border border-emerald-200 bg-white text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-700/60 dark:bg-slate-900 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/40',
     toggleLabel: 'Activate',
@@ -498,6 +519,7 @@ type AgentsDashboardViewProps = {
   onPageChange: (page: number) => void;
   onToggleStatus: (agent: Agent) => void;
   onViewTransactions: (agent: Agent) => Promise<void>;
+  onViewPlayers: (agent: Agent) => void;
   onCreateAgent: (formData: CreateUserRequest | UpdateUserRequest) => Promise<void>;
   onConfirmToggle: () => Promise<void>;
   onCancelToggle: () => void;
@@ -521,6 +543,7 @@ function AgentsDashboardView({
   onPageChange,
   onToggleStatus,
   onViewTransactions,
+  onViewPlayers,
   onCreateAgent,
   onConfirmToggle,
   onCancelToggle,
@@ -539,6 +562,7 @@ function AgentsDashboardView({
           onPageChange={onPageChange}
           onToggleStatus={onToggleStatus}
           onViewTransactions={onViewTransactions}
+          onViewPlayers={onViewPlayers}
         />
       </div>
       <CreateAgentDrawer isOpen={isCreateModalOpen} onClose={onCloseModals} onSubmit={onCreateAgent} isLoading={isSubmitting} error={submitError} />
@@ -593,6 +617,11 @@ export default function AgentsDashboard() {
     }
   }, [router, addToast]);
 
+  const viewPlayers = useCallback((agent: Agent) => {
+    // Redirect to players page with agent filter
+    router.push(`/dashboard/players?agent_id=${agent.id}`);
+  }, [router]);
+
   return (
     <AgentsDashboardView
       data={dashboard.data}
@@ -612,6 +641,7 @@ export default function AgentsDashboard() {
       onPageChange={dashboard.setPage}
       onToggleStatus={dashboard.prepareToggle}
       onViewTransactions={viewTransactions}
+      onViewPlayers={viewPlayers}
       onCreateAgent={dashboard.handleCreateAgent}
       onConfirmToggle={dashboard.confirmToggle}
       onCancelToggle={dashboard.cancelToggle}
