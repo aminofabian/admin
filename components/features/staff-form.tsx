@@ -19,7 +19,6 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
     email: staff?.email || '',
     password: '',
     role: 'staff',
-    mobile_number: staff?.mobile_number || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -41,14 +40,6 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Must be a valid email address';
-    }
-
-    // Mobile number validation (optional but if provided, must be valid)
-    if (formData.mobile_number && formData.mobile_number.trim()) {
-      const mobileRegex = /^\+?[\d\s\-\(\)]+$/;
-      if (!mobileRegex.test(formData.mobile_number)) {
-        newErrors.mobile_number = 'Please enter a valid mobile number';
-      }
     }
 
     // Password validation (only required for create mode)
@@ -73,11 +64,8 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
 
     try {
       if (isEditMode) {
-        // For edit, only send mobile_number and is_active changes
-        const updateData: UpdateUserRequest = {
-          mobile_number: formData.mobile_number,
-        };
-        
+        // For edit mode, no fields can be updated
+        const updateData: UpdateUserRequest = {};
         await onSubmit(updateData as CreateUserRequest | UpdateUserRequest);
       } else {
         await onSubmit(formData as CreateUserRequest | UpdateUserRequest);
@@ -120,17 +108,6 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
           disabled={isLoading || isEditMode}
         />
 
-        {/* Mobile Number */}
-        <Input
-          label="Mobile Number"
-          type="tel"
-          value={formData.mobile_number}
-          onChange={(e) => handleChange('mobile_number', e.target.value)}
-          error={errors.mobile_number}
-          placeholder="+1234567890"
-          disabled={isLoading}
-        />
-
         {/* Password (only for create) */}
         {!isEditMode && (
           <Input
@@ -150,7 +127,7 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
 
       {isEditMode && (
         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 px-4 py-3 text-sm rounded-lg">
-          <strong>Note:</strong> Username and email cannot be changed. Mobile number can be updated. Use the status toggle button in the table to activate/deactivate this staff member.
+          <strong>Note:</strong> Username and email cannot be changed. Use the status toggle button in the table to activate/deactivate this staff member.
         </div>
       )}
 
