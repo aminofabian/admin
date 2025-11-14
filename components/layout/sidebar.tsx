@@ -211,10 +211,11 @@ const MENU_CATEGORIES: MenuCategory[] = [
     icon: <UsersIcon />,
     roles: [USER_ROLES.SUPERADMIN, USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT],
     submenu: [
-      { name: 'Managers', href: '/dashboard/managers', icon: <ManagerIcon /> },
+      { name: 'Players', href: '/dashboard/players', icon: <PlayerIcon /> },
       { name: 'Agents', href: '/dashboard/agents', icon: <AgentIcon /> },
       { name: 'Staffs', href: '/dashboard/staffs', icon: <StaffIcon /> },
-      { name: 'Players', href: '/dashboard/players', icon: <PlayerIcon /> },
+      { name: 'Managers', href: '/dashboard/managers', icon: <ManagerIcon /> },
+
     ],
   },
   {
