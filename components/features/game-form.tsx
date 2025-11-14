@@ -13,7 +13,6 @@ interface GameFormProps {
 
 export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps) => {
   const [formData, setFormData] = useState<UpdateGameRequest>({
-    title: game.title,
     dashboard_url: game.dashboard_url || '',
     game_status: game.game_status,
   });
@@ -22,13 +21,6 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps)
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-
-    // Title validation
-    if (!formData.title?.trim()) {
-      newErrors.title = 'Title is required';
-    } else if (formData.title.length < 3) {
-      newErrors.title = 'Title must be at least 3 characters';
-    }
 
     // Dashboard URL validation (optional, but if provided must be valid)
     if (formData.dashboard_url && formData.dashboard_url.trim()) {
@@ -66,34 +58,13 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps)
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 gap-4">
-        {/* Code (read-only) */}
+        {/* Title (read-only) */}
         <Input
-          label="Game Code"
+          label="Game Title"
           type="text"
-          value={game.code}
+          value={game.title}
           disabled
-          placeholder="Game code"
-        />
-
-        {/* Category (read-only) */}
-        <Input
-          label="Category"
-          type="text"
-          value={game.game_category}
-          disabled
-          placeholder="Category"
-          className="capitalize"
-        />
-
-        {/* Title (editable) */}
-        <Input
-          label="Game Title *"
-          type="text"
-          value={formData.title}
-          onChange={(e) => handleChange('title', e.target.value)}
-          error={errors.title}
-          placeholder="Cool Slots"
-          disabled={isLoading}
+          placeholder="Game title"
         />
 
         {/* Dashboard URL (editable) */}
@@ -128,18 +99,13 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps)
               />
             </button>
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              {formData.game_status ? 'Enabled' : 'Disabled'}
+              {formData.game_status ? 'Active' : 'Inactive'}
             </span>
           </div>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Toggle to enable or disable this game for users
           </p>
         </div>
-      </div>
-
-      {/* Info Banner */}
-      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300 px-4 py-3 text-sm rounded-lg">
-        <strong>Note:</strong> Game code and category cannot be changed. Games are manually created and managed by system administrators.
       </div>
 
       {/* Form Actions */}
