@@ -33,7 +33,28 @@ interface HistoryPayload {
   notes?: string;
 }
 
-const mapHistoryMessage = (msg: any): ChatMessage => {
+interface RawHistoryMessage {
+  id?: string | number;
+  message_id?: string | number;
+  message?: string;
+  sender?: 'player' | 'admin' | 'company';
+  sender_id?: number;
+  sent_time?: string;
+  timestamp?: string;
+  is_read?: boolean;
+  type?: string;
+  is_comment?: boolean;
+  is_file?: boolean;
+  file_extension?: string;
+  file?: string;
+  file_url?: string;
+  user_balance?: string | number;
+  balance?: string | number;
+  is_pinned?: boolean;
+  isPinned?: boolean;
+}
+
+const mapHistoryMessage = (msg: RawHistoryMessage): ChatMessage => {
   const sender: 'player' | 'admin' =
     msg.sender === 'company' || msg.sender === 'admin' ? 'admin' : 'player';
 
@@ -57,12 +78,14 @@ const mapHistoryMessage = (msg: any): ChatMessage => {
     isFile: msg.is_file ?? false,
     fileExtension: msg.file_extension ?? undefined,
     fileUrl: msg.file || msg.file_url || undefined,
-    userBalance: msg.user_balance ?? msg.balance,
+    userBalance: msg.user_balance ?? msg.balance
+      ? String(msg.user_balance ?? msg.balance)
+      : undefined,
     isPinned: msg.is_pinned ?? msg.isPinned ?? false,
   };
 };
 
-const normalizeHistoryMessages = (rawMessages: any[]): ChatMessage[] =>
+const normalizeHistoryMessages = (rawMessages: RawHistoryMessage[]): ChatMessage[] =>
   rawMessages.map(mapHistoryMessage).reverse();
 
 const mergeMessageLists = (
@@ -174,7 +197,9 @@ export function useChatReset({
     // ✅ CACHE: Check cache first (synchronous)
     const cached = messageCache.getCachedPage(chatId, userId, page);
     if (cached) {
-      !IS_PROD && console.log(`✅ Cache HIT for page ${page} - returning ${cached.messages.length} messages`);
+      if (!IS_PROD) {
+        console.log(`✅ Cache HIT for page ${page} - returning ${cached.messages.length} messages`);
+      }
       return {
         messages: cached.messages,
         page: cached.page,
@@ -183,10 +208,14 @@ export function useChatReset({
       };
     }
 
-    !IS_PROD && console.log(`❌ Cache MISS for page ${page} - fetching from API`);
+    if (!IS_PROD) {
+      console.log(`❌ Cache MISS for page ${page} - fetching from API`);
+    }
 
     try {
-      !IS_PROD && console.log('📜 Fetching message history...', { chatId, userId, page });
+      if (!IS_PROD) {
+        console.log('📜 Fetching message history...', { chatId, userId, page });
+      }
 
       const token = storage.get(TOKEN_KEY);
       if (!token) {
@@ -263,11 +292,12 @@ export function useChatReset({
         payload.notes,
       );
 
-      !IS_PROD && console.log(
-        `✅ Loaded ${payload.messages.length} of ${data.total_count ?? payload.messages.length} messages (page ${payload.page}/${payload.totalPages}) - cached`,
-      );
-      
-      !IS_PROD && console.log('📝 Notes from API:', data.notes);
+      if (!IS_PROD) {
+        console.log(
+          `✅ Loaded ${payload.messages.length} of ${data.total_count ?? payload.messages.length} messages (page ${payload.page}/${payload.totalPages}) - cached`,
+        );
+        console.log('📝 Notes from API:', data.notes);
+      }
 
       return payload;
     } catch (error) {
@@ -285,7 +315,9 @@ export function useChatReset({
       // ✅ CACHE: Check cache first - if cached, use it synchronously
       const cached = messageCache.getCachedPage(chatId, userId, page);
       if (cached) {
-        !IS_PROD && console.log(`⚡️ Using cached page ${page} - instant load`);
+        if (!IS_PROD) {
+          console.log(`⚡️ Using cached page ${page} - instant load`);
+        }
         
         let added = 0;
         setMessages((prev) => {
@@ -436,7 +468,7 @@ export function useChatReset({
       
       if (data.messages && Array.isArray(data.messages)) {
         // ✅ Transform purchase messages from new JWT endpoint format
-        const purchases: ChatMessage[] = data.messages.map((msg: any) => {
+        const purchases: ChatMessage[] = data.messages.map((msg: RawHistoryMessage) => {
           // Determine sender: "company" = admin, "player" = player
           const sender: 'player' | 'admin' = 
             msg.sender === 'company' || msg.sender === 'admin'
