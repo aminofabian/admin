@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { Button } from '@/components/ui';
+import { Button, Select } from '@/components/ui';
 import { useTheme } from '@/providers/theme-provider';
 
 export interface HistoryTransactionsFiltersState {
@@ -184,8 +184,6 @@ export function HistoryTransactionsFilters({
   const { theme } = useTheme();
   const inputClasses =
     'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
-  const selectClasses =
-    'w-full appearance-none px-3 py-2 pr-9 rounded-lg border border-border bg-background text-foreground text-sm shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-primary/30';
   const labelClasses =
     'block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300';
   const effectiveStatusOptions = statusOptions ?? [
@@ -293,80 +291,40 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
-          <div className="relative min-w-0">
+          <div className="min-w-0">
             <label className={labelClasses}>Agent</label>
-            <select
+            <Select
               value={filters.agent}
-              onChange={(event) => onFilterChange('agent', event.target.value)}
-              className={`${selectClasses} ${isAgentLoading ? 'opacity-75' : ''}`}
-            >
-              <option value="">All Agents</option>
-              {isAgentLoading && (
-                <option value="" disabled>
-                  Loading agents...
-                </option>
-              )}
-              {!isAgentLoading && agentOptions?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-              {!isAgentLoading && filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent) && (
-                <option value={filters.agent}>
-                  {filters.agent}
-                </option>
-              )}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground dark:text-slate-500">
-              {isAgentLoading ? (
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                  <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                </svg>
-              )}
-            </div>
+              onChange={(value: string) => onFilterChange('agent', value)}
+              options={[
+                { value: '', label: 'All Agents' },
+                ...(agentOptions || []),
+                ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
+                  ? [{ value: filters.agent, label: filters.agent }]
+                  : []),
+              ]}
+              placeholder="All Agents"
+              isLoading={isAgentLoading}
+              disabled={isAgentLoading}
+            />
           </div>
 
-          <div className="relative min-w-0">
+          <div className="min-w-0">
             <label className={labelClasses}>Payment Method</label>
-            <select
+            <Select
               value={filters.payment_method}
-              onChange={(event) => onFilterChange('payment_method', event.target.value)}
-              className={`${selectClasses} ${isPaymentMethodLoading ? 'opacity-75' : ''}`}
-            >
-              <option value="">All Methods</option>
-              {isPaymentMethodLoading && (
-                <option value="" disabled>
-                  Loading methods...
-                </option>
-              )}
-              {!isPaymentMethodLoading && paymentMethodOptions?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-              {!isPaymentMethodLoading && filters.payment_method && paymentMethodOptions && !paymentMethodOptions.some((option) => option.value === filters.payment_method) && (
-                <option value={filters.payment_method}>
-                  {filters.payment_method}
-                </option>
-              )}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground dark:text-slate-500">
-              {isPaymentMethodLoading ? (
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                  <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                </svg>
-              )}
-            </div>
+              onChange={(value: string) => onFilterChange('payment_method', value)}
+              options={[
+                { value: '', label: 'All Methods' },
+                ...(paymentMethodOptions || []),
+                ...(filters.payment_method && paymentMethodOptions && !paymentMethodOptions.some((option) => option.value === filters.payment_method)
+                  ? [{ value: filters.payment_method, label: filters.payment_method }]
+                  : []),
+              ]}
+              placeholder="All Methods"
+              isLoading={isPaymentMethodLoading}
+              disabled={isPaymentMethodLoading}
+            />
           </div>
 
           {TEXT_FIELDS.map(({ key, label, placeholder, type = 'text' }) => (
@@ -385,33 +343,23 @@ export function HistoryTransactionsFilters({
           {BASE_SELECT_FIELDS.map(({ key, label, options }) => (
             <div key={key} className="min-w-0">
               <label className={labelClasses}>{label}</label>
-              <select
+              <Select
                 value={filters[key]}
-                onChange={(event) => onFilterChange(key, event.target.value)}
-                className={selectClasses}
-              >
-                {options.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(value: string) => onFilterChange(key, value)}
+                options={options}
+                placeholder={options[0]?.label || 'Select...'}
+              />
             </div>
           ))}
 
           <div className="min-w-0">
             <label className={labelClasses}>Status</label>
-            <select
+            <Select
               value={filters.status}
-              onChange={(event) => onFilterChange('status', event.target.value)}
-              className={selectClasses}
-            >
-              {effectiveStatusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value: string) => onFilterChange('status', value)}
+              options={effectiveStatusOptions}
+              placeholder={effectiveStatusOptions[0]?.label || 'All Statuses'}
+            />
           </div>
 
           {/* Date Range Section */}
