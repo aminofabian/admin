@@ -406,43 +406,74 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 ) : activities.length === 0 ? (
                   <p className="text-xs text-muted-foreground py-2">No game activities found</p>
                 ) : (
-                  activities.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex-1">
-                          <p className="text-xs font-bold text-foreground">{activity.game_title}</p>
-                          <p className="text-[10px] text-muted-foreground">{activity.username}</p>
-                        </div>
-                        <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            activity.status === 'completed'
-                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                              : activity.status === 'pending'
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                              : 'bg-red-500/10 text-red-600 dark:text-red-400'
-                          }`}
-                        >
+                  activities.map((activity) => {
+                    // Determine activity type and what to display
+                    const activityType = activity.type.toLowerCase();
+                    const isRechargeActivity = activityType.includes('recharge') || activityType.includes('add');
+                    const isRedeemActivity = activityType.includes('redeem') || activityType.includes('withdraw');
+                    const isResetActivity = activityType.includes('reset') || activityType.includes('clear');
+
+                    return (
+                      <div
+                        key={activity.id}
+                        className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex-1">
+                            <p className="text-xs font-bold text-foreground">{activity.game_title}</p>
+
+                            {/* Conditionally display activity type or game username */}
+                            <p className="text-[10px] text-muted-foreground capitalize">
+                              {isRechargeActivity || isRedeemActivity || isResetActivity
+                                ? activity.username  // Show Game Username for Recharge, Redeem, Reset
+                                : activity.type.replace(/_/g, ' ')  // Show Activity Type for others
+                              }
+                            </p>
+                          </div>
+
+                          {/* Status badge - always shown */}
                           <span
-                            className={`w-1 h-1 rounded-full ${
-                              activity.status === 'completed' 
-                                ? 'bg-green-500' 
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
+                              activity.status === 'completed'
+                                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                                 : activity.status === 'pending'
-                                ? 'bg-amber-500'
-                                : 'bg-red-500'
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                : 'bg-red-500/10 text-red-600 dark:text-red-400'
                             }`}
-                          />
-                          {activity.status}
-                        </span>
+                          >
+                            <span
+                              className={`w-1 h-1 rounded-full ${
+                                activity.status === 'completed'
+                                  ? 'bg-green-500'
+                                  : activity.status === 'pending'
+                                  ? 'bg-amber-500'
+                                  : 'bg-red-500'
+                              }`}
+                            />
+                            {activity.status}
+                          </span>
+                        </div>
+
+                        {/* Conditionally display Amount/Bonus or Activity Type */}
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          {isRechargeActivity || isRedeemActivity ? (
+                            // Show Amount/Bonus for Recharge and Redeem
+                            <div className="flex items-center gap-2">
+                              <span>Amount: {formatCurrency(activity.amount)}</span>
+                              {activity.bonus_amount && parseFloat(activity.bonus_amount) > 0 && (
+                                <span className="text-green-600 dark:text-green-400">
+                                  Bonus: {formatCurrency(activity.bonus_amount)}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            // Show Activity Type for all other types
+                            <span className="capitalize">{activity.type.replace(/_/g, ' ')}</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                        <span className="capitalize">{activity.type.replace(/_/g, ' ')}</span>
-                        <span>{formatCurrency(activity.total_amount)}</span>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
