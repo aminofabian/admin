@@ -272,16 +272,21 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
                     {game.game_status ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-foreground">
+                <TableCell>
                   {game.dashboard_url ? (
-                    <a
-                      href={game.dashboard_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => window.open(game.dashboard_url, '_blank', 'noopener,noreferrer')}
+                      title="View dashboard"
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                     >
-                      {game.dashboard_url}
-                    </a>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      View
+                    </Button>
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}
