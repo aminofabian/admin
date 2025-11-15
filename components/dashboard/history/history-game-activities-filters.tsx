@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui';
+import { Button, Select } from '@/components/ui';
 
 export type QueueFilterOption =
   | 'processing'
@@ -57,7 +57,6 @@ export function HistoryGameActivitiesFilters({
   isOpen,
   onToggle,
 }: HistoryGameActivitiesFiltersProps) {
-  const selectClasses = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors';
   const labelClasses = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors';
   const inputClasses = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors';
 
@@ -96,32 +95,22 @@ export function HistoryGameActivitiesFilters({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-800 transition-colors">
           <div>
             <label className={labelClasses}>Queue Type</label>
-            <select
+            <Select
               value={queueFilter}
-              onChange={(event) => onQueueFilterChange(event.target.value as QueueFilterOption)}
-              className={selectClasses}
-            >
-              {QUEUE_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value: string) => onQueueFilterChange(value as QueueFilterOption)}
+              options={QUEUE_TYPE_OPTIONS}
+              placeholder={QUEUE_TYPE_OPTIONS[0]?.label || 'Select queue type'}
+            />
           </div>
 
           <div>
             <label className={labelClasses}>Status</label>
-            <select
+            <Select
               value={filters.status}
-              onChange={(event) => onFilterChange('status', event.target.value)}
-              className={selectClasses}
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value: string) => onFilterChange('status', value)}
+              options={STATUS_OPTIONS}
+              placeholder={STATUS_OPTIONS[0]?.label || 'All Statuses'}
+            />
           </div>
 
           <div>
