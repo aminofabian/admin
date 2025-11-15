@@ -190,19 +190,22 @@ export function useScrollManagement({
       clientHeight: container.clientHeight,
     };
 
-    // Disable smooth scroll during load
+    // Disable smooth scroll during load to prevent visual jumps
     const originalBehavior = container.style.scrollBehavior;
     container.style.scrollBehavior = 'auto';
 
     try {
       const result = await loadOlderMessages();
 
-      // Wait for DOM update
+      // ✅ CRITICAL: Use double requestAnimationFrame to ensure React has fully rendered
+      // First frame: React commits DOM changes
+      // Second frame: DOM is fully updated, we can safely measure and set scroll
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const updatedContainer = messagesContainerRef.current;
           if (!updatedContainer) {
             isLoadingOlderMessagesRef.current = false;
+            container.style.scrollBehavior = originalBehavior;
             return;
           }
 
@@ -238,23 +241,38 @@ export function useScrollManagement({
               newScrollTop = Math.max(maxScrollTop - 100, 0);
             }
 
-            // Restore position instantly (messages stay visually in same place)
+            // ✅ CRITICAL: Set scroll position SYNCHRONOUSLY in the same frame
+            // This ensures the browser applies scroll position before painting
+            // Setting it synchronously prevents messages from visually moving
             updatedContainer.scrollTop = newScrollTop;
+            
+            // Force a synchronous reflow to lock in the scroll position immediately
+            // This ensures the browser doesn't paint with the wrong position
+            // The reflow happens synchronously, so scroll position is locked before paint
+            void updatedContainer.offsetHeight; // Force synchronous reflow
 
-            // Verify position sticks (browsers sometimes reset it)
+            // Verify position in the next frame (browsers sometimes need a correction)
             requestAnimationFrame(() => {
-              if (Math.abs(updatedContainer.scrollTop - newScrollTop) > 5) {
-                updatedContainer.scrollTop = newScrollTop;
+              const currentContainer = messagesContainerRef.current;
+              if (currentContainer) {
+                const currentScroll = currentContainer.scrollTop;
+                const expectedScroll = newScrollTop;
+                // Only correct if there's a significant drift (browser interference)
+                if (Math.abs(currentScroll - expectedScroll) > 10) {
+                  currentContainer.scrollTop = expectedScroll;
+                  // Force another reflow to ensure correction sticks
+                  void currentContainer.offsetHeight;
+                }
               }
             });
           }
 
-          // Restore smooth scrolling
+          // Restore smooth scrolling after a brief delay
           setTimeout(() => {
             if (messagesContainerRef.current) {
               messagesContainerRef.current.style.scrollBehavior = originalBehavior;
             }
-          }, 150);
+          }, 100);
 
           isLoadingOlderMessagesRef.current = false;
         });
