@@ -93,7 +93,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       status: 'success',
-      message: 'Notes saved successfully',
+      message: 'You have successfully saved your note',
+      detail: 'You have successfully saved your note',
     });
   } catch (error) {
     console.error('❌ Failed to save notes:', error);

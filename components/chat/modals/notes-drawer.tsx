@@ -85,7 +85,7 @@ export function NotesDrawer({
       if (!lastToast || lastToast.type !== toastKey || now - lastToast.timestamp > 1000) {
         addToast({
           type: 'success',
-          title: 'SAVED SUCCESSFULLY',
+          title: 'NOTE SUCCESSFULLY SAVED',
           description: result?.message || 'Your notes have been saved.',
         });
         lastToastRef.current = { type: toastKey, title: 'You have successfully saved your note', timestamp: now };

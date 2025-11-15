@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Toast {
   id: string;
@@ -59,14 +60,23 @@ export function useToast() {
 
 function ToastContainer() {
   const { toasts, removeToast } = useToast();
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  const toastContent = (
     <div className="fixed top-4 right-4 z-[99999] space-y-2 pointer-events-none">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
       ))}
     </div>
   );
+
+  return createPortal(toastContent, document.body);
 }
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
