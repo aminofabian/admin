@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Input } from '@/components/ui';
+import { Input, Button } from '@/components/ui';
 import type { Staff, CreateUserRequest, UpdateUserRequest } from '@/types';
 
 interface StaffFormProps {
@@ -11,7 +11,7 @@ interface StaffFormProps {
   isLoading?: boolean;
 }
 
-export const StaffForm = ({ staff, onSubmit, onCancel: _onCancel, isLoading }: StaffFormProps) => {
+export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormProps) => {
   const isEditMode = !!staff;
   
   const [formData, setFormData] = useState<CreateUserRequest>({
@@ -100,7 +100,7 @@ export const StaffForm = ({ staff, onSubmit, onCancel: _onCancel, isLoading }: S
             value={formData.username}
             onChange={(e) => handleChange('username', e.target.value)}
             error={errors.username}
-            placeholder="manager123"
+            placeholder="staff123"
             disabled={isLoading || isEditMode}
             className="transition-all duration-200"
           />
@@ -163,11 +163,30 @@ export const StaffForm = ({ staff, onSubmit, onCancel: _onCancel, isLoading }: S
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-sm text-blue-800 dark:text-blue-300">
-              <span className="font-medium">Note:</span> Username and email cannot be changed. Use the status toggle button in the table to activate/deactivate this manager.
+              <span className="font-medium">Note:</span> Username and email cannot be changed. Use the status toggle button in the table to activate/deactivate this staff member.
             </p>
           </div>
         </div>
       )}
+
+      {/* Form Actions */}
+      <div className="flex justify-end gap-3 pt-4">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={isLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          isLoading={isLoading}
+          disabled={isLoading}
+        >
+          {isEditMode ? 'Update Staff' : 'Create Staff'}
+        </Button>
+      </div>
     </form>
   );
 };
