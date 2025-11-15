@@ -518,3 +518,54 @@ body {
 .dark input[type="date"] {
   color-scheme: dark;
 }
+
+/* Select dropdown dark mode styling */
+.dark select {
+  color-scheme: dark !important;
+  background-color: rgb(2, 6, 23) !important; /* slate-950 */
+  color: rgb(255, 255, 255) !important; /* white */
+}
+
+.dark select option {
+  background-color: rgb(2, 6, 23) !important; /* slate-950 */
+  color: rgb(255, 255, 255) !important; /* white */
+}
+
+/* Force dark mode for select dropdowns */
+select {
+  color-scheme: light;
+}
+
+.dark select {
+  color-scheme: dark !important;
+}
+
+/* Additional browser-specific select styling */
+.dark select::-ms-expand {
+  filter: invert(1);
+}
+
+.dark select::-webkit-appearance {
+  color-scheme: dark;
+}
+
+/* Ensure select dropdown popup uses dark theme */
+.dark select:focus {
+  color-scheme: dark !important;
+}
+
+/* Target all select elements more aggressively */
+.dark select,
+.dark select:focus,
+.dark select:hover {
+  background-color: rgb(2, 6, 23) !important;
+  color: rgb(255, 255, 255) !important;
+  color-scheme: dark !important;
+}
+
+.dark select option,
+.dark select option:checked,
+.dark select option:hover {
+  background-color: rgb(2, 6, 23) !important;
+  color: rgb(255, 255, 255) !important;
+}

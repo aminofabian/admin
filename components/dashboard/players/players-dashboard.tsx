@@ -3,7 +3,7 @@
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { playersApi } from '@/lib/api';
+import { playersApi, agentsApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
 import {
   Badge,
@@ -13,6 +13,7 @@ import {
   ConfirmModal,
   Drawer,
   Pagination,
+  Select,
   Table,
   TableBody,
   TableCell,
@@ -29,6 +30,7 @@ import {
 } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
+  Agent,
   CreatePlayerRequest,
   PaginatedResponse,
   Player,
@@ -39,6 +41,8 @@ type FilterState = {
   username: string;
   full_name: string;
   email: string;
+  agent: string;
+  agent_id: string;
 };
 
 type ModalState = {
@@ -67,6 +71,8 @@ type PlayersPageContext = {
   pagination: ReturnType<typeof usePagination>;
   router: ReturnType<typeof useRouter>;
   statusHandlers: ReturnType<typeof usePlayerStatusActions>;
+  agentOptions: Array<{ value: string; label: string }>;
+  isAgentLoading: boolean;
 };
 
 export default function PlayersDashboard(): ReactElement {
@@ -78,6 +84,8 @@ export default function PlayersDashboard(): ReactElement {
     pagination,
     router,
     statusHandlers,
+    agentOptions,
+    isAgentLoading,
   } = usePlayersPageContext();
 
   if (dataState.shouldShowLoading) {
@@ -103,6 +111,9 @@ export default function PlayersDashboard(): ReactElement {
         onClearFilters={filters.clearFilters}
         successMessage={modalState.state.successMessage}
         onDismissSuccess={modalState.clearSuccessMessage}
+        agentOptions={agentOptions}
+        isAgentLoading={isAgentLoading}
+        isLoading={dataState.isLoading}
       />
       <PlayersTableSection
         data={dataState.data}
@@ -142,17 +153,112 @@ function usePlayersPageContext(): PlayersPageContext {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pagination = usePagination();
-  const filters = usePlayerFilters();
   const modalState = usePlayerModals();
   const toast = useToast();
   
   // Read agent_id from URL params
   const agentIdFromUrl = searchParams.get('agent_id');
   
+  // Load agents for filter dropdown
+  const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
+  const [isAgentLoading, setIsAgentLoading] = useState(false);
+
+  // Initialize filters with agentIdMap and pagination (must be before useEffect that uses it)
+  const filters = usePlayerFilters(agentIdMap, pagination.setPage);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAgents = async () => {
+      setIsAgentLoading(true);
+
+      try {
+        const aggregated: Agent[] = [];
+        const pageSize = 100;
+        let page = 1;
+        let hasNext = true;
+
+        while (hasNext) {
+          const response = await agentsApi.list({ page, page_size: pageSize });
+
+          if (!response?.results) {
+            break;
+          }
+
+          aggregated.push(...response.results);
+
+          if (!response.next) {
+            hasNext = false;
+          } else {
+            page += 1;
+          }
+
+          if (!hasNext) {
+            break;
+          }
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        const uniqueAgents = new Map<string, string>();
+        const idMap = new Map<string, number>();
+
+        aggregated.forEach((agent) => {
+          if (agent?.username) {
+            uniqueAgents.set(agent.username, agent.username);
+            idMap.set(agent.username, agent.id);
+          }
+        });
+
+        const mappedOptions = Array.from(uniqueAgents.entries())
+          .map(([value, label]) => ({ value, label }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+        setAgentOptions(mappedOptions);
+        setAgentIdMap(idMap);
+      } catch (error) {
+        console.error('Failed to load agents for player filters:', error);
+      } finally {
+        if (isMounted) {
+          setIsAgentLoading(false);
+        }
+      }
+    };
+
+    loadAgents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Sync agent filter with agent_id mapping
+  useEffect(() => {
+    if (agentIdMap.size > 0) {
+      if (filters.values.agent) {
+        const agentId = agentIdMap.get(filters.values.agent);
+        if (agentId && filters.values.agent_id !== String(agentId)) {
+          filters.setFilter('agent_id', String(agentId));
+        } else if (!agentId) {
+          // Agent not found in map, clear agent_id
+          filters.setFilter('agent_id', '');
+        }
+      } else {
+        // Agent cleared, clear agent_id
+        if (filters.values.agent_id) {
+          filters.setFilter('agent_id', '');
+        }
+      }
+    }
+  }, [filters.values.agent, filters.values.agent_id, agentIdMap, filters.setFilter]);
+  
   const dataState = usePlayersData({
     filters: filters.appliedFilters,
     pagination,
-    agentId: agentIdFromUrl ? parseInt(agentIdFromUrl, 10) : undefined,
+    agentId: agentIdFromUrl ? parseInt(agentIdFromUrl, 10) : (filters.appliedFilters.agent_id ? parseInt(filters.appliedFilters.agent_id, 10) : undefined),
   });
   const statusHandlers = usePlayerStatusActions({
     addToast: toast.addToast,
@@ -183,6 +289,8 @@ function usePlayersPageContext(): PlayersPageContext {
     pagination,
     router,
     statusHandlers,
+    agentOptions,
+    isAgentLoading,
   };
 }
 
@@ -227,9 +335,10 @@ function usePlayersData({
         params.email = filters.email.trim();
       }
       
-      // Add agent_id if provided (from URL params)
-      if (agentId && !isNaN(agentId)) {
-        params.agent_id = agentId;
+      // Add agent_id if provided (from URL params or filter)
+      const effectiveAgentId = agentId || (filters.agent_id ? parseInt(filters.agent_id, 10) : undefined);
+      if (effectiveAgentId && !isNaN(effectiveAgentId)) {
+        params.agent_id = effectiveAgentId;
       }
 
       const response = await playersApi.list(params);
@@ -243,6 +352,7 @@ function usePlayersData({
     filters.username,
     filters.full_name,
     filters.email,
+    filters.agent_id,
     agentId,
     pagination.page,
     pagination.pageSize,
@@ -262,7 +372,10 @@ function usePlayersData({
   };
 }
 
-function usePlayerFilters(): {
+function usePlayerFilters(
+  agentIdMap: Map<string, number>,
+  setPage: (page: number) => void,
+): {
   applyFilters: () => void;
   clearFilters: () => void;
   setFilter: (key: keyof FilterState, value: string) => void;
@@ -274,12 +387,16 @@ function usePlayerFilters(): {
     username: '',
     full_name: '',
     email: '',
+    agent: '',
+    agent_id: '',
   });
 
   const [appliedFilters, setAppliedFilters] = useState<FilterState>({
     username: '',
     full_name: '',
     email: '',
+    agent: '',
+    agent_id: '',
   });
 
   const setFilter = useCallback((key: keyof FilterState, value: string) => {
@@ -287,14 +404,32 @@ function usePlayerFilters(): {
   }, []);
 
   const applyFilters = useCallback(() => {
-    setAppliedFilters(filters);
-  }, [filters]);
+    // Ensure agent_id is synced before applying filters
+    let filtersToApply = { ...filters };
+    
+    if (filtersToApply.agent && agentIdMap.size > 0) {
+      const agentId = agentIdMap.get(filtersToApply.agent);
+      if (agentId) {
+        filtersToApply.agent_id = String(agentId);
+      } else {
+        filtersToApply.agent_id = '';
+      }
+    } else if (!filtersToApply.agent) {
+      filtersToApply.agent_id = '';
+    }
+    
+    setAppliedFilters(filtersToApply);
+    // Reset to page 1 when filters are applied
+    setPage(1);
+  }, [filters, agentIdMap, setPage]);
 
   const clearFilters = useCallback(() => {
     const clearedFilters: FilterState = {
       username: '',
       full_name: '',
       email: '',
+      agent: '',
+      agent_id: '',
     };
     setFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
@@ -304,7 +439,9 @@ function usePlayerFilters(): {
     return (
       appliedFilters.username.trim() !== '' ||
       appliedFilters.full_name.trim() !== '' ||
-      appliedFilters.email.trim() !== ''
+      appliedFilters.email.trim() !== '' ||
+      appliedFilters.agent.trim() !== '' ||
+      appliedFilters.agent_id.trim() !== ''
     );
   }, [appliedFilters]);
 
@@ -577,6 +714,9 @@ type PlayersFiltersProps = {
   onDismissSuccess: () => void;
   onFilterChange: (key: keyof FilterState, value: string) => void;
   successMessage: string;
+  agentOptions: Array<{ value: string; label: string }>;
+  isAgentLoading: boolean;
+  isLoading: boolean;
 };
 
 function PlayersFilters({
@@ -586,6 +726,9 @@ function PlayersFilters({
   onDismissSuccess,
   onFilterChange,
   successMessage,
+  agentOptions,
+  isAgentLoading,
+  isLoading,
 }: PlayersFiltersProps): ReactElement {
   const inputClasses =
     'w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 shadow-sm transition-all duration-150 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:ring-blue-500/30';
@@ -596,7 +739,7 @@ function PlayersFilters({
         {successMessage && (
           <SuccessBanner message={successMessage} onDismiss={onDismissSuccess} />
         )}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Username
@@ -633,13 +776,42 @@ function PlayersFilters({
               className={inputClasses}
             />
           </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Agent
+            </label>
+            <Select
+              value={filters.agent}
+              onChange={(value: string) => onFilterChange('agent', value)}
+              options={[
+                { value: '', label: 'All Agents' },
+                ...(agentOptions || []),
+                ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
+                  ? [{ value: filters.agent, label: filters.agent }]
+                  : []),
+              ]}
+              placeholder="All Agents"
+              isLoading={isAgentLoading}
+              disabled={isAgentLoading}
+            />
+          </div>
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onClearFilters}>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onClearFilters}
+            disabled={isLoading}
+          >
             Clear Filters
           </Button>
-          <Button size="sm" onClick={onApplyFilters}>
-            Apply Filters
+          <Button 
+            size="sm" 
+            onClick={onApplyFilters}
+            isLoading={isLoading}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Applying...' : 'Apply Filters'}
           </Button>
         </div>
       </CardContent>
