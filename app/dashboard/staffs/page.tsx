@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import { staffsApi } from '@/lib/api';
 import { usePagination, useSearch } from '@/lib/hooks';
 import { 
-  Card, 
-  CardContent, 
   Table, 
   TableHeader, 
   TableBody, 
@@ -14,7 +12,6 @@ import {
   TableCell, 
   Badge, 
   Pagination, 
-  SearchInput, 
   Button,
   Drawer,
   useToast,
@@ -193,43 +190,32 @@ export default function StaffsPage() {
   if (error && !data) return <ErrorState message={error} onRetry={loadStaffs} />;
 
   return (
-    <div className="space-y-8">
-      <Card className="overflow-hidden border border-gray-200 shadow-md dark:border-gray-800 dark:shadow-none">
-        <CardContent className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
-              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center rounded-lg shadow-sm">
+              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Staffs</h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Staffs</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                 Manage all Staff accounts and permissions
               </p>
             </div>
           </div>
-          <Button
-            size="lg"
-            className="lg:ml-auto"
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <Button variant="primary" size="md" onClick={() => setIsCreateModalOpen(true)}>
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add Staff
           </Button>
-        </CardContent>
-        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-800 dark:bg-gray-900/40">
-          <SearchInput
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by username or email..."
-            className="h-12 rounded-xl border-gray-200 text-base dark:border-gray-700"
-          />
         </div>
-      </Card>
+      </div>
 
       {successMessage && (
         <div className="flex items-start justify-between gap-4 rounded-2xl border border-green-200 bg-green-50 px-6 py-4 text-green-800 shadow-sm dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-300">
@@ -254,8 +240,9 @@ export default function StaffsPage() {
         </div>
       )}
 
-      <Card className="overflow-hidden border border-gray-200 shadow-md dark:border-gray-800 dark:shadow-none">
-        <CardContent className="p-0">
+      {/* Desktop Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
           {data?.results.length === 0 ? (
             <div className="py-12">
               <EmptyState 
@@ -265,36 +252,34 @@ export default function StaffsPage() {
             </div>
           ) : (
             <>
-              <Table className="text-sm">
+              <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-gray-900 dark:text-gray-400">
-                    <TableHead className="py-4">Username</TableHead>
-                    <TableHead className="py-4">Email</TableHead>
-                    <TableHead className="py-4">Status</TableHead>
-                    <TableHead className="py-4">Dates</TableHead>
-                    <TableHead className="py-4 text-right">Actions</TableHead>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data?.results.map((staff) => (
-                    <TableRow key={staff.id} className="border-b border-gray-100 last:border-b-0 dark:border-gray-800">
+                    <TableRow key={staff.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
                             {staff.username.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {staff.username}
-                            </p>
-                            <p className="text-xs capitalize text-gray-500 dark:text-gray-400">
-                              {staff.role ?? 'staff'}
-                            </p>
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{staff.role ?? 'staff'}</div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">{staff.email}</p>
+                        <div className="text-sm text-gray-700 dark:text-gray-300">{staff.email}</div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={staff.is_active ? 'success' : 'danger'}>
@@ -302,11 +287,8 @@ export default function StaffsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1 text-sm text-gray-600 dark:text-gray-400">
-                          <span>{formatDate(staff.created)}</span>
-                          <span className="text-xs text-gray-500 dark:text-gray-500">
-                            Updated {formatDate(staff.modified)}
-                          </span>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {formatDate(staff.created)}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -356,8 +338,8 @@ export default function StaffsPage() {
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Create Staff Drawer */}
       <Drawer 
