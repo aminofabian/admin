@@ -26,14 +26,30 @@ const HISTORY_EMPTY_STATE = (
 );
 
 const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
+  username: '',
+  email: '',
+  transaction_id: '',
+  operator: '',
+  type: '',
+  game: '',
+  game_username: '',
   status: '',
-  userId: '',
+  date_from: '',
+  date_to: '',
 };
 
 function buildGameActivityFilterState(advanced: Record<string, string>): HistoryGameActivitiesFiltersState {
   return {
+    username: advanced.username ?? '',
+    email: advanced.email ?? '',
+    transaction_id: advanced.transaction_id ?? '',
+    operator: advanced.operator ?? '',
+    type: advanced.type ?? '',
+    game: advanced.game ?? '',
+    game_username: advanced.game_username ?? '',
     status: advanced.status ?? '',
-    userId: advanced.user_id ?? '',
+    date_from: advanced.date_from ?? '',
+    date_to: advanced.date_to ?? '',
   };
 }
 
@@ -85,7 +101,30 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
 
   // Sync filters with advanced filters
   useEffect(() => {
-    setFilters(buildGameActivityFilterState(advancedFilters));
+    const filterState = buildGameActivityFilterState(advancedFilters);
+    
+    // Ensure date values are properly formatted for HTML date inputs (YYYY-MM-DD)
+    if (filterState.date_from) {
+      const dateFromValue = filterState.date_from.trim();
+      if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
+        const parsedDate = new Date(dateFromValue);
+        if (!isNaN(parsedDate.getTime())) {
+          filterState.date_from = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    }
+    
+    if (filterState.date_to) {
+      const dateToValue = filterState.date_to.trim();
+      if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
+        const parsedDate = new Date(dateToValue);
+        if (!isNaN(parsedDate.getTime())) {
+          filterState.date_to = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    }
+    
+    setFilters(filterState);
 
     if (Object.keys(advancedFilters).length > 0) {
       setAreFiltersOpen(true);
@@ -97,17 +136,42 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   }, []);
 
   const handleApplyFilters = useCallback(() => {
-    const nextFilters: Record<string, string> = {};
+    // Sanitize filters - keep only non-empty values
+    const sanitized = Object.fromEntries(
+      Object.entries(filters).filter(([key, value]) => {
+        if (typeof value === 'string') {
+          return value.trim() !== '';
+        }
+        return Boolean(value);
+      })
+    ) as Record<string, string>;
 
-    if (filters.status.trim()) {
-      nextFilters.status = filters.status.trim();
+    // Ensure date values are properly formatted (YYYY-MM-DD) before applying
+    if (sanitized.date_from) {
+      const dateFromValue = sanitized.date_from.trim();
+      if (dateFromValue) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
+          const parsedDate = new Date(dateFromValue);
+          if (!isNaN(parsedDate.getTime())) {
+            sanitized.date_from = parsedDate.toISOString().split('T')[0];
+          }
+        }
+      }
     }
 
-    if (filters.userId.trim()) {
-      nextFilters.user_id = filters.userId.trim();
+    if (sanitized.date_to) {
+      const dateToValue = sanitized.date_to.trim();
+      if (dateToValue) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
+          const parsedDate = new Date(dateToValue);
+          if (!isNaN(parsedDate.getTime())) {
+            sanitized.date_to = parsedDate.toISOString().split('T')[0];
+          }
+        }
+      }
     }
 
-    setAdvancedFilters(nextFilters);
+    setAdvancedFilters(sanitized);
   }, [filters, setAdvancedFilters]);
 
   const handleClearFilters = useCallback(() => {
@@ -160,6 +224,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
           hasPrevious,
           onPageChange: handlePageChange,
         }}
+        isLoading={isLoading}
       />
     </DashboardSectionContainer>
   );
@@ -176,6 +241,7 @@ interface HistoryGameActivitiesLayoutProps {
   onToggleFilters: () => void;
   queues: TransactionQueue[];
   pagination: HistoryPaginationState;
+  isLoading: boolean;
 }
 
 function HistoryGameActivitiesLayout({
@@ -189,6 +255,7 @@ function HistoryGameActivitiesLayout({
   onToggleFilters,
   queues,
   pagination,
+  isLoading,
 }: HistoryGameActivitiesLayoutProps) {
   const totalPages = pagination.pageSize > 0
     ? Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))
@@ -212,6 +279,7 @@ function HistoryGameActivitiesLayout({
         onClear={onClearFilters}
         isOpen={areFiltersOpen}
         onToggle={onToggleFilters}
+        isLoading={isLoading}
       />
       <HistoryGameActivitiesTable queues={queues} />
       {shouldShowPagination && (
