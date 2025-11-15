@@ -90,7 +90,7 @@ export default function StaffsPage() {
 
       await staffsApi.create(formData as CreateUserRequest);
 
-      setSuccessMessage('Manager created successfully!');
+      setSuccessMessage('Staff created successfully!');
       setIsCreateModalOpen(false);
       await loadStaffs(); // Refresh the list
     } catch (err: unknown) {
@@ -122,7 +122,7 @@ export default function StaffsPage() {
       
       addToast({
         type: 'success',
-        title: 'Manager updated',
+        title: 'Staff updated',
         description: `"${confirmModal.staff.username}" has been ${actionPast} successfully!`,
       });
       
@@ -204,9 +204,9 @@ export default function StaffsPage() {
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Managers</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Staffs</h1>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Manage all manager accounts and permissions
+                Manage all Staff accounts and permissions
               </p>
             </div>
           </div>
@@ -259,8 +259,8 @@ export default function StaffsPage() {
           {data?.results.length === 0 ? (
             <div className="py-12">
               <EmptyState 
-                title="No managers found" 
-                description="Get started by creating a new manager"
+                title="No Staffs found" 
+                description="Get started by creating a new Staff"
               />
             </div>
           ) : (
@@ -359,11 +359,11 @@ export default function StaffsPage() {
         </CardContent>
       </Card>
 
-      {/* Create Manager Drawer */}
+      {/* Create Staff Drawer */}
       <Drawer 
         isOpen={isCreateModalOpen} 
         onClose={closeModals} 
-        title="Create New Manager" 
+        title="Create New Staff" 
         size="lg"
         footer={
           <div className="flex items-center justify-end gap-3 w-full">
@@ -384,7 +384,7 @@ export default function StaffsPage() {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Create Manager
+              Create Staff
             </Button>
           </div>
         }
@@ -397,7 +397,7 @@ export default function StaffsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div>
-                <p className="font-medium">Error creating manager</p>
+                <p className="font-medium">Error creating staff</p>
                 <p className="text-sm mt-0.5">{submitError}</p>
               </div>
             </div>
