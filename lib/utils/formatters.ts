@@ -97,6 +97,20 @@ export const formatPercentage = (value: string | number): string => {
  * - "2 months ago" for messages less than a year old
  * - "1 year ago" for older messages
  */
+/**
+ * Validate if a timestamp value is valid and meaningful
+ * Used to prevent invalid timestamps from overwriting valid ones
+ */
+export const isValidTimestamp = (timestamp: string | undefined | null): boolean => {
+  if (!timestamp || timestamp.trim() === '') {
+    return false;
+  }
+
+  // Check if it's a valid date string
+  const date = new Date(timestamp);
+  return !isNaN(date.getTime()) && date.getTime() > 0;
+};
+
 export const formatChatTimestamp = (timestamp: string | null | undefined): string => {
   if (!timestamp || timestamp.trim() === '') {
     return '';
@@ -104,7 +118,7 @@ export const formatChatTimestamp = (timestamp: string | null | undefined): strin
 
   try {
     const date = new Date(timestamp);
-    
+
     // Check if the date is valid
     if (isNaN(date.getTime())) {
       return '';

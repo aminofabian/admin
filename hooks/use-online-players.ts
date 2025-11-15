@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
+import { isValidTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 
 // Production mode check
@@ -35,6 +36,10 @@ interface UseOnlinePlayersReturn {
 function transformPlayerToUser(data: any): ChatUser {
   // Format 1: Chats array format - player data is at root level with 'player_' prefix
   if (data.player_id && data.player_username) {
+    // Validate timestamp before storing it
+    const rawTimestamp = data.last_message_timestamp || data.last_message_time;
+    const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
+
     const transformed = {
       id: String(data.id || ''), // chatroom_id
       user_id: Number(data.player_id || 0),
@@ -44,7 +49,7 @@ function transformPlayerToUser(data: any): ChatUser {
       avatar: data.player_profile_pic || undefined,
       isOnline: true, // Players in online list are online
       lastMessage: data.last_message || undefined,
-      lastMessageTime: data.last_message_timestamp || data.last_message_time || undefined,
+      lastMessageTime: validTimestamp,
       balance: data.player_balance !== undefined ? String(data.player_balance) : undefined,
       winningBalance: data.player_winning_balance !== undefined ? String(data.player_winning_balance) : undefined,
       gamesPlayed: data.player_games_played || undefined,
@@ -70,7 +75,11 @@ function transformPlayerToUser(data: any): ChatUser {
   // Format 2 & 3: Chat object with nested player OR direct player object
   const hasNestedPlayer = data.player && typeof data.player === 'object';
   const player = hasNestedPlayer ? data.player : data;
-  
+
+  // Validate timestamp before storing it
+  const rawTimestamp = data.last_message_timestamp || data.last_message_time;
+  const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
+
   const transformed = {
     // Use chat_id/chatroom_id if available, otherwise fall back to player.id
     id: String(data.chat_id || data.chatroom_id || data.id || player.id || ''),
@@ -81,7 +90,7 @@ function transformPlayerToUser(data: any): ChatUser {
     avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
     isOnline: player.is_online !== undefined ? Boolean(player.is_online) : true,
     lastMessage: data.last_message || undefined,
-    lastMessageTime: data.last_message_time || undefined,
+    lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
     gamesPlayed: player.games_played || undefined,
@@ -339,17 +348,58 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
           // Also handle full chat list updates if available
           else if (data.message?.type === 'add_new_chats' && Array.isArray(data.message.chats)) {
             !IS_PROD && console.log('🔄 [Online Players] Received full chat list update');
+            !IS_PROD && console.log('📥 [Online Players] WebSocket chat data sample:', {
+              chatCount: data.message.chats.length,
+              sampleChat: data.message.chats[0] ? {
+                id: data.message.chats[0].id,
+                last_message: data.message.chats[0].last_message?.substring(0, 30),
+                last_message_timestamp: data.message.chats[0].last_message_timestamp,
+                player_id: data.message.chats[0].player?.id,
+                player_username: data.message.chats[0].player?.username,
+              } : 'No chats',
+            });
+
             // Extract online players from chat list
             const onlineFromChats = data.message.chats
               .filter((chat: any) => chat.player?.is_online)
-              .map((chat: any) => transformPlayerToUser(chat.player));
-            
+              .map((chat: any) => {
+                //  FIXED: Merge chat data with player data to preserve timestamps
+                const mergedChat = {
+                  ...chat,
+                  // Move timestamp data from chat level to player level for transformPlayerToUser
+                  last_message: chat.last_message,
+                  last_message_timestamp: chat.last_message_timestamp,
+                };
+                return transformPlayerToUser(mergedChat);
+              });
+
             if (onlineFromChats.length > 0) {
               setOnlinePlayers((prev) => {
-                // Merge with existing, deduplicate by user_id
+                //  FIXED: Preserve existing timestamps when merging
                 const merged = new Map<number, ChatUser>();
+
+                // First, add existing players (preserve their data)
                 prev.forEach(p => merged.set(p.user_id, p));
-                onlineFromChats.forEach((p: ChatUser) => merged.set(p.user_id, p));
+
+                // Then, merge new data but preserve existing timestamps if new ones are invalid
+                onlineFromChats.forEach((newPlayer: ChatUser) => {
+                  const existingPlayer = merged.get(newPlayer.user_id);
+                  if (existingPlayer) {
+                    // Merge but preserve existing timestamp if new one is invalid
+                    merged.set(newPlayer.user_id, {
+                      ...existingPlayer,
+                      ...newPlayer,
+                      // Preserve existing timestamp if new one is not valid
+                      lastMessageTime: isValidTimestamp(newPlayer.lastMessageTime)
+                        ? newPlayer.lastMessageTime
+                        : existingPlayer.lastMessageTime,
+                    });
+                  } else {
+                    // New player, add as is
+                    merged.set(newPlayer.user_id, newPlayer);
+                  }
+                });
+
                 return Array.from(merged.values());
               });
             }

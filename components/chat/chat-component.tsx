@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Input, useToast, Skeleton } from '@/components/ui';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, isValidTimestamp } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
 import { useOnlinePlayers } from '@/hooks/use-online-players';
@@ -290,7 +290,7 @@ export function ChatComponent() {
     isConnected: isOnlinePlayersWSConnected,
   } = useOnlinePlayers({
     adminId: adminUserId,
-    enabled: hasValidAdminUser && activeTab === 'online', // Only fetch when online tab is active
+    enabled: hasValidAdminUser, // Keep always enabled to preserve data and timestamps
   });
 
   // WebSocket connection for real-time chat
@@ -374,7 +374,31 @@ export function ChatComponent() {
       // ✨ OPTIMIZED: Use hybrid REST + WebSocket online players
       // apiOnlinePlayers already combines REST API data with real-time WebSocket updates
       const seenUserIds = new Map<number, Player>();
-      
+
+      // DEBUG: Log initial data states
+      !IS_PROD && console.log(`🔍 [Online Tab] Data sources - API: ${apiOnlinePlayers.length}, WebSocket: ${activeChatsUsers.length}`);
+
+      // DEBUG: Log sample data from both sources
+      if (!IS_PROD && apiOnlinePlayers.length > 0) {
+        const sampleApiPlayer = apiOnlinePlayers[0];
+        console.log(`📊 [Online Tab] Sample API player:`, {
+          username: sampleApiPlayer.username,
+          lastMessage: sampleApiPlayer.lastMessage?.substring(0, 30),
+          lastMessageTime: sampleApiPlayer.lastMessageTime,
+          validTimestamp: isValidTimestamp(sampleApiPlayer.lastMessageTime),
+        });
+      }
+
+      if (!IS_PROD && activeChatsUsers.length > 0) {
+        const sampleWsPlayer = activeChatsUsers[0];
+        console.log(`📊 [Online Tab] Sample WebSocket player:`, {
+          username: sampleWsPlayer.username,
+          lastMessage: sampleWsPlayer.lastMessage?.substring(0, 30),
+          lastMessageTime: sampleWsPlayer.lastMessageTime,
+          validTimestamp: isValidTimestamp(sampleWsPlayer.lastMessageTime),
+        });
+      }
+
       // First, add all online players from the optimized hook
       apiOnlinePlayers.forEach((player: Player) => {
         if (player.user_id) {
@@ -387,12 +411,23 @@ export function ChatComponent() {
         if (player.user_id && player.isOnline) {
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
+            //  DEBUG: Log timestamp merge behavior
+            !IS_PROD && console.log(`🔄 [Online Tab Merge] Merging timestamps for ${player.username}:`, {
+              existingTime: existing.lastMessageTime,
+              playerTime: player.lastMessageTime,
+              validPlayerTime: isValidTimestamp(player.lastMessageTime),
+              chosenTime: isValidTimestamp(player.lastMessageTime) ? player.lastMessageTime : existing.lastMessageTime,
+            });
+
             //  FIXED: Prioritize WebSocket data (real-time) over REST API data
             seenUserIds.set(player.user_id, {
               ...existing,
               // WebSocket data takes priority for real-time fields
               lastMessage: player.lastMessage || existing.lastMessage,
-              lastMessageTime: player.lastMessageTime || existing.lastMessageTime,
+              //  FIXED: Use better timestamp preservation logic like all-chats tab
+              lastMessageTime: isValidTimestamp(player.lastMessageTime)
+                ? player.lastMessageTime
+                : existing.lastMessageTime,
               unreadCount: player.unreadCount ?? existing.unreadCount ?? 0, // WebSocket first!
               isOnline: player.isOnline ?? existing.isOnline, // WebSocket status is authoritative
               notes: existing.notes || player.notes, // Preserve notes
@@ -405,7 +440,28 @@ export function ChatComponent() {
       });
       
       players = Array.from(seenUserIds.values());
-      
+
+      // DEBUG: Log final result after merge
+      if (!IS_PROD && players.length > 0) {
+        const sampleFinalPlayer = players[0];
+        console.log(`🎯 [Online Tab Final] Sample final player:`, {
+          username: sampleFinalPlayer.username,
+          lastMessage: sampleFinalPlayer.lastMessage?.substring(0, 30),
+          lastMessageTime: sampleFinalPlayer.lastMessageTime,
+          validTimestamp: isValidTimestamp(sampleFinalPlayer.lastMessageTime),
+        });
+
+        // Log all players with timestamps
+        const playersWithTimestamps = players.filter(p => p.lastMessageTime);
+        const playersWithoutTimestamps = players.filter(p => !p.lastMessageTime);
+        console.log(`📊 [Online Tab Final] Players with timestamps: ${playersWithTimestamps.length}, without: ${playersWithoutTimestamps.length}`);
+        if (playersWithoutTimestamps.length > 0) {
+          console.log(`⚠️ [Online Tab Final] Players missing timestamps:`,
+            playersWithoutTimestamps.map(p => ({ username: p.username, lastMessage: p.lastMessage?.substring(0, 20) }))
+          );
+        }
+      }
+
       // Log players with notes for debugging
       if (!IS_PROD) {
         const playersWithNotes = players.filter(p => p.notes);
@@ -414,7 +470,7 @@ export function ChatComponent() {
             playersWithNotes.map(p => ({ username: p.username, notes: p.notes?.substring(0, 30) }))
           );
         }
-        
+
         // Log unread counts for debugging
         const playersWithUnread = players.filter(p => (p.unreadCount ?? 0) > 0);
         if (playersWithUnread.length > 0) {
@@ -427,7 +483,31 @@ export function ChatComponent() {
       // For "all-chats" tab: combine activeChatsUsers and allPlayers
       //  FIXED: Merge last message data from activeChats into allPlayers
       const seenUserIds = new Map<number, Player>();
-      
+
+      // DEBUG: Log initial data states for all-chats tab
+      !IS_PROD && console.log(`🔍 [All-Chats Tab] Data sources - WebSocket: ${activeChatsUsers.length}, API: ${allPlayers.length}`);
+
+      // DEBUG: Log sample data from both sources
+      if (!IS_PROD && activeChatsUsers.length > 0) {
+        const sampleWsPlayer = activeChatsUsers[0];
+        console.log(`📊 [All-Chats Tab] Sample WebSocket player:`, {
+          username: sampleWsPlayer.username,
+          lastMessage: sampleWsPlayer.lastMessage?.substring(0, 30),
+          lastMessageTime: sampleWsPlayer.lastMessageTime,
+          validTimestamp: isValidTimestamp(sampleWsPlayer.lastMessageTime),
+        });
+      }
+
+      if (!IS_PROD && allPlayers.length > 0) {
+        const sampleApiPlayer = allPlayers[0];
+        console.log(`📊 [All-Chats Tab] Sample API player:`, {
+          username: sampleApiPlayer.username,
+          lastMessage: sampleApiPlayer.lastMessage?.substring(0, 30),
+          lastMessageTime: sampleApiPlayer.lastMessageTime,
+          validTimestamp: isValidTimestamp(sampleApiPlayer.lastMessageTime),
+        });
+      }
+
       // First, add active chats with last messages (from WebSocket)
       activeChatsUsers.forEach((player: Player) => {
         if (player.user_id) {
@@ -440,6 +520,14 @@ export function ChatComponent() {
         if (player.user_id) {
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
+            //  DEBUG: Log timestamp merge behavior for all-chats
+            !IS_PROD && console.log(`🔄 [All-Chats Tab Merge] Merging timestamps for ${player.username}:`, {
+              existingTime: existing.lastMessageTime,
+              playerTime: player.lastMessageTime,
+              validExistingTime: isValidTimestamp(existing.lastMessageTime),
+              chosenTime: isValidTimestamp(existing.lastMessageTime) ? existing.lastMessageTime : player.lastMessageTime,
+            });
+
             //  FIXED: Prioritize WebSocket data (real-time) over REST API data (stale)
             // Start with WebSocket data, only add missing fields from REST API
             seenUserIds.set(player.user_id, {
@@ -455,12 +543,10 @@ export function ChatComponent() {
               phone: player.phone || existing.phone,
               notes: player.notes || existing.notes, // Preserve notes from REST API
               //  FIXED: Preserve lastMessageTime from REST API if WebSocket doesn't have it
-              // Use WebSocket value if it exists and is valid (not empty), otherwise fall back to REST API
+              // Use WebSocket value if it exists and is valid, otherwise fall back to REST API
               lastMessage: existing.lastMessage || player.lastMessage,
-              lastMessageTime: (existing.lastMessageTime && 
-                                typeof existing.lastMessageTime === 'string' && 
-                                existing.lastMessageTime.trim() !== '') 
-                ? existing.lastMessageTime 
+              lastMessageTime: isValidTimestamp(existing.lastMessageTime)
+                ? existing.lastMessageTime
                 : player.lastMessageTime,
             });
           } else {

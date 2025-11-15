@@ -2,23 +2,11 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { API_BASE_URL } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
+import { isValidTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
-
-/**
- * Validate if a timestamp value is valid and meaningful
- */
-const isValidTimestamp = (timestamp: string | undefined): boolean => {
-  if (!timestamp || timestamp.trim() === '') {
-    return false;
-  }
-
-  // Check if it's a valid date string
-  const date = new Date(timestamp);
-  return !isNaN(date.getTime()) && date.getTime() > 0;
-};
 
 /**
  * Check if two chat objects have meaningful differences
