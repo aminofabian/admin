@@ -1,5 +1,9 @@
 'use client';
 
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Button, useToast } from '@/components/ui';
+import { storage } from '@/lib/utils/storage';
+import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser } from '@/types';
 
 interface NotesDrawerProps {
@@ -7,6 +11,7 @@ interface NotesDrawerProps {
   onClose: () => void;
   selectedPlayer: ChatUser | null;
   notes: string;
+  onNotesSaved?: () => void;
 }
 
 export function NotesDrawer({
@@ -14,7 +19,94 @@ export function NotesDrawer({
   onClose,
   selectedPlayer,
   notes,
+  onNotesSaved,
 }: NotesDrawerProps) {
+  const [editedNotes, setEditedNotes] = useState('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const { addToast } = useToast();
+  const isSavingRef = useRef(false);
+  const lastToastRef = useRef<{ type: string; title: string; timestamp: number } | null>(null);
+
+  // Sync editedNotes with notes from props when drawer opens or notes change
+  useEffect(() => {
+    if (isOpen) {
+      setEditedNotes(notes);
+    }
+  }, [isOpen, notes]);
+
+  const handleSaveNotes = useCallback(async () => {
+    // Prevent double calls
+    if (!selectedPlayer || isSavingNotes || isSavingRef.current) {
+      return;
+    }
+
+    isSavingRef.current = true;
+
+    const token = storage.get(TOKEN_KEY);
+    if (!token) {
+      isSavingRef.current = false;
+      addToast({
+        type: 'error',
+        title: 'Authentication required',
+        description: 'Please sign in again to save notes.',
+      });
+      return;
+    }
+
+    setIsSavingNotes(true);
+    try {
+      const response = await fetch('/api/admin/save-notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          notes: editedNotes,
+          player_id: selectedPlayer.user_id,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const errorMessage =
+          (result && (result.message || result.detail)) ||
+          'Unable to save notes right now.';
+        throw new Error(errorMessage);
+      }
+
+      // Show success toast notification (prevent duplicates)
+      const toastKey = 'success-notes-saved';
+      const now = Date.now();
+      const lastToast = lastToastRef.current;
+      
+      // Only show toast if it's been more than 1 second since the last identical toast
+      if (!lastToast || lastToast.type !== toastKey || now - lastToast.timestamp > 1000) {
+        addToast({
+          type: 'success',
+          title: 'SAVED SUCCESSFULLY',
+          description: result?.message || 'Your notes have been saved.',
+        });
+        lastToastRef.current = { type: toastKey, title: 'You have successfully saved your note', timestamp: now };
+      }
+      
+      // Notify parent component to refresh notes
+      if (onNotesSaved) {
+        onNotesSaved();
+      }
+    } catch (error) {
+      const description = error instanceof Error ? error.message : 'Unknown error';
+      addToast({
+        type: 'error',
+        title: 'Failed to save notes',
+        description,
+      });
+    } finally {
+      setIsSavingNotes(false);
+      isSavingRef.current = false;
+    }
+  }, [selectedPlayer, editedNotes, addToast, onNotesSaved]);
 
   if (!isOpen) return null;
 
@@ -24,11 +116,11 @@ export function NotesDrawer({
       onClick={onClose}
     >
       <div 
-        className="absolute right-0 top-0 h-full w-full max-w-md bg-background shadow-2xl animate-in slide-in-from-right duration-300"
+        className="absolute right-0 top-0 h-full w-full max-w-md bg-background shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="border-b border-border/50 p-4 flex items-center justify-between">
+        <div className="border-b border-border/50 p-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -47,7 +139,7 @@ export function NotesDrawer({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {selectedPlayer ? (
             <div className="space-y-4">
               {/* Player Info */}
@@ -63,25 +155,23 @@ export function NotesDrawer({
                 </div>
               </div>
 
-              {/* Notes Content */}
+              {/* Notes Editor */}
               <div>
                 <label className="text-sm font-medium text-muted-foreground block mb-2">
                   Notes
                 </label>
-                {notes ? (
-                  <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
-                    <p className="text-sm text-foreground whitespace-pre-wrap">
-                      {notes}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-8 text-center">
-                    <svg className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="text-sm text-muted-foreground">No notes available for this player</p>
-                  </div>
-                )}
+                <textarea
+                  value={editedNotes}
+                  onChange={(e) => setEditedNotes(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                      e.preventDefault();
+                      handleSaveNotes();
+                    }
+                  }}
+                  placeholder="Add private notes about this player..."
+                  className="w-full min-h-[200px] p-3 border border-border rounded-lg bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-muted-foreground"
+                />
               </div>
             </div>
           ) : (
@@ -93,6 +183,75 @@ export function NotesDrawer({
             </div>
           )}
         </div>
+
+        {/* Footer with Action Buttons */}
+        {selectedPlayer && (
+          <div className="border-t border-border/50 p-4 flex-shrink-0">
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="primary" 
+                className="w-full text-sm py-2.5" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSaveNotes();
+                }}
+                disabled={isSavingNotes}
+                type="button"
+              >
+                {isSavingNotes ? (
+                  <span className="flex items-center justify-center">
+                    <svg 
+                      className="w-4 h-4 mr-2 animate-spin" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                      <path 
+                        className="opacity-75" 
+                        d="M4 12a8 8 0 018-8" 
+                        strokeWidth="4" 
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    Saving...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center">
+                    <svg 
+                      className="w-4 h-4 mr-2" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M5 13l4 4L19 7" 
+                      />
+                    </svg>
+                    Save
+                  </span>
+                )}
+              </Button>
+              <Button 
+                variant="secondary" 
+                className="w-full text-sm py-2.5" 
+                onClick={() => setEditedNotes('')}
+                disabled={isSavingNotes}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

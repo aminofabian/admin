@@ -203,11 +203,9 @@ export function ChatComponent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [availability, setAvailability] = useState(true);
-  const [editedNotes, setEditedNotes] = useState(''); // Local state for editing notes
   const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const [isPinnedMessagesExpanded, setIsPinnedMessagesExpanded] = useState(false);
-  const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileFormData, setProfileFormData] = useState({
@@ -789,10 +787,6 @@ export function ChatComponent() {
     }
   }, [selectedPlayer]);
 
-  // Sync editedNotes with notes from API
-  useEffect(() => {
-    setEditedNotes(notes);
-  }, [notes]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -971,62 +965,10 @@ export function ChatComponent() {
     }
   }, [selectedPlayer, pendingPinMessageId, addToast, updateMessagePinnedState, refreshMessages]);
 
-  const handleSaveNotes = useCallback(async () => {
-    if (!selectedPlayer || isSavingNotes) {
-      return;
-    }
-
-    const token = storage.get(TOKEN_KEY);
-    if (!token) {
-      addToast({
-        type: 'error',
-        title: 'Authentication required',
-        description: 'Please sign in again to save notes.',
-      });
-      return;
-    }
-
-    setIsSavingNotes(true);
-    try {
-      const response = await fetch('/api/admin/save-notes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          notes: editedNotes,
-          player_id: selectedPlayer.user_id,
-        }),
-      });
-
-      const result = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        const errorMessage =
-          (result && (result.message || result.detail)) ||
-          'Unable to save notes right now.';
-        throw new Error(errorMessage);
-      }
-
-      addToast({
-        type: 'success',
-        title: result?.message || 'Notes saved successfully',
-      });
-      
-      // Refresh messages to get updated notes from backend
-      await refreshMessages();
-    } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to save notes',
-        description,
-      });
-    } finally {
-      setIsSavingNotes(false);
-    }
-  }, [selectedPlayer, editedNotes, isSavingNotes, addToast, refreshMessages]);
+  const handleNotesSaved = useCallback(async () => {
+    // Refresh messages to get updated notes from backend
+    await refreshMessages();
+  }, [refreshMessages]);
 
   const handleOpenEditProfile = useCallback(() => {
     if (!selectedPlayer) return;
@@ -1661,20 +1603,18 @@ export function ChatComponent() {
 
 {/* Right Column - Player Info */}
 {selectedPlayer && (
-  <PlayerInfoSidebar
-    selectedPlayer={selectedPlayer}
-    isConnected={isConnected}
-    mobileView={mobileView}
-    setMobileView={setMobileView}
-    notes={editedNotes}
-    setNotes={setEditedNotes}
-    isSavingNotes={isSavingNotes}
-    onNavigateToPlayer={handleNavigateToPlayer}
-    onOpenEditBalance={handleOpenEditBalance}
-    onOpenEditProfile={handleOpenEditProfile}
-    onOpenAddGame={handleOpenAddGame}
-    onSaveNotes={handleSaveNotes}
-  />
+            <PlayerInfoSidebar
+              selectedPlayer={selectedPlayer}
+              isConnected={isConnected}
+              mobileView={mobileView}
+              setMobileView={setMobileView}
+              notes={notes}
+              onNavigateToPlayer={handleNavigateToPlayer}
+              onOpenEditBalance={handleOpenEditBalance}
+              onOpenEditProfile={handleOpenEditProfile}
+              onOpenAddGame={handleOpenAddGame}
+              onOpenNotesDrawer={() => setIsNotesDrawerOpen(true)}
+            />
 )}
 
 {/* Modals */}
@@ -1702,7 +1642,8 @@ export function ChatComponent() {
   isOpen={isNotesDrawerOpen}
   onClose={() => setIsNotesDrawerOpen(false)}
   selectedPlayer={selectedPlayer as ChatUser}
-  notes={editedNotes}
+  notes={notes}
+  onNotesSaved={handleNotesSaved}
 />
 
 {selectedPlayer && (

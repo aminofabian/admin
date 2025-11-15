@@ -61,7 +61,7 @@ function ToastContainer() {
   const { toasts, removeToast } = useToast();
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-4 z-[99999] space-y-2 pointer-events-none">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
       ))}
@@ -134,6 +134,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
         border rounded-lg px-4 py-3 shadow-lg max-w-sm w-full
         transform transition-all duration-300 ease-in-out
         ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
+        pointer-events-auto
       `}
     >
       <div className="flex items-start gap-3">

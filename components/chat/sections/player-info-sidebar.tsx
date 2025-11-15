@@ -16,13 +16,11 @@ interface PlayerInfoSidebarProps {
   mobileView: 'list' | 'chat' | 'info';
   setMobileView: (view: 'list' | 'chat' | 'info') => void;
   notes: string;
-  setNotes: (notes: string) => void;
-  isSavingNotes: boolean;
   onNavigateToPlayer: () => void;
   onOpenEditBalance: () => void;
   onOpenEditProfile: () => void;
   onOpenAddGame: () => void;
-  onSaveNotes: () => void;
+  onOpenNotesDrawer: () => void;
 }
 
 export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
@@ -31,13 +29,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   mobileView,
   setMobileView,
   notes,
-  setNotes,
-  isSavingNotes,
   onNavigateToPlayer,
   onOpenEditBalance,
   onOpenEditProfile,
   onOpenAddGame,
-  onSaveNotes,
+  onOpenNotesDrawer,
 }: PlayerInfoSidebarProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const { games, isLoading: isLoadingGames } = usePlayerGames(selectedPlayer.user_id || null);
@@ -526,54 +522,38 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           Add New Game
         </Button>
 
-        {/* Notes Section */}
+        {/* Notes Section - Read Only */}
         <div className="rounded-lg bg-card border border-border p-3 space-y-2 shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+              <h4 className="font-semibold text-sm text-foreground">Notes</h4>
+            </div>
+            <button
+              onClick={onOpenNotesDrawer}
+              className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
+              Edit
+            </button>
+          </div>
+          {notes ? (
+            <div className="p-2.5 border border-border/50 rounded-md bg-muted/30 min-h-[80px]">
+              <p className="text-xs text-foreground whitespace-pre-wrap break-words">
+                {notes}
+              </p>
             </div>
-            <h4 className="font-semibold text-sm text-foreground">Notes</h4>
-          </div>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-                e.preventDefault();
-                onSaveNotes();
-              }
-            }}
-            placeholder="Add private notes about this player..."
-            className="w-full min-h-[80px] p-2.5 border border-border rounded-md bg-background dark:bg-background text-foreground text-xs resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-muted-foreground"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <Button 
-              variant="primary" 
-              className="w-full text-xs py-2" 
-              onClick={onSaveNotes}
-              disabled={isSavingNotes}
-            >
-              {isSavingNotes ? (
-                <svg className="w-3.5 h-3.5 mr-1.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                  <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-              {isSavingNotes ? 'Saving...' : 'Save'}
-            </Button>
-            <Button variant="secondary" className="w-full text-xs py-2" onClick={() => setNotes('')}>
-              <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Clear
-            </Button>
-          </div>
+          ) : (
+            <div className="p-4 text-center border border-border/50 rounded-md bg-muted/20 min-h-[80px] flex items-center justify-center">
+              <p className="text-xs text-muted-foreground">No notes available</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
