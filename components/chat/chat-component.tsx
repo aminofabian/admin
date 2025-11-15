@@ -1310,10 +1310,11 @@ export function ChatComponent() {
     }
 
     // Rule 1: Initial load → Force scroll to bottom (bypasses cooldown)
+    // Use instant scroll when switching players to ensure we reach absolute bottom
     if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0 && !isHistoryLoadingMessages) {
       !IS_PROD && console.log('📍 Initial scroll condition met - scrolling to latest');
       hasScrolledToInitialLoadRef.current = true;
-      scrollToBottom(true); // Force initial scroll
+      scrollToBottom(true, true); // Force + instant initial scroll
       return;
     }
 
@@ -1340,10 +1341,11 @@ export function ChatComponent() {
     }
 
     // Rule 1: Initial load → Force scroll to bottom (bypasses cooldown)
+    // Use instant scroll when switching players to ensure we reach absolute bottom
     if (wasLoading && !isHistoryLoadingMessages && !hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
       hasScrolledToInitialLoadRef.current = true;
       !IS_PROD && console.log('📍 Initial history load complete, scrolling to latest');
-      scrollToBottom(true); // Force initial scroll
+      scrollToBottom(true, true); // Force + instant initial scroll
     }
   }, [isHistoryLoadingMessages, wsMessages.length, scrollToBottom]);
 

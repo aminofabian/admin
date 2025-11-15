@@ -18,7 +18,7 @@ interface UseScrollManagementProps {
 
 interface UseScrollManagementReturn {
   isUserAtBottom: boolean;
-  scrollToBottom: (force?: boolean) => void;
+  scrollToBottom: (force?: boolean, instant?: boolean) => void;
   handleScroll: () => void;
 }
 
@@ -107,7 +107,7 @@ export function useScrollManagement({
   }, [checkIfAtBottom, clearCooldown, startCooldown]);
 
   // Scroll to bottom function
-  const scrollToBottom = useCallback((force = false) => {
+  const scrollToBottom = useCallback((force = false, instant = false) => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
@@ -125,18 +125,36 @@ export function useScrollManagement({
     }
 
     isAutoScrollingRef.current = true;
-    // Always use smooth scroll for better UX, but force bypasses cooldown
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: 'smooth',
-    });
-
-    // Reset auto-scroll flag after animation
+    
+    // When switching players or forcing, use instant scroll to ensure we reach absolute bottom
+    // Use double requestAnimationFrame to ensure DOM is fully rendered
     requestAnimationFrame(() => {
-      setTimeout(() => {
-        isAutoScrollingRef.current = false;
-        evaluateScrollPosition();
-      }, 300);
+      requestAnimationFrame(() => {
+        // Set scroll position directly to ensure we reach absolute bottom
+        container.scrollTop = container.scrollHeight;
+        
+        // If not instant, use smooth scroll for better UX
+        if (!instant) {
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth',
+          });
+        }
+        
+        // Verify we're at the bottom after a brief delay
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            // Force to absolute bottom one more time to handle any layout shifts
+            container.scrollTop = container.scrollHeight;
+            
+            // Reset auto-scroll flag
+            setTimeout(() => {
+              isAutoScrollingRef.current = false;
+              evaluateScrollPosition();
+            }, instant ? 0 : 300);
+          });
+        });
+      });
     });
   }, [checkIfAtBottom, checkCooldown, clearCooldown, evaluateScrollPosition]);
 
@@ -326,13 +344,33 @@ export function useScrollManagement({
     }, LOAD_DEBOUNCE_MS);
   }, [evaluateScrollPosition, maybeLoadOlderMessages]);
 
-  // Reset state when player changes
+  // Reset state when player changes and scroll to bottom instantly
   useEffect(() => {
     if (selectedPlayerId !== previousPlayerIdRef.current) {
       clearCooldown();
       setIsUserAtBottom(true);
       hasShownEndOfHistoryToastRef.current = false;
       previousPlayerIdRef.current = selectedPlayerId;
+      
+      // When switching players, wait for messages to load then scroll instantly to bottom
+      // Use multiple requestAnimationFrame to ensure DOM is fully rendered
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const container = messagesContainerRef.current;
+            if (container) {
+              // Force instant scroll to absolute bottom
+              container.scrollTop = container.scrollHeight;
+              // Verify after a brief moment
+              setTimeout(() => {
+                if (container) {
+                  container.scrollTop = container.scrollHeight;
+                }
+              }, 50);
+            }
+          });
+        });
+      });
     }
   }, [selectedPlayerId, clearCooldown]);
 
