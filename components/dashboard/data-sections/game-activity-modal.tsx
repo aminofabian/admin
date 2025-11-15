@@ -38,7 +38,7 @@ export function GameActivityModal({
       updateQueue(updatedQueue);
     }, [updateQueue]),
     onConnect: useCallback(() => {
-      console.log('✅ [Modal] WebSocket connected - real-time updates enabled');
+      console.log(' [Modal] WebSocket connected - real-time updates enabled');
     }, []),
     onDisconnect: useCallback(() => {
       console.log('🔌 [Modal] WebSocket disconnected');

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
-    // ✅ Using new JWT-authenticated endpoint
+    //  Using new JWT-authenticated endpoint
     // Use chatroom_id if available, otherwise use user_id
     const identifierParam = chatroomId 
       ? `chatroom_id=${chatroomId}` 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     };
     
-    // ✅ Use JWT authentication (Authorization header)
+    //  Use JWT authentication (Authorization header)
     if (authHeader) {
       headers['Authorization'] = authHeader;
     } else {
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`✅ Received ${data.messages?.length || 0} purchase records from backend`);
+    console.log(` Received ${data.messages?.length || 0} purchase records from backend`);
     
     return NextResponse.json(data);
   } catch (error) {

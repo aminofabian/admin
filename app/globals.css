@@ -570,7 +570,7 @@ select {
   color: rgb(255, 255, 255) !important;
 }
 
-/* ✅ SMOOTH SCROLL: Enhanced scroll animations for buttery smooth chat experience */
+/*  SMOOTH SCROLL: Enhanced scroll animations for buttery smooth chat experience */
 
 /* Message slide-in animations with hardware acceleration */
 @keyframes slide-in-from-bottom-4 {

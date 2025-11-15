@@ -11,7 +11,7 @@ const VIEWPORT_FILL_THRESHOLD = 1.0; // Load until viewport is 100% filled with 
 const SCROLLBAR_RESET_THRESHOLD = 50; // When scrollTop <= this, reset scrollbar to buffer
 const SCROLLBAR_BUFFER_POSITION = SPACER_HEIGHT + TOP_BUFFER; // Position to reset scrollbar to
 
-// ✅ SMOOTH SCROLL OPTIMIZATIONS
+//  SMOOTH SCROLL OPTIMIZATIONS
 const SMOOTH_SCROLL_EASING = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'; // iOS-style easing
 const SCROLL_ANIMATION_DURATION = 250; // Shorter duration for snappier feel
 const JUMP_DETECTION_THRESHOLD = 300; // Detect if user jumped (vs gradual scroll)
@@ -31,7 +31,7 @@ interface UseScrollManagementReturn {
   isUserAtBottom: boolean;
   scrollToBottom: (force?: boolean, instant?: boolean) => void;
   handleScroll: () => void;
-  // ✅ SMOOTH SCROLL: Expose smooth scroll functionality for external use
+  //  SMOOTH SCROLL: Expose smooth scroll functionality for external use
   smoothScrollToPosition: (targetScrollTop: number, duration?: number) => void;
 }
 
@@ -56,10 +56,10 @@ export function useScrollManagement({
   const scrollEndTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingOlderMessagesRef = useRef(false);
 
-  // ✅ USER CONTROL: Track if user has manually scrolled (takes full control)
+  //  USER CONTROL: Track if user has manually scrolled (takes full control)
   const hasUserManuallyScrolledRef = useRef(false);
 
-  // ✅ SMOOTH SCROLL: Enhanced scroll tracking for buttery smoothness
+  //  SMOOTH SCROLL: Enhanced scroll tracking for buttery smoothness
   const scrollVelocityRef = useRef<number>(0);
   const lastScrollTopRef = useRef<number>(0);
   const scrollAccelerationRef = useRef<number>(0);
@@ -76,16 +76,16 @@ export function useScrollManagement({
   const loadDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasShownEndOfHistoryToastRef = useRef(false);
   
-  // ✅ INCREMENTAL LOADING: Track incremental loading state
+  //  INCREMENTAL LOADING: Track incremental loading state
   const isIncrementalLoadingRef = useRef(false);
   const incrementalLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // ✅ SCROLLBAR RESET: Track if we're resetting scrollbar (to prevent visual jump)
+  //  SCROLLBAR RESET: Track if we're resetting scrollbar (to prevent visual jump)
   const isResettingScrollbarRef = useRef(false);
   const lastScrollTopBeforeResetRef = useRef<number>(0);
   const contentTransformRef = useRef<number>(0); // Track content transform offset
   
-  // ✅ INITIAL LOAD: Track if user has scrolled to initial load
+  //  INITIAL LOAD: Track if user has scrolled to initial load
   const hasScrolledToInitialLoadRef = useRef(false);
   
   // Previous player tracking
@@ -133,7 +133,7 @@ export function useScrollManagement({
     const isAtBottom = checkIfAtBottom();
     setIsUserAtBottom(isAtBottom);
 
-    // ✅ USER CONTROL: Track manual scrolling behavior
+    //  USER CONTROL: Track manual scrolling behavior
     if (!isAutoScrollingRef.current) {
       // User manually scrolled (not programmatic)
       if (!isAtBottom) {
@@ -157,7 +157,7 @@ export function useScrollManagement({
     }
   }, [checkIfAtBottom, clearCooldown, startCooldown]);
 
-  // ✅ SMOOTH SCROLL: Smooth animation to target position
+  //  SMOOTH SCROLL: Smooth animation to target position
   const smoothScrollToPosition = useCallback((targetScrollTop: number, duration: number = SCROLL_ANIMATION_DURATION) => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -203,7 +203,7 @@ export function useScrollManagement({
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    // ✅ USER CONTROL: If user has manually scrolled, only allow forced scrolls
+    //  USER CONTROL: If user has manually scrolled, only allow forced scrolls
     // Forced scrolls are: user clicks button, user sends message, initial load
     // Non-forced scrolls (auto-scroll for new messages) are blocked
     if (!force && hasUserManuallyScrolledRef.current) {
@@ -222,7 +222,7 @@ export function useScrollManagement({
     // Rule 1, 2, 6: Force scroll bypasses cooldown
     if (force) {
       clearCooldown();
-      // ✅ USER CONTROL: When user explicitly scrolls to bottom (button click, sends message),
+      //  USER CONTROL: When user explicitly scrolls to bottom (button click, sends message),
       // reset the manual scroll flag so new messages can auto-scroll again
       // This means: "User wants to be at bottom, so show new messages automatically"
       hasUserManuallyScrolledRef.current = false;
@@ -230,9 +230,9 @@ export function useScrollManagement({
 
     isAutoScrollingRef.current = true;
 
-    // ✅ TARGETED LATEST MESSAGE: Only use aggressive approach for specific cases
+    //  TARGETED LATEST MESSAGE: Only use aggressive approach for specific cases
     if (instant && (force || !hasScrolledToInitialLoadRef.current)) {
-      // ✅ ONLY for initial load and player switching - use aggressive approach
+      //  ONLY for initial load and player switching - use aggressive approach
       const targetScrollTop = container.scrollHeight;
 
       // Multiple approaches for guaranteed latest message visibility
@@ -258,7 +258,7 @@ export function useScrollManagement({
         evaluateScrollPosition();
       }, 10);
     } else {
-      // ✅ NATURAL SCROLL: Use smooth scrolling for normal interactions
+      //  NATURAL SCROLL: Use smooth scrolling for normal interactions
       const targetScrollTop = container.scrollHeight;
 
       if (instant) {
@@ -269,7 +269,7 @@ export function useScrollManagement({
           evaluateScrollPosition();
         }, 0);
       } else {
-        // ✅ SMOOTH SCROLL: Use custom smooth animation for regular use
+        //  SMOOTH SCROLL: Use custom smooth animation for regular use
         smoothScrollToPosition(targetScrollTop, SCROLL_ANIMATION_DURATION);
 
         // Reset auto-scroll flag after animation
@@ -281,7 +281,7 @@ export function useScrollManagement({
     }
   }, [checkIfAtBottom, checkCooldown, clearCooldown, evaluateScrollPosition, smoothScrollToPosition]);
 
-  // ✅ INCREMENTAL LOADING: Check if viewport needs more content above
+  //  INCREMENTAL LOADING: Check if viewport needs more content above
   const checkIfViewportNeedsMoreContent = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return false;
@@ -309,7 +309,7 @@ export function useScrollManagement({
     return isNearTop && contentAbove < minContentAbove;
   }, []);
 
-  // ✅ INCREMENTAL LOADING: Load a single batch and check if more is needed
+  //  INCREMENTAL LOADING: Load a single batch and check if more is needed
   const loadSingleBatch = useCallback(async (): Promise<{ added: number; needsMore: boolean }> => {
     const container = messagesContainerRef.current;
     if (!container) return { added: 0, needsMore: false };
@@ -490,7 +490,7 @@ export function useScrollManagement({
     }
   }, [loadOlderMessages, hasMoreHistory, isHistoryLoadingMessages, checkIfViewportNeedsMoreContent]);
 
-  // ✅ INCREMENTAL LOADING: Progressive loading that fills viewport incrementally
+  //  INCREMENTAL LOADING: Progressive loading that fills viewport incrementally
   const loadIncrementally = useCallback(async () => {
     if (isIncrementalLoadingRef.current) {
       return; // Already loading incrementally
@@ -563,11 +563,11 @@ export function useScrollManagement({
       return;
     }
 
-    // ✅ INCREMENTAL LOADING: Use progressive loading to fill viewport incrementally
+    //  INCREMENTAL LOADING: Use progressive loading to fill viewport incrementally
     void loadIncrementally();
   }, [hasMoreHistory, loadIncrementally]);
 
-  // ✅ SCROLLBAR RESET: Reset scrollbar to buffer position when reaching top
+  //  SCROLLBAR RESET: Reset scrollbar to buffer position when reaching top
   // Only the scrollbar moves - content stays visually in place using CSS transform
   const resetScrollbarToBuffer = useCallback(() => {
     const container = messagesContainerRef.current;
@@ -586,7 +586,7 @@ export function useScrollManagement({
     isResettingScrollbarRef.current = true;
     lastScrollTopBeforeResetRef.current = scrollTop;
 
-    // ✅ CRITICAL: Calculate offset needed to keep content visually in place
+    //  CRITICAL: Calculate offset needed to keep content visually in place
     // When we reset scrollbar from scrollTop to SCROLLBAR_BUFFER_POSITION,
     // the browser would move content DOWN by (SCROLLBAR_BUFFER_POSITION - scrollTop)
     // To prevent this, we offset content UP by the same amount
@@ -602,7 +602,7 @@ export function useScrollManagement({
       return;
     }
 
-    // ✅ CRITICAL: Apply hardware-accelerated transform synchronously
+    //  CRITICAL: Apply hardware-accelerated transform synchronously
     // Use translate3d for hardware acceleration and ensure atomic operation
     // Step 1: Apply transform with hardware acceleration (translate3d)
     contentWrapper.style.transition = 'none';
@@ -649,7 +649,7 @@ export function useScrollManagement({
 
     const scrollTop = container.scrollTop;
 
-    // ✅ SMOOTH SCROLL: Enhanced velocity and acceleration tracking
+    //  SMOOTH SCROLL: Enhanced velocity and acceleration tracking
     const deltaTime = now - lastScrollTimeRef.current;
     const deltaScroll = scrollTop - lastScrollTopRef.current;
     const currentVelocity = Math.abs(deltaScroll) / Math.max(deltaTime, 1);
@@ -666,7 +666,7 @@ export function useScrollManagement({
     // Update tracking refs
     lastScrollTopRef.current = scrollTop;
 
-    // ✅ SCROLLBAR RESET: Remove transform if user scrolls away from buffer position
+    //  SCROLLBAR RESET: Remove transform if user scrolls away from buffer position
     // When user scrolls, we need to remove the transform that was keeping content in place
     if (contentTransformRef.current !== 0 && scrollTop > SCROLLBAR_BUFFER_POSITION + 50) {
       const contentWrapper = container.firstElementChild as HTMLElement;
@@ -728,20 +728,20 @@ export function useScrollManagement({
     }, adaptiveDebounce);
   }, [evaluateScrollPosition, maybeLoadOlderMessages]);
 
-  // ✅ OPTIMIZED: Reset state when player changes and scroll to latest message
+  //  OPTIMIZED: Reset state when player changes and scroll to latest message
   useEffect(() => {
     if (selectedPlayerId !== previousPlayerIdRef.current) {
       clearCooldown();
       setIsUserAtBottom(true);
       hasShownEndOfHistoryToastRef.current = false;
-      // ✅ USER CONTROL: Reset manual scroll flag when switching players
+      //  USER CONTROL: Reset manual scroll flag when switching players
       // New conversation = fresh start, allow auto-scroll initially
       hasUserManuallyScrolledRef.current = false;
-      // ✅ INITIAL LOAD: Reset initial load flag for new player
+      //  INITIAL LOAD: Reset initial load flag for new player
       hasScrolledToInitialLoadRef.current = false;
       previousPlayerIdRef.current = selectedPlayerId;
 
-      // ✅ TARGETED LATEST MESSAGE: Only scroll to bottom for player switching
+      //  TARGETED LATEST MESSAGE: Only scroll to bottom for player switching
       // Use a single, clean approach that preserves natural scroll behavior
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -763,7 +763,7 @@ export function useScrollManagement({
     }
   }, [selectedPlayerId, clearCooldown]);
 
-  // ✅ SMOOTH SCROLL: Cleanup function for animation frames and timers
+  //  SMOOTH SCROLL: Cleanup function for animation frames and timers
   const cleanupAnimations = useCallback(() => {
     // Cancel any ongoing smooth scroll animation
     if (scrollAnimationFrameRef.current !== null) {
@@ -799,13 +799,13 @@ export function useScrollManagement({
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    // ✅ SMOOTH SCROLL: Optimize container for hardware acceleration
+    //  SMOOTH SCROLL: Optimize container for hardware acceleration
     container.style.scrollBehavior = 'auto'; // We'll handle smooth scrolling ourselves
     container.style.willChange = 'scroll-position';
     container.style.transform = 'translateZ(0)'; // Force hardware acceleration
     container.style.backfaceVisibility = 'hidden'; // Prevent flicker
 
-    // ✅ SMOOTH SCROLL: Use passive listener for better performance
+    //  SMOOTH SCROLL: Use passive listener for better performance
     const scrollListener = () => handleScroll();
     container.addEventListener('scroll', scrollListener, { passive: true, capture: false });
 
@@ -815,7 +815,7 @@ export function useScrollManagement({
     return () => {
       container.removeEventListener('scroll', scrollListener);
 
-      // ✅ SMOOTH SCROLL: Clean up all animations and timers
+      //  SMOOTH SCROLL: Clean up all animations and timers
       cleanupAnimations();
 
       // Reset container styles

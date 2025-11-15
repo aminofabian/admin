@@ -83,7 +83,7 @@ export default function TransactionsPage() {
       delete filterUpdate.agent_id;
     }
 
-    console.log('✅ Setting advanced filters from URL (clearing type/txn filters):', filterUpdate);
+    console.log(' Setting advanced filters from URL (clearing type/txn filters):', filterUpdate);
     setAdvancedFilters(filterUpdate);
   }, [searchParams, setAdvancedFilters]);
 

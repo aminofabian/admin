@@ -85,7 +85,7 @@ export function useViewportMessages({
 
     const atBottom = isUserAtBottom();
 
-    // ✅ CRITICAL FIX: If user is at bottom and new messages arrive, immediately expand range
+    //  CRITICAL FIX: If user is at bottom and new messages arrive, immediately expand range
     // This fixes the issue where new messages don't show for long histories
     if (atBottom && messages.length > visibleRange.end) {
       const viewportCapacity = calculateViewportCapacity();
@@ -103,7 +103,7 @@ export function useViewportMessages({
       return;
     }
 
-    // ✅ SMART EXPANSION: If user is not at bottom but new messages arrive,
+    //  SMART EXPANSION: If user is not at bottom but new messages arrive,
     // expand the range slightly to indicate new messages are available
     if (!atBottom && messages.length > visibleRange.end) {
       // Increase bottom spacer to show new messages are available
@@ -132,7 +132,7 @@ export function useViewportMessages({
       const clientHeight = container.clientHeight;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
-      // ✅ PERFORMANCE: Skip expensive calculations if scroll position hasn't changed significantly
+      //  PERFORMANCE: Skip expensive calculations if scroll position hasn't changed significantly
       const scrollDelta = Math.abs(scrollTop - lastScrollTopRef.current);
       if (scrollDelta < 5 && scrollDirectionRef.current !== null) {
         return; // Skip if minimal scroll change
@@ -149,7 +149,7 @@ export function useViewportMessages({
       const viewportCapacity = calculateViewportCapacity();
       if (viewportCapacity === 0) return;
 
-      // ✅ PERFORMANCE: Early return for common scenarios to avoid unnecessary calculations
+      //  PERFORMANCE: Early return for common scenarios to avoid unnecessary calculations
       const maxScroll = scrollHeight - clientHeight;
       const scrollRatio = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
@@ -161,7 +161,7 @@ export function useViewportMessages({
       setVisibleRange(prev => {
         // When scrolling up, ensure viewport shows appropriate messages
         if (scrollDirectionRef.current === 'up') {
-          // ✅ IMPROVED: Expand viewport range when scrolling up at any position
+          //  IMPROVED: Expand viewport range when scrolling up at any position
           // Calculate what should be visible based on current scroll position
           const estimatedFirstVisible = Math.floor(scrollTop / ESTIMATED_MESSAGE_HEIGHT);
           const estimatedLastVisible = estimatedFirstVisible + viewportCapacity;
@@ -181,7 +181,7 @@ export function useViewportMessages({
         
         // When scrolling down, ensure viewport shows appropriate messages
         if (scrollDirectionRef.current === 'down') {
-          // ✅ IMPROVED: Expand viewport range when scrolling down at any position
+          //  IMPROVED: Expand viewport range when scrolling down at any position
           // Calculate what should be visible based on current scroll position
           const estimatedFirstVisible = Math.floor(scrollTop / ESTIMATED_MESSAGE_HEIGHT);
           const estimatedLastVisible = estimatedFirstVisible + viewportCapacity;
@@ -199,7 +199,7 @@ export function useViewportMessages({
           }
         }
         
-        // ✅ CRITICAL: Enhanced new message detection and visibility
+        //  CRITICAL: Enhanced new message detection and visibility
         // This ensures new messages are always visible when user is at bottom
         const atBottom = distanceFromBottom <= 100;
         if (atBottom && messages.length > prev.end) {
@@ -212,7 +212,7 @@ export function useViewportMessages({
           };
         }
 
-        // ✅ AGGRESSIVE EXPANSION: If new messages arrived and we're near bottom, expand range
+        //  AGGRESSIVE EXPANSION: If new messages arrived and we're near bottom, expand range
         const nearBottom = distanceFromBottom <= 200; // More generous threshold
         if (nearBottom && messages.length > prev.end) {
           // User is near bottom - expand range to include new messages

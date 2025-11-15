@@ -15,7 +15,7 @@ const stripHtml = (html: string): string => {
 
 const MAX_UNREAD_BADGE_COUNT = 99;
 
-// ✅ Memoized player item component to prevent unnecessary re-renders
+//  Memoized player item component to prevent unnecessary re-renders
 interface PlayerItemProps {
   player: ChatUser;
   isSelected: boolean;
@@ -132,7 +132,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
       </button>
   );
 }, (prevProps, nextProps) => {
-  // ✅ Custom comparison: only re-render if relevant fields changed
+  //  Custom comparison: only re-render if relevant fields changed
   return (
     prevProps.player.user_id === nextProps.player.user_id &&
     prevProps.player.lastMessage === nextProps.player.lastMessage &&

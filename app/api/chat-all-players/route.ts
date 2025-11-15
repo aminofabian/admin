@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`✅ Received ${data.results?.length || 0} players from backend (total count: ${data.count || 0})`);
+    console.log(` Received ${data.results?.length || 0} players from backend (total count: ${data.count || 0})`);
     
     return NextResponse.json(data);
   } catch (error) {

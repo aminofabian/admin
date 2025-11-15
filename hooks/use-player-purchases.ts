@@ -20,7 +20,7 @@ export const usePlayerPurchases = (chatroomId: string | number | null) => {
       try {
         console.log('🎯 usePlayerPurchases: Fetching for chatroom ID:', chatroomId);
         const data = await playersApi.purchases(chatroomId);
-        console.log('✅ usePlayerPurchases: Got purchases:', data);
+        console.log(' usePlayerPurchases: Got purchases:', data);
         setPurchases(data);
       } catch (err) {
         console.error('❌ Failed to fetch player purchases:', err);

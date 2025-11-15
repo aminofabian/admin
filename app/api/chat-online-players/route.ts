@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`✅ Received online players data from backend:`, JSON.stringify(data).substring(0, 500));
+    console.log(` Received online players data from backend:`, JSON.stringify(data).substring(0, 500));
     
     return NextResponse.json(data);
   } catch (error) {

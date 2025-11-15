@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       _status: response.status, // Include original status
     });
 
-    // ✅ CRITICAL: Forward ALL Set-Cookie headers from Django to browser
+    //  CRITICAL: Forward ALL Set-Cookie headers from Django to browser
     // Django sends multiple cookies (sessionid, csrftoken, etc.)
     // Must use getSetCookie() to get all of them, not just the first one
     const setCookieHeaders = response.headers.getSetCookie?.() || [];

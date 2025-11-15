@@ -685,7 +685,7 @@ export default function AgentsDashboard() {
       
       if (response.count === 0) {
         // No transactions found - show toast notification and stay on page
-        console.log('✅ Showing toast notification for no transactions');
+        console.log(' Showing toast notification for no transactions');
         addToast({
           type: 'info',
           title: 'No transactions found',

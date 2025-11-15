@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const existingUuid = storage.get(PROJECT_UUID_KEY);
       if (existingUuid && !forceRefresh) {
-        console.log('✅ Using cached project UUID:', existingUuid);
+        console.log(' Using cached project UUID:', existingUuid);
         return existingUuid;
       }
 
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                    response.uuid;
       
       if (uuid) {
-        console.log('✅ Project UUID fetched and stored successfully:', uuid);
+        console.log(' Project UUID fetched and stored successfully:', uuid);
         storage.set(PROJECT_UUID_KEY, uuid);
         return uuid;
       }

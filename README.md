@@ -51,16 +51,16 @@ admin/
 
 This project follows strict coding standards:
 
-- ✅ **No More Than 3 Nesting Levels** - Keep code flat and readable
-- ✅ **Functions ≤ 40 lines** - Each function fits on one screen
-- ✅ **Clear Naming** - Code should be self-documenting
-- ✅ **One Export per File** - Single responsibility principle
-- ✅ **No Magic Numbers** - Use constants instead
-- ✅ **Test Logic** - Business logic should be tested
-- ✅ **Dumb Components** - Push state to containers/hooks
-- ✅ **DRY (Don't Repeat Yourself)** - But not at clarity's cost
-- ✅ **ESLint & Prettier** - Automated code quality
-- ✅ **Explicit Side Effects** - Clear separation of concerns
+-  **No More Than 3 Nesting Levels** - Keep code flat and readable
+-  **Functions ≤ 40 lines** - Each function fits on one screen
+-  **Clear Naming** - Code should be self-documenting
+-  **One Export per File** - Single responsibility principle
+-  **No Magic Numbers** - Use constants instead
+-  **Test Logic** - Business logic should be tested
+-  **Dumb Components** - Push state to containers/hooks
+-  **DRY (Don't Repeat Yourself)** - But not at clarity's cost
+-  **ESLint & Prettier** - Automated code quality
+-  **Explicit Side Effects** - Clear separation of concerns
 
 ## Getting Started
 
@@ -131,16 +131,16 @@ Different roles have access to different features:
 
 | Feature | Superadmin | Company | Manager | Agent | Staff | Player |
 |---------|------------|---------|---------|-------|-------|--------|
-| Companies | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Managers | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Agents | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Staff | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Players | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Games | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Transactions | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Bonuses | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Banners | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Affiliates | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Companies |  | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Managers |  |  | ❌ | ❌ | ❌ | ❌ |
+| Agents |  |  | ❌ | ❌ | ❌ | ❌ |
+| Staff |  |  | ❌ | ❌ | ❌ | ❌ |
+| Players |  |  |  | ❌ | ❌ | ❌ |
+| Games |  |  |  | ❌ | ❌ | ❌ |
+| Transactions |  |  |  | ❌ | ❌ | ❌ |
+| Bonuses |  |  | ❌ | ❌ | ❌ | ❌ |
+| Banners |  |  | ❌ | ❌ | ❌ | ❌ |
+| Affiliates |  |  | ❌ | ❌ | ❌ | ❌ |
 
 ## Development
 

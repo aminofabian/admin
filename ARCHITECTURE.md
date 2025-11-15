@@ -113,7 +113,7 @@ if (user) {
   }
 }
 
-// ✅ Good - Early returns
+//  Good - Early returns
 if (!user) return;
 if (user.role !== 'admin') return;
 if (!user.permissions.includes('edit')) return;
@@ -133,7 +133,7 @@ Names explain purpose without comments:
 const d = new Date();
 const calc = (a, b) => a + b;
 
-// ✅ Good
+//  Good
 const createdAt = new Date();
 const calculateTotalPrice = (price, tax) => price + tax;
 ```
@@ -144,7 +144,7 @@ Use constants instead of hardcoded values:
 // ❌ Bad
 if (status === 'pending') { ... }
 
-// ✅ Good
+//  Good
 const TRANSACTION_STATUS = {
   PENDING: 'pending',
   COMPLETED: 'completed',

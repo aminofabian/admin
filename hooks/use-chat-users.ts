@@ -116,17 +116,17 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // ✅ PERFORMANCE: Cache for fetchAllPlayers (5 min TTL)
+  //  PERFORMANCE: Cache for fetchAllPlayers (5 min TTL)
   const playersCacheRef = useRef<{ data: ChatUser[]; timestamp: number } | null>(null);
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   
-  // ✅ Pagination state
+  //  Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMorePlayers, setHasMorePlayers] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 50;
   
-  // ✅ Track last API refresh to prevent WebSocket from overwriting fresh API data
+  //  Track last API refresh to prevent WebSocket from overwriting fresh API data
   const lastApiRefreshRef = useRef<number>(0);
   const API_REFRESH_COOLDOWN = 2000; // 2 seconds - ignore WebSocket updates after API refresh
 
@@ -145,7 +145,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       wsRef.current = ws;
 
       ws.onopen = () => {
-        !IS_PROD && console.log('✅ Chat list WebSocket connected to:', wsUrl);
+        !IS_PROD && console.log(' Chat list WebSocket connected to:', wsUrl);
         !IS_PROD && console.log('   Ready to receive unread count updates in real-time');
         setError(null);
         setIsLoading(false);
@@ -161,14 +161,14 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           });
           !IS_PROD && console.log('📨 [Chat List WS] Full message data:', data);
 
-          // ✅ IGNORE typing events - they should not update the chat list
+          //  IGNORE typing events - they should not update the chat list
           const messageType = data.type || data.message?.type;
           if (messageType === 'typing') {
             !IS_PROD && console.log('⌨️ [Chat List WS] Typing event received - ignoring for chat list');
             return; // Don't update chat list for typing events
           }
           
-          // ✅ Handle "message" type from chat list WebSocket (if it sends them)
+          //  Handle "message" type from chat list WebSocket (if it sends them)
           if (messageType === 'message' && data.player_id) {
             !IS_PROD && console.log('💬 [Chat List WS] Message event received:', {
               playerId: data.player_id,
@@ -180,13 +180,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             !IS_PROD && console.log('🔄 [Chat List WS] Refreshing chat list after message...');
             refreshActiveChats();
             
-            // ✅ Return early to prevent other handlers from overwriting API data
+            //  Return early to prevent other handlers from overwriting API data
             return;
           }
 
           // Handle "add_new_chats" message type
           if (data.message && data.message.type === 'add_new_chats' && Array.isArray(data.message.chats)) {
-            // ✅ Check if we recently refreshed from API - if so, skip WebSocket update
+            //  Check if we recently refreshed from API - if so, skip WebSocket update
             const timeSinceLastRefresh = Date.now() - lastApiRefreshRef.current;
             if (timeSinceLastRefresh < API_REFRESH_COOLDOWN) {
               !IS_PROD && console.log(`⏭️ [Chat List WS] Skipping add_new_chats - API refresh happened ${timeSinceLastRefresh}ms ago (cooldown: ${API_REFRESH_COOLDOWN}ms)`);
@@ -197,7 +197,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             
             // Log raw data to debug unread counts
             if (!IS_PROD) {
-              console.log(`✅ [Chat List WS] Received ${chatList.length} chat users`);
+              console.log(` [Chat List WS] Received ${chatList.length} chat users`);
               const chatsWithUnread = chatList.filter((c: any) => (c.unread_message_count ?? 0) > 0);
               if (chatsWithUnread.length > 0) {
                 console.log(`📬 [Chat List WS] RAW data - ${chatsWithUnread.length} chats with unread_message_count:`,
@@ -212,7 +212,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             
             const incomingUsers = chatList.map(transformChatToUser);
             
-            // ✅ PERFORMANCE: Smart merge - preserve existing data and only update what changed
+            //  PERFORMANCE: Smart merge - preserve existing data and only update what changed
             setActiveChats((prevChats) => {
               // If this is the initial load (prevChats is empty), just use incoming data
               if (prevChats.length === 0) {
@@ -231,7 +231,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
                 if (incomingChat) {
                   incomingMap.delete(existingChat.id); // Mark as processed
                   
-                  // ✅ PERFORMANCE: Only create new object if there are actual changes
+                  //  PERFORMANCE: Only create new object if there are actual changes
                   if (!hasSignificantChanges(existingChat, incomingChat)) {
                     return existingChat; // No changes, return same reference to prevent re-render
                   }
@@ -283,7 +283,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
                    (data.type === 'new_message')) {
             const updateData = data.message || data;
             
-            // ✅ Only update if there's an actual message, not just typing
+            //  Only update if there's an actual message, not just typing
             if (!updateData.last_message && !updateData.message) {
               !IS_PROD && console.log('⚠️ [Chat List WS] Update event without message content - likely typing, ignoring');
               return;
@@ -355,12 +355,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             !IS_PROD && console.log('🔄 [Chat List WS] Refreshing chat list after re_arrange...');
             refreshActiveChats();
             
-            // ✅ Return early - API refresh provides the latest data
+            //  Return early - API refresh provides the latest data
             return;
           }
           // Fallback for other formats
           else if (data.chats && Array.isArray(data.chats)) {
-            // ✅ Check if we recently refreshed from API - if so, skip WebSocket update
+            //  Check if we recently refreshed from API - if so, skip WebSocket update
             const timeSinceLastRefresh = Date.now() - lastApiRefreshRef.current;
             if (timeSinceLastRefresh < API_REFRESH_COOLDOWN) {
               !IS_PROD && console.log(`⏭️ [Chat List WS] Skipping fallback chats - API refresh happened ${timeSinceLastRefresh}ms ago`);
@@ -368,13 +368,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             }
             
             const transformedUsers = data.chats.map(transformChatToUser);
-            !IS_PROD && console.log(`✅ [Chat List WS] Received ${transformedUsers.length} chat users (fallback format)`);
+            !IS_PROD && console.log(` [Chat List WS] Received ${transformedUsers.length} chat users (fallback format)`);
             setActiveChats(transformedUsers);
             setIsLoading(false);
           }
           // Handle single chat update
           else if (data.chat_id || (data.player && data.player.id)) {
-            // ✅ Check if we recently refreshed from API - if so, skip WebSocket update
+            //  Check if we recently refreshed from API - if so, skip WebSocket update
             const timeSinceLastRefresh = Date.now() - lastApiRefreshRef.current;
             if (timeSinceLastRefresh < API_REFRESH_COOLDOWN) {
               !IS_PROD && console.log(`⏭️ [Chat List WS] Skipping single chat update - API refresh happened ${timeSinceLastRefresh}ms ago`);
@@ -438,7 +438,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         !IS_PROD && console.error('❌ Chat list WebSocket error:', errorInfo);
-        // ✅ Don't set error - we have REST API fallback
+        //  Don't set error - we have REST API fallback
         setIsLoading(false);
       };
 
@@ -446,7 +446,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         !IS_PROD && console.log('🔌 Chat list WebSocket closed:', event.code, event.reason);
         wsRef.current = null;
 
-        // ✅ PERFORMANCE: Debounced reconnection with exponential backoff
+        //  PERFORMANCE: Debounced reconnection with exponential backoff
         if (enabled && !reconnectTimeoutRef.current) {
           const reconnectDelay = 5000;
           !IS_PROD && console.log(`🔄 Reconnecting to chat list in ${reconnectDelay}ms...`);
@@ -458,7 +458,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       };
     } catch (error) {
       console.error('❌ Failed to create chat list WebSocket:', error);
-      // ✅ Don't set error - we have REST API fallback
+      //  Don't set error - we have REST API fallback
       setIsLoading(false);
     }
   }, [adminId, enabled]);
@@ -499,7 +499,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     
     try {
       const token = storage.get(TOKEN_KEY);
-      // ✅ Use the correct admin chat endpoint that returns chat context
+      //  Use the correct admin chat endpoint that returns chat context
       const response = await fetch('/api/chat-all-players?page=1&page_size=100', {
         headers: {
           'Content-Type': 'application/json',
@@ -521,10 +521,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         hasPagination: !!data.pagination,
       });
       
-      // ✅ Use the 'player' array - it has complete data including chat context
+      //  Use the 'player' array - it has complete data including chat context
       if (data.player && Array.isArray(data.player)) {
         const transformedUsers = data.player.map(transformPlayerToUser);
-        !IS_PROD && console.log(`✅ [refreshActiveChats] Fetched ${transformedUsers.length} players with chat data`);
+        !IS_PROD && console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} players with chat data`);
         
         // Log raw data for first player to verify unread_messages_count is present
         if (!IS_PROD && data.player.length > 0) {
@@ -539,7 +539,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         // Update state with fresh data from backend
         setActiveChats(transformedUsers);
         
-        // ✅ Mark the time of this API refresh to prevent WebSocket from overwriting it
+        //  Mark the time of this API refresh to prevent WebSocket from overwriting it
         lastApiRefreshRef.current = Date.now();
         !IS_PROD && console.log('🕐 [refreshActiveChats] API refresh timestamp set:', lastApiRefreshRef.current);
         
@@ -559,7 +559,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       } else if (data.chats && Array.isArray(data.chats)) {
         // Fallback to chats format if player array is not present
         const transformedUsers = data.chats.map(transformChatToUser);
-        !IS_PROD && console.log(`✅ [refreshActiveChats] Fetched ${transformedUsers.length} chats (fallback format)`);
+        !IS_PROD && console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} chats (fallback format)`);
         setActiveChats(transformedUsers);
       } else {
         console.warn('⚠️ [refreshActiveChats] Unexpected API response format - no player or chats array');
@@ -571,7 +571,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
   /**
    * Fetch ALL players from REST API endpoint (First page)
-   * ✅ PERFORMANCE: Cached for 5 minutes to avoid redundant API calls
+   *  PERFORMANCE: Cached for 5 minutes to avoid redundant API calls
    * Note: Last messages are provided by WebSocket and merged in chat-component
    */
   const fetchAllPlayers = useCallback(async () => {
@@ -580,10 +580,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     setIsLoadingAllPlayers(true);
     
     try {
-      // ✅ PERFORMANCE: Check cache first
+      //  PERFORMANCE: Check cache first
       const now = Date.now();
       if (playersCacheRef.current && (now - playersCacheRef.current.timestamp) < CACHE_TTL) {
-        !IS_PROD && console.log('✅ Using cached chats data, count:', playersCacheRef.current.data.length);
+        !IS_PROD && console.log(' Using cached chats data, count:', playersCacheRef.current.data.length);
         setAllPlayers(playersCacheRef.current.data);
         // Small delay to show skeleton briefly even with cache
         await new Promise(resolve => setTimeout(resolve, 150));
@@ -630,7 +630,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           setHasMorePlayers(false);
         }
         
-        // ✅ PERFORMANCE: Update cache
+        //  PERFORMANCE: Update cache
         playersCacheRef.current = {
           data: transformedUsers,
           timestamp: now,
@@ -723,7 +723,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     };
   }, [enabled, adminId, connect, disconnect]);
 
-  // ✅ PERFORMANCE: Memoize online users using both chat list and player directory
+  //  PERFORMANCE: Memoize online users using both chat list and player directory
   const onlineUsers = useMemo(() => {
     const seen = new Set<string>();
 
@@ -794,7 +794,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       
       // Move updated chat to the top of the list for better UX
       const [updatedChat] = updatedChats.splice(chatIndex, 1);
-      !IS_PROD && console.log(`✅ [updateChatLastMessage] Chat updated and moved to top`);
+      !IS_PROD && console.log(` [updateChatLastMessage] Chat updated and moved to top`);
       return [updatedChat, ...updatedChats];
     });
 

@@ -25,7 +25,7 @@ log_info() {
 }
 
 log_success() {
-    echo "✅ $*"
+    echo " $*"
 }
 
 log_error() {

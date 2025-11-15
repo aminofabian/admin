@@ -257,7 +257,7 @@ export function ChatComponent() {
     '🤞', '🤟', '🤘', '🤙', '💪', '🦾', '🖕', '✍️',
     '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
     '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘',
-    '🔥', '⭐', '✨', '💫', '🌟', '💥', '💯', '✅',
+    '🔥', '⭐', '✨', '💫', '🌟', '💥', '💯', '',
     '❌', '⚠️', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇'
   ];
 
@@ -329,7 +329,7 @@ export function ChatComponent() {
       // This ensures we get the latest unread counts and last messages from the server
       !IS_PROD && console.log('🔄 Refreshing chat list from backend after message...');
       await refreshActiveChats();
-      !IS_PROD && console.log('✅ Chat list refreshed with latest backend data');
+      !IS_PROD && console.log(' Chat list refreshed with latest backend data');
     }, [selectedPlayer, refreshActiveChats]),
   });
 
@@ -347,7 +347,7 @@ export function ChatComponent() {
     addToast,
   });
 
-  // ✅ VIEWPORT RENDERING: Only show messages that fill viewport, reveal more as user scrolls
+  //  VIEWPORT RENDERING: Only show messages that fill viewport, reveal more as user scrolls
   const {
     visibleMessages,
     topSpacerHeight,
@@ -387,7 +387,7 @@ export function ChatComponent() {
         if (player.user_id && player.isOnline) {
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
-            // ✅ FIXED: Prioritize WebSocket data (real-time) over REST API data
+            //  FIXED: Prioritize WebSocket data (real-time) over REST API data
             seenUserIds.set(player.user_id, {
               ...existing,
               // WebSocket data takes priority for real-time fields
@@ -425,7 +425,7 @@ export function ChatComponent() {
       }
     } else {
       // For "all-chats" tab: combine activeChatsUsers and allPlayers
-      // ✅ FIXED: Merge last message data from activeChats into allPlayers
+      //  FIXED: Merge last message data from activeChats into allPlayers
       const seenUserIds = new Map<number, Player>();
       
       // First, add active chats with last messages (from WebSocket)
@@ -440,7 +440,7 @@ export function ChatComponent() {
         if (player.user_id) {
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
-            // ✅ FIXED: Prioritize WebSocket data (real-time) over REST API data (stale)
+            //  FIXED: Prioritize WebSocket data (real-time) over REST API data (stale)
             // Start with WebSocket data, only add missing fields from REST API
             seenUserIds.set(player.user_id, {
               ...existing, // WebSocket data (real-time unreadCount, lastMessage, etc.)
@@ -454,7 +454,7 @@ export function ChatComponent() {
               winRate: player.winRate || existing.winRate,
               phone: player.phone || existing.phone,
               notes: player.notes || existing.notes, // Preserve notes from REST API
-              // ✅ FIXED: Preserve lastMessageTime from REST API if WebSocket doesn't have it
+              //  FIXED: Preserve lastMessageTime from REST API if WebSocket doesn't have it
               // Use WebSocket value if it exists and is valid (not empty), otherwise fall back to REST API
               lastMessage: existing.lastMessage || player.lastMessage,
               lastMessageTime: (existing.lastMessageTime && 
@@ -577,7 +577,7 @@ export function ChatComponent() {
         }
         
         const result = await response.json();
-        !IS_PROD && console.log('✅ Image uploaded successfully:', result);
+        !IS_PROD && console.log(' Image uploaded successfully:', result);
         
         // The backend should return the file URL in the format:
         // https://serverhub.biz/media/csr/chats/filename.jpeg
@@ -903,7 +903,7 @@ export function ChatComponent() {
           (result && (result.message || result.detail)) ||
           `Unable to ${action} this message right now.`;
         
-        // ✅ FIX: If message not found, it's likely a temporary WebSocket ID
+        //  FIX: If message not found, it's likely a temporary WebSocket ID
         // Refresh messages to get real IDs and retry automatically
         if (errorMessage.includes('Message not found') || errorMessage.includes('message not found')) {
           !IS_PROD && console.log('🔄 Message not found, refreshing to get real IDs...');
@@ -911,7 +911,7 @@ export function ChatComponent() {
           try {
             // Refresh messages to get real database IDs
             await refreshMessages();
-            !IS_PROD && console.log('✅ Messages refreshed, retrying pin...');
+            !IS_PROD && console.log(' Messages refreshed, retrying pin...');
             
             // Retry the pin operation with refreshed messages
             const retryResponse = await fetch('/api/chat-message-pin', {
@@ -1229,7 +1229,7 @@ export function ChatComponent() {
     const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
     const normalizedUsername = queryUsername?.trim().toLowerCase();
 
-    // ✅ FIXED: Use displayedPlayers which has notes properly merged
+    //  FIXED: Use displayedPlayers which has notes properly merged
     // Search allPlayers first (has notes), then activeChatsUsers as fallback
     const candidate = [...allPlayers, ...activeChatsUsers].find((player) => {
       const matchesId = targetUserId !== null && player.user_id === targetUserId;
@@ -1260,7 +1260,7 @@ export function ChatComponent() {
       return;
     }
 
-    // ✅ FIXED: Check if we're actually switching to a different player
+    //  FIXED: Check if we're actually switching to a different player
     // If it's the same player (e.g., remounting after navigation), preserve scroll position
     const isActualPlayerChange = previousPlayerIdRef.current !== selectedPlayer.user_id;
 
@@ -1279,7 +1279,7 @@ export function ChatComponent() {
 
     !IS_PROD && console.log('🔄 Player changed - resetting scroll state');
 
-    // ✅ CLEAN RESET: Reset scroll-related state for new player
+    //  CLEAN RESET: Reset scroll-related state for new player
     latestMessageIdRef.current = null;
     wasHistoryLoadingRef.current = false; // Reset to allow initial history load
     hasScrolledToInitialLoadRef.current = false; // Reset for new player
@@ -1309,7 +1309,7 @@ export function ChatComponent() {
       isRefreshing: isRefreshingMessagesRef.current,
     });
 
-    // ✅ FIX: If we're refreshing, just update the ref without scrolling
+    //  FIX: If we're refreshing, just update the ref without scrolling
     // The ID changed from temporary to real, but it's not a "new" message
     if (isRefreshingMessagesRef.current) {
       !IS_PROD && console.log('⏭️ Refreshing in progress, updating ID ref without scroll');
@@ -1323,16 +1323,16 @@ export function ChatComponent() {
       return;
     }
 
-    // ✅ TARGETED LATEST MESSAGE: Enhanced initial load logic
+    //  TARGETED LATEST MESSAGE: Enhanced initial load logic
     // Only use aggressive approach for initial load, preserve natural behavior otherwise
     if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
       !IS_PROD && console.log('📍 Initial load condition met - scrolling to latest message');
       hasScrolledToInitialLoadRef.current = true;
 
-      // ✅ CLEAN INITIAL SCROLL: Single force + instant scroll for initial load only
+      //  CLEAN INITIAL SCROLL: Single force + instant scroll for initial load only
       scrollToBottom(true, true); // Force + instant initial scroll
 
-      // ✅ LIGHTWEIGHT VERIFICATION: Single verification for async content
+      //  LIGHTWEIGHT VERIFICATION: Single verification for async content
       setTimeout(() => {
         if (!isRefreshingMessagesRef.current) {
           scrollToBottom(true, true); // One verification scroll
@@ -1342,7 +1342,7 @@ export function ChatComponent() {
       return;
     }
 
-    // ✅ ENHANCED NEW MESSAGE HANDLING: More aggressive about showing new messages
+    //  ENHANCED NEW MESSAGE HANDLING: More aggressive about showing new messages
     // Multiple conditions to ensure new messages are visible
     const shouldAutoScroll =
       !isRefreshingMessagesRef.current && (
@@ -1357,7 +1357,7 @@ export function ChatComponent() {
       );
 
     if (shouldAutoScroll) {
-      !IS_PROD && console.log('✅ Auto-scrolling to new message (enhanced detection)', {
+      !IS_PROD && console.log(' Auto-scrolling to new message (enhanced detection)', {
         isUserAtBottom,
         messagesLength: wsMessages.length,
       });
@@ -1373,7 +1373,7 @@ export function ChatComponent() {
       setTimeout(() => scrollToBottom(true, true), 150);
       setTimeout(() => scrollToBottom(true, true), 300);
     } else {
-      // ✅ NEW MESSAGE INDICATOR: Show indicator when new messages arrive and user is scrolled up
+      //  NEW MESSAGE INDICATOR: Show indicator when new messages arrive and user is scrolled up
       if (!isRefreshingMessagesRef.current && hasNewLatest && !isUserAtBottom) {
         setHasNewMessagesWhileScrolled(true);
       }
@@ -1384,12 +1384,12 @@ export function ChatComponent() {
     const wasLoading = wasHistoryLoadingRef.current;
     wasHistoryLoadingRef.current = isHistoryLoadingMessages;
 
-    // ✅ CRITICAL: Don't auto-scroll if we're refreshing messages
+    //  CRITICAL: Don't auto-scroll if we're refreshing messages
     if (isRefreshingMessagesRef.current) {
       return;
     }
 
-    // ✅ TARGETED LATEST: History load completion → Only scroll to latest if we haven't scrolled yet
+    //  TARGETED LATEST: History load completion → Only scroll to latest if we haven't scrolled yet
     // This preserves natural behavior while ensuring latest message for initial scenarios
     if (wasLoading && !isHistoryLoadingMessages && !hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
       !IS_PROD && console.log('📍 History loading complete - scrolling to latest message');
@@ -1397,10 +1397,10 @@ export function ChatComponent() {
       // Only scroll to latest if we haven't already scrolled for this conversation
       hasScrolledToInitialLoadRef.current = true;
 
-      // ✅ CLEAN HISTORY SCROLL: Single force scroll
+      //  CLEAN HISTORY SCROLL: Single force scroll
       scrollToBottom(true, true); // Force + instant scroll
 
-      // ✅ LIGHTWEIGHT VERIFICATION: Single verification for async content
+      //  LIGHTWEIGHT VERIFICATION: Single verification for async content
       setTimeout(() => {
         if (!isRefreshingMessagesRef.current) {
           scrollToBottom(true, true); // One verification scroll
@@ -1473,13 +1473,13 @@ export function ChatComponent() {
               ref={messagesContainerRef}
               className="relative flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-background/50 to-background scroll-smooth-optimized scrollbar-smooth"
               style={{
-                // ✅ SMOOTH SCROLL: Optimized for buttery smooth scrolling
+                //  SMOOTH SCROLL: Optimized for buttery smooth scrolling
                 // Hardware acceleration and optimal scroll performance handled by CSS classes
                 scrollBehavior: 'auto', // Let the hook handle smooth scrolling
               }}
               onScroll={handleScroll}
             >
-              {/* ✅ SCROLLBAR RESET: Content wrapper for transform during scrollbar reset */}
+              {/*  SCROLLBAR RESET: Content wrapper for transform during scrollbar reset */}
               <div 
                 className="px-4 py-4 md:px-6 md:py-6 space-y-6"
                 style={{
@@ -1487,7 +1487,7 @@ export function ChatComponent() {
                   // without affecting the scroll container itself
                 }}
               >
-                {/* ✅ VIEWPORT RENDERING: Top spacer for messages above viewport */}
+                {/*  VIEWPORT RENDERING: Top spacer for messages above viewport */}
                 {topSpacerHeight > 0 && (
                   <div 
                     style={{ height: topSpacerHeight }}
@@ -1574,7 +1574,7 @@ export function ChatComponent() {
             const isAdmin = !isAuto && message.sender === 'admin';
             const isPinning = pendingPinMessageId === message.id;
             
-            // ✅ ANIMATION: Check if this is a new message (not seen before)
+            //  ANIMATION: Check if this is a new message (not seen before)
             const isNewMessage = !displayedMessageIdsRef.current.has(message.id);
             if (isNewMessage) {
               displayedMessageIdsRef.current.add(message.id);
@@ -1588,7 +1588,7 @@ export function ChatComponent() {
                   'message-animation-optimized'
                 }`}
                 style={{
-                  // ✅ SMOOTH SCROLL: Enhanced hardware acceleration for ultra-smooth animations
+                  //  SMOOTH SCROLL: Enhanced hardware acceleration for ultra-smooth animations
                   willChange: isNewMessage && hasScrolledToInitialLoadRef.current ? 'transform, opacity' : 'auto',
                   backfaceVisibility: 'hidden',
                 }}
@@ -1609,7 +1609,7 @@ export function ChatComponent() {
         </div>
       ))}
 
-                {/* ✅ VIEWPORT RENDERING: Bottom spacer for messages below viewport */}
+                {/*  VIEWPORT RENDERING: Bottom spacer for messages below viewport */}
                 {bottomSpacerHeight > 0 && (
                   <div 
                     style={{ height: bottomSpacerHeight }}

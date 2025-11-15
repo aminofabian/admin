@@ -130,7 +130,7 @@ export function AuthDiagnostic() {
           {/* JWT Token */}
           <div className="border border-gray-200 dark:border-gray-700 rounded p-3">
             <h4 className="font-semibold mb-2 flex items-center">
-              {diagnosticResult.jwt.exists ? '✅' : '❌'} JWT Token
+              {diagnosticResult.jwt.exists ? '' : '❌'} JWT Token
             </h4>
             <pre className="text-xs bg-gray-100 dark:bg-gray-900 p-2 rounded overflow-x-auto">
               {JSON.stringify(diagnosticResult.jwt, null, 2)}
@@ -140,7 +140,7 @@ export function AuthDiagnostic() {
           {/* Cookies */}
           <div className="border border-gray-200 dark:border-gray-700 rounded p-3">
             <h4 className="font-semibold mb-2 flex items-center">
-              {diagnosticResult.cookies.count > 0 ? '✅' : '❌'} Browser Cookies ({diagnosticResult.cookies.count})
+              {diagnosticResult.cookies.count > 0 ? '' : '❌'} Browser Cookies ({diagnosticResult.cookies.count})
             </h4>
             <div className="space-y-2">
               <div>
@@ -170,7 +170,7 @@ export function AuthDiagnostic() {
           {/* API Test */}
           <div className="border border-gray-200 dark:border-gray-700 rounded p-3">
             <h4 className="font-semibold mb-2 flex items-center">
-              {diagnosticResult.api.ok ? '✅' : '❌'} API Connectivity
+              {diagnosticResult.api.ok ? '' : '❌'} API Connectivity
             </h4>
             <pre className="text-xs bg-gray-100 dark:bg-gray-900 p-2 rounded overflow-x-auto">
               {JSON.stringify(diagnosticResult.api, null, 2)}

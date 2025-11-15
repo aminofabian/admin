@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/json',
     };
     
-    // ✅ Use JWT authentication (Authorization header)
+    //  Use JWT authentication (Authorization header)
     if (authHeader) {
       headers['Authorization'] = authHeader;
     } else {
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`✅ Received ${data.messages?.length || 0} messages from backend`);
+    console.log(` Received ${data.messages?.length || 0} messages from backend`);
     
     return NextResponse.json(data);
   } catch (error) {

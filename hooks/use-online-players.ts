@@ -56,7 +56,7 @@ function transformPlayerToUser(data: any): ChatUser {
     
     // Log only if notes exist to reduce noise
     if (data.player_notes) {
-      !IS_PROD && console.log('✅ [Transform Format 1] Player with notes:', {
+      !IS_PROD && console.log(' [Transform Format 1] Player with notes:', {
         player_id: data.player_id,
         player_username: data.player_username,
         player_notes: data.player_notes,
@@ -93,7 +93,7 @@ function transformPlayerToUser(data: any): ChatUser {
   
   // Log only if notes exist to reduce noise
   if (player.notes) {
-    !IS_PROD && console.log('✅ [Transform Format 2/3] Player with notes:', {
+    !IS_PROD && console.log(' [Transform Format 2/3] Player with notes:', {
       player_id: player.id,
       player_username: player.username,
       hasNestedPlayer,
@@ -128,14 +128,14 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   
   /**
    * Fetch online players from REST API
-   * ✅ PERFORMANCE: Cached for 2 minutes
+   *  PERFORMANCE: Cached for 2 minutes
    */
   const fetchFromApi = useCallback(async (forceRefresh = false): Promise<ChatUser[]> => {
     const now = Date.now();
     
     // Check cache first (unless force refresh)
     if (!forceRefresh && cacheRef.current && (now - cacheRef.current.timestamp) < CACHE_TTL) {
-      !IS_PROD && console.log('✅ [Online Players] Using cached data');
+      !IS_PROD && console.log(' [Online Players] Using cached data');
       return cacheRef.current.data;
     }
     
@@ -175,12 +175,12 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       }
 
       // Parse different response formats
-      // ✅ IMPORTANT: Merge chats + player arrays when both are present
+      //  IMPORTANT: Merge chats + player arrays when both are present
       let players: any[] = [];
       if (Array.isArray(data)) {
         players = data;
       } else if (data.chats && Array.isArray(data.chats) && data.player && Array.isArray(data.player)) {
-        // ✅ BEST CASE: Merge chats with player details
+        //  BEST CASE: Merge chats with player details
         // Create a map of player details by player_id
         const playerDetailsMap = new Map();
         data.player.forEach((p: any) => {
@@ -210,7 +210,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
             
             // Log if notes exist to track the issue
             if (playerDetails.notes) {
-              !IS_PROD && console.log('✅ [Merge] Player with notes:', {
+              !IS_PROD && console.log(' [Merge] Player with notes:', {
                 chat_id: chat.id,
                 player_id: chat.player_id,
                 player_username: chat.player_username,
@@ -255,7 +255,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         // Log all players with notes for debugging
         const playersWithNotes = transformedPlayers.filter(p => p.notes);
         if (playersWithNotes.length > 0) {
-          console.log(`✅ [Online Players] Found ${playersWithNotes.length} players with notes:`, 
+          console.log(` [Online Players] Found ${playersWithNotes.length} players with notes:`, 
             playersWithNotes.map(p => ({
               username: p.username,
               notes: p.notes?.substring(0, 50),
@@ -272,7 +272,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         timestamp: now,
       };
       
-      !IS_PROD && console.log(`✅ [Online Players] Loaded ${transformedPlayers.length} players from API`);
+      !IS_PROD && console.log(` [Online Players] Loaded ${transformedPlayers.length} players from API`);
       return transformedPlayers;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch online players';
@@ -283,7 +283,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
 
   /**
    * Connect to WebSocket for real-time status updates
-   * ✅ PERFORMANCE: Only updates player status, doesn't re-fetch entire list
+   *  PERFORMANCE: Only updates player status, doesn't re-fetch entire list
    */
   const connectWebSocket = useCallback(() => {
     if (!enabled || !adminId || wsRef.current) return;
@@ -298,7 +298,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       wsRef.current = ws;
 
       ws.onopen = () => {
-        !IS_PROD && console.log('✅ [Online Players] WebSocket connected');
+        !IS_PROD && console.log(' [Online Players] WebSocket connected');
         setIsConnected(true);
         setError(null);
       };
@@ -308,7 +308,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
           const data = JSON.parse(event.data);
           const messageType = data.type || data.message?.type;
           
-          // ✅ PERFORMANCE: Only process live_status messages for online players
+          //  PERFORMANCE: Only process live_status messages for online players
           if (messageType === 'live_status') {
             const playerId = Number(data.player_id || data.message?.player_id);
             const isActive = Boolean(data.is_active ?? data.message?.is_active);
@@ -452,7 +452,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       }
     })();
 
-    // ✅ PERFORMANCE: Auto-refresh every 60 seconds
+    //  PERFORMANCE: Auto-refresh every 60 seconds
     refreshIntervalRef.current = setInterval(() => {
       !IS_PROD && console.log('🔄 [Online Players] Auto-refreshing...');
       fetchFromApi(true).then((players) => {

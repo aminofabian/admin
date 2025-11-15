@@ -468,7 +468,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             duration: 5000,
           });
           
-          console.log('✅ New activity added to table:', updatedQueue.id);
+          console.log(' New activity added to table:', updatedQueue.id);
         } else {
           // Existing activity updated (status change)
           addToast({
@@ -478,15 +478,15 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             duration: 3000,
           });
           
-          console.log('✅ Activity updated in table:', updatedQueue.id);
+          console.log(' Activity updated in table:', updatedQueue.id);
         }
       } else {
         // Completed items are being removed (no toast needed)
-        console.log('✅ Activity completed and removed:', updatedQueue.id);
+        console.log(' Activity completed and removed:', updatedQueue.id);
       }
     }, [updateQueue, addToast, queues]),
     onConnect: useCallback(() => {
-      console.log('✅ WebSocket connected - real-time updates enabled');
+      console.log(' WebSocket connected - real-time updates enabled');
       addToast({
         type: 'success',
         title: 'Live Updates Active',
@@ -557,7 +557,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       
       console.log('🔄 Transaction Action - About to call API:', { transactionId, action: apiAction });
       const response = await transactionsApi.transactionAction(transactionId, apiAction);
-      console.log('✅ Transaction Action - API call successful:', response);
+      console.log(' Transaction Action - API call successful:', response);
       
       // Refresh transactions after successful action
       await fetchTransactions();

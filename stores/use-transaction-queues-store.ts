@@ -236,7 +236,7 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         // Remove completed items from processing view
         const updatedQueues = queues.filter((q) => q.id !== updatedQueue.id);
         set({ queues: updatedQueues });
-        console.log('✅ Removed completed activity from processing view:', updatedQueue.id);
+        console.log(' Removed completed activity from processing view:', updatedQueue.id);
         return;
       }
       
@@ -244,7 +244,7 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
       const updatedQueues = [...queues];
       updatedQueues[queueIndex] = updatedQueue;
       set({ queues: updatedQueues });
-      console.log('✅ Queue updated:', updatedQueue.id, 'Status:', updatedQueue.status);
+      console.log(' Queue updated:', updatedQueue.id, 'Status:', updatedQueue.status);
     } else {
       // Item is NEW - don't add if it's already completed
       if (filter === 'processing' && isCompleted) {
@@ -255,7 +255,7 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
       // Add new queue to the beginning of the list
       const updatedQueues = [updatedQueue, ...queues];
       set({ queues: updatedQueues });
-      console.log('✅ New queue added:', updatedQueue.id, 'Status:', updatedQueue.status);
+      console.log(' New queue added:', updatedQueue.id, 'Status:', updatedQueue.status);
     }
   },
 

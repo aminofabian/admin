@@ -20,7 +20,7 @@ export const usePlayerCashouts = (chatroomId: string | number | null) => {
       try {
         console.log('🎯 usePlayerCashouts: Fetching for chatroom ID:', chatroomId);
         const data = await playersApi.cashouts(chatroomId);
-        console.log('✅ usePlayerCashouts: Got cashouts:', data);
+        console.log(' usePlayerCashouts: Got cashouts:', data);
         setCashouts(data);
       } catch (err) {
         console.error('❌ Failed to fetch player cashouts:', err);

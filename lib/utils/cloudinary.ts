@@ -68,7 +68,7 @@ export async function uploadToCloudinary(
           });
           reject(new Error(`Cloudinary upload failed: ${error.message}`));
         } else if (result) {
-          console.log('✅ Cloudinary upload success:', result.secure_url);
+          console.log(' Cloudinary upload success:', result.secure_url);
           resolve(result as CloudinaryUploadResult);
         } else {
           reject(new Error('Upload failed: No result returned'));
@@ -90,7 +90,7 @@ export async function deleteFromCloudinary(
 ): Promise<void> {
   try {
     await cloudinary.uploader.destroy(publicId);
-    console.log('✅ Deleted from Cloudinary:', publicId);
+    console.log(' Deleted from Cloudinary:', publicId);
   } catch (error) {
     console.error('❌ Error deleting from Cloudinary:', error);
     throw error;

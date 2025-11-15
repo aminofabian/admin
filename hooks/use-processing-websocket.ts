@@ -239,7 +239,7 @@ export function useProcessingWebSocket({
       }, 10000);
 
       ws.onopen = () => {
-        console.log('✅ WebSocket connected');
+        console.log(' WebSocket connected');
         
         // Clear connection timeout
         if (connectionTimeoutRef.current) {
@@ -347,7 +347,7 @@ export function useProcessingWebSocket({
                 updated_at: rawData.updated_at,
               };
               
-              console.log('✅ Transformed queue - ID:', transformedQueue.id, 'Status:', transformedQueue.status);
+              console.log(' Transformed queue - ID:', transformedQueue.id, 'Status:', transformedQueue.status);
               
               // Pass all updates to the callback - the store will handle filtering
               // (completed items need to reach the store so existing items can be removed)

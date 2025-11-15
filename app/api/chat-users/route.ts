@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     
     // Transform REST API paginated response to chat users format
     const players = data.results || data.player || [];
-    console.log(`✅ Received ${players.length} players from backend`);
+    console.log(` Received ${players.length} players from backend`);
     
     // Return in a format the frontend expects
     return NextResponse.json({

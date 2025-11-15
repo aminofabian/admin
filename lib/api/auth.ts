@@ -18,7 +18,7 @@ export const authApi = {
       }
       
       const data = await response.json();
-      console.log('✅ Dashboard games response:', data);
+      console.log(' Dashboard games response:', data);
       return data as DashboardGamesResponse;
     } catch (error: unknown) {
       console.error('❌ Error fetching project UUID:', error);
@@ -46,7 +46,7 @@ export const authApi = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
-      credentials: 'include', // ✅ CRITICAL: Accept Set-Cookie headers from API route
+      credentials: 'include', //  CRITICAL: Accept Set-Cookie headers from API route
     });
     
     if (!response.ok) {

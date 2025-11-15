@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     console.log('☁️ Uploading image to Cloudinary...');
     const result = await uploadToCloudinary(file, 'chat');
 
-    console.log('✅ Image uploaded successfully:', result.secure_url);
+    console.log(' Image uploaded successfully:', result.secure_url);
     
     return NextResponse.json({
       status: 'success',

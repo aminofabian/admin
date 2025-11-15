@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // Parse the response
     const data = await response.json();
-    console.log('✅ Dashboard games response:', data);
+    console.log(' Dashboard games response:', data);
 
     // Return the response
     return NextResponse.json(data, {

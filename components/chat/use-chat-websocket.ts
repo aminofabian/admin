@@ -165,7 +165,7 @@ export function useChatReset({
   const purchaseRequestRef = useRef(0);
   const activeConnectionKeyRef = useRef('');
   
-  // ✅ MESSAGE CACHE: Initialize cache hook
+  //  MESSAGE CACHE: Initialize cache hook
   const messageCache = useMessageCache();
   
   // Use ref to avoid reconnecting WebSocket when callback changes
@@ -194,11 +194,11 @@ export function useChatReset({
       return null;
     }
 
-    // ✅ CACHE: Check cache first (synchronous)
+    //  CACHE: Check cache first (synchronous)
     const cached = messageCache.getCachedPage(chatId, userId, page);
     if (cached) {
       if (!IS_PROD) {
-        console.log(`✅ Cache HIT for page ${page} - returning ${cached.messages.length} messages`);
+        console.log(` Cache HIT for page ${page} - returning ${cached.messages.length} messages`);
       }
       return {
         messages: cached.messages,
@@ -282,7 +282,7 @@ export function useChatReset({
         notes: data.notes ?? '',
       };
 
-      // ✅ CACHE: Store in cache for future synchronous access
+      //  CACHE: Store in cache for future synchronous access
       messageCache.setCachedPage(
         chatId,
         userId,
@@ -294,7 +294,7 @@ export function useChatReset({
 
       if (!IS_PROD) {
         console.log(
-          `✅ Loaded ${payload.messages.length} of ${data.total_count ?? payload.messages.length} messages (page ${payload.page}/${payload.totalPages}) - cached`,
+          ` Loaded ${payload.messages.length} of ${data.total_count ?? payload.messages.length} messages (page ${payload.page}/${payload.totalPages}) - cached`,
         );
         console.log('📝 Notes from API:', data.notes);
       }
@@ -312,7 +312,7 @@ export function useChatReset({
         return 0;
       }
 
-      // ✅ CACHE: Check cache first - if cached, use it synchronously
+      //  CACHE: Check cache first - if cached, use it synchronously
       const cached = messageCache.getCachedPage(chatId, userId, page);
       if (cached) {
         if (!IS_PROD) {
@@ -378,7 +378,7 @@ export function useChatReset({
           setNotes(payload.notes);
         }
 
-        // ✅ PREFETCH: Prefetch next page(s) in background
+        //  PREFETCH: Prefetch next page(s) in background
         if (payload.page < payload.totalPages) {
           const nextPages = [payload.page + 1, payload.page + 2].filter(
             (p) => p <= payload.totalPages,
@@ -415,7 +415,7 @@ export function useChatReset({
     return { added };
   }, [fetchMessageHistory, hasMoreHistory, historyPagination.page, isHistoryLoading]);
 
-  // ✅ Fetch purchase/transaction history for the chatroom
+  //  Fetch purchase/transaction history for the chatroom
   const fetchPurchaseHistory = useCallback(async () => {
     if (!chatId && !userId) return;
 
@@ -433,7 +433,7 @@ export function useChatReset({
         return;
       }
       
-      // ✅ Try chatId first (could be chatroom_id), fallback to userId (player_id)
+      //  Try chatId first (could be chatroom_id), fallback to userId (player_id)
       const params = new URLSearchParams();
       if (chatId) params.append('chatroom_id', chatId);
       if (userId) params.append('user_id', String(userId));
@@ -467,7 +467,7 @@ export function useChatReset({
       const data = await response.json();
       
       if (data.messages && Array.isArray(data.messages)) {
-        // ✅ Transform purchase messages from new JWT endpoint format
+        //  Transform purchase messages from new JWT endpoint format
         const purchases: ChatMessage[] = data.messages.map((msg: RawHistoryMessage) => {
           // Determine sender: "company" = admin, "player" = player
           const sender: 'player' | 'admin' = 
@@ -497,7 +497,7 @@ export function useChatReset({
           };
         });
 
-        !IS_PROD && console.log(`✅ Loaded ${purchases.length} purchase records (total: ${data.total_count || purchases.length})`);
+        !IS_PROD && console.log(` Loaded ${purchases.length} purchase records (total: ${data.total_count || purchases.length})`);
         if (purchaseRequestRef.current !== requestId) {
           !IS_PROD && console.log('⚠️ Ignoring stale purchase history response');
           return;
@@ -536,7 +536,7 @@ export function useChatReset({
           return;
         }
 
-        !IS_PROD && console.log('✅ Chat WebSocket connected');
+        !IS_PROD && console.log(' Chat WebSocket connected');
         setIsConnected(true);
         setConnectionError(null);
         reconnectAttemptsRef.current = 0;
@@ -593,7 +593,7 @@ export function useChatReset({
               isPinned: rawData.is_pinned ?? false,
             };
 
-            !IS_PROD && console.log('✅ Parsed message and adding to state:', {
+            !IS_PROD && console.log(' Parsed message and adding to state:', {
               id: newMessage.id,
               text: newMessage.text.substring(0, 50),
               sender: newMessage.sender,
@@ -602,7 +602,7 @@ export function useChatReset({
               userBalance: rawData.user_balance,
             });
             
-            // ✅ Check for duplicate messages before adding
+            //  Check for duplicate messages before adding
             setMessages((prev) => {
               // Prevent duplicate messages by checking if message with same ID exists
               const isDuplicate = prev.some(msg => msg.id === newMessage.id);
@@ -616,7 +616,7 @@ export function useChatReset({
               return updated;
             });
             
-            // ✅ Update user balance if provided in the message
+            //  Update user balance if provided in the message
             if (rawData.user_balance !== undefined) {
               !IS_PROD && console.log('💰 User balance update:', rawData.user_balance);
               // You can emit this to a balance update callback if needed
@@ -626,17 +626,17 @@ export function useChatReset({
             !IS_PROD && console.log('🔔 Calling onMessageReceived callback...');
             if (onMessageReceivedRef.current) {
               onMessageReceivedRef.current(newMessage);
-              !IS_PROD && console.log('✅ onMessageReceived callback executed');
+              !IS_PROD && console.log(' onMessageReceived callback executed');
             } else {
               !IS_PROD && console.warn('⚠️ onMessageReceived callback is not defined');
             }
           } else if (messageType === 'typing') {
             !IS_PROD && console.log('⌨️ User is typing...');
             setIsTyping(true);
-            // ✅ Clear typing indicator after 3 seconds
+            //  Clear typing indicator after 3 seconds
             setTimeout(() => setIsTyping(false), 3000);
             
-            // ✅ IMPORTANT: Do NOT call onMessageReceived for typing events
+            //  IMPORTANT: Do NOT call onMessageReceived for typing events
             // This prevents the chat list from updating when user is just typing
           } else if (messageType === 'mark_message_as_read' || messageType === 'read') {
             const messageId = rawData.message_id || rawData.id;
@@ -645,7 +645,7 @@ export function useChatReset({
             
             if (messageId) {
               // Mark specific message as read
-              !IS_PROD && console.log('✅ Message marked as read:', messageId);
+              !IS_PROD && console.log(' Message marked as read:', messageId);
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === messageId ? { ...msg, isRead: true } : msg
@@ -656,7 +656,7 @@ export function useChatReset({
               // If admin (is_player_sender: false) read, mark all player messages as read
               // If player (is_player_sender: true) read, mark all admin messages as read
               const targetSender: 'player' | 'admin' = isPlayerSender ? 'admin' : 'player';
-              !IS_PROD && console.log(`✅ Marking all ${targetSender} messages as read (read by ${isPlayerSender ? 'player' : 'admin'} with sender_id: ${senderId})`);
+              !IS_PROD && console.log(` Marking all ${targetSender} messages as read (read by ${isPlayerSender ? 'player' : 'admin'} with sender_id: ${senderId})`);
               setMessages((prev) =>
                 prev.map((msg) => {
                   // Mark messages from the opposite sender as read
@@ -708,7 +708,7 @@ export function useChatReset({
           return;
         }
 
-        // ✅ PERFORMANCE: Exponential backoff reconnection with max attempts
+        //  PERFORMANCE: Exponential backoff reconnection with max attempts
         if (enabled && reconnectAttemptsRef.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           !IS_PROD && console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
@@ -743,7 +743,7 @@ export function useChatReset({
   }, []);
 
   const sendMessage = useCallback((text: string) => {
-    // ✅ Try WebSocket first, fallback to REST API if not connected
+    //  Try WebSocket first, fallback to REST API if not connected
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       try {
         // Send message via WebSocket
@@ -791,7 +791,7 @@ export function useChatReset({
           }
           throw new Error(`Failed to send message: ${response.status}`);
         }
-        !IS_PROD && console.log('✅ Message sent successfully via REST API');
+        !IS_PROD && console.log(' Message sent successfully via REST API');
         
         // Add the message to local state for instant feedback
         const messageDate = new Date();
@@ -836,7 +836,7 @@ export function useChatReset({
       };
 
       wsRef.current.send(JSON.stringify(message));
-      !IS_PROD && console.log('✅ Marked message as read:', messageId);
+      !IS_PROD && console.log(' Marked message as read:', messageId);
     } catch (error) {
       console.error('❌ Failed to mark message as read:', error);
     }
@@ -857,7 +857,7 @@ export function useChatReset({
       };
 
       wsRef.current.send(JSON.stringify(message));
-      !IS_PROD && console.log('✅ Sent mark all as read message to backend');
+      !IS_PROD && console.log(' Sent mark all as read message to backend');
     } catch (error) {
       console.error('❌ Failed to mark all messages as read:', error);
     }

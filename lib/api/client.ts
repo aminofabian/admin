@@ -204,7 +204,7 @@ class ApiClient {
       // Log result for agent filter requests
       if (hasAgentFilter && result && typeof result === 'object') {
         const resultObj = result as { count?: number; results?: unknown[] };
-        console.log('✅ API Result (Agent Filter):', {
+        console.log(' API Result (Agent Filter):', {
           count: resultObj.count,
           resultsLength: resultObj.results?.length ?? 0,
           hasResults: (resultObj.results?.length ?? 0) > 0,

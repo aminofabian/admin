@@ -20,7 +20,7 @@ export const usePlayerGameActivities = (userId: number | null) => {
       try {
         console.log('🎯 usePlayerGameActivities: Fetching for user ID:', userId);
         const data = await playersApi.gameActivities(userId);
-        console.log('✅ usePlayerGameActivities: Got activities:', data);
+        console.log(' usePlayerGameActivities: Got activities:', data);
         setActivities(data);
       } catch (err) {
         console.error('❌ Failed to fetch game activities:', err);
