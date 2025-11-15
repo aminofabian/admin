@@ -8,6 +8,19 @@ import type { ChatUser } from '@/types';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 /**
+ * Validate if a timestamp value is valid and meaningful
+ */
+const isValidTimestamp = (timestamp: string | undefined): boolean => {
+  if (!timestamp || timestamp.trim() === '') {
+    return false;
+  }
+
+  // Check if it's a valid date string
+  const date = new Date(timestamp);
+  return !isNaN(date.getTime()) && date.getTime() > 0;
+};
+
+/**
  * Check if two chat objects have meaningful differences
  * Used to prevent unnecessary re-renders
  */
@@ -50,11 +63,15 @@ interface UseChatUsersReturn {
  */
 function transformChatToUser(chat: any): ChatUser {
   const player = chat.player || {};
-  
+
   // Handle re_arrange format where user_id is at top level
   const userId = Number(chat.user_id || player.id || 0);
   const username = chat.username || player.username || player.full_name || 'Unknown';
-  
+
+  // Validate timestamp before storing it
+  const rawTimestamp = chat.last_message_time;
+  const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
+
   return {
     // Use chat_id as the main ID so we can match remove_chat_from_list messages
     id: String(chat.chat_id || chat.id || player.id || ''),
@@ -65,9 +82,9 @@ function transformChatToUser(chat: any): ChatUser {
     avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
     isOnline: player.is_online || player.isOnline || false,
     lastMessage: chat.last_message || undefined,
-    lastMessageTime: chat.last_message_time || undefined,
+    lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
-    winningBalance: player.winning_balance || player.winningBalance ? 
+    winningBalance: player.winning_balance || player.winningBalance ?
       String(player.winning_balance || player.winningBalance) : undefined,
     gamesPlayed: player.games_played || player.gamesPlayed || undefined,
     winRate: player.win_rate || player.winRate || undefined,
@@ -83,6 +100,10 @@ function transformChatToUser(chat: any): ChatUser {
  * This endpoint includes chat context (last message, unread count, chatroom info)
  */
 function transformPlayerToUser(player: any): ChatUser {
+  // Validate timestamp before storing it
+  const rawTimestamp = player.last_message_timestamp;
+  const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
+
   return {
     // Use chatroom_id if available (for chat context), otherwise use player.id
     id: String(player.chatroom_id || player.id || ''),
@@ -94,7 +115,7 @@ function transformPlayerToUser(player: any): ChatUser {
     isOnline: player.is_online || false,
     // Use last_message from API if available (new endpoint provides this)
     lastMessage: player.last_message || undefined,
-    lastMessageTime: player.last_message_timestamp || undefined,
+    lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
     gamesPlayed: player.games_played || player.gems || undefined,
@@ -241,7 +262,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
                     ...existingChat,
                     // Update fields that come from server
                     lastMessage: incomingChat.lastMessage ?? existingChat.lastMessage,
-                    lastMessageTime: incomingChat.lastMessageTime ?? existingChat.lastMessageTime,
+                    // Only update timestamp if incoming one is valid
+                    lastMessageTime: isValidTimestamp(incomingChat.lastMessageTime) ? incomingChat.lastMessageTime : existingChat.lastMessageTime,
                     unreadCount: incomingChat.unreadCount ?? existingChat.unreadCount,
                     isOnline: incomingChat.isOnline ?? existingChat.isOnline,
                     balance: incomingChat.balance ?? existingChat.balance,
@@ -314,7 +336,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
               const updatedChat = {
                 ...updatedChats[chatIndex],
                 lastMessage: updateData.last_message || updatedChats[chatIndex].lastMessage,
-                lastMessageTime: updateData.last_message_time || updatedChats[chatIndex].lastMessageTime,
+                // Only update timestamp if the incoming one is valid
+                lastMessageTime: isValidTimestamp(updateData.last_message_time) ? updateData.last_message_time : updatedChats[chatIndex].lastMessageTime,
                 unreadCount: updateData.unread_message_count ?? updatedChats[chatIndex].unreadCount,
               };
               
@@ -752,11 +775,15 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     lastMessage: string,
     lastMessageTime: string
   ) => {
+    // Validate timestamp before using it
+    const validTimestamp = isValidTimestamp(lastMessageTime) ? lastMessageTime : undefined;
+
     !IS_PROD && console.log(`📝 [updateChatLastMessage] Called with:`, {
       userId,
       chatId,
       lastMessage: lastMessage.substring(0, 30),
       lastMessageTime,
+      validTimestamp,
     });
     
     setActiveChats((prevChats) => {
@@ -789,7 +816,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       updatedChats[chatIndex] = {
         ...updatedChats[chatIndex],
         lastMessage,
-        lastMessageTime,
+        lastMessageTime: validTimestamp,
       };
       
       // Move updated chat to the top of the list for better UX
@@ -812,7 +839,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       updatedPlayers[playerIndex] = {
         ...updatedPlayers[playerIndex],
         lastMessage,
-        lastMessageTime,
+        lastMessageTime: validTimestamp,
       };
       
       return updatedPlayers;
