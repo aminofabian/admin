@@ -253,6 +253,7 @@ function usePlayersPageContext(): PlayersPageContext {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.values.agent, filters.values.agent_id, agentIdMap, filters.setFilter]);
   
   const dataState = usePlayersData({
@@ -405,7 +406,7 @@ function usePlayerFilters(
 
   const applyFilters = useCallback(() => {
     // Ensure agent_id is synced before applying filters
-    let filtersToApply = { ...filters };
+    const filtersToApply = { ...filters };
     
     if (filtersToApply.agent && agentIdMap.size > 0) {
       const agentId = agentIdMap.get(filtersToApply.agent);

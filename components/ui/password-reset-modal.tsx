@@ -58,7 +58,7 @@ export function PasswordResetModal({
       setPassword('');
       setConfirmPassword('');
       setErrors({});
-    } catch (_error) {
+    } catch {
       // Error handling is done by parent component
     }
   };

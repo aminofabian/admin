@@ -7,11 +7,11 @@ import type { Player, CreatePlayerRequest, UpdateUserRequest } from '@/types';
 interface PlayerFormProps {
   player?: Player;
   onSubmit: (data: CreatePlayerRequest | UpdateUserRequest) => Promise<void>;
-  onCancel: () => void;
+  onCancel?: () => void;
   isLoading?: boolean;
 }
 
-export const PlayerForm = ({ player, onSubmit, onCancel: _onCancel, isLoading }: PlayerFormProps) => {
+export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => {
   const isEditMode = !!player;
   
   const [formData, setFormData] = useState<CreatePlayerRequest>({
