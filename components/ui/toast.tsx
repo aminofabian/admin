@@ -96,14 +96,14 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
   const getToastStyles = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300';
+        return 'bg-green-50/90 dark:bg-green-950/80 backdrop-blur-md border-green-200/50 dark:border-green-800/50 text-green-800 dark:text-green-300';
       case 'error':
-        return 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300';
+        return 'bg-red-50/90 dark:bg-red-950/80 backdrop-blur-md border-red-200/50 dark:border-red-800/50 text-red-800 dark:text-red-300';
       case 'warning':
-        return 'bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800/50 text-yellow-800 dark:text-yellow-300';
+        return 'bg-yellow-50/90 dark:bg-yellow-950/80 backdrop-blur-md border-yellow-200/50 dark:border-yellow-800/50 text-yellow-800 dark:text-yellow-300';
       case 'info':
       default:
-        return 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50 text-blue-800 dark:text-blue-300';
+        return 'bg-blue-50/90 dark:bg-blue-950/80 backdrop-blur-md border-blue-200/50 dark:border-blue-800/50 text-blue-800 dark:text-blue-300';
     }
   };
 
