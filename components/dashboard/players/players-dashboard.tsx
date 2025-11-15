@@ -27,7 +27,6 @@ import {
   LoadingState,
   PlayerForm,
 } from '@/components/features';
-import { PlayerDetailView } from '@/components/dashboard/data-sections/action-modal/player-detail-view';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   CreatePlayerRequest,
@@ -50,8 +49,6 @@ type ModalState = {
   };
   isCreateOpen: boolean;
   isSubmitting: boolean;
-  isViewOpen: boolean;
-  selectedPlayer: Player | null;
   submitError: string;
   successMessage: string;
 };
@@ -115,7 +112,7 @@ export default function PlayersDashboard(): ReactElement {
           router.push(chatUrl);
         }}
         onPageChange={pagination.setPage}
-        onViewPlayer={modalState.openViewModal}
+        onViewPlayer={(player) => router.push(`/dashboard/players/${player.id}`)}
         onToggleStatus={statusHandlers.openConfirm}
         page={pagination.page}
         pageSize={pagination.pageSize}
@@ -126,12 +123,6 @@ export default function PlayersDashboard(): ReactElement {
         onClose={modalState.closeCreateModal}
         onSubmit={creationHandlers.handleSubmit}
         submitError={modalState.state.submitError}
-      />
-      <PlayerDetailView
-        isOpen={modalState.state.isViewOpen}
-        onClose={modalState.closeViewModal}
-        player={modalState.state.selectedPlayer}
-        onPlayerUpdated={dataState.refresh}
       />
       <ConfirmModal
         isOpen={modalState.state.confirm.isOpen}
@@ -331,10 +322,8 @@ function usePlayerModals(): {
   cancelConfirm: () => void;
   clearSuccessMessage: () => void;
   closeCreateModal: () => void;
-  closeViewModal: () => void;
   openConfirm: (player: Player) => void;
   openCreateModal: () => void;
-  openViewModal: (player: Player) => void;
   setConfirmLoading: (isLoading: boolean) => void;
   setSubmitting: (isSubmitting: boolean) => void;
   setSubmitError: (message: string) => void;
@@ -350,8 +339,6 @@ function usePlayerModals(): {
       },
       isCreateOpen: false,
       isSubmitting: false,
-      isViewOpen: false,
-      selectedPlayer: null,
       submitError: '',
       successMessage: '',
     }),
@@ -368,27 +355,11 @@ function usePlayerModals(): {
     }));
   }, []);
 
-  const openViewModal = useCallback((player: Player) => {
-    setState((prev) => ({
-      ...prev,
-      isViewOpen: true,
-      selectedPlayer: player,
-    }));
-  }, []);
-
   const closeCreateModal = useCallback(() => {
     setState((prev) => ({
       ...prev,
       isCreateOpen: false,
       submitError: '',
-    }));
-  }, []);
-
-  const closeViewModal = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      isViewOpen: false,
-      selectedPlayer: null,
     }));
   }, []);
 
@@ -433,10 +404,8 @@ function usePlayerModals(): {
     cancelConfirm,
     clearSuccessMessage,
     closeCreateModal,
-    closeViewModal,
     openConfirm,
     openCreateModal,
-    openViewModal,
     setConfirmLoading,
     setSubmitting,
     setSubmitError,
