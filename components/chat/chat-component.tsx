@@ -1457,8 +1457,8 @@ export function ChatComponent() {
                   </div>
                 </div>
               )}
-              {/* Empty state when no messages */}
-              {!isHistoryLoadingMessages && wsMessages.length === 0 && (
+              {/* Empty state when no messages - only show after WebSocket has connected and loading is complete */}
+              {!isHistoryLoadingMessages && wsMessages.length === 0 && isConnected && (
                 <div className="flex items-center justify-center h-full min-h-[200px]">
                   <div className="text-center space-y-2">
                     <p className="text-muted-foreground text-sm md:text-base">
