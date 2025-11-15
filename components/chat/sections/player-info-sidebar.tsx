@@ -229,10 +229,18 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                       key={purchase.id}
                       className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
                     >
+                      {/* Amount and Status Row */}
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-bold text-foreground">{formatCurrency(purchase.amount.toString())}</p>
+                        <div className="text-left">
+                          <p className="text-xs font-bold text-foreground">{formatCurrency(purchase.amount.toString())}</p>
+                          {purchase.bonus_amount && purchase.bonus_amount > 0 && (
+                            <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">
+                              Bonus: {formatCurrency(purchase.bonus_amount.toString())}
+                            </p>
+                          )}
+                        </div>
                         <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
                             purchase.status === 'completed'
                               ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                               : purchase.status === 'pending'
@@ -242,8 +250,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                         >
                           <span
                             className={`w-1 h-1 rounded-full ${
-                              purchase.status === 'completed' 
-                                ? 'bg-green-500' 
+                              purchase.status === 'completed'
+                                ? 'bg-green-500'
                                 : purchase.status === 'pending'
                                 ? 'bg-amber-500'
                                 : 'bg-red-500'
@@ -252,9 +260,9 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                           {purchase.status}
                         </span>
                       </div>
+                      {/* Payment method row */}
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                        <span>ID: {purchase.transaction_id.slice(0, 8)}...</span>
-                        <span>{purchase.operator}</span>
+                        <span>{purchase.payment_method || purchase.operator}</span>
                       </div>
                     </div>
                   ))
@@ -312,10 +320,18 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                       key={cashout.id}
                       className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
                     >
+                      {/* Amount and Status Row */}
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-bold text-foreground">{formatCurrency(cashout.amount.toString())}</p>
+                        <div className="text-left">
+                          <p className="text-xs font-bold text-foreground">{formatCurrency(cashout.amount.toString())}</p>
+                          {cashout.bonus_amount && cashout.bonus_amount > 0 && (
+                            <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">
+                              Bonus: {formatCurrency(cashout.bonus_amount.toString())}
+                            </p>
+                          )}
+                        </div>
                         <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
                             cashout.status === 'completed'
                               ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                               : cashout.status === 'pending'
@@ -325,8 +341,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                         >
                           <span
                             className={`w-1 h-1 rounded-full ${
-                              cashout.status === 'completed' 
-                                ? 'bg-green-500' 
+                              cashout.status === 'completed'
+                                ? 'bg-green-500'
                                 : cashout.status === 'pending'
                                 ? 'bg-amber-500'
                                 : 'bg-red-500'
@@ -335,9 +351,9 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                           {cashout.status}
                         </span>
                       </div>
+                      {/* Payment method row */}
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                        <span>ID: {cashout.transaction_id.slice(0, 8)}...</span>
-                        <span>{cashout.operator}</span>
+                        <span>{cashout.payment_method || cashout.operator}</span>
                       </div>
                     </div>
                   ))

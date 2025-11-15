@@ -86,9 +86,11 @@ export interface ChatPurchase {
   id: string;
   user_id: number;
   amount: number;
+  bonus_amount?: number; // Optional bonus amount
   status: string;
   transaction_id: string;
-  operator: string;
+  operator: string; // Will be used as payment method
+  payment_method?: string; // Alternative payment method field if available
   type: string;
 }
 
