@@ -16,6 +16,7 @@ import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMes
 import { MessageBubble } from './components/message-bubble';
 import { isAutoMessage } from './utils/message-helpers';
 import { useScrollManagement } from './hooks/use-scroll-management';
+import { useViewportMessages } from './hooks/use-viewport-messages';
 
 type Player = ChatUser;
 type Message = ChatMessage;
@@ -228,6 +229,7 @@ export function ChatComponent() {
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
   const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
   const [isAddingGame, setIsAddingGame] = useState(false);
+  const [hasNewMessagesWhileScrolled, setHasNewMessagesWhileScrolled] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
   const wasHistoryLoadingRef = useRef(false);
@@ -335,6 +337,7 @@ export function ChatComponent() {
   const {
     isUserAtBottom,
     scrollToBottom,
+    handleScroll,
   } = useScrollManagement({
     messagesContainerRef,
     isHistoryLoadingMessages,
@@ -344,7 +347,18 @@ export function ChatComponent() {
     addToast,
   });
 
-  const groupedMessages = useMemo(() => groupMessagesByDate(wsMessages), [wsMessages]);
+  // ✅ VIEWPORT RENDERING: Only show messages that fill viewport, reveal more as user scrolls
+  const {
+    visibleMessages,
+    topSpacerHeight,
+    bottomSpacerHeight,
+  } = useViewportMessages({
+    messages: wsMessages,
+    messagesContainerRef,
+    viewportBuffer: 10, // Show 10 extra messages above/below viewport
+  });
+
+  const groupedMessages = useMemo(() => groupMessagesByDate(visibleMessages), [visibleMessages]);
 
   const displayedPlayers = useMemo(() => {
     !IS_PROD && console.log('🔄 [displayedPlayers] Memo recalculating...', {
@@ -1249,13 +1263,13 @@ export function ChatComponent() {
     // ✅ FIXED: Check if we're actually switching to a different player
     // If it's the same player (e.g., remounting after navigation), preserve scroll position
     const isActualPlayerChange = previousPlayerIdRef.current !== selectedPlayer.user_id;
-    
+
     !IS_PROD && console.log('👤 Player change effect fired:', {
       currentPlayerId: selectedPlayer.user_id,
       previousPlayerId: previousPlayerIdRef.current,
       isActualPlayerChange,
     });
-    
+
     previousPlayerIdRef.current = selectedPlayer.user_id;
 
     if (!isActualPlayerChange) {
@@ -1263,13 +1277,13 @@ export function ChatComponent() {
       return;
     }
 
-    !IS_PROD && console.log('🔄 Player changed, resetting scroll state');
+    !IS_PROD && console.log('🔄 Player changed - resetting scroll state');
 
-    // Reset all scroll-related state
+    // ✅ CLEAN RESET: Reset scroll-related state for new player
     latestMessageIdRef.current = null;
     wasHistoryLoadingRef.current = false; // Reset to allow initial history load
     hasScrolledToInitialLoadRef.current = false; // Reset for new player
-    
+
     !IS_PROD && console.log('🔄 Scroll state reset complete:', {
       hasScrolledToInitial: hasScrolledToInitialLoadRef.current,
       latestMessageId: latestMessageIdRef.current,
@@ -1309,25 +1323,60 @@ export function ChatComponent() {
       return;
     }
 
-    // Rule 1: Initial load → Force scroll to bottom (bypasses cooldown)
-    // Use instant scroll when switching players to ensure we reach absolute bottom
-    if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0 && !isHistoryLoadingMessages) {
-      !IS_PROD && console.log('📍 Initial scroll condition met - scrolling to latest');
+    // ✅ TARGETED LATEST MESSAGE: Enhanced initial load logic
+    // Only use aggressive approach for initial load, preserve natural behavior otherwise
+    if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
+      !IS_PROD && console.log('📍 Initial load condition met - scrolling to latest message');
       hasScrolledToInitialLoadRef.current = true;
+
+      // ✅ CLEAN INITIAL SCROLL: Single force + instant scroll for initial load only
       scrollToBottom(true, true); // Force + instant initial scroll
+
+      // ✅ LIGHTWEIGHT VERIFICATION: Single verification for async content
+      setTimeout(() => {
+        if (!isRefreshingMessagesRef.current) {
+          scrollToBottom(true, true); // One verification scroll
+        }
+      }, 100);
+
       return;
     }
 
-    // Rule 4: New messages only auto-scroll if user is at bottom
-    // When user is at bottom, force scroll (bypass cooldown) because they're actively viewing latest
-    if (!isRefreshingMessagesRef.current && isUserAtBottom) {
-      !IS_PROD && console.log('✅ Auto-scrolling to new message (user at bottom)');
-      // Wait for DOM to update before scrolling
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToBottom(true); // Force scroll when user is at bottom
-        });
+    // ✅ ENHANCED NEW MESSAGE HANDLING: More aggressive about showing new messages
+    // Multiple conditions to ensure new messages are visible
+    const shouldAutoScroll =
+      !isRefreshingMessagesRef.current && (
+        // Condition 1: User is at bottom (original logic)
+        isUserAtBottom ||
+        // Condition 2: Very close to bottom (more generous threshold)
+        (messagesContainerRef.current && (() => {
+          const container = messagesContainerRef.current;
+          const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+          return distanceFromBottom <= 150; // More generous threshold
+        })())
+      );
+
+    if (shouldAutoScroll) {
+      !IS_PROD && console.log('✅ Auto-scrolling to new message (enhanced detection)', {
+        isUserAtBottom,
+        messagesLength: wsMessages.length,
       });
+
+      // Clear new message indicator since we're scrolling to bottom
+      setHasNewMessagesWhileScrolled(false);
+
+      // Immediate scroll with multiple verifications
+      scrollToBottom(true, true); // Force + instant for immediate visibility
+
+      // Multiple verification attempts to ensure we reach bottom with new content
+      setTimeout(() => scrollToBottom(true, true), 50);
+      setTimeout(() => scrollToBottom(true, true), 150);
+      setTimeout(() => scrollToBottom(true, true), 300);
+    } else {
+      // ✅ NEW MESSAGE INDICATOR: Show indicator when new messages arrive and user is scrolled up
+      if (!isRefreshingMessagesRef.current && hasNewLatest && !isUserAtBottom) {
+        setHasNewMessagesWhileScrolled(true);
+      }
     }
   }, [wsMessages, isHistoryLoadingMessages, scrollToBottom, isUserAtBottom]);
 
@@ -1340,12 +1389,23 @@ export function ChatComponent() {
       return;
     }
 
-    // Rule 1: Initial load → Force scroll to bottom (bypasses cooldown)
-    // Use instant scroll when switching players to ensure we reach absolute bottom
+    // ✅ TARGETED LATEST: History load completion → Only scroll to latest if we haven't scrolled yet
+    // This preserves natural behavior while ensuring latest message for initial scenarios
     if (wasLoading && !isHistoryLoadingMessages && !hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
+      !IS_PROD && console.log('📍 History loading complete - scrolling to latest message');
+
+      // Only scroll to latest if we haven't already scrolled for this conversation
       hasScrolledToInitialLoadRef.current = true;
-      !IS_PROD && console.log('📍 Initial history load complete, scrolling to latest');
-      scrollToBottom(true, true); // Force + instant initial scroll
+
+      // ✅ CLEAN HISTORY SCROLL: Single force scroll
+      scrollToBottom(true, true); // Force + instant scroll
+
+      // ✅ LIGHTWEIGHT VERIFICATION: Single verification for async content
+      setTimeout(() => {
+        if (!isRefreshingMessagesRef.current) {
+          scrollToBottom(true, true); // One verification scroll
+        }
+      }, 100);
     }
   }, [isHistoryLoadingMessages, wsMessages.length, scrollToBottom]);
 
@@ -1409,15 +1469,32 @@ export function ChatComponent() {
             />
 
             {/* Messages / Purchase History */}
-            <div 
+            <div
               ref={messagesContainerRef}
-              className="relative flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 md:px-6 md:py-6 space-y-6 bg-gradient-to-b from-background/50 to-background"
-              style={{ 
-                // ✅ OPTIMIZED: Hardware acceleration for smooth scrolling
-                willChange: 'scroll-position',
-                // Scroll behavior controlled via scrollTo API for better performance
+              className="relative flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-background/50 to-background scroll-smooth-optimized scrollbar-smooth"
+              style={{
+                // ✅ SMOOTH SCROLL: Optimized for buttery smooth scrolling
+                // Hardware acceleration and optimal scroll performance handled by CSS classes
+                scrollBehavior: 'auto', // Let the hook handle smooth scrolling
               }}
+              onScroll={handleScroll}
             >
+              {/* ✅ SCROLLBAR RESET: Content wrapper for transform during scrollbar reset */}
+              <div 
+                className="px-4 py-4 md:px-6 md:py-6 space-y-6"
+                style={{
+                  // This wrapper allows us to apply transform during scrollbar reset
+                  // without affecting the scroll container itself
+                }}
+              >
+                {/* ✅ VIEWPORT RENDERING: Top spacer for messages above viewport */}
+                {topSpacerHeight > 0 && (
+                  <div 
+                    style={{ height: topSpacerHeight }}
+                    aria-hidden="true"
+                  />
+                )}
+
               {/* Loading indicator for message history */}
               {isHistoryLoadingMessages && (
                 <div className="space-y-4 py-3">
@@ -1506,13 +1583,14 @@ export function ChatComponent() {
             return (
               <div
                 key={message.id}
-                className={isNewMessage && hasScrolledToInitialLoadRef.current ? 
-                  'animate-slide-in-from-bottom-4' : 
-                  ''
-                }
+                className={`${isNewMessage && hasScrolledToInitialLoadRef.current ?
+                  'animate-slide-in-from-bottom-2 message-animation-optimized' :
+                  'message-animation-optimized'
+                }`}
                 style={{
-                  // Hardware acceleration for smooth animation
+                  // ✅ SMOOTH SCROLL: Enhanced hardware acceleration for ultra-smooth animations
                   willChange: isNewMessage && hasScrolledToInitialLoadRef.current ? 'transform, opacity' : 'auto',
+                  backfaceVisibility: 'hidden',
                 }}
               >
                 <MessageBubble
@@ -1531,15 +1609,32 @@ export function ChatComponent() {
         </div>
       ))}
 
+                {/* ✅ VIEWPORT RENDERING: Bottom spacer for messages below viewport */}
+                {bottomSpacerHeight > 0 && (
+                  <div 
+                    style={{ height: bottomSpacerHeight }}
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+              {/* End content wrapper */}
+
       {/* Rule 10 & 11: Scroll-to-bottom button - show when away from bottom, hide when at bottom */}
       {!isUserAtBottom && (
         <div className="pointer-events-none sticky bottom-12 sm:bottom-16 z-20 flex justify-end pr-0">
-          <div className="pointer-events-auto -mr-3 sm:-mr-8">
+          <div className="pointer-events-auto -mr-3 sm:-mr-8 animate-bounce-in-smooth">
             <button
               type="button"
-              onClick={() => scrollToBottom(true)} // Rule 6: Force scroll (bypasses cooldown)
+              onClick={() => {
+                scrollToBottom(true); // Rule 6: Force scroll (bypasses cooldown)
+                setHasNewMessagesWhileScrolled(false); // Clear indicator
+              }}
               aria-label="Jump to latest messages"
-              className="group relative flex w-12 flex-col items-center gap-3 rounded-full border border-border/40 bg-background/95 px-0 py-5 text-primary shadow-xl backdrop-blur-md transition-transform duration-200 hover:-translate-x-0.5 hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/40"
+              className={`group relative flex w-12 flex-col items-center gap-3 rounded-full border px-0 py-5 shadow-xl backdrop-blur-md transition-all duration-200 hover:-translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/40 animate-scroll-indicator ${
+                hasNewMessagesWhileScrolled
+                  ? 'border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary animate-new-message-pulse'
+                  : 'border-border/40 bg-background/95 text-primary hover:border-primary/50 hover:shadow-2xl'
+              }`}
             >
               <span className="absolute right-full mr-3 hidden translate-x-2 items-center gap-2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-lg opacity-0 transition-all duration-200 group-hover:flex group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:flex group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1568,18 +1663,18 @@ export function ChatComponent() {
       {/* Typing Indicator */}
       {remoteTyping && (
         <div
-          className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-200"
+          className="flex justify-start animate-fade-in-smooth message-animation-optimized"
           style={{ willChange: 'transform, opacity' }}
         >
           <div className="flex items-end gap-2 max-w-[85%] md:max-w-[75%]">
-            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-md ring-2 ring-blue-500/20">
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-md ring-2 ring-blue-500/20 message-animation-optimized">
               {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
             </div>
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl rounded-bl-sm px-4 py-3 shadow-md shadow-blue-500/25">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl rounded-bl-sm px-4 py-3 shadow-md shadow-blue-500/25 message-animation-optimized">
               <div className="flex gap-1.5">
-                <div className="w-2 h-2 bg-white/80 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-2 h-2 bg-white/80 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-2 h-2 bg-white/80 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
+                <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
+                <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
               </div>
             </div>
           </div>

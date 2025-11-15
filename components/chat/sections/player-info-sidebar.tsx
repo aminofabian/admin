@@ -56,7 +56,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
     setExpandedSection(expandedSection === sectionName ? null : sectionName);
   };
   return (
-    <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-80 lg:w-96 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
+    <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-72 lg:w-80 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
       {/* Header with Player Avatar - Compact */}
       <div className="p-3 border-b border-border/50 bg-card/50">
         {/* Back button for mobile */}

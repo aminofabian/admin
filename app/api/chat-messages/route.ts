@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   const chatroomId = searchParams.get('chatroom_id');
   const userId = searchParams.get('user_id');
   const page = searchParams.get('page') || '1';
-  const perPage = searchParams.get('per_page') || '20';
+  const perPage = searchParams.get('per_page') || '10';
 
   // Accept either chatroom_id OR user_id
   if (!chatroomId && !userId) {

@@ -569,3 +569,197 @@ select {
   background-color: rgb(2, 6, 23) !important;
   color: rgb(255, 255, 255) !important;
 }
+
+/* ✅ SMOOTH SCROLL: Enhanced scroll animations for buttery smooth chat experience */
+
+/* Message slide-in animations with hardware acceleration */
+@keyframes slide-in-from-bottom-4 {
+  from {
+    opacity: 0;
+    transform: translateY(16px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes slide-in-from-bottom-2 {
+  from {
+    opacity: 0;
+    transform: translateY(8px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes slide-in-from-bottom-1 {
+  from {
+    opacity: 0;
+    transform: translateY(4px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+/* Hardware accelerated animation classes */
+.animate-slide-in-from-bottom-4 {
+  animation: slide-in-from-bottom-4 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-slide-in-from-bottom-2 {
+  animation: slide-in-from-bottom-2 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-slide-in-from-bottom-1 {
+  animation: slide-in-from-bottom-1 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Enhanced scroll performance for message container */
+.scroll-smooth-optimized {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-padding-bottom: 0;
+}
+
+/* Hardware acceleration for message elements */
+.message-animation-optimized {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+/* Smooth scroll indicator animation */
+@keyframes scroll-indicator-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translateY(0) translateZ(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px) translateZ(0);
+  }
+}
+
+.animate-scroll-indicator {
+  animation: scroll-indicator-pulse 2s ease-in-out infinite;
+}
+
+/* Enhanced typing indicator with smooth animations */
+@keyframes typing-bounce-smooth {
+  0%, 60%, 100% {
+    transform: translateY(0) translateZ(0);
+  }
+  30% {
+    transform: translateY(-8px) translateZ(0);
+  }
+}
+
+.typing-indicator-smooth {
+  animation: typing-bounce-smooth 1.4s ease-in-out infinite both;
+}
+
+.typing-indicator-smooth:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator-smooth:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+/* Smooth scrollbar styling for better visual experience */
+.scrollbar-smooth::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-smooth::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-smooth::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.scrollbar-smooth::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+  transform: scaleX(1.2);
+}
+
+/* Smooth fade-in animation for loading states */
+@keyframes fade-in-smooth {
+  from {
+    opacity: 0;
+    transform: translateY(10px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+.animate-fade-in-smooth {
+  animation: fade-in-smooth 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Enhanced smooth scroll-to-bottom button animation */
+@keyframes bounce-in-smooth {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(20px) translateZ(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-2px) translateZ(0);
+  }
+  70% {
+    transform: scale(0.95) translateY(1px) translateZ(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0) translateZ(0);
+  }
+}
+
+.animate-bounce-in-smooth {
+  animation: bounce-in-smooth 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+/* Optimize for touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .scroll-smooth-optimized {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .message-animation-optimized {
+    will-change: auto;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-from-bottom-4,
+  .animate-slide-in-from-bottom-2,
+  .animate-slide-in-from-bottom-1,
+  .animate-fade-in-smooth,
+  .animate-bounce-in-smooth,
+  .animate-scroll-indicator {
+    animation: none;
+  }
+
+  .scroll-smooth-optimized {
+    scroll-behavior: auto;
+  }
+
+  .message-animation-optimized {
+    will-change: auto;
+  }
+}

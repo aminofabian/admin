@@ -225,7 +225,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
     };
   }, [activeTab, hasMorePlayers, isLoadingMore, isCurrentTabLoading, onLoadMore]);
   return (
-    <div className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-64 lg:w-80 flex-shrink-0 border-r border-border/50 bg-gradient-to-b from-card to-card/50 flex-col`}>
+    <div className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-56 lg:w-64 flex-shrink-0 border-r border-border/50 bg-gradient-to-b from-card to-card/50 flex-col`}>
       {/* Availability Toggle */}
       <div className="p-4 md:p-5 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
         <div className="flex items-center justify-between gap-3">

@@ -2,10 +2,21 @@ import { useCallback, useRef, useEffect, useState } from 'react';
 
 const SCROLL_BOTTOM_THRESHOLD = 100; // Distance from bottom to consider "at bottom"
 const COOLDOWN_MS = 2000; // 2-second cooldown after user scrolls away
-const SCROLL_THROTTLE_MS = 16; // ~60fps
+const SCROLL_THROTTLE_MS = 16; // ~60fps - optimized for performance with long histories
 const SPACER_HEIGHT = 500; // Top spacer height for buffer
 const TOP_BUFFER = 200; // Minimum buffer space at top when loading older messages
 const MOMENTUM_SCROLL_DETECTION_MS = 150; // Time to wait after scroll ends to detect momentum
+const INCREMENTAL_LOAD_DELAY_MS = 50; // Reduced delay for faster incremental loading
+const VIEWPORT_FILL_THRESHOLD = 1.0; // Load until viewport is 100% filled with content above
+const SCROLLBAR_RESET_THRESHOLD = 50; // When scrollTop <= this, reset scrollbar to buffer
+const SCROLLBAR_BUFFER_POSITION = SPACER_HEIGHT + TOP_BUFFER; // Position to reset scrollbar to
+
+// ✅ SMOOTH SCROLL OPTIMIZATIONS
+const SMOOTH_SCROLL_EASING = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'; // iOS-style easing
+const SCROLL_ANIMATION_DURATION = 250; // Shorter duration for snappier feel
+const JUMP_DETECTION_THRESHOLD = 300; // Detect if user jumped (vs gradual scroll)
+const VELOCITY_SMOOTHING = 0.15; // Smooth velocity calculations
+const MAX_SCROLL_VELOCITY = 15; // Maximum scroll velocity for normalization
 
 interface UseScrollManagementProps {
   messagesContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -20,6 +31,8 @@ interface UseScrollManagementReturn {
   isUserAtBottom: boolean;
   scrollToBottom: (force?: boolean, instant?: boolean) => void;
   handleScroll: () => void;
+  // ✅ SMOOTH SCROLL: Expose smooth scroll functionality for external use
+  smoothScrollToPosition: (targetScrollTop: number, duration?: number) => void;
 }
 
 export function useScrollManagement({
@@ -42,6 +55,19 @@ export function useScrollManagement({
   const lastScrollTimeRef = useRef<number>(0);
   const scrollEndTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isLoadingOlderMessagesRef = useRef(false);
+
+  // ✅ USER CONTROL: Track if user has manually scrolled (takes full control)
+  const hasUserManuallyScrolledRef = useRef(false);
+
+  // ✅ SMOOTH SCROLL: Enhanced scroll tracking for buttery smoothness
+  const scrollVelocityRef = useRef<number>(0);
+  const lastScrollTopRef = useRef<number>(0);
+  const scrollAccelerationRef = useRef<number>(0);
+  const isSmoothScrollingRef = useRef(false);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
+  const scrollTargetRef = useRef<number | null>(null);
+  const scrollStartTimeRef = useRef<number>(0);
+  const scrollStartTopRef = useRef<number>(0);
   
   // Load management
   const lastLoadTimeRef = useRef<number>(0);
@@ -49,6 +75,18 @@ export function useScrollManagement({
   const LOAD_DEBOUNCE_MS = 300;
   const loadDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasShownEndOfHistoryToastRef = useRef(false);
+  
+  // ✅ INCREMENTAL LOADING: Track incremental loading state
+  const isIncrementalLoadingRef = useRef(false);
+  const incrementalLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // ✅ SCROLLBAR RESET: Track if we're resetting scrollbar (to prevent visual jump)
+  const isResettingScrollbarRef = useRef(false);
+  const lastScrollTopBeforeResetRef = useRef<number>(0);
+  const contentTransformRef = useRef<number>(0); // Track content transform offset
+  
+  // ✅ INITIAL LOAD: Track if user has scrolled to initial load
+  const hasScrolledToInitialLoadRef = useRef(false);
   
   // Previous player tracking
   const previousPlayerIdRef = useRef<number | null>(null);
@@ -95,7 +133,20 @@ export function useScrollManagement({
     const isAtBottom = checkIfAtBottom();
     setIsUserAtBottom(isAtBottom);
 
-    // Rule 5: User returning to bottom → Immediately clear cooldown and re-enable auto-scroll
+    // ✅ USER CONTROL: Track manual scrolling behavior
+    if (!isAutoScrollingRef.current) {
+      // User manually scrolled (not programmatic)
+      if (!isAtBottom) {
+        // User scrolled away from bottom → disable auto-scroll
+        hasUserManuallyScrolledRef.current = true;
+      } else {
+        // User manually scrolled back to bottom → re-enable auto-scroll
+        // They want to see new messages, so allow auto-scroll again
+        hasUserManuallyScrolledRef.current = false;
+      }
+    }
+
+    // Rule 5: User returning to bottom → Clear cooldown
     if (isAtBottom) {
       clearCooldown();
     } else {
@@ -106,10 +157,59 @@ export function useScrollManagement({
     }
   }, [checkIfAtBottom, clearCooldown, startCooldown]);
 
+  // ✅ SMOOTH SCROLL: Smooth animation to target position
+  const smoothScrollToPosition = useCallback((targetScrollTop: number, duration: number = SCROLL_ANIMATION_DURATION) => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    // Cancel any existing smooth scroll animation
+    if (scrollAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(scrollAnimationFrameRef.current);
+    }
+
+    isSmoothScrollingRef.current = true;
+    scrollTargetRef.current = targetScrollTop;
+    scrollStartTimeRef.current = performance.now();
+    scrollStartTopRef.current = container.scrollTop;
+
+    const animateScroll = (currentTime: number) => {
+      const elapsed = currentTime - scrollStartTimeRef.current;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Use ease-out cubic for smooth deceleration
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+      const currentScrollTop = scrollStartTopRef.current + (targetScrollTop - scrollStartTopRef.current) * easeProgress;
+      container.scrollTop = currentScrollTop;
+
+      if (progress < 1) {
+        scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
+      } else {
+        // Animation complete
+        isSmoothScrollingRef.current = false;
+        scrollAnimationFrameRef.current = null;
+        scrollTargetRef.current = null;
+
+        // Ensure final position is exact
+        container.scrollTop = targetScrollTop;
+      }
+    };
+
+    scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
+  }, []);
+
   // Scroll to bottom function
   const scrollToBottom = useCallback((force = false, instant = false) => {
     const container = messagesContainerRef.current;
     if (!container) return;
+
+    // ✅ USER CONTROL: If user has manually scrolled, only allow forced scrolls
+    // Forced scrolls are: user clicks button, user sends message, initial load
+    // Non-forced scrolls (auto-scroll for new messages) are blocked
+    if (!force && hasUserManuallyScrolledRef.current) {
+      // User has taken control - don't auto-scroll
+      return;
+    }
 
     // Rule 12: Auto-scroll should never trigger if user is reading history (cooldown active or far from bottom)
     if (!force) {
@@ -122,41 +222,309 @@ export function useScrollManagement({
     // Rule 1, 2, 6: Force scroll bypasses cooldown
     if (force) {
       clearCooldown();
+      // ✅ USER CONTROL: When user explicitly scrolls to bottom (button click, sends message),
+      // reset the manual scroll flag so new messages can auto-scroll again
+      // This means: "User wants to be at bottom, so show new messages automatically"
+      hasUserManuallyScrolledRef.current = false;
     }
 
     isAutoScrollingRef.current = true;
-    
-    // When switching players or forcing, use instant scroll to ensure we reach absolute bottom
-    // Use double requestAnimationFrame to ensure DOM is fully rendered
-    requestAnimationFrame(() => {
+
+    // ✅ TARGETED LATEST MESSAGE: Only use aggressive approach for specific cases
+    if (instant && (force || !hasScrolledToInitialLoadRef.current)) {
+      // ✅ ONLY for initial load and player switching - use aggressive approach
+      const targetScrollTop = container.scrollHeight;
+
+      // Multiple approaches for guaranteed latest message visibility
+      container.scrollTop = targetScrollTop;
+      container.scrollTo({
+        top: targetScrollTop,
+        behavior: 'instant' as ScrollBehavior
+      });
+      void container.offsetHeight; // Force reflow
+      container.scrollTop = targetScrollTop;
+
+      // RequestAnimationFrame verification
       requestAnimationFrame(() => {
-        // Set scroll position directly to ensure we reach absolute bottom
-        container.scrollTop = container.scrollHeight;
+        container.scrollTop = targetScrollTop;
+      });
+
+      // Mark that we've scrolled to initial load
+      hasScrolledToInitialLoadRef.current = true;
+      
+      // Reset flag quickly
+      setTimeout(() => {
+        isAutoScrollingRef.current = false;
+        evaluateScrollPosition();
+      }, 10);
+    } else {
+      // ✅ NATURAL SCROLL: Use smooth scrolling for normal interactions
+      const targetScrollTop = container.scrollHeight;
+
+      if (instant) {
+        // Direct instant scroll for other cases
+        container.scrollTop = targetScrollTop;
+        setTimeout(() => {
+          isAutoScrollingRef.current = false;
+          evaluateScrollPosition();
+        }, 0);
+      } else {
+        // ✅ SMOOTH SCROLL: Use custom smooth animation for regular use
+        smoothScrollToPosition(targetScrollTop, SCROLL_ANIMATION_DURATION);
+
+        // Reset auto-scroll flag after animation
+        setTimeout(() => {
+          isAutoScrollingRef.current = false;
+          evaluateScrollPosition();
+        }, SCROLL_ANIMATION_DURATION + 50);
+      }
+    }
+  }, [checkIfAtBottom, checkCooldown, clearCooldown, evaluateScrollPosition, smoothScrollToPosition]);
+
+  // ✅ INCREMENTAL LOADING: Check if viewport needs more content above
+  const checkIfViewportNeedsMoreContent = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return false;
+
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+    
+    // Calculate how much content is visible above current scroll position
+    // Account for transform offset if scrollbar was reset
+    const effectiveScrollTop = scrollTop - contentTransformRef.current;
+    const contentAbove = Math.max(0, effectiveScrollTop);
+    const viewportHeight = clientHeight;
+    
+    // Check if we have enough content above to fill the viewport
+    // We want at least VIEWPORT_FILL_THRESHOLD (80%) of viewport height as content above
+    const minContentAbove = viewportHeight * VIEWPORT_FILL_THRESHOLD;
+    
+    // Also check if we're near the top (within load threshold)
+    // Use a more generous threshold to trigger loading earlier
+    const LOAD_THRESHOLD = SPACER_HEIGHT + 300;
+    const isNearTop = effectiveScrollTop <= LOAD_THRESHOLD;
+    
+    // Need more content if: near top AND not enough content above
+    return isNearTop && contentAbove < minContentAbove;
+  }, []);
+
+  // ✅ INCREMENTAL LOADING: Load a single batch and check if more is needed
+  const loadSingleBatch = useCallback(async (): Promise<{ added: number; needsMore: boolean }> => {
+    const container = messagesContainerRef.current;
+    if (!container) return { added: 0, needsMore: false };
+
+    // Check loading state
+    if (isHistoryLoadingMessages || isLoadingOlderMessagesRef.current) {
+      return { added: 0, needsMore: false };
+    }
+
+    // Enforce cooldown (but shorter for incremental loading)
+    const now = performance.now();
+    const timeSinceLastLoad = now - lastLoadTimeRef.current;
+    if (timeSinceLastLoad < LOAD_COOLDOWN_MS) {
+      return { added: 0, needsMore: false };
+    }
+
+    if (!hasMoreHistory) {
+      return { added: 0, needsMore: false };
+    }
+
+    isLoadingOlderMessagesRef.current = true;
+    lastLoadTimeRef.current = now;
+
+    const beforeLoad = {
+      scrollTop: container.scrollTop,
+      scrollHeight: container.scrollHeight,
+      clientHeight: container.clientHeight,
+    };
+
+    const originalBehavior = container.style.scrollBehavior;
+    container.style.scrollBehavior = 'auto';
+
+    try {
+      const result = await loadOlderMessages();
+
+      if (result.added === 0) {
+        isLoadingOlderMessagesRef.current = false;
+        container.style.scrollBehavior = originalBehavior;
+        return { added: 0, needsMore: false };
+      }
+
+      // Wait for DOM to update and adjust scroll position
+      return new Promise<{ added: number; needsMore: boolean }>((resolve) => {
+        let observerDisconnected = false;
+        let fallbackTimeout: NodeJS.Timeout | null = null;
         
-        // If not instant, use smooth scroll for better UX
-        if (!instant) {
-          container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'smooth',
-          });
-        }
-        
-        // Verify we're at the bottom after a brief delay
-        requestAnimationFrame(() => {
+        const observer = new MutationObserver(() => {
+          if (observerDisconnected) return;
+          
+          const updatedContainer = messagesContainerRef.current;
+          if (!updatedContainer) {
+            observer.disconnect();
+            observerDisconnected = true;
+            isLoadingOlderMessagesRef.current = false;
+            container.style.scrollBehavior = originalBehavior;
+            resolve({ added: 0, needsMore: false });
+            return;
+          }
+
+          const afterLoad = {
+            scrollHeight: updatedContainer.scrollHeight,
+            clientHeight: updatedContainer.clientHeight,
+          };
+
+          const heightDelta = afterLoad.scrollHeight - beforeLoad.scrollHeight;
+
+          if (heightDelta <= 0) {
+            return;
+          }
+
+          observer.disconnect();
+          observerDisconnected = true;
+          
+          if (fallbackTimeout) {
+            clearTimeout(fallbackTimeout);
+          }
+
           requestAnimationFrame(() => {
-            // Force to absolute bottom one more time to handle any layout shifts
-            container.scrollTop = container.scrollHeight;
-            
-            // Reset auto-scroll flag
-            setTimeout(() => {
-              isAutoScrollingRef.current = false;
-              evaluateScrollPosition();
-            }, instant ? 0 : 300);
+            const currentContainer = messagesContainerRef.current;
+            if (!currentContainer) {
+              isLoadingOlderMessagesRef.current = false;
+              container.style.scrollBehavior = originalBehavior;
+              resolve({ added: result.added, needsMore: false });
+              return;
+            }
+
+            const finalHeight = currentContainer.scrollHeight;
+            const finalDelta = finalHeight - beforeLoad.scrollHeight;
+
+            if (finalDelta > 0) {
+              let newScrollTop = beforeLoad.scrollTop + finalDelta;
+
+              const wasAtTop = beforeLoad.scrollTop <= SPACER_HEIGHT + 50;
+              if (wasAtTop) {
+                const minScrollTop = SPACER_HEIGHT + TOP_BUFFER;
+                if (newScrollTop < minScrollTop) {
+                  newScrollTop = minScrollTop;
+                }
+              }
+
+              const maxScrollTop = finalHeight - currentContainer.clientHeight;
+              if (newScrollTop > maxScrollTop) {
+                newScrollTop = Math.max(maxScrollTop - 100, 0);
+              }
+
+              currentContainer.scrollTop = newScrollTop;
+              void currentContainer.offsetHeight;
+
+              // Check if viewport still needs more content
+              const stillNeedsMore = checkIfViewportNeedsMoreContent() && hasMoreHistory;
+
+              requestAnimationFrame(() => {
+                const verifyContainer = messagesContainerRef.current;
+                if (verifyContainer) {
+                  const currentScroll = verifyContainer.scrollTop;
+                  const expectedScroll = newScrollTop;
+                  if (Math.abs(currentScroll - expectedScroll) > 10) {
+                    verifyContainer.scrollTop = expectedScroll;
+                    void verifyContainer.offsetHeight;
+                  }
+                }
+              });
+
+              setTimeout(() => {
+                if (messagesContainerRef.current) {
+                  messagesContainerRef.current.style.scrollBehavior = originalBehavior;
+                }
+                isLoadingOlderMessagesRef.current = false;
+                resolve({ added: result.added, needsMore: stillNeedsMore });
+              }, 50);
+            } else {
+              isLoadingOlderMessagesRef.current = false;
+              container.style.scrollBehavior = originalBehavior;
+              resolve({ added: result.added, needsMore: false });
+            }
           });
         });
+
+        observer.observe(container, {
+          childList: true,
+          subtree: true,
+          attributes: false,
+        });
+
+        fallbackTimeout = setTimeout(() => {
+          if (!observerDisconnected) {
+            observer.disconnect();
+            observerDisconnected = true;
+            
+            const updatedContainer = messagesContainerRef.current;
+            if (updatedContainer) {
+              const afterLoad = {
+                scrollHeight: updatedContainer.scrollHeight,
+                clientHeight: updatedContainer.clientHeight,
+              };
+              const heightDelta = afterLoad.scrollHeight - beforeLoad.scrollHeight;
+              
+              if (heightDelta > 0) {
+                const newScrollTop = beforeLoad.scrollTop + heightDelta;
+                updatedContainer.scrollTop = newScrollTop;
+                void updatedContainer.offsetHeight;
+              }
+            }
+            
+            isLoadingOlderMessagesRef.current = false;
+            if (messagesContainerRef.current) {
+              messagesContainerRef.current.style.scrollBehavior = originalBehavior;
+            }
+            resolve({ added: result.added, needsMore: false });
+          }
+        }, 2000);
       });
-    });
-  }, [checkIfAtBottom, checkCooldown, clearCooldown, evaluateScrollPosition]);
+    } catch (error) {
+      console.error('❌ Failed to load older messages:', error);
+      isLoadingOlderMessagesRef.current = false;
+      container.style.scrollBehavior = originalBehavior;
+      return { added: 0, needsMore: false };
+    }
+  }, [loadOlderMessages, hasMoreHistory, isHistoryLoadingMessages, checkIfViewportNeedsMoreContent]);
+
+  // ✅ INCREMENTAL LOADING: Progressive loading that fills viewport incrementally
+  const loadIncrementally = useCallback(async () => {
+    if (isIncrementalLoadingRef.current) {
+      return; // Already loading incrementally
+    }
+
+    isIncrementalLoadingRef.current = true;
+
+    const loadNext = async (): Promise<void> => {
+      // Check if we still need more content (continue even while scrolling)
+      const needsMore = checkIfViewportNeedsMoreContent() && hasMoreHistory;
+      
+      if (!needsMore) {
+        isIncrementalLoadingRef.current = false;
+        return;
+      }
+
+      // Load one batch
+      const result = await loadSingleBatch();
+
+      // Continue loading if viewport still needs more content
+      const stillNeedsMore = checkIfViewportNeedsMoreContent() && hasMoreHistory && result.needsMore;
+
+      if (stillNeedsMore) {
+        // Wait a bit before loading next batch for smooth effect
+        incrementalLoadTimeoutRef.current = setTimeout(() => {
+          void loadNext();
+        }, INCREMENTAL_LOAD_DELAY_MS);
+      } else {
+        isIncrementalLoadingRef.current = false;
+      }
+    };
+
+    await loadNext();
+  }, [checkIfViewportNeedsMoreContent, loadSingleBatch, hasMoreHistory]);
 
   // Load older messages
   const maybeLoadOlderMessages = useCallback(async () => {
@@ -164,22 +532,19 @@ export function useScrollManagement({
     if (!container) return;
 
     const scrollTop = container.scrollTop;
+    
+    // Account for transform offset if scrollbar was reset
+    const effectiveScrollTop = scrollTop - contentTransformRef.current;
 
     // Check loading state
-    if (isHistoryLoadingMessages || isLoadingOlderMessagesRef.current) {
+    if (isHistoryLoadingMessages || isLoadingOlderMessagesRef.current || isIncrementalLoadingRef.current) {
       return;
     }
 
-    // Enforce cooldown
-    const now = performance.now();
-    const timeSinceLastLoad = now - lastLoadTimeRef.current;
-    if (timeSinceLastLoad < LOAD_COOLDOWN_MS) {
-      return;
-    }
-
-    // Load when near top (accounting for spacer)
-    const LOAD_THRESHOLD = SPACER_HEIGHT + 500;
-    const shouldLoad = scrollTop <= LOAD_THRESHOLD && hasMoreHistory;
+    // Load when near top (accounting for spacer and transform)
+    // Use a more generous threshold to trigger loading earlier
+    const LOAD_THRESHOLD = SPACER_HEIGHT + 300;
+    const shouldLoad = effectiveScrollTop <= LOAD_THRESHOLD && hasMoreHistory;
 
     if (!shouldLoad) {
       return;
@@ -187,7 +552,7 @@ export function useScrollManagement({
 
     if (!hasMoreHistory) {
       // Show end of history toast once
-      if (!hasShownEndOfHistoryToastRef.current && scrollTop <= SPACER_HEIGHT + 250 && addToast) {
+      if (!hasShownEndOfHistoryToastRef.current && effectiveScrollTop <= SPACER_HEIGHT + 250 && addToast) {
         hasShownEndOfHistoryToastRef.current = true;
         addToast({
           type: 'info',
@@ -198,123 +563,129 @@ export function useScrollManagement({
       return;
     }
 
-    isLoadingOlderMessagesRef.current = true;
-    lastLoadTimeRef.current = now;
+    // ✅ INCREMENTAL LOADING: Use progressive loading to fill viewport incrementally
+    void loadIncrementally();
+  }, [hasMoreHistory, loadIncrementally]);
 
-    // Rule 7: Loading older messages (prepend) → Preserve exact scroll position (no jump)
-    const beforeLoad = {
-      scrollTop: container.scrollTop,
-      scrollHeight: container.scrollHeight,
-      clientHeight: container.clientHeight,
-    };
-
-    // Disable smooth scroll during load to prevent visual jumps
-    const originalBehavior = container.style.scrollBehavior;
-    container.style.scrollBehavior = 'auto';
-
-    try {
-      const result = await loadOlderMessages();
-
-      // ✅ CRITICAL: Use double requestAnimationFrame to ensure React has fully rendered
-      // First frame: React commits DOM changes
-      // Second frame: DOM is fully updated, we can safely measure and set scroll
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const updatedContainer = messagesContainerRef.current;
-          if (!updatedContainer) {
-            isLoadingOlderMessagesRef.current = false;
-            container.style.scrollBehavior = originalBehavior;
-            return;
-          }
-
-          if (result.added > 0) {
-            const afterLoad = {
-              scrollHeight: updatedContainer.scrollHeight,
-              clientHeight: updatedContainer.clientHeight,
-            };
-
-            // Calculate height added
-            const heightDelta = afterLoad.scrollHeight - beforeLoad.scrollHeight;
-
-            // Rule 7 & 8: Preserve exact visual position of messages
-            // The messages should stay in the same place on screen
-            // Only adjust scroll position to account for new content above
-            let newScrollTop = beforeLoad.scrollTop + heightDelta;
-
-            // Only add buffer space if user was at the very top (within spacer area)
-            // This creates scrollable space without moving visible messages
-            const wasAtTop = beforeLoad.scrollTop <= SPACER_HEIGHT + 50;
-            if (wasAtTop) {
-              // User was at top, add buffer space for comfortable scrolling
-              const minScrollTop = SPACER_HEIGHT + TOP_BUFFER;
-              if (newScrollTop < minScrollTop) {
-                newScrollTop = minScrollTop;
-              }
-            }
-            // If user wasn't at top, keep exact position (messages stay in place)
-
-            // Safety check: don't exceed max scroll
-            const maxScrollTop = afterLoad.scrollHeight - afterLoad.clientHeight;
-            if (newScrollTop > maxScrollTop) {
-              newScrollTop = Math.max(maxScrollTop - 100, 0);
-            }
-
-            // ✅ CRITICAL: Set scroll position SYNCHRONOUSLY in the same frame
-            // This ensures the browser applies scroll position before painting
-            // Setting it synchronously prevents messages from visually moving
-            updatedContainer.scrollTop = newScrollTop;
-            
-            // Force a synchronous reflow to lock in the scroll position immediately
-            // This ensures the browser doesn't paint with the wrong position
-            // The reflow happens synchronously, so scroll position is locked before paint
-            void updatedContainer.offsetHeight; // Force synchronous reflow
-
-            // Verify position in the next frame (browsers sometimes need a correction)
-            requestAnimationFrame(() => {
-              const currentContainer = messagesContainerRef.current;
-              if (currentContainer) {
-                const currentScroll = currentContainer.scrollTop;
-                const expectedScroll = newScrollTop;
-                // Only correct if there's a significant drift (browser interference)
-                if (Math.abs(currentScroll - expectedScroll) > 10) {
-                  currentContainer.scrollTop = expectedScroll;
-                  // Force another reflow to ensure correction sticks
-                  void currentContainer.offsetHeight;
-                }
-              }
-            });
-          }
-
-          // Restore smooth scrolling after a brief delay
-          setTimeout(() => {
-            if (messagesContainerRef.current) {
-              messagesContainerRef.current.style.scrollBehavior = originalBehavior;
-            }
-          }, 100);
-
-          isLoadingOlderMessagesRef.current = false;
-        });
-      });
-    } catch (error) {
-      console.error('❌ Failed to load older messages:', error);
-      isLoadingOlderMessagesRef.current = false;
-      container.style.scrollBehavior = originalBehavior;
+  // ✅ SCROLLBAR RESET: Reset scrollbar to buffer position when reaching top
+  // Only the scrollbar moves - content stays visually in place using CSS transform
+  const resetScrollbarToBuffer = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container || isResettingScrollbarRef.current) {
+      return;
     }
-  }, [hasMoreHistory, isHistoryLoadingMessages, loadOlderMessages, addToast]);
+
+    const scrollTop = container.scrollTop;
+
+    // Only reset if we're at or very near the top
+    if (scrollTop > SCROLLBAR_RESET_THRESHOLD) {
+      return;
+    }
+
+    // Mark as resetting to prevent recursive calls
+    isResettingScrollbarRef.current = true;
+    lastScrollTopBeforeResetRef.current = scrollTop;
+
+    // ✅ CRITICAL: Calculate offset needed to keep content visually in place
+    // When we reset scrollbar from scrollTop to SCROLLBAR_BUFFER_POSITION,
+    // the browser would move content DOWN by (SCROLLBAR_BUFFER_POSITION - scrollTop)
+    // To prevent this, we offset content UP by the same amount
+    // Example: scrollTop=0, buffer=700 → content would move down 700px, so we move it up 700px
+    const scrollDelta = SCROLLBAR_BUFFER_POSITION - scrollTop; // How much scrollbar will move
+    const contentOffset = -scrollDelta; // Negative = move content up to compensate
+    contentTransformRef.current = contentOffset;
+
+    // Get content wrapper
+    const contentWrapper = container.firstElementChild as HTMLElement;
+    if (!contentWrapper) {
+      isResettingScrollbarRef.current = false;
+      return;
+    }
+
+    // ✅ CRITICAL: Apply hardware-accelerated transform synchronously
+    // Use translate3d for hardware acceleration and ensure atomic operation
+    // Step 1: Apply transform with hardware acceleration (translate3d)
+    contentWrapper.style.transition = 'none';
+    contentWrapper.style.willChange = 'transform';
+    contentWrapper.style.transform = `translate3d(0, ${contentOffset}px, 0)`;
+    contentWrapper.style.backfaceVisibility = 'hidden'; // Force hardware acceleration
+    
+    // Step 2: Force synchronous reflow to apply transform
+    // This MUST happen before scrollTop changes
+    void contentWrapper.offsetHeight;
+    
+    // Step 3: Reset scrollbar IMMEDIATELY in same execution context
+    // Content is already offset via transform, so it stays visually in place
+    container.scrollTop = SCROLLBAR_BUFFER_POSITION;
+    
+    // Step 4: Force reflow to lock both transform and scroll position
+    // Both are now locked synchronously before any paint
+    void container.offsetHeight;
+    void contentWrapper.offsetHeight;
+    
+    // Step 5: Mark as complete (non-blocking)
+    // Transform stays applied to keep content in place
+    requestAnimationFrame(() => {
+      isResettingScrollbarRef.current = false;
+    });
+  }, []);
 
   // Handle scroll events
   const handleScroll = useCallback(() => {
     // Rule 9: Never auto-scroll while user is actively scrolling or in momentum scrolling
-    if (isAutoScrollingRef.current) {
+    if (isAutoScrollingRef.current || isResettingScrollbarRef.current || isSmoothScrollingRef.current) {
       return;
     }
 
-    // Throttle scroll events
+    // Throttle scroll events for higher frame rate
     const now = performance.now();
     if (now - lastScrollTimeRef.current < SCROLL_THROTTLE_MS) {
       return;
     }
     lastScrollTimeRef.current = now;
+
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const scrollTop = container.scrollTop;
+
+    // ✅ SMOOTH SCROLL: Enhanced velocity and acceleration tracking
+    const deltaTime = now - lastScrollTimeRef.current;
+    const deltaScroll = scrollTop - lastScrollTopRef.current;
+    const currentVelocity = Math.abs(deltaScroll) / Math.max(deltaTime, 1);
+
+    // Smooth velocity using exponential moving average for buttery feel
+    scrollVelocityRef.current = scrollVelocityRef.current * (1 - VELOCITY_SMOOTHING) + currentVelocity * VELOCITY_SMOOTHING;
+
+    // Calculate acceleration for predictive scroll behavior
+    scrollAccelerationRef.current = currentVelocity - scrollVelocityRef.current;
+
+    // Detect scroll jumps vs gradual scrolling
+    const isScrollJump = Math.abs(deltaScroll) > JUMP_DETECTION_THRESHOLD;
+
+    // Update tracking refs
+    lastScrollTopRef.current = scrollTop;
+
+    // ✅ SCROLLBAR RESET: Remove transform if user scrolls away from buffer position
+    // When user scrolls, we need to remove the transform that was keeping content in place
+    if (contentTransformRef.current !== 0 && scrollTop > SCROLLBAR_BUFFER_POSITION + 50) {
+      const contentWrapper = container.firstElementChild as HTMLElement;
+      if (contentWrapper) {
+        // User has scrolled away - remove transform smoothly
+        contentWrapper.style.transition = 'transform 0.2s ease-out';
+        contentWrapper.style.transform = 'translate3d(0, 0, 0)';
+        setTimeout(() => {
+          const finalWrapper = container.firstElementChild as HTMLElement;
+          if (finalWrapper) {
+            finalWrapper.style.transform = '';
+            finalWrapper.style.transition = '';
+            finalWrapper.style.willChange = '';
+            finalWrapper.style.backfaceVisibility = '';
+          }
+          contentTransformRef.current = 0;
+        }, 200);
+      }
+    }
 
     // Mark user as scrolling
     isUserScrollingRef.current = true;
@@ -324,79 +695,142 @@ export function useScrollManagement({
       clearTimeout(scrollEndTimerRef.current);
     }
 
+    // Adaptive momentum detection based on velocity
+    // Faster scrolling = longer momentum detection time
+    const adaptiveMomentumTime = Math.min(
+      MOMENTUM_SCROLL_DETECTION_MS + (scrollVelocityRef.current * 10),
+      300
+    );
+
     // Set timer to detect when scrolling ends (momentum scrolling)
     scrollEndTimerRef.current = setTimeout(() => {
       isUserScrollingRef.current = false;
+      scrollVelocityRef.current = 0; // Reset velocity when scrolling stops
+      scrollAccelerationRef.current = 0; // Reset acceleration
       scrollEndTimerRef.current = null;
-    }, MOMENTUM_SCROLL_DETECTION_MS);
+    }, adaptiveMomentumTime);
 
     // Evaluate scroll position
     evaluateScrollPosition();
 
-    // Debounce load check
+    // Debounce load check - shorter delay for better responsiveness
     if (loadDebounceTimerRef.current !== null) {
       clearTimeout(loadDebounceTimerRef.current);
     }
 
+    // Adaptive debounce based on scroll velocity
+    // Faster scrolling = shorter debounce for immediate loading
+    const adaptiveDebounce = isScrollJump ? 50 : Math.max(LOAD_DEBOUNCE_MS - (scrollVelocityRef.current * 5), 100);
+
     loadDebounceTimerRef.current = setTimeout(() => {
       loadDebounceTimerRef.current = null;
       void maybeLoadOlderMessages();
-    }, LOAD_DEBOUNCE_MS);
+    }, adaptiveDebounce);
   }, [evaluateScrollPosition, maybeLoadOlderMessages]);
 
-  // Reset state when player changes and scroll to bottom instantly
+  // ✅ OPTIMIZED: Reset state when player changes and scroll to latest message
   useEffect(() => {
     if (selectedPlayerId !== previousPlayerIdRef.current) {
       clearCooldown();
       setIsUserAtBottom(true);
       hasShownEndOfHistoryToastRef.current = false;
+      // ✅ USER CONTROL: Reset manual scroll flag when switching players
+      // New conversation = fresh start, allow auto-scroll initially
+      hasUserManuallyScrolledRef.current = false;
+      // ✅ INITIAL LOAD: Reset initial load flag for new player
+      hasScrolledToInitialLoadRef.current = false;
       previousPlayerIdRef.current = selectedPlayerId;
-      
-      // When switching players, wait for messages to load then scroll instantly to bottom
-      // Use multiple requestAnimationFrame to ensure DOM is fully rendered
+
+      // ✅ TARGETED LATEST MESSAGE: Only scroll to bottom for player switching
+      // Use a single, clean approach that preserves natural scroll behavior
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const container = messagesContainerRef.current;
-            if (container) {
-              // Force instant scroll to absolute bottom
-              container.scrollTop = container.scrollHeight;
-              // Verify after a brief moment
-              setTimeout(() => {
-                if (container) {
-                  container.scrollTop = container.scrollHeight;
-                }
-              }, 50);
-            }
-          });
+          const container = messagesContainerRef.current;
+          if (container) {
+            // Single instant scroll to bottom - clean and predictable
+            container.scrollTop = container.scrollHeight;
+
+            // One verification after a brief delay for async content
+            setTimeout(() => {
+              const currentContainer = messagesContainerRef.current;
+              if (currentContainer) {
+                currentContainer.scrollTop = currentContainer.scrollHeight;
+              }
+            }, 100);
+          }
         });
       });
     }
   }, [selectedPlayerId, clearCooldown]);
+
+  // ✅ SMOOTH SCROLL: Cleanup function for animation frames and timers
+  const cleanupAnimations = useCallback(() => {
+    // Cancel any ongoing smooth scroll animation
+    if (scrollAnimationFrameRef.current !== null) {
+      cancelAnimationFrame(scrollAnimationFrameRef.current);
+      scrollAnimationFrameRef.current = null;
+    }
+    isSmoothScrollingRef.current = false;
+    scrollTargetRef.current = null;
+
+    // Clear all timers
+    if (scrollEndTimerRef.current !== null) {
+      clearTimeout(scrollEndTimerRef.current);
+      scrollEndTimerRef.current = null;
+    }
+    if (loadDebounceTimerRef.current !== null) {
+      clearTimeout(loadDebounceTimerRef.current);
+      loadDebounceTimerRef.current = null;
+    }
+    if (incrementalLoadTimeoutRef.current !== null) {
+      clearTimeout(incrementalLoadTimeoutRef.current);
+      incrementalLoadTimeoutRef.current = null;
+    }
+
+    // Reset scroll state
+    isUserScrollingRef.current = false;
+    scrollVelocityRef.current = 0;
+    scrollAccelerationRef.current = 0;
+    isIncrementalLoadingRef.current = false;
+  }, []);
 
   // Set up scroll listener
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    container.style.scrollBehavior = 'smooth';
-    container.addEventListener('scroll', handleScroll, { passive: true });
+    // ✅ SMOOTH SCROLL: Optimize container for hardware acceleration
+    container.style.scrollBehavior = 'auto'; // We'll handle smooth scrolling ourselves
+    container.style.willChange = 'scroll-position';
+    container.style.transform = 'translateZ(0)'; // Force hardware acceleration
+    container.style.backfaceVisibility = 'hidden'; // Prevent flicker
+
+    // ✅ SMOOTH SCROLL: Use passive listener for better performance
+    const scrollListener = () => handleScroll();
+    container.addEventListener('scroll', scrollListener, { passive: true, capture: false });
+
+    // Initialize scroll tracking
+    lastScrollTopRef.current = container.scrollTop;
 
     return () => {
-      container.removeEventListener('scroll', handleScroll);
-      if (scrollEndTimerRef.current !== null) {
-        clearTimeout(scrollEndTimerRef.current);
-      }
-      if (loadDebounceTimerRef.current !== null) {
-        clearTimeout(loadDebounceTimerRef.current);
-      }
+      container.removeEventListener('scroll', scrollListener);
+
+      // ✅ SMOOTH SCROLL: Clean up all animations and timers
+      cleanupAnimations();
+
+      // Reset container styles
+      container.style.scrollBehavior = '';
+      container.style.willChange = '';
+      container.style.transform = '';
+      container.style.backfaceVisibility = '';
     };
-  }, [handleScroll]);
+  }, [handleScroll, cleanupAnimations]);
 
   return {
     isUserAtBottom,
     scrollToBottom,
     handleScroll,
+    smoothScrollToPosition,
   };
 }
 
