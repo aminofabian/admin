@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui';
+import { useTheme } from '@/providers/theme-provider';
 
 export interface HistoryTransactionsFiltersState {
   agent: string;
@@ -180,6 +181,7 @@ export function HistoryTransactionsFilters({
   isPaymentMethodLoading = false,
   isLoading = false,
 }: HistoryTransactionsFiltersProps) {
+  const { theme } = useTheme();
   const inputClasses =
     'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
   const selectClasses =
@@ -193,11 +195,11 @@ export function HistoryTransactionsFilters({
     { value: 'cancelled', label: 'Cancelled' },
   ];
 
-  // Date input classes with calendar icon support
+  // Date input classes - using custom CSS classes for creative styling (larger and more interactive)
   const dateInputClasses = useMemo(
     () =>
-      `${inputClasses} pl-10 pr-3 cursor-pointer hover:border-primary/50 dark:hover:border-primary/50`,
-    [inputClasses]
+      `w-full px-4 py-3.5 pl-12 pr-14 rounded-xl font-medium text-base cursor-pointer transition-all duration-300 min-h-[3.5rem]`,
+    []
   );
 
   // Check if date range is valid (from <= to)
@@ -443,36 +445,58 @@ export function HistoryTransactionsFilters({
               </div>
 
               {/* Date Inputs */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div className="relative min-w-0">
-                  <label className={`${labelClasses} mb-1.5`}>From Date</label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                      <CalendarIcon className="w-4 h-4" />
+                  <label className={`${labelClasses} mb-2 text-sm`}>From Date</label>
+                  <div className="date-input-wrapper group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                      <div className="calendar-icon">
+                        <CalendarIcon className="w-6 h-6" />
+                      </div>
                     </div>
                     <input
                       type="date"
                       value={filters.date_from}
                       onChange={(event) => onFilterChange('date_from', event.target.value)}
                       max={filters.date_to || undefined}
-                      className={`${dateInputClasses} ${!isDateRangeValid && filters.date_from && filters.date_to ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
+                      className={`${dateInputClasses} ${!isDateRangeValid && filters.date_from && filters.date_to ? '!border-red-500 focus:!border-red-500' : ''}`}
+                      style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
                     />
+                    {/* Interactive click indicator */}
+                    <div className="edit-icon absolute right-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                      <svg className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    {/* Click hint overlay */}
+                    <div className="absolute inset-0 rounded-xl bg-primary/0 group-hover:bg-primary/5 dark:group-hover:bg-primary/10 transition-all duration-300 pointer-events-none z-0" />
                   </div>
                 </div>
 
                 <div className="relative min-w-0">
-                  <label className={`${labelClasses} mb-1.5`}>To Date</label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                      <CalendarIcon className="w-4 h-4" />
+                  <label className={`${labelClasses} mb-2 text-sm`}>To Date</label>
+                  <div className="date-input-wrapper group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                      <div className="calendar-icon">
+                        <CalendarIcon className="w-6 h-6" />
+                      </div>
                     </div>
                     <input
                       type="date"
                       value={filters.date_to}
                       onChange={(event) => onFilterChange('date_to', event.target.value)}
                       min={filters.date_from || undefined}
-                      className={`${dateInputClasses} ${!isDateRangeValid && filters.date_from && filters.date_to ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
+                      className={`${dateInputClasses} ${!isDateRangeValid && filters.date_from && filters.date_to ? '!border-red-500 focus:!border-red-500' : ''}`}
+                      style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
                     />
+                    {/* Interactive click indicator */}
+                    <div className="edit-icon absolute right-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                      <svg className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    {/* Click hint overlay */}
+                    <div className="absolute inset-0 rounded-xl bg-primary/0 group-hover:bg-primary/5 dark:group-hover:bg-primary/10 transition-all duration-300 pointer-events-none z-0" />
                   </div>
                 </div>
               </div>

@@ -255,3 +255,266 @@ body {
 .animate-message-glow {
   animation: message-glow 1s ease-in-out infinite;
 }
+
+/* Creative Date Input Styling */
+.date-input-wrapper {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.date-input-wrapper:hover {
+  transform: translateY(-2px);
+}
+
+.date-input-wrapper:active {
+  transform: translateY(0);
+}
+
+.date-input-wrapper input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  position: relative;
+  z-index: 1;
+}
+
+/* Custom date input styling for light theme */
+.date-input-wrapper input[type="date"] {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.95) 100%);
+  border: 2.5px solid rgba(203, 213, 225, 0.6);
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    0 0 0 0 rgba(99, 102, 241, 0),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.date-input-wrapper:hover input[type="date"] {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 
+    0 6px 20px rgba(99, 102, 241, 0.2),
+    0 0 0 4px rgba(99, 102, 241, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
+  transform: scale(1.01);
+}
+
+.date-input-wrapper input[type="date"]:focus {
+  border-color: rgba(99, 102, 241, 0.9);
+  box-shadow: 
+    0 8px 28px rgba(99, 102, 241, 0.3),
+    0 0 0 5px rgba(99, 102, 241, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(248, 250, 252, 1) 100%);
+  outline: none;
+  transform: scale(1.02);
+}
+
+/* Dark theme date input styling */
+.dark .date-input-wrapper input[type="date"] {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 2.5px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 0 0 0 rgba(168, 85, 247, 0),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: rgba(248, 250, 252, 0.95);
+  color-scheme: dark; /* Forces native date picker to use dark theme */
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.dark .date-input-wrapper:hover input[type="date"] {
+  border-color: rgba(168, 85, 247, 0.6);
+  box-shadow: 
+    0 6px 24px rgba(168, 85, 247, 0.25),
+    0 0 0 4px rgba(168, 85, 247, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 1) 100%);
+  transform: scale(1.01);
+}
+
+.dark .date-input-wrapper input[type="date"]:focus {
+  border-color: rgba(168, 85, 247, 0.9);
+  box-shadow: 
+    0 8px 32px rgba(168, 85, 247, 0.4),
+    0 0 0 5px rgba(168, 85, 247, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
+  transform: scale(1.02);
+}
+
+/* Date input icon glow effect */
+.date-input-wrapper .calendar-icon {
+  filter: drop-shadow(0 0 3px rgba(99, 102, 241, 0.4));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .date-input-wrapper .calendar-icon {
+  filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.5));
+}
+
+.date-input-wrapper:hover .calendar-icon,
+.date-input-wrapper:focus-within .calendar-icon {
+  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.7));
+  transform: scale(1.15) rotate(-5deg);
+}
+
+.dark .date-input-wrapper:hover .calendar-icon,
+.dark .date-input-wrapper:focus-within .calendar-icon {
+  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.8));
+  transform: scale(1.15) rotate(-5deg);
+}
+
+/* Edit icon animation */
+.date-input-wrapper .edit-icon {
+  opacity: 0.4;
+  transform: translateX(-4px) scale(0.9);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.date-input-wrapper:hover .edit-icon {
+  opacity: 1;
+  transform: translateX(0) scale(1.1);
+}
+
+.date-input-wrapper:focus-within .edit-icon {
+  opacity: 1;
+  transform: translateX(0) scale(1.1);
+  animation: pulse-icon 2s ease-in-out infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% {
+    opacity: 1;
+    transform: translateX(0) scale(1.1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateX(0) scale(1.05);
+  }
+}
+
+/* Date input placeholder and value styling */
+.date-input-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.date-input-wrapper input[type="date"]::-webkit-datetime-edit-text {
+  color: var(--foreground);
+  padding: 0 2px;
+}
+
+.date-input-wrapper input[type="date"]::-webkit-datetime-edit-month-field,
+.date-input-wrapper input[type="date"]::-webkit-datetime-edit-day-field,
+.date-input-wrapper input[type="date"]::-webkit-datetime-edit-year-field {
+  color: var(--foreground);
+  padding: 0 2px;
+}
+
+.date-input-wrapper input[type="date"]::-webkit-datetime-edit-month-field:focus,
+.date-input-wrapper input[type="date"]::-webkit-datetime-edit-day-field:focus,
+.date-input-wrapper input[type="date"]::-webkit-datetime-edit-year-field:focus {
+  background-color: rgba(99, 102, 241, 0.1);
+  border-radius: 4px;
+  color: var(--primary);
+}
+
+.dark .date-input-wrapper input[type="date"]::-webkit-datetime-edit-month-field:focus,
+.dark .date-input-wrapper input[type="date"]::-webkit-datetime-edit-day-field:focus,
+.dark .date-input-wrapper input[type="date"]::-webkit-datetime-edit-year-field:focus {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: var(--primary);
+}
+
+/* Animated border gradient on focus */
+@keyframes border-glow {
+  0%, 100% {
+    box-shadow: 
+      0 6px 20px rgba(99, 102, 241, 0.25),
+      0 0 0 4px rgba(99, 102, 241, 0.15);
+  }
+  50% {
+    box-shadow: 
+      0 8px 24px rgba(99, 102, 241, 0.3),
+      0 0 0 4px rgba(99, 102, 241, 0.2);
+  }
+}
+
+@keyframes border-glow-dark {
+  0%, 100% {
+    box-shadow: 
+      0 6px 24px rgba(168, 85, 247, 0.35),
+      0 0 0 4px rgba(168, 85, 247, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 8px 28px rgba(168, 85, 247, 0.4),
+      0 0 0 4px rgba(168, 85, 247, 0.25);
+  }
+}
+
+.date-input-wrapper input[type="date"]:focus {
+  animation: border-glow 2s ease-in-out infinite;
+}
+
+.dark .date-input-wrapper input[type="date"]:focus {
+  animation: border-glow-dark 2s ease-in-out infinite;
+}
+
+/* Smooth background transition */
+.date-input-wrapper input[type="date"] {
+  background-size: 200% 200%;
+  background-position: 0% 50%;
+}
+
+.date-input-wrapper:hover input[type="date"] {
+  background-position: 100% 50%;
+}
+
+.date-input-wrapper input[type="date"]:focus {
+  background-position: 100% 50%;
+}
+
+/* Native Date Picker Popup Styling for Dark Mode */
+/* Force dark color scheme for date picker popup */
+.dark .date-input-wrapper input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Additional styling for date picker popup elements (limited browser support) */
+.dark .date-input-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.8);
+}
+
+/* Style the calendar popup container (Chrome/Edge) */
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  color-scheme: dark;
+}
+
+/* Firefox date picker styling */
+@-moz-document url-prefix() {
+  .dark .date-input-wrapper input[type="date"] {
+    color-scheme: dark;
+  }
+}
+
+/* Safari date picker styling */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .dark .date-input-wrapper input[type="date"] {
+    color-scheme: dark;
+  }
+}
+
+/* Ensure the date input respects dark mode throughout */
+.dark input[type="date"] {
+  color-scheme: dark;
+}
