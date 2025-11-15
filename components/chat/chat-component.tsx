@@ -442,6 +442,14 @@ export function ChatComponent() {
               winRate: player.winRate || existing.winRate,
               phone: player.phone || existing.phone,
               notes: player.notes || existing.notes, // Preserve notes from REST API
+              // ✅ FIXED: Preserve lastMessageTime from REST API if WebSocket doesn't have it
+              // Use WebSocket value if it exists and is valid (not empty), otherwise fall back to REST API
+              lastMessage: existing.lastMessage || player.lastMessage,
+              lastMessageTime: (existing.lastMessageTime && 
+                                typeof existing.lastMessageTime === 'string' && 
+                                existing.lastMessageTime.trim() !== '') 
+                ? existing.lastMessageTime 
+                : player.lastMessageTime,
             });
           } else {
             // Player not in activeChats - add as is (with notes if present)
