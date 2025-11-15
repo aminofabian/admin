@@ -52,6 +52,13 @@ export default function StaffsPage() {
     staff: null,
     isLoading: false,
   });
+  const [actionsDrawer, setActionsDrawer] = useState<{
+    isOpen: boolean;
+    staff: Staff | null;
+  }>({
+    isOpen: false,
+    staff: null,
+  });
 
   useEffect(() => {
     loadStaffs();
@@ -99,12 +106,27 @@ export default function StaffsPage() {
     }
   };
 
+  const handleOpenActions = (staff: Staff) => {
+    setActionsDrawer({
+      isOpen: true,
+      staff,
+    });
+  };
+
+  const handleCloseActions = () => {
+    setActionsDrawer({
+      isOpen: false,
+      staff: null,
+    });
+  };
+
   const handleToggleStatus = async (staff: Staff) => {
     setConfirmModal({
       isOpen: true,
       staff,
       isLoading: false,
     });
+    handleCloseActions();
   };
 
   const handleConfirmToggle = async () => {
@@ -146,6 +168,7 @@ export default function StaffsPage() {
       staff,
       isLoading: false,
     });
+    handleCloseActions();
   };
 
   const handleConfirmPasswordReset = async (password: string) => {
@@ -292,32 +315,17 @@ export default function StaffsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end">
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleResetPassword(staff)}
-                            title="Reset password"
-                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
+                            onClick={() => handleOpenActions(staff)}
+                            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                            title="Actions"
                           >
-                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                              />
+                            <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                             </svg>
-                            Reset Password
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={staff.is_active ? 'danger' : 'secondary'}
-                            onClick={() => handleToggleStatus(staff)}
-                            title={staff.is_active ? 'Deactivate' : 'Activate'}
-                            className="font-semibold uppercase tracking-wide"
-                          >
-                            {staff.is_active ? 'Deactivate' : 'Activate'}
                           </Button>
                         </div>
                       </TableCell>
@@ -416,8 +424,12 @@ export default function StaffsPage() {
         isOpen={confirmModal.isOpen}
         onClose={handleCancelToggle}
         onConfirm={handleConfirmToggle}
-        title={`${confirmModal.staff?.is_active ? 'Deactivate' : 'Activate'} Manager`}
-        description={`Are you sure you want to ${confirmModal.staff?.is_active ? 'deactivate' : 'activate'} "${confirmModal.staff?.username}"?`}
+        title={`${confirmModal.staff?.is_active ? 'Deactivate' : 'Activate'} Staff`}
+        description={`Are you sure you want to ${confirmModal.staff?.is_active ? 'deactivate' : 'activate'} "${confirmModal.staff?.username}"? ${
+          confirmModal.staff?.is_active
+            ? 'They will lose access to the system.'
+            : 'They will regain access to the system.'
+        }`}
         confirmText={confirmModal.staff?.is_active ? 'Deactivate' : 'Activate'}
         variant={confirmModal.staff?.is_active ? 'warning' : 'info'}
         isLoading={confirmModal.isLoading}
@@ -431,7 +443,88 @@ export default function StaffsPage() {
         username={passwordResetModal.staff?.username}
         isLoading={passwordResetModal.isLoading}
       />
+
+      {/* Actions Drawer */}
+      <StaffActionsDrawer
+        isOpen={actionsDrawer.isOpen}
+        staff={actionsDrawer.staff}
+        onClose={handleCloseActions}
+        onResetPassword={() => actionsDrawer.staff && handleResetPassword(actionsDrawer.staff)}
+        onToggleStatus={() => actionsDrawer.staff && handleToggleStatus(actionsDrawer.staff)}
+      />
     </div>
+  );
+}
+
+// Staff Actions Drawer Component
+type StaffActionsDrawerProps = {
+  isOpen: boolean;
+  staff: Staff | null;
+  onClose: () => void;
+  onResetPassword: () => void;
+  onToggleStatus: () => void;
+};
+
+function StaffActionsDrawer({
+  isOpen,
+  staff,
+  onClose,
+  onResetPassword,
+  onToggleStatus,
+}: StaffActionsDrawerProps) {
+  if (!staff) return null;
+
+  const toggleLabel = staff.is_active ? 'Deactivate' : 'Activate';
+
+  return (
+    <Drawer isOpen={isOpen} onClose={onClose} title={`Actions for ${staff.username}`} size="sm">
+      <div className="space-y-3">
+        <Button
+          variant="ghost"
+          onClick={onResetPassword}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+            />
+          </svg>
+          <span>Reset Password</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          onClick={onToggleStatus}
+          className={`w-full justify-start gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold shadow-sm ${
+            staff.is_active
+              ? 'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-700/60 dark:bg-slate-900 dark:text-rose-300 dark:hover:border-rose-600 dark:hover:bg-rose-900/40'
+              : 'border border-emerald-200 bg-white text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-700/60 dark:bg-slate-900 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/40'
+          }`}
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {staff.is_active ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            )}
+          </svg>
+          <span>{toggleLabel}</span>
+        </Button>
+      </div>
+    </Drawer>
   );
 }
 
