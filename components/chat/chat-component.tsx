@@ -1457,6 +1457,16 @@ export function ChatComponent() {
                   </div>
                 </div>
               )}
+              {/* Empty state when no messages */}
+              {!isHistoryLoadingMessages && wsMessages.length === 0 && (
+                <div className="flex items-center justify-center h-full min-h-[200px]">
+                  <div className="text-center space-y-2">
+                    <p className="text-muted-foreground text-sm md:text-base">
+                      No chat history available
+                    </p>
+                  </div>
+                </div>
+              )}
               {Object.entries(groupedMessages).map(([date, dateMessages]) => (
                 <div key={date} className="space-y-3">
                   {/* Date Separator */}
