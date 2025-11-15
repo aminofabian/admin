@@ -198,7 +198,6 @@ function buildGameStats(games: Game[], total: number): GameStat[] {
     {
       title: 'Total Games',
       value: total.toLocaleString(),
-      helper: `${games.length} games in catalog`,
       icon: (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6-3 6 3m-12 0v6l6 3m0-6l6-3m-6 3v6" />
@@ -208,7 +207,6 @@ function buildGameStats(games: Game[], total: number): GameStat[] {
     {
       title: 'Active',
       value: active.toLocaleString(),
-      helper: `${total ? Math.round((active / Math.max(total, 1)) * 100) : 0}% of catalog`,
       variant: 'success',
       icon: (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -219,7 +217,6 @@ function buildGameStats(games: Game[], total: number): GameStat[] {
     {
       title: 'Inactive',
       value: inactive.toLocaleString(),
-      helper: `${total ? Math.round((inactive / Math.max(total, 1)) * 100) : 0}% awaiting action`,
       variant: 'danger',
       icon: (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
