@@ -68,13 +68,14 @@ interface PlayerFormProps {
 export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => {
   const isEditMode = !!player;
   
-  const [formData, setFormData] = useState<CreatePlayerRequest & { state?: string }>({
+  const [formData, setFormData] = useState<CreatePlayerRequest & { state?: string; confirm_password?: string }>({
     username: player?.username || '',
     full_name: player?.full_name || '',
     dob: player?.dob || '',
     email: player?.email || '',
     mobile_number: player?.mobile_number || '',
     password: '',
+    confirm_password: '',
     role: 'player',
     state: player?.state || '',
   });
@@ -114,6 +115,12 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
       } else if (formData.password.length < 5) {
         newErrors.password = 'Password must be at least 5 characters';
       }
+
+      if (!formData.confirm_password?.trim()) {
+        newErrors.confirm_password = 'Please confirm your password';
+      } else if (formData.password !== formData.confirm_password) {
+        newErrors.confirm_password = 'Passwords do not match';
+      }
     }
 
     setErrors(newErrors);
@@ -137,32 +144,37 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
         
         await onSubmit(updateData);
       } else {
-        const createData: CreatePlayerRequest = {
+        const createData: CreatePlayerRequest & { confirm_password?: string; state?: string } = {
           username: formData.username,
           full_name: formData.full_name,
           dob: formData.dob,
           email: formData.email,
           mobile_number: formData.mobile_number.trim() || '',
           password: formData.password,
+          confirm_password: formData.confirm_password || '',
           role: 'player',
         };
         
         // Include state if provided
-        const submitData = formData.state?.trim() 
-          ? { ...createData, state: formData.state.trim() } as CreatePlayerRequest & { state?: string }
-          : createData;
+        if (formData.state?.trim()) {
+          createData.state = formData.state.trim();
+        }
         
-        await onSubmit(submitData);
+        await onSubmit(createData);
       }
     } catch (error) {
       console.error('Form submission error:', error);
     }
   };
 
-  const handleChange = (field: keyof (CreatePlayerRequest & { state?: string }), value: string) => {
+  const handleChange = (field: keyof (CreatePlayerRequest & { state?: string; confirm_password?: string }), value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    // Clear confirm_password error when password changes
+    if (field === 'password' && errors.confirm_password) {
+      setErrors(prev => ({ ...prev, confirm_password: '' }));
     }
   };
 
@@ -272,6 +284,9 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
               className="transition-all duration-200"
             />
 
+            <div></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="Password *"
               type="password"
@@ -279,6 +294,17 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
               onChange={(e) => handleChange('password', e.target.value)}
               error={errors.password}
               placeholder="Minimum 5 characters"
+              disabled={isLoading}
+              className="transition-all duration-200"
+            />
+
+            <Input
+              label="Confirm Password *"
+              type="password"
+              value={formData.confirm_password || ''}
+              onChange={(e) => handleChange('confirm_password', e.target.value)}
+              error={errors.confirm_password}
+              placeholder="Re-enter your password"
               disabled={isLoading}
               className="transition-all duration-200"
             />
