@@ -642,8 +642,15 @@ export default function PlayerDetailPage() {
                 <Button
                   onClick={() => setShowDeactivateModal(true)}
                   variant={selectedPlayer.is_active ? 'danger' : 'primary'}
-                  className="col-span-full p-4 text-sm font-semibold shadow-md transition-all hover:shadow-xl active:scale-[0.98]"
+                  className="group relative flex items-center justify-center gap-3 p-4 text-sm font-semibold shadow-md transition-all hover:shadow-xl active:scale-[0.98]"
                 >
+                  <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    {selectedPlayer.is_active ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    )}
+                  </svg>
                   {selectedPlayer.is_active ? 'Deactivate Player' : 'Activate Player'}
                 </Button>
               </div>
