@@ -1,8 +1,62 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Input } from '@/components/ui';
+import { Input, Select } from '@/components/ui';
 import type { Player, CreatePlayerRequest, UpdateUserRequest } from '@/types';
+
+// All 50 US States
+const US_STATES = [
+  { value: 'AL', label: 'Alabama' },
+  { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' },
+  { value: 'CA', label: 'California' },
+  { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' },
+  { value: 'DE', label: 'Delaware' },
+  { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' },
+  { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' },
+  { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' },
+  { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' },
+  { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' },
+  { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' },
+  { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' },
+  { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' },
+  { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' },
+  { value: 'WY', label: 'Wyoming' },
+];
 
 interface PlayerFormProps {
   player?: Player;
@@ -14,7 +68,7 @@ interface PlayerFormProps {
 export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => {
   const isEditMode = !!player;
   
-  const [formData, setFormData] = useState<CreatePlayerRequest>({
+  const [formData, setFormData] = useState<CreatePlayerRequest & { state?: string }>({
     username: player?.username || '',
     full_name: player?.full_name || '',
     dob: player?.dob || '',
@@ -22,6 +76,7 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
     mobile_number: player?.mobile_number || '',
     password: '',
     role: 'player',
+    state: player?.state || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,10 +109,6 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
         newErrors.dob = 'Must be in YYYY-MM-DD format';
       }
 
-      if (!formData.mobile_number.trim()) {
-        newErrors.mobile_number = 'Mobile number is required';
-      }
-
       if (!formData.password.trim()) {
         newErrors.password = 'Password is required';
       } else if (formData.password.length < 5) {
@@ -80,19 +131,35 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
       if (isEditMode) {
         const updateData: UpdateUserRequest = {
           full_name: formData.full_name,
-          mobile_number: formData.mobile_number,
+          mobile_number: formData.mobile_number.trim() || undefined,
+          state: formData.state?.trim() || undefined,
         };
         
         await onSubmit(updateData);
       } else {
-        await onSubmit(formData);
+        const createData: CreatePlayerRequest = {
+          username: formData.username,
+          full_name: formData.full_name,
+          dob: formData.dob,
+          email: formData.email,
+          mobile_number: formData.mobile_number.trim() || '',
+          password: formData.password,
+          role: 'player',
+        };
+        
+        // Include state if provided
+        const submitData = formData.state?.trim() 
+          ? { ...createData, state: formData.state.trim() } as CreatePlayerRequest & { state?: string }
+          : createData;
+        
+        await onSubmit(submitData);
       }
     } catch (error) {
       console.error('Form submission error:', error);
     }
   };
 
-  const handleChange = (field: keyof CreatePlayerRequest, value: string) => {
+  const handleChange = (field: keyof (CreatePlayerRequest & { state?: string }), value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -155,7 +222,7 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
           />
 
           <Input
-            label="Mobile Number *"
+            label="Mobile Number"
             type="tel"
             value={formData.mobile_number}
             onChange={(e) => handleChange('mobile_number', e.target.value)}
@@ -164,6 +231,23 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
             disabled={isLoading}
             className="transition-all duration-200"
           />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              State
+            </label>
+            <Select
+              value={formData.state || ''}
+              onChange={(value) => handleChange('state', value)}
+              options={[
+                { value: '', label: 'Select a state' },
+                ...US_STATES,
+              ]}
+              placeholder="Select a state"
+              disabled={isLoading}
+            />
+          </div>
         </div>
       </div>
 
