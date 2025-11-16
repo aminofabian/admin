@@ -581,7 +581,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
 
             {/* Expanded Games List */}
             {expandedSection === 'games' && (
-              <div className="mt-1 pl-8 space-y-1 max-h-60 overflow-y-auto">
+              <div className="mt-2 pl-8 space-y-2 max-h-60 overflow-y-auto pr-1">
                 {isLoadingGames ? (
                   <div className="flex items-center justify-center py-4">
                     <svg className="w-5 h-5 animate-spin text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -595,34 +595,79 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   games.map((game) => (
                     <div
                       key={game.id}
-                      className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
+                      className="group relative p-3 bg-gradient-to-br from-background to-muted/20 rounded-lg border border-border/60 hover:border-primary/40 shadow-sm hover:shadow-md transition-all duration-200"
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-medium text-foreground">{game.game__title}</p>
-                        <div className="flex items-center gap-1.5">
+                      {/* Game Title Row */}
+                      <div className="flex items-start justify-between mb-2.5">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <p className="text-xs font-semibold text-foreground truncate leading-tight">{game.game__title}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">ID: {game.game__id}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <span
-                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border ${
                               game.status === 'active'
-                                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                                : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
+                                ? 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 dark:border-green-500/30'
+                                : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20 dark:border-gray-500/30'
                             }`}
                           >
                             <span
-                              className={`w-1 h-1 rounded-full ${
+                              className={`w-1.5 h-1.5 rounded-full ${
                                 game.status === 'active' ? 'bg-green-500' : 'bg-gray-500'
                               }`}
                             />
                             {game.status}
                           </span>
+                        </div>
+                      </div>
+
+                      {/* Actions Row */}
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setSelectedGameForBalance(game);
+                              setBalanceError(null);
+                              setBalanceData(null);
+                              setIsBalanceModalOpen(true);
+                              
+                              try {
+                                setIsCheckingBalance(true);
+                                const response = await playersApi.checkGameBalance({
+                                  game_id: game.game__id,
+                                  player_id: selectedPlayer.user_id,
+                                });
+                                setBalanceData(response);
+                              } catch (err) {
+                                const message = err instanceof Error ? err.message : 'Failed to check game balance';
+                                setBalanceError(message);
+                              } finally {
+                                setIsCheckingBalance(false);
+                              }
+                            }}
+                            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20 rounded-md border border-blue-200/50 dark:border-blue-800/50 transition-all hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm"
+                            title="Fetch Balance"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Balance</span>
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(game.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
                           <DropdownMenu
                             trigger={
                               <button
                                 type="button"
-                                className="flex items-center justify-center p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"
+                                className="flex items-center justify-center p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all border border-transparent hover:border-border/50"
                                 aria-label="Game actions"
-                                title="Game actions"
+                                title="More actions"
                               >
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                 </svg>
                               </button>
@@ -666,10 +711,6 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                             </DropdownMenuItem>
                           </DropdownMenu>
                         </div>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                        <span>ID: {game.game__id}</span>
-                        <span>{new Date(game.created).toLocaleDateString()}</span>
                       </div>
                     </div>
                   ))
