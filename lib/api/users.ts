@@ -168,5 +168,22 @@ export const playersApi = {
       API_ENDPOINTS.PLAYERS.CHECK_GAME_BALANCE,
       data
     ),
+
+  deleteGame: (gameId: number) =>
+    apiClient.delete<{ status: string; message: string }>(
+      API_ENDPOINTS.GAMES.PLAYER_GAMES,
+      {
+        params: { id: gameId },
+      }
+    ),
+
+  updateGame: (gameId: number, data: { username?: string; password?: string; status?: 'active' | 'inactive' }) =>
+    apiClient.patch<PlayerGame>(
+      API_ENDPOINTS.GAMES.PLAYER_GAMES,
+      data,
+      {
+        params: { id: gameId },
+      }
+    ),
 };
 

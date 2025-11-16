@@ -8,7 +8,7 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, agentsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, Select, ConfirmModal } from '@/components/ui';
+import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem } from '@/components/ui';
 import type { UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
@@ -342,7 +342,68 @@ export default function PlayerDetailPage() {
   }, [router]);
 
   // Load player games - MUST be called before any conditional returns (Rules of Hooks)
-  const { games, isLoading: isLoadingGames } = usePlayerGames(playerId);
+  const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(playerId);
+  
+  const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
+  const [isDeletingGame, setIsDeletingGame] = useState(false);
+  const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
+  const [isChangingGame, setIsChangingGame] = useState(false);
+
+  const handleDeleteGame = useCallback(async () => {
+    if (!gameToDelete || !selectedPlayer) return;
+
+    setIsDeletingGame(true);
+    try {
+      await playersApi.deleteGame(gameToDelete.id);
+      await refreshGames();
+      addToast({
+        type: 'success',
+        title: 'Game removed',
+        description: `"${gameToDelete.game__title}" has been removed from player "${selectedPlayer.username}".`,
+      });
+      setGameToDelete(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete game';
+      addToast({
+        type: 'error',
+        title: 'Delete failed',
+        description: message,
+      });
+    } finally {
+      setIsDeletingGame(false);
+    }
+  }, [gameToDelete, selectedPlayer, refreshGames, addToast]);
+
+  const handleChangeGame = useCallback(async () => {
+    if (!gameToChange) return;
+
+    setIsChangingGame(true);
+    try {
+      // Toggle the game status
+      // API requires username, so we send the current username along with status
+      const newStatus = gameToChange.status === 'active' ? 'inactive' : 'active';
+      await playersApi.updateGame(gameToChange.id, { 
+        username: gameToChange.username,
+        status: newStatus 
+      });
+      await refreshGames();
+      addToast({
+        type: 'success',
+        title: 'Game updated',
+        description: `"${gameToChange.game__title}" status has been changed to ${newStatus}.`,
+      });
+      setGameToChange(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update game';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: message,
+      });
+    } finally {
+      setIsChangingGame(false);
+    }
+  }, [gameToChange, refreshGames, addToast]);
 
   if (isLoadingPlayer) {
     return <LoadingState />;
@@ -692,39 +753,59 @@ export default function PlayerDetailPage() {
                         <Badge variant={game.status === 'active' ? 'success' : 'danger'} className="text-xs">
                           {game.status}
                         </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={async () => {
-                            setSelectedGameForBalance(game);
-                            setBalanceError(null);
-                            setBalanceData(null);
-                            setIsBalanceModalOpen(true);
-                            
-                            if (!selectedPlayer) return;
-                            
-                            try {
-                              setIsCheckingBalance(true);
-                              const response = await playersApi.checkGameBalance({
-                                game_id: game.game__id,
-                                player_id: selectedPlayer.id,
-                              });
-                              setBalanceData(response);
-                            } catch (err) {
-                              const message = err instanceof Error ? err.message : 'Failed to check game balance';
-                              setBalanceError(message);
-                            } finally {
-                              setIsCheckingBalance(false);
-                            }
-                          }}
-                          className="text-xs px-2 py-1 h-auto"
-                          title="Check game balance"
+                        <DropdownMenu
+                          trigger={
+                            <button
+                              type="button"
+                              className="flex items-center justify-center p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"
+                              aria-label="Game actions"
+                              title="Game actions"
+                            >
+                              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                              </svg>
+                            </button>
+                          }
+                          align="right"
                         >
-                          <svg className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          Balance
-                        </Button>
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              setSelectedGameForBalance(game);
+                              setBalanceError(null);
+                              setBalanceData(null);
+                              setIsBalanceModalOpen(true);
+                              
+                              if (!selectedPlayer) return;
+                              
+                              try {
+                                setIsCheckingBalance(true);
+                                const response = await playersApi.checkGameBalance({
+                                  game_id: game.game__id,
+                                  player_id: selectedPlayer.id,
+                                });
+                                setBalanceData(response);
+                              } catch (err) {
+                                const message = err instanceof Error ? err.message : 'Failed to check game balance';
+                                setBalanceError(message);
+                              } finally {
+                                setIsCheckingBalance(false);
+                              }
+                            }}
+                          >
+                            Fetch Balance
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setGameToChange(game)}
+                          >
+                            Change
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setGameToDelete(game)}
+                            className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))}
@@ -789,6 +870,28 @@ export default function PlayerDetailPage() {
         balanceData={balanceData}
         isLoading={isCheckingBalance}
         error={balanceError}
+      />
+
+      <ConfirmModal
+        isOpen={!!gameToDelete}
+        onClose={() => setGameToDelete(null)}
+        onConfirm={handleDeleteGame}
+        title="Delete Game"
+        description={`Are you sure you want to remove "${gameToDelete?.game__title}" from "${selectedPlayer?.username}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+        isLoading={isDeletingGame}
+      />
+
+      <ConfirmModal
+        isOpen={!!gameToChange}
+        onClose={() => setGameToChange(null)}
+        onConfirm={handleChangeGame}
+        title="Change Game Status"
+        description={`Are you sure you want to change the status of "${gameToChange?.game__title}" to ${gameToChange?.status === 'active' ? 'inactive' : 'active'}?`}
+        confirmText="Change"
+        variant="info"
+        isLoading={isChangingGame}
       />
     </div>
   );

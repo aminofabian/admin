@@ -3,6 +3,7 @@ export * from './button';
 export * from './card';
 export * from './confirm-modal';
 export * from './drawer';
+export * from './dropdown-menu';
 export * from './input';
 export * from './logo';
 export * from './modal';
