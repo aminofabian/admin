@@ -10,6 +10,8 @@ import type {
   GameActivity,
   CreateUserRequest,
   UpdateUserRequest,
+  CheckPlayerGameBalanceRequest,
+  CheckPlayerGameBalanceResponse,
   PaginatedResponse
 } from '@/types';
 
@@ -160,5 +162,11 @@ export const playersApi = {
         agent_username: string;
       };
     }>(`${API_PREFIX}/assign-player-to-agent/`, data),
+
+  checkGameBalance: (data: CheckPlayerGameBalanceRequest) =>
+    apiClient.post<CheckPlayerGameBalanceResponse>(
+      API_ENDPOINTS.PLAYERS.CHECK_GAME_BALANCE,
+      data
+    ),
 };
 

@@ -73,3 +73,14 @@ export interface UpdateUserRequest {
   agent_id?: number;
 }
 
+export interface CheckPlayerGameBalanceRequest {
+  game_id: number;
+  player_id: string | number;
+}
+
+export interface CheckPlayerGameBalanceResponse {
+  status: 'success' | 'error';
+  balance: number;
+  message: string;
+}
+
