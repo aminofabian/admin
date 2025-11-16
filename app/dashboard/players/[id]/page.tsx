@@ -404,7 +404,7 @@ export default function PlayerDetailPage() {
       {/* Content */}
       <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 md:p-8">
         {/* Hero Section: Player Profile */}
-        <section className="relative overflow-hidden bg-indigo-600 p-6 shadow-xl dark:bg-indigo-800 sm:p-8">
+        <section className="relative overflow-hidden bg-gray-700 p-6 shadow-xl dark:bg-gray-800 sm:p-8">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
           <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-5">
@@ -502,7 +502,7 @@ export default function PlayerDetailPage() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Button
                   onClick={handleViewTransactions}
-                  className="group relative flex items-center justify-center gap-3 bg-indigo-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-700 hover:shadow-xl active:scale-[0.98] dark:bg-indigo-700"
+                  className="group relative flex items-center justify-center gap-3 bg-gray-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:bg-gray-700 hover:shadow-xl active:scale-[0.98] dark:bg-gray-700"
                 >
                   <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -511,7 +511,7 @@ export default function PlayerDetailPage() {
                 </Button>
                 <Button
                   onClick={handleViewGameActivities}
-                  className="group relative flex items-center justify-center gap-3 bg-purple-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:bg-purple-700 hover:shadow-xl active:scale-[0.98] dark:bg-purple-700"
+                  className="group relative flex items-center justify-center gap-3 bg-gray-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:bg-gray-700 hover:shadow-xl active:scale-[0.98] dark:bg-gray-700"
                 >
                   <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -530,9 +530,9 @@ export default function PlayerDetailPage() {
             </section>
 
             {/* Agent Assignment */}
-            <section className="border border-emerald-200 bg-emerald-50 p-6 shadow-sm dark:border-emerald-800/50 dark:bg-emerald-950/20">
+            <section className="border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center bg-emerald-500 text-white shadow-md">
+                <div className="flex h-10 w-10 items-center justify-center bg-gray-500 text-white shadow-md">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                   </svg>
@@ -559,7 +559,7 @@ export default function PlayerDetailPage() {
                     onClick={handleAssignAgent}
                     isLoading={isAssigningAgent}
                     disabled={!selectedAgentId || isLoadingAgents}
-                    className="group flex items-center justify-center gap-2 bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-700 hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
+                    className="group flex items-center justify-center gap-2 bg-gray-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-gray-700 hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
                   >
                     <svg className="h-4 w-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -568,13 +568,13 @@ export default function PlayerDetailPage() {
                   </Button>
                 </div>
                 {selectedPlayer.agent_username && (
-                  <div className="flex items-center gap-3 bg-emerald-100 px-4 py-3 dark:bg-emerald-950/30">
-                    <svg className="h-5 w-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <div className="flex items-center gap-3 bg-gray-100 px-4 py-3 dark:bg-gray-800/50">
+                    <svg className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Current Agent</p>
-                      <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">{selectedPlayer.agent_username}</p>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Current Agent</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{selectedPlayer.agent_username}</p>
                     </div>
                   </div>
                 )}
@@ -602,49 +602,49 @@ export default function PlayerDetailPage() {
               )}
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <div className="group border border-purple-200 bg-purple-50 p-5 transition-all hover:shadow-md dark:border-purple-800/50 dark:bg-purple-950/40">
+              <div className="group border border-gray-200 bg-gray-50 p-5 transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
                 <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center bg-purple-500 text-white shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center bg-gray-500 text-white shadow-sm">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                   </div>
-                  <h5 className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">Purchases</h5>
+                  <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Purchases</h5>
                 </div>
                 {isLoadingDetails ? (
-                  <div className="h-7 w-24 animate-pulse bg-purple-200 dark:bg-purple-800" />
+                  <div className="h-7 w-24 animate-pulse bg-gray-200 dark:bg-gray-800" />
                 ) : (
-                  <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{purchasesTotal}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{purchasesTotal}</p>
                 )}
               </div>
-              <div className="group border border-indigo-200 bg-indigo-50 p-5 transition-all hover:shadow-md dark:border-indigo-800/50 dark:bg-indigo-950/40">
+              <div className="group border border-gray-200 bg-gray-50 p-5 transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
                 <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center bg-indigo-500 text-white shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center bg-gray-500 text-white shadow-sm">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h5 className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Cashouts</h5>
+                  <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Cashouts</h5>
                 </div>
                 {isLoadingDetails ? (
-                  <div className="h-7 w-24 animate-pulse bg-indigo-200 dark:bg-indigo-800" />
+                  <div className="h-7 w-24 animate-pulse bg-gray-200 dark:bg-gray-800" />
                 ) : (
-                  <p className="text-xl font-bold text-indigo-900 dark:text-indigo-100">{cashoutsTotal}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{cashoutsTotal}</p>
                 )}
               </div>
-              <div className="group border border-violet-200 bg-violet-50 p-5 transition-all hover:shadow-md dark:border-violet-800/50 dark:bg-violet-950/40">
+              <div className="group border border-gray-200 bg-gray-50 p-5 transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
                 <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center bg-violet-500 text-white shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center bg-gray-500 text-white shadow-sm">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                   </div>
-                  <h5 className="text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Transfers</h5>
+                  <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Transfers</h5>
                 </div>
                 {isLoadingDetails ? (
-                  <div className="h-7 w-24 animate-pulse bg-violet-200 dark:bg-violet-800" />
+                  <div className="h-7 w-24 animate-pulse bg-gray-200 dark:bg-gray-800" />
                 ) : (
-                  <p className="text-xl font-bold text-violet-900 dark:text-violet-100">{transfersTotal}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{transfersTotal}</p>
                 )}
               </div>
             </div>
