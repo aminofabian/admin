@@ -784,17 +784,25 @@ export default function PlayerDetailPage() {
           <div className="space-y-6">
             {/* Player Games */}
             <section className="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Player Games
-              </h2>
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Player Games
+                  {games.length > 0 && (
+                    <span className="ml-2 rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                      {games.length}
+                    </span>
+                  )}
+                </h2>
+              </div>
+
               {isLoadingGames ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 animate-pulse bg-gray-200 dark:bg-gray-700" />
+                    <div key={i} className="h-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
                   ))}
                 </div>
               ) : games.length === 0 ? (
@@ -806,24 +814,86 @@ export default function PlayerDetailPage() {
                   <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">No games assigned</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto">
+                <div className="space-y-2.5 max-h-96 overflow-y-auto">
                   {games.map((game: PlayerGame) => (
-                    <div key={game.id} className="flex items-center justify-between border border-gray-200 bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:bg-gray-800">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{game.game__title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: {game.game__id}</p>
+                    <div
+                      key={game.id}
+                      className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 p-3.5 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:bg-gray-800"
+                    >
+                      {/* Left: Game Info */}
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-500 text-white">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                              {game.game__title}
+                            </h3>
+                            <Badge
+                              variant={game.status === 'active' ? 'success' : 'danger'}
+                              className="text-xs shrink-0"
+                            >
+                              {game.status}
+                            </Badge>
+                          </div>
+                          <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                            <span>ID: {game.game__id}</span>
+                            {game.created && (
+                              <span className="flex items-center gap-1">
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                {formatDate(game.created)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant={game.status === 'active' ? 'success' : 'danger'} className="text-xs">
-                          {game.status}
-                        </Badge>
+
+                      {/* Right: Actions */}
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={async () => {
+                            setSelectedGameForBalance(game);
+                            setBalanceError(null);
+                            setBalanceData(null);
+                            setIsBalanceModalOpen(true);
+                            
+                            if (!selectedPlayer) return;
+                            
+                            try {
+                              setIsCheckingBalance(true);
+                              const response = await playersApi.checkGameBalance({
+                                game_id: game.game__id,
+                                player_id: selectedPlayer.id,
+                              });
+                              setBalanceData(response);
+                            } catch (err) {
+                              const message = err instanceof Error ? err.message : 'Failed to check game balance';
+                              setBalanceError(message);
+                            } finally {
+                              setIsCheckingBalance(false);
+                            }
+                          }}
+                          className="flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md active:scale-95 dark:bg-blue-500 dark:hover:bg-blue-600"
+                        >
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Balance
+                        </Button>
                         <DropdownMenu
                           trigger={
                             <button
                               type="button"
-                              className="flex items-center justify-center p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"
-                              aria-label="Game actions"
-                              title="Game actions"
+                              className="flex items-center justify-center rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                              aria-label="More actions"
                             >
                               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -833,41 +903,22 @@ export default function PlayerDetailPage() {
                           align="right"
                         >
                           <DropdownMenuItem
-                            onClick={async () => {
-                              setSelectedGameForBalance(game);
-                              setBalanceError(null);
-                              setBalanceData(null);
-                              setIsBalanceModalOpen(true);
-                              
-                              if (!selectedPlayer) return;
-                              
-                              try {
-                                setIsCheckingBalance(true);
-                                const response = await playersApi.checkGameBalance({
-                                  game_id: game.game__id,
-                                  player_id: selectedPlayer.id,
-                                });
-                                setBalanceData(response);
-                              } catch (err) {
-                                const message = err instanceof Error ? err.message : 'Failed to check game balance';
-                                setBalanceError(message);
-                              } finally {
-                                setIsCheckingBalance(false);
-                              }
-                            }}
-                          >
-                            Fetch Balance
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
                             onClick={() => setGameToChange(game)}
+                            className="flex items-center gap-2"
                           >
-                            Change
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                            Change Status
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setGameToDelete(game)}
-                            className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                            className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                           >
-                            Delete
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Game
                           </DropdownMenuItem>
                         </DropdownMenu>
                       </div>
