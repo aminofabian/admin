@@ -5,8 +5,45 @@ import { TOKEN_KEY } from '@/lib/constants/api';
 import { isValidTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 
+/**
+ * Simple debounce utility function
+ */
+const debounce = <T extends (...args: any[]) => void>(
+  func: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  return (...args: Parameters<T>) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    timeoutId = setTimeout(() => {
+      func(...args);
+      timeoutId = null;
+    }, delay);
+  };
+};
+
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+/**
+ * Extract unread count from various field names consistently
+ * Handles both unread_message_count and unread_messages_count fields
+ */
+const extractUnreadCount = (data: any): number => {
+  const count1 = data.unread_message_count;
+  const count2 = data.unread_messages_count;
+
+  // Validate both are numbers and non-negative
+  const validCount1 = typeof count1 === 'number' && count1 >= 0 ? count1 : 0;
+  const validCount2 = typeof count2 === 'number' && count2 >= 0 ? count2 : 0;
+
+  // Use the higher of the two valid counts for safety
+  return Math.max(validCount1, validCount2);
+};
 
 /**
  * Check if two chat objects have meaningful differences
@@ -43,6 +80,7 @@ interface UseChatUsersReturn {
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
   markChatAsRead: (params: { chatId?: string; userId?: number }) => void;
+  markChatAsReadDebounced: (params: { chatId?: string; userId?: number }) => void;
 }
 
 /**
@@ -77,7 +115,7 @@ function transformChatToUser(chat: any): ChatUser {
     gamesPlayed: player.games_played || player.gamesPlayed || undefined,
     winRate: player.win_rate || player.winRate || undefined,
     phone: player.phone_number || player.mobile_number || player.phone || player.mobile || undefined,
-    unreadCount: chat.unread_message_count || chat.unreadCount || 0,
+    unreadCount: extractUnreadCount(chat) || chat.unreadCount || 0,
     notes: player.notes || undefined,
   };
 }
@@ -110,7 +148,7 @@ function transformPlayerToUser(player: any): ChatUser {
     winRate: player.win_rate || undefined,
     phone: player.phone_number || player.mobile_number || undefined,
     // Use unread_messages_count from API if available
-    unreadCount: player.unread_messages_count || 0,
+    unreadCount: extractUnreadCount(player) || 0,
     notes: player.notes || undefined,
   };
 }
@@ -137,7 +175,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   
   //  Track last API refresh to prevent WebSocket from overwriting fresh API data
   const lastApiRefreshRef = useRef<number>(0);
-  const API_REFRESH_COOLDOWN = 2000; // 2 seconds - ignore WebSocket updates after API refresh
+  const API_REFRESH_COOLDOWN = 5000; // 5 seconds - ignore WebSocket updates after API refresh
+
+  //  Track last update per chat to prevent rapid updates
+  const chatLastUpdateRef = useRef<Map<string, number>>(new Map());
+  const WS_UPDATE_COOLDOWN = 1000; // 1 second cooldown for WebSocket updates per chat
 
   const connect = useCallback(() => {
     if (!enabled || !adminId) return;
@@ -287,37 +329,49 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             setIsLoading(false);
           }
           // Handle "update_chat" or "new_message" to update existing chat in list
-          else if ((data.message && data.message.type === 'update_chat') || 
+          else if ((data.message && data.message.type === 'update_chat') ||
                    (data.message && data.message.type === 'new_message') ||
                    (data.type === 'update_chat') ||
                    (data.type === 'new_message')) {
             const updateData = data.message || data;
-            
+
             //  Only update if there's an actual message, not just typing
             if (!updateData.last_message && !updateData.message) {
               !IS_PROD && console.log('⚠️ [Chat List WS] Update event without message content - likely typing, ignoring');
               return;
             }
-            
+
+            const chatId = String(updateData.chat_id);
+            const now = Date.now();
+            const lastUpdate = chatLastUpdateRef.current.get(chatId) || 0;
+
+            //  Apply per-chat update cooldown to prevent rapid updates
+            if (now - lastUpdate < WS_UPDATE_COOLDOWN) {
+              !IS_PROD && console.log(`⏭️ [Chat List WS] Skipping update for chat ${chatId} - last update ${(now - lastUpdate)}ms ago (cooldown: ${WS_UPDATE_COOLDOWN}ms)`);
+              return;
+            }
+
+            chatLastUpdateRef.current.set(chatId, now);
+
             !IS_PROD && console.log('🔄 [Chat List WS] Chat update received:', {
-              chatId: updateData.chat_id,
+              chatId,
               lastMessage: updateData.last_message?.substring(0, 30),
               lastMessageTime: updateData.last_message_time,
               unreadCount: updateData.unread_message_count,
             });
-            
+
             setActiveChats((prevChats) => {
               const chatIndex = prevChats.findIndex(
-                (chat) => chat.id === String(updateData.chat_id)
+                (chat) => chat.id === chatId
               );
-              
+
               if (chatIndex === -1) {
                 // New chat - add it to the list
                 !IS_PROD && console.log('➕ [Chat List WS] New chat detected, adding to list');
                 const newChat = transformChatToUser(updateData);
                 return [newChat, ...prevChats];
               }
-              
+
               // Update existing chat
               !IS_PROD && console.log('🔄 [Chat List WS] Updating existing chat at index', chatIndex);
               const updatedChats = [...prevChats];
@@ -326,9 +380,9 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
                 lastMessage: updateData.last_message || updatedChats[chatIndex].lastMessage,
                 // Only update timestamp if the incoming one is valid
                 lastMessageTime: isValidTimestamp(updateData.last_message_time) ? updateData.last_message_time : updatedChats[chatIndex].lastMessageTime,
-                unreadCount: updateData.unread_message_count ?? updatedChats[chatIndex].unreadCount,
+                unreadCount: extractUnreadCount(updateData) ?? updatedChats[chatIndex].unreadCount,
               };
-              
+
               // Move to top of list
               updatedChats.splice(chatIndex, 1);
               return [updatedChat, ...updatedChats];
@@ -425,31 +479,9 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       };
 
       ws.onerror = (event: Event) => {
-        // WebSocket error events may be ErrorEvent or generic Event
-        // Extract meaningful information safely
-        const errorInfo: Record<string, unknown> = {
-          type: event.type,
-          timestamp: event.timeStamp,
-        };
+        !IS_PROD && console.log('🔌 Chat list WebSocket error:', event.type);
 
-        // If it's an ErrorEvent, extract additional properties
-        if (event instanceof ErrorEvent) {
-          errorInfo.message = event.message || 'Unknown WebSocket error';
-          errorInfo.filename = event.filename || 'unknown';
-          errorInfo.lineno = event.lineno || 'unknown';
-          errorInfo.colno = event.colno || 'unknown';
-          errorInfo.error = event.error || null;
-        } else {
-          // For generic Event, try to get more info from the WebSocket state
-          const currentWs = wsRef.current;
-          if (currentWs) {
-            errorInfo.readyState = currentWs.readyState;
-            errorInfo.url = currentWs.url;
-          }
-        }
-
-        !IS_PROD && console.error('❌ Chat list WebSocket error:', errorInfo);
-        //  Don't set error - we have REST API fallback
+        // Don't set error state - we have REST API fallback
         setIsLoading(false);
       };
 
@@ -890,6 +922,16 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     });
   }, []);
 
+  /**
+   * Debounced version of markChatAsRead to prevent rapid calls
+   */
+  const markChatAsReadDebounced = useMemo(
+    () => debounce(({ chatId, userId }: { chatId?: string; userId?: number }) => {
+      markChatAsRead({ chatId, userId });
+    }, 300),
+    [markChatAsRead]
+  );
+
   return {
     users: activeChats, // For backward compatibility - return active chats as "users"
     allPlayers,
@@ -905,6 +947,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
+    markChatAsReadDebounced, // Debounced version for performance
   };
 }
+
 

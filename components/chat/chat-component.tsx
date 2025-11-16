@@ -277,6 +277,7 @@ export function ChatComponent() {
     refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
+    markChatAsReadDebounced,
   } = useChatUsers({
     adminId: adminUserId,
     enabled: hasValidAdminUser,
@@ -850,7 +851,7 @@ export function ChatComponent() {
     });
 
     if (shouldMarkAsRead) {
-      markChatAsRead({
+      markChatAsReadDebounced({
         chatId: player.id,
         userId: player.user_id,
       });

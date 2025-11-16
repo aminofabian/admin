@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useRef, useEffect, useCallback, useState } from 'react';
+import { memo, useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { Input } from '@/components/ui';
 import { PlayerListSkeleton } from '../components/chat-skeletons';
 import { formatChatTimestamp } from '@/lib/utils/formatters';
@@ -28,28 +28,49 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
   const [isNewMessage, setIsNewMessage] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const itemRef = useRef<HTMLButtonElement>(null);
-  
-  const unreadBadgeValue = 
-    unreadCount > MAX_UNREAD_BADGE_COUNT
+  const animationTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Memoize badge value to prevent unnecessary calculations
+  const unreadBadgeValue = useMemo(() => {
+    return unreadCount > MAX_UNREAD_BADGE_COUNT
       ? `${MAX_UNREAD_BADGE_COUNT}+`
       : String(unreadCount);
+  }, [unreadCount]);
 
   // Detect when unread count increases (new message)
   useEffect(() => {
-    if (unreadCount > prevUnreadCountRef.current && prevUnreadCountRef.current >= 0) {
+    const currentCount = unreadCount;
+    const prevCount = prevUnreadCountRef.current;
+
+    // Only trigger animation if count actually increased
+    if (currentCount > prevCount && prevCount >= 0) {
       // New message arrived! Trigger anticipation animation
       setIsNewMessage(true);
       setIsAnimating(true);
-      
+
+      // Clear any existing timer
+      if (animationTimerRef.current) {
+        clearTimeout(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+
       // Reset animation state after animation completes
-      const timer = setTimeout(() => {
+      animationTimerRef.current = setTimeout(() => {
         setIsNewMessage(false);
         setIsAnimating(false);
+        animationTimerRef.current = null;
       }, 1500);
-      
-      return () => clearTimeout(timer);
     }
-    prevUnreadCountRef.current = unreadCount;
+
+    prevUnreadCountRef.current = currentCount;
+
+    // Cleanup timer on unmount
+    return () => {
+      if (animationTimerRef.current) {
+        clearTimeout(animationTimerRef.current);
+        animationTimerRef.current = null;
+      }
+    };
   }, [unreadCount]);
 
   return (
@@ -132,15 +153,14 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
       </button>
   );
 }, (prevProps, nextProps) => {
-  //  Custom comparison: only re-render if relevant fields changed
+  // Enhanced comparison: only re-render if critical fields changed
   return (
     prevProps.player.user_id === nextProps.player.user_id &&
+    prevProps.player.unreadCount === nextProps.player.unreadCount &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.player.isOnline === nextProps.player.isOnline &&
     prevProps.player.lastMessage === nextProps.player.lastMessage &&
     prevProps.player.lastMessageTime === nextProps.player.lastMessageTime &&
-    prevProps.player.unreadCount === nextProps.player.unreadCount &&
-    prevProps.player.isOnline === nextProps.player.isOnline &&
-    prevProps.isSelected === nextProps.isSelected &&
-    prevProps.player.fullName === nextProps.player.fullName &&
     prevProps.player.username === nextProps.player.username &&
     prevProps.player.avatar === nextProps.player.avatar
   );
