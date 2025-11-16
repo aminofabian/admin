@@ -9,7 +9,8 @@ import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, Tabl
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
-import type { TransactionQueue } from '@/types';
+import { gamesApi } from '@/lib/api';
+import type { TransactionQueue, Game } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
 
 const GAME_ICON: JSX.Element = (
@@ -86,6 +87,8 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
 
   const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(() => buildGameActivityFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
+  const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [isGameLoading, setIsGameLoading] = useState(false);
 
   // Initialize filter once
   useEffect(() => {
@@ -130,6 +133,49 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       setAreFiltersOpen(true);
     }
   }, [advancedFilters]);
+
+  // Fetch games for dropdown
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadGames = async () => {
+      setIsGameLoading(true);
+
+      try {
+        const games = await gamesApi.list();
+
+        if (!isMounted) {
+          return;
+        }
+
+        const uniqueGames = new Map<string, string>();
+
+        games.forEach((game: Game) => {
+          if (game?.title) {
+            uniqueGames.set(game.title, game.title);
+          }
+        });
+
+        const mappedOptions = Array.from(uniqueGames.entries())
+          .map(([value, label]) => ({ value, label }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+        setGameOptions(mappedOptions);
+      } catch (error) {
+        console.error('Failed to load games for game activity filters:', error);
+      } finally {
+        if (isMounted) {
+          setIsGameLoading(false);
+        }
+      }
+    };
+
+    loadGames();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
     setFilters((previous) => ({ ...previous, [key]: value }));
@@ -224,6 +270,8 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
           hasPrevious,
           onPageChange: handlePageChange,
         }}
+        gameOptions={gameOptions}
+        isGameLoading={isGameLoading}
         isLoading={isLoading}
       />
     </DashboardSectionContainer>
@@ -241,6 +289,8 @@ interface HistoryGameActivitiesLayoutProps {
   onToggleFilters: () => void;
   queues: TransactionQueue[];
   pagination: HistoryPaginationState;
+  gameOptions: Array<{ value: string; label: string }>;
+  isGameLoading: boolean;
   isLoading: boolean;
 }
 
@@ -255,6 +305,8 @@ function HistoryGameActivitiesLayout({
   onToggleFilters,
   queues,
   pagination,
+  gameOptions,
+  isGameLoading,
   isLoading,
 }: HistoryGameActivitiesLayoutProps) {
   const totalPages = pagination.pageSize > 0
@@ -279,6 +331,8 @@ function HistoryGameActivitiesLayout({
         onClear={onClearFilters}
         isOpen={areFiltersOpen}
         onToggle={onToggleFilters}
+        gameOptions={gameOptions}
+        isGameLoading={isGameLoading}
         isLoading={isLoading}
       />
       <HistoryGameActivitiesTable queues={queues} />
