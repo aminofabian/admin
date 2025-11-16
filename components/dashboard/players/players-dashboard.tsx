@@ -37,12 +37,69 @@ import type {
   UpdateUserRequest,
 } from '@/types';
 
+// All 50 US States
+const US_STATES = [
+  { value: 'AL', label: 'Alabama' },
+  { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' },
+  { value: 'CA', label: 'California' },
+  { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' },
+  { value: 'DE', label: 'Delaware' },
+  { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' },
+  { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' },
+  { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' },
+  { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' },
+  { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' },
+  { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' },
+  { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' },
+  { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' },
+  { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' },
+  { value: 'WY', label: 'Wyoming' },
+];
+
 type FilterState = {
   username: string;
   full_name: string;
   email: string;
   agent: string;
-  agent_id: string;
+  date_from: string;
+  date_to: string;
+  status: string;
+  state: string;
 };
 
 type ModalState = {
@@ -143,16 +200,15 @@ function usePlayersPageContext(): PlayersPageContext {
   const modalState = usePlayerModals();
   const toast = useToast();
   
-  // Read agent_id from URL params
-  const agentIdFromUrl = searchParams.get('agent_id');
+  // Read agent username from URL params
+  const agentFromUrl = searchParams.get('agent');
   
   // Load agents for filter dropdown
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
-  const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
   const [isAgentLoading, setIsAgentLoading] = useState(false);
 
-  // Initialize filters with agentIdMap and pagination (must be before useEffect that uses it)
-  const filters = usePlayerFilters(agentIdMap, pagination.setPage);
+  // Initialize filters with pagination
+  const filters = usePlayerFilters(pagination.setPage);
 
   useEffect(() => {
     let isMounted = true;
@@ -191,12 +247,10 @@ function usePlayersPageContext(): PlayersPageContext {
         }
 
         const uniqueAgents = new Map<string, string>();
-        const idMap = new Map<string, number>();
 
         aggregated.forEach((agent) => {
           if (agent?.username) {
             uniqueAgents.set(agent.username, agent.username);
-            idMap.set(agent.username, agent.id);
           }
         });
 
@@ -205,7 +259,6 @@ function usePlayersPageContext(): PlayersPageContext {
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
         setAgentOptions(mappedOptions);
-        setAgentIdMap(idMap);
       } catch (error) {
         console.error('Failed to load agents for player filters:', error);
       } finally {
@@ -222,31 +275,19 @@ function usePlayersPageContext(): PlayersPageContext {
     };
   }, []);
 
-  // Sync agent filter with agent_id mapping
+  // Sync agent filter from URL params
   useEffect(() => {
-    if (agentIdMap.size > 0) {
-      if (filters.values.agent) {
-        const agentId = agentIdMap.get(filters.values.agent);
-        if (agentId && filters.values.agent_id !== String(agentId)) {
-          filters.setFilter('agent_id', String(agentId));
-        } else if (!agentId) {
-          // Agent not found in map, clear agent_id
-          filters.setFilter('agent_id', '');
-        }
-      } else {
-        // Agent cleared, clear agent_id
-        if (filters.values.agent_id) {
-          filters.setFilter('agent_id', '');
-        }
-      }
+    if (agentFromUrl && !filters.values.agent) {
+      filters.setFilter('agent', agentFromUrl);
+      filters.applyFilters();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.values.agent, filters.values.agent_id, agentIdMap, filters.setFilter]);
+  }, [agentFromUrl]);
   
   const dataState = usePlayersData({
     filters: filters.appliedFilters,
     pagination,
-    agentId: agentIdFromUrl ? parseInt(agentIdFromUrl, 10) : (filters.appliedFilters.agent_id ? parseInt(filters.appliedFilters.agent_id, 10) : undefined),
+    agentFromUrl: agentFromUrl || filters.appliedFilters.agent,
   });
   const creationHandlers = usePlayerCreation({
     closeCreateModal: modalState.closeCreateModal,
@@ -276,11 +317,11 @@ function usePlayersPageContext(): PlayersPageContext {
 function usePlayersData({
   filters,
   pagination,
-  agentId,
+  agentFromUrl,
 }: {
   filters: FilterState;
   pagination: ReturnType<typeof usePagination>;
-  agentId?: number;
+  agentFromUrl?: string;
 }): {
   data: PaginatedResponse<Player> | null;
   error: string;
@@ -314,12 +355,60 @@ function usePlayersData({
         params.email = filters.email.trim();
       }
       
-      // Add agent_id if provided (from URL params or filter)
-      const effectiveAgentId = agentId || (filters.agent_id ? parseInt(filters.agent_id, 10) : undefined);
-      if (effectiveAgentId && !isNaN(effectiveAgentId)) {
-        params.agent_id = effectiveAgentId;
+      // Add agent (username) if provided (from URL params or filter)
+      const effectiveAgent = agentFromUrl || (filters.agent.trim() || undefined);
+      if (effectiveAgent) {
+        params.agent = effectiveAgent;
       }
 
+      // Add date filters if provided (backend expects date_from/date_to as ISO strings)
+      if (filters.date_from && filters.date_from.trim()) {
+        try {
+          // Convert YYYY-MM-DD to ISO string at start of day (local timezone)
+          const dateStr = filters.date_from.trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const dateFrom = new Date(year, month - 1, day, 0, 0, 0, 0);
+            if (!isNaN(dateFrom.getTime())) {
+              params.date_from = dateFrom.toISOString();
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing date_from:', error);
+        }
+      }
+      if (filters.date_to && filters.date_to.trim()) {
+        try {
+          // Convert YYYY-MM-DD to ISO string at end of day (local timezone)
+          const dateStr = filters.date_to.trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const dateTo = new Date(year, month - 1, day, 23, 59, 59, 999);
+            if (!isNaN(dateTo.getTime())) {
+              params.date_to = dateTo.toISOString();
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing date_to:', error);
+        }
+      }
+
+      // Add status filter if provided
+      if (filters.status.trim() && filters.status !== 'all') {
+        params.status = filters.status.trim();
+      }
+
+      // Add state filter if provided
+      if (filters.state.trim() && filters.state !== 'all') {
+        params.state = filters.state.trim();
+      }
+
+      console.log('🔍 Sending API request with params:', {
+        ...params,
+        date_from: params.date_from ? `${String(params.date_from).substring(0, 19)}...` : undefined,
+        date_to: params.date_to ? `${String(params.date_to).substring(0, 19)}...` : undefined,
+      });
+      
       const response = await playersApi.list(params);
       setState({ data: response, error: '', isLoading: false });
     } catch (error) {
@@ -331,8 +420,12 @@ function usePlayersData({
     filters.username,
     filters.full_name,
     filters.email,
-    filters.agent_id,
-    agentId,
+    filters.agent,
+    filters.date_from,
+    filters.date_to,
+    filters.status,
+    filters.state,
+    agentFromUrl,
     pagination.page,
     pagination.pageSize,
   ]);
@@ -352,7 +445,6 @@ function usePlayersData({
 }
 
 function usePlayerFilters(
-  agentIdMap: Map<string, number>,
   setPage: (page: number) => void,
 ): {
   applyFilters: () => void;
@@ -367,7 +459,10 @@ function usePlayerFilters(
     full_name: '',
     email: '',
     agent: '',
-    agent_id: '',
+    date_from: '',
+    date_to: '',
+    status: 'all',
+    state: 'all',
   });
 
   const [appliedFilters, setAppliedFilters] = useState<FilterState>({
@@ -375,7 +470,10 @@ function usePlayerFilters(
     full_name: '',
     email: '',
     agent: '',
-    agent_id: '',
+    date_from: '',
+    date_to: '',
+    status: 'all',
+    state: 'all',
   });
 
   const setFilter = useCallback((key: keyof FilterState, value: string) => {
@@ -383,24 +481,10 @@ function usePlayerFilters(
   }, []);
 
   const applyFilters = useCallback(() => {
-    // Ensure agent_id is synced before applying filters
-    const filtersToApply = { ...filters };
-    
-    if (filtersToApply.agent && agentIdMap.size > 0) {
-      const agentId = agentIdMap.get(filtersToApply.agent);
-      if (agentId) {
-        filtersToApply.agent_id = String(agentId);
-      } else {
-        filtersToApply.agent_id = '';
-      }
-    } else if (!filtersToApply.agent) {
-      filtersToApply.agent_id = '';
-    }
-    
-    setAppliedFilters(filtersToApply);
+    setAppliedFilters({ ...filters });
     // Reset to page 1 when filters are applied
     setPage(1);
-  }, [filters, agentIdMap, setPage]);
+  }, [filters, setPage]);
 
   const clearFilters = useCallback(() => {
     const clearedFilters: FilterState = {
@@ -408,7 +492,10 @@ function usePlayerFilters(
       full_name: '',
       email: '',
       agent: '',
-      agent_id: '',
+      date_from: '',
+      date_to: '',
+      status: 'all',
+      state: 'all',
     };
     setFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
@@ -420,7 +507,10 @@ function usePlayerFilters(
       appliedFilters.full_name.trim() !== '' ||
       appliedFilters.email.trim() !== '' ||
       appliedFilters.agent.trim() !== '' ||
-      appliedFilters.agent_id.trim() !== ''
+      appliedFilters.date_from.trim() !== '' ||
+      appliedFilters.date_to.trim() !== '' ||
+      (appliedFilters.status.trim() !== '' && appliedFilters.status !== 'all') ||
+      (appliedFilters.state.trim() !== '' && appliedFilters.state !== 'all')
     );
   }, [appliedFilters]);
 
@@ -772,6 +862,59 @@ function PlayersFilters({
               placeholder="All Agents"
               isLoading={isAgentLoading}
               disabled={isAgentLoading}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Date From
+            </label>
+            <input
+              type="date"
+              value={filters.date_from}
+              onChange={(event) => onFilterChange('date_from', event.target.value)}
+              className={inputClasses}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Date To
+            </label>
+            <input
+              type="date"
+              value={filters.date_to}
+              onChange={(event) => onFilterChange('date_to', event.target.value)}
+              className={inputClasses}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Status
+            </label>
+            <Select
+              value={filters.status}
+              onChange={(value: string) => onFilterChange('status', value)}
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+              ]}
+              placeholder="All Statuses"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              State
+            </label>
+            <Select
+              value={filters.state}
+              onChange={(value: string) => onFilterChange('state', value)}
+              options={[
+                { value: 'all', label: 'All States' },
+                ...US_STATES,
+              ]}
+              placeholder="All States"
             />
           </div>
         </div>
