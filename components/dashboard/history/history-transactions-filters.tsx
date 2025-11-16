@@ -1,6 +1,5 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
 import { Button, Select } from '@/components/ui';
 import { useTheme } from '@/providers/theme-provider';
 
@@ -14,6 +13,7 @@ export interface HistoryTransactionsFiltersState {
   type: string;
   payment_method: string;
   status: string;
+  game: string;
   date_from: string;
   date_to: string;
   amount_min: string;
@@ -62,79 +62,6 @@ const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
   },
 ];
 
-// Date preset configurations
-interface DatePreset {
-  label: string;
-  getDates: () => { from: string; to: string };
-}
-
-const DATE_PRESETS: DatePreset[] = [
-  {
-    label: 'Today',
-    getDates: () => {
-      const today = new Date();
-      const dateStr = today.toISOString().split('T')[0];
-      return { from: dateStr, to: dateStr };
-    },
-  },
-  {
-    label: 'Yesterday',
-    getDates: () => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const dateStr = yesterday.toISOString().split('T')[0];
-      return { from: dateStr, to: dateStr };
-    },
-  },
-  {
-    label: 'Last 7 Days',
-    getDates: () => {
-      const today = new Date();
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(today.getDate() - 6); // Include today, so 6 days ago
-      return {
-        from: sevenDaysAgo.toISOString().split('T')[0],
-        to: today.toISOString().split('T')[0],
-      };
-    },
-  },
-  {
-    label: 'Last 30 Days',
-    getDates: () => {
-      const today = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(today.getDate() - 29); // Include today
-      return {
-        from: thirtyDaysAgo.toISOString().split('T')[0],
-        to: today.toISOString().split('T')[0],
-      };
-    },
-  },
-  {
-    label: 'This Month',
-    getDates: () => {
-      const today = new Date();
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      return {
-        from: firstDay.toISOString().split('T')[0],
-        to: today.toISOString().split('T')[0],
-      };
-    },
-  },
-  {
-    label: 'Last Month',
-    getDates: () => {
-      const today = new Date();
-      const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-      return {
-        from: firstDayLastMonth.toISOString().split('T')[0],
-        to: lastDayLastMonth.toISOString().split('T')[0],
-      };
-    },
-  },
-];
-
 const AMOUNT_FIELDS: InputFieldConfig[] = [
   { key: 'amount_min', label: 'Min Amount', type: 'number', placeholder: '0.00', step: '0.01' },
   { key: 'amount_max', label: 'Max Amount', type: 'number', placeholder: '999999.99', step: '0.01' },
@@ -164,6 +91,8 @@ interface HistoryTransactionsFiltersProps {
   isAgentLoading?: boolean;
   paymentMethodOptions?: Array<{ value: string; label: string }>;
   isPaymentMethodLoading?: boolean;
+  gameOptions?: Array<{ value: string; label: string }>;
+  isGameLoading?: boolean;
   isLoading?: boolean;
 }
 
@@ -179,6 +108,8 @@ export function HistoryTransactionsFilters({
   isAgentLoading = false,
   paymentMethodOptions,
   isPaymentMethodLoading = false,
+  gameOptions,
+  isGameLoading = false,
   isLoading = false,
 }: HistoryTransactionsFiltersProps) {
   const { theme } = useTheme();
@@ -192,58 +123,6 @@ export function HistoryTransactionsFilters({
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
   ];
-
-  // Date input classes - using custom CSS classes for creative styling (larger and more interactive)
-  const dateInputClasses = useMemo(
-    () =>
-      `w-full px-4 py-3.5 pl-12 pr-14 rounded-xl font-medium text-base cursor-pointer transition-all duration-300 min-h-[3.5rem]`,
-    []
-  );
-
-  // Check if date range is valid (from <= to)
-  const isDateRangeValid = useMemo(() => {
-    if (!filters.date_from || !filters.date_to) return true;
-    return new Date(filters.date_from) <= new Date(filters.date_to);
-  }, [filters.date_from, filters.date_to]);
-
-  // Handle date preset selection
-  const handleDatePreset = useCallback(
-    (preset: DatePreset) => {
-      const { from, to } = preset.getDates();
-      onFilterChange('date_from', from);
-      onFilterChange('date_to', to);
-    },
-    [onFilterChange]
-  );
-
-  // Check if a preset matches current dates
-  const getActivePreset = useMemo(() => {
-    if (!filters.date_from || !filters.date_to) return null;
-    return DATE_PRESETS.find((preset) => {
-      const { from, to } = preset.getDates();
-      return filters.date_from === from && filters.date_to === to;
-    });
-  }, [filters.date_from, filters.date_to]);
-
-  // Calendar icon component
-  const CalendarIcon = useCallback(
-    ({ className = 'w-5 h-5' }: { className?: string }) => (
-      <svg
-        className={`${className} text-muted-foreground pointer-events-none dark:text-slate-400`}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-        />
-      </svg>
-    ),
-    []
-  );
 
 
   return (
@@ -362,145 +241,47 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
-          {/* Date Range Section */}
-          <div className="col-span-full min-w-0">
-            <div className="rounded-xl border border-border bg-muted/30 p-4 dark:border-slate-800 dark:bg-slate-900/50">
-              <div className="mb-4 flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4" />
-                <label className={`${labelClasses} mb-0`}>Date Range</label>
-              </div>
+          <div className="min-w-0">
+            <label className={labelClasses}>Game</label>
+            <Select
+              value={filters.game}
+              onChange={(value: string) => onFilterChange('game', value)}
+              options={[
+                { value: '', label: 'All Games' },
+                ...(gameOptions || []),
+                ...(filters.game && gameOptions && !gameOptions.some((option) => option.value === filters.game)
+                  ? [{ value: filters.game, label: filters.game }]
+                  : []),
+              ]}
+              placeholder="All Games"
+              isLoading={isGameLoading}
+              disabled={isGameLoading}
+            />
+          </div>
 
-              {/* Quick Presets */}
-              <div className="mb-4 flex flex-wrap gap-2">
-                {DATE_PRESETS.map((preset) => {
-                  const isActive = getActivePreset?.label === preset.label;
-                  return (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => handleDatePreset(preset)}
-                      disabled={isLoading}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground border border-border dark:border-slate-700 dark:hover:border-slate-600'
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {preset.label}
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Date Range - Compact Design */}
+          <div className="min-w-0">
+            <label className={labelClasses}>From Date</label>
+            <input
+              type="date"
+              value={filters.date_from}
+              onChange={(event) => onFilterChange('date_from', event.target.value)}
+              max={filters.date_to || undefined}
+              className={inputClasses}
+              style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
+            />
+          </div>
 
-              {/* Date Inputs */}
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div className="relative min-w-0">
-                  <label className={`${labelClasses} mb-2 text-sm`}>From Date</label>
-                  <div className="date-input-wrapper group">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
-                      <div className="calendar-icon">
-                        <CalendarIcon className="w-6 h-6" />
-                      </div>
-                    </div>
-                    <input
-                      type="date"
-                      value={filters.date_from}
-                      onChange={(event) => onFilterChange('date_from', event.target.value)}
-                      max={filters.date_to || undefined}
-                      className={`${dateInputClasses} ${!isDateRangeValid && filters.date_from && filters.date_to ? '!border-red-500 focus:!border-red-500' : ''}`}
-                      style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
-                    />
-                    {/* Interactive click indicator */}
-                    <div className="edit-icon absolute right-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
-                      <svg className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    {/* Click hint overlay */}
-                    <div className="absolute inset-0 rounded-xl bg-primary/0 group-hover:bg-primary/5 dark:group-hover:bg-primary/10 transition-all duration-300 pointer-events-none z-0" />
-                  </div>
-                </div>
-
-                <div className="relative min-w-0">
-                  <label className={`${labelClasses} mb-2 text-sm`}>To Date</label>
-                  <div className="date-input-wrapper group">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
-                      <div className="calendar-icon">
-                        <CalendarIcon className="w-6 h-6" />
-                      </div>
-                    </div>
-                    <input
-                      type="date"
-                      value={filters.date_to}
-                      onChange={(event) => onFilterChange('date_to', event.target.value)}
-                      min={filters.date_from || undefined}
-                      className={`${dateInputClasses} ${!isDateRangeValid && filters.date_from && filters.date_to ? '!border-red-500 focus:!border-red-500' : ''}`}
-                      style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
-                    />
-                    {/* Interactive click indicator */}
-                    <div className="edit-icon absolute right-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
-                      <svg className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    {/* Click hint overlay */}
-                    <div className="absolute inset-0 rounded-xl bg-primary/0 group-hover:bg-primary/5 dark:group-hover:bg-primary/10 transition-all duration-300 pointer-events-none z-0" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Validation Message */}
-              {!isDateRangeValid && filters.date_from && filters.date_to && (
-                <div className="mt-2 flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>From date must be before or equal to To date</span>
-                </div>
-              )}
-
-              {/* Selected Range Display */}
-              {(filters.date_from || filters.date_to) && isDateRangeValid && (
-                <div className="mt-3 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs text-primary dark:bg-primary/20">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span className="font-medium">
-                    {filters.date_from && filters.date_to
-                      ? `${new Date(filters.date_from).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })} - ${new Date(filters.date_to).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}`
-                      : filters.date_from
-                        ? `From ${new Date(filters.date_from).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}`
-                        : `Until ${new Date(filters.date_to).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}`}
-                  </span>
-                </div>
-              )}
-            </div>
+          <div className="min-w-0">
+            <label className={labelClasses}>To Date</label>
+            <input
+              type="date"
+              value={filters.date_to}
+              onChange={(event) => onFilterChange('date_to', event.target.value)}
+              min={filters.date_from || undefined}
+              className={inputClasses}
+              style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
+            />
           </div>
 
           {AMOUNT_FIELDS.map(({ key, label, placeholder, type = 'number', step }) => (

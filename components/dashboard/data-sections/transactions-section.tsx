@@ -9,8 +9,8 @@ import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, Tabl
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
-import { agentsApi, paymentMethodsApi } from '@/lib/api';
-import type { Agent, PaymentMethod, Transaction } from '@/types';
+import { agentsApi, paymentMethodsApi, gamesApi } from '@/lib/api';
+import type { Agent, PaymentMethod, Transaction, Game } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 
 const HEADER_ICON = (
@@ -36,6 +36,7 @@ const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
   type: '',
   payment_method: '',
   status: '',
+  game: '',
   date_from: '',
   date_to: '',
   amount_min: '',
@@ -61,6 +62,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
     type: derivedType,
     payment_method: advanced.payment_method ?? '',
     status: advanced.status ?? '',
+    game: advanced.game ?? '',
     date_from: advanced.date_from ?? '',
     date_to: advanced.date_to ?? '',
     amount_min: advanced.amount_min ?? '',
@@ -91,6 +93,8 @@ export function TransactionsSection() {
   const [isAgentLoading, setIsAgentLoading] = useState(false);
   const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
+  const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [isGameLoading, setIsGameLoading] = useState(false);
   const agentFilterClearedRef = useRef<string | null>(null);
   const dateFilterNotifiedRef = useRef<string | null>(null);
   const emptyStateNotifiedRef = useRef<boolean>(false);
@@ -490,6 +494,48 @@ export function TransactionsSection() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadGames = async () => {
+      setIsGameLoading(true);
+
+      try {
+        const games = await gamesApi.list();
+
+        if (!isMounted) {
+          return;
+        }
+
+        const uniqueGames = new Map<string, string>();
+
+        games.forEach((game: Game) => {
+          if (game?.title) {
+            uniqueGames.set(game.title, game.title);
+          }
+        });
+
+        const mappedOptions = Array.from(uniqueGames.entries())
+          .map(([value, label]) => ({ value, label }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+        setGameOptions(mappedOptions);
+      } catch (error) {
+        console.error('Failed to load games for transaction filters:', error);
+      } finally {
+        if (isMounted) {
+          setIsGameLoading(false);
+        }
+      }
+    };
+
+    loadGames();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleAdvancedFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
     setFilters((previous) => {
       const updated = { ...previous, [key]: value };
@@ -663,6 +709,8 @@ export function TransactionsSection() {
         isAgentLoadingAgents={isAgentLoading}
         paymentMethodOptions={paymentMethodOptions}
         isPaymentMethodLoading={isPaymentMethodLoading}
+        gameOptions={gameOptions}
+        isGameLoading={isGameLoading}
         isLoading={isLoading}
       />
     </DashboardSectionContainer>
@@ -686,6 +734,8 @@ interface TransactionsLayoutProps {
   isAgentLoadingAgents: boolean;
   paymentMethodOptions: Array<{ value: string; label: string }>;
   isPaymentMethodLoading: boolean;
+  gameOptions: Array<{ value: string; label: string }>;
+  isGameLoading: boolean;
   isLoading: boolean;
 }
 
@@ -706,6 +756,8 @@ function TransactionsLayout({
   isAgentLoadingAgents,
   paymentMethodOptions,
   isPaymentMethodLoading,
+  gameOptions,
+  isGameLoading,
   isLoading,
 }: TransactionsLayoutProps) {
   const headingTitle = filter === 'history' ? 'Transactions History' : 'Transactions';
@@ -742,6 +794,8 @@ function TransactionsLayout({
         isAgentLoading={isAgentLoadingAgents}
         paymentMethodOptions={paymentMethodOptions}
         isPaymentMethodLoading={isPaymentMethodLoading}
+        gameOptions={gameOptions}
+        isGameLoading={isGameLoading}
         isLoading={isLoading}
       />
 
