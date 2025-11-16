@@ -248,31 +248,34 @@ export default function PlayerDetailPage() {
 
     setIsAssigningAgent(true);
     try {
-      const agentId = parseInt(selectedAgentId, 10);
-      if (isNaN(agentId)) {
-        throw new Error('Invalid agent ID');
-      }
-
-      // Update player with agent_id
-      await playersApi.update(selectedPlayer.id, {
-        agent_id: agentId,
-      });
-
       // Find the agent in options to get username
       const selectedAgent = agentOptions.find((opt) => opt.value === selectedAgentId);
+      
+      if (!selectedAgent) {
+        throw new Error('Selected agent not found');
+      }
 
-      // Update local state
+      // Use the new assign-player-to-agent endpoint
+      const response = await playersApi.assignToAgent({
+        player_id: selectedPlayer.id,
+        agent_username: selectedAgent.label,
+      });
+
+      // Update local state with response data
       setSelectedPlayer((prev) => ({
         ...prev!,
-        agent_id: agentId,
-        agent: selectedAgent ? { id: agentId, username: selectedAgent.label } : undefined,
-        agent_username: selectedAgent?.label,
+        agent_id: response.data.agent_id,
+        agent: {
+          id: response.data.agent_id,
+          username: response.data.agent_username,
+        },
+        agent_username: response.data.agent_username,
       }));
 
       addToast({
         type: 'success',
         title: 'Agent assigned',
-        description: `Player has been assigned to agent "${selectedAgent?.label || 'Unknown'}".`,
+        description: response.message || `Player "${response.data.player_username}" has been assigned to agent "${response.data.agent_username}".`,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to assign agent';

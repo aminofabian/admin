@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
+import { API_ENDPOINTS, API_PREFIX } from '@/lib/constants/api';
 import type { 
   Agent,
   Manager,
@@ -145,5 +145,20 @@ export const playersApi = {
       return response.game_activities || [];
     });
   },
+
+  assignToAgent: (data: {
+    player_id: number;
+    agent_username: string;
+  }) =>
+    apiClient.post<{
+      status: string;
+      message: string;
+      data: {
+        player_id: number;
+        player_username: string;
+        agent_id: number;
+        agent_username: string;
+      };
+    }>(`${API_PREFIX}/assign-player-to-agent/`, data),
 };
 
