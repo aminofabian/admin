@@ -70,7 +70,6 @@ type PlayersPageContext = {
   modalState: ReturnType<typeof usePlayerModals>;
   pagination: ReturnType<typeof usePagination>;
   router: ReturnType<typeof useRouter>;
-  statusHandlers: ReturnType<typeof usePlayerStatusActions>;
   agentOptions: Array<{ value: string; label: string }>;
   isAgentLoading: boolean;
 };
@@ -83,7 +82,6 @@ export default function PlayersDashboard(): ReactElement {
     modalState,
     pagination,
     router,
-    statusHandlers,
     agentOptions,
     isAgentLoading,
   } = usePlayersPageContext();
@@ -124,7 +122,6 @@ export default function PlayersDashboard(): ReactElement {
         }}
         onPageChange={pagination.setPage}
         onViewPlayer={(player) => router.push(`/dashboard/players/${player.id}`)}
-        onToggleStatus={statusHandlers.openConfirm}
         page={pagination.page}
         pageSize={pagination.pageSize}
       />
@@ -134,16 +131,6 @@ export default function PlayersDashboard(): ReactElement {
         onClose={modalState.closeCreateModal}
         onSubmit={creationHandlers.handleSubmit}
         submitError={modalState.state.submitError}
-      />
-      <ConfirmModal
-        isOpen={modalState.state.confirm.isOpen}
-        onClose={modalState.cancelConfirm}
-        onConfirm={statusHandlers.confirmToggle}
-        title={`${modalState.state.confirm.player?.is_active ? 'Deactivate' : 'Activate'} Player`}
-        description={`Are you sure you want to ${modalState.state.confirm.player?.is_active ? 'deactivate' : 'activate'} "${modalState.state.confirm.player?.username}"?`}
-        confirmText={modalState.state.confirm.player?.is_active ? 'Deactivate' : 'Activate'}
-        variant={modalState.state.confirm.player?.is_active ? 'warning' : 'info'}
-        isLoading={modalState.state.confirm.isLoading}
       />
     </div>
   );
@@ -261,14 +248,6 @@ function usePlayersPageContext(): PlayersPageContext {
     pagination,
     agentId: agentIdFromUrl ? parseInt(agentIdFromUrl, 10) : (filters.appliedFilters.agent_id ? parseInt(filters.appliedFilters.agent_id, 10) : undefined),
   });
-  const statusHandlers = usePlayerStatusActions({
-    addToast: toast.addToast,
-    cancelConfirm: modalState.cancelConfirm,
-    confirmState: modalState.state.confirm,
-    openConfirm: modalState.openConfirm,
-    refresh: dataState.refresh,
-    setConfirmLoading: modalState.setConfirmLoading,
-  });
   const creationHandlers = usePlayerCreation({
     closeCreateModal: modalState.closeCreateModal,
     refresh: dataState.refresh,
@@ -289,7 +268,6 @@ function usePlayersPageContext(): PlayersPageContext {
     modalState,
     pagination,
     router,
-    statusHandlers,
     agentOptions,
     isAgentLoading,
   };
@@ -855,7 +833,6 @@ type PlayersTableSectionProps = {
   hasActiveFilters: boolean;
   onOpenChat: (player: Player) => void;
   onPageChange: (page: number) => void;
-  onToggleStatus: (player: Player) => void;
   onViewPlayer: (player: Player) => void;
   page: number;
   pageSize: number;
@@ -866,7 +843,6 @@ function PlayersTableSection({
   hasActiveFilters,
   onOpenChat,
   onPageChange,
-  onToggleStatus,
   onViewPlayer,
   page,
   pageSize,
@@ -893,7 +869,6 @@ function PlayersTableSection({
             <PlayersTable
               players={data?.results ?? []}
               onOpenChat={onOpenChat}
-              onToggleStatus={onToggleStatus}
               onViewPlayer={onViewPlayer}
             />
             {showPagination && (
@@ -916,14 +891,12 @@ function PlayersTableSection({
 
 type PlayersTableProps = {
   onOpenChat: (player: Player) => void;
-  onToggleStatus: (player: Player) => void;
   onViewPlayer: (player: Player) => void;
   players: Player[];
 };
 
 function PlayersTable({
   onOpenChat,
-  onToggleStatus,
   onViewPlayer,
   players,
 }: PlayersTableProps): ReactElement {
@@ -934,7 +907,6 @@ function PlayersTable({
           <TableRow>
             <TableHead>Username</TableHead>
             <TableHead>Contact</TableHead>
-            <TableHead>Agent</TableHead>
             <TableHead>Credit</TableHead>
             <TableHead>Winning</TableHead>
             <TableHead>Status</TableHead>
@@ -948,7 +920,6 @@ function PlayersTable({
               key={player.id}
               player={player}
               onOpenChat={onOpenChat}
-              onToggleStatus={onToggleStatus}
               onViewPlayer={onViewPlayer}
             />
           ))}
@@ -960,14 +931,12 @@ function PlayersTable({
 
 type PlayersTableRowProps = {
   onOpenChat: (player: Player) => void;
-  onToggleStatus: (player: Player) => void;
   onViewPlayer: (player: Player) => void;
   player: Player;
 };
 
 function PlayersTableRow({
   onOpenChat,
-  onToggleStatus,
   onViewPlayer,
   player,
 }: PlayersTableRowProps): ReactElement {
@@ -995,17 +964,6 @@ function PlayersTableRow({
       <TableCell>
         <div className="text-sm text-gray-700 dark:text-gray-300">
           {player.email}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="text-sm text-gray-700 dark:text-gray-300">
-          {(() => {
-            if (player.agent_username) return player.agent_username;
-            if (player.agent && typeof player.agent === 'object' && 'username' in player.agent) {
-              return player.agent.username;
-            }
-            return '-';
-          })()}
         </div>
       </TableCell>
       <TableCell>
@@ -1055,14 +1013,6 @@ function PlayersTableRow({
                 d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
               />
             </svg>
-          </Button>
-          <Button
-            size="sm"
-            variant={player.is_active ? 'danger' : 'primary'}
-            onClick={() => onToggleStatus(player)}
-            title={player.is_active ? 'Deactivate' : 'Activate'}
-          >
-            {player.is_active ? 'Deactivate' : 'Activate'}
           </Button>
         </div>
       </TableCell>

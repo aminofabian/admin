@@ -8,7 +8,7 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, agentsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, Input } from '@/components/ui';
+import { Badge, Button, Input, Select, ConfirmModal } from '@/components/ui';
 import type { UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState } from '@/components/features';
 
@@ -32,7 +32,11 @@ export default function PlayerDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAssigningAgent, setIsAssigningAgent] = useState(false);
-  const [agentUsername, setAgentUsername] = useState('');
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
+  const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editableFields, setEditableFields] = useState<EditableFields>({
     email: '',
@@ -50,6 +54,75 @@ export default function PlayerDetailPage() {
       document.title = 'Player Details';
     }
   }, [selectedPlayer]);
+
+  // Load agents for dropdown
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAgents = async () => {
+      setIsLoadingAgents(true);
+      try {
+        const aggregated: Array<{ id: number; username: string }> = [];
+        const pageSize = 100;
+        let page = 1;
+        let hasNext = true;
+
+        while (hasNext) {
+          const response = await agentsApi.list({ page, page_size: pageSize });
+
+          if (!response?.results) {
+            break;
+          }
+
+          aggregated.push(...response.results);
+
+          if (!response.next) {
+            hasNext = false;
+          } else {
+            page += 1;
+          }
+
+          if (!hasNext) {
+            break;
+          }
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        const mappedOptions = aggregated
+          .filter((agent) => agent?.username)
+          .map((agent) => ({
+            value: String(agent.id),
+            label: agent.username,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+        setAgentOptions(mappedOptions);
+
+        // Set selected agent if player already has one
+        if (selectedPlayer?.agent_id) {
+          const agentExists = mappedOptions.some((opt) => opt.value === String(selectedPlayer.agent_id));
+          if (agentExists) {
+            setSelectedAgentId(String(selectedPlayer.agent_id));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load agents:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingAgents(false);
+        }
+      }
+    };
+
+    loadAgents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPlayer?.agent_id]);
 
   // Load player data
   useEffect(() => {
@@ -164,53 +237,43 @@ export default function PlayerDetailPage() {
   }, [selectedPlayer, editableFields, addToast]);
 
   const handleAssignAgent = useCallback(async () => {
-    if (!selectedPlayer || !agentUsername.trim()) {
+    if (!selectedPlayer || !selectedAgentId) {
       addToast({
         type: 'error',
         title: 'Invalid input',
-        description: 'Please enter an agent username.',
+        description: 'Please select an agent.',
       });
       return;
     }
 
     setIsAssigningAgent(true);
     try {
-      // First, find the agent by username
-      const agentsResponse = await agentsApi.list({ search: agentUsername.trim() });
-      const agent = agentsResponse.results.find(
-        (a) => a.username.toLowerCase() === agentUsername.trim().toLowerCase()
-      );
-
-      if (!agent) {
-        addToast({
-          type: 'error',
-          title: 'Agent not found',
-          description: `No agent found with username "${agentUsername.trim()}".`,
-        });
-        setIsAssigningAgent(false);
-        return;
+      const agentId = parseInt(selectedAgentId, 10);
+      if (isNaN(agentId)) {
+        throw new Error('Invalid agent ID');
       }
 
       // Update player with agent_id
       await playersApi.update(selectedPlayer.id, {
-        agent_id: agent.id,
+        agent_id: agentId,
       });
+
+      // Find the agent in options to get username
+      const selectedAgent = agentOptions.find((opt) => opt.value === selectedAgentId);
 
       // Update local state
       setSelectedPlayer((prev) => ({
         ...prev!,
-        agent_id: agent.id,
-        agent: { id: agent.id, username: agent.username },
-        agent_username: agent.username,
+        agent_id: agentId,
+        agent: selectedAgent ? { id: agentId, username: selectedAgent.label } : undefined,
+        agent_username: selectedAgent?.label,
       }));
 
       addToast({
         type: 'success',
         title: 'Agent assigned',
-        description: `Player has been assigned to agent "${agent.username}".`,
+        description: `Player has been assigned to agent "${selectedAgent?.label || 'Unknown'}".`,
       });
-
-      setAgentUsername('');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to assign agent';
       addToast({
@@ -221,7 +284,40 @@ export default function PlayerDetailPage() {
     } finally {
       setIsAssigningAgent(false);
     }
-  }, [selectedPlayer, agentUsername, addToast]);
+  }, [selectedPlayer, selectedAgentId, agentOptions, addToast]);
+
+  const handleDeactivate = useCallback(async () => {
+    if (!selectedPlayer) return;
+
+    setIsDeactivating(true);
+    try {
+      await playersApi.update(selectedPlayer.id, {
+        is_active: !selectedPlayer.is_active,
+      });
+
+      setSelectedPlayer((prev) => ({
+        ...prev!,
+        is_active: !prev!.is_active,
+      }));
+
+      addToast({
+        type: 'success',
+        title: 'Player updated',
+        description: `"${selectedPlayer.username}" has been ${selectedPlayer.is_active ? 'deactivated' : 'activated'} successfully!`,
+      });
+
+      setShowDeactivateModal(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update player status';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: message,
+      });
+    } finally {
+      setIsDeactivating(false);
+    }
+  }, [selectedPlayer, addToast]);
 
   const handleViewTransactions = useCallback(() => {
     if (!selectedPlayer) return;
@@ -397,17 +493,22 @@ export default function PlayerDetailPage() {
                 Assign to Agent
               </label>
               <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
-                <Input
-                  type="text"
-                  placeholder="Enter agent username"
-                  value={agentUsername}
-                  onChange={(e) => setAgentUsername(e.target.value)}
-                  className="w-full text-sm sm:flex-1 sm:text-base"
+                <Select
+                  value={selectedAgentId}
+                  onChange={(value: string) => setSelectedAgentId(value)}
+                  options={[
+                    { value: '', label: 'Select an agent' },
+                    ...agentOptions,
+                  ]}
+                  placeholder="Select an agent"
+                  isLoading={isLoadingAgents}
+                  disabled={isLoadingAgents}
+                  className="w-full sm:flex-1"
                 />
                 <Button
                   onClick={handleAssignAgent}
                   isLoading={isAssigningAgent}
-                  disabled={!agentUsername.trim()}
+                  disabled={!selectedAgentId}
                   className="flex w-full items-center justify-center gap-2 bg-emerald-600 py-2.5 text-sm text-white active:bg-emerald-700 dark:bg-emerald-600 dark:active:bg-emerald-700 sm:w-auto sm:py-2"
                 >
                   <svg
@@ -432,6 +533,28 @@ export default function PlayerDetailPage() {
                 </p>
               )}
             </div>
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
+              <Button
+                onClick={() => setShowDeactivateModal(true)}
+                variant={selectedPlayer.is_active ? 'danger' : 'primary'}
+                className="flex w-full items-center justify-center gap-2 py-2.5 text-sm sm:w-auto sm:py-2"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                  />
+                </svg>
+                {selectedPlayer.is_active ? 'Deactivate' : 'Activate'}
+              </Button>
+            </div>
           </div>
         </section>
 
@@ -441,6 +564,17 @@ export default function PlayerDetailPage() {
             Personal Information
           </h3>
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4 md:gap-6">
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">
+                Agent
+              </label>
+              <p className="text-xs font-medium text-gray-900 dark:text-gray-100 sm:text-sm">
+                {selectedPlayer.agent_username || 
+                 (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent 
+                   ? selectedPlayer.agent.username 
+                   : 'Not assigned')}
+              </p>
+            </div>
             <div className="space-y-1.5 sm:space-y-2">
               <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">
                 Email
@@ -735,6 +869,17 @@ export default function PlayerDetailPage() {
           </div>
         </section>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeactivateModal}
+        onClose={() => setShowDeactivateModal(false)}
+        onConfirm={handleDeactivate}
+        title={`${selectedPlayer.is_active ? 'Deactivate' : 'Activate'} Player`}
+        description={`Are you sure you want to ${selectedPlayer.is_active ? 'deactivate' : 'activate'} "${selectedPlayer.username}"?`}
+        confirmText={selectedPlayer.is_active ? 'Deactivate' : 'Activate'}
+        variant={selectedPlayer.is_active ? 'warning' : 'info'}
+        isLoading={isDeactivating}
+      />
     </div>
   );
 }
