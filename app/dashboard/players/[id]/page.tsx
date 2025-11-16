@@ -8,9 +8,12 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, agentsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, Input, Select, ConfirmModal } from '@/components/ui';
+import { Badge, Button, Select, ConfirmModal } from '@/components/ui';
 import type { UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState } from '@/components/features';
+import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
+import { usePlayerGames } from '@/hooks/use-player-games';
+import type { PlayerGame } from '@/types';
 
 interface EditableFields {
   email: string;
@@ -29,7 +32,7 @@ export default function PlayerDetailPage() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAssigningAgent, setIsAssigningAgent] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
@@ -187,9 +190,6 @@ export default function PlayerDetailPage() {
     void loadPlayer();
   }, [playerId, addToast]);
 
-  const handleFieldChange = useCallback((field: keyof EditableFields, value: string) => {
-    setEditableFields((prev) => ({ ...prev, [field]: value }));
-  }, []);
 
   const handleSave = useCallback(async () => {
     if (!selectedPlayer) return;
@@ -223,7 +223,7 @@ export default function PlayerDetailPage() {
         description: 'Player details have been updated successfully.',
       });
 
-      setIsEditing(false);
+      setIsEditDrawerOpen(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update player';
       addToast({
@@ -333,6 +333,9 @@ export default function PlayerDetailPage() {
     router.push('/dashboard/players');
   }, [router]);
 
+  // Load player games - MUST be called before any conditional returns (Rules of Hooks)
+  const { games, isLoading: isLoadingGames } = usePlayerGames(playerId);
+
   if (isLoadingPlayer) {
     return <LoadingState />;
   }
@@ -387,550 +390,337 @@ export default function PlayerDetailPage() {
               </h2>
             </div>
             <div className="flex w-full items-stretch gap-2 sm:w-auto sm:items-center">
-              {!isEditing ? (
-                <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)} className="flex-1 sm:flex-none">
-                  Edit Details
-                </Button>
-              ) : (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="flex-1 sm:flex-none">
-                    Cancel
-                  </Button>
-                  <Button size="sm" onClick={handleSave} isLoading={isSaving} className="flex-1 sm:flex-none">
-                    Save Changes
-                  </Button>
-                </>
-              )}
+              <Button variant="secondary" size="sm" onClick={() => setIsEditDrawerOpen(true)} className="flex-1 sm:flex-none">
+                Edit Details
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="mx-auto max-w-6xl space-y-4 p-3 sm:space-y-6 sm:p-4 md:space-y-8 md:p-6 lg:p-8">
-        {/* Player Header Section */}
-        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-xl sm:p-5 md:p-6">
-          <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:gap-4 sm:text-left">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-lg font-bold text-white shadow-md dark:from-purple-600 dark:to-indigo-500 sm:h-16 sm:w-16 sm:text-xl md:h-20 md:w-20 md:text-2xl">
-              {usernameInitial}
-            </div>
-            <div className="flex-1 space-y-1.5 sm:space-y-2">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 sm:text-xl md:text-2xl">
-                  {selectedPlayer.username}
-                </h3>
-                <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400 sm:mt-1 sm:text-sm">
-                  {selectedPlayer.full_name || '—'}
-                </p>
+      <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 md:p-8">
+        {/* Hero Section: Player Profile */}
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 p-6 shadow-xl dark:from-purple-800 dark:via-indigo-800 dark:to-blue-800 sm:p-8">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-5">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm text-2xl font-bold text-white shadow-lg ring-4 ring-white/20 dark:bg-white/10">
+                {usernameInitial}
               </div>
-              <div>
-                <Badge
-                  variant={selectedPlayer.is_active ? 'success' : 'danger'}
-                  className="inline-flex text-xs sm:text-sm"
-                >
-                  {selectedPlayer.is_active ? 'Active' : 'Inactive'}
-                </Badge>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl font-bold text-white sm:text-3xl">
+                  {selectedPlayer.username}
+                </h1>
+                <p className="mt-1 text-base text-white/90 sm:text-lg">
+                  {selectedPlayer.full_name || 'No full name provided'}
+                </p>
+                <div className="mt-3">
+                  <Badge
+                    variant={selectedPlayer.is_active ? 'success' : 'danger'}
+                    className="bg-white/20 text-white backdrop-blur-sm border-white/30"
+                  >
+                    {selectedPlayer.is_active ? '✓ Active' : '✗ Inactive'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            
+            {/* Quick Stats in Hero */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6">
+              <div className="rounded-xl bg-white/10 backdrop-blur-sm p-4 ring-1 ring-white/20">
+                <p className="text-xs font-medium uppercase tracking-wider text-white/70">Credit</p>
+                <p className="mt-1 text-xl font-bold text-white sm:text-2xl">{creditBalance}</p>
+              </div>
+              <div className="rounded-xl bg-white/10 backdrop-blur-sm p-4 ring-1 ring-white/20">
+                <p className="text-xs font-medium uppercase tracking-wider text-white/70">Winning</p>
+                <p className="mt-1 text-xl font-bold text-white sm:text-2xl">{winningBalance}</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Action Buttons */}
-        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-xl sm:p-5 md:p-6">
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:mb-5 sm:text-sm">
-            Quick Actions
-          </h3>
-          <div className="space-y-4 sm:space-y-5">
-            {/* History Actions */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
-              <Button
-                onClick={handleViewTransactions}
-                className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 px-5 py-3 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-indigo-700 hover:to-indigo-800 hover:shadow-lg active:scale-[0.98] dark:from-indigo-600 dark:to-indigo-700 dark:hover:from-indigo-700 dark:hover:to-indigo-800 sm:w-auto"
-              >
-                <svg
-                  className="h-4 w-4 transition-transform duration-200 group-hover:scale-110"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Left Column: Personal Info */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Personal Information */}
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <h2 className="mb-6 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span className="hidden sm:inline">View Transactions</span>
-                <span className="sm:hidden">Transactions</span>
-              </Button>
-              <Button
-                onClick={handleViewGameActivities}
-                className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-3 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-purple-700 hover:to-purple-800 hover:shadow-lg active:scale-[0.98] dark:from-purple-600 dark:to-purple-700 dark:hover:from-purple-700 dark:hover:to-purple-800 sm:w-auto"
-              >
-                <svg
-                  className="h-4 w-4 transition-transform duration-200 group-hover:scale-110"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span className="hidden sm:inline">View Game Activities</span>
-                <span className="sm:hidden">Game Activities</span>
-              </Button>
-            </div>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500 dark:bg-gray-900 dark:text-gray-400">
-                  Management
-                </span>
-              </div>
-            </div>
-
-            {/* Agent Assignment */}
-            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100/50 p-4 shadow-sm transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:from-gray-800/50 dark:to-gray-800/30 sm:p-5">
-              <div className="mb-3 flex items-center gap-2 sm:mb-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                  <svg
-                    className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                    />
-                  </svg>
+                Personal Information
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Email</span>
+                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100 break-all">{selectedPlayer.email}</p>
                 </div>
-                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Assign to Agent
-                </label>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-3">
-                <div className="flex-1">
-                  <Select
-                    value={selectedAgentId}
-                    onChange={(value: string) => setSelectedAgentId(value)}
-                    options={[
-                      { value: '', label: 'Select an agent' },
-                      ...agentOptions,
-                    ]}
-                    placeholder="Select an agent"
-                    isLoading={isLoadingAgents}
-                    disabled={isLoadingAgents}
-                    className="w-full"
-                  />
+                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Full Name</span>
+                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.full_name || '—'}</p>
                 </div>
-                <Button
-                  onClick={handleAssignAgent}
-                  isLoading={isAssigningAgent}
-                  disabled={!selectedAgentId || isLoadingAgents}
-                  className="group flex w-full items-center justify-center gap-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-3 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-emerald-700 hover:to-emerald-800 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 dark:from-emerald-600 dark:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 sm:w-auto"
-                >
-                  <svg
-                    className="h-4 w-4 transition-transform duration-200 group-hover:scale-110"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  Assign
-                </Button>
-              </div>
-              {selectedPlayer.agent_username && (
-                <div className="mt-3 flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 dark:bg-emerald-950/20 sm:mt-4">
-                  <svg
-                    className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-300 sm:text-sm">
-                    <span className="font-medium">Current Agent:</span>{' '}
-                    <span className="font-semibold">{selectedPlayer.agent_username}</span>
+                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Date of Birth</span>
+                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.dob || '—'}</p>
+                </div>
+                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">State</span>
+                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.state || '—'}</p>
+                </div>
+                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Phone</span>
+                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.mobile_number || '—'}</p>
+                </div>
+                <div className="flex items-start justify-between pt-1">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Agent</span>
+                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {selectedPlayer.agent_username || 
+                     (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent 
+                       ? selectedPlayer.agent.username 
+                       : 'Not assigned')}
                   </p>
                 </div>
-              )}
-            </div>
+              </div>
+            </section>
+          </div>
 
-            {/* Status Toggle */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-              <Button
-                onClick={() => setShowDeactivateModal(true)}
-                variant={selectedPlayer.is_active ? 'danger' : 'primary'}
-                className="group flex w-full items-center justify-center gap-2.5 rounded-lg px-5 py-3 text-sm font-medium shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] sm:w-auto"
-              >
-                <svg
-                  className={`h-4 w-4 transition-transform duration-200 group-hover:scale-110 ${
-                    selectedPlayer.is_active ? 'rotate-0' : 'rotate-180'
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  {selectedPlayer.is_active ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  )}
+          {/* Right Column: Actions & Management */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quick Actions */}
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                {selectedPlayer.is_active ? 'Deactivate Player' : 'Activate Player'}
-              </Button>
-            </div>
-          </div>
-        </section>
+                Quick Actions
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Button
+                  onClick={handleViewTransactions}
+                  className="group relative flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:from-indigo-600 hover:to-indigo-700 hover:shadow-xl active:scale-[0.98] dark:from-indigo-600 dark:to-indigo-700"
+                >
+                  <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  View Transactions
+                </Button>
+                <Button
+                  onClick={handleViewGameActivities}
+                  className="group relative flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:from-purple-600 hover:to-purple-700 hover:shadow-xl active:scale-[0.98] dark:from-purple-600 dark:to-purple-700"
+                >
+                  <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Game Activities
+                </Button>
+                <Button
+                  onClick={() => setShowDeactivateModal(true)}
+                  variant={selectedPlayer.is_active ? 'danger' : 'primary'}
+                  className="col-span-full rounded-xl p-4 text-sm font-semibold shadow-md transition-all hover:shadow-xl active:scale-[0.98]"
+                >
+                  {selectedPlayer.is_active ? 'Deactivate Player' : 'Activate Player'}
+                </Button>
+              </div>
+            </section>
 
-        {/* Personal Information Section */}
-        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-xl sm:p-5 md:p-6">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:mb-4 md:mb-5 sm:text-sm">
-            Personal Information
-          </h3>
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4 md:gap-6">
-            <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">
-                Agent
-              </label>
-              <p className="text-xs font-medium text-gray-900 dark:text-gray-100 sm:text-sm">
-                {selectedPlayer.agent_username || 
-                 (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent 
-                   ? selectedPlayer.agent.username 
-                   : 'Not assigned')}
-              </p>
-            </div>
-            <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">
-                Email
-              </label>
-              {isEditing ? (
-                <Input
-                  type="email"
-                  value={editableFields.email}
-                  onChange={(e) => handleFieldChange('email', e.target.value)}
-                  className="w-full text-sm sm:text-base"
-                />
-              ) : (
-                <p className="break-all text-xs font-medium text-gray-900 dark:text-gray-100 sm:text-sm">
-                  {selectedPlayer.email}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">
-                Full Name
-              </label>
-              {isEditing ? (
-                <Input
-                  type="text"
-                  value={editableFields.full_name}
-                  onChange={(e) => handleFieldChange('full_name', e.target.value)}
-                  className="w-full text-sm sm:text-base"
-                />
-              ) : (
-                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 sm:text-sm">
-                  {selectedPlayer.full_name || 'Not provided'}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">
-                Date of Birth
-              </label>
-              {isEditing ? (
-                <Input
-                  type="date"
-                  value={editableFields.dob}
-                  onChange={(e) => handleFieldChange('dob', e.target.value)}
-                  className="w-full text-sm sm:text-base"
-                />
-              ) : (
-                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 sm:text-sm">
-                  {selectedPlayer.dob || 'Not provided'}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">
-                State
-              </label>
-              {isEditing ? (
-                <Input
-                  type="text"
-                  value={editableFields.state}
-                  onChange={(e) => handleFieldChange('state', e.target.value)}
-                  className="w-full text-sm sm:text-base"
-                />
-              ) : (
-                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 sm:text-sm">
-                  {selectedPlayer.state || 'Not provided'}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5 sm:col-span-2 sm:space-y-2">
-              <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-xs">
-                Phone Number
-              </label>
-              {isEditing ? (
-                <Input
-                  type="tel"
-                  value={editableFields.mobile_number}
-                  onChange={(e) => handleFieldChange('mobile_number', e.target.value)}
-                  className="w-full text-sm sm:text-base"
-                />
-              ) : (
-                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 sm:text-sm">
-                  {selectedPlayer.mobile_number || 'Not provided'}
-                </p>
-              )}
-            </div>
+            {/* Agent Assignment */}
+            <section className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/30 p-6 shadow-sm dark:border-emerald-800/50 dark:from-emerald-950/20 dark:to-emerald-900/10">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                </div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex-1">
+                    <Select
+                      value={selectedAgentId}
+                      onChange={(value: string) => setSelectedAgentId(value)}
+                      options={[
+                        { value: '', label: 'Select an agent' },
+                        ...agentOptions,
+                      ]}
+                      placeholder="Select an agent"
+                      isLoading={isLoadingAgents}
+                      disabled={isLoadingAgents}
+                      className="w-full"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleAssignAgent}
+                    isLoading={isAssigningAgent}
+                    disabled={!selectedAgentId || isLoadingAgents}
+                    className="group flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-700 hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <svg className="h-4 w-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Assign Agent
+                  </Button>
+                </div>
+                {selectedPlayer.agent_username && (
+                  <div className="flex items-center gap-3 rounded-lg bg-emerald-100 px-4 py-3 dark:bg-emerald-950/30">
+                    <svg className="h-5 w-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Current Agent</p>
+                      <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">{selectedPlayer.agent_username}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
 
-        {/* Balance Section */}
-        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-xl sm:p-5 md:p-6">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:mb-4 md:mb-5 sm:text-sm">
-            Account Balances
-          </h3>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-            <div className="rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-3.5 dark:border-indigo-800/50 dark:from-indigo-950/40 dark:to-indigo-900/40 sm:p-4">
-              <div className="mb-2.5 flex items-center gap-2 sm:mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/50 sm:h-8 sm:w-8">
-                  <svg
-                    className="h-4 w-4 text-indigo-600 dark:text-indigo-400 sm:h-5 sm:w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-                </div>
-                <h4 className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 sm:text-sm">
-                  Credit Balance
-                </h4>
-              </div>
-              <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 sm:text-2xl">
-                {creditBalance}
-              </p>
+        {/* Bottom Section: Stats & Games */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Transaction Summary */}
+          <section className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Transaction Summary
+              </h2>
+              {isLoadingDetails && (
+                <svg className="h-5 w-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              )}
             </div>
-            <div className="rounded-lg border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-3.5 dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-emerald-900/40 sm:p-4">
-              <div className="mb-2.5 flex items-center gap-2 sm:mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/50 sm:h-8 sm:w-8">
-                  <svg
-                    className="h-4 w-4 text-emerald-600 dark:text-emerald-400 sm:h-5 sm:w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="group rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 transition-all hover:shadow-md dark:border-purple-800/50 dark:from-purple-950/40 dark:to-purple-900/40">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500 text-white shadow-sm">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                  <h5 className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">Purchases</h5>
                 </div>
-                <h4 className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 sm:text-sm">
-                  Winning Balance
-                </h4>
+                {isLoadingDetails ? (
+                  <div className="h-7 w-24 animate-pulse rounded bg-purple-200 dark:bg-purple-800" />
+                ) : (
+                  <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{purchasesTotal}</p>
+                )}
               </div>
-              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 sm:text-2xl">
-                {winningBalance}
-              </p>
+              <div className="group rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-5 transition-all hover:shadow-md dark:border-indigo-800/50 dark:from-indigo-950/40 dark:to-indigo-900/40">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-sm">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h5 className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Cashouts</h5>
+                </div>
+                {isLoadingDetails ? (
+                  <div className="h-7 w-24 animate-pulse rounded bg-indigo-200 dark:bg-indigo-800" />
+                ) : (
+                  <p className="text-xl font-bold text-indigo-900 dark:text-indigo-100">{cashoutsTotal}</p>
+                )}
+              </div>
+              <div className="group rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-violet-100/50 p-5 transition-all hover:shadow-md dark:border-violet-800/50 dark:from-violet-950/40 dark:to-violet-900/40">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500 text-white shadow-sm">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                  </div>
+                  <h5 className="text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Transfers</h5>
+                </div>
+                {isLoadingDetails ? (
+                  <div className="h-7 w-24 animate-pulse rounded bg-violet-200 dark:bg-violet-800" />
+                ) : (
+                  <p className="text-xl font-bold text-violet-900 dark:text-violet-100">{transfersTotal}</p>
+                )}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Transaction Summary */}
-        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-xl sm:p-5 md:p-6">
-          <div className="mb-3 flex items-center justify-between sm:mb-4 md:mb-5">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:text-sm">
-              Transaction Summary
-            </h3>
-            {isLoadingDetails && (
-              <svg
-                className="h-3.5 w-3.5 animate-spin text-gray-400 sm:h-4 sm:w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            )}
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 transition-all duration-200 active:border-gray-300 active:shadow-sm dark:border-gray-800 dark:bg-gray-800/50 dark:active:border-gray-700 sm:p-4">
-              <div className="mb-2.5 flex items-center gap-2 sm:mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/50 sm:h-8 sm:w-8">
-                  <svg
-                    className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 sm:h-4 sm:w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
+          {/* Player Games & Account Info */}
+          <div className="space-y-6">
+            {/* Player Games */}
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Player Games
+              </h2>
+              {isLoadingGames ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+                  ))}
                 </div>
-                <h5 className="text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400 sm:text-xs">
-                  Total Purchases
-                </h5>
-              </div>
-              {isLoadingDetails ? (
-                <div className="h-6 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700 sm:h-7 sm:w-24" />
-              ) : (
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 sm:text-xl">
-                  {purchasesTotal}
-                </p>
-              )}
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 transition-all duration-200 active:border-gray-300 active:shadow-sm dark:border-gray-800 dark:bg-gray-800/50 dark:active:border-gray-700 sm:p-4">
-              <div className="mb-2.5 flex items-center gap-2 sm:mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/50 sm:h-8 sm:w-8">
-                  <svg
-                    className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 sm:h-4 sm:w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+              ) : games.length === 0 ? (
+                <div className="py-8 text-center">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
+                  <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">No games assigned</p>
                 </div>
-                <h5 className="text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400 sm:text-xs">
-                  Total Cashouts
-                </h5>
-              </div>
-              {isLoadingDetails ? (
-                <div className="h-6 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700 sm:h-7 sm:w-24" />
               ) : (
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 sm:text-xl">
-                  {cashoutsTotal}
-                </p>
-              )}
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 transition-all duration-200 active:border-gray-300 active:shadow-sm dark:border-gray-800 dark:bg-gray-800/50 dark:active:border-gray-700 sm:p-4">
-              <div className="mb-2.5 flex items-center gap-2 sm:mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/50 sm:h-8 sm:w-8">
-                  <svg
-                    className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 sm:h-4 sm:w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                    />
-                  </svg>
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {games.map((game: PlayerGame) => (
+                    <div key={game.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:bg-gray-800">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{game.game__title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: {game.game__id}</p>
+                      </div>
+                      <Badge variant={game.status === 'active' ? 'success' : 'danger'} className="text-xs shrink-0">
+                        {game.status}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
-                <h5 className="text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400 sm:text-xs">
-                  Total Transfers
-                </h5>
-              </div>
-              {isLoadingDetails ? (
-                <div className="h-6 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700 sm:h-7 sm:w-24" />
-              ) : (
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100 sm:text-xl">
-                  {transfersTotal}
-                </p>
               )}
-            </div>
-          </div>
-        </section>
+            </section>
 
-        {/* Account Information */}
-        <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-xl sm:p-5 md:p-6">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:mb-4 md:mb-5 sm:text-sm">
-            Account Information
-          </h3>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs sm:text-sm">
-              <svg
-                className="h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-gray-500 sm:h-4 sm:w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <span className="font-medium text-gray-600 dark:text-gray-400">Created:</span>
-              <span className="text-gray-900 dark:text-gray-100">
-                {selectedPlayer.created ? formatDate(selectedPlayer.created) : 'Not available'}
-              </span>
-            </div>
+            {/* Account Information */}
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Account Details
+              </h2>
+              <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50">
+                <svg className="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Created</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {selectedPlayer.created ? formatDate(selectedPlayer.created) : 'Not available'}
+                  </p>
+                </div>
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
       </div>
+
+      <EditPlayerDetailsDrawer
+        isOpen={isEditDrawerOpen}
+        onClose={() => setIsEditDrawerOpen(false)}
+        editableFields={editableFields}
+        setEditableFields={setEditableFields}
+        isSaving={isSaving}
+        onSave={handleSave}
+      />
 
       <ConfirmModal
         isOpen={showDeactivateModal}
