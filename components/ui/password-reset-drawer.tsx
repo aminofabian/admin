@@ -6,7 +6,7 @@ import { Drawer, Button, Input } from './';
 interface PasswordResetDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (password: string) => Promise<void>;
+  onConfirm: (password: string, confirmPassword: string) => Promise<void>;
   title?: string;
   description?: string;
   username?: string;
@@ -51,7 +51,7 @@ export function PasswordResetDrawer({
     }
 
     try {
-      await onConfirm(password);
+      await onConfirm(password, confirmPassword);
       // Reset form on success
       setPassword('');
       setConfirmPassword('');

@@ -419,13 +419,16 @@ export default function PlayerDetailPage() {
     });
   }, []);
 
-  const handleConfirmPasswordReset = useCallback(async (password: string) => {
+  const handleConfirmPasswordReset = useCallback(async (password: string, confirmPassword: string) => {
     if (!selectedPlayer) return;
 
     setPasswordResetState((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      await playersApi.update(selectedPlayer.id, { password });
+      await playersApi.update(selectedPlayer.id, { 
+        password,
+        confirm_password: confirmPassword,
+      });
 
       addToast({
         type: 'success',
