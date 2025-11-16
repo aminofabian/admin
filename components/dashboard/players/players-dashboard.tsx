@@ -361,35 +361,39 @@ function usePlayersData({
         params.agent = effectiveAgent;
       }
 
-      // Add date filters if provided (backend expects date_from/date_to as ISO strings)
+      // Add date filters if provided (backend expects date_from/date_to in YYYY-MM-DD format)
       if (filters.date_from && filters.date_from.trim()) {
-        try {
-          // Convert YYYY-MM-DD to ISO string at start of day (local timezone)
-          const dateStr = filters.date_from.trim();
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            const [year, month, day] = dateStr.split('-').map(Number);
-            const dateFrom = new Date(year, month - 1, day, 0, 0, 0, 0);
-            if (!isNaN(dateFrom.getTime())) {
-              params.date_from = dateFrom.toISOString();
+        const dateStr = filters.date_from.trim();
+        // Ensure date is in YYYY-MM-DD format
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          params.date_from = dateStr;
+        } else {
+          // Try to parse and reformat if needed
+          try {
+            const parsedDate = new Date(dateStr);
+            if (!isNaN(parsedDate.getTime())) {
+              params.date_from = parsedDate.toISOString().split('T')[0];
             }
+          } catch (error) {
+            console.error('Error parsing date_from:', error);
           }
-        } catch (error) {
-          console.error('Error parsing date_from:', error);
         }
       }
       if (filters.date_to && filters.date_to.trim()) {
-        try {
-          // Convert YYYY-MM-DD to ISO string at end of day (local timezone)
-          const dateStr = filters.date_to.trim();
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            const [year, month, day] = dateStr.split('-').map(Number);
-            const dateTo = new Date(year, month - 1, day, 23, 59, 59, 999);
-            if (!isNaN(dateTo.getTime())) {
-              params.date_to = dateTo.toISOString();
+        const dateStr = filters.date_to.trim();
+        // Ensure date is in YYYY-MM-DD format
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          params.date_to = dateStr;
+        } else {
+          // Try to parse and reformat if needed
+          try {
+            const parsedDate = new Date(dateStr);
+            if (!isNaN(parsedDate.getTime())) {
+              params.date_to = parsedDate.toISOString().split('T')[0];
             }
+          } catch (error) {
+            console.error('Error parsing date_to:', error);
           }
-        } catch (error) {
-          console.error('Error parsing date_to:', error);
         }
       }
 
@@ -403,11 +407,8 @@ function usePlayersData({
         params.state = filters.state.trim();
       }
 
-      console.log('🔍 Sending API request with params:', {
-        ...params,
-        date_from: params.date_from ? `${String(params.date_from).substring(0, 19)}...` : undefined,
-        date_to: params.date_to ? `${String(params.date_to).substring(0, 19)}...` : undefined,
-      });
+      // Log the final params to verify date format
+      console.log('🔍 Sending API request with params:', params);
       
       const response = await playersApi.list(params);
       setState({ data: response, error: '', isLoading: false });
