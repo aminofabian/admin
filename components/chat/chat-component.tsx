@@ -349,16 +349,22 @@ export function ChatComponent() {
     addToast,
   });
 
+  //  TEMPORARY FIX: Disable viewport rendering to test core functionality
   //  VIEWPORT RENDERING: Only show messages that fill viewport, reveal more as user scrolls
-  const {
-    visibleMessages,
-    topSpacerHeight,
-    bottomSpacerHeight,
-  } = useViewportMessages({
-    messages: wsMessages,
-    messagesContainerRef,
-    viewportBuffer: 10, // Show 10 extra messages above/below viewport
-  });
+  // const {
+  //   visibleMessages,
+  //   topSpacerHeight,
+  //   bottomSpacerHeight,
+  // } = useViewportMessages({
+  //   messages: wsMessages,
+  //   messagesContainerRef,
+  //   viewportBuffer: 10, // Show 10 extra messages above/below viewport
+  // });
+
+  //  TEMPORARY: Show all messages without viewport optimization
+  const visibleMessages = wsMessages;
+  const topSpacerHeight = 0;
+  const bottomSpacerHeight = 0;
 
   const groupedMessages = useMemo(() => groupMessagesByDate(visibleMessages), [visibleMessages]);
 
@@ -1575,13 +1581,6 @@ export function ChatComponent() {
                   // without affecting the scroll container itself
                 }}
               >
-                {/*  VIEWPORT RENDERING: Top spacer for messages above viewport */}
-                {topSpacerHeight > 0 && (
-                  <div 
-                    style={{ height: topSpacerHeight }}
-                    aria-hidden="true"
-                  />
-                )}
 
               {/* Loading indicator for message history */}
               {isHistoryLoadingMessages && (
@@ -1696,14 +1695,6 @@ export function ChatComponent() {
           })}
         </div>
       ))}
-
-                {/*  VIEWPORT RENDERING: Bottom spacer for messages below viewport */}
-                {bottomSpacerHeight > 0 && (
-                  <div 
-                    style={{ height: bottomSpacerHeight }}
-                    aria-hidden="true"
-                  />
-                )}
               </div>
               {/* End content wrapper */}
 

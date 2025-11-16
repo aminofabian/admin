@@ -115,7 +115,7 @@ export function useViewportMessages({
     }
   }, [messages.length, visibleRange.end, viewportBuffer, isUserAtBottom, calculateViewportCapacity]);
 
-  // Track scroll and update visible range incrementally - PERFORMANCE OPTIMIZED
+  // Track scroll and update visible range - SIMPLE AND RELIABLE
   const handleScroll = useCallback(() => {
     if (throttleTimerRef.current) {
       return; // Throttled
@@ -134,7 +134,7 @@ export function useViewportMessages({
 
       //  PERFORMANCE: Skip expensive calculations if scroll position hasn't changed significantly
       const scrollDelta = Math.abs(scrollTop - lastScrollTopRef.current);
-      if (scrollDelta < 5 && scrollDirectionRef.current !== null) {
+      if (scrollDelta < 10) {
         return; // Skip if minimal scroll change
       }
 
@@ -149,82 +149,26 @@ export function useViewportMessages({
       const viewportCapacity = calculateViewportCapacity();
       if (viewportCapacity === 0) return;
 
-      //  PERFORMANCE: Early return for common scenarios to avoid unnecessary calculations
-      const maxScroll = scrollHeight - clientHeight;
-      const scrollRatio = maxScroll > 0 ? scrollTop / maxScroll : 0;
-
-      // If scrolling near bottom and we're already showing all recent messages, skip heavy calculations
-      if (scrollRatio > 0.9 && visibleRange.end >= messages.length - 5) {
-        return; // Already showing recent messages, no need to recalculate
-      }
-
       setVisibleRange(prev => {
-        // When scrolling up, ensure viewport shows appropriate messages
-        if (scrollDirectionRef.current === 'up') {
-          //  IMPROVED: Expand viewport range when scrolling up at any position
-          // Calculate what should be visible based on current scroll position
-          const estimatedFirstVisible = Math.floor(scrollTop / ESTIMATED_MESSAGE_HEIGHT);
-          const estimatedLastVisible = estimatedFirstVisible + viewportCapacity;
+        // SIMPLE LOGIC: Always calculate based on current scroll position
+        const estimatedFirstVisible = Math.floor(scrollTop / ESTIMATED_MESSAGE_HEIGHT);
+        const estimatedLastVisible = estimatedFirstVisible + viewportCapacity;
 
-          // Calculate the optimal range with buffer
-          const newStart = Math.max(0, estimatedFirstVisible - viewportBuffer);
-          const newEnd = Math.min(messages.length, estimatedLastVisible + viewportBuffer);
+        // Always include buffer above and below viewport
+        let newStart = Math.max(0, estimatedFirstVisible - viewportBuffer);
+        let newEnd = Math.min(messages.length, estimatedLastVisible + viewportBuffer);
 
-          // Only update if the range actually needs to change
-          if (newStart < prev.start || newEnd > prev.end) {
-            return {
-              start: Math.min(prev.start, newStart),
-              end: Math.max(prev.end, newEnd),
-            };
-          }
-        }
-        
-        // When scrolling down, ensure viewport shows appropriate messages
-        if (scrollDirectionRef.current === 'down') {
-          //  IMPROVED: Expand viewport range when scrolling down at any position
-          // Calculate what should be visible based on current scroll position
-          const estimatedFirstVisible = Math.floor(scrollTop / ESTIMATED_MESSAGE_HEIGHT);
-          const estimatedLastVisible = estimatedFirstVisible + viewportCapacity;
-
-          // Calculate the optimal range with buffer
-          const newStart = Math.max(0, estimatedFirstVisible - viewportBuffer);
-          const newEnd = Math.min(messages.length, estimatedLastVisible + viewportBuffer);
-
-          // Only update if the range actually needs to change
-          if (newStart < prev.start || newEnd > prev.end) {
-            return {
-              start: Math.min(prev.start, newStart),
-              end: Math.max(prev.end, newEnd),
-            };
-          }
-        }
-        
-        //  CRITICAL: Enhanced new message detection and visibility
-        // This ensures new messages are always visible when user is at bottom
-        const atBottom = distanceFromBottom <= 100;
-        if (atBottom && messages.length > prev.end) {
-          // User is at bottom and there are new messages - IMMEDIATELY show them
-          const newEnd = messages.length;
-          const newStart = Math.max(0, newEnd - viewportCapacity - viewportBuffer * 2);
-          return {
-            start: Math.min(prev.start, newStart),
-            end: newEnd,
-          };
+        //  CRITICAL: If user is at bottom, always show all recent messages
+        if (distanceFromBottom <= 100) {
+          newEnd = messages.length;
+          // Ensure we show enough messages to fill viewport from bottom
+          const messagesNeeded = viewportCapacity + viewportBuffer * 2;
+          newStart = Math.max(0, messages.length - messagesNeeded);
         }
 
-        //  AGGRESSIVE EXPANSION: If new messages arrived and we're near bottom, expand range
-        const nearBottom = distanceFromBottom <= 200; // More generous threshold
-        if (nearBottom && messages.length > prev.end) {
-          // User is near bottom - expand range to include new messages
-          const additionalMessages = messages.length - prev.end;
-          const expansionBonus = Math.min(additionalMessages, viewportBuffer);
-          const newEnd = Math.min(messages.length, prev.end + expansionBonus);
-          const newStart = Math.max(0, newEnd - viewportCapacity - viewportBuffer * 2);
-
-          return {
-            start: Math.min(prev.start, newStart),
-            end: newEnd,
-          };
+        // Only update if the range actually needs to change
+        if (newStart !== prev.start || newEnd !== prev.end) {
+          return { start: newStart, end: newEnd };
         }
 
         return prev;
