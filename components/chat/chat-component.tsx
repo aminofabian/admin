@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { ArrowBigDown, ArrowDown, ArrowDownFromLine, ArrowDownNarrowWide, ArrowDownToLine, ChevronDown } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Input, useToast, Skeleton } from '@/components/ui';
 import { formatCurrency, isValidTimestamp } from '@/lib/utils/formatters';
@@ -1708,7 +1709,7 @@ export function ChatComponent() {
       {/* Rule 10 & 11: Scroll-to-bottom button - show when away from bottom, hide when at bottom */}
       {!isUserAtBottom && (
         <div className="pointer-events-none sticky bottom-12 sm:bottom-16 z-20 flex justify-end pr-0">
-          <div className="pointer-events-auto -mr-3 sm:-mr-8 animate-bounce-in-smooth">
+          <div className="pointer-events-auto mr-2 sm:mr-4 animate-bounce-in-smooth">
             <button
               type="button"
               onClick={() => {
@@ -1716,10 +1717,10 @@ export function ChatComponent() {
                 setHasNewMessagesWhileScrolled(false); // Clear indicator
               }}
               aria-label="Jump to latest messages"
-              className={`group relative flex w-12 flex-col items-center gap-3 rounded-full border px-0 py-5 shadow-xl backdrop-blur-md transition-all duration-200 hover:-translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/40 animate-scroll-indicator ${
+              className={`group relative flex w-12 flex-col items-center gap-1.5 px-0 py-1.5 text-xs font-semibold transition-all duration-200 hover:-translate-x-0.5 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 animate-scroll-indicator ${
                 hasNewMessagesWhileScrolled
-                  ? 'border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary animate-new-message-pulse'
-                  : 'border-border/40 bg-background/95 text-primary hover:border-primary/50 hover:shadow-2xl'
+                  ? 'text-primary animate-new-message-pulse'
+                  : 'text-slate-700 dark:text-slate-100'
               }`}
             >
               <span className="absolute right-full mr-3 hidden translate-x-2 items-center gap-2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-lg opacity-0 transition-all duration-200 group-hover:flex group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:flex group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
@@ -1728,19 +1729,44 @@ export function ChatComponent() {
                 </svg>
                 Jump to latest
               </span>
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
+                    <span className="relative inline-flex h-20 w-14 items-center justify-center translate-x-12">
+              <span 
+                className="absolute inset-0 rounded-full bg-gradient-to-b from-primary/15 via-primary/5 to-transparent blur-xl opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:blur-2xl"
+                aria-hidden="true"
+              />
+
+              {/* Pulsing ring */}
+              <span 
+                className="absolute inset-0 rounded-full border-2 border-primary/30 opacity-0 transition-all duration-500 group-hover:opacity-100 animate-ping"
+                aria-hidden="true"
+              />
+
+              {/* Main content container */}
+              <span 
+                className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary border-r-secondary opacity-0 group-hover:opacity-100 group-hover:animate-spin transition-opacity"
+                style={{ animationDuration: '3s' }}
+                aria-hidden="true"
+              />
+
+              {/* Main circle */}
+              <span className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-background via-card to-muted/40 border border-border/80 group-hover:border-primary/50 transition-colors">
+                {/* Stacked chevrons */}
+                <span className="flex flex-col -space-y-2 -translate-x-4">
+               
+                  <ArrowDownNarrowWide
+                    className="h-4 w-4 text-slate-50 opacity-80 transition-all group-hover:translate-y-0.5"
+                    strokeWidth={2.5}
+                  />
+                </span>
+              </span>
+            </span>
+        
+        {/* Label appears below on hover */}
+       
+
+
+
+
             </button>
           </div>
         </div>
