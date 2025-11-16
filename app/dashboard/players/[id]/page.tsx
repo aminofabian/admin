@@ -437,21 +437,22 @@ export default function PlayerDetailPage() {
 
         {/* Action Buttons */}
         <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-xl sm:p-5 md:p-6">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:mb-4 sm:text-sm">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:mb-5 sm:text-sm">
             Quick Actions
           </h3>
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3">
+          <div className="space-y-4 sm:space-y-5">
+            {/* History Actions */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
               <Button
                 onClick={handleViewTransactions}
-                className="flex w-full items-center justify-center gap-2 bg-indigo-600 py-2.5 text-sm text-white active:bg-indigo-700 dark:bg-indigo-600 dark:active:bg-indigo-700 sm:w-auto sm:py-2"
+                className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 px-5 py-3 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-indigo-700 hover:to-indigo-800 hover:shadow-lg active:scale-[0.98] dark:from-indigo-600 dark:to-indigo-700 dark:hover:from-indigo-700 dark:hover:to-indigo-800 sm:w-auto"
               >
                 <svg
-                  className="h-4 w-4"
+                  className="h-4 w-4 transition-transform duration-200 group-hover:scale-110"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                 >
                   <path
                     strokeLinecap="round"
@@ -459,19 +460,19 @@ export default function PlayerDetailPage() {
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                <span className="hidden sm:inline">View Transactions (History)</span>
+                <span className="hidden sm:inline">View Transactions</span>
                 <span className="sm:hidden">Transactions</span>
               </Button>
               <Button
                 onClick={handleViewGameActivities}
-                className="flex w-full items-center justify-center gap-2 bg-purple-600 py-2.5 text-sm text-white active:bg-purple-700 dark:bg-purple-600 dark:active:bg-purple-700 sm:w-auto sm:py-2"
+                className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-3 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-purple-700 hover:to-purple-800 hover:shadow-lg active:scale-[0.98] dark:from-purple-600 dark:to-purple-700 dark:hover:from-purple-700 dark:hover:to-purple-800 sm:w-auto"
               >
                 <svg
-                  className="h-4 w-4"
+                  className="h-4 w-4 transition-transform duration-200 group-hover:scale-110"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                 >
                   <path
                     strokeLinecap="round"
@@ -484,35 +485,86 @@ export default function PlayerDetailPage() {
                     d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="hidden sm:inline">View Game Activities (History)</span>
+                <span className="hidden sm:inline">View Game Activities</span>
                 <span className="sm:hidden">Game Activities</span>
               </Button>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3.5 dark:border-gray-800 dark:bg-gray-800/50 sm:p-4">
-              <label className="mb-2.5 block text-xs font-medium text-gray-700 dark:text-gray-300 sm:mb-3 sm:text-sm">
-                Assign to Agent
-              </label>
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
-                <Select
-                  value={selectedAgentId}
-                  onChange={(value: string) => setSelectedAgentId(value)}
-                  options={[
-                    { value: '', label: 'Select an agent' },
-                    ...agentOptions,
-                  ]}
-                  placeholder="Select an agent"
-                  isLoading={isLoadingAgents}
-                  disabled={isLoadingAgents}
-                  className="w-full sm:flex-1"
-                />
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                  Management
+                </span>
+              </div>
+            </div>
+
+            {/* Agent Assignment */}
+            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100/50 p-4 shadow-sm transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:from-gray-800/50 dark:to-gray-800/30 sm:p-5">
+              <div className="mb-3 flex items-center gap-2 sm:mb-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                  <svg
+                    className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                    />
+                  </svg>
+                </div>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Assign to Agent
+                </label>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-3">
+                <div className="flex-1">
+                  <Select
+                    value={selectedAgentId}
+                    onChange={(value: string) => setSelectedAgentId(value)}
+                    options={[
+                      { value: '', label: 'Select an agent' },
+                      ...agentOptions,
+                    ]}
+                    placeholder="Select an agent"
+                    isLoading={isLoadingAgents}
+                    disabled={isLoadingAgents}
+                    className="w-full"
+                  />
+                </div>
                 <Button
                   onClick={handleAssignAgent}
                   isLoading={isAssigningAgent}
-                  disabled={!selectedAgentId}
-                  className="flex w-full items-center justify-center gap-2 bg-emerald-600 py-2.5 text-sm text-white active:bg-emerald-700 dark:bg-emerald-600 dark:active:bg-emerald-700 sm:w-auto sm:py-2"
+                  disabled={!selectedAgentId || isLoadingAgents}
+                  className="group flex w-full items-center justify-center gap-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-3 text-sm font-medium text-white shadow-md transition-all duration-200 hover:from-emerald-700 hover:to-emerald-800 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 dark:from-emerald-600 dark:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 sm:w-auto"
                 >
                   <svg
-                    className="h-4 w-4"
+                    className="h-4 w-4 transition-transform duration-200 group-hover:scale-110"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  Assign
+                </Button>
+              </div>
+              {selectedPlayer.agent_username && (
+                <div className="mt-3 flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 dark:bg-emerald-950/20 sm:mt-4">
+                  <svg
+                    className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -521,38 +573,48 @@ export default function PlayerDetailPage() {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  Assign to Agent
-                </Button>
-              </div>
-              {selectedPlayer.agent_username && (
-                <p className="mt-2.5 text-xs text-gray-600 dark:text-gray-400 sm:mt-3 sm:text-sm">
-                  Current Agent: <span className="font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.agent_username}</span>
-                </p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300 sm:text-sm">
+                    <span className="font-medium">Current Agent:</span>{' '}
+                    <span className="font-semibold">{selectedPlayer.agent_username}</span>
+                  </p>
+                </div>
               )}
             </div>
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
+
+            {/* Status Toggle */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
               <Button
                 onClick={() => setShowDeactivateModal(true)}
                 variant={selectedPlayer.is_active ? 'danger' : 'primary'}
-                className="flex w-full items-center justify-center gap-2 py-2.5 text-sm sm:w-auto sm:py-2"
+                className="group flex w-full items-center justify-center gap-2.5 rounded-lg px-5 py-3 text-sm font-medium shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] sm:w-auto"
               >
                 <svg
-                  className="h-4 w-4"
+                  className={`h-4 w-4 transition-transform duration-200 group-hover:scale-110 ${
+                    selectedPlayer.is_active ? 'rotate-0' : 'rotate-180'
+                  }`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                  />
+                  {selectedPlayer.is_active ? (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                    />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  )}
                 </svg>
-                {selectedPlayer.is_active ? 'Deactivate' : 'Activate'}
+                {selectedPlayer.is_active ? 'Deactivate Player' : 'Activate Player'}
               </Button>
             </div>
           </div>
