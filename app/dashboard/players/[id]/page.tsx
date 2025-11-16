@@ -8,7 +8,7 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, agentsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem } from '@/components/ui';
+import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem, PasswordResetDrawer } from '@/components/ui';
 import type { UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
@@ -52,6 +52,13 @@ export default function PlayerDetailPage() {
     dob: '',
     state: '',
     mobile_number: '',
+  });
+  const [passwordResetState, setPasswordResetState] = useState<{
+    isOpen: boolean;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    isLoading: false,
   });
 
   // Update document title when player is loaded
@@ -405,6 +412,44 @@ export default function PlayerDetailPage() {
     }
   }, [gameToChange, refreshGames, addToast]);
 
+  const handleResetPassword = useCallback(() => {
+    setPasswordResetState({
+      isOpen: true,
+      isLoading: false,
+    });
+  }, []);
+
+  const handleConfirmPasswordReset = useCallback(async (password: string) => {
+    if (!selectedPlayer) return;
+
+    setPasswordResetState((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      await playersApi.update(selectedPlayer.id, { password });
+
+      addToast({
+        type: 'success',
+        title: 'Password reset',
+        description: `Password for "${selectedPlayer.username}" has been reset successfully!`,
+      });
+
+      setPasswordResetState({ isOpen: false, isLoading: false });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to reset password';
+      addToast({
+        type: 'error',
+        title: 'Reset failed',
+        description: message,
+      });
+      setPasswordResetState((prev) => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  }, [selectedPlayer, addToast]);
+
+  const handleCancelPasswordReset = useCallback(() => {
+    setPasswordResetState({ isOpen: false, isLoading: false });
+  }, []);
+
   if (isLoadingPlayer) {
     return <LoadingState />;
   }
@@ -584,6 +629,15 @@ export default function PlayerDetailPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Game Activities
+                </Button>
+                <Button
+                  onClick={handleResetPassword}
+                  className="group relative flex items-center justify-center gap-3 bg-gray-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:bg-gray-700 hover:shadow-xl active:scale-[0.98] dark:bg-gray-700"
+                >
+                  <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  Reset Password
                 </Button>
                 <Button
                   onClick={() => setShowDeactivateModal(true)}
@@ -892,6 +946,15 @@ export default function PlayerDetailPage() {
         confirmText="Change"
         variant="info"
         isLoading={isChangingGame}
+      />
+
+      <PasswordResetDrawer
+        isOpen={passwordResetState.isOpen}
+        onClose={handleCancelPasswordReset}
+        onConfirm={handleConfirmPasswordReset}
+        username={selectedPlayer?.username}
+        isLoading={passwordResetState.isLoading}
+        title="Reset Player Password"
       />
     </div>
   );
