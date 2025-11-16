@@ -1742,11 +1742,11 @@ export function ChatComponent() {
               />
 
               {/* Main content container */}
-              <span 
+              {/* <span 
                 className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary border-r-secondary opacity-0 group-hover:opacity-100 group-hover:animate-spin transition-opacity"
                 style={{ animationDuration: '3s' }}
                 aria-hidden="true"
-              />
+              /> */}
 
               {/* Main circle */}
               <span className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-background via-card to-muted/40 border border-border/80 group-hover:border-primary/50 transition-colors">
