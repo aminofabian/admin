@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, memo } from 'react';
-import { Button } from '@/components/ui';
+import { useState, memo, useCallback } from 'react';
+import { Button, DropdownMenu, DropdownMenuItem, ConfirmModal, useToast } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerPurchases } from '@/hooks/use-player-purchases';
 import { usePlayerCashouts } from '@/hooks/use-player-cashouts';
 import { usePlayerGameActivities } from '@/hooks/use-player-game-activities';
 import { PlayerInfoSkeleton } from '../components/chat-skeletons';
-import type { ChatUser } from '@/types';
+import { PlayerGameBalanceModal } from '@/components/features';
+import { playersApi } from '@/lib/api/users';
+import type { ChatUser, PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 
 interface PlayerInfoSidebarProps {
   selectedPlayer: ChatUser;
@@ -36,7 +38,18 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   onOpenNotesDrawer,
 }: PlayerInfoSidebarProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const { games, isLoading: isLoadingGames } = usePlayerGames(selectedPlayer.user_id || null);
+  const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(selectedPlayer.user_id || null);
+  const { addToast } = useToast();
+  
+  const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
+  const [isDeletingGame, setIsDeletingGame] = useState(false);
+  const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
+  const [isChangingGame, setIsChangingGame] = useState(false);
+  const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+  const [selectedGameForBalance, setSelectedGameForBalance] = useState<PlayerGame | null>(null);
+  const [balanceData, setBalanceData] = useState<CheckPlayerGameBalanceResponse | null>(null);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [isCheckingBalance, setIsCheckingBalance] = useState(false);
   // Use the chat 'id' field (chatroom ID) for purchases and cashouts
   const { purchases, isLoading: isLoadingPurchases } = usePlayerPurchases(selectedPlayer.id || null);
   const { cashouts: allCashouts, isLoading: isLoadingCashouts } = usePlayerCashouts(selectedPlayer.id || null);
@@ -55,6 +68,62 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   const toggleSection = (sectionName: string) => {
     setExpandedSection(expandedSection === sectionName ? null : sectionName);
   };
+
+  const handleDeleteGame = useCallback(async () => {
+    if (!gameToDelete) return;
+
+    setIsDeletingGame(true);
+    try {
+      await playersApi.deleteGame(gameToDelete.id);
+      await refreshGames();
+      addToast({
+        type: 'success',
+        title: 'Game removed',
+        description: `"${gameToDelete.game__title}" has been removed from player "${selectedPlayer.username}".`,
+      });
+      setGameToDelete(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete game';
+      addToast({
+        type: 'error',
+        title: 'Delete failed',
+        description: message,
+      });
+    } finally {
+      setIsDeletingGame(false);
+    }
+  }, [gameToDelete, selectedPlayer, refreshGames, addToast]);
+
+  const handleChangeGame = useCallback(async () => {
+    if (!gameToChange) return;
+
+    setIsChangingGame(true);
+    try {
+      // Toggle the game status
+      // API requires username, so we send the current username along with status
+      const newStatus = gameToChange.status === 'active' ? 'inactive' : 'active';
+      await playersApi.updateGame(gameToChange.id, { 
+        username: gameToChange.username,
+        status: newStatus 
+      });
+      await refreshGames();
+      addToast({
+        type: 'success',
+        title: 'Game updated',
+        description: `"${gameToChange.game__title}" status has been changed to ${newStatus}.`,
+      });
+      setGameToChange(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update game';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: message,
+      });
+    } finally {
+      setIsChangingGame(false);
+    }
+  }, [gameToChange, refreshGames, addToast]);
   return (
     <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-72 lg:w-80 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
       {/* Header with Player Avatar - Compact */}
@@ -530,20 +599,73 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                     >
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-xs font-medium text-foreground">{game.game__title}</p>
-                        <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            game.status === 'active'
-                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                              : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
-                          }`}
-                        >
+                        <div className="flex items-center gap-1.5">
                           <span
-                            className={`w-1 h-1 rounded-full ${
-                              game.status === 'active' ? 'bg-green-500' : 'bg-gray-500'
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              game.status === 'active'
+                                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                                : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
                             }`}
-                          />
-                          {game.status}
-                        </span>
+                          >
+                            <span
+                              className={`w-1 h-1 rounded-full ${
+                                game.status === 'active' ? 'bg-green-500' : 'bg-gray-500'
+                              }`}
+                            />
+                            {game.status}
+                          </span>
+                          <DropdownMenu
+                            trigger={
+                              <button
+                                type="button"
+                                className="flex items-center justify-center p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"
+                                aria-label="Game actions"
+                                title="Game actions"
+                              >
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                              </button>
+                            }
+                            align="right"
+                          >
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                setSelectedGameForBalance(game);
+                                setBalanceError(null);
+                                setBalanceData(null);
+                                setIsBalanceModalOpen(true);
+                                
+                                try {
+                                  setIsCheckingBalance(true);
+                                  const response = await playersApi.checkGameBalance({
+                                    game_id: game.game__id,
+                                    player_id: selectedPlayer.user_id,
+                                  });
+                                  setBalanceData(response);
+                                } catch (err) {
+                                  const message = err instanceof Error ? err.message : 'Failed to check game balance';
+                                  setBalanceError(message);
+                                } finally {
+                                  setIsCheckingBalance(false);
+                                }
+                              }}
+                            >
+                              Fetch Balance
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setGameToChange(game)}
+                            >
+                              Change
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setGameToDelete(game)}
+                              className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                         <span>ID: {game.game__id}</span>
@@ -603,6 +725,44 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <PlayerGameBalanceModal
+        isOpen={isBalanceModalOpen}
+        onClose={() => {
+          setIsBalanceModalOpen(false);
+          setSelectedGameForBalance(null);
+          setBalanceData(null);
+          setBalanceError(null);
+        }}
+        gameTitle={selectedGameForBalance?.game__title || ''}
+        playerUsername={selectedPlayer.username}
+        balanceData={balanceData}
+        isLoading={isCheckingBalance}
+        error={balanceError}
+      />
+
+      <ConfirmModal
+        isOpen={!!gameToDelete}
+        onClose={() => setGameToDelete(null)}
+        onConfirm={handleDeleteGame}
+        title="Delete Game"
+        description={`Are you sure you want to remove "${gameToDelete?.game__title}" from "${selectedPlayer?.username}"? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+        isLoading={isDeletingGame}
+      />
+
+      <ConfirmModal
+        isOpen={!!gameToChange}
+        onClose={() => setGameToChange(null)}
+        onConfirm={handleChangeGame}
+        title="Change Game Status"
+        description={`Are you sure you want to change the status of "${gameToChange?.game__title}" to ${gameToChange?.status === 'active' ? 'inactive' : 'active'}?`}
+        confirmText="Change"
+        variant="info"
+        isLoading={isChangingGame}
+      />
     </div>
   );
 });
