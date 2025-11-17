@@ -708,8 +708,8 @@ export default function AgentsDashboard() {
   }, [router, addToast]);
 
   const viewPlayers = useCallback((agent: Agent) => {
-    // Redirect to players page with agent filter
-    router.push(`/dashboard/players?agent_id=${agent.id}`);
+    // Redirect to players page with agent filter (using username like in players page filter)
+    router.push(`/dashboard/players?agent=${encodeURIComponent(agent.username)}`);
   }, [router]);
 
   const handleResetPassword = useCallback((agent: Agent) => {
