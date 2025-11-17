@@ -73,7 +73,7 @@ export default function PlayerDetailPage() {
     } else {
       document.title = 'Player Details';
     }
-  }, [selectedPlayer?.username]);
+  }, [selectedPlayer]);
 
   // Load agents for dropdown
   useEffect(() => {
@@ -151,7 +151,7 @@ export default function PlayerDetailPage() {
         setSelectedAgentId(String(selectedPlayer.agent_id));
       }
     }
-  }, [selectedPlayer?.agent_id, agentOptions]);
+  }, [selectedPlayer?.agent_id, agentOptions, selectedAgentId]);
 
   // Load player data
   useEffect(() => {
@@ -248,7 +248,7 @@ export default function PlayerDetailPage() {
     };
 
     void loadPlayer();
-  }, [playerId]);
+  }, [playerId, addToast, lastAgentAssignmentTime]);
 
 
   const handleSave = useCallback(async () => {
@@ -1043,7 +1043,7 @@ export default function PlayerDetailPage() {
                     </svg>
                   </div>
                   <p className="mt-4 text-sm font-medium text-gray-500 dark:text-gray-400">No games assigned</p>
-                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Click "Add Game" to get started</p>
+                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Click &quot;Add Game&quot; to get started</p>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
