@@ -784,20 +784,6 @@ export default function PlayerDetailPage() {
                   </svg>
                   <span className="text-center leading-tight">Activities</span>
                 </Button>
-                <Button
-                  onClick={() => setShowDeactivateModal(true)}
-                  variant={selectedPlayer.is_active ? 'danger' : 'primary'}
-                  className="group flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px]"
-                >
-                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    {selectedPlayer.is_active ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    )}
-                  </svg>
-                  <span className="text-center leading-tight">{selectedPlayer.is_active ? 'Deactivate' : 'Activate'}</span>
-                </Button>
               </div>
             </section>
 
