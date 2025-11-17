@@ -8,7 +8,7 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, agentsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem } from '@/components/ui';
+import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
 import type { UpdateUserRequest } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
@@ -494,6 +494,9 @@ export default function PlayerDetailPage() {
   const [isChangingGame, setIsChangingGame] = useState(false);
   const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
   const [isAddingGame, setIsAddingGame] = useState(false);
+  const [gameToEdit, setGameToEdit] = useState<PlayerGame | null>(null);
+  const [isEditingGame, setIsEditingGame] = useState(false);
+  const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
 
   const handleDeleteGame = useCallback(async () => {
     if (!gameToDelete || !selectedPlayer) return;
@@ -584,6 +587,39 @@ export default function PlayerDetailPage() {
       setIsAddingGame(false);
     }
   }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
+
+  const handleEditGame = useCallback(async (data: { username: string; password: string }) => {
+    if (!gameToEdit || isEditingGame) {
+      return;
+    }
+
+    setIsEditingGame(true);
+    try {
+      await playersApi.updateGame(gameToEdit.id, {
+        username: data.username,
+        password: data.password,
+      });
+      
+      addToast({
+        type: 'success',
+        title: 'Game updated',
+        description: `"${gameToEdit.game__title}" credentials have been updated successfully.`,
+      });
+      
+      setIsEditGameDrawerOpen(false);
+      setGameToEdit(null);
+      await refreshGames();
+    } catch (error) {
+      const description = error instanceof Error ? error.message : 'Unknown error';
+      addToast({
+        type: 'error',
+        title: 'Failed to update game',
+        description,
+      });
+    } finally {
+      setIsEditingGame(false);
+    }
+  }, [gameToEdit, isEditingGame, addToast, refreshGames]);
 
   if (isLoadingPlayer) {
     return <LoadingState />;
@@ -1149,6 +1185,18 @@ export default function PlayerDetailPage() {
                             align="right"
                           >
                             <DropdownMenuItem
+                              onClick={() => {
+                                setGameToEdit(game);
+                                setIsEditGameDrawerOpen(true);
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit Game
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               onClick={() => setGameToChange(game)}
                               className="flex items-center gap-2"
                             >
@@ -1248,6 +1296,179 @@ export default function PlayerDetailPage() {
           isSubmitting={isAddingGame}
         />
       )}
+
+      {/* Edit Game Drawer */}
+      {gameToEdit && (
+        <div className={`fixed inset-0 z-[60] overflow-hidden transition-opacity duration-300 ${isEditGameDrawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !isEditingGame && setIsEditGameDrawerOpen(false)}
+          />
+          
+          {/* Drawer Panel */}
+          <div 
+            className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isEditGameDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <EditGameDrawerContent
+              game={gameToEdit}
+              isOpen={isEditGameDrawerOpen}
+              onClose={() => {
+                setIsEditGameDrawerOpen(false);
+                setGameToEdit(null);
+              }}
+              onSubmit={handleEditGame}
+              isSubmitting={isEditingGame}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Edit Game Drawer Component
+interface EditGameDrawerContentProps {
+  game: PlayerGame;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { username: string; password: string }) => Promise<void>;
+  isSubmitting: boolean;
+}
+
+function EditGameDrawerContent({
+  game,
+  isOpen,
+  onClose,
+  onSubmit,
+  isSubmitting,
+}: EditGameDrawerContentProps) {
+  const [formData, setFormData] = useState({
+    username: game.username || '',
+    password: '',
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        username: game.username || '',
+        password: '',
+      });
+    }
+  }, [isOpen, game.username]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.username || !formData.password) {
+      return;
+    }
+
+    await onSubmit({
+      username: formData.username,
+      password: formData.password,
+    });
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* Drawer Header */}
+      <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+        <h2 className="text-lg font-bold text-foreground">Edit Game</h2>
+        <button
+          onClick={onClose}
+          className="p-1 hover:bg-muted rounded-lg transition-colors"
+          disabled={isSubmitting}
+        >
+          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Drawer Body */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24 md:pb-6">
+        <form id="edit-game-form" onSubmit={handleSubmit} className="space-y-4">
+          {/* Game Info */}
+          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">Game Information</p>
+                <p className="text-xs text-muted-foreground">
+                  Game: <span className="font-medium text-foreground">{game.game__title}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Game ID: <span className="font-medium text-foreground">{game.game__id}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Username */}
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Game Username <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="text"
+              value={formData.username}
+              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              placeholder="Enter username for the game"
+              className="w-full"
+              disabled={isSubmitting}
+              required
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              The username for accessing the game account
+            </p>
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-2">
+              Game Password <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              placeholder="Enter new password for the game"
+              className="w-full"
+              disabled={isSubmitting}
+              required
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Enter a new password for the game account
+            </p>
+          </div>
+        </form>
+      </div>
+
+      {/* Sticky Footer with Submit Button */}
+      <div className="sticky bottom-0 z-10 bg-card border-t border-border px-6 py-4 shadow-lg">
+        <Button
+          type="submit"
+          form="edit-game-form"
+          variant="primary"
+          className="w-full"
+          disabled={isSubmitting || !formData.username || !formData.password}
+          isLoading={isSubmitting}
+        >
+          {isSubmitting ? (
+            'Updating Game...'
+          ) : (
+            <>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Update Game
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
