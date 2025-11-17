@@ -139,7 +139,7 @@ export function NotesDrawer({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
           {selectedPlayer ? (
             <div className="space-y-4">
               {/* Player Info */}
@@ -186,7 +186,7 @@ export function NotesDrawer({
 
         {/* Footer with Action Buttons */}
         {selectedPlayer && (
-          <div className="border-t border-border/50 p-4 flex-shrink-0">
+          <div className="sticky bottom-0 z-10 border-t border-border/50 p-4 flex-shrink-0 bg-background shadow-lg">
             <div className="grid grid-cols-2 gap-3">
               <Button 
                 variant="primary" 

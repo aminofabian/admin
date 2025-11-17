@@ -52,7 +52,7 @@ export const Drawer = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-[60] overflow-hidden">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-300"
@@ -91,7 +91,7 @@ export const Drawer = ({
             </div>
             
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="flex-1 overflow-y-auto px-6 py-6 pb-24 md:pb-6">
               <div className="max-w-4xl">
                 {children}
               </div>
@@ -99,7 +99,7 @@ export const Drawer = ({
             
             {/* Footer */}
             {footer && (
-              <div className="sticky bottom-0 z-10 flex items-center justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+              <div className="sticky bottom-0 z-10 flex items-center justify-end gap-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 px-6 py-4 shadow-lg">
                 {footer}
               </div>
             )}

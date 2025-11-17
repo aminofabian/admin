@@ -86,7 +86,7 @@ export function AddGameDrawer({
   const selectedGame = availableGames.find(game => game.code === formData.code);
 
   return (
-    <div className={`fixed inset-0 z-50 overflow-hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+    <div className={`fixed inset-0 z-[60] overflow-hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -95,25 +95,26 @@ export function AddGameDrawer({
       
       {/* Drawer Panel */}
       <div 
-        className={`fixed inset-y-0 right-0 z-50 w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        {/* Drawer Header */}
-        <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-foreground">Add New Game</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-muted rounded-lg transition-colors"
-            disabled={isSubmitting}
-          >
-            <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        <div className="flex h-full flex-col">
+          {/* Drawer Header */}
+          <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground">Add New Game</h2>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-muted rounded-lg transition-colors"
+              disabled={isSubmitting}
+            >
+              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
-        {/* Drawer Body */}
-        <div className="p-6 space-y-4 overflow-y-auto h-[calc(100vh-73px)]">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Drawer Body */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24 md:pb-6">
+          <form id="add-game-form" onSubmit={handleSubmit} className="space-y-4">
             {/* Game Selection */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-2">
@@ -219,21 +220,21 @@ export function AddGameDrawer({
               </div>
             </div>
 
-            {/* Submit Button */}
+          </form>
+          </div>
+
+          {/* Sticky Footer with Submit Button */}
+          <div className="sticky bottom-0 z-10 bg-card border-t border-border px-6 py-4 shadow-lg">
             <Button
               type="submit"
+              form="add-game-form"
               variant="primary"
-              className="w-full mt-6"
+              className="w-full"
               disabled={isSubmitting || !formData.code || !formData.username || !formData.password}
+              isLoading={isSubmitting}
             >
               {isSubmitting ? (
-                <>
-                  <svg className="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                  </svg>
-                  Adding Game...
-                </>
+                'Adding Game...'
               ) : (
                 <>
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +244,7 @@ export function AddGameDrawer({
                 </>
               )}
             </Button>
-          </form>
+          </div>
         </div>
       </div>
     </div>
