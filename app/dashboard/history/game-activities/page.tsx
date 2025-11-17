@@ -45,5 +45,9 @@ export default function HistoryGameActivitiesPage() {
     setAdvancedFilters(filterUpdate);
   }, [searchParams, setAdvancedFilters, advancedFilters]);
 
-  return <GameActivitiesSection showTabs={true} />;
+  return (
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
+      <GameActivitiesSection showTabs={true} />
+    </div>
+  );
 }

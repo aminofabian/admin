@@ -885,9 +885,8 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView }: Ga
         )}
       </div>
 
-      {/* Amount & Balance Section */}
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800 space-y-3">
-        {/* Amount */}
+      {/* Amount Section */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
           <div className="text-right">
@@ -901,8 +900,10 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView }: Ga
             )}
           </div>
         </div>
+      </div>
 
-        {/* New Balance - Grid Layout */}
+      {/* Balance Section */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
             <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">Credit</div>

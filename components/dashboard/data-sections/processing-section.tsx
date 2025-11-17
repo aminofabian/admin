@@ -16,7 +16,6 @@ import {
 import {
   DashboardActionBar,
   DashboardSectionContainer,
-  DashboardSectionHeader,
 } from '@/components/dashboard/layout';
 import { 
   EmptyState,
@@ -869,11 +868,25 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
           isEmpty={isEmpty}
           emptyState={emptyState}
         >
-        <DashboardSectionHeader
-          title={metadata.title}
-          description={metadata.description}
-          icon={metadata.icon}
-        />
+        {/* Compact Header */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+            {/* Icon */}
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shrink-0">
+              <div className="h-4 w-4 sm:h-5 sm:w-5 text-white">
+                {metadata.icon}
+              </div>
+            </div>
+            
+            {/* Title */}
+            <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+              {metadata.title}
+            </h2>
+            
+            {/* Spacer */}
+            <div className="flex-1 min-w-0" />
+          </div>
+        </div>
         {metadata.hint && (
           <DashboardActionBar>
             <p className="text-sm text-muted-foreground">
@@ -883,7 +896,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
         )}
         {/* Desktop Table View */}
         {transactionResults.length > 0 && (
-          <div className="hidden lg:block overflow-hidden rounded-lg border border-border bg-card">
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
               <TableHeader>
@@ -917,71 +930,98 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
 
         {/* Mobile Card View */}
         {transactionResults.length > 0 && (
-          <div className="lg:hidden space-y-4">
+          <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
             {transactionResults.map((transaction) => {
               const isPurchaseTransaction = transaction.type === 'purchase';
               const amountClass = isPurchaseTransaction ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
               const bonusClass = amountClass;
+              const typeVariant = isPurchaseTransaction ? 'success' : 'danger';
+              const statusVariant = getStatusVariant(transaction.status);
+              const bonusValue = parseFloat(transaction.bonus_amount || '0');
+              const formattedBonus = bonusValue !== 0 ? formatCurrency(String(bonusValue)) : null;
+              const userInitial = transaction.user_username?.charAt(0).toUpperCase() ?? '?';
 
               return (
                 <div
                   key={transaction.id}
-                  className="bg-card rounded-lg border border-border p-4 space-y-3"
+                  className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden"
                 >
-                  {/* User Info */}
-                  <div className="flex items-center gap-3 pb-3 border-b border-border">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
-                      {transaction.user_username?.charAt(0).toUpperCase() ?? '?'}
+                  {/* Top Section: User, Type & Status */}
+                  <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                        {userInitial}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                              {transaction.user_username ?? '—'}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                              {transaction.user_email ?? '—'}
+                            </p>
+                          </div>
+                          <Badge variant={typeVariant} className="text-[10px] px-2 py-0.5 uppercase shrink-0">
+                            {transaction.type ?? '—'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
+                            {transaction.status}
+                          </Badge>
+                          <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
+                            {transaction.payment_method ?? '—'}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{transaction.user_username ?? '—'}</div>
-                      <div className="text-xs text-muted-foreground">{transaction.user_email ?? '—'}</div>
-                    </div>
-                    <Badge variant={transaction.type === 'purchase' ? 'success' : 'danger'} className="text-xs">
-                      {transaction.type?.toUpperCase() ?? '—'}
-                    </Badge>
                   </div>
 
-                  {/* Amount and Balance */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">Amount</div>
-                      <div className={`text-sm font-bold ${amountClass}`}>
-                        {formatCurrency(transaction.amount || '0')}
+                  {/* Middle Section: Amount */}
+                  <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
+                      <div className="text-right">
+                        <div className={`text-base font-bold ${amountClass}`}>
+                          {formatCurrency(transaction.amount || '0')}
+                        </div>
+                        {formattedBonus && (
+                          <div className={`text-xs font-semibold mt-0.5 ${bonusClass}`}>
+                            +{formattedBonus} bonus
+                          </div>
+                        )}
                       </div>
-                      {transaction.bonus_amount && parseFloat(transaction.bonus_amount) > 0 && (
-                        <div className={`text-xs font-semibold mt-0.5 ${bonusClass}`}>
-                          +{formatCurrency(transaction.bonus_amount)} bonus
-                        </div>
-                      )}
                     </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">Status</div>
-                      <Badge variant={getStatusVariant(transaction.status)}>
-                        {transaction.status}
-                      </Badge>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">Previous Balance</div>
-                      <div className="space-y-0.5">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          C: {formatCurrency(transaction.previous_balance || '0')}
+                  </div>
+
+                  {/* Balance Section */}
+                  <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
+                        <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">Previous Credit</div>
+                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          {formatCurrency(transaction.previous_balance || '0')}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+                      </div>
+                      <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
+                        <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">Previous Winning</div>
+                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                          {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
                             ? formatCurrency(transaction.previous_winning_balance)
                             : formatCurrency('0')}
                         </div>
                       </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground mb-1">New Balance</div>
-                      <div className="space-y-0.5">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          C: {formatCurrency(transaction.new_balance || '0')}
+                      <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
+                        <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">New Credit</div>
+                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                          {formatCurrency(transaction.new_balance || '0')}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+                      </div>
+                      <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
+                        <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">New Winning</div>
+                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                          {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
                             ? formatCurrency(transaction.new_winning_balance)
                             : formatCurrency('0')}
                         </div>
@@ -989,27 +1029,24 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                     </div>
                   </div>
 
-                  {/* Payment Method */}
-                  <div className="text-sm">
-                    <div className="text-xs text-muted-foreground mb-1">Payment Method</div>
-                    <div className="font-medium">{transaction.payment_method ?? '—'}</div>
+                  {/* Bottom Section: Date & Action */}
+                  <div className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span>{formatDate(transaction.created)}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() => handleViewTransaction(transaction)}
+                      disabled={pendingTransactionId === transaction.id}
+                      className="px-3 py-1.5 text-xs touch-manipulation shrink-0"
+                    >
+                      View
+                    </Button>
                   </div>
-
-                  {/* Date */}
-                  <div className="text-xs text-muted-foreground">
-                    {formatDate(transaction.created)}
-                  </div>
-
-                  {/* Actions */}
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="w-full"
-                    disabled={pendingTransactionId === transaction.id}
-                    onClick={() => handleViewTransaction(transaction)}
-                  >
-                    View
-                  </Button>
                 </div>
               );
             })}
@@ -1017,7 +1054,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
         )}
 
         {transactionCount > transactionsPageSize && (
-          <div className="border-t border-border px-4 py-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
             <Pagination
               currentPage={transactionsPage}
               totalPages={Math.ceil(transactionCount / transactionsPageSize)}
@@ -1081,40 +1118,52 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
         isEmpty={isGameEmpty}
         emptyState={gameEmptyState}
       >
-        <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <DashboardSectionHeader
-              title={metadata.title}
-              description={metadata.description}
-              icon={metadata.icon}
-            />
-            
-            {/* WebSocket Connection Status */}
-            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border">
-              {wsConnecting && (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                  <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
-                </>
-              )}
-              {wsConnected && !wsConnecting && (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
-                </>
-              )}
-              {!wsConnected && !wsConnecting && wsError && (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
-                </>
-              )}
-              {!wsConnected && !wsConnecting && !wsError && (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-gray-400" />
-                  <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
-                </>
-              )}
+        <div className="space-y-3 sm:space-y-4 md:space-y-6">
+          {/* Compact Header */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+              {/* Icon */}
+              <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 shadow-md shrink-0">
+                <div className="h-4 w-4 sm:h-5 sm:w-5 text-white">
+                  {metadata.icon}
+                </div>
+              </div>
+              
+              {/* Title */}
+              <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+                {metadata.title}
+              </h2>
+              
+              {/* Spacer */}
+              <div className="flex-1 min-w-0" />
+              
+              {/* WebSocket Connection Status */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shrink-0">
+                {wsConnecting && (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                    <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
+                  </>
+                )}
+                {wsConnected && !wsConnecting && (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
+                  </>
+                )}
+                {!wsConnected && !wsConnecting && wsError && (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
+                  </>
+                )}
+                {!wsConnected && !wsConnecting && !wsError && (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-gray-400" />
+                    <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           
@@ -1130,7 +1179,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
             actionLoading={actionLoading}
           />
           {shouldShowQueuePagination && (
-            <div className="pt-4 border-t border-border">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
               <Pagination
                 currentPage={queuePage}
                 totalPages={totalQueuePages}

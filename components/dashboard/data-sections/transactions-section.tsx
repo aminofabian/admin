@@ -1088,35 +1088,44 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
-      {/* Top Section: User & Type */}
+      {/* Top Section: User, Type & Status */}
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
-              {userInitial}
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
+            {userInitial}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                  {transaction.user_username}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                  {transaction.user_email}
+                </p>
+              </div>
+              <Badge variant={typeVariant} className="text-[10px] px-2 py-0.5 uppercase shrink-0">
+                {transaction.type}
+              </Badge>
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                {transaction.user_username}
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                {transaction.user_email}
-              </p>
+            <div className="flex items-center gap-2">
+              <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
+                {transaction.status}
+              </Badge>
+              <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
+                {transaction.payment_method}
+              </Badge>
             </div>
           </div>
-          <Badge variant={typeVariant} className="text-[10px] px-2 py-0.5 uppercase shrink-0">
-            {transaction.type}
-          </Badge>
         </div>
       </div>
 
-      {/* Middle Section: Amount & Balances */}
-      <div className="p-3 space-y-2 border-b border-gray-100 dark:border-gray-800">
-        {/* Amount */}
+      {/* Middle Section: Amount */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
           <div className="text-right">
-            <div className={`text-sm font-bold ${amountColorClass}`}>
+            <div className={`text-base font-bold ${amountColorClass}`}>
               {formattedAmount}
             </div>
             {formattedBonus && (
@@ -1126,60 +1135,58 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
             )}
           </div>
         </div>
+      </div>
 
-        {/* Balances Grid */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-md p-2">
-            <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 uppercase">Previous</div>
-            <div className="text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
-              <div>C: {formatCurrency(transaction.previous_balance)}</div>
-              <div>W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-                ? formatCurrency(transaction.previous_winning_balance)
-                : formatCurrency('0')}
-              </div>
+      {/* Balance Section */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
+            <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">Previous Credit</div>
+            <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+              {formatCurrency(transaction.previous_balance)}
             </div>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-md p-2">
-            <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 uppercase">New</div>
-            <div className="text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
-              <div>C: {formatCurrency(transaction.new_balance)}</div>
-              <div>W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+          <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
+            <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">Previous Winning</div>
+            <div className="text-sm font-bold text-green-600 dark:text-green-400">
+              {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+                ? formatCurrency(transaction.previous_winning_balance)
+                : formatCurrency('0')}
+            </div>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
+            <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">New Credit</div>
+            <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+              {formatCurrency(transaction.new_balance)}
+            </div>
+          </div>
+          <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
+            <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">New Winning</div>
+            <div className="text-sm font-bold text-green-600 dark:text-green-400">
+              {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
                 ? formatCurrency(transaction.new_winning_balance)
                 : formatCurrency('0')}
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Section: Status, Payment, Date & Action */}
-      <div className="p-3 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize shrink-0">
-              {transaction.status}
-            </Badge>
-            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
-              {transaction.payment_method}
-            </Badge>
-          </div>
+      {/* Bottom Section: Date & Action */}
+      <div className="p-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>{formattedCreatedAt}</span>
         </div>
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span>{formattedCreatedAt}</span>
-          </div>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={handleViewClick}
-            className="px-3 py-1.5 text-xs touch-manipulation"
-          >
-            View
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={handleViewClick}
+          className="px-3 py-1.5 text-xs touch-manipulation shrink-0"
+        >
+          View
+        </Button>
       </div>
     </div>
   );
