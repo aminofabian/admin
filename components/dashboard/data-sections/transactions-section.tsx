@@ -3,7 +3,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DashboardSectionContainer,
-  DashboardSectionHeader,
 } from '@/components/dashboard/layout';
 import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useToast } from '@/components/ui';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
@@ -765,18 +764,32 @@ function TransactionsLayout({
 
   return (
     <>
-      <DashboardSectionHeader
-        title={headingTitle}
-        description="Comprehensive transaction management and analytics"
-        icon={HEADER_ICON}
-        badge={
-          shouldShowFilterBadge ? (
-            <Badge variant="info" className="uppercase tracking-wide">
+      {/* Compact Header */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+          {/* Icon */}
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shrink-0">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5h6m-6 4h6m-6 4h6m-9 4h12" />
+            </svg>
+          </div>
+          
+          {/* Title */}
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+            {headingTitle}
+          </h2>
+          
+          {/* Badge */}
+          {shouldShowFilterBadge && (
+            <Badge variant="info" className="uppercase tracking-wide text-[10px] sm:text-xs shrink-0">
               {formatFilterLabel(filter)}
             </Badge>
-          ) : undefined
-        }
-      />
+          )}
+          
+          {/* Spacer */}
+          <div className="flex-1 min-w-0" />
+        </div>
+      </div>
       <HistoryTransactionsFilters
         filters={advancedFilters}
         onFilterChange={onAdvancedFilterChange}
@@ -848,8 +861,20 @@ function TransactionsTable({
 
   return (
     <>
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
-        <div className="overflow-x-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+          {transactions.map((transaction) => (
+            <TransactionCard
+              key={transaction.id}
+              transaction={transaction}
+              onView={handleViewTransaction}
+            />
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -875,8 +900,9 @@ function TransactionsTable({
             </TableBody>
           </Table>
         </div>
+
         {totalCount > pageSize && (
-          <div className="border-t border-border px-4 py-4">
+          <div className="border-t border-gray-200 dark:border-gray-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
@@ -1024,6 +1050,144 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     prevProps.transaction.status === nextProps.transaction.status &&
     prevProps.transaction.amount === nextProps.transaction.amount &&
     prevProps.transaction.updated === nextProps.transaction.updated &&
+    prevProps.onView === nextProps.onView
+  );
+});
+
+// Transaction Card Component for Mobile
+interface TransactionCardProps {
+  transaction: Transaction;
+  onView: (transaction: Transaction) => void;
+}
+
+const TransactionCard = memo(function TransactionCard({ transaction, onView }: TransactionCardProps) {
+  const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
+  const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
+  const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
+  const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
+  const amountColorClass = useMemo(() => (isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase]);
+  
+  const bonusAmount = useMemo(() => {
+    const bonus = parseFloat(transaction.bonus_amount || '0');
+    return bonus > 0 ? bonus : null;
+  }, [transaction.bonus_amount]);
+
+  const formattedBonus = useMemo(() => {
+    return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+  }, [bonusAmount]);
+
+  const userInitial = useMemo(() => {
+    return transaction.user_username.charAt(0).toUpperCase();
+  }, [transaction.user_username]);
+
+  const formattedCreatedAt = useMemo(() => formatDate(transaction.created), [transaction.created]);
+
+  const handleViewClick = useCallback(() => {
+    onView(transaction);
+  }, [transaction, onView]);
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
+      {/* Top Section: User & Type */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
+              {userInitial}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                {transaction.user_username}
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                {transaction.user_email}
+              </p>
+            </div>
+          </div>
+          <Badge variant={typeVariant} className="text-[10px] px-2 py-0.5 uppercase shrink-0">
+            {transaction.type}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Middle Section: Amount & Balances */}
+      <div className="p-3 space-y-2 border-b border-gray-100 dark:border-gray-800">
+        {/* Amount */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
+          <div className="text-right">
+            <div className={`text-sm font-bold ${amountColorClass}`}>
+              {formattedAmount}
+            </div>
+            {formattedBonus && (
+              <div className={`text-xs font-semibold mt-0.5 ${amountColorClass}`}>
+                +{formattedBonus} bonus
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Balances Grid */}
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-md p-2">
+            <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 uppercase">Previous</div>
+            <div className="text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
+              <div>C: {formatCurrency(transaction.previous_balance)}</div>
+              <div>W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+                ? formatCurrency(transaction.previous_winning_balance)
+                : formatCurrency('0')}
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-md p-2">
+            <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 uppercase">New</div>
+            <div className="text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
+              <div>C: {formatCurrency(transaction.new_balance)}</div>
+              <div>W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+                ? formatCurrency(transaction.new_winning_balance)
+                : formatCurrency('0')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Section: Status, Payment, Date & Action */}
+      <div className="p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize shrink-0">
+              {transaction.status}
+            </Badge>
+            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
+              {transaction.payment_method}
+            </Badge>
+          </div>
+        </div>
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>{formattedCreatedAt}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={handleViewClick}
+            className="px-3 py-1.5 text-xs touch-manipulation"
+          >
+            View
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.transaction.id === nextProps.transaction.id &&
+    prevProps.transaction.status === nextProps.transaction.status &&
+    prevProps.transaction.amount === nextProps.transaction.amount &&
     prevProps.onView === nextProps.onView
   );
 });
