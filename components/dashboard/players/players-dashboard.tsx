@@ -164,7 +164,7 @@ export default function PlayersDashboard(): ReactElement {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
       <PlayersHeader 
         onAddPlayer={modalState.openCreateModal}
         totalCount={dataState.data?.count ?? 0}
@@ -871,100 +871,66 @@ function PlayersHeader({
     <Card className="overflow-hidden">
       <CardContent className="p-0">
         <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900">
-          <div className="relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex-1">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <div className="flex items-center gap-3">
-                  {/* Icon with gradient background */}
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
-                    <svg
-                      className="h-6 w-6 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                      />
-                    </svg>
-                  </div>
-                  
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      Players
-                    </h1>
-                    <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
-                      Manage player accounts and their balances
-                    </p>
-                  </div>
-                </div>
-
-                {/* Enhanced counter display */}
-                {totalCount > 0 && (
-                  <div className="flex items-center gap-3 sm:ml-auto">
-                    <div className="flex items-center gap-2 rounded-lg border border-blue-200/50 bg-white/80 px-4 py-2.5 shadow-sm backdrop-blur-sm dark:border-blue-800/30 dark:bg-gray-800/80">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-blue-500 to-indigo-600">
-                          <svg
-                            className="h-4 w-4 text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                        </div>
-                        <div className="flex flex-col">
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                              {totalCount.toLocaleString()}
-                            </span>
-                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                              {totalCount === 1 ? 'User' : 'Users'}
-                            </span>
-                          </div>
-                          {hasPagination && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              Showing <span className="font-semibold text-gray-700 dark:text-gray-300">{currentPageCount}</span> on this page
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+          {/* Single compact row - everything in one line */}
+          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+            {/* Icon */}
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shrink-0">
+              <svg
+                className="h-4 w-4 sm:h-5 sm:w-5 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
             </div>
             
-            <div className="flex-shrink-0">
-              <Button 
-                onClick={onAddPlayer}
-                className="shadow-md transition-all hover:shadow-lg"
+            {/* Title */}
+            <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-100 shrink-0">
+              Players
+            </h1>
+            
+            {/* Count badge - inline: current page / total */}
+            {totalCount > 0 && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/90 dark:bg-gray-800/90 border border-blue-200/50 dark:border-blue-800/30 shadow-sm shrink-0">
+                <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100">
+                  {currentPageCount}
+                </span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                  / {totalCount.toLocaleString()}
+                </span>
+              </div>
+            )}
+            
+            {/* Spacer */}
+            <div className="flex-1 min-w-0" />
+            
+            {/* Add button - compact */}
+            <Button 
+              onClick={onAddPlayer}
+              className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
+              size="sm"
+            >
+              <svg
+                className="h-4 w-4 sm:h-5 sm:w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <svg
-                  className="mr-2 h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Add Player
-              </Button>
-            </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span className="hidden md:inline ml-1.5">Add Player</span>
+            </Button>
           </div>
         </div>
       </CardContent>
@@ -995,143 +961,199 @@ function PlayersFilters({
   isAgentLoading,
   isLoading,
 }: PlayersFiltersProps): ReactElement {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasActiveFilters = filters.username || filters.full_name || filters.email || filters.agent || filters.date_from || filters.date_to || filters.status !== 'all' || filters.state !== 'all';
+  
   const inputClasses =
-    'w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 shadow-sm transition-all duration-150 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:ring-blue-500/30';
+    'w-full px-2.5 py-1.5 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 shadow-sm transition-all duration-150 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:focus:ring-blue-500/30 touch-manipulation';
 
   return (
     <Card>
-      <CardContent className="space-y-4 p-6">
+      <CardContent className="p-0">
         {successMessage && (
-          <SuccessBanner message={successMessage} onDismiss={onDismissSuccess} />
+          <div className="px-3 sm:px-4 md:px-6 pt-3 sm:pt-4">
+            <SuccessBanner message={successMessage} onDismiss={onDismissSuccess} />
+          </div>
         )}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Username
-            </label>
-            <input
-              type="text"
-              value={filters.username}
-              onChange={(event) => onFilterChange('username', event.target.value)}
-              placeholder="Filter by username"
-              className={inputClasses}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={filters.full_name}
-              onChange={(event) => onFilterChange('full_name', event.target.value)}
-              placeholder="Filter by full name"
-              className={inputClasses}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email
-            </label>
-            <input
-              type="email"
-              value={filters.email}
-              onChange={(event) => onFilterChange('email', event.target.value)}
-              placeholder="Filter by email"
-              className={inputClasses}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Agent
-            </label>
-            <Select
-              value={filters.agent}
-              onChange={(value: string) => onFilterChange('agent', value)}
-              options={[
-                { value: '', label: 'All Agents' },
-                ...(agentOptions || []),
-                ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
-                  ? [{ value: filters.agent, label: filters.agent }]
-                  : []),
-              ]}
-              placeholder="All Agents"
-              isLoading={isAgentLoading}
-              disabled={isAgentLoading}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Date From
-            </label>
-            <input
-              type="date"
-              value={filters.date_from}
-              onChange={(event) => onFilterChange('date_from', event.target.value)}
-              className={inputClasses}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Date To
-            </label>
-            <input
-              type="date"
-              value={filters.date_to}
-              onChange={(event) => onFilterChange('date_to', event.target.value)}
-              className={inputClasses}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Status
-            </label>
-            <Select
-              value={filters.status}
-              onChange={(value: string) => onFilterChange('status', value)}
-              options={[
-                { value: 'all', label: 'All Statuses' },
-                { value: 'active', label: 'Active' },
-                { value: 'inactive', label: 'Inactive' },
-              ]}
-              placeholder="All Statuses"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              State
-            </label>
-            <Select
-              value={filters.state}
-              onChange={(value: string) => onFilterChange('state', value)}
-              options={[
-                { value: 'all', label: 'All States' },
-                ...US_STATES,
-              ]}
-              placeholder="All States"
-            />
+        
+        {/* Compact filter bar - always visible */}
+        <div className="p-2.5 sm:p-3 md:p-4 lg:p-6">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Quick search - always visible */}
+            <div className="flex-1 min-w-[120px] sm:min-w-[200px]">
+              <input
+                type="text"
+                value={filters.username}
+                onChange={(event) => onFilterChange('username', event.target.value)}
+                placeholder="Search username..."
+                className={inputClasses}
+              />
+            </div>
+            
+            {/* Status & Agent - compact chips on mobile */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Select
+                value={filters.status}
+                onChange={(value: string) => onFilterChange('status', value)}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
+                ]}
+                placeholder="Status"
+                className="w-[90px] sm:w-[110px]"
+              />
+              <Select
+                value={filters.agent}
+                onChange={(value: string) => onFilterChange('agent', value)}
+                options={[
+                  { value: '', label: 'All Agents' },
+                  ...(agentOptions || []),
+                  ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
+                    ? [{ value: filters.agent, label: filters.agent }]
+                    : []),
+                ]}
+                placeholder="Agent"
+                isLoading={isAgentLoading}
+                disabled={isAgentLoading}
+                className="w-[100px] sm:w-[130px] hidden sm:block"
+              />
+            </div>
+            
+            {/* Expand/Collapse button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="px-2 py-1.5 touch-manipulation shrink-0"
+            >
+              <svg
+                className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              <span className="hidden sm:inline ml-1 text-xs">{isExpanded ? 'Less' : 'More'}</span>
+            </Button>
+            
+            {/* Action buttons */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClearFilters}
+                  disabled={isLoading}
+                  className="px-2 py-1.5 touch-manipulation shrink-0"
+                  title="Clear filters"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
+              )}
+              <Button
+                size="sm"
+                onClick={onApplyFilters}
+                isLoading={isLoading}
+                disabled={isLoading}
+                className="px-2.5 sm:px-3 py-1.5 touch-manipulation shrink-0"
+              >
+                <span className="hidden sm:inline">Apply</span>
+                <span className="sm:hidden">Go</span>
+              </Button>
+            </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onClearFilters}
-            disabled={isLoading}
-          >
-            Clear Filters
-          </Button>
-          <Button 
-            size="sm" 
-            onClick={onApplyFilters}
-            isLoading={isLoading}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Applying...' : 'Apply Filters'}
-          </Button>
-        </div>
+        
+        {/* Expanded filters - collapsible */}
+        {isExpanded && (
+          <div className="border-t border-gray-200 dark:border-gray-700 px-2.5 sm:px-3 md:px-4 lg:px-6 py-3 sm:py-4 space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
+              <div>
+                <label className="mb-1 block text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={filters.full_name}
+                  onChange={(event) => onFilterChange('full_name', event.target.value)}
+                  placeholder="Full name"
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={filters.email}
+                  onChange={(event) => onFilterChange('email', event.target.value)}
+                  placeholder="Email"
+                  className={inputClasses}
+                />
+              </div>
+              <div className="sm:hidden">
+                <label className="mb-1 block text-[10px] font-medium text-gray-700 dark:text-gray-300">
+                  Agent
+                </label>
+                <Select
+                  value={filters.agent}
+                  onChange={(value: string) => onFilterChange('agent', value)}
+                  options={[
+                    { value: '', label: 'All Agents' },
+                    ...(agentOptions || []),
+                    ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
+                      ? [{ value: filters.agent, label: filters.agent }]
+                      : []),
+                  ]}
+                  placeholder="Agent"
+                  isLoading={isAgentLoading}
+                  disabled={isAgentLoading}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Date From
+                </label>
+                <input
+                  type="date"
+                  value={filters.date_from}
+                  onChange={(event) => onFilterChange('date_from', event.target.value)}
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Date To
+                </label>
+                <input
+                  type="date"
+                  value={filters.date_to}
+                  onChange={(event) => onFilterChange('date_to', event.target.value)}
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] sm:text-xs font-medium text-gray-700 dark:text-gray-300">
+                  State
+                </label>
+                <Select
+                  value={filters.state}
+                  onChange={(value: string) => onFilterChange('state', value)}
+                  options={[
+                    { value: 'all', label: 'All States' },
+                    ...US_STATES,
+                  ]}
+                  placeholder="State"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -1145,20 +1167,20 @@ function SuccessBanner({
   onDismiss: () => void;
 }): ReactElement {
   return (
-    <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800 dark:border-green-800/50 dark:bg-green-950/30 dark:text-green-300 sm:flex sm:items-center sm:justify-between">
+    <div className="rounded-lg border border-green-200 bg-green-50 px-3 sm:px-4 py-2 sm:py-3 text-green-800 dark:border-green-800/50 dark:bg-green-950/30 dark:text-green-300 sm:flex sm:items-center sm:justify-between">
       <div className="flex items-center gap-2">
-        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path
             fillRule="evenodd"
             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
             clipRule="evenodd"
           />
         </svg>
-        <span>{message}</span>
+        <span className="text-xs sm:text-sm">{message}</span>
       </div>
       <button
         onClick={onDismiss}
-        className="mt-3 inline-flex items-center text-sm font-medium text-green-600 transition-colors hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 sm:mt-0"
+        className="mt-2 sm:mt-0 inline-flex items-center text-xs sm:text-sm font-medium text-green-600 transition-colors hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 touch-manipulation"
       >
         Dismiss
       </button>
@@ -1214,7 +1236,7 @@ function PlayersTableSection({
               onViewPlayer={onViewPlayer}
             />
             {showPagination && (
-              <div className="border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+              <div className="border-t border-gray-200 px-3 sm:px-4 md:px-6 py-3 sm:py-4 dark:border-gray-700">
                 <Pagination
                   currentPage={page}
                   totalPages={Math.ceil((data?.count ?? 0) / pageSize)}
@@ -1245,31 +1267,180 @@ function PlayersTable({
   players,
 }: PlayersTableProps): ReactElement {
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Username</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Credit</TableHead>
-            <TableHead>Winning</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {players.map((player) => (
-            <PlayersTableRow
-              key={player.id}
-              player={player}
-              onEditProfile={onEditProfile}
-              onOpenChat={onOpenChat}
-              onViewPlayer={onViewPlayer}
-            />
-          ))}
-        </TableBody>
-      </Table>
+    <>
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3 px-3 sm:px-4 pb-4">
+        {players.map((player) => (
+          <PlayerCard
+            key={player.id}
+            player={player}
+            onEditProfile={onEditProfile}
+            onOpenChat={onOpenChat}
+            onViewPlayer={onViewPlayer}
+          />
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-xs sm:text-sm">Username</TableHead>
+              <TableHead className="text-xs sm:text-sm">Contact</TableHead>
+              <TableHead className="text-xs sm:text-sm">Credit</TableHead>
+              <TableHead className="text-xs sm:text-sm">Winning</TableHead>
+              <TableHead className="text-xs sm:text-sm">Status</TableHead>
+              <TableHead className="hidden lg:table-cell text-xs sm:text-sm">Created</TableHead>
+              <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {players.map((player) => (
+              <PlayersTableRow
+                key={player.id}
+                player={player}
+                onEditProfile={onEditProfile}
+                onOpenChat={onOpenChat}
+                onViewPlayer={onViewPlayer}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
+  );
+}
+
+type PlayerCardProps = {
+  onEditProfile: (player: Player) => void;
+  onOpenChat: (player: Player) => void;
+  onViewPlayer: (player: Player) => void;
+  player: Player;
+};
+
+function PlayerCard({
+  onEditProfile,
+  onOpenChat,
+  onViewPlayer,
+  player,
+}: PlayerCardProps): ReactElement {
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
+      {/* Top Section: Avatar, Name, Status */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            onClick={() => onOpenChat(player)}
+            className="flex-shrink-0 touch-manipulation"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-base font-semibold text-white shadow-md">
+              {player.username.charAt(0).toUpperCase()}
+            </div>
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => onOpenChat(player)}
+                  className="text-left w-full touch-manipulation"
+                >
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                    {player.username}
+                  </h3>
+                  {player.full_name && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
+                      {player.full_name}
+                    </p>
+                  )}
+                </button>
+              </div>
+              <Badge 
+                variant={player.is_active ? 'success' : 'danger'} 
+                className="text-[10px] px-2 py-0.5 shrink-0"
+              >
+                {player.is_active ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Section: Contact & Balances */}
+      <div className="p-3 space-y-2 border-b border-gray-100 dark:border-gray-800">
+        {/* Email */}
+        <div className="flex items-center gap-2">
+          <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">
+            {player.email}
+          </span>
+        </div>
+
+        {/* Balances Row */}
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <svg className="h-3 w-3 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-[10px] font-medium text-blue-700 dark:text-blue-300 uppercase">Credit</span>
+            </div>
+            <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
+              {formatCurrency(player.balance)}
+            </p>
+          </div>
+          <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <svg className="h-3 w-3 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-[10px] font-medium text-green-700 dark:text-green-300 uppercase">Winning</span>
+            </div>
+            <p className="text-sm font-bold text-green-600 dark:text-green-400">
+              {formatCurrency(player.winning_balance)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Section: Date & Actions */}
+      <div className="p-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>{formatDate(player.created)}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onEditProfile(player)}
+            title="Edit Profile"
+            className="p-1.5 touch-manipulation"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onViewPlayer(player)}
+            title="View Details"
+            className="p-1.5 touch-manipulation"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1289,60 +1460,67 @@ function PlayersTableRow({
 }: PlayersTableRowProps): ReactElement {
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-      <TableCell>
+      <TableCell className="py-2 sm:py-3">
         <button
           type="button"
           onClick={() => onOpenChat(player)}
-          className="flex w-full items-center gap-3 rounded-md px-1 py-1 text-left transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 dark:hover:bg-gray-800"
+          className="flex w-full items-center gap-2 sm:gap-3 rounded-md px-1 py-1 text-left transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 dark:hover:bg-gray-800 touch-manipulation"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-sm font-semibold text-white">
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-xs sm:text-sm font-semibold text-white shrink-0">
             {player.username.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-gray-100">
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate">
               {player.username}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {player.full_name}
+            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
+              {player.full_name || <span className="text-gray-400">—</span>}
+            </div>
+            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate sm:hidden">
+              {player.email}
             </div>
           </div>
         </button>
       </TableCell>
-      <TableCell>
-        <div className="text-sm text-gray-700 dark:text-gray-300">
+      <TableCell className="hidden sm:table-cell py-2 sm:py-3">
+        <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 truncate">
           {player.email}
         </div>
       </TableCell>
-      <TableCell>
-        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+      <TableCell className="py-2 sm:py-3">
+        <div className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
           {formatCurrency(player.balance)}
         </div>
+        <div className="text-[10px] text-gray-500 dark:text-gray-400 md:hidden">
+          Win: {formatCurrency(player.winning_balance)}
+        </div>
       </TableCell>
-      <TableCell>
-        <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+      <TableCell className="hidden md:table-cell py-2 sm:py-3">
+        <div className="text-xs sm:text-sm font-semibold text-green-600 dark:text-green-400">
           {formatCurrency(player.winning_balance)}
         </div>
       </TableCell>
-      <TableCell>
-        <Badge variant={player.is_active ? 'success' : 'danger'}>
+      <TableCell className="py-2 sm:py-3">
+        <Badge variant={player.is_active ? 'success' : 'danger'} className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">
           {player.is_active ? 'Active' : 'Inactive'}
         </Badge>
       </TableCell>
-      <TableCell>
-        <div className="text-sm text-gray-600 dark:text-gray-400">
+      <TableCell className="hidden lg:table-cell py-2 sm:py-3">
+        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
           {formatDate(player.created)}
         </div>
       </TableCell>
-      <TableCell>
-        <div className="flex items-center justify-end gap-2">
+      <TableCell className="py-2 sm:py-3">
+        <div className="flex items-center justify-end gap-1 sm:gap-2">
           <Button
             size="sm"
             variant="ghost"
             onClick={() => onEditProfile(player)}
             title="Edit Profile"
+            className="p-1.5 sm:p-2 touch-manipulation"
           >
             <svg
-              className="h-4 w-4"
+              className="h-3.5 w-3.5 sm:h-4 sm:w-4"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -1360,9 +1538,10 @@ function PlayersTableRow({
             variant="secondary"
             onClick={() => onViewPlayer(player)}
             title="View"
+            className="p-1.5 sm:p-2 touch-manipulation"
           >
             <svg
-              className="h-4 w-4"
+              className="h-3.5 w-3.5 sm:h-4 sm:w-4"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
