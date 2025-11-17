@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Input, Select, Switch } from '@/components/ui';
 
 // All 50 US States
 const US_STATES = [
@@ -65,6 +65,9 @@ interface EditPlayerDetailsDrawerProps {
     dob: string;
     state: string;
     mobile_number: string;
+    password: string;
+    confirm_password: string;
+    is_active: boolean;
   };
   setEditableFields: React.Dispatch<React.SetStateAction<{
     email: string;
@@ -72,6 +75,9 @@ interface EditPlayerDetailsDrawerProps {
     dob: string;
     state: string;
     mobile_number: string;
+    password: string;
+    confirm_password: string;
+    is_active: boolean;
   }>>;
   isSaving: boolean;
   onSave: () => void;
@@ -216,6 +222,78 @@ export function EditPlayerDetailsDrawer({
                 disabled={isSaving}
                 placeholder="+1 (555) 123-4567"
               />
+            </div>
+
+            {/* Password */}
+            <div className="group">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Password
+                <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">(leave blank to keep current)</span>
+              </label>
+              <Input
+                type="password"
+                value={editableFields.password}
+                onChange={(e) => setEditableFields(prev => ({ ...prev, password: e.target.value }))}
+                className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                disabled={isSaving}
+                placeholder="Enter new password"
+              />
+            </div>
+
+            {/* Confirm Password */}
+            {editableFields.password && (
+              <div className="group">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Confirm Password
+                </label>
+                <Input
+                  type="password"
+                  value={editableFields.confirm_password}
+                  onChange={(e) => setEditableFields(prev => ({ ...prev, confirm_password: e.target.value }))}
+                  className={`w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                    editableFields.password && editableFields.confirm_password && editableFields.password !== editableFields.confirm_password
+                      ? 'border-red-500 dark:border-red-400'
+                      : ''
+                  }`}
+                  disabled={isSaving}
+                  placeholder="Confirm new password"
+                />
+                {editableFields.password && editableFields.confirm_password && editableFields.password !== editableFields.confirm_password && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">Passwords do not match</p>
+                )}
+              </div>
+            )}
+
+            {/* Active/Inactive Toggle */}
+            <div className="group">
+              <div className="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Account Status
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {editableFields.is_active ? 'Player account is active' : 'Player account is inactive'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={editableFields.is_active}
+                  onChange={(checked) => setEditableFields(prev => ({ ...prev, is_active: checked }))}
+                  disabled={isSaving}
+                />
+              </div>
             </div>
           </div>
 
