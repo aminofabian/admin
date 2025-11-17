@@ -421,7 +421,7 @@ function MenuItem({
           <div className="shrink-0 p-1.5 group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300">
             {category.icon}
           </div>
-          <span className="md:hidden xl:block truncate text-sm font-semibold tracking-wide">{category.name}</span>
+          <span className="lg:hidden xl:block truncate text-sm font-semibold tracking-wide">{category.name}</span>
         </Link>
       );
     }
@@ -497,7 +497,7 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
         />
         <button
           onClick={onClose}
-          className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+          className="lg:hidden p-2 hover:bg-muted rounded-lg transition-colors"
         >
           <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

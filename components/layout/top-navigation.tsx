@@ -45,7 +45,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
         {/* Mobile menu button - Enhanced */}
         <button
           onClick={onMenuClick}
-          className="md:hidden p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
+          className="lg:hidden p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
           aria-label="Open menu"
         >
           <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,7 +128,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
         {/* Theme Toggle - Icon on mobile, toggle on desktop */}
         <button
           onClick={toggleTheme}
-          className="md:hidden p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
+          className="lg:hidden p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
           title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         >
           {theme === 'light' ? (
@@ -143,7 +143,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
         </button>
 
         {/* Theme Toggle - Full on desktop */}
-        <div className="hidden md:flex items-center bg-accent/50 rounded-full p-0.5 md:p-1">
+        <div className="hidden lg:flex items-center bg-accent/50 rounded-full p-0.5 md:p-1">
           <button
             onClick={toggleTheme}
             className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all duration-200 ${
@@ -199,7 +199,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
             <span className="text-xs md:text-sm font-semibold text-foreground leading-tight">
               {user?.username || 'User'}
             </span>
-            <span className="text-[10px] text-muted-foreground capitalize leading-tight hidden md:block">
+            <span className="text-[10px] text-muted-foreground capitalize leading-tight hidden lg:block">
               {user?.role || 'Admin'}
             </span>
           </div>
