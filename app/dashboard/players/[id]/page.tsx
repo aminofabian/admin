@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
@@ -63,7 +63,10 @@ export default function PlayerDetailPage() {
   });
 
   // Track last agent assignment time to prevent immediate data overwrite
-  const [lastAgentAssignmentTime, setLastAgentAssignmentTime] = useState<number>(0);
+  // Use ref instead of state to avoid triggering re-renders
+  const lastAgentAssignmentTimeRef = useRef<number>(0);
+  // Track if we just assigned an agent to prevent unnecessary syncing
+  const justAssignedAgentRef = useRef<boolean>(false);
 
   // Update document title when player is loaded
   useEffect(() => {
@@ -137,7 +140,13 @@ export default function PlayerDetailPage() {
   }, []);
 
   // Set selected agent when player or agents list changes
+  // Skip sync if we just assigned an agent (to prevent unnecessary updates)
   useEffect(() => {
+    // If we just assigned an agent, skip this sync (flag will be cleared by timeout)
+    if (justAssignedAgentRef.current) {
+      return;
+    }
+
     console.log('🔄 useEffect for selectedAgentId fired', {
       agentId: selectedPlayer?.agent_id,
       agentOptionsLength: agentOptions.length,
@@ -163,6 +172,20 @@ export default function PlayerDetailPage() {
       return;
     }
 
+    // Skip loading if we just assigned an agent (to prevent reload)
+    // Check both the flag and the time since assignment
+    const now = Date.now();
+    const timeSinceAssignment = now - lastAgentAssignmentTimeRef.current;
+    const shouldSkip = justAssignedAgentRef.current || timeSinceAssignment < 5000;
+    
+    if (shouldSkip) {
+      console.log('⏭️ Skipping player data load - agent just assigned', {
+        justAssigned: justAssignedAgentRef.current,
+        timeSinceAssignment,
+      });
+      return;
+    }
+
     const loadPlayer = async () => {
       try {
         setIsLoadingPlayer(true);
@@ -174,7 +197,7 @@ export default function PlayerDetailPage() {
         // Only update player data if we don't have newer local agent assignment data
         setSelectedPlayer((prev) => {
           const now = Date.now();
-          const timeSinceAssignment = now - lastAgentAssignmentTime;
+          const timeSinceAssignment = now - lastAgentAssignmentTimeRef.current;
 
           // If we had a recent agent assignment (within 5 seconds), preserve local data
           if (timeSinceAssignment < 5000 && prev?.agent_id && !player.agent_id) {
@@ -248,7 +271,8 @@ export default function PlayerDetailPage() {
     };
 
     void loadPlayer();
-  }, [playerId, addToast, lastAgentAssignmentTime]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerId]); // addToast is stable from context, no need to include in deps
 
 
   const handleSave = useCallback(async () => {
@@ -325,15 +349,25 @@ export default function PlayerDetailPage() {
 
       console.log('📦 API response received:', response);
 
-      // Record the time of agent assignment
-      setLastAgentAssignmentTime(Date.now());
+      // Record the time of agent assignment (using ref to avoid triggering re-renders)
+      const assignmentTime = Date.now();
+      lastAgentAssignmentTimeRef.current = assignmentTime;
+      // Mark that we just assigned an agent to prevent unnecessary syncing and reloads
+      justAssignedAgentRef.current = true;
+      
+      // Clear the flag after 5 seconds to allow normal operations to resume
+      // This prevents the player data loading useEffect from running for 5 seconds
+      setTimeout(() => {
+        justAssignedAgentRef.current = false;
+      }, 5000);
 
       // Update local state with response data (minimal update to avoid unnecessary re-renders)
       console.log('🔄 Updating selectedPlayer state');
+      const agent_id = response.data.agent_id;
+      const agent_username = response.data.agent_username;
+
       setSelectedPlayer((prev) => {
         if (!prev) return prev;
-        const agent_id = response.data.agent_id;
-        const agent_username = response.data.agent_username;
 
         // Only update if values actually changed
         if (prev.agent_id === agent_id && prev.agent_username === agent_username) {
@@ -352,6 +386,12 @@ export default function PlayerDetailPage() {
           agent_username,
         };
       });
+
+      // Ensure selectedAgentId stays in sync with what we just assigned
+      // This prevents the useEffect from trying to sync it later
+      if (selectedAgentId !== String(agent_id)) {
+        setSelectedAgentId(String(agent_id));
+      }
 
       addToast({
         type: 'success',
@@ -812,7 +852,12 @@ export default function PlayerDetailPage() {
                     />
                   </div>
                   <Button
-                    onClick={handleAssignAgent}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAssignAgent();
+                    }}
                     isLoading={isAssigningAgent}
                     disabled={!selectedAgentId || isLoadingAgents}
                     variant="primary"
@@ -902,7 +947,12 @@ export default function PlayerDetailPage() {
                     />
                   </div>
                   <Button
-                    onClick={handleAssignAgent}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAssignAgent();
+                    }}
                     isLoading={isAssigningAgent}
                     disabled={!selectedAgentId || isLoadingAgents}
                     variant="primary"
