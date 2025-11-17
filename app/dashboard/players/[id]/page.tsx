@@ -584,121 +584,133 @@ export default function PlayerDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:px-6 sm:py-5">
-            <div className="flex items-center gap-2 sm:gap-4">
-              <button
-                onClick={handleBack}
-                className="p-2.5 text-gray-500 transition-colors active:bg-gray-100 active:text-gray-700 dark:text-gray-400 dark:active:bg-gray-800 dark:active:text-gray-200"
-                aria-label="Back"
+      {/* Header - Mobile App Style */}
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 safe-area-top">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 py-3 sm:py-4 lg:py-5">
+            <button
+              onClick={handleBack}
+              className="p-2 -ml-2 text-gray-500 transition-colors active:bg-gray-100 active:text-gray-700 dark:text-gray-400 dark:active:bg-gray-800 dark:active:text-gray-200 rounded-lg touch-manipulation"
+              aria-label="Back"
+            >
+              <svg
+                className="h-6 w-6 sm:h-6 sm:w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <svg
-                  className="h-5 w-5 sm:h-6 sm:w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 sm:text-xl lg:text-2xl">
-                {selectedPlayer.username}
-              </h2>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md">
+                {usernameInitial}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate">
+                    {selectedPlayer.username}
+                  </h2>
+                  <span className="inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0">
+                    #{selectedPlayer.id}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {selectedPlayer.full_name || 'Player Profile'}
+                  </p>
+                  {selectedPlayer.created && (
+                    <>
+                      <span className="text-gray-300 dark:text-gray-600 text-[10px] shrink-0">•</span>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-none shrink-0">
+                        {formatDate(selectedPlayer.created)}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex w-full items-stretch gap-2 sm:w-auto sm:items-center">
-              <Button variant="secondary" size="sm" onClick={() => setIsEditDrawerOpen(true)} className="flex-1 sm:flex-none">
-                Edit Details
-              </Button>
-            </div>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={() => setIsEditDrawerOpen(true)}
+              className="flex items-center gap-1.5 sm:gap-2 shrink-0 touch-manipulation"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span className="hidden sm:inline">Edit</span>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 md:p-8">
-        {/* Hero Section: Player Profile */}
-        <section className="relative overflow-hidden bg-gray-700 p-6 shadow-xl dark:bg-gray-800 sm:p-8">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-5">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-white/20 backdrop-blur-sm text-2xl font-bold text-white shadow-lg ring-4 ring-white/20 dark:bg-white/10">
-                {usernameInitial}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-bold text-white sm:text-3xl">
-                  {selectedPlayer.username}
-                </h1>
-                <p className="mt-1 text-base text-white/90 sm:text-lg">
-                  {selectedPlayer.full_name || 'No full name provided'}
-                </p>
-                <div className="mt-3">
-                  <Badge
-                    variant={selectedPlayer.is_active ? 'success' : 'danger'}
-                    className="bg-white/20 text-white backdrop-blur-sm border-white/30"
-                  >
-                    {selectedPlayer.is_active ? '✓ Active' : '✗ Inactive'}
-                  </Badge>
+      {/* Full Width Content - Mobile App Style */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-safe">
+        {/* Hero Stats Banner - Compact on mobile */}
+        <div className="mb-3 sm:mb-6 bg-gray-100 dark:bg-gray-900 p-2 sm:p-6 shadow-xl border border-gray-200 dark:border-gray-800">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
+            <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                <div className="flex h-6 w-6 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0">
+                  <svg className="h-3 w-3 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Credit</p>
+                  <p className="mt-0.5 text-sm sm:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{creditBalance}</p>
                 </div>
               </div>
             </div>
-            
-            {/* Quick Stats in Hero */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6">
-              <div className="bg-white/10 backdrop-blur-sm p-4 ring-1 ring-white/20">
-                <p className="text-xs font-medium uppercase tracking-wider text-white/70">Credit</p>
-                <p className="mt-1 text-xl font-bold text-white sm:text-2xl">{creditBalance}</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm p-4 ring-1 ring-white/20">
-                <p className="text-xs font-medium uppercase tracking-wider text-white/70">Winning</p>
-                <p className="mt-1 text-xl font-bold text-white sm:text-2xl">{winningBalance}</p>
+            <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                <div className="flex h-6 w-6 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0">
+                  <svg className="h-3 w-3 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Winning</p>
+                  <p className="mt-0.5 text-sm sm:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{winningBalance}</p>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left Column: Personal Info */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Personal Information */}
-            <section className="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="mb-6 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Personal Information
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Email</span>
-                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100 break-all">{selectedPlayer.email}</p>
+            <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                <div className="flex h-6 w-6 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0">
+                  <svg className="h-3 w-3 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
-                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Full Name</span>
-                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.full_name || '—'}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Status</p>
+                  <div className="mt-0.5">
+                    <Badge
+                      variant={selectedPlayer.is_active ? 'success' : 'danger'}
+                      className="text-[10px] sm:text-sm px-1.5 sm:px-3 py-0.5 sm:py-1"
+                    >
+                      {selectedPlayer.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Date of Birth</span>
-                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.dob || '—'}</p>
+              </div>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                <div className="flex h-6 w-6 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0">
+                  <svg className="h-3 w-3 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
                 </div>
-                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">State</span>
-                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.state || '—'}</p>
-                </div>
-                <div className="flex items-start justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Phone</span>
-                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.mobile_number || '—'}</p>
-                </div>
-                <div className="flex items-start justify-between pt-1">
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Agent</span>
-                  <p className="max-w-[60%] text-right text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Agent</p>
+                  <p className="mt-0.5 text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                     {selectedPlayer.agent_username || 
                      (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent 
                        ? selectedPlayer.agent.username 
@@ -706,74 +718,172 @@ export default function PlayerDetailPage() {
                   </p>
                 </div>
               </div>
-            </section>
+            </div>
           </div>
+        </div>
 
-          {/* Right Column: Actions & Management */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Quick Actions */}
-            <section className="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Quick Actions
-              </h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* Three Column Grid Layout - Mobile First */}
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+          {/* Column 1: Quick Actions, Personal Information & Account Details - Show first on mobile */}
+          <div className="space-y-4 order-1 lg:order-1">
+            {/* Quick Actions Card - Mobile App Style */}
+            <section className="border border-gray-200 bg-white p-4 sm:p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   onClick={handleViewTransactions}
-                  className="group relative flex items-center justify-center gap-3 bg-gray-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:bg-gray-700 hover:shadow-xl active:scale-[0.98] dark:bg-gray-700"
+                  variant="primary"
+                  className="group flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px]"
                 >
-                  <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  View Transactions
+                  <span className="text-center leading-tight">Transactions</span>
                 </Button>
                 <Button
                   onClick={handleViewGameActivities}
-                  className="group relative flex items-center justify-center gap-3 bg-gray-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:bg-gray-700 hover:shadow-xl active:scale-[0.98] dark:bg-gray-700"
+                  variant="primary"
+                  className="group flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px]"
                 >
-                  <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Game Activities
+                  <span className="text-center leading-tight">Activities</span>
                 </Button>
                 <Button
                   onClick={handleResetPassword}
-                  className="group relative flex items-center justify-center gap-3 bg-gray-600 p-4 text-sm font-semibold text-white shadow-md transition-all hover:bg-gray-700 hover:shadow-xl active:scale-[0.98] dark:bg-gray-700"
+                  variant="secondary"
+                  className="group flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px]"
                 >
-                  <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
-                  Reset Password
+                  <span className="text-center leading-tight">Password</span>
                 </Button>
                 <Button
                   onClick={() => setShowDeactivateModal(true)}
                   variant={selectedPlayer.is_active ? 'danger' : 'primary'}
-                  className="group relative flex items-center justify-center gap-3 p-4 text-sm font-semibold shadow-md transition-all hover:shadow-xl active:scale-[0.98]"
+                  className="group flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px]"
                 >
-                  <svg className="h-5 w-5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     {selectedPlayer.is_active ? (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                     ) : (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     )}
                   </svg>
-                  {selectedPlayer.is_active ? 'Deactivate Player' : 'Activate Player'}
+                  <span className="text-center leading-tight">{selectedPlayer.is_active ? 'Deactivate' : 'Activate'}</span>
                 </Button>
               </div>
             </section>
 
-            {/* Agent Assignment */}
-            <section className="border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            {/* Agent Assignment Card - Show below Quick Actions on mobile */}
+            <section className="border border-gray-200 bg-white p-4 sm:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:hidden">
+              <div className="mb-4 sm:mb-5 flex items-center gap-2 sm:gap-3">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                </div>
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
+              </div>
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex-1">
+                    <Select
+                      value={selectedAgentId}
+                      onChange={(value: string) => setSelectedAgentId(value)}
+                      options={[
+                        { value: '', label: 'Select an agent' },
+                        ...agentOptions,
+                      ]}
+                      placeholder="Select an agent"
+                      isLoading={isLoadingAgents}
+                      disabled={isLoadingAgents}
+                      className="w-full"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleAssignAgent}
+                    isLoading={isAssigningAgent}
+                    disabled={!selectedAgentId || isLoadingAgents}
+                    variant="primary"
+                    className="group flex items-center justify-center gap-2 rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold shadow-md transition-all hover:shadow-lg active:scale-[0.98] disabled:opacity-50 touch-manipulation"
+                  >
+                    <svg className="h-4 w-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Assign
+                  </Button>
+                </div>
+                {selectedPlayer.agent_username && (
+                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 px-4 py-3 border border-gray-200 dark:border-gray-700">
+                    <svg className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Current Agent</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{selectedPlayer.agent_username}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Personal Information Card */}
+            <section className="border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Personal Information</h2>
+              </div>
+              <div className="space-y-1.5">
+                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
+                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Email</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100 break-all">{selectedPlayer.email}</p>
+                </div>
+                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
+                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Full Name</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.full_name || '—'}</p>
+                </div>
+                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
+                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Date of Birth</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.dob || '—'}</p>
+                </div>
+                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
+                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">State</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.state || '—'}</p>
+                </div>
+                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
+                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Phone</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.mobile_number || '—'}</p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Column 2: Agent Assignment & Transaction Summary - Show second on mobile */}
+          <div className="space-y-4 sm:space-y-6 order-2 lg:order-2">
+            {/* Agent Assignment Card - Desktop only */}
+            <section className="hidden lg:block border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center bg-gray-500 text-white shadow-md">
+                <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                   </svg>
                 </div>
-                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
               </div>
               <div className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -795,159 +905,162 @@ export default function PlayerDetailPage() {
                     onClick={handleAssignAgent}
                     isLoading={isAssigningAgent}
                     disabled={!selectedAgentId || isLoadingAgents}
-                    className="group flex items-center justify-center gap-2 bg-gray-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-gray-700 hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
+                    variant="primary"
+                    className="group flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold shadow-md transition-all hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
                   >
                     <svg className="h-4 w-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    Assign Agent
+                    Assign
                   </Button>
                 </div>
                 {selectedPlayer.agent_username && (
-                  <div className="flex items-center gap-3 bg-gray-100 px-4 py-3 dark:bg-gray-800/50">
+                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 px-4 py-3 border border-gray-200 dark:border-gray-700">
                     <svg className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <div>
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Current Agent</p>
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Current Agent</p>
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{selectedPlayer.agent_username}</p>
                     </div>
                   </div>
                 )}
               </div>
             </section>
+
+            {/* Transaction Summary Card */}
+            <section className="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                  <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Transaction Summary</h2>
+                </div>
+                {isLoadingDetails && (
+                  <svg className="h-5 w-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="group border border-gray-200 bg-gray-50 dark:bg-gray-800 p-3 sm:p-5 transition-all hover:shadow-md dark:border-gray-700">
+                  <div className="mb-2 sm:mb-3 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-sm shrink-0">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <h5 className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300 truncate">Purchases</h5>
+                  </div>
+                  {isLoadingDetails ? (
+                    <div className="h-5 sm:h-7 w-full sm:w-24 animate-pulse bg-gray-200 dark:bg-gray-800" />
+                  ) : (
+                    <p className="text-base sm:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{purchasesTotal}</p>
+                  )}
+                </div>
+                <div className="group border border-gray-200 bg-gray-50 dark:bg-gray-800 p-3 sm:p-5 transition-all hover:shadow-md dark:border-gray-700">
+                  <div className="mb-2 sm:mb-3 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-sm shrink-0">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <h5 className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300 truncate">Cashouts</h5>
+                  </div>
+                  {isLoadingDetails ? (
+                    <div className="h-5 sm:h-7 w-full sm:w-24 animate-pulse bg-gray-200 dark:bg-gray-800" />
+                  ) : (
+                    <p className="text-base sm:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{cashoutsTotal}</p>
+                  )}
+                </div>
+                <div className="group border border-gray-200 bg-gray-50 dark:bg-gray-800 p-3 sm:p-5 transition-all hover:shadow-md dark:border-gray-700">
+                  <div className="mb-2 sm:mb-3 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-sm shrink-0">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                      </svg>
+                    </div>
+                    <h5 className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300 truncate">Transfers</h5>
+                  </div>
+                  {isLoadingDetails ? (
+                    <div className="h-5 sm:h-7 w-full sm:w-24 animate-pulse bg-gray-200 dark:bg-gray-800" />
+                  ) : (
+                    <p className="text-base sm:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{transfersTotal}</p>
+                  )}
+                </div>
+              </div>
+            </section>
           </div>
-        </div>
 
-        {/* Bottom Section: Stats & Games */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Transaction Summary */}
-          <section className="lg:col-span-2 border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                Transaction Summary
-              </h2>
-              {isLoadingDetails && (
-                <svg className="h-5 w-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="group border border-gray-200 bg-gray-50 p-5 transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center bg-gray-500 text-white shadow-sm">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                  <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Purchases</h5>
-                </div>
-                {isLoadingDetails ? (
-                  <div className="h-7 w-24 animate-pulse bg-gray-200 dark:bg-gray-800" />
-                ) : (
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{purchasesTotal}</p>
-                )}
-              </div>
-              <div className="group border border-gray-200 bg-gray-50 p-5 transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center bg-gray-500 text-white shadow-sm">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Cashouts</h5>
-                </div>
-                {isLoadingDetails ? (
-                  <div className="h-7 w-24 animate-pulse bg-gray-200 dark:bg-gray-800" />
-                ) : (
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{cashoutsTotal}</p>
-                )}
-              </div>
-              <div className="group border border-gray-200 bg-gray-50 p-5 transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center bg-gray-500 text-white shadow-sm">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
-                  </div>
-                  <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Transfers</h5>
-                </div>
-                {isLoadingDetails ? (
-                  <div className="h-7 w-24 animate-pulse bg-gray-200 dark:bg-gray-800" />
-                ) : (
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{transfersTotal}</p>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* Player Games & Account Info */}
-          <div className="space-y-6">
-            {/* Player Games */}
+          {/* Column 3: Player Games - Show third on mobile */}
+          <div className="space-y-4 sm:space-y-6 order-3 lg:order-3">
+            {/* Player Games Card */}
             <section className="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
               <div className="mb-5 flex items-center justify-between">
-                <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Player Games
-                  {games.length > 0 && (
-                    <span className="ml-2 rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                      {games.length}
-                    </span>
-                  )}
-                </h2>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Player Games</h2>
+                    {games.length > 0 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{games.length} {games.length === 1 ? 'game' : 'games'}</p>
+                    )}
+                  </div>
+                </div>
                 <Button
                   size="sm"
                   variant="primary"
                   onClick={handleOpenAddGame}
-                  className="flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md active:scale-95 dark:bg-blue-500 dark:hover:bg-blue-600"
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-95"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                   </svg>
-                  Add new game
+                  Add Game
                 </Button>
               </div>
 
               {isLoadingGames ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-20 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+                    <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
                   ))}
                 </div>
               ) : games.length === 0 ? (
-                <div className="py-8 text-center">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">No games assigned</p>
+                <div className="py-12 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                    <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="mt-4 text-sm font-medium text-gray-500 dark:text-gray-400">No games assigned</p>
+                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Click "Add Game" to get started</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                   {games.map((game: PlayerGame) => (
                     <div
                       key={game.id}
-                      className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+                      className="group border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm transition-all hover:shadow-md hover:border-gray-300 dark:border-gray-700 dark:from-gray-800 dark:to-gray-900 dark:hover:border-gray-600"
                     >
                       {/* Top Section: Title, ID, and Status */}
-                      <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="mb-3 flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
+                          <h3 className="mb-1 truncate text-base font-semibold text-gray-900 dark:text-gray-100">
                             {game.game__title}
                           </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            ID: {game.game__id}
-                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">ID: {game.game__id}</p>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex shrink-0 items-center gap-1.5">
                           <div className={`h-2 w-2 rounded-full ${game.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
                           <Badge
                             variant={game.status === 'active' ? 'success' : 'danger'}
@@ -959,7 +1072,7 @@ export default function PlayerDetailPage() {
                       </div>
 
                       {/* Divider */}
-                      <div className="border-t border-gray-200 dark:border-gray-700 my-3" />
+                      <div className="my-3 border-t border-gray-200 dark:border-gray-700" />
 
                       {/* Bottom Section: Balance, Date, and Actions */}
                       <div className="flex items-center justify-between gap-3">
@@ -989,7 +1102,7 @@ export default function PlayerDetailPage() {
                               setIsCheckingBalance(false);
                             }
                           }}
-                          className="flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md active:scale-95 dark:bg-blue-500 dark:hover:bg-blue-600"
+                          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-md active:scale-95"
                         >
                           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -999,7 +1112,7 @@ export default function PlayerDetailPage() {
 
                         {/* Date */}
                         {game.created && (
-                          <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 flex-1 justify-center">
+                          <div className="flex flex-1 items-center justify-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
                             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
@@ -1048,27 +1161,6 @@ export default function PlayerDetailPage() {
                   ))}
                 </div>
               )}
-            </section>
-
-            {/* Account Information */}
-            <section className="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Account Details
-              </h2>
-              <div className="flex items-center gap-3 bg-gray-50 p-4 dark:bg-gray-800/50">
-                <svg className="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Created</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    {selectedPlayer.created ? formatDate(selectedPlayer.created) : 'Not available'}
-                  </p>
-                </div>
-              </div>
             </section>
           </div>
         </div>
