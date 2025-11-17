@@ -548,8 +548,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             )}
           </div>
 
-          {/* Games Section - Expandable */}
-          <div className="w-full">
+          {/* Games Section - Expandable - Hidden */}
+          {false && <div className="w-full">
             <button
               onClick={() => toggleSection('games')}
               className="w-full flex items-center justify-between p-2 hover:bg-muted/50 rounded-md transition-colors group"
@@ -579,7 +579,6 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               </svg>
             </button>
 
-            {/* Expanded Games List */}
             {expandedSection === 'games' && (
               <div className="mt-2 pl-8 space-y-2 max-h-60 overflow-y-auto pr-1">
                 {isLoadingGames ? (
@@ -717,7 +716,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 )}
               </div>
             )}
-          </div>
+          </div>}
         </div>
 
         {/* Add Game Button */}
