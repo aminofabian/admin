@@ -151,7 +151,7 @@ export function EditProfileDrawer({
 
           {/* Activate/Deactivate Toggle */}
           <div className="pt-2">
-            <label className="flex items-center justify-between cursor-pointer group">
+            <div className="flex items-center justify-between">
               <div>
                 <span className="block text-sm font-semibold text-foreground mb-1">
                   Account Status
@@ -163,27 +163,28 @@ export function EditProfileDrawer({
               <div className="relative ml-4">
                 <input
                   type="checkbox"
+                  id="account-status-toggle"
                   checked={profileFormData.is_active}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                  onChange={(e) => !isUpdating && setProfileFormData(prev => ({ ...prev, is_active: e.target.checked }))}
                   disabled={isUpdating}
                   className="sr-only"
                 />
-                <div
+                <label
+                  htmlFor="account-status-toggle"
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out ${
                     profileFormData.is_active
                       ? 'bg-emerald-500 dark:bg-emerald-600'
                       : 'bg-gray-300 dark:bg-gray-600'
                   } ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  onClick={() => !isUpdating && setProfileFormData(prev => ({ ...prev, is_active: !prev.is_active }))}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out pointer-events-none ${
                       profileFormData.is_active ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
-                </div>
+                </label>
               </div>
-            </label>
+            </div>
           </div>
 
           {/* Save Button */}

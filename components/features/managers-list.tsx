@@ -601,8 +601,6 @@ export function ManagersList() {
         manager={actionsDrawer.manager}
         onClose={handleCloseActions}
         onEditProfile={() => actionsDrawer.manager && handleOpenEditProfile(actionsDrawer.manager)}
-        onResetPassword={() => actionsDrawer.manager && handleResetPassword(actionsDrawer.manager)}
-        onToggleStatus={() => actionsDrawer.manager && handleToggleStatus(actionsDrawer.manager)}
       />
     </div>
   );
@@ -614,8 +612,6 @@ type ManagerActionsDrawerProps = {
   manager: Manager | null;
   onClose: () => void;
   onEditProfile: () => void;
-  onResetPassword: () => void;
-  onToggleStatus: () => void;
 };
 
 function ManagerActionsDrawer({
@@ -623,12 +619,8 @@ function ManagerActionsDrawer({
   manager,
   onClose,
   onEditProfile,
-  onResetPassword,
-  onToggleStatus,
 }: ManagerActionsDrawerProps) {
   if (!manager) return null;
-
-  const toggleLabel = manager.is_active ? 'Deactivate' : 'Activate';
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={`Actions for ${manager.username}`} size="sm">
@@ -647,51 +639,6 @@ function ManagerActionsDrawer({
             />
           </svg>
           <span>Edit Profile</span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          onClick={onResetPassword}
-          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-            />
-          </svg>
-          <span>Reset Password</span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          onClick={onToggleStatus}
-          className={`w-full justify-start gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold shadow-sm ${
-            manager.is_active
-              ? 'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-700/60 dark:bg-slate-900 dark:text-rose-300 dark:hover:border-rose-600 dark:hover:bg-rose-900/40'
-              : 'border border-emerald-200 bg-white text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-700/60 dark:bg-slate-900 dark:text-emerald-300 dark:hover:border-emerald-600 dark:hover:bg-emerald-900/40'
-          }`}
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            {manager.is_active ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            )}
-          </svg>
-          <span>{toggleLabel}</span>
         </Button>
       </div>
     </Drawer>
