@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, createContext, useContext } from 'react';
+import { useState, useRef, useEffect, useCallback, createContext, useContext } from 'react';
 import { createPortal } from 'react-dom';
 
 const DropdownMenuContext = createContext<{ closeMenu: () => void } | null>(null);
@@ -19,10 +19,10 @@ export function DropdownMenu({ children, trigger, align = 'right', className = '
   const triggerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const closeMenu = () => {
+  const closeMenu = useCallback(() => {
     setIsOpen(false);
     onClose?.();
-  };
+  }, [onClose]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -54,7 +54,7 @@ export function DropdownMenu({ children, trigger, align = 'right', className = '
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, align]);
+  }, [isOpen, align, closeMenu]);
 
   return (
     <DropdownMenuContext.Provider value={{ closeMenu }}>

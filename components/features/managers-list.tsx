@@ -141,10 +141,12 @@ export function ManagersList() {
   };
 
   const handleOpenEditProfile = (manager: Manager) => {
+    // Manager may have optional full_name and dob fields from API response
+    const managerWithOptionalFields = manager as Manager & { full_name?: string; dob?: string };
     setProfileFormData({
       username: manager.username || '',
-      full_name: (manager as any).full_name || '',
-      dob: (manager as any).dob || '',
+      full_name: managerWithOptionalFields.full_name || '',
+      dob: managerWithOptionalFields.dob || '',
       email: manager.email || '',
       password: '',
       confirmPassword: '',
@@ -167,7 +169,7 @@ export function ManagersList() {
     handleCloseActions();
   };
 
-  const handleConfirmPasswordReset = async (password: string, confirmPassword: string) => {
+  const handleConfirmPasswordReset = async (password: string, _confirmPassword: string) => {
     if (!passwordResetModal.manager) return;
 
     setPasswordResetModal((prev) => ({ ...prev, isLoading: true }));
