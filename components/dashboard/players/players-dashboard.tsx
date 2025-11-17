@@ -1269,7 +1269,7 @@ function PlayersTable({
   return (
     <>
       {/* Mobile Card View */}
-      <div className="md:hidden space-y-3 px-3 sm:px-4 pb-4">
+      <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4">
         {players.map((player) => (
           <PlayerCard
             key={player.id}
@@ -1282,7 +1282,7 @@ function PlayersTable({
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden lg:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -1491,7 +1491,7 @@ function PlayersTableRow({
         <div className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
           {formatCurrency(player.balance)}
         </div>
-        <div className="text-[10px] text-gray-500 dark:text-gray-400 md:hidden">
+        <div className="text-[10px] text-gray-500 dark:text-gray-400 lg:hidden">
           Win: {formatCurrency(player.winning_balance)}
         </div>
       </TableCell>

@@ -383,7 +383,7 @@ export default function StaffsPage() {
         ) : (
           <>
             {/* Mobile Card View */}
-            <div className="md:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+            <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
               {data?.results.map((staff) => (
                 <StaffCard
                   key={staff.id}
@@ -394,7 +394,7 @@ export default function StaffsPage() {
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden lg:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

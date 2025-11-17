@@ -475,7 +475,7 @@ export function ManagersList() {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -495,7 +495,7 @@ export function ManagersList() {
       </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden space-y-3 px-3 sm:px-4 pb-4">
+      <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4">
         {managers?.results?.map((manager) => renderMobileCard(manager))}
       </div>
 

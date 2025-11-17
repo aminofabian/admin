@@ -383,7 +383,7 @@ function HistoryGameActivitiesTable({ queues }: HistoryGameActivitiesTableProps)
     <>
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {/* Mobile Card View */}
-        <div className="md:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+        <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
           {queues.map((activity) => (
             <GameActivityCard
               key={activity.id}
@@ -394,7 +394,7 @@ function HistoryGameActivitiesTable({ queues }: HistoryGameActivitiesTableProps)
         </div>
 
         {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

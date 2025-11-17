@@ -286,7 +286,7 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions 
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
       {/* Mobile Card View */}
-      <div className="md:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+      <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
         {data.results.map((agent) => (
           <AgentCard
             key={agent.id}
@@ -297,7 +297,7 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions 
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden lg:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-border/50 bg-muted/40 transition-colors dark:border-slate-800/70 dark:bg-slate-900/60">
