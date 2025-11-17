@@ -10,7 +10,6 @@ import {
   Button,
   Card,
   CardContent,
-  ConfirmModal,
   Drawer,
   Pagination,
   Select,
@@ -220,7 +219,6 @@ function usePlayersPageContext(): PlayersPageContext {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pagination = usePagination();
-  const toast = useToast();
   
   // Read agent username from URL params
   const agentFromUrl = searchParams.get('agent');
@@ -795,68 +793,6 @@ function usePlayerModals(refresh: () => Promise<void>): {
     setSuccessMessage,
     state,
   };
-}
-
-function usePlayerStatusActions({
-  addToast,
-  cancelConfirm,
-  confirmState,
-  openConfirm,
-  refresh,
-  setConfirmLoading,
-}: {
-  addToast: ReturnType<typeof useToast>['addToast'];
-  cancelConfirm: () => void;
-  confirmState: ModalState['confirm'];
-  openConfirm: (player: Player) => void;
-  refresh: () => Promise<void>;
-  setConfirmLoading: (isLoading: boolean) => void;
-}): {
-  confirmToggle: () => Promise<void>;
-  openConfirm: (player: Player) => void;
-} {
-  const handleOpenConfirm = useCallback(
-    (player: Player) => {
-      openConfirm(player);
-    },
-    [openConfirm],
-  );
-
-  const confirmToggle = useCallback(async () => {
-    const targetPlayer = confirmState.player;
-    if (!targetPlayer) {
-      return;
-    }
-
-    setConfirmLoading(true);
-
-    try {
-      const actionPast = targetPlayer.is_active ? 'deactivated' : 'activated';
-      await playersApi.update(targetPlayer.id, {
-        is_active: !targetPlayer.is_active,
-      });
-
-      addToast({
-        type: 'success',
-        title: 'Player updated',
-        description: `"${targetPlayer.username}" has been ${actionPast} successfully!`,
-      });
-
-      cancelConfirm();
-      await refresh();
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to update player status';
-      addToast({
-        type: 'error',
-        title: 'Update failed',
-        description: message,
-      });
-      setConfirmLoading(false);
-    }
-  }, [addToast, cancelConfirm, confirmState, refresh, setConfirmLoading]);
-
-  return { confirmToggle, openConfirm: handleOpenConfirm };
 }
 
 function usePlayerCreation({

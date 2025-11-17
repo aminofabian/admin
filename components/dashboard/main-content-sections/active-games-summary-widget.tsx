@@ -12,7 +12,6 @@ export function ActiveGamesSummaryWidget() {
     activeGamesCount,
     totalGamesCount,
     inactiveGamesCount,
-    gamesByStatus,
     recentActivity,
     isLoading,
     error
@@ -172,7 +171,7 @@ export function ActiveGamesSummaryWidget() {
         {/* Recent Activity */}
         {(recentActivity.gamesCreatedToday > 0 || recentActivity.gamesUpdatedToday > 0) && (
           <div className="bg-gradient-to-br from-muted/30 via-muted/10 to-transparent p-4 border border-border/30">
-            <h4 className="text-xs font-semibold text-foreground mb-3 text-center">Today's Activity</h4>
+            <h4 className="text-xs font-semibold text-foreground mb-3 text-center">Today&apos;s Activity</h4>
             <div className="grid grid-cols-2 gap-3">
               <div className="text-center">
                 <div className="text-lg font-bold text-primary">

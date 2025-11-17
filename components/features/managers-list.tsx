@@ -169,6 +169,7 @@ export function ManagersList() {
     handleCloseActions();
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleConfirmPasswordReset = async (password: string, _confirmPassword: string) => {
     if (!passwordResetModal.manager) return;
 

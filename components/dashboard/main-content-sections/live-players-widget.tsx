@@ -20,7 +20,6 @@ export function LivePlayersWidget({ stats, statsLoading }: LivePlayersWidgetProp
   const {
     activeGamesCount,
     totalGamesCount,
-    gamesByStatus,
     recentActivity,
     isLoading: gamesLoading,
     error: gamesError
