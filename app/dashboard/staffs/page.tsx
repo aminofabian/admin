@@ -311,68 +311,90 @@ export default function StaffsPage() {
   if (error && !data) return <ErrorState message={error} onRetry={loadStaffs} />;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center rounded-lg shadow-sm">
-              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Staffs</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                Manage all Staff accounts and permissions
-              </p>
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
+      {/* Header - Compact */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        {successMessage && (
+          <div className="px-3 sm:px-4 md:p-6 pt-3 sm:pt-4">
+            <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-green-800 shadow-sm dark:border-green-800/50 dark:bg-green-950/30 dark:text-green-300">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    clipRule="evenodd"
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  />
+                </svg>
+                <span>{successMessage}</span>
+              </div>
+              <button
+                onClick={() => setSuccessMessage('')}
+                className="text-green-600 transition-colors hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 touch-manipulation"
+              >
+                <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
-          <Button variant="primary" size="md" onClick={() => setIsCreateModalOpen(true)}>
-            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        )}
+        {/* Single compact row - everything in one line */}
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+          {/* Icon */}
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
+            </svg>
+          </div>
+          
+          {/* Title */}
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+            Staffs
+          </h2>
+          
+          {/* Spacer */}
+          <div className="flex-1 min-w-0" />
+          
+          {/* Add button - compact */}
+          <Button 
+            variant="primary" 
+            size="sm" 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
+          >
+            <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Staff
+            <span className="hidden md:inline ml-1.5">Add Staff</span>
           </Button>
         </div>
       </div>
 
-      {successMessage && (
-        <div className="flex items-start justify-between gap-4 rounded-2xl border border-green-200 bg-green-50 px-6 py-4 text-green-800 shadow-sm dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-300">
-          <div className="flex items-center gap-3">
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                clipRule="evenodd"
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              />
-            </svg>
-            <span className="text-sm font-semibold">{successMessage}</span>
-          </div>
-          <button
-            onClick={() => setSuccessMessage('')}
-            className="text-green-600 transition-colors hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* Desktop Table */}
+      {/* Content */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          {data?.results.length === 0 ? (
-            <div className="py-12">
-              <EmptyState 
-                title="No Staffs found" 
-                description="Get started by creating a new Staff"
-              />
+        {data?.results.length === 0 ? (
+          <div className="py-12">
+            <EmptyState 
+              title="No Staffs found" 
+              description="Get started by creating a new Staff"
+            />
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+              {data?.results.map((staff) => (
+                <StaffCard
+                  key={staff.id}
+                  staff={staff}
+                  onOpenActions={handleOpenActions}
+                />
+              ))}
             </div>
-          ) : (
-            <>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -431,20 +453,21 @@ export default function StaffsPage() {
                   ))}
                 </TableBody>
               </Table>
-              {data && data.count > pageSize && (
-                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-                  <Pagination
-                    currentPage={page}
-                    totalPages={Math.ceil(data.count / pageSize)}
-                    onPageChange={setPage}
-                    hasNext={!!data.next}
-                    hasPrevious={!!data.previous}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </div>
+            </div>
+            
+            {data && data.count > pageSize && (
+              <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                <Pagination
+                  currentPage={page}
+                  totalPages={Math.ceil(data.count / pageSize)}
+                  onPageChange={setPage}
+                  hasNext={!!data.next}
+                  hasPrevious={!!data.previous}
+                />
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Create Staff Drawer */}
@@ -561,6 +584,81 @@ export default function StaffsPage() {
         onClose={handleCloseActions}
         onEditProfile={() => actionsDrawer.staff && handleOpenEditProfile(actionsDrawer.staff)}
       />
+    </div>
+  );
+}
+
+// Staff Card Component for Mobile
+type StaffCardProps = {
+  staff: Staff;
+  onOpenActions: (staff: Staff) => void;
+};
+
+function StaffCard({ staff, onOpenActions }: StaffCardProps) {
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
+      {/* Top Section: Avatar, Name, Status */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
+              {staff.username.charAt(0).toUpperCase()}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                  {staff.username}
+                </h3>
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-0.5">
+                  {staff.role ?? 'staff'}
+                </p>
+              </div>
+              <Badge 
+                variant={staff.is_active ? 'success' : 'danger'} 
+                className="text-[10px] px-2 py-0.5 shrink-0"
+              >
+                {staff.is_active ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Section: Email */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center gap-2">
+          <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">
+            {staff.email}
+          </span>
+        </div>
+      </div>
+
+      {/* Bottom Section: Date & Actions */}
+      <div className="p-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>{formatDate(staff.created)}</span>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onOpenActions(staff)}
+          className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 touch-manipulation"
+          title="Actions"
+        >
+          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+          </svg>
+          <span className="hidden sm:inline">Actions</span>
+        </Button>
+      </div>
     </div>
   );
 }
