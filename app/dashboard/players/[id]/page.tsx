@@ -61,14 +61,18 @@ export default function PlayerDetailPage() {
     isLoading: false,
   });
 
+  // Track last agent assignment time to prevent immediate data overwrite
+  const [lastAgentAssignmentTime, setLastAgentAssignmentTime] = useState<number>(0);
+
   // Update document title when player is loaded
   useEffect(() => {
+    console.log('📝 Title useEffect fired:', selectedPlayer?.username);
     if (selectedPlayer) {
       document.title = `${selectedPlayer.username} - Player Details`;
     } else {
       document.title = 'Player Details';
     }
-  }, [selectedPlayer]);
+  }, [selectedPlayer?.username]);
 
   // Load agents for dropdown
   useEffect(() => {
@@ -115,14 +119,6 @@ export default function PlayerDetailPage() {
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
         setAgentOptions(mappedOptions);
-
-        // Set selected agent if player already has one
-        if (selectedPlayer?.agent_id) {
-          const agentExists = mappedOptions.some((opt) => opt.value === String(selectedPlayer.agent_id));
-          if (agentExists) {
-            setSelectedAgentId(String(selectedPlayer.agent_id));
-          }
-        }
       } catch (error) {
         console.error('Failed to load agents:', error);
       } finally {
@@ -137,10 +133,29 @@ export default function PlayerDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedPlayer?.agent_id]);
+  }, []);
+
+  // Set selected agent when player or agents list changes
+  useEffect(() => {
+    console.log('🔄 useEffect for selectedAgentId fired', {
+      agentId: selectedPlayer?.agent_id,
+      agentOptionsLength: agentOptions.length,
+      currentSelectedAgentId: selectedAgentId
+    });
+
+    if (selectedPlayer?.agent_id && agentOptions.length > 0) {
+      const agentExists = agentOptions.some((opt) => opt.value === String(selectedPlayer.agent_id));
+      if (agentExists && selectedAgentId !== String(selectedPlayer.agent_id)) {
+        console.log('🎯 Updating selectedAgentId to:', selectedPlayer.agent_id);
+        setSelectedAgentId(String(selectedPlayer.agent_id));
+      }
+    }
+  }, [selectedPlayer?.agent_id, agentOptions]);
 
   // Load player data
   useEffect(() => {
+    console.log('🔄 Player data useEffect called', { playerId });
+
     if (!playerId || isNaN(playerId)) {
       setError('Invalid player ID');
       setIsLoadingPlayer(false);
@@ -151,10 +166,39 @@ export default function PlayerDetailPage() {
       try {
         setIsLoadingPlayer(true);
         setError(null);
-        
+
         // Fetch player using the detail endpoint
         const player = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(playerId));
-        setSelectedPlayer(player);
+
+        // Only update player data if we don't have newer local agent assignment data
+        setSelectedPlayer((prev) => {
+          const now = Date.now();
+          const timeSinceAssignment = now - lastAgentAssignmentTime;
+
+          // If we had a recent agent assignment (within 5 seconds), preserve local data
+          if (timeSinceAssignment < 5000 && prev?.agent_id && !player.agent_id) {
+            console.log('⚠️ Preserving local agent assignment data (recent assignment)');
+            return {
+              ...player,
+              agent_id: prev.agent_id,
+              agent: prev.agent,
+              agent_username: prev.agent_username,
+            };
+          }
+
+          // If we have existing player data with agent assignment and API doesn't have it, preserve local data
+          if (prev?.agent_id && !player.agent_id) {
+            console.log('⚠️ Preserving local agent assignment data');
+            return {
+              ...player,
+              agent_id: prev.agent_id,
+              agent: prev.agent,
+              agent_username: prev.agent_username,
+            };
+          }
+
+          return player;
+        });
         setEditableFields({
           email: player.email || '',
           full_name: player.full_name || '',
@@ -167,12 +211,15 @@ export default function PlayerDetailPage() {
         setIsLoadingDetails(true);
         try {
           const details = await playersApi.viewDetails(player.id);
-          setSelectedPlayer((prev) => ({
-            ...prev!,
-            total_purchases: details.total_purchases,
-            total_cashouts: details.total_cashouts,
-            total_transfers: details.total_transfers,
-          }));
+          setSelectedPlayer((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              total_purchases: details.total_purchases,
+              total_cashouts: details.total_cashouts,
+              total_transfers: details.total_transfers,
+            };
+          });
         } catch (error) {
           console.error('Failed to load player details:', error);
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -200,7 +247,7 @@ export default function PlayerDetailPage() {
     };
 
     void loadPlayer();
-  }, [playerId, addToast]);
+  }, [playerId]);
 
 
   const handleSave = useCallback(async () => {
@@ -249,6 +296,7 @@ export default function PlayerDetailPage() {
   }, [selectedPlayer, editableFields, addToast]);
 
   const handleAssignAgent = useCallback(async () => {
+    console.log('🎯 handleAssignAgent called');
     if (!selectedPlayer || !selectedAgentId) {
       addToast({
         type: 'error',
@@ -262,27 +310,47 @@ export default function PlayerDetailPage() {
     try {
       // Find the agent in options to get username
       const selectedAgent = agentOptions.find((opt) => opt.value === selectedAgentId);
-      
+
       if (!selectedAgent) {
         throw new Error('Selected agent not found');
       }
 
+      console.log('📤 Calling assign-player-to-agent API');
       // Use the new assign-player-to-agent endpoint
       const response = await playersApi.assignToAgent({
         player_id: selectedPlayer.id,
         agent_username: selectedAgent.label,
       });
 
-      // Update local state with response data
-      setSelectedPlayer((prev) => ({
-        ...prev!,
-        agent_id: response.data.agent_id,
-        agent: {
-          id: response.data.agent_id,
-          username: response.data.agent_username,
-        },
-        agent_username: response.data.agent_username,
-      }));
+      console.log('📦 API response received:', response);
+
+      // Record the time of agent assignment
+      setLastAgentAssignmentTime(Date.now());
+
+      // Update local state with response data (minimal update to avoid unnecessary re-renders)
+      console.log('🔄 Updating selectedPlayer state');
+      setSelectedPlayer((prev) => {
+        if (!prev) return prev;
+        const agent_id = response.data.agent_id;
+        const agent_username = response.data.agent_username;
+
+        // Only update if values actually changed
+        if (prev.agent_id === agent_id && prev.agent_username === agent_username) {
+          console.log('⚠️ No changes needed to selectedPlayer');
+          return prev;
+        }
+
+        console.log('✅ Updating selectedPlayer with new agent data');
+        return {
+          ...prev,
+          agent_id,
+          agent: {
+            id: agent_id,
+            username: agent_username,
+          },
+          agent_username,
+        };
+      });
 
       addToast({
         type: 'success',
@@ -290,6 +358,7 @@ export default function PlayerDetailPage() {
         description: response.message || `Player "${response.data.player_username}" has been assigned to agent "${response.data.agent_username}".`,
       });
     } catch (error) {
+      console.error('❌ Agent assignment failed:', error);
       const message = error instanceof Error ? error.message : 'Failed to assign agent';
       addToast({
         type: 'error',
@@ -298,6 +367,7 @@ export default function PlayerDetailPage() {
       });
     } finally {
       setIsAssigningAgent(false);
+      console.log('✅ handleAssignAgent completed');
     }
   }, [selectedPlayer, selectedAgentId, agentOptions, addToast]);
 

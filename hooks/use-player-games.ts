@@ -8,6 +8,7 @@ export const usePlayerGames = (playerId: number | null) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchGames = useCallback(async () => {
+    console.log('🎮 fetchGames called for playerId:', playerId);
     if (!playerId) {
       setGames([]);
       return;
@@ -15,9 +16,11 @@ export const usePlayerGames = (playerId: number | null) => {
 
     setIsLoading(true);
     setError(null);
-    
+
     try {
+      console.log('📡 Fetching games for player:', playerId);
       const data = await playersApi.games(playerId);
+      console.log('🎮 Games fetched:', data.length);
       setGames(data);
     } catch (err) {
       console.error('Failed to fetch player games:', err);
