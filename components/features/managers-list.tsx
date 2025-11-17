@@ -20,13 +20,11 @@ import {
   ConfirmModal,
   PasswordResetDrawer,
   useToast,
-  Card,
-  CardContent,
 } from '@/components/ui';
 
 // Icon Components
 const UsersIcon = () => (
-  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -37,7 +35,7 @@ const UsersIcon = () => (
 );
 
 const PlusIcon = () => (
-  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
   </svg>
 );
@@ -378,77 +376,100 @@ export function ManagersList() {
   );
 
   const renderMobileCard = (manager: Manager) => (
-    <Card key={manager.id} className="mb-4">
-      <CardContent className="p-4">
-        <div className="space-y-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
-                {manager.username.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">
+    <div key={manager.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
+      {/* Top Section: Avatar, Name, Status */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-md">
+              {manager.username.charAt(0).toUpperCase()}
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
                   {manager.username}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">{manager.role}</div>
+                </h3>
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-0.5">
+                  {manager.role}
+                </p>
               </div>
+              <Badge 
+                variant={manager.is_active ? 'success' : 'danger'} 
+                className="text-[10px] px-2 py-0.5 shrink-0"
+              >
+                {manager.is_active ? 'Active' : 'Inactive'}
+              </Badge>
             </div>
-            <Badge variant={manager.is_active ? 'success' : 'danger'}>
-              {manager.is_active ? 'Active' : 'Inactive'}
-            </Badge>
-          </div>
-
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Email</div>
-            <div className="text-sm text-gray-900 dark:text-gray-100">{manager.email}</div>
-          </div>
-
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Created Date</div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {formatDate(manager.created)}
-            </div>
-          </div>
-
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleOpenActions(manager)}
-              className="w-full flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-            >
-              <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-              </svg>
-              Actions
-            </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Middle Section: Email */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center gap-2">
+          <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">
+            {manager.email}
+          </span>
+        </div>
+      </div>
+
+      {/* Bottom Section: Date & Actions */}
+      <div className="p-3 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>{formatDate(manager.created)}</span>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => handleOpenActions(manager)}
+          className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 touch-manipulation"
+          title="Actions"
+        >
+          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+          </svg>
+          <span className="hidden sm:inline">Actions</span>
+        </Button>
+      </div>
+    </div>
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center rounded-lg shadow-sm">
-              <UsersIcon />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                Managers
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                Manage all manager accounts and permissions
-              </p>
-            </div>
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
+      {/* Header - Compact */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        {/* Single compact row - everything in one line */}
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+          {/* Icon */}
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 shadow-md shrink-0">
+            <UsersIcon />
           </div>
-          <Button variant="primary" size="md" onClick={() => setIsCreateOpen(true)}>
+          
+          {/* Title */}
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+            Managers
+          </h2>
+          
+          {/* Spacer */}
+          <div className="flex-1 min-w-0" />
+          
+          {/* Add button - compact */}
+          <Button 
+            variant="primary" 
+            size="sm" 
+            onClick={() => setIsCreateOpen(true)}
+            className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
+          >
             <PlusIcon />
-            Add Manager
+            <span className="hidden md:inline ml-1.5">Add Manager</span>
           </Button>
         </div>
       </div>
@@ -474,13 +495,13 @@ export function ManagersList() {
       </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden space-y-4">
+      <div className="md:hidden space-y-3 px-3 sm:px-4 pb-4">
         {managers?.results?.map((manager) => renderMobileCard(manager))}
       </div>
 
       {/* Pagination */}
       {managers && managers.count > pageSize && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-6 py-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
           <Pagination
             currentPage={currentPage}
             totalPages={Math.ceil(managers.count / pageSize)}
