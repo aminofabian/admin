@@ -584,17 +584,17 @@ export default function PlayerDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header - Mobile App Style */}
-      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 safe-area-top">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 py-3 sm:py-4 lg:py-5">
+      {/* Header - Ultra Compact Mobile App Style */}
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/95 safe-area-top">
+        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="flex items-center gap-2 py-2 sm:py-2.5 md:py-3 lg:py-4">
             <button
               onClick={handleBack}
-              className="p-2 -ml-2 text-gray-500 transition-colors active:bg-gray-100 active:text-gray-700 dark:text-gray-400 dark:active:bg-gray-800 dark:active:text-gray-200 rounded-lg touch-manipulation"
+              className="p-1.5 -ml-1.5 sm:p-2 sm:-ml-2 text-gray-500 transition-colors active:bg-gray-100 active:text-gray-700 dark:text-gray-400 dark:active:bg-gray-800 dark:active:text-gray-200 rounded-lg touch-manipulation"
               aria-label="Back"
             >
               <svg
-                className="h-6 w-6 sm:h-6 sm:w-6"
+                className="h-5 w-5 sm:h-6 sm:w-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -607,27 +607,27 @@ export default function PlayerDetailPage() {
                 />
               </svg>
             </button>
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md">
+            <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 flex-1 min-w-0">
+              <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base">
                 {usernameInitial}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate">
+                <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
+                  <h2 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate">
                     {selectedPlayer.username}
                   </h2>
-                  <span className="inline-flex items-center justify-center h-5 px-1.5 text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0">
+                  <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
                     #{selectedPlayer.id}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 mt-0.5">
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
                     {selectedPlayer.full_name || 'Player Profile'}
                   </p>
                   {selectedPlayer.created && (
                     <>
-                      <span className="text-gray-300 dark:text-gray-600 text-[10px] shrink-0">•</span>
-                      <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-none shrink-0">
+                      <span className="text-gray-300 dark:text-gray-600 text-[9px] shrink-0">•</span>
+                      <p className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500 leading-none shrink-0">
                         {formatDate(selectedPlayer.created)}
                       </p>
                     </>
@@ -639,61 +639,61 @@ export default function PlayerDetailPage() {
               variant="secondary" 
               size="sm" 
               onClick={() => setIsEditDrawerOpen(true)}
-              className="flex items-center gap-1.5 sm:gap-2 shrink-0 touch-manipulation"
+              className="flex items-center gap-1 sm:gap-1.5 shrink-0 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              <span className="hidden sm:inline">Edit</span>
+              <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
             </Button>
           </div>
         </div>
       </div>
 
       {/* Full Width Content - Mobile App Style */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-safe">
-        {/* Hero Stats Banner - Compact on mobile */}
-        <div className="mb-3 sm:mb-6 bg-gray-100 dark:bg-gray-900 p-2 sm:p-6 shadow-xl border border-gray-200 dark:border-gray-800">
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
-            <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                <div className="flex h-6 w-6 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0">
-                  <svg className="h-3 w-3 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6 pb-safe">
+        {/* Hero Stats Banner - Ultra Compact on mobile */}
+        <div className="mb-3 sm:mb-4 md:mb-6 bg-gray-100 dark:bg-gray-900 p-2 sm:p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:grid-cols-4">
+            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
+                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
+                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Credit</p>
-                  <p className="mt-0.5 text-sm sm:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{creditBalance}</p>
+                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Credit</p>
+                  <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{creditBalance}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                <div className="flex h-6 w-6 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0">
-                  <svg className="h-3 w-3 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
+                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
+                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Winning</p>
-                  <p className="mt-0.5 text-sm sm:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{winningBalance}</p>
+                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Winning</p>
+                  <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{winningBalance}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                <div className="flex h-6 w-6 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0">
-                  <svg className="h-3 w-3 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
+                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
+                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Status</p>
+                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Status</p>
                   <div className="mt-0.5">
                     <Badge
                       variant={selectedPlayer.is_active ? 'success' : 'danger'}
-                      className="text-[10px] sm:text-sm px-1.5 sm:px-3 py-0.5 sm:py-1"
+                      className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm px-1 sm:px-1.5 md:px-2 lg:px-3 py-0.5 sm:py-0.5 md:py-1"
                     >
                       {selectedPlayer.is_active ? 'Active' : 'Inactive'}
                     </Badge>
@@ -701,16 +701,16 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                <div className="flex h-6 w-6 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0">
-                  <svg className="h-3 w-3 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
+                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
+                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Agent</p>
-                  <p className="mt-0.5 text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Agent</p>
+                  <p className="mt-0.5 text-[10px] sm:text-xs md:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                     {selectedPlayer.agent_username || 
                      (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent 
                        ? selectedPlayer.agent.username 
@@ -723,20 +723,20 @@ export default function PlayerDetailPage() {
         </div>
 
         {/* Three Column Grid Layout - Mobile First */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-3">
           {/* Column 1: Quick Actions, Personal Information & Account Details - Show first on mobile */}
-          <div className="space-y-4 order-1 lg:order-1">
+          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-1 lg:order-1">
             {/* Quick Actions Card - Mobile App Style */}
-            <section className="border border-gray-200 bg-white p-4 sm:p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
+              <div className="mb-3 sm:mb-4 flex items-center gap-2">
+                <div className="flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md rounded">
+                  <svg className="h-4 w-4 sm:h-4 sm:w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
+                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 <Button
                   onClick={handleViewTransactions}
                   variant="primary"
@@ -786,8 +786,8 @@ export default function PlayerDetailPage() {
             </section>
 
             {/* Agent Assignment Card - Show below Quick Actions on mobile */}
-            <section className="border border-gray-200 bg-white p-4 sm:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:hidden">
-              <div className="mb-4 sm:mb-5 flex items-center gap-2 sm:gap-3">
+            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg lg:hidden">
+              <div className="mb-3 sm:mb-4 md:mb-5 flex items-center gap-2 sm:gap-3">
                 <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
                   <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -839,8 +839,8 @@ export default function PlayerDetailPage() {
             </section>
 
             {/* Personal Information Card */}
-            <section className="border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <div className="mb-2 flex items-center gap-2">
+            <section className="border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
+              <div className="mb-2 sm:mb-3 flex items-center gap-2">
                 <div className="flex h-7 w-7 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -874,9 +874,9 @@ export default function PlayerDetailPage() {
           </div>
 
           {/* Column 2: Agent Assignment & Transaction Summary - Show second on mobile */}
-          <div className="space-y-4 sm:space-y-6 order-2 lg:order-2">
+          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-2 lg:order-2">
             {/* Agent Assignment Card - Desktop only */}
-            <section className="hidden lg:block border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <section className="hidden lg:block border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -929,8 +929,8 @@ export default function PlayerDetailPage() {
             </section>
 
             {/* Transaction Summary Card */}
-            <section className="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                  <div className="mb-6 flex items-center justify-between">
+            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
+                  <div className="mb-4 sm:mb-5 md:mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -997,10 +997,10 @@ export default function PlayerDetailPage() {
           </div>
 
           {/* Column 3: Player Games - Show third on mobile */}
-          <div className="space-y-4 sm:space-y-6 order-3 lg:order-3">
+          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-3 lg:order-3">
             {/* Player Games Card */}
-            <section className="border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <div className="mb-5 flex items-center justify-between">
+            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
+              <div className="mb-4 sm:mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
