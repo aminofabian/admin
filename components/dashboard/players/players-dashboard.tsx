@@ -158,7 +158,11 @@ export default function PlayersDashboard(): ReactElement {
 
   return (
     <div className="space-y-6">
-      <PlayersHeader onAddPlayer={modalState.openCreateModal} />
+      <PlayersHeader 
+        onAddPlayer={modalState.openCreateModal}
+        totalCount={dataState.data?.count ?? 0}
+        currentPageCount={dataState.data?.results.length ?? 0}
+      />
       <PlayersFilters
         filters={filters.values}
         onFilterChange={filters.setFilter}
@@ -744,34 +748,117 @@ function useSuccessMessageTimer(
 }
 
 
-function PlayersHeader({ onAddPlayer }: { onAddPlayer: () => void }): ReactElement {
+function PlayersHeader({ 
+  onAddPlayer,
+  totalCount,
+  currentPageCount,
+}: { 
+  onAddPlayer: () => void;
+  totalCount: number;
+  currentPageCount: number;
+}): ReactElement {
+  const hasPagination = totalCount > 0 && currentPageCount < totalCount;
+  
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Players
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Manage player accounts and their balances
-          </p>
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900">
+          <div className="relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex-1">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex items-center gap-3">
+                  {/* Icon with gradient background */}
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25">
+                    <svg
+                      className="h-6 w-6 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
+                  </div>
+                  
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      Players
+                    </h1>
+                    <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
+                      Manage player accounts and their balances
+                    </p>
+                  </div>
+                </div>
+
+                {/* Enhanced counter display */}
+                {totalCount > 0 && (
+                  <div className="flex items-center gap-3 sm:ml-auto">
+                    <div className="flex items-center gap-2 rounded-lg border border-blue-200/50 bg-white/80 px-4 py-2.5 shadow-sm backdrop-blur-sm dark:border-blue-800/30 dark:bg-gray-800/80">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-blue-500 to-indigo-600">
+                          <svg
+                            className="h-4 w-4 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </div>
+                        <div className="flex flex-col">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                              {totalCount.toLocaleString()}
+                            </span>
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                              {totalCount === 1 ? 'User' : 'Users'}
+                            </span>
+                          </div>
+                          {hasPagination && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Showing <span className="font-semibold text-gray-700 dark:text-gray-300">{currentPageCount}</span> on this page
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex-shrink-0">
+              <Button 
+                onClick={onAddPlayer}
+                className="shadow-md transition-all hover:shadow-lg"
+              >
+                <svg
+                  className="mr-2 h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Add Player
+              </Button>
+            </div>
+          </div>
         </div>
-        <Button onClick={onAddPlayer}>
-          <svg
-            className="mr-2 h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Add Player
-        </Button>
       </CardContent>
     </Card>
   );
