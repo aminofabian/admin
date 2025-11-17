@@ -14,6 +14,7 @@ import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/f
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
+import { AddGameDrawer } from '@/components/chat/modals';
 
 interface EditableFields {
   email: string;
@@ -425,6 +426,8 @@ export default function PlayerDetailPage() {
   const [isDeletingGame, setIsDeletingGame] = useState(false);
   const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
   const [isChangingGame, setIsChangingGame] = useState(false);
+  const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
+  const [isAddingGame, setIsAddingGame] = useState(false);
 
   const handleDeleteGame = useCallback(async () => {
     if (!gameToDelete || !selectedPlayer) return;
@@ -522,6 +525,39 @@ export default function PlayerDetailPage() {
   const handleCancelPasswordReset = useCallback(() => {
     setPasswordResetState({ isOpen: false, isLoading: false });
   }, []);
+
+  const handleOpenAddGame = useCallback(() => {
+    setIsAddGameDrawerOpen(true);
+  }, []);
+
+  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
+    if (!selectedPlayer || isAddingGame) {
+      return;
+    }
+
+    setIsAddingGame(true);
+    try {
+      const result = await playersApi.createGame(data);
+
+      addToast({
+        type: 'success',
+        title: 'Game added successfully',
+        description: `${result.game_name} account created for ${result.username}`,
+      });
+      
+      setIsAddGameDrawerOpen(false);
+      await refreshGames();
+    } catch (error) {
+      const description = error instanceof Error ? error.message : 'Unknown error';
+      addToast({
+        type: 'error',
+        title: 'Failed to add game',
+        description,
+      });
+    } finally {
+      setIsAddingGame(false);
+    }
+  }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
 
   if (isLoadingPlayer) {
     return <LoadingState />;
@@ -867,6 +903,17 @@ export default function PlayerDetailPage() {
                     </span>
                   )}
                 </h2>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleOpenAddGame}
+                  className="flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md active:scale-95 dark:bg-blue-500 dark:hover:bg-blue-600"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add new game
+                </Button>
               </div>
 
               {isLoadingGames ? (
@@ -1087,6 +1134,19 @@ export default function PlayerDetailPage() {
         isLoading={passwordResetState.isLoading}
         title="Reset Player Password"
       />
+
+      {selectedPlayer && (
+        <AddGameDrawer
+          isOpen={isAddGameDrawerOpen}
+          onClose={() => setIsAddGameDrawerOpen(false)}
+          playerId={selectedPlayer.id}
+          playerUsername={selectedPlayer.username}
+          playerGames={games}
+          onGameAdded={() => {}}
+          onSubmit={handleAddGame}
+          isSubmitting={isAddingGame}
+        />
+      )}
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { usePlayerGames } from '@/hooks/use-player-games';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
-import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal, AddGameDrawer } from './modals';
+import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
 import { isAutoMessage } from './utils/message-helpers';
@@ -228,8 +228,6 @@ export function ChatComponent() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isNotesDrawerOpen, setIsNotesDrawerOpen] = useState(false);
-  const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
-  const [isAddingGame, setIsAddingGame] = useState(false);
   const [hasNewMessagesWhileScrolled, setHasNewMessagesWhileScrolled] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const latestMessageIdRef = useRef<string | null>(null);
@@ -1178,40 +1176,6 @@ export function ChatComponent() {
     }
   }, [selectedPlayer, profileFormData, isUpdatingProfile, addToast]);
 
-  const handleOpenAddGame = useCallback(() => {
-    if (!selectedPlayer) return;
-    setIsAddGameDrawerOpen(true);
-  }, [selectedPlayer]);
-
-  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
-    if (!selectedPlayer || isAddingGame) {
-      return;
-    }
-
-    setIsAddingGame(true);
-    try {
-      const { playersApi } = await import('@/lib/api/users');
-      const result = await playersApi.createGame(data);
-
-      addToast({
-        type: 'success',
-        title: 'Game added successfully',
-        description: `${result.game_name} account created for ${result.username}`,
-      });
-      
-      setIsAddGameDrawerOpen(false);
-    } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to add game',
-        description,
-      });
-    } finally {
-      setIsAddingGame(false);
-    }
-  }, [selectedPlayer, isAddingGame, addToast]);
-
   const handleOpenEditBalance = useCallback(() => {
     if (!selectedPlayer) return;
     setBalanceValue(0);
@@ -1823,7 +1787,6 @@ export function ChatComponent() {
               onNavigateToPlayer={handleNavigateToPlayer}
               onOpenEditBalance={handleOpenEditBalance}
               onOpenEditProfile={handleOpenEditProfile}
-              onOpenAddGame={handleOpenAddGame}
               onOpenNotesDrawer={() => setIsNotesDrawerOpen(true)}
             />
 )}
@@ -1856,19 +1819,6 @@ export function ChatComponent() {
   notes={notes}
   onNotesSaved={handleNotesSaved}
 />
-
-{selectedPlayer && (
-  <AddGameDrawer
-    isOpen={isAddGameDrawerOpen}
-    onClose={() => setIsAddGameDrawerOpen(false)}
-    playerId={selectedPlayer.user_id}
-    playerUsername={selectedPlayer.username}
-    playerGames={playerGames}
-    onGameAdded={() => {}}
-    onSubmit={handleAddGame}
-    isSubmitting={isAddingGame}
-  />
-)}
 
 {/* Expanded Image Modal */}
 {expandedImage && (

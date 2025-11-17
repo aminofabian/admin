@@ -56,26 +56,82 @@ export const useTransactionVolumeStore = create<TransactionVolumeStore>((set, ge
         page_size: 1000, // Get all cashouts for today
       });
 
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Filter and calculate purchases
-      const todayPurchases = purchasesResponse.results
-        .filter(txn => txn.created.startsWith(today) && txn.status === 'completed')
-        .reduce((sum, txn) => sum + parseFloat(txn.amount), 0);
+      // Get today's date in user's local timezone for accurate filtering
+      const today = new Date();
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const todayLocal = new Date(today.toLocaleDateString("en-US", {timeZone: userTimezone}));
+      const todayString = todayLocal.toISOString().split('T')[0];
 
-      // Filter and calculate cashouts
+      console.log('🔍 Revenue calculation details:', {
+        userTimezone,
+        todayLocal: todayLocal.toISOString(),
+        todayString,
+        purchasesCount: purchasesResponse.results.length,
+        cashoutsCount: cashoutsResponse.results.length
+      });
+
+      // Filter and calculate purchases with better date handling
+      const todayPurchases = purchasesResponse.results
+        .filter(txn => {
+          if (txn.status !== 'completed') return false;
+
+          // Parse the transaction date and compare with today in user's timezone
+          const txnDate = new Date(txn.created);
+          const txnDateString = txnDate.toLocaleDateString("en-CA", {timeZone: userTimezone}); // YYYY-MM-DD
+
+          return txnDateString === todayString;
+        })
+        .reduce((sum, txn) => {
+          const amount = parseFloat(txn.amount) || 0;
+          return sum + amount;
+        }, 0);
+
+      // Filter and calculate cashouts with better date handling
       const todayCashouts = cashoutsResponse.results
-        .filter(txn => txn.created.startsWith(today) && txn.status === 'completed')
-        .reduce((sum, txn) => sum + parseFloat(txn.amount), 0);
+        .filter(txn => {
+          if (txn.status !== 'completed') return false;
+
+          // Parse the transaction date and compare with today in user's timezone
+          const txnDate = new Date(txn.created);
+          const txnDateString = txnDate.toLocaleDateString("en-CA", {timeZone: userTimezone}); // YYYY-MM-DD
+
+          return txnDateString === todayString;
+        })
+        .reduce((sum, txn) => {
+          const amount = parseFloat(txn.amount) || 0;
+          return sum + amount;
+        }, 0);
 
       // Calculate net flow
       const netFlow = todayPurchases - todayCashouts;
 
-      // Count completed transactions
-      const completedCount = purchasesResponse.results
-        .filter(txn => txn.created.startsWith(today) && txn.status === 'completed').length +
-        cashoutsResponse.results
-        .filter(txn => txn.created.startsWith(today) && txn.status === 'completed').length;
+      // Count completed transactions with proper timezone handling
+      const completedPurchasesCount = purchasesResponse.results
+        .filter(txn => {
+          if (txn.status !== 'completed') return false;
+          const txnDate = new Date(txn.created);
+          const txnDateString = txnDate.toLocaleDateString("en-CA", {timeZone: userTimezone});
+          return txnDateString === todayString;
+        }).length;
+
+      const completedCashoutsCount = cashoutsResponse.results
+        .filter(txn => {
+          if (txn.status !== 'completed') return false;
+          const txnDate = new Date(txn.created);
+          const txnDateString = txnDate.toLocaleDateString("en-CA", {timeZone: userTimezone});
+          return txnDateString === todayString;
+        }).length;
+
+      const completedCount = completedPurchasesCount + completedCashoutsCount;
+
+      console.log('💰 Revenue calculation completed:', {
+        todayPurchases,
+        todayCashouts,
+        netFlow,
+        completedPurchasesCount,
+        completedCashoutsCount,
+        completedCount
+      });
 
       set({
         data: {
