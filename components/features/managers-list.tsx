@@ -86,13 +86,6 @@ export function ManagersList() {
     confirmPassword: '',
     is_active: true,
   });
-  const [actionsDrawer, setActionsDrawer] = useState<{
-    isOpen: boolean;
-    manager: Manager | null;
-  }>({
-    isOpen: false,
-    manager: null,
-  });
   const [passwordResetModal, setPasswordResetModal] = useState<{
     isOpen: boolean;
     manager: Manager | null;
@@ -155,7 +148,6 @@ export function ManagersList() {
       manager,
       isLoading: false,
     });
-    handleCloseActions();
   };
 
   const handleResetPassword = (manager: Manager) => {
@@ -164,7 +156,6 @@ export function ManagersList() {
       manager,
       isLoading: false,
     });
-    handleCloseActions();
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -207,7 +198,6 @@ export function ManagersList() {
       manager,
       isLoading: false,
     });
-    handleCloseActions();
   };
 
   const handleConfirmToggle = async () => {
@@ -304,19 +294,6 @@ export function ManagersList() {
     setEditProfileDrawer({ isOpen: false, manager: null, isLoading: false });
   };
 
-  const handleOpenActions = (manager: Manager) => {
-    setActionsDrawer({
-      isOpen: true,
-      manager,
-    });
-  };
-
-  const handleCloseActions = () => {
-    setActionsDrawer({
-      isOpen: false,
-      manager: null,
-    });
-  };
 
 
   const closeModals = () => {
@@ -360,15 +337,16 @@ export function ManagersList() {
       <TableCell>
         <div className="flex items-center justify-end">
           <Button
-            size="sm"
             variant="ghost"
-            onClick={() => handleOpenActions(manager)}
-            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-            title="Actions"
+            size="sm"
+            onClick={() => handleOpenEditProfile(manager)}
+            title="Edit manager"
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
           >
-            <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
+            Edit
           </Button>
         </div>
       </TableCell>
@@ -429,14 +407,14 @@ export function ManagersList() {
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => handleOpenActions(manager)}
+          onClick={() => handleOpenEditProfile(manager)}
           className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 touch-manipulation"
-          title="Actions"
+          title="Edit manager"
         >
-          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
-          <span className="hidden sm:inline">Actions</span>
+          <span className="hidden sm:inline">Edit</span>
         </Button>
       </div>
     </div>
@@ -617,52 +595,7 @@ export function ManagersList() {
         isLoading={passwordResetModal.isLoading}
       />
 
-      {/* Actions Drawer */}
-      <ManagerActionsDrawer
-        isOpen={actionsDrawer.isOpen}
-        manager={actionsDrawer.manager}
-        onClose={handleCloseActions}
-        onEditProfile={() => actionsDrawer.manager && handleOpenEditProfile(actionsDrawer.manager)}
-      />
     </div>
   );
 }
 
-// Manager Actions Drawer Component
-type ManagerActionsDrawerProps = {
-  isOpen: boolean;
-  manager: Manager | null;
-  onClose: () => void;
-  onEditProfile: () => void;
-};
-
-function ManagerActionsDrawer({
-  isOpen,
-  manager,
-  onClose,
-  onEditProfile,
-}: ManagerActionsDrawerProps) {
-  if (!manager) return null;
-
-  return (
-    <Drawer isOpen={isOpen} onClose={onClose} title={`Actions for ${manager.username}`} size="sm">
-      <div className="space-y-3">
-        <Button
-          variant="ghost"
-          onClick={onEditProfile}
-          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
-          <span>Edit Profile</span>
-        </Button>
-      </div>
-    </Drawer>
-  );
-}

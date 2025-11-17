@@ -51,13 +51,6 @@ export default function StaffsPage() {
     confirmPassword: '',
     is_active: true,
   });
-  const [actionsDrawer, setActionsDrawer] = useState<{
-    isOpen: boolean;
-    staff: Staff | null;
-  }>({
-    isOpen: false,
-    staff: null,
-  });
 
   useEffect(() => {
     loadStaffs();
@@ -105,19 +98,6 @@ export default function StaffsPage() {
     }
   };
 
-  const handleOpenActions = (staff: Staff) => {
-    setActionsDrawer({
-      isOpen: true,
-      staff,
-    });
-  };
-
-  const handleCloseActions = () => {
-    setActionsDrawer({
-      isOpen: false,
-      staff: null,
-    });
-  };
 
   const handleOpenEditProfile = (staff: Staff) => {
     // Staff type doesn't include full_name or dob, but API may return them
@@ -136,7 +116,6 @@ export default function StaffsPage() {
       staff,
       isLoading: false,
     });
-    handleCloseActions();
   };
 
   const [passwordResetModal, setPasswordResetModal] = useState<{
@@ -164,7 +143,6 @@ export default function StaffsPage() {
       staff,
       isLoading: false,
     });
-    handleCloseActions();
   };
 
   const handleConfirmPasswordReset = async (password: string, _confirmPassword: string) => {
@@ -207,7 +185,6 @@ export default function StaffsPage() {
       staff,
       isLoading: false,
     });
-    handleCloseActions();
   };
 
   const handleConfirmToggle = async () => {
@@ -388,7 +365,7 @@ export default function StaffsPage() {
                 <StaffCard
                   key={staff.id}
                   staff={staff}
-                  onOpenActions={handleOpenActions}
+                  onEdit={handleOpenEditProfile}
                 />
               ))}
             </div>
@@ -437,15 +414,16 @@ export default function StaffsPage() {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end">
                           <Button
-                            size="sm"
                             variant="ghost"
-                            onClick={() => handleOpenActions(staff)}
-                            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                            title="Actions"
+                            size="sm"
+                            onClick={() => handleOpenEditProfile(staff)}
+                            title="Edit staff"
+                            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                           >
-                            <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
+                            Edit
                           </Button>
                         </div>
                       </TableCell>
@@ -577,13 +555,6 @@ export default function StaffsPage() {
         isLoading={passwordResetModal.isLoading}
       />
 
-      {/* Actions Drawer */}
-      <StaffActionsDrawer
-        isOpen={actionsDrawer.isOpen}
-        staff={actionsDrawer.staff}
-        onClose={handleCloseActions}
-        onEditProfile={() => actionsDrawer.staff && handleOpenEditProfile(actionsDrawer.staff)}
-      />
     </div>
   );
 }
@@ -591,10 +562,10 @@ export default function StaffsPage() {
 // Staff Card Component for Mobile
 type StaffCardProps = {
   staff: Staff;
-  onOpenActions: (staff: Staff) => void;
+  onEdit: (staff: Staff) => void;
 };
 
-function StaffCard({ staff, onOpenActions }: StaffCardProps) {
+function StaffCard({ staff, onEdit }: StaffCardProps) {
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
       {/* Top Section: Avatar, Name, Status */}
@@ -649,56 +620,18 @@ function StaffCard({ staff, onOpenActions }: StaffCardProps) {
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => onOpenActions(staff)}
+          onClick={() => onEdit(staff)}
           className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 touch-manipulation"
-          title="Actions"
+          title="Edit staff"
         >
-          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
-          <span className="hidden sm:inline">Actions</span>
+          <span className="hidden sm:inline">Edit</span>
         </Button>
       </div>
     </div>
   );
 }
 
-// Staff Actions Drawer Component
-type StaffActionsDrawerProps = {
-  isOpen: boolean;
-  staff: Staff | null;
-  onClose: () => void;
-  onEditProfile: () => void;
-};
-
-function StaffActionsDrawer({
-  isOpen,
-  staff,
-  onClose,
-  onEditProfile,
-}: StaffActionsDrawerProps) {
-  if (!staff) return null;
-
-  return (
-    <Drawer isOpen={isOpen} onClose={onClose} title={`Actions for ${staff.username}`} size="sm">
-      <div className="space-y-3">
-        <Button
-          variant="ghost"
-          onClick={onEditProfile}
-          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
-          <span>Edit Profile</span>
-        </Button>
-      </div>
-    </Drawer>
-  );
-}
 
