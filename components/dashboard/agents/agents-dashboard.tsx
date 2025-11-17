@@ -560,12 +560,6 @@ function AgentActionsDrawer({
   );
 }
 
-type PasswordResetState = {
-  isOpen: boolean;
-  agent: Agent | null;
-  isLoading: boolean;
-};
-
 type ActionDrawerState = {
   isOpen: boolean;
   agent: Agent | null;
@@ -792,10 +786,12 @@ export default function AgentsDashboard() {
   }, [router]);
 
   const handleOpenEditProfile = useCallback((agent: Agent) => {
+    // Agent may have optional fields from API that aren't in the type definition
+    const agentWithOptionalFields = agent as Agent & { full_name?: string; dob?: string };
     setProfileFormData({
       username: agent.username || '',
-      full_name: (agent as any).full_name || '',
-      dob: (agent as any).dob || '',
+      full_name: agentWithOptionalFields.full_name || '',
+      dob: agentWithOptionalFields.dob || '',
       email: agent.email || '',
       password: '',
       confirmPassword: '',
@@ -828,6 +824,16 @@ export default function AgentsDashboard() {
 
   const handleConfirmPasswordReset = useCallback(async (password: string, confirmPassword: string) => {
     if (!passwordResetState.agent) return;
+
+    // Validate passwords match (additional validation beyond component-level)
+    if (password !== confirmPassword) {
+      addToast({
+        type: 'error',
+        title: 'Password mismatch',
+        description: 'Passwords do not match. Please try again.',
+      });
+      return;
+    }
 
     setPasswordResetState((prev) => ({ ...prev, isLoading: true }));
 
