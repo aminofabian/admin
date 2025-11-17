@@ -26,7 +26,7 @@ export default function StaffsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const { page, pageSize, setPage } = usePagination();
-  const { search, debouncedSearch, setSearch } = useSearch();
+  const { debouncedSearch } = useSearch();
   const { addToast } = useToast();
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -120,10 +120,12 @@ export default function StaffsPage() {
   };
 
   const handleOpenEditProfile = (staff: Staff) => {
+    // Staff type doesn't include full_name or dob, but API may return them
+    const staffWithExtendedFields = staff as Staff & { full_name?: string; dob?: string };
     setProfileFormData({
       username: staff.username || '',
-      full_name: (staff as any).full_name || '',
-      dob: (staff as any).dob || '',
+      full_name: staffWithExtendedFields.full_name || '',
+      dob: staffWithExtendedFields.dob || '',
       email: staff.email || '',
       password: '',
       confirmPassword: '',
@@ -165,9 +167,10 @@ export default function StaffsPage() {
     handleCloseActions();
   };
 
-  const handleConfirmPasswordReset = async (password: string, confirmPassword: string) => {
+  const handleConfirmPasswordReset = async (password: string, _confirmPassword: string) => {
     if (!passwordResetModal.staff) return;
 
+    // Password matching is already validated by PasswordResetDrawer
     setPasswordResetModal((prev) => ({ ...prev, isLoading: true }));
 
     try {
