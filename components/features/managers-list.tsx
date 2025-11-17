@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useManagersStore } from '@/stores';
 import type { Manager, CreateUserRequest, UpdateUserRequest } from '@/types';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
+import { LoadingState, ErrorState, EmptyState, EditProfileDrawer, type EditProfileFormData } from '@/components/features';
 import { ManagerForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import {
@@ -70,7 +70,7 @@ export function ManagersList() {
     manager: null,
     isLoading: false,
   });
-  const [passwordResetModal, setPasswordResetModal] = useState<{
+  const [editProfileDrawer, setEditProfileDrawer] = useState<{
     isOpen: boolean;
     manager: Manager | null;
     isLoading: boolean;
@@ -79,12 +79,30 @@ export function ManagersList() {
     manager: null,
     isLoading: false,
   });
+  const [profileFormData, setProfileFormData] = useState<EditProfileFormData>({
+    username: '',
+    full_name: '',
+    dob: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    is_active: true,
+  });
   const [actionsDrawer, setActionsDrawer] = useState<{
     isOpen: boolean;
     manager: Manager | null;
   }>({
     isOpen: false,
     manager: null,
+  });
+  const [passwordResetModal, setPasswordResetModal] = useState<{
+    isOpen: boolean;
+    manager: Manager | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    manager: null,
+    isLoading: false,
   });
 
   // Effects
@@ -120,6 +138,66 @@ export function ManagersList() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleOpenEditProfile = (manager: Manager) => {
+    setProfileFormData({
+      username: manager.username || '',
+      full_name: (manager as any).full_name || '',
+      dob: (manager as any).dob || '',
+      email: manager.email || '',
+      password: '',
+      confirmPassword: '',
+      is_active: manager.is_active,
+    });
+    setEditProfileDrawer({
+      isOpen: true,
+      manager,
+      isLoading: false,
+    });
+    handleCloseActions();
+  };
+
+  const handleResetPassword = (manager: Manager) => {
+    setPasswordResetModal({
+      isOpen: true,
+      manager,
+      isLoading: false,
+    });
+    handleCloseActions();
+  };
+
+  const handleConfirmPasswordReset = async (password: string, confirmPassword: string) => {
+    if (!passwordResetModal.manager) return;
+
+    setPasswordResetModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      await updateManager(passwordResetModal.manager.id, { password });
+
+      addToast({
+        type: 'success',
+        title: 'Password reset',
+        description: `Password for "${passwordResetModal.manager.username}" has been reset successfully!`,
+      });
+
+      setPasswordResetModal({ isOpen: false, manager: null, isLoading: false });
+      await fetchManagers();
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to reset password';
+      addToast({
+        type: 'error',
+        title: 'Reset failed',
+        description: errorMessage,
+      });
+      setPasswordResetModal((prev) => ({ ...prev, isLoading: false }));
+      throw err;
+    }
+  };
+
+  const handleCancelPasswordReset = () => {
+    setPasswordResetModal({ isOpen: false, manager: null, isLoading: false });
   };
 
   const handleToggleStatus = (manager: Manager) => {
@@ -166,6 +244,65 @@ export function ManagersList() {
     setConfirmModal({ isOpen: false, manager: null, isLoading: false });
   };
 
+  const handleUpdateProfile = async () => {
+    if (!editProfileDrawer.manager || editProfileDrawer.isLoading) {
+      return;
+    }
+
+    // Validate passwords match if provided
+    if (profileFormData.password && profileFormData.password !== profileFormData.confirmPassword) {
+      addToast({
+        type: 'error',
+        title: 'Password mismatch',
+        description: 'Password and Confirm Password must match.',
+      });
+      return;
+    }
+
+    setEditProfileDrawer((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      const updatePayload: UpdateUserRequest = {
+        full_name: profileFormData.full_name,
+        email: profileFormData.email,
+        is_active: profileFormData.is_active,
+      };
+
+      if (profileFormData.dob) {
+        updatePayload.dob = profileFormData.dob;
+      }
+
+      if (profileFormData.password) {
+        updatePayload.password = profileFormData.password;
+        updatePayload.confirm_password = profileFormData.confirmPassword;
+      }
+
+      await updateManager(editProfileDrawer.manager.id, updatePayload);
+
+      addToast({
+        type: 'success',
+        title: 'Profile updated successfully',
+        description: `"${editProfileDrawer.manager.username}" has been updated successfully!`,
+      });
+
+      setEditProfileDrawer({ isOpen: false, manager: null, isLoading: false });
+      await fetchManagers();
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to update profile';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: errorMessage,
+      });
+      setEditProfileDrawer((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleCloseEditProfile = () => {
+    setEditProfileDrawer({ isOpen: false, manager: null, isLoading: false });
+  };
+
   const handleOpenActions = (manager: Manager) => {
     setActionsDrawer({
       isOpen: true,
@@ -180,46 +317,6 @@ export function ManagersList() {
     });
   };
 
-  const handleResetPassword = (manager: Manager) => {
-    setPasswordResetModal({
-      isOpen: true,
-      manager,
-      isLoading: false,
-    });
-    handleCloseActions();
-  };
-
-  const handleConfirmPasswordReset = async (password: string) => {
-    if (!passwordResetModal.manager) return;
-
-    setPasswordResetModal((prev) => ({ ...prev, isLoading: true }));
-
-    try {
-      await updateManager(passwordResetModal.manager.id, { password });
-
-      addToast({
-        type: 'success',
-        title: 'Password reset',
-        description: `Password for "${passwordResetModal.manager.username}" has been reset successfully!`,
-      });
-
-      setPasswordResetModal({ isOpen: false, manager: null, isLoading: false });
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to reset password';
-      addToast({
-        type: 'error',
-        title: 'Reset failed',
-        description: errorMessage,
-      });
-      setPasswordResetModal((prev) => ({ ...prev, isLoading: false }));
-      throw err;
-    }
-  };
-
-  const handleCancelPasswordReset = () => {
-    setPasswordResetModal({ isOpen: false, manager: null, isLoading: false });
-  };
 
   const closeModals = () => {
     setIsCreateOpen(false);
@@ -457,6 +554,18 @@ export function ManagersList() {
         </div>
       </Drawer>
 
+      {/* Edit Profile Drawer */}
+      <EditProfileDrawer
+        isOpen={editProfileDrawer.isOpen}
+        onClose={handleCloseEditProfile}
+        profileFormData={profileFormData}
+        setProfileFormData={setProfileFormData}
+        isUpdating={editProfileDrawer.isLoading}
+        onUpdate={handleUpdateProfile}
+        title="Edit Manager Profile"
+        showDob={false}
+      />
+
       {/* Confirmation Modal */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
@@ -489,6 +598,7 @@ export function ManagersList() {
         isOpen={actionsDrawer.isOpen}
         manager={actionsDrawer.manager}
         onClose={handleCloseActions}
+        onEditProfile={() => actionsDrawer.manager && handleOpenEditProfile(actionsDrawer.manager)}
         onResetPassword={() => actionsDrawer.manager && handleResetPassword(actionsDrawer.manager)}
         onToggleStatus={() => actionsDrawer.manager && handleToggleStatus(actionsDrawer.manager)}
       />
@@ -501,6 +611,7 @@ type ManagerActionsDrawerProps = {
   isOpen: boolean;
   manager: Manager | null;
   onClose: () => void;
+  onEditProfile: () => void;
   onResetPassword: () => void;
   onToggleStatus: () => void;
 };
@@ -509,6 +620,7 @@ function ManagerActionsDrawer({
   isOpen,
   manager,
   onClose,
+  onEditProfile,
   onResetPassword,
   onToggleStatus,
 }: ManagerActionsDrawerProps) {
@@ -519,6 +631,22 @@ function ManagerActionsDrawer({
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={`Actions for ${manager.username}`} size="sm">
       <div className="space-y-3">
+        <Button
+          variant="ghost"
+          onClick={onEditProfile}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
+          </svg>
+          <span>Edit Profile</span>
+        </Button>
+
         <Button
           variant="ghost"
           onClick={onResetPassword}

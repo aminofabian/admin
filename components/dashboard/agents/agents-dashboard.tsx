@@ -7,7 +7,6 @@ import { usePagination } from '@/lib/hooks';
 import {
   Badge,
   Button,
-  ConfirmModal,
   Drawer,
   Pagination,
   PasswordResetDrawer,
@@ -18,8 +17,9 @@ import {
   TableHeader,
   TableRow,
   useToast,
+  ConfirmModal,
 } from '@/components/ui';
-import { AgentForm, EmptyState, ErrorState, LoadingState } from '@/components/features';
+import { AgentForm, EmptyState, ErrorState, LoadingState, EditProfileDrawer, type EditProfileFormData } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import type { Agent, CreateUserRequest, PaginatedResponse, UpdateUserRequest } from '@/types';
 
@@ -399,27 +399,6 @@ function getAgentStyles(isActive: boolean) {
   };
 }
 
-type CreateAgentDrawerProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (formData: CreateUserRequest | UpdateUserRequest) => Promise<void>;
-  isLoading: boolean;
-  error: string;
-};
-
-function CreateAgentDrawer({ isOpen, onClose, onSubmit, isLoading, error }: CreateAgentDrawerProps) {
-  return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="Create New Agent" size="md">
-      {error && (
-        <div className="mb-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-      <AgentForm onSubmit={onSubmit} onCancel={onClose} isLoading={isLoading} />
-    </Drawer>
-  );
-}
-
 type ToggleConfirmModalProps = {
   confirmState: ConfirmModalState;
   onConfirm: () => Promise<void>;
@@ -444,15 +423,37 @@ function ToggleConfirmModal({ confirmState, onConfirm, onCancel }: ToggleConfirm
   );
 }
 
+type CreateAgentDrawerProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (formData: CreateUserRequest | UpdateUserRequest) => Promise<void>;
+  isLoading: boolean;
+  error: string;
+};
+
+function CreateAgentDrawer({ isOpen, onClose, onSubmit, isLoading, error }: CreateAgentDrawerProps) {
+  return (
+    <Drawer isOpen={isOpen} onClose={onClose} title="Create New Agent" size="md">
+      {error && (
+        <div className="mb-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+      <AgentForm onSubmit={onSubmit} onCancel={onClose} isLoading={isLoading} />
+    </Drawer>
+  );
+}
+
+
 type AgentActionsDrawerProps = {
   isOpen: boolean;
   agent: Agent | null;
   onClose: () => void;
   onViewTransactions: () => void;
   onViewPlayers: () => void;
+  onEditProfile: () => void;
   onResetPassword: () => void;
   onToggleStatus: () => void;
-  toggleLabel: string;
 };
 
 function AgentActionsDrawer({
@@ -461,11 +462,13 @@ function AgentActionsDrawer({
   onClose,
   onViewTransactions,
   onViewPlayers,
+  onEditProfile,
   onResetPassword,
   onToggleStatus,
-  toggleLabel,
 }: AgentActionsDrawerProps) {
   if (!agent) return null;
+
+  const toggleLabel = agent.is_active ? 'Deactivate' : 'Activate';
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={`Actions for ${agent.username}`} size="sm">
@@ -494,15 +497,36 @@ function AgentActionsDrawer({
         
         <Button
           variant="ghost"
+          onClick={onEditProfile}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
+          </svg>
+          <span>Edit Profile</span>
+        </Button>
+
+        <Button
+          variant="ghost"
           onClick={onResetPassword}
           className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+            />
           </svg>
           <span>Reset Password</span>
         </Button>
-        
+
         <Button
           variant="ghost"
           onClick={onToggleStatus}
@@ -514,9 +538,19 @@ function AgentActionsDrawer({
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             {agent.is_active ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             )}
           </svg>
           <span>{toggleLabel}</span>
@@ -548,19 +582,33 @@ type AgentsDashboardViewProps = {
   isSubmitting: boolean;
   submitError: string;
   confirmModal: ConfirmModalState;
-  passwordResetState: PasswordResetState;
+  passwordResetState: {
+    isOpen: boolean;
+    agent: Agent | null;
+    isLoading: boolean;
+  };
+  editProfileDrawer: {
+    isOpen: boolean;
+    agent: Agent | null;
+    isLoading: boolean;
+  };
+  profileFormData: EditProfileFormData;
+  setProfileFormData: React.Dispatch<React.SetStateAction<EditProfileFormData>>;
   actionDrawerState: ActionDrawerState;
   onRetry: () => Promise<void>;
   onOpenCreate: () => void;
   onCloseModals: () => void;
   onDismissSuccess: () => void;
   onPageChange: (page: number) => void;
-  onToggleStatus: (agent: Agent) => void;
   onViewTransactions: (agent: Agent) => Promise<void>;
   onViewPlayers: (agent: Agent) => void;
+  onOpenEditProfile: (agent: Agent) => void;
   onResetPassword: (agent: Agent) => void;
-  onConfirmPasswordReset: (password: string) => Promise<void>;
+  onToggleStatus: (agent: Agent) => void;
+  onConfirmPasswordReset: (password: string, confirmPassword: string) => Promise<void>;
   onCancelPasswordReset: () => void;
+  onUpdateProfile: () => Promise<void>;
+  onCloseEditProfile: () => void;
   onOpenActions: (agent: Agent) => void;
   onCloseActions: () => void;
   onCreateAgent: (formData: CreateUserRequest | UpdateUserRequest) => Promise<void>;
@@ -580,18 +628,24 @@ function AgentsDashboardView({
   submitError,
   confirmModal,
   passwordResetState,
+  editProfileDrawer,
+  profileFormData,
+  setProfileFormData,
   actionDrawerState,
   onRetry,
   onOpenCreate,
   onCloseModals,
   onDismissSuccess,
   onPageChange,
-  onToggleStatus,
   onViewTransactions,
   onViewPlayers,
+  onOpenEditProfile,
   onResetPassword,
+  onToggleStatus,
   onConfirmPasswordReset,
   onCancelPasswordReset,
+  onUpdateProfile,
+  onCloseEditProfile,
   onOpenActions,
   onCloseActions,
   onCreateAgent,
@@ -602,7 +656,6 @@ function AgentsDashboardView({
   if (error && !data) return <ErrorState message={error} onRetry={onRetry} />;
 
   const agent = actionDrawerState.agent;
-  const styles = agent ? getAgentStyles(agent.is_active) : null;
 
   return (
     <>
@@ -617,6 +670,16 @@ function AgentsDashboardView({
         />
       </div>
       <CreateAgentDrawer isOpen={isCreateModalOpen} onClose={onCloseModals} onSubmit={onCreateAgent} isLoading={isSubmitting} error={submitError} />
+      <EditProfileDrawer
+        isOpen={editProfileDrawer.isOpen}
+        onClose={onCloseEditProfile}
+        profileFormData={profileFormData}
+        setProfileFormData={setProfileFormData}
+        isUpdating={editProfileDrawer.isLoading}
+        onUpdate={onUpdateProfile}
+        title="Edit Agent Profile"
+        showDob={false}
+      />
       <ToggleConfirmModal confirmState={confirmModal} onConfirm={onConfirmToggle} onCancel={onCancelToggle} />
       <PasswordResetDrawer
         isOpen={passwordResetState.isOpen}
@@ -638,6 +701,10 @@ function AgentsDashboardView({
           onCloseActions();
           if (agent) onViewPlayers(agent);
         }}
+        onEditProfile={() => {
+          onCloseActions();
+          if (agent) onOpenEditProfile(agent);
+        }}
         onResetPassword={() => {
           onCloseActions();
           if (agent) onResetPassword(agent);
@@ -646,7 +713,6 @@ function AgentsDashboardView({
           onCloseActions();
           if (agent) onToggleStatus(agent);
         }}
-        toggleLabel={styles?.toggleLabel || ''}
       />
     </>
   );
@@ -656,10 +722,23 @@ export default function AgentsDashboard() {
   const router = useRouter();
   const dashboard = useAgentsDashboard();
   const { addToast } = useToast();
-  const [passwordResetState, setPasswordResetState] = useState<PasswordResetState>({
+  const [editProfileDrawer, setEditProfileDrawer] = useState<{
+    isOpen: boolean;
+    agent: Agent | null;
+    isLoading: boolean;
+  }>({
     isOpen: false,
     agent: null,
     isLoading: false,
+  });
+  const [profileFormData, setProfileFormData] = useState<EditProfileFormData>({
+    username: '',
+    full_name: '',
+    dob: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    is_active: true,
   });
   const [actionDrawerState, setActionDrawerState] = useState<ActionDrawerState>({
     isOpen: false,
@@ -712,6 +791,33 @@ export default function AgentsDashboard() {
     router.push(`/dashboard/players?agent=${encodeURIComponent(agent.username)}`);
   }, [router]);
 
+  const handleOpenEditProfile = useCallback((agent: Agent) => {
+    setProfileFormData({
+      username: agent.username || '',
+      full_name: (agent as any).full_name || '',
+      dob: (agent as any).dob || '',
+      email: agent.email || '',
+      password: '',
+      confirmPassword: '',
+      is_active: agent.is_active,
+    });
+    setEditProfileDrawer({
+      isOpen: true,
+      agent,
+      isLoading: false,
+    });
+  }, []);
+
+  const [passwordResetState, setPasswordResetState] = useState<{
+    isOpen: boolean;
+    agent: Agent | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    agent: null,
+    isLoading: false,
+  });
+
   const handleResetPassword = useCallback((agent: Agent) => {
     setPasswordResetState({
       isOpen: true,
@@ -720,7 +826,7 @@ export default function AgentsDashboard() {
     });
   }, []);
 
-  const handleConfirmPasswordReset = useCallback(async (password: string) => {
+  const handleConfirmPasswordReset = useCallback(async (password: string, confirmPassword: string) => {
     if (!passwordResetState.agent) return;
 
     setPasswordResetState((prev) => ({ ...prev, isLoading: true }));
@@ -752,6 +858,65 @@ export default function AgentsDashboard() {
     setPasswordResetState({ isOpen: false, agent: null, isLoading: false });
   }, []);
 
+  const handleUpdateProfile = useCallback(async () => {
+    if (!editProfileDrawer.agent || editProfileDrawer.isLoading) {
+      return;
+    }
+
+    // Validate passwords match if provided
+    if (profileFormData.password && profileFormData.password !== profileFormData.confirmPassword) {
+      addToast({
+        type: 'error',
+        title: 'Password mismatch',
+        description: 'Password and Confirm Password must match.',
+      });
+      return;
+    }
+
+    setEditProfileDrawer((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      const updatePayload: UpdateUserRequest = {
+        full_name: profileFormData.full_name,
+        email: profileFormData.email,
+        is_active: profileFormData.is_active,
+      };
+
+      if (profileFormData.dob) {
+        updatePayload.dob = profileFormData.dob;
+      }
+
+      if (profileFormData.password) {
+        updatePayload.password = profileFormData.password;
+        updatePayload.confirm_password = profileFormData.confirmPassword;
+      }
+
+      await agentsApi.update(editProfileDrawer.agent.id, updatePayload);
+
+      addToast({
+        type: 'success',
+        title: 'Profile updated successfully',
+        description: `"${editProfileDrawer.agent.username}" has been updated successfully!`,
+      });
+
+      setEditProfileDrawer({ isOpen: false, agent: null, isLoading: false });
+      await dashboard.loadAgents();
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to update profile';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: errorMessage,
+      });
+      setEditProfileDrawer((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [editProfileDrawer, profileFormData, addToast, dashboard]);
+
+  const handleCloseEditProfile = useCallback(() => {
+    setEditProfileDrawer({ isOpen: false, agent: null, isLoading: false });
+  }, []);
+
   const handleOpenActions = useCallback((agent: Agent) => {
     setActionDrawerState({ isOpen: true, agent });
   }, []);
@@ -771,20 +936,26 @@ export default function AgentsDashboard() {
       isCreateModalOpen={dashboard.isCreateModalOpen}
       isSubmitting={dashboard.isSubmitting}
       submitError={dashboard.submitError}
-      confirmModal={dashboard.confirmModal}
-      passwordResetState={passwordResetState}
+      editProfileDrawer={editProfileDrawer}
+      profileFormData={profileFormData}
+      setProfileFormData={setProfileFormData}
       actionDrawerState={actionDrawerState}
       onRetry={dashboard.loadAgents}
       onOpenCreate={dashboard.openCreateModal}
       onCloseModals={dashboard.closeModals}
       onDismissSuccess={dashboard.dismissSuccessMessage}
       onPageChange={dashboard.setPage}
-      onToggleStatus={dashboard.prepareToggle}
+      confirmModal={dashboard.confirmModal}
+      passwordResetState={passwordResetState}
       onViewTransactions={viewTransactions}
       onViewPlayers={viewPlayers}
+      onOpenEditProfile={handleOpenEditProfile}
       onResetPassword={handleResetPassword}
+      onToggleStatus={dashboard.prepareToggle}
       onConfirmPasswordReset={handleConfirmPasswordReset}
       onCancelPasswordReset={handleCancelPasswordReset}
+      onUpdateProfile={handleUpdateProfile}
+      onCloseEditProfile={handleCloseEditProfile}
       onOpenActions={handleOpenActions}
       onCloseActions={handleCloseActions}
       onCreateAgent={dashboard.handleCreateAgent}

@@ -23,4 +23,5 @@ export * from './empty-state';
 export * from './managers-list';
 export * from './auth-diagnostic';
 export * from '../dashboard/data-sections/action-modal/activity-details-modal';
+export * from './edit-profile-drawer';
 

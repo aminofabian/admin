@@ -15,10 +15,9 @@ import {
   Button,
   Drawer,
   useToast,
-  ConfirmModal,
-  PasswordResetDrawer
 } from '@/components/ui';
-import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
+import { LoadingState, ErrorState, EmptyState, StaffForm, EditProfileDrawer, type EditProfileFormData } from '@/components/features';
+import { PasswordResetDrawer, ConfirmModal } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
 import type { Staff, PaginatedResponse, CreateUserRequest, UpdateUserRequest } from '@/types';
 
@@ -34,7 +33,7 @@ export default function StaffsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [confirmModal, setConfirmModal] = useState<{
+  const [editProfileDrawer, setEditProfileDrawer] = useState<{
     isOpen: boolean;
     staff: Staff | null;
     isLoading: boolean;
@@ -43,14 +42,14 @@ export default function StaffsPage() {
     staff: null,
     isLoading: false,
   });
-  const [passwordResetModal, setPasswordResetModal] = useState<{
-    isOpen: boolean;
-    staff: Staff | null;
-    isLoading: boolean;
-  }>({
-    isOpen: false,
-    staff: null,
-    isLoading: false,
+  const [profileFormData, setProfileFormData] = useState<EditProfileFormData>({
+    username: '',
+    full_name: '',
+    dob: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    is_active: true,
   });
   const [actionsDrawer, setActionsDrawer] = useState<{
     isOpen: boolean;
@@ -120,8 +119,17 @@ export default function StaffsPage() {
     });
   };
 
-  const handleToggleStatus = async (staff: Staff) => {
-    setConfirmModal({
+  const handleOpenEditProfile = (staff: Staff) => {
+    setProfileFormData({
+      username: staff.username || '',
+      full_name: (staff as any).full_name || '',
+      dob: (staff as any).dob || '',
+      email: staff.email || '',
+      password: '',
+      confirmPassword: '',
+      is_active: staff.is_active,
+    });
+    setEditProfileDrawer({
       isOpen: true,
       staff,
       isLoading: false,
@@ -129,38 +137,24 @@ export default function StaffsPage() {
     handleCloseActions();
   };
 
-  const handleConfirmToggle = async () => {
-    if (!confirmModal.staff) return;
-
-    setConfirmModal(prev => ({ ...prev, isLoading: true }));
-
-    try {
-      const actionPast = confirmModal.staff.is_active ? 'deactivated' : 'activated';
-      
-      await staffsApi.update(confirmModal.staff.id, { is_active: !confirmModal.staff.is_active });
-      
-      addToast({
-        type: 'success',
-        title: 'Staff updated',
-        description: `"${confirmModal.staff.username}" has been ${actionPast} successfully!`,
-      });
-      
-      setConfirmModal({ isOpen: false, staff: null, isLoading: false });
-      await loadStaffs(); // Refresh the list
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update staff status';
-      addToast({
-        type: 'error',
-        title: 'Update failed',
-        description: errorMessage,
-      });
-      setConfirmModal(prev => ({ ...prev, isLoading: false }));
-    }
-  };
-
-  const handleCancelToggle = () => {
-    setConfirmModal({ isOpen: false, staff: null, isLoading: false });
-  };
+  const [passwordResetModal, setPasswordResetModal] = useState<{
+    isOpen: boolean;
+    staff: Staff | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    staff: null,
+    isLoading: false,
+  });
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    staff: Staff | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    staff: null,
+    isLoading: false,
+  });
 
   const handleResetPassword = (staff: Staff) => {
     setPasswordResetModal({
@@ -171,7 +165,7 @@ export default function StaffsPage() {
     handleCloseActions();
   };
 
-  const handleConfirmPasswordReset = async (password: string) => {
+  const handleConfirmPasswordReset = async (password: string, confirmPassword: string) => {
     if (!passwordResetModal.staff) return;
 
     setPasswordResetModal((prev) => ({ ...prev, isLoading: true }));
@@ -186,7 +180,7 @@ export default function StaffsPage() {
       });
 
       setPasswordResetModal({ isOpen: false, staff: null, isLoading: false });
-      await loadStaffs(); // Refresh the list
+      await loadStaffs();
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to reset password';
@@ -202,6 +196,107 @@ export default function StaffsPage() {
 
   const handleCancelPasswordReset = () => {
     setPasswordResetModal({ isOpen: false, staff: null, isLoading: false });
+  };
+
+  const handleToggleStatus = (staff: Staff) => {
+    setConfirmModal({
+      isOpen: true,
+      staff,
+      isLoading: false,
+    });
+    handleCloseActions();
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!confirmModal.staff) return;
+
+    setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      const actionPast = confirmModal.staff.is_active ? 'deactivated' : 'activated';
+      
+      await staffsApi.update(confirmModal.staff.id, { is_active: !confirmModal.staff.is_active });
+      
+      addToast({
+        type: 'success',
+        title: 'Staff updated',
+        description: `"${confirmModal.staff.username}" has been ${actionPast} successfully!`,
+      });
+      
+      setConfirmModal({ isOpen: false, staff: null, isLoading: false });
+      await loadStaffs();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update staff status';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: errorMessage,
+      });
+      setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleCancelToggle = () => {
+    setConfirmModal({ isOpen: false, staff: null, isLoading: false });
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!editProfileDrawer.staff || editProfileDrawer.isLoading) {
+      return;
+    }
+
+    // Validate passwords match if provided
+    if (profileFormData.password && profileFormData.password !== profileFormData.confirmPassword) {
+      addToast({
+        type: 'error',
+        title: 'Password mismatch',
+        description: 'Password and Confirm Password must match.',
+      });
+      return;
+    }
+
+    setEditProfileDrawer((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      const updatePayload: UpdateUserRequest = {
+        full_name: profileFormData.full_name,
+        email: profileFormData.email,
+        is_active: profileFormData.is_active,
+      };
+
+      if (profileFormData.dob) {
+        updatePayload.dob = profileFormData.dob;
+      }
+
+      if (profileFormData.password) {
+        updatePayload.password = profileFormData.password;
+        updatePayload.confirm_password = profileFormData.confirmPassword;
+      }
+
+      await staffsApi.update(editProfileDrawer.staff.id, updatePayload);
+
+      addToast({
+        type: 'success',
+        title: 'Profile updated successfully',
+        description: `"${editProfileDrawer.staff.username}" has been updated successfully!`,
+      });
+
+      setEditProfileDrawer({ isOpen: false, staff: null, isLoading: false });
+      await loadStaffs();
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to update profile';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: errorMessage,
+      });
+      setEditProfileDrawer((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleCloseEditProfile = () => {
+    setEditProfileDrawer({ isOpen: false, staff: null, isLoading: false });
   };
 
   const closeModals = () => {
@@ -419,6 +514,18 @@ export default function StaffsPage() {
         </div>
       </Drawer>
 
+      {/* Edit Profile Drawer */}
+      <EditProfileDrawer
+        isOpen={editProfileDrawer.isOpen}
+        onClose={handleCloseEditProfile}
+        profileFormData={profileFormData}
+        setProfileFormData={setProfileFormData}
+        isUpdating={editProfileDrawer.isLoading}
+        onUpdate={handleUpdateProfile}
+        title="Edit Staff Profile"
+        showDob={false}
+      />
+
       {/* Confirmation Modal */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
@@ -449,6 +556,7 @@ export default function StaffsPage() {
         isOpen={actionsDrawer.isOpen}
         staff={actionsDrawer.staff}
         onClose={handleCloseActions}
+        onEditProfile={() => actionsDrawer.staff && handleOpenEditProfile(actionsDrawer.staff)}
         onResetPassword={() => actionsDrawer.staff && handleResetPassword(actionsDrawer.staff)}
         onToggleStatus={() => actionsDrawer.staff && handleToggleStatus(actionsDrawer.staff)}
       />
@@ -461,6 +569,7 @@ type StaffActionsDrawerProps = {
   isOpen: boolean;
   staff: Staff | null;
   onClose: () => void;
+  onEditProfile: () => void;
   onResetPassword: () => void;
   onToggleStatus: () => void;
 };
@@ -469,6 +578,7 @@ function StaffActionsDrawer({
   isOpen,
   staff,
   onClose,
+  onEditProfile,
   onResetPassword,
   onToggleStatus,
 }: StaffActionsDrawerProps) {
@@ -479,6 +589,22 @@ function StaffActionsDrawer({
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={`Actions for ${staff.username}`} size="sm">
       <div className="space-y-3">
+        <Button
+          variant="ghost"
+          onClick={onEditProfile}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
+          </svg>
+          <span>Edit Profile</span>
+        </Button>
+
         <Button
           variant="ghost"
           onClick={onResetPassword}

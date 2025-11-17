@@ -27,6 +27,8 @@ import {
   ErrorState,
   LoadingState,
   PlayerForm,
+  EditProfileDrawer,
+  type EditProfileFormData,
 } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
@@ -112,6 +114,12 @@ type ModalState = {
   isSubmitting: boolean;
   submitError: string;
   successMessage: string;
+  editProfile: {
+    isOpen: boolean;
+    isLoading: boolean;
+    player: Player | null;
+    formData: EditProfileFormData;
+  };
 };
 
 type PlayersDataState = {
@@ -183,6 +191,7 @@ export default function PlayersDashboard(): ReactElement {
         }}
         onPageChange={pagination.setPage}
         onViewPlayer={(player) => router.push(`/dashboard/players/${player.id}`)}
+        onEditProfile={modalState.openEditProfile}
         page={pagination.page}
         pageSize={pagination.pageSize}
       />
@@ -193,6 +202,16 @@ export default function PlayersDashboard(): ReactElement {
         onSubmit={creationHandlers.handleSubmit}
         submitError={modalState.state.submitError}
       />
+      <EditProfileDrawer
+        isOpen={modalState.state.editProfile.isOpen}
+        onClose={modalState.closeEditProfile}
+        profileFormData={modalState.state.editProfile.formData}
+        setProfileFormData={modalState.setEditProfileFormData}
+        isUpdating={modalState.state.editProfile.isLoading}
+        onUpdate={modalState.handleUpdateProfile}
+        title="Edit Player Profile"
+        showDob={true}
+      />
     </div>
   );
 }
@@ -201,7 +220,6 @@ function usePlayersPageContext(): PlayersPageContext {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pagination = usePagination();
-  const modalState = usePlayerModals();
   const toast = useToast();
   
   // Read agent username from URL params
@@ -293,6 +311,7 @@ function usePlayersPageContext(): PlayersPageContext {
     pagination,
     agentFromUrl: agentFromUrl || filters.appliedFilters.agent,
   });
+  const modalState = usePlayerModals(dataState.refresh);
   const creationHandlers = usePlayerCreation({
     closeCreateModal: modalState.closeCreateModal,
     refresh: dataState.refresh,
@@ -529,18 +548,23 @@ function usePlayerFilters(
   };
 }
 
-function usePlayerModals(): {
+function usePlayerModals(refresh: () => Promise<void>): {
   cancelConfirm: () => void;
   clearSuccessMessage: () => void;
   closeCreateModal: () => void;
+  closeEditProfile: () => void;
+  handleUpdateProfile: () => Promise<void>;
   openConfirm: (player: Player) => void;
   openCreateModal: () => void;
+  openEditProfile: (player: Player) => void;
   setConfirmLoading: (isLoading: boolean) => void;
+  setEditProfileFormData: React.Dispatch<React.SetStateAction<EditProfileFormData>>;
   setSubmitting: (isSubmitting: boolean) => void;
   setSubmitError: (message: string) => void;
   setSuccessMessage: (message: string) => void;
   state: ModalState;
 } {
+  const toast = useToast();
   const initialState: ModalState = useMemo(
     () => ({
       confirm: {
@@ -552,6 +576,20 @@ function usePlayerModals(): {
       isSubmitting: false,
       submitError: '',
       successMessage: '',
+      editProfile: {
+        isOpen: false,
+        isLoading: false,
+        player: null,
+        formData: {
+          username: '',
+          full_name: '',
+          dob: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          is_active: true,
+        },
+      },
     }),
     [],
   );
@@ -611,13 +649,147 @@ function usePlayerModals(): {
     setState((prev) => ({ ...prev, successMessage: '' }));
   }, []);
 
+  const openEditProfile = useCallback((player: Player) => {
+    setState((prev) => ({
+      ...prev,
+      editProfile: {
+        isOpen: true,
+        isLoading: false,
+        player,
+        formData: {
+          username: player.username || '',
+          full_name: player.full_name || '',
+          dob: player.dob || '',
+          email: player.email || '',
+          password: '',
+          confirmPassword: '',
+          is_active: player.is_active,
+        },
+      },
+    }));
+  }, []);
+
+  const closeEditProfile = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      editProfile: {
+        ...prev.editProfile,
+        isOpen: false,
+        player: null,
+        isLoading: false,
+      },
+    }));
+  }, []);
+
+  const setEditProfileFormData = useCallback((updater: React.SetStateAction<EditProfileFormData>) => {
+    setState((prev) => {
+      const newFormData = typeof updater === 'function' 
+        ? updater(prev.editProfile.formData)
+        : updater;
+      return {
+        ...prev,
+        editProfile: {
+          ...prev.editProfile,
+          formData: newFormData,
+        },
+      };
+    });
+  }, []);
+
+  const handleUpdateProfile = useCallback(async () => {
+    const { player, formData, isLoading } = state.editProfile;
+    if (!player || isLoading) {
+      return;
+    }
+
+    // Validate passwords match if provided
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      toast.addToast({
+        type: 'error',
+        title: 'Password mismatch',
+        description: 'Password and Confirm Password must match.',
+      });
+      return;
+    }
+
+    // Start loading
+    setState((prev) => ({
+      ...prev,
+      editProfile: { ...prev.editProfile, isLoading: true },
+    }));
+
+    try {
+      const updatePayload: UpdateUserRequest = {
+        full_name: formData.full_name,
+        email: formData.email,
+        is_active: formData.is_active,
+      };
+
+      if (formData.dob) {
+        updatePayload.dob = formData.dob;
+      }
+
+      if (formData.password) {
+        updatePayload.password = formData.password;
+        updatePayload.confirm_password = formData.confirmPassword;
+      }
+
+      await playersApi.update(player.id, updatePayload);
+
+      // Close the drawer first
+      setState((prevState) => ({
+        ...prevState,
+        editProfile: {
+          isOpen: false,
+          isLoading: false,
+          player: null,
+          formData: {
+            username: '',
+            full_name: '',
+            dob: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            is_active: true,
+          },
+        },
+      }));
+
+      // Refresh the players list
+      await refresh();
+
+      // Show success toast after refresh
+      toast.addToast({
+        type: 'success',
+        title: 'Profile updated successfully',
+        description: `"${player.username}" has been updated successfully!`,
+      });
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to update profile';
+      toast.addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: errorMessage,
+      });
+      setState((prevState) => ({
+        ...prevState,
+        editProfile: { ...prevState.editProfile, isLoading: false },
+      }));
+    }
+  }, [state.editProfile, toast, refresh]);
+
   return {
     cancelConfirm,
     clearSuccessMessage,
     closeCreateModal,
+    closeEditProfile,
+    handleUpdateProfile,
     openConfirm,
     openCreateModal,
+    openEditProfile,
     setConfirmLoading,
+    setEditProfileFormData,
     setSubmitting,
     setSubmitError,
     setSuccessMessage,
@@ -1062,6 +1234,7 @@ function SuccessBanner({
 type PlayersTableSectionProps = {
   data: PaginatedResponse<Player> | null;
   hasActiveFilters: boolean;
+  onEditProfile: (player: Player) => void;
   onOpenChat: (player: Player) => void;
   onPageChange: (page: number) => void;
   onViewPlayer: (player: Player) => void;
@@ -1072,6 +1245,7 @@ type PlayersTableSectionProps = {
 function PlayersTableSection({
   data,
   hasActiveFilters,
+  onEditProfile,
   onOpenChat,
   onPageChange,
   onViewPlayer,
@@ -1099,6 +1273,7 @@ function PlayersTableSection({
           <>
             <PlayersTable
               players={data?.results ?? []}
+              onEditProfile={onEditProfile}
               onOpenChat={onOpenChat}
               onViewPlayer={onViewPlayer}
             />
@@ -1121,12 +1296,14 @@ function PlayersTableSection({
 }
 
 type PlayersTableProps = {
+  onEditProfile: (player: Player) => void;
   onOpenChat: (player: Player) => void;
   onViewPlayer: (player: Player) => void;
   players: Player[];
 };
 
 function PlayersTable({
+  onEditProfile,
   onOpenChat,
   onViewPlayer,
   players,
@@ -1150,6 +1327,7 @@ function PlayersTable({
             <PlayersTableRow
               key={player.id}
               player={player}
+              onEditProfile={onEditProfile}
               onOpenChat={onOpenChat}
               onViewPlayer={onViewPlayer}
             />
@@ -1161,12 +1339,14 @@ function PlayersTable({
 }
 
 type PlayersTableRowProps = {
+  onEditProfile: (player: Player) => void;
   onOpenChat: (player: Player) => void;
   onViewPlayer: (player: Player) => void;
   player: Player;
 };
 
 function PlayersTableRow({
+  onEditProfile,
   onOpenChat,
   onViewPlayer,
   player,
@@ -1219,6 +1399,26 @@ function PlayersTableRow({
       </TableCell>
       <TableCell>
         <div className="flex items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onEditProfile(player)}
+            title="Edit Profile"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+          </Button>
           <Button
             size="sm"
             variant="secondary"
