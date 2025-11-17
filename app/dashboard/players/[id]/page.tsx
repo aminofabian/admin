@@ -931,48 +931,39 @@ export default function PlayerDetailPage() {
                   <p className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">No games assigned</p>
                 </div>
               ) : (
-                <div className="space-y-2.5 max-h-96 overflow-y-auto">
+                <div className="space-y-3 max-h-96 overflow-y-auto">
                   {games.map((game: PlayerGame) => (
                     <div
                       key={game.id}
-                      className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 p-3.5 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:bg-gray-800"
+                      className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
                     >
-                      {/* Left: Game Info */}
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-500 text-white">
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
+                      {/* Top Section: Title, ID, and Status */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
+                            {game.game__title}
+                          </h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            ID: {game.game__id}
+                          </p>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                              {game.game__title}
-                            </h3>
-                            <Badge
-                              variant={game.status === 'active' ? 'success' : 'danger'}
-                              className="text-xs shrink-0"
-                            >
-                              {game.status}
-                            </Badge>
-                          </div>
-                          <div className="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                            <span>ID: {game.game__id}</span>
-                            {game.created && (
-                              <span className="flex items-center gap-1">
-                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                {formatDate(game.created)}
-                              </span>
-                            )}
-                          </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <div className={`h-2 w-2 rounded-full ${game.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
+                          <Badge
+                            variant={game.status === 'active' ? 'success' : 'danger'}
+                            className="text-xs"
+                          >
+                            {game.status}
+                          </Badge>
                         </div>
                       </div>
 
-                      {/* Right: Actions */}
-                      <div className="flex shrink-0 items-center gap-2">
+                      {/* Divider */}
+                      <div className="border-t border-gray-200 dark:border-gray-700 my-3" />
+
+                      {/* Bottom Section: Balance, Date, and Actions */}
+                      <div className="flex items-center justify-between gap-3">
+                        {/* Balance Button */}
                         <Button
                           size="sm"
                           variant="primary"
@@ -1005,39 +996,53 @@ export default function PlayerDetailPage() {
                           </svg>
                           Balance
                         </Button>
-                        <DropdownMenu
-                          trigger={
-                            <button
-                              type="button"
-                              className="flex items-center justify-center rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                              aria-label="More actions"
+
+                        {/* Date */}
+                        {game.created && (
+                          <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 flex-1 justify-center">
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>{formatDate(game.created)}</span>
+                          </div>
+                        )}
+
+                        {/* Three-dot Menu */}
+                        <div className="shrink-0">
+                          <DropdownMenu
+                            trigger={
+                              <button
+                                type="button"
+                                className="flex items-center justify-center rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                aria-label="More actions"
+                              >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                              </button>
+                            }
+                            align="right"
+                          >
+                            <DropdownMenuItem
+                              onClick={() => setGameToChange(game)}
+                              className="flex items-center gap-2"
                             >
-                              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                               </svg>
-                            </button>
-                          }
-                          align="right"
-                        >
-                          <DropdownMenuItem
-                            onClick={() => setGameToChange(game)}
-                            className="flex items-center gap-2"
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                            </svg>
-                            Change Status
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setGameToDelete(game)}
-                            className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                          >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete Game
-                          </DropdownMenuItem>
-                        </DropdownMenu>
+                              Change Status
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setGameToDelete(game)}
+                              className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete Game
+                            </DropdownMenuItem>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     </div>
                   ))}
