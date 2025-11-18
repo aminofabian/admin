@@ -1044,50 +1044,50 @@ export default function PlayerDetailPage() {
                   </svg>
                 )}
               </div>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-purple-200/50 dark:border-purple-700/50 hover:shadow-md transition-all duration-300">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <div className="flex flex-col 2xl:grid 2xl:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-purple-200/50 dark:border-purple-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
+                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                       </svg>
                     </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-purple-700 dark:text-purple-300 truncate">Purchases</h5>
+                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-purple-700 dark:text-purple-300 break-words min-w-0">Purchases</h5>
                   </div>
                   {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-purple-300/30 dark:bg-purple-700/30 rounded w-full sm:w-24 animate-pulse" />
+                    <div className="h-5 sm:h-6 md:h-7 bg-purple-300/30 dark:bg-purple-700/30 rounded w-full animate-pulse" />
                   ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 truncate">{purchasesTotal}</p>
+                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 break-words min-w-0">{purchasesTotal}</p>
                   )}
                 </div>
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-indigo-200/50 dark:border-indigo-700/50 hover:shadow-md transition-all duration-300">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-indigo-200/50 dark:border-indigo-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
+                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/30 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-indigo-700 dark:text-indigo-300 truncate">Cashouts</h5>
+                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-indigo-700 dark:text-indigo-300 break-words min-w-0">Cashouts</h5>
                   </div>
                   {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-indigo-300/30 dark:bg-indigo-700/30 rounded w-full sm:w-24 animate-pulse" />
+                    <div className="h-5 sm:h-6 md:h-7 bg-indigo-300/30 dark:bg-indigo-700/30 rounded w-full animate-pulse" />
                   ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-indigo-600 dark:text-indigo-400 transition-all duration-300 truncate">{cashoutsTotal}</p>
+                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-indigo-600 dark:text-indigo-400 transition-all duration-300 break-words min-w-0">{cashoutsTotal}</p>
                   )}
                 </div>
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-violet-200/50 dark:border-violet-700/50 hover:shadow-md transition-all duration-300">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-violet-500/20 dark:bg-violet-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-violet-200/50 dark:border-violet-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
+                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-violet-500/20 dark:bg-violet-500/30 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                       </svg>
                     </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-violet-700 dark:text-violet-300 truncate">Transfers</h5>
+                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-violet-700 dark:text-violet-300 break-words min-w-0">Transfers</h5>
                   </div>
                   {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-violet-300/30 dark:bg-violet-700/30 rounded w-full sm:w-24 animate-pulse" />
+                    <div className="h-5 sm:h-6 md:h-7 bg-violet-300/30 dark:bg-violet-700/30 rounded w-full animate-pulse" />
                   ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-violet-600 dark:text-violet-400 transition-all duration-300 truncate">{transfersTotal}</p>
+                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-violet-600 dark:text-violet-400 transition-all duration-300 break-words min-w-0">{transfersTotal}</p>
                   )}
                 </div>
               </div>
