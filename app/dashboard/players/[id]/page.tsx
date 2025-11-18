@@ -1173,7 +1173,7 @@ export default function PlayerDetailPage() {
                           <h3 className="mb-1 truncate text-base font-semibold text-gray-900 dark:text-gray-100">
                             {game.game__title}
                           </h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Username: {game.username}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400"> {game.username}</p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
                           <div className={`h-2 w-2 rounded-full ${game.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
