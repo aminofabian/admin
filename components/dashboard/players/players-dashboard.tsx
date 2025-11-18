@@ -8,8 +8,6 @@ import { usePagination } from '@/lib/hooks';
 import {
   Badge,
   Button,
-  Card,
-  CardContent,
   Drawer,
   Pagination,
   Select,
@@ -693,72 +691,38 @@ function PlayersHeader({
   totalCount: number;
 }): ReactElement {
   return (
-    <Card className="overflow-hidden border-0 shadow-lg">
-      <CardContent className="p-0">
-        <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-          {/* Subtle gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent dark:via-white/5" />
-          
-          {/* Main content */}
-          <div className="relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 md:p-4">
-            {/* Icon with enhanced styling */}
-            <div className="relative flex h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 shadow-lg ring-2 ring-blue-200/50 dark:ring-blue-900/50 shrink-0 group hover:scale-105 transition-transform duration-200">
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />
-              <svg
-                className="relative h-5 w-5 sm:h-6 sm:w-6 text-white drop-shadow-sm"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-            </div>
-            
-            {/* Title with improved typography */}
-            <div className="flex flex-col min-w-0">
-              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-                Players
-              </h1>
-              {totalCount > 0 && (
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 font-medium">
-                  {totalCount.toLocaleString()} total
-                </p>
-              )}
-            </div>
-            
-            {/* Spacer - pushes button to right on all screens */}
-            <div className="flex-1 min-w-0" />
-            
-            {/* Enhanced Add button */}
-            <Button 
-              onClick={onAddPlayer}
-              className="shadow-lg hover:shadow-xl transition-all duration-200 touch-manipulation px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 font-semibold"
-              size="sm"
-            >
-              <svg
-                className="h-4 w-4 sm:h-5 sm:w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              <span className="hidden md:inline ml-2 font-medium">Add Player</span>
-            </Button>
-          </div>
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
+      {/* Single compact row - everything in one line */}
+      <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+        {/* Icon */}
+        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
         </div>
-      </CardContent>
-    </Card>
+        
+        {/* Title */}
+        <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+          Players
+        </h2>
+        
+        {/* Spacer */}
+        <div className="flex-1 min-w-0" />
+        
+        {/* Add button - compact */}
+        <Button 
+          variant="primary" 
+          size="sm" 
+          onClick={onAddPlayer}
+          className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
+        >
+          <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="hidden md:inline ml-1.5">Add Player</span>
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -1050,41 +1014,39 @@ function PlayersTableSection({
   const showPagination = !!data && data.count > pageSize;
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        {shouldShowEmpty ? (
-          <div className="py-12">
-            <EmptyState
-              title={hasActiveFilters ? 'No players match your filters' : 'No players found'}
-              description={
-                hasActiveFilters
-                  ? 'Try adjusting your search criteria or clear the filters to see all players'
-                  : 'Get started by creating a new player'
-              }
-            />
-          </div>
-        ) : (
-          <>
-            <PlayersTable
-              players={data?.results ?? []}
-              onOpenChat={onOpenChat}
-              onViewPlayer={onViewPlayer}
-            />
-            {showPagination && (
-              <div className="border-t border-gray-200 px-3 sm:px-4 md:px-6 py-3 sm:py-4 dark:border-gray-700">
-                <Pagination
-                  currentPage={page}
-                  totalPages={Math.ceil((data?.count ?? 0) / pageSize)}
-                  onPageChange={onPageChange}
-                  hasNext={Boolean(data?.next)}
-                  hasPrevious={Boolean(data?.previous)}
-                />
-              </div>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {shouldShowEmpty ? (
+        <div className="py-12">
+          <EmptyState
+            title={hasActiveFilters ? 'No players match your filters' : 'No players found'}
+            description={
+              hasActiveFilters
+                ? 'Try adjusting your search criteria or clear the filters to see all players'
+                : 'Get started by creating a new player'
+            }
+          />
+        </div>
+      ) : (
+        <>
+          <PlayersTable
+            players={data?.results ?? []}
+            onOpenChat={onOpenChat}
+            onViewPlayer={onViewPlayer}
+          />
+          {showPagination && (
+            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+              <Pagination
+                currentPage={page}
+                totalPages={Math.ceil((data?.count ?? 0) / pageSize)}
+                onPageChange={onPageChange}
+                hasNext={Boolean(data?.next)}
+                hasPrevious={Boolean(data?.previous)}
+              />
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -1118,13 +1080,13 @@ function PlayersTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-xs sm:text-sm">Username</TableHead>
-              <TableHead className="text-xs sm:text-sm">Email</TableHead>
-              <TableHead className="text-xs sm:text-sm">Credit</TableHead>
-              <TableHead className="text-xs sm:text-sm">Winning</TableHead>
-              <TableHead className="text-xs sm:text-sm">Status</TableHead>
-              <TableHead className="hidden lg:table-cell text-xs sm:text-sm">Created</TableHead>
-              <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
+              <TableHead>Username</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Credit</TableHead>
+              <TableHead>Winning</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1276,84 +1238,56 @@ function PlayersTableRow({
 }: PlayersTableRowProps): ReactElement {
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-      <TableCell className="py-2 sm:py-3">
-        <button
-          type="button"
-          onClick={() => onOpenChat(player)}
-          className="flex w-full items-center gap-2 sm:gap-3 rounded-md px-1 py-1 text-left transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 dark:hover:bg-gray-800 touch-manipulation"
-        >
-          <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-xs sm:text-sm font-semibold text-white shrink-0">
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
             {player.username.charAt(0).toUpperCase()}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-medium text-xs sm:text-sm text-gray-900 dark:text-gray-100 truncate">
+          <div>
+            <div className="font-medium text-gray-900 dark:text-gray-100">
               {player.username}
             </div>
-            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
-              {player.full_name || <span className="text-gray-400">—</span>}
-            </div>
-            <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate sm:hidden">
-              {player.email}
-            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{player.full_name || '—'}</div>
           </div>
-        </button>
-      </TableCell>
-      <TableCell className="hidden sm:table-cell py-2 sm:py-3">
-        <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 truncate">
-          {player.email}
         </div>
       </TableCell>
-      <TableCell className="py-2 sm:py-3">
-        <div className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
+      <TableCell>
+        <div className="text-sm text-gray-700 dark:text-gray-300">{player.email}</div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
           {formatCurrency(player.balance)}
         </div>
-        <div className="text-[10px] text-gray-500 dark:text-gray-400 lg:hidden">
-          Win: {formatCurrency(player.winning_balance)}
-        </div>
       </TableCell>
-      <TableCell className="hidden md:table-cell py-2 sm:py-3">
-        <div className="text-xs sm:text-sm font-semibold text-green-600 dark:text-green-400">
+      <TableCell>
+        <div className="text-sm font-semibold text-green-600 dark:text-green-400">
           {formatCurrency(player.winning_balance)}
         </div>
       </TableCell>
-      <TableCell className="py-2 sm:py-3">
-        <Badge variant={player.is_active ? 'success' : 'danger'} className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">
+      <TableCell>
+        <Badge variant={player.is_active ? 'success' : 'danger'}>
           {player.is_active ? 'Active' : 'Inactive'}
         </Badge>
       </TableCell>
-      <TableCell className="hidden lg:table-cell py-2 sm:py-3">
-        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+      <TableCell>
+        <div className="text-sm text-gray-600 dark:text-gray-400">
           {formatDate(player.created)}
         </div>
       </TableCell>
-      <TableCell className="py-2 sm:py-3">
-        <div className="flex items-center justify-end gap-1 sm:gap-2">
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end">
           <Button
+            variant="ghost"
             size="sm"
-            variant="secondary"
             onClick={() => onViewPlayer(player)}
-            title="View"
-            className="p-1.5 sm:p-2 touch-manipulation"
+            title="View player"
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
           >
-            <svg
-              className="h-3.5 w-3.5 sm:h-4 sm:w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-              />
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
+            View
           </Button>
         </div>
       </TableCell>

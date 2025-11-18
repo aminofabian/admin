@@ -290,7 +290,7 @@ export default function StaffsPage() {
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
       {/* Header - Compact */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
         {successMessage && (
           <div className="px-3 sm:px-4 md:p-6 pt-3 sm:pt-4">
             <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-green-800 shadow-sm dark:border-green-800/50 dark:bg-green-950/30 dark:text-green-300">
