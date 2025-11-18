@@ -77,7 +77,7 @@ export function GamesSection() {
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
       {/* Header - Compact */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
         {/* Single compact row - everything in one line */}
         <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
           {/* Icon */}

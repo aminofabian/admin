@@ -32,7 +32,7 @@ import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
-import { useProcessingWebSocket } from '@/hooks/use-processing-websocket';
+import { useProcessingWebSocket, type WebSocketMessage } from '@/hooks/use-processing-websocket';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
@@ -421,6 +421,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     fetchTransactions,
     setPage: setTransactionsPage,
     setFilter: setTransactionsFilter,
+    updateTransaction,
   } = useTransactionsStore();
 
   const {
@@ -440,10 +441,21 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     setPage: setQueuePage,
   } = useTransactionQueuesStore();
 
-  // WebSocket connection for real-time updates (only for game activities)
+  // WebSocket connection for real-time updates
+  const wsType = useMemo(() => {
+    if (isGameActivitiesView) return 'processing';
+    if (viewType === 'purchases') return 'purchase_processing';
+    if (viewType === 'cashouts') return 'cashout_processing';
+    return 'processing';
+  }, [isGameActivitiesView, viewType]);
+
   const { isConnected: wsConnected, isConnecting: wsConnecting, error: wsError } = useProcessingWebSocket({
-    enabled: isGameActivitiesView,
+    enabled: true, // Enable for all views
+    type: wsType,
     onQueueUpdate: useCallback((updatedQueue: TransactionQueue) => {
+      // Only handle queue updates for game activities
+      if (!isGameActivitiesView) return;
+      
       console.log('📨 Real-time queue update received:', updatedQueue);
       console.log('   Status:', updatedQueue.status);
       console.log('   ID:', updatedQueue.id);
@@ -473,7 +485,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             duration: 5000,
           });
           
-          console.log(' New activity added to table:', updatedQueue.id);
+          console.log('✅ New activity added to table:', updatedQueue.id);
         } else {
           // Existing activity updated (status change)
           addToast({
@@ -483,22 +495,77 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             duration: 3000,
           });
           
-          console.log(' Activity updated in table:', updatedQueue.id);
+          console.log('✅ Activity updated in table:', updatedQueue.id);
         }
       } else {
         // Completed items are being removed (no toast needed)
-        console.log(' Activity completed and removed:', updatedQueue.id);
+        console.log('✅ Activity completed and removed:', updatedQueue.id);
       }
-    }, [updateQueue, addToast, queues]),
+    }, [updateQueue, addToast, queues, isGameActivitiesView]),
+    onTransactionUpdate: useCallback((updatedTransaction: Transaction) => {
+      // Only handle transaction updates for purchases and cashouts
+      if (isGameActivitiesView) return;
+      
+      console.log('📨 Real-time transaction update received:', updatedTransaction);
+      console.log('   Status:', updatedTransaction.status);
+      console.log('   ID:', updatedTransaction.id);
+      console.log('   Type:', updatedTransaction.type);
+      
+      // Pass ALL updates to the store - it will handle the filtering logic:
+      // - New completed items won't be added
+      // - Existing items that become completed will be removed
+      updateTransaction(updatedTransaction);
+      
+      // Get current transactions for checking if it's new
+      const currentTransactions = transactions?.results ?? [];
+      const isNewTransaction = !currentTransactions.find(t => t.id === updatedTransaction.id);
+      
+      // Show toast notifications (but not for completed items being removed)
+      const statusLower = String(updatedTransaction.status || '').toLowerCase();
+      const isCompleted = statusLower === 'completed' || statusLower === 'complete' || statusLower === 'cancelled' || statusLower === 'failed';
+      
+      if (!isCompleted) {
+        // Only show notifications for non-completed transactions
+        if (isNewTransaction) {
+          // New transaction - show detailed notification
+          const transactionType = updatedTransaction.type?.toUpperCase() || 'TRANSACTION';
+          const userName = updatedTransaction.user_username || 'Unknown User';
+          const amount = formatCurrency(updatedTransaction.amount || '0');
+          
+          addToast({
+            type: 'info',
+            title: `New ${transactionType}`,
+            description: `${userName} - ${amount}`,
+            duration: 5000,
+          });
+          
+          console.log('✅ New transaction added to table:', updatedTransaction.id);
+        } else {
+          // Existing transaction updated (status change)
+          addToast({
+            type: 'info',
+            title: 'Transaction Updated',
+            description: `${updatedTransaction.type} transaction status changed`,
+            duration: 3000,
+          });
+          
+          console.log('✅ Transaction updated in table:', updatedTransaction.id);
+        }
+      } else {
+        // Completed items are being removed (no toast needed)
+        console.log('✅ Transaction completed and removed:', updatedTransaction.id);
+      }
+    }, [updateTransaction, addToast, transactions, isGameActivitiesView]),
     onConnect: useCallback(() => {
-      console.log(' WebSocket connected - real-time updates enabled');
+      console.log('✅ WebSocket connected - real-time updates enabled');
+      const viewName = isGameActivitiesView ? 'game activities' : viewType === 'purchases' ? 'purchases' : 'cashouts';
       addToast({
         type: 'success',
         title: 'Live Updates Active',
-        description: 'Real-time game activities monitoring is now active',
+        description: `Real-time ${viewName} monitoring is now active`,
         duration: 3000,
       });
-    }, [addToast]),
+    }, [addToast, isGameActivitiesView, viewType]),
     onDisconnect: useCallback(() => {
       console.log('🔌 WebSocket disconnected');
     }, []),
@@ -875,7 +942,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
           emptyState={emptyState}
         >
         {/* Compact Header */}
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
           <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
             {/* Icon */}
             <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
@@ -891,6 +958,34 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
             
             {/* Spacer */}
             <div className="flex-1 min-w-0" />
+            
+            {/* WebSocket Connection Status */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shrink-0">
+              {wsConnecting && (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                  <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
+                </>
+              )}
+              {wsConnected && !wsConnecting && (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
+                </>
+              )}
+              {!wsConnected && !wsConnecting && wsError && (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
+                </>
+              )}
+              {!wsConnected && !wsConnecting && !wsError && (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                  <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
         {metadata.hint && (
@@ -1139,7 +1234,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
       >
         <div className="space-y-3 sm:space-y-4 md:space-y-6">
           {/* Compact Header */}
-          <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
             <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
               {/* Icon */}
               <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">

@@ -20,11 +20,11 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { API_BASE_URL } from '@/lib/constants/api';
-import type { TransactionQueue } from '@/types';
+import type { TransactionQueue, Transaction } from '@/types';
 
 export interface WebSocketMessage {
-  type: 'processing_update' | 'queue_update' | 'send_notification' | 'connection' | 'error';
-  data?: TransactionQueue;
+  type: 'processing_update' | 'queue_update' | 'send_notification' | 'connection' | 'error' | 'purchase_activities' | 'cashout_activities';
+  data?: TransactionQueue | Transaction | Transaction[];
   message?: string;
   queues?: TransactionQueue[];
   title?: string;
@@ -32,10 +32,14 @@ export interface WebSocketMessage {
   transaction_id?: string;
 }
 
+type ProcessingWebSocketType = 'processing' | 'purchase_processing' | 'cashout_processing';
+
 interface UseProcessingWebSocketOptions {
   enabled?: boolean;
+  type?: ProcessingWebSocketType;
   onMessage?: (message: WebSocketMessage) => void;
   onQueueUpdate?: (queue: TransactionQueue) => void;
+  onTransactionUpdate?: (transaction: Transaction) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
@@ -69,8 +73,10 @@ interface UseProcessingWebSocketReturn {
  */
 export function useProcessingWebSocket({
   enabled = true,
+  type = 'processing',
   onMessage,
   onQueueUpdate,
+  onTransactionUpdate,
   onConnect,
   onDisconnect,
   onError,
@@ -97,11 +103,11 @@ export function useProcessingWebSocket({
 
     // Convert HTTP/HTTPS to WS/WSS
     const baseUrl = API_BASE_URL.replace(/^http/, 'ws');
-    const wsUrl = `${baseUrl}/ws/notifications/${user.username}/?type=processing`;
+    const wsUrl = `${baseUrl}/ws/notifications/${user.username}/?type=${type}`;
     
     console.log('🔌 WebSocket URL:', wsUrl);
     return wsUrl;
-  }, [user?.username]);
+  }, [user?.username, type]);
 
   const disconnect = useCallback(() => {
     console.log('🔌 Disconnecting WebSocket...');
@@ -307,51 +313,98 @@ export function useProcessingWebSocket({
           // Handle specific message types
           if (message.type === 'processing_update' || message.type === 'queue_update') {
             if (message.data) {
-              onQueueUpdate?.(message.data);
+              onQueueUpdate?.(message.data as TransactionQueue);
             } else if (message.queues && Array.isArray(message.queues)) {
               // Handle bulk queue updates
               message.queues.forEach((queue) => onQueueUpdate?.(queue));
             }
           } else if (message.type === 'send_notification') {
-            // Handle send_notification type - this is for new game activities
-            console.log('📨 New game activity notification:', message);
-            if (message.data) {
-              // Transform the WebSocket data structure to match TransactionQueue interface
-              const rawData = message.data as any;
-              
-              // DEBUG: Log the raw data to see actual field names and values
-              console.log('🔍 DEBUG - Raw WebSocket data:', {
-                status: rawData.status,
-                transaction_status: rawData.transaction_status,
-                queue_status: rawData.queue_status,
-                fullData: rawData
-              });
-              
-              const transformedQueue: TransactionQueue = {
-                id: rawData.id || rawData.transaction_id,
-                type: rawData.operation_type || rawData.type,
-                status: rawData.status,
-                user_id: rawData.user_id,
-                user_username: rawData.user_username,
-                user_email: rawData.user_email,
-                operator: rawData.operator,
-                game_username: rawData.get_usergame_username || rawData.game_username,
-                game: rawData.game_title || rawData.game,
-                game_code: rawData.game_code || '',
-                amount: String(rawData.amount || rawData.get_total_amount || 0),
-                bonus_amount: rawData.bonus ? String(rawData.bonus) : undefined,
-                new_game_balance: rawData.new_game_balance,
-                remarks: rawData.remarks || '',
-                data: rawData,
-                created_at: rawData.created_at,
-                updated_at: rawData.updated_at,
-              };
-              
-              console.log(' Transformed queue - ID:', transformedQueue.id, 'Status:', transformedQueue.status);
-              
-              // Pass all updates to the callback - the store will handle filtering
-              // (completed items need to reach the store so existing items can be removed)
-              onQueueUpdate?.(transformedQueue);
+            // Handle send_notification type - this can be for game activities, purchases, or cashouts
+            console.log('📨 Notification received:', message);
+            
+            if (type === 'processing') {
+              // Game activities - transform to TransactionQueue
+              if (message.data) {
+                const rawData = message.data as any;
+                
+                console.log('🔍 DEBUG - Raw WebSocket data:', {
+                  status: rawData.status,
+                  transaction_status: rawData.transaction_status,
+                  queue_status: rawData.queue_status,
+                  fullData: rawData
+                });
+                
+                const transformedQueue: TransactionQueue = {
+                  id: rawData.id || rawData.transaction_id,
+                  type: rawData.operation_type || rawData.type,
+                  status: rawData.status,
+                  user_id: rawData.user_id,
+                  user_username: rawData.user_username,
+                  user_email: rawData.user_email,
+                  operator: rawData.operator,
+                  game_username: rawData.get_usergame_username || rawData.game_username,
+                  game: rawData.game_title || rawData.game,
+                  game_code: rawData.game_code || '',
+                  amount: String(rawData.amount || rawData.get_total_amount || 0),
+                  bonus_amount: rawData.bonus ? String(rawData.bonus) : undefined,
+                  new_game_balance: rawData.new_game_balance,
+                  remarks: rawData.remarks || '',
+                  data: rawData,
+                  created_at: rawData.created_at,
+                  updated_at: rawData.updated_at,
+                };
+                
+                console.log('✅ Transformed queue - ID:', transformedQueue.id, 'Status:', transformedQueue.status);
+                onQueueUpdate?.(transformedQueue);
+              }
+            } else if (type === 'purchase_processing' || type === 'cashout_processing') {
+              // Purchase/Cashout transactions - transform to Transaction
+              if (message.data) {
+                const rawData = message.data as any;
+                
+                console.log('🔍 DEBUG - Raw transaction data:', {
+                  id: rawData.id,
+                  status: rawData.status,
+                  type: rawData.type,
+                  user_username: rawData.user_username,
+                  user_email: rawData.user_email,
+                  fullData: rawData
+                });
+                
+                // Check if user data is nested (similar to game activities normalization)
+                const nestedData = rawData.data && typeof rawData.data === 'object' ? rawData.data : null;
+                const userData = rawData.user && typeof rawData.user === 'object' ? rawData.user : null;
+                
+                const transformedTransaction: Transaction = {
+                  id: rawData.id || rawData.transaction_id || nestedData?.id || nestedData?.transaction_id,
+                  user_username: rawData.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawData.username || nestedData?.username || '',
+                  user_email: rawData.user_email || userData?.email || userData?.user_email || nestedData?.user_email || rawData.email || nestedData?.email || '',
+                  amount: String(rawData.amount || nestedData?.amount || 0),
+                  bonus_amount: rawData.bonus_amount || nestedData?.bonus_amount ? String(rawData.bonus_amount || nestedData.bonus_amount) : '',
+                  status: rawData.status || nestedData?.status || 'pending',
+                  type: rawData.type || nestedData?.type || (type === 'purchase_processing' ? 'purchase' : 'cashout'),
+                  operator: rawData.operator || nestedData?.operator || '',
+                  payment_method: rawData.payment_method || nestedData?.payment_method || rawData.operator || nestedData?.operator || '',
+                  currency: rawData.currency || nestedData?.currency || 'USD',
+                  description: rawData.description || nestedData?.description || '',
+                  journal_entry: rawData.journal_entry || nestedData?.journal_entry || (type === 'purchase_processing' ? 'credit' : 'debit'),
+                  previous_balance: String(rawData.previous_balance || nestedData?.previous_balance || 0),
+                  new_balance: String(rawData.new_balance || nestedData?.new_balance || 0),
+                  previous_winning_balance: String(rawData.previous_winning_balance || nestedData?.previous_winning_balance || 0),
+                  new_winning_balance: String(rawData.new_winning_balance || nestedData?.new_winning_balance || 0),
+                  unique_id: rawData.unique_id || nestedData?.unique_id || rawData.id || nestedData?.id || '',
+                  role: rawData.role || nestedData?.role || '',
+                  action: rawData.action || nestedData?.action || '',
+                  remarks: rawData.remarks || nestedData?.remarks || null,
+                  created: rawData.created || rawData.created_at || nestedData?.created || nestedData?.created_at || new Date().toISOString(),
+                  updated: rawData.updated || rawData.updated_at || nestedData?.updated || nestedData?.updated_at || new Date().toISOString(),
+                  payment_url: rawData.payment_url || nestedData?.payment_url || null,
+                  invoice_url: rawData.invoice_url || nestedData?.invoice_url,
+                };
+                
+                console.log('✅ Transformed transaction - ID:', transformedTransaction.id, 'Status:', transformedTransaction.status, 'User:', transformedTransaction.user_username);
+                onTransactionUpdate?.(transformedTransaction);
+              }
             }
           }
         } catch (err) {
@@ -371,8 +424,10 @@ export function useProcessingWebSocket({
     enabled,
     isAuthenticated,
     getWebSocketUrl,
+    type,
     onMessage,
     onQueueUpdate,
+    onTransactionUpdate,
     onConnect,
     onDisconnect,
     onError,

@@ -36,6 +36,7 @@ interface TransactionsActions {
   setAdvancedFilters: (filters: Record<string, string>) => void;
   clearAdvancedFilters: () => void;
   updateTransactionStatus: (options: { id: string; status: 'completed' | 'cancelled' }) => Promise<void>;
+  updateTransaction: (transaction: Transaction) => void;
   reset: () => void;
 }
 
@@ -156,10 +157,30 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         },
       });
 
-      const data = await transactionsApi.list(filters);
+      const response = await transactionsApi.list(filters);
+      
+      // Normalize API response to ensure user data is at top level (similar to game activities)
+      const normalizedTransactions: Transaction[] = response.results.map((transaction: Transaction) => {
+        // If transaction has nested data, check for user info there
+        if (transaction && typeof transaction === 'object') {
+          // Check if user data might be in a nested user object
+          const anyTxn = transaction as any;
+          if (anyTxn.user && typeof anyTxn.user === 'object') {
+            return {
+              ...transaction,
+              user_username: transaction.user_username || anyTxn.user.username || anyTxn.user.user_username || '',
+              user_email: transaction.user_email || anyTxn.user.email || anyTxn.user.user_email || '',
+            };
+          }
+        }
+        return transaction;
+      });
       
       set({ 
-        transactions: data, 
+        transactions: {
+          ...response,
+          results: normalizedTransactions,
+        }, 
         isLoading: false,
         error: null,
       });
@@ -239,6 +260,81 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       throw err;
     } finally {
       set({ isUpdatingTransaction: false, updatingTransactionId: null });
+    }
+  },
+
+  /**
+   * Update a single transaction (real-time WebSocket updates)
+   * 
+   * This method efficiently updates or adds a single transaction without
+   * refetching all data from the server. Used by WebSocket to merge
+   * real-time updates. Follows the same pattern as game activities updateQueue.
+   * 
+   * @param updatedTransaction - The transaction to update or add
+   */
+  updateTransaction: (updatedTransaction: Transaction) => {
+    const { transactions, filter } = get();
+    
+    if (!transactions?.results || !Array.isArray(transactions.results)) {
+      console.log('No transactions to update, fetching fresh data...');
+      get().fetchTransactions();
+      return;
+    }
+
+    const status = updatedTransaction.status?.toLowerCase();
+    const isCompleted = status === 'completed' || status === 'complete' || status === 'cancelled' || status === 'failed';
+    
+    // Check if we're viewing pending transactions
+    const isPendingView = filter === 'pending-purchases' || filter === 'pending-cashouts';
+    
+    console.log('🔍 Store updateTransaction - ID:', updatedTransaction.id, 'Status:', updatedTransaction.status, 'IsCompleted:', isCompleted, 'Filter:', filter, 'IsPendingView:', isPendingView);
+
+    // Find the index of the transaction to check if it already exists
+    const transactionIndex = transactions.results.findIndex((t) => t.id === updatedTransaction.id);
+    
+    if (transactionIndex >= 0) {
+      // Item EXISTS in the list
+      if (isPendingView && isCompleted) {
+        // Remove completed items from pending view
+        const updatedResults = transactions.results.filter((t) => t.id !== updatedTransaction.id);
+        set({ 
+          transactions: {
+            ...transactions,
+            results: updatedResults,
+            count: Math.max(0, (transactions.count || 0) - 1),
+          }
+        });
+        console.log('✅ Removed completed transaction from pending view:', updatedTransaction.id);
+        return;
+      }
+      
+      // Update existing transaction (for status changes like pending -> processing)
+      const updatedResults = [...transactions.results];
+      updatedResults[transactionIndex] = updatedTransaction;
+      set({ 
+        transactions: {
+          ...transactions,
+          results: updatedResults,
+        }
+      });
+      console.log('✅ Transaction updated:', updatedTransaction.id, 'Status:', updatedTransaction.status);
+    } else {
+      // Item is NEW - don't add if it's already completed and we're viewing pending
+      if (isPendingView && isCompleted) {
+        console.log('⏭️ Store: Not adding new completed transaction to pending view:', updatedTransaction.id);
+        return;
+      }
+      
+      // Add new transaction to the beginning of the list
+      const updatedResults = [updatedTransaction, ...transactions.results];
+      set({ 
+        transactions: {
+          ...transactions,
+          results: updatedResults,
+          count: (transactions.count || 0) + 1,
+        }
+      });
+      console.log('✅ New transaction added:', updatedTransaction.id, 'Status:', updatedTransaction.status);
     }
   },
 
