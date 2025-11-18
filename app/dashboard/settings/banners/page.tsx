@@ -15,7 +15,7 @@ import {
   Pagination,
   Modal,
 } from '@/components/ui';
-import { BannerForm, LoadingState, ErrorState } from '@/components/features';
+import { BannerForm, LoadingState, ErrorState, EmptyState } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
@@ -40,22 +40,29 @@ function mapBannerTypeVariant(bannerType: Banner['banner_type']) {
 
 function BannersHeader({ onCreate }: { onCreate: () => void }) {
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#6366f1] dark:bg-[#312e81] dark:text-[#a5b4fc]">
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
+      <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+        {/* Icon */}
+        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7h16M4 12h10M4 17h7" />
           </svg>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{SECTION_TITLE}</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{SECTION_SUBTITLE}</p>
-        </div>
+        
+        {/* Title */}
+        <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+          {SECTION_TITLE}
+        </h2>
+        
+        {/* Spacer */}
+        <div className="flex-1 min-w-0" />
+        
+        {/* Add Banner Button */}
+        <Button variant="primary" size="sm" onClick={onCreate} className="shrink-0">
+          {ADD_BUTTON_LABEL}
+        </Button>
       </div>
-      <Button variant="primary" size="md" onClick={onCreate} className="lg:self-auto">
-        {ADD_BUTTON_LABEL}
-      </Button>
-    </section>
+    </div>
   );
 }
 
@@ -76,36 +83,26 @@ function BannersTable({
   onEdit: (banner: Banner) => void;
   onDelete: (banner: Banner) => void;
 }) {
-  const hasBanners = data.length > 0;
-
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">
-            <TableHead className="w-[280px]">Title</TableHead>
-            <TableHead className="w-[180px]">Type</TableHead>
-            <TableHead className="w-[200px]">Category</TableHead>
-            <TableHead className="w-[160px]">Status</TableHead>
-            <TableHead className="w-[220px]">Dates</TableHead>
+          <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Dates</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {hasBanners
-            ? data.map((banner) => (
-                <BannersTableRow key={banner.id} banner={banner} onEdit={onEdit} onDelete={onDelete} />
-              ))
-            : (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                  {EMPTY_ROW_TEXT}
-                </TableCell>
-              </TableRow>
-            )}
+          {data.map((banner) => (
+            <BannersTableRow key={banner.id} banner={banner} onEdit={onEdit} onDelete={onDelete} />
+          ))}
         </TableBody>
       </Table>
-    </section>
+    </div>
   );
 }
 
@@ -119,9 +116,9 @@ function BannersTableRow({
   onDelete: (item: Banner) => void;
 }) {
   return (
-    <TableRow className="border-b border-border/40 last:border-0 dark:border-slate-700/80">
+    <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
-        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{banner.title}</span>
+        <span className="font-medium text-gray-900 dark:text-gray-100">{banner.title}</span>
       </TableCell>
       <TableCell>
         <Badge variant={mapBannerTypeVariant(banner.banner_type)}>
@@ -137,7 +134,7 @@ function BannersTableRow({
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="flex flex-col text-sm text-gray-600 dark:text-gray-300">
+        <div className="flex flex-col text-sm text-gray-600 dark:text-gray-400">
           <span>{formatDate(banner.created)}</span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             Updated {formatDate(banner.modified)}
@@ -145,11 +142,27 @@ function BannersTableRow({
         </div>
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" size="sm" onClick={() => onEdit(banner)}>
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(banner)}
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
             Edit
           </Button>
-          <Button variant="danger" size="sm" onClick={() => onDelete(banner)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(banner)}
+            className="flex items-center gap-2 rounded-full border border-red-200 px-4 py-1.5 text-sm font-medium text-red-700 shadow-sm hover:border-red-300 hover:bg-red-50 dark:border-red-700 dark:bg-red-900 dark:text-red-200 dark:hover:border-red-600 dark:hover:bg-red-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
             Delete
           </Button>
         </div>
@@ -158,37 +171,6 @@ function BannersTableRow({
   );
 }
 
-function BannersPagination({
-  totalCount,
-  pageSize,
-  currentPage,
-  hasNext,
-  hasPrevious,
-  onPageChange,
-}: {
-  totalCount: number;
-  pageSize: number;
-  currentPage: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-  onPageChange: (page: number) => void;
-}) {
-  if (totalCount <= pageSize) {
-    return null;
-  }
-
-  return (
-    <section className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <Pagination
-        currentPage={currentPage}
-        totalPages={Math.ceil(totalCount / pageSize)}
-        hasNext={hasNext}
-        hasPrevious={hasPrevious}
-        onPageChange={onPageChange}
-      />
-    </section>
-  );
-}
 
 export default function BannersPage() {
   const {
@@ -262,15 +244,28 @@ export default function BannersPage() {
     <div className="space-y-6">
       <BannersHeader onCreate={handleCreate} />
       <BannersSearch value={searchTerm} onChange={setSearchTerm} />
-      <BannersTable data={list} onEdit={handleEdit} onDelete={handleDelete} />
-      <BannersPagination
-        totalCount={totalCount}
-        pageSize={pageSize}
-        currentPage={currentPage}
-        hasNext={Boolean(banners?.next)}
-        hasPrevious={Boolean(banners?.previous)}
-        onPageChange={setPage}
-      />
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {list.length === 0 ? (
+          <div className="py-12">
+            <EmptyState title={EMPTY_ROW_TEXT} />
+          </div>
+        ) : (
+          <>
+            <BannersTable data={list} onEdit={handleEdit} onDelete={handleDelete} />
+            {totalCount > pageSize && (
+              <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(totalCount / pageSize)}
+                  hasNext={Boolean(banners?.next)}
+                  hasPrevious={Boolean(banners?.previous)}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>
       <Modal
         isOpen={isModalOpen}
         onClose={() => {
