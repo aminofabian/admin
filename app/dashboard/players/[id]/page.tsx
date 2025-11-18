@@ -1254,15 +1254,6 @@ export default function PlayerDetailPage() {
                               Edit Game
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => setGameToChange(game)}
-                              className="flex items-center gap-2"
-                            >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                              </svg>
-                              Change Status
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
                               onClick={() => setGameToDelete(game)}
                               className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                             >
