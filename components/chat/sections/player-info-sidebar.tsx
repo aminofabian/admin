@@ -214,7 +214,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="w-full">
           <Button 
             variant="primary" 
             className="w-full text-xs py-1.5 h-8"
@@ -224,16 +224,6 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Balance
-          </Button>
-          <Button 
-            variant="secondary" 
-            className="w-full text-xs py-1.5 h-8"
-            onClick={onOpenEditProfile}
-          >
-            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Profile
           </Button>
         </div>
 
@@ -737,39 +727,6 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           </div>}
         </div>
 
-        {/* Notes Section - Read Only */}
-        <div className="rounded-lg bg-card border border-border p-3 space-y-2 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center">
-                <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-              <h4 className="font-semibold text-sm text-foreground">Notes</h4>
-            </div>
-            <button
-              onClick={onOpenNotesDrawer}
-              className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit
-            </button>
-          </div>
-          {notes ? (
-            <div className="p-2.5 border border-border/50 rounded-md bg-muted/30 min-h-[80px]">
-              <p className="text-xs text-foreground whitespace-pre-wrap break-words">
-                {notes}
-              </p>
-            </div>
-          ) : (
-            <div className="p-4 text-center border border-border/50 rounded-md bg-muted/20 min-h-[80px] flex items-center justify-center">
-              <p className="text-xs text-muted-foreground">No notes available</p>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Modals */}
