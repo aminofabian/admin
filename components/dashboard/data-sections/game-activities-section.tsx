@@ -310,11 +310,11 @@ function HistoryGameActivitiesLayout({
   return (
     <>
       {/* Compact Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
         <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
           {/* Icon */}
-          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 shadow-md shrink-0">
-            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z" />
             </svg>
           </div>
@@ -341,27 +341,29 @@ function HistoryGameActivitiesLayout({
         isGameLoading={isGameLoading}
         isLoading={isLoading}
       />
-      <HistoryGameActivitiesTable queues={queues} />
-      {shouldShowPagination && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-          <Pagination
-            currentPage={pagination.currentPage}
-            totalPages={totalPages}
-            hasNext={pagination.hasNext}
-            hasPrevious={pagination.hasPrevious}
-            onPageChange={pagination.onPageChange}
-          />
-        </div>
-      )}
+      <HistoryGameActivitiesTable 
+        queues={queues} 
+        pagination={pagination}
+        totalPages={totalPages}
+        shouldShowPagination={shouldShowPagination}
+      />
     </>
   );
 }
 
 interface HistoryGameActivitiesTableProps {
   queues: TransactionQueue[];
+  pagination: HistoryPaginationState;
+  totalPages: number;
+  shouldShowPagination: boolean;
 }
 
-function HistoryGameActivitiesTable({ queues }: HistoryGameActivitiesTableProps) {
+function HistoryGameActivitiesTable({ 
+  queues, 
+  pagination, 
+  totalPages, 
+  shouldShowPagination 
+}: HistoryGameActivitiesTableProps) {
   const [selectedActivity, setSelectedActivity] = useState<TransactionQueue | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
@@ -375,47 +377,66 @@ function HistoryGameActivitiesTable({ queues }: HistoryGameActivitiesTableProps)
     setSelectedActivity(null);
   }, []);
 
-  if (!queues.length) {
-    return null;
-  }
-
   return (
     <>
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {/* Mobile Card View */}
-        <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
-          {queues.map((activity) => (
-            <GameActivityCard
-              key={activity.id}
-              activity={activity}
-              onView={handleViewActivity}
+        {!queues.length ? (
+          <div className="py-12">
+            <EmptyState 
+              title="No Game Activity History found" 
+              description="No completed or cancelled game activities matched your filters"
             />
-          ))}
-        </div>
-
-        {/* Desktop Table View */}
-        <div className="hidden lg:block overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Activity</TableHead>
-                <TableHead>Game</TableHead>
-                <TableHead>Game Username</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>New Balance</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
               {queues.map((activity) => (
-                <HistoryGameActivityRow key={activity.id} activity={activity} onView={handleViewActivity} />
+                <GameActivityCard
+                  key={activity.id}
+                  activity={activity}
+                  onView={handleViewActivity}
+                />
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Activity</TableHead>
+                    <TableHead>Game</TableHead>
+                    <TableHead>Game Username</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>New Balance</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Dates</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {queues.map((activity) => (
+                    <HistoryGameActivityRow key={activity.id} activity={activity} onView={handleViewActivity} />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {shouldShowPagination && (
+              <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                <Pagination
+                  currentPage={pagination.currentPage}
+                  totalPages={totalPages}
+                  hasNext={pagination.hasNext}
+                  hasPrevious={pagination.hasPrevious}
+                  onPageChange={pagination.onPageChange}
+                />
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {selectedActivity && (
@@ -580,10 +601,10 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
   }, [isRedeem, shouldShowDash]);
 
   return (
-    <TableRow>
+    <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
             {userInitial}
           </div>
           <div>
@@ -647,7 +668,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="text-xs text-muted-foreground space-y-1">
+        <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
           <div>{formattedCreatedAt}</div>
           {showUpdatedAt && (
             <div>{formattedUpdatedAt}</div>
@@ -655,14 +676,21 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         </div>
       </TableCell>
       <TableCell className="text-right">
-        <Button
-          variant="primary"
-          size="sm"
-          className="min-w-[7.5rem]"
-          onClick={handleViewClick}
-        >
-          View
-        </Button>
+        <div className="flex items-center justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleViewClick}
+            title="View activity"
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            View
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -849,7 +877,7 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView }: Ga
       {/* Top Section: User, Activity Type & Status */}
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
             {userInitial}
           </div>
           <div className="flex-1 min-w-0">
@@ -947,11 +975,16 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView }: Ga
         </div>
         <Button
           size="sm"
-          variant="primary"
+          variant="ghost"
           onClick={handleViewClick}
-          className="px-3 py-1.5 text-xs touch-manipulation shrink-0"
+          className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 touch-manipulation"
+          title="View activity"
         >
-          View
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          <span className="hidden sm:inline">View</span>
         </Button>
       </div>
     </div>
