@@ -500,17 +500,25 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
 
   const zeroCurrency = formatCurrency('0');
 
+  // Check if this is a reset or add user action - these should show blank balances
+  const shouldShowBlankBalance = useMemo(() => {
+    const typeStr = String(activity.type);
+    return typeStr === 'change_password' || typeStr === 'add_user_game';
+  }, [activity.type]);
+
   const creditsDisplay = useMemo(() => {
+    if (shouldShowBlankBalance) return '';
     if (newCreditsBalance) return newCreditsBalance;
     if (credit) return credit;
     return zeroCurrency;
-  }, [newCreditsBalance, credit, zeroCurrency]);
+  }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency]);
 
   const winningsDisplay = useMemo(() => {
+    if (shouldShowBlankBalance) return '';
     if (newWinningBalance) return newWinningBalance;
     if (winnings) return winnings;
     return zeroCurrency;
-  }, [newWinningBalance, winnings, zeroCurrency]);
+  }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency]);
 
   // Website user (actual user on the platform)
   const websiteUsername = useMemo(() => {
@@ -626,10 +634,10 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
       <TableCell>
         <div className="space-y-1">
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            C: {creditsDisplay}
+            {creditsDisplay}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            W: {winningsDisplay}
+            {winningsDisplay}
           </div>
         </div>
       </TableCell>
@@ -763,17 +771,26 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView }: Ga
   }, [activity.data?.winnings]);
 
   const zeroCurrency = formatCurrency('0');
+  
+  // Check if this is a reset or add user action - these should show blank balances
+  const shouldShowBlankBalance = useMemo(() => {
+    const typeStr = String(activity.type);
+    return typeStr === 'change_password' || typeStr === 'add_user_game';
+  }, [activity.type]);
+
   const creditsDisplay = useMemo(() => {
+    if (shouldShowBlankBalance) return '';
     if (newCreditsBalance) return newCreditsBalance;
     if (credit) return credit;
     return zeroCurrency;
-  }, [newCreditsBalance, credit, zeroCurrency]);
+  }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency]);
 
   const winningsDisplay = useMemo(() => {
+    if (shouldShowBlankBalance) return '';
     if (newWinningBalance) return newWinningBalance;
     if (winnings) return winnings;
     return zeroCurrency;
-  }, [newWinningBalance, winnings, zeroCurrency]);
+  }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency]);
 
   const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
