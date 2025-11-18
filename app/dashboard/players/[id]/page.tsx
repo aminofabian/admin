@@ -1468,9 +1468,6 @@ function EditGameDrawerContent({
                 <p className="text-xs text-muted-foreground">
                   Game: <span className="font-medium text-foreground">{game.game__title}</span>
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Game ID: <span className="font-medium text-foreground">{game.game__id}</span>
-                </p>
               </div>
             </div>
           </div>
