@@ -62,7 +62,7 @@ export function EditProfileDrawer({
 
           {/* Drawer Body - Scrollable Content */}
           <div className="flex-1 overflow-y-auto px-6 py-6 pb-24 md:pb-6">
-            <div className="space-y-4">
+            <form autoComplete="off" className="space-y-4">
               {/* Username */}
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
@@ -73,7 +73,9 @@ export function EditProfileDrawer({
                   value={profileFormData.username}
                   onChange={(e) => setProfileFormData(prev => ({ ...prev, username: e.target.value }))}
                   className="w-full"
-                  disabled={isUpdating}
+                  disabled={true}
+                  autoComplete="off"
+                  readOnly
                 />
               </div>
 
@@ -133,6 +135,7 @@ export function EditProfileDrawer({
                   placeholder="Leave blank to keep current password"
                   className="w-full"
                   disabled={isUpdating}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -148,6 +151,7 @@ export function EditProfileDrawer({
                   placeholder="Confirm new password"
                   className="w-full"
                   disabled={isUpdating}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -188,7 +192,7 @@ export function EditProfileDrawer({
                   </div>
                 </div>
               </div>
-            </div>
+            </form>
           </div>
 
           {/* Sticky Footer with Save Button */}
