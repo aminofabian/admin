@@ -169,32 +169,37 @@ export function BonusesSection() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold text-foreground dark:text-white">Bonuses</h2>
-              <p className="mt-1 text-sm text-muted-foreground dark:text-slate-400">Manage all bonus accounts and permissions</p>
-            </div>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+          {/* Icon */}
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
+          
+          {/* Title */}
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+            Bonuses
+          </h2>
+          
+          {/* Spacer */}
+          <div className="flex-1 min-w-0" />
+          
+          {/* Add Bonus Button */}
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             onClick={() => {/* Handle add bonus */}}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground shadow-sm hover:bg-primary/90 dark:bg-primary/80 dark:hover:bg-primary"
+            className="shrink-0"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add Bonus
           </Button>
         </div>
-      </section>
+      </div>
 
       {/* Tabs */}
       <section className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
@@ -238,127 +243,143 @@ export function BonusesSection() {
             />
           </section>
 
-          {/* Table */}
-          <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                {activeTab === 'affiliate' ? (
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Commission %</TableHead>
-                <TableHead>Fee %</TableHead>
-                <TableHead>Payment Method Fee %</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
+          {/* Table Container */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {getCurrentData().length === 0 ? (
+              <div className="py-12">
+                <EmptyState title={`No ${activeTab} bonuses found`} />
+              </div>
             ) : (
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Bonus Type</TableHead>
-                <TableHead>Bonus Value</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Display Text</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            )}
-          </TableHeader>
-          <TableBody>
-            {getCurrentData().map((item: AllItems) => (
-              <TableRow key={item.id}>
-                {activeTab === 'affiliate' ? (
-                  <>
-                    <TableCell>{item.id}</TableCell>
-                    <TableCell className="font-medium">{(item as AffiliateDefaults).default_affiliation_percentage}%</TableCell>
-                    <TableCell className="font-medium">{(item as AffiliateDefaults).default_fee_percentage}%</TableCell>
-                    <TableCell className="font-medium">{(item as AffiliateDefaults).default_payment_method_fee_percentage}%</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => {/* Handle edit */}}
-                      >
-                        Edit
-                      </Button>
-                    </TableCell>
-                  </>
-                ) : (
-                  <>
-                    {/* eslint-disable @typescript-eslint/no-explicit-any */}
-                    <TableCell>{item.id}</TableCell>
-                    <TableCell className="font-medium">{'name' in item ? (item as any).name : `Bonus ${item.id}`}</TableCell>
-                    <TableCell>
-                      <Badge variant="default">{'bonus_type' in item ? (item as any).bonus_type : 'N/A'}</Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {'bonus_type' in item && 'bonus' in item 
-                        ? ((item as any).bonus_type === 'percentage' ? `${(item as any).bonus}%` : `$${(item as any).bonus}`)
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={'is_enabled' in item && (item as any).is_enabled ? 'success' : 'danger'}>
-                        {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-gray-600 dark:text-gray-400">
-                      {'display_text' in item ? (item as any).display_text : 'N/A'}
-                    </TableCell>
-                    {/* eslint-enable @typescript-eslint/no-explicit-any */}
-                    <TableCell>
-                      {isToggleableBonus(item) ? (
-                        <div className="flex gap-2">
-                          <Button
-                            variant={item.is_enabled ? 'danger' : 'primary'}
-                            size="sm"
-                            onClick={() => handleToggleBonus(item)}
-                            disabled={getToggleLoading()}
-                          >
-                            {item.is_enabled ? BONUS_DISABLE_LABEL : BONUS_ENABLE_LABEL}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => {/* Handle edit */}}
-                          >
-                            Edit
-                          </Button>
-                        </div>
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      {activeTab === 'affiliate' ? (
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Commission %</TableHead>
+                          <TableHead>Fee %</TableHead>
+                          <TableHead>Payment Method Fee %</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
                       ) : (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => {/* Handle edit */}}
-                        >
-                          Edit
-                        </Button>
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Bonus Type</TableHead>
+                          <TableHead>Bonus Value</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Display Text</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
                       )}
-                    </TableCell>
-                  </>
+                    </TableHeader>
+                    <TableBody>
+                      {getCurrentData().map((item: AllItems) => (
+                        <TableRow key={item.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          {activeTab === 'affiliate' ? (
+                            <>
+                              <TableCell className="text-gray-900 dark:text-gray-100">{item.id}</TableCell>
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">{(item as AffiliateDefaults).default_affiliation_percentage}%</TableCell>
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">{(item as AffiliateDefaults).default_fee_percentage}%</TableCell>
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">{(item as AffiliateDefaults).default_payment_method_fee_percentage}%</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                  onClick={() => {/* Handle edit */}}
+                                >
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  Edit
+                                </Button>
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              {/* eslint-disable @typescript-eslint/no-explicit-any */}
+                              <TableCell className="text-gray-900 dark:text-gray-100">{item.id}</TableCell>
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">{'name' in item ? (item as any).name : `Bonus ${item.id}`}</TableCell>
+                              <TableCell>
+                                <Badge variant="default">{'bonus_type' in item ? (item as any).bonus_type : 'N/A'}</Badge>
+                              </TableCell>
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                {'bonus_type' in item && 'bonus' in item 
+                                  ? ((item as any).bonus_type === 'percentage' ? `${(item as any).bonus}%` : `$${(item as any).bonus}`)
+                                  : 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={'is_enabled' in item && (item as any).is_enabled ? 'success' : 'danger'}>
+                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Inactive'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-gray-600 dark:text-gray-400">
+                                {'display_text' in item ? (item as any).display_text : 'N/A'}
+                              </TableCell>
+                              {/* eslint-enable @typescript-eslint/no-explicit-any */}
+                              <TableCell className="text-right">
+                                {isToggleableBonus(item) ? (
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      variant={item.is_enabled ? 'danger' : 'primary'}
+                                      size="sm"
+                                      onClick={() => handleToggleBonus(item)}
+                                      disabled={getToggleLoading()}
+                                    >
+                                      {item.is_enabled ? BONUS_DISABLE_LABEL : BONUS_ENABLE_LABEL}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                      onClick={() => {/* Handle edit */}}
+                                    >
+                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      Edit
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-end">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                      onClick={() => {/* Handle edit */}}
+                                    >
+                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      Edit
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {getCurrentCount() > pageSize && (
+                  <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(getCurrentCount() / pageSize)}
+                      hasNext={false}
+                      hasPrevious={false}
+                      onPageChange={setPage}
+                    />
+                  </div>
                 )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        </div>
-      </section>
-
-      {/* Empty State */}
-      {getCurrentData().length === 0 && (
-        <EmptyState title={`No ${activeTab} bonuses found`} />
-      )}
-
-      {/* Pagination */}
-      {getCurrentCount() > pageSize && (
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(getCurrentCount() / pageSize)}
-            hasNext={false}
-            hasPrevious={false}
-            onPageChange={setPage}
-          />
-        </div>
-      )}
+              </>
+            )}
+          </div>
         </>
       )}
 
