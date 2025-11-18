@@ -8,7 +8,7 @@ import { memo } from 'react';
 export const MessageHistorySkeleton = memo(() => (
   <div className="space-y-4 py-3">
     {/* User message skeleton (right side) */}
-    <div className="flex items-start justify-end gap-3">
+    {/* <div className="flex items-start justify-end gap-3">
       <div className="flex flex-col items-end max-w-[70%]">
         <div className="rounded-2xl rounded-tr-sm bg-primary/10 px-4 py-2.5 space-y-2">
           <Skeleton className="h-4 w-48" />
@@ -17,7 +17,7 @@ export const MessageHistorySkeleton = memo(() => (
         <Skeleton className="h-3 w-16 mt-1" />
       </div>
       <Skeleton variant="circular" className="h-8 w-8" />
-    </div>
+    </div> */}
 
     {/* Admin message skeleton (left side) */}
     <div className="flex items-start gap-3">
