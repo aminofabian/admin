@@ -24,7 +24,7 @@ import {
 
 // Icon Components
 const UsersIcon = () => (
-  <svg className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -103,10 +103,7 @@ export function ManagersList() {
 
   // Early Returns
   if (isLoading && !managers) return <LoadingState />;
-  if (error) return <ErrorState message={error} onRetry={fetchManagers} />;
-  if (!managers?.results?.length) {
-    return <EmptyState title="No managers found" />;
-  }
+  if (error && !managers) return <ErrorState message={error} onRetry={fetchManagers} />;
 
   // Event Handlers
   const handleCreate = async (formData: CreateUserRequest | UpdateUserRequest) => {
@@ -306,7 +303,7 @@ export function ManagersList() {
     <TableRow key={manager.id}>
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
             {manager.username.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -334,7 +331,7 @@ export function ManagersList() {
         </div>
       </TableCell>
 
-      <TableCell>
+      <TableCell className="text-right">
         <div className="flex items-center justify-end">
           <Button
             variant="ghost"
@@ -359,7 +356,7 @@ export function ManagersList() {
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold shadow-md">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
               {manager.username.charAt(0).toUpperCase()}
             </div>
           </div>
@@ -423,11 +420,11 @@ export function ManagersList() {
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
       {/* Header - Compact */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
         {/* Single compact row - everything in one line */}
         <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
           {/* Icon */}
-          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 shadow-md shrink-0">
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
             <UsersIcon />
           </div>
           
@@ -452,43 +449,54 @@ export function ManagersList() {
         </div>
       </div>
 
-      {/* Desktop Table */}
-      <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {managers?.results?.map((manager) => renderTableRow(manager))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      {/* Content */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {!managers?.results?.length ? (
+          <div className="py-12">
+            <EmptyState 
+              title="No Managers found" 
+              description="Get started by creating a new Manager"
+            />
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+              {managers?.results?.map((manager) => renderMobileCard(manager))}
+            </div>
 
-      {/* Mobile Cards */}
-      <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4">
-        {managers?.results?.map((manager) => renderMobileCard(manager))}
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {managers?.results?.map((manager) => renderTableRow(manager))}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {managers && managers.count > pageSize && (
+              <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(managers.count / pageSize)}
+                  hasNext={!!managers.next}
+                  hasPrevious={!!managers.previous}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
+          </>
+        )}
       </div>
-
-      {/* Pagination */}
-      {managers && managers.count > pageSize && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(managers.count / pageSize)}
-            hasNext={!!managers.next}
-            hasPrevious={!!managers.previous}
-            onPageChange={setPage}
-          />
-        </div>
-      )}
 
       {/* Create Drawer */}
       <Drawer 
