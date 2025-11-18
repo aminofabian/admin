@@ -39,6 +39,8 @@ export default function PlayerDetailPage() {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAssigningAgent, setIsAssigningAgent] = useState(false);
+  const [isRemovingAgent, setIsRemovingAgent] = useState(false);
+  const [showRemoveAgentModal, setShowRemoveAgentModal] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(false);
@@ -437,6 +439,50 @@ export default function PlayerDetailPage() {
       console.log('✅ handleAssignAgent completed');
     }
   }, [selectedPlayer, selectedAgentId, agentOptions, addToast]);
+
+  const handleRemoveAgent = useCallback(async () => {
+    if (!selectedPlayer) return;
+
+    setIsRemovingAgent(true);
+    try {
+      // Remove agent by setting agent_id to null
+      // TypeScript doesn't allow null for optional number, but API accepts it
+      await playersApi.update(selectedPlayer.id, {
+        agent_id: null as unknown as number | undefined,
+      });
+
+      // Update local state to remove agent information
+      setSelectedPlayer((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          agent_id: undefined,
+          agent: undefined,
+          agent_username: undefined,
+        };
+      });
+
+      // Clear the selected agent ID
+      setSelectedAgentId('');
+
+      addToast({
+        type: 'success',
+        title: 'Agent removed',
+        description: `Player "${selectedPlayer.username}" has been moved to company and is no longer assigned to an agent.`,
+      });
+
+      setShowRemoveAgentModal(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to remove agent';
+      addToast({
+        type: 'error',
+        title: 'Remove failed',
+        description: message,
+      });
+    } finally {
+      setIsRemovingAgent(false);
+    }
+  }, [selectedPlayer, addToast]);
 
   const handleDeactivate = useCallback(async () => {
     if (!selectedPlayer) return;
@@ -846,23 +892,40 @@ export default function PlayerDetailPage() {
                       className="w-full"
                     />
                   </div>
-                  <Button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleAssignAgent();
-                    }}
-                    isLoading={isAssigningAgent}
-                    disabled={!selectedAgentId || isLoadingAgents}
-                    variant="primary"
-                    className="group flex items-center justify-center gap-2 rounded-lg px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold shadow-md transition-all hover:shadow-lg active:scale-[0.98] disabled:opacity-50 touch-manipulation"
-                  >
-                    <svg className="h-4 w-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Assign
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAssignAgent();
+                      }}
+                      isLoading={isAssigningAgent}
+                      disabled={!selectedAgentId || isLoadingAgents}
+                      variant="primary"
+                      className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 touch-manipulation"
+                    >
+                      <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Assign
+                    </Button>
+                    {selectedPlayer.agent_username && (
+                      <Button
+                        type="button"
+                        onClick={() => setShowRemoveAgentModal(true)}
+                        isLoading={isRemovingAgent}
+                        disabled={isRemovingAgent}
+                        variant="danger"
+                        className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 touch-manipulation"
+                      >
+                        <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Remove
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
@@ -927,23 +990,40 @@ export default function PlayerDetailPage() {
                       className="w-full"
                     />
                   </div>
-                  <Button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleAssignAgent();
-                    }}
-                    isLoading={isAssigningAgent}
-                    disabled={!selectedAgentId || isLoadingAgents}
-                    variant="primary"
-                    className="group flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold shadow-md transition-all hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
-                  >
-                    <svg className="h-4 w-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Assign
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAssignAgent();
+                      }}
+                      isLoading={isAssigningAgent}
+                      disabled={!selectedAgentId || isLoadingAgents}
+                      variant="primary"
+                      className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+                    >
+                      <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Assign
+                    </Button>
+                    {selectedPlayer.agent_username && (
+                      <Button
+                        type="button"
+                        onClick={() => setShowRemoveAgentModal(true)}
+                        isLoading={isRemovingAgent}
+                        disabled={isRemovingAgent}
+                        variant="danger"
+                        className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+                      >
+                        <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Remove
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
@@ -1204,6 +1284,17 @@ export default function PlayerDetailPage() {
         confirmText={selectedPlayer.is_active ? 'Deactivate' : 'Activate'}
         variant={selectedPlayer.is_active ? 'warning' : 'info'}
         isLoading={isDeactivating}
+      />
+
+      <ConfirmModal
+        isOpen={showRemoveAgentModal}
+        onClose={() => setShowRemoveAgentModal(false)}
+        onConfirm={handleRemoveAgent}
+        title="Remove Agent"
+        description={`Are you sure you want to remove agent "${selectedPlayer.agent_username}" from player "${selectedPlayer.username}"? This will move the player under the company and they will no longer be assigned to an agent.`}
+        confirmText="Remove Agent"
+        variant="warning"
+        isLoading={isRemovingAgent}
       />
 
       <PlayerGameBalanceModal
