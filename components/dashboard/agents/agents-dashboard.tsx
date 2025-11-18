@@ -194,20 +194,23 @@ type AgentsHeaderProps = {
 
 function AgentsHeader({ onCreate, successMessage, onDismissSuccess }: AgentsHeaderProps) {
   return (
-    <section className="rounded-xl border border-border bg-card shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
       {successMessage && (
         <div className="px-3 sm:px-4 md:p-6 pt-3 sm:pt-4">
-          <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-green-700 transition-colors dark:border-green-800/50 dark:bg-green-950/30 dark:text-green-300">
+          <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-green-800 shadow-sm dark:border-green-800/50 dark:bg-green-950/30 dark:text-green-300">
             <div className="flex items-center gap-2">
               <svg className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <path
+                  clipRule="evenodd"
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 10-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                />
               </svg>
               <span>{successMessage}</span>
             </div>
             <button
               onClick={onDismissSuccess}
-              className="text-green-700 transition-colors hover:text-green-800 dark:text-green-300 dark:hover:text-green-200 touch-manipulation"
-              aria-label="Dismiss success message"
+              className="text-green-600 transition-colors hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 touch-manipulation"
             >
               <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -219,25 +222,26 @@ function AgentsHeader({ onCreate, successMessage, onDismissSuccess }: AgentsHead
       {/* Single compact row - everything in one line */}
       <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
         {/* Icon */}
-        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground shrink-0">
-          <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
           </svg>
         </div>
         
         {/* Title */}
-        <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-foreground shrink-0">
+        <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
           Agents
-        </h1>
+        </h2>
         
         {/* Spacer */}
         <div className="flex-1 min-w-0" />
         
         {/* Add button - compact */}
         <Button 
+          variant="primary"
+          size="sm" 
           onClick={onCreate} 
           className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
-          size="sm"
         >
           <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -245,7 +249,7 @@ function AgentsHeader({ onCreate, successMessage, onDismissSuccess }: AgentsHead
           <span className="hidden md:inline ml-1.5">Add Agent</span>
         </Button>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -259,18 +263,25 @@ type AgentsTableSectionProps = {
 };
 
 function AgentsTableSection({ data, page, pageSize, onPageChange, onOpenActions }: AgentsTableSectionProps) {
-  if (!data || data.results.length === 0) {
-    return <AgentsTableEmptyState />;
-  }
-
   return (
-    <AgentsTableContent
-      data={data}
-      page={page}
-      pageSize={pageSize}
-      onPageChange={onPageChange}
-      onOpenActions={onOpenActions}
-    />
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {!data || data.results.length === 0 ? (
+        <div className="py-12">
+          <EmptyState 
+            title="No Agents found" 
+            description="Get started by creating a new Agent"
+          />
+        </div>
+      ) : (
+        <AgentsTableContent
+          data={data}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={onPageChange}
+          onOpenActions={onOpenActions}
+        />
+      )}
+    </div>
   );
 }
 
@@ -284,7 +295,7 @@ type AgentsTableContentProps = {
 
 function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions }: AgentsTableContentProps) {
   return (
-    <section className="rounded-xl border border-border bg-card shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
+    <>
       {/* Mobile Card View */}
       <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
         {data.results.map((agent) => (
@@ -300,12 +311,12 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions 
       <div className="hidden lg:block overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="border-border/50 bg-muted/40 transition-colors dark:border-slate-800/70 dark:bg-slate-900/60">
-              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Username</TableHead>
-              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Email</TableHead>
-              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Status</TableHead>
-              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Created</TableHead>
-              <TableHead className="text-right font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Actions</TableHead>
+            <TableRow>
+              <TableHead>Username</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -317,7 +328,7 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions 
       </div>
       
       {data.count > pageSize && (
-        <div className="border-t border-border/60 px-3 sm:px-4 md:px-6 py-3 sm:py-4 transition-colors dark:border-slate-800/70">
+        <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
           <Pagination
             currentPage={page}
             totalPages={Math.ceil(data.count / pageSize)}
@@ -327,17 +338,10 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions 
           />
         </div>
       )}
-    </section>
+    </>
   );
 }
 
-function AgentsTableEmptyState() {
-  return (
-    <section className="rounded-2xl border border-dashed border-border bg-card py-12 text-center shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
-      <EmptyState title="No agents found" description="Get started by creating a new agent" />
-    </section>
-  );
-}
 
 type AgentCardProps = {
   agent: Agent;
@@ -353,23 +357,23 @@ function AgentCard({ agent, onOpenActions }: AgentCardProps) {
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-base font-semibold text-primary-foreground dark:bg-primary/80 shadow-md">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
               {agent.username.charAt(0).toUpperCase()}
             </div>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm text-foreground truncate">
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
                   {agent.username}
                 </h3>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground mt-0.5">
+                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-0.5">
                   {agent.role}
                 </p>
               </div>
               <Badge 
                 variant={styles.statusVariant} 
-                className={`${styles.statusClass} text-[10px] px-2 py-0.5 shrink-0`}
+                className="text-[10px] px-2 py-0.5 shrink-0"
               >
                 {styles.statusLabel}
               </Badge>
@@ -424,30 +428,34 @@ function AgentRow({ agent, onOpenActions }: AgentRowProps) {
   const styles = getAgentStyles(agent.is_active);
 
   return (
-    <TableRow className="border-border/40 transition-colors hover:bg-slate-50 dark:border-slate-800/70 dark:hover:bg-slate-900/50">
+    <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground dark:bg-primary/80">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
             {agent.username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="font-medium leading-5 text-foreground">{agent.username}</p>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{agent.role}</p>
+            <div className="font-medium text-gray-900 dark:text-gray-100">
+              {agent.username}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{agent.role}</div>
           </div>
         </div>
       </TableCell>
       <TableCell>
-        <p className="text-sm text-foreground">{agent.email}</p>
+        <div className="text-sm text-gray-700 dark:text-gray-300">{agent.email}</div>
       </TableCell>
       <TableCell>
-        <Badge variant={styles.statusVariant} className={styles.statusClass}>
+        <Badge variant={styles.statusVariant}>
           {styles.statusLabel}
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-foreground">{formatDate(agent.created)}</div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {formatDate(agent.created)}
+        </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="text-right">
         <AgentActionButtons
           agent={agent}
           onOpenActions={onOpenActions}
@@ -466,15 +474,16 @@ function AgentActionButtons({ agent, onOpenActions }: AgentActionButtonsProps) {
   return (
     <div className="flex items-center justify-end">
       <Button
-        size="sm"
         variant="ghost"
+        size="sm"
         onClick={() => onOpenActions(agent)}
-        className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
         title="Actions"
+        className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
       >
-        <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
         </svg>
+        Actions
       </Button>
     </div>
   );
