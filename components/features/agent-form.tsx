@@ -89,7 +89,7 @@ export const AgentForm = ({ agent, onSubmit, onCancel, isLoading }: AgentFormPro
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
       <div className="grid grid-cols-1 gap-4">
         {/* Username */}
         <Input
@@ -100,6 +100,7 @@ export const AgentForm = ({ agent, onSubmit, onCancel, isLoading }: AgentFormPro
           error={errors.username}
           placeholder="agent123"
           disabled={isLoading || isEditMode}
+          autoComplete="off"
         />
 
         {/* Email */}
@@ -111,6 +112,7 @@ export const AgentForm = ({ agent, onSubmit, onCancel, isLoading }: AgentFormPro
           error={errors.email}
           placeholder="agent@example.com"
           disabled={isLoading || isEditMode}
+          autoComplete="off"
         />
 
         {/* Password (only for create) */}
@@ -123,11 +125,12 @@ export const AgentForm = ({ agent, onSubmit, onCancel, isLoading }: AgentFormPro
             error={errors.password}
             placeholder="Minimum 5 characters"
             disabled={isLoading}
+            autoComplete="new-password"
           />
         )}
 
         {/* Role (hidden, always agent) */}
-        <input type="hidden" value="agent" />
+        <input type="hidden" value="agent" autoComplete="off" />
       </div>
 
       {isEditMode && (
