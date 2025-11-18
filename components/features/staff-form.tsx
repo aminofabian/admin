@@ -84,7 +84,7 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
   };
 
   return (
-    <form id="create-manager-form" onSubmit={handleSubmit} className="space-y-6">
+    <form id="create-manager-form" onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
       {/* Basic Information Section */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-700">
@@ -103,6 +103,7 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
             placeholder="staff123"
             disabled={isLoading || isEditMode}
             className="transition-all duration-200"
+            autoComplete="off"
           />
 
           <Input
@@ -114,6 +115,7 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
             placeholder="staff@example.com"
             disabled={isLoading || isEditMode}
             className="transition-all duration-200"
+            autoComplete="off"
           />
         </div>
       </div>
@@ -137,6 +139,7 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
               placeholder="Minimum 5 characters"
               disabled={isLoading}
               className="transition-all duration-200"
+              autoComplete="new-password"
             />
             <div className="hidden md:block" /> {/* Spacer for grid */}
           </div>
@@ -154,7 +157,7 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
       )}
 
       {/* Hidden role field */}
-      <input type="hidden" value="staff" />
+      <input type="hidden" value="staff" autoComplete="off" />
 
       {isEditMode && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800/50 dark:bg-blue-950/30">
