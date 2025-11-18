@@ -4,8 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAffiliateSettingsStore } from '@/stores';
 import {
   Button,
-  Card,
-  CardContent,
   SearchInput,
   Table,
   TableBody,
@@ -15,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui';
 import { Input } from '@/components/ui/input';
-import { LoadingState, ErrorState } from '@/components/features';
+import { LoadingState, ErrorState, EmptyState } from '@/components/features';
 
 type FormFieldKey =
   | 'default_affiliation_percentage'
@@ -81,19 +79,17 @@ function SettingRow({ field, value, error, isSubmitting, onChange }: SettingRowP
   };
 
   return (
-    <TableRow key={field.key} className="border-gray-100 last:border-0 dark:border-gray-800">
-      <TableCell className="min-w-[220px]">
+    <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+      <TableCell>
         <div className="flex items-center gap-4">
-          <div
-            className={`flex h-12 w-12 items-center justify-center rounded-2xl ${field.icon.background}`}
-          >
-            <svg className={`h-6 w-6 ${field.icon.color}`} fill="none" viewBox="0 0 24 24">
-              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={field.icon.path} />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-sm">
+            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={field.icon.path} />
             </svg>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">{field.label}</p>
-            <p className="text-xs text-muted-foreground">{field.description}</p>
+            <p className="font-medium text-gray-900 dark:text-gray-100">{field.label}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{field.description}</p>
           </div>
         </div>
       </TableCell>
@@ -110,7 +106,7 @@ function SettingRow({ field, value, error, isSubmitting, onChange }: SettingRowP
             step="0.01"
             disabled={isSubmitting}
           />
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
             %
           </span>
         </div>
@@ -200,7 +196,7 @@ export default function AffiliateSettingsPage() {
     return <LoadingState />;
   }
 
-  if (error) {
+  if (error && !affiliateDefaults) {
     return <ErrorState message={error} onRetry={fetchAffiliateDefaults} />;
   }
 
@@ -212,78 +208,80 @@ export default function AffiliateSettingsPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <Card className="overflow-hidden border border-gray-200 shadow-md dark:border-gray-800 dark:shadow-none">
-        <CardContent className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300">
-              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3a9 9 0 109 9" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Affiliate Settings</h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Configure default commission percentages and fees for affiliate payouts.
-              </p>
-            </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+          {/* Icon */}
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3a9 9 0 109 9" />
+            </svg>
           </div>
+          
+          {/* Title */}
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+            Affiliate Settings
+          </h2>
+          
+          {/* Spacer */}
+          <div className="flex-1 min-w-0" />
+          
+          {/* Save Button */}
           <Button
             type="submit"
             form="affiliate-settings-form"
-            size="lg"
+            variant="primary"
+            size="sm"
             disabled={isSubmitting}
-            className="lg:ml-auto"
+            className="shrink-0"
           >
             {isSubmitting ? 'Updating…' : 'Save Changes'}
           </Button>
-        </CardContent>
-        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-800 dark:bg-gray-900/40">
-          <SearchInput
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search settings…"
-            className="h-12 w-full rounded-xl border-gray-200 text-base dark:border-gray-700"
-          />
         </div>
-      </Card>
+      </div>
+
+      {/* Search */}
+      <div className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <SearchInput
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          placeholder="Search settings…"
+        />
+      </div>
 
       <form id="affiliate-settings-form" onSubmit={handleSubmit}>
-        <Card className="overflow-hidden border border-gray-200 shadow-md dark:border-gray-800 dark:shadow-none">
-          <Table>
-            <TableHeader className="bg-gray-50 dark:bg-gray-900/40">
-              <TableRow>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Setting
-                </TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Value
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSettings.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={2} className="py-12 text-center text-sm text-muted-foreground">
-                    No settings match your search.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredSettings.map((field) => (
-                  <SettingRow
-                    key={field.key}
-                    field={field}
-                    value={formData[field.key]}
-                    error={errors[field.key]}
-                    isSubmitting={isSubmitting}
-                    onChange={(value) => handleFieldChange(field.key, value)}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {filteredSettings.length === 0 ? (
+            <div className="py-12">
+              <EmptyState title="No settings match your search" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Setting</TableHead>
+                    <TableHead>Value</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSettings.map((field) => (
+                    <SettingRow
+                      key={field.key}
+                      field={field}
+                      value={formData[field.key]}
+                      error={errors[field.key]}
+                      isSubmitting={isSubmitting}
+                      onChange={(value) => handleFieldChange(field.key, value)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
       </form>
     </div>
   );
