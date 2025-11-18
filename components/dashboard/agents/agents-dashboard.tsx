@@ -236,17 +236,17 @@ function AgentsHeader({ onCreate, successMessage, onDismissSuccess }: AgentsHead
         {/* Spacer */}
         <div className="flex-1 min-w-0" />
         
-        {/* Add button - compact */}
+        {/* Add Agent Button */}
         <Button 
           variant="primary"
           size="sm" 
           onClick={onCreate} 
-          className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
+          className="shrink-0"
         >
-          <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span className="hidden md:inline ml-1.5">Add Agent</span>
+          Add Agent
         </Button>
       </div>
     </div>
