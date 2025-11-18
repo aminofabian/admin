@@ -524,7 +524,7 @@ export default function PlayerDetailPage() {
 
   const handleViewGameActivities = useCallback(() => {
     if (!selectedPlayer) return;
-    router.push(`/dashboard/history/game-activities?user_id=${selectedPlayer.id}`);
+    router.push(`/dashboard/history/game-activities?username=${encodeURIComponent(selectedPlayer.username)}`);
   }, [selectedPlayer, router]);
 
   const handleBack = useCallback(() => {

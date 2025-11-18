@@ -8,20 +8,23 @@ import { useTransactionQueuesStore } from '@/stores';
 export default function HistoryGameActivitiesPage() {
   const searchParams = useSearchParams();
   const { setAdvancedFilters, advancedFilters } = useTransactionQueuesStore();
-  const appliedFiltersRef = useRef<{ user_id: string | null }>({
-    user_id: null,
+  const appliedFiltersRef = useRef<{ username: string | null }>({
+    username: null,
   });
 
   useEffect(() => {
-    const userIdFromQuery = searchParams.get('user_id');
-    const trimmedUserId = userIdFromQuery?.trim() || null;
+    const usernameFromQuery = searchParams.get('username');
+    const trimmedUsername = usernameFromQuery?.trim() || null;
 
-    // If no user_id parameter, clear it if it was previously set
-    if (!trimmedUserId) {
-      if (appliedFiltersRef.current.user_id) {
-        appliedFiltersRef.current = { user_id: null };
-        if (advancedFilters.user_id) {
-          const { user_id, ...rest } = advancedFilters;
+    // Get current filters from store
+    const currentAdvancedFilters = advancedFilters;
+
+    // If no username parameter, clear it if it was previously set
+    if (!trimmedUsername) {
+      if (appliedFiltersRef.current.username) {
+        appliedFiltersRef.current = { username: null };
+        if (currentAdvancedFilters.username) {
+          const { username, ...rest } = currentAdvancedFilters;
           setAdvancedFilters(rest);
         }
       }
@@ -29,17 +32,17 @@ export default function HistoryGameActivitiesPage() {
     }
 
     // Check if filter has changed
-    if (appliedFiltersRef.current.user_id === trimmedUserId) {
+    if (appliedFiltersRef.current.username === trimmedUsername) {
       return;
     }
 
     // Update the ref
-    appliedFiltersRef.current = { user_id: trimmedUserId };
+    appliedFiltersRef.current = { username: trimmedUsername };
 
     // Update filters
     const filterUpdate: Record<string, string> = {
-      ...advancedFilters,
-      user_id: trimmedUserId,
+      ...currentAdvancedFilters,
+      username: trimmedUsername,
     };
 
     setAdvancedFilters(filterUpdate);
