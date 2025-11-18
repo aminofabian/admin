@@ -7,7 +7,7 @@ import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerPurchases } from '@/hooks/use-player-purchases';
 import { usePlayerCashouts } from '@/hooks/use-player-cashouts';
 import { usePlayerGameActivities } from '@/hooks/use-player-game-activities';
-import { PlayerInfoSkeleton } from '../components/chat-skeletons';
+import { PlayerInfoSkeleton } from '../skeletons';
 import { PlayerGameBalanceModal } from '@/components/features';
 import { playersApi } from '@/lib/api/users';
 import type { ChatUser, PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';

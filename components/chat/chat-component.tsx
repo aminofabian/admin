@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { ArrowBigDown, ArrowDown, ArrowDownFromLine, ArrowDownNarrowWide, ArrowDownToLine, ChevronDown } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Button, Input, useToast, Skeleton } from '@/components/ui';
+import { Button, Input, useToast } from '@/components/ui';
 import { formatCurrency, isValidTimestamp } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
@@ -16,6 +16,7 @@ import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal }
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
 import { isAutoMessage } from './utils/message-helpers';
+import { MessageHistorySkeleton } from './skeletons';
 import { useScrollManagement } from './hooks/use-scroll-management';
 import { useViewportMessages } from './hooks/use-viewport-messages';
 
@@ -1614,44 +1615,7 @@ export function ChatComponent() {
               >
 
               {/* Loading indicator for message history */}
-              {isHistoryLoadingMessages && (
-                <div className="space-y-4 py-3">
-                  {/* User message skeleton (right side) */}
-                  <div className="flex items-start justify-end gap-3">
-                    <div className="flex flex-col items-end max-w-[70%]">
-                      <div className="rounded-2xl rounded-tr-sm bg-primary/10 px-4 py-2.5 space-y-2">
-                        <Skeleton className="h-4 w-48" />
-                        <Skeleton className="h-4 w-32" />
-                      </div>
-                      <Skeleton className="h-3 w-16 mt-1" />
-                    </div>
-                    <Skeleton variant="circular" className="h-8 w-8" />
-                  </div>
-
-                  {/* Admin message skeleton (left side) */}
-                  <div className="flex items-start gap-3">
-                    <Skeleton variant="circular" className="h-8 w-8" />
-                    <div className="flex flex-col max-w-[70%]">
-                      <div className="rounded-2xl rounded-tl-sm bg-muted px-4 py-2.5 space-y-2">
-                        <Skeleton className="h-4 w-56" />
-                        <Skeleton className="h-4 w-40" />
-                      </div>
-                      <Skeleton className="h-3 w-16 mt-1" />
-                    </div>
-                  </div>
-
-                  {/* Another user message skeleton */}
-                  <div className="flex items-start justify-end gap-3">
-                    <div className="flex flex-col items-end max-w-[70%]">
-                      <div className="rounded-2xl rounded-tr-sm bg-primary/10 px-4 py-2.5">
-                        <Skeleton className="h-4 w-40" />
-                      </div>
-                      <Skeleton className="h-3 w-16 mt-1" />
-                    </div>
-                    <Skeleton variant="circular" className="h-8 w-8" />
-                  </div>
-                </div>
-              )}
+              {isHistoryLoadingMessages && <MessageHistorySkeleton />}
               {/* Empty state when no messages - only show after WebSocket has connected and loading is complete */}
               {!isHistoryLoadingMessages && wsMessages.length === 0 && isConnected && (
                 <div className="flex items-center justify-center h-full min-h-[200px]">

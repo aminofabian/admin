@@ -2,7 +2,7 @@
 
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { Input } from '@/components/ui';
-import { PlayerListSkeleton } from '../components/chat-skeletons';
+import { PlayerListSkeleton } from '../skeletons';
 import { formatChatTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 

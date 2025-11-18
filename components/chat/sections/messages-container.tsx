@@ -11,7 +11,7 @@ import {
   MESSAGE_HTML_CONTENT_CLASS,
   formatMessageDate
 } from '../utils/message-helpers';
-import { LoadingMoreSkeleton } from '../components/chat-skeletons';
+import { LoadingMoreSkeleton } from '../skeletons';
 
 interface MessagesContainerProps {
   messagesContainerRef: React.RefObject<HTMLDivElement>;
