@@ -29,16 +29,36 @@ export default function TransactionsPage() {
     console.log('📋 Current advancedFilters:', currentAdvancedFilters);
     console.log('📋 Applied filters ref:', appliedFiltersRef.current);
 
+    // Clear filters that are not relevant to this page (e.g., username from player transactions)
+    // Always clear username filter on this page (this is for agent transactions, not player transactions)
+    const filtersToClear: string[] = [];
+    if (currentAdvancedFilters.username) {
+      filtersToClear.push('username');
+    }
+    if (!trimmedAgent && !trimmedAgentId) {
+      // If no agent params, clear agent-related filters
+      if (currentAdvancedFilters.agent || currentAdvancedFilters.agent_id) {
+        filtersToClear.push('agent', 'agent_id');
+      }
+    }
+
     // If neither parameter is present, clear the ref and remove agent filters
     if (!trimmedAgent && !trimmedAgentId) {
       if (appliedFiltersRef.current.agent || appliedFiltersRef.current.agent_id) {
         appliedFiltersRef.current = { agent: null, agent_id: null };
         // Only clear if we're actually removing filters that were set
-        if (currentAdvancedFilters.agent || currentAdvancedFilters.agent_id) {
-          const { agent, agent_id, ...rest } = currentAdvancedFilters;
-          console.log('🧹 Clearing agent filters from URL params');
-          setAdvancedFilters(rest);
+        if (filtersToClear.length > 0) {
+          const cleanedFilters = { ...currentAdvancedFilters };
+          filtersToClear.forEach(key => delete cleanedFilters[key]);
+          console.log('🧹 Clearing filters from URL params:', filtersToClear);
+          setAdvancedFilters(cleanedFilters);
         }
+      } else if (filtersToClear.length > 0) {
+        // Clear username filter even if agent filters weren't set
+        const cleanedFilters = { ...currentAdvancedFilters };
+        filtersToClear.forEach(key => delete cleanedFilters[key]);
+        console.log('🧹 Clearing irrelevant filters:', filtersToClear);
+        setAdvancedFilters(cleanedFilters);
       }
       return;
     }
@@ -48,7 +68,16 @@ export default function TransactionsPage() {
       appliedFiltersRef.current.agent === trimmedAgent &&
       appliedFiltersRef.current.agent_id === trimmedAgentId
     ) {
-      console.log('⏭️ Filters unchanged, skipping update');
+      // Still clear username filter even if agent filters haven't changed
+      if (filtersToClear.length > 0) {
+        const cleanedFilters = { ...currentAdvancedFilters };
+        filtersToClear.forEach(key => delete cleanedFilters[key]);
+        // Preserve agent filters if they're in the URL
+        if (trimmedAgent) cleanedFilters.agent = trimmedAgent;
+        if (trimmedAgentId) cleanedFilters.agent_id = trimmedAgentId;
+        console.log('🧹 Clearing irrelevant filters while keeping agent filters:', filtersToClear);
+        setAdvancedFilters(cleanedFilters);
+      }
       return;
     }
 
@@ -58,8 +87,8 @@ export default function TransactionsPage() {
       agent_id: trimmedAgentId,
     };
 
-    // Build the filter update - preserve existing filters except agent/agent_id and type
-    // When agent filters are set from URL, we should not preserve type filter
+    // Build the filter update - preserve existing filters except agent/agent_id, type, and username
+    // When agent filters are set from URL, we should not preserve type filter or username filter
     // Agent filters should work with all transaction types unless explicitly filtered
     const filterUpdate: Record<string, string> = { ...currentAdvancedFilters };
     
@@ -67,6 +96,8 @@ export default function TransactionsPage() {
     // This ensures agent filters work with all transaction types
     delete filterUpdate.type;
     delete filterUpdate.txn;
+    // Remove username filter (this page is for agent transactions, not player transactions)
+    delete filterUpdate.username;
 
     // Update agent filters from URL
     if (trimmedAgent) {

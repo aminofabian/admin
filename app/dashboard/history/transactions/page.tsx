@@ -25,31 +25,56 @@ export default function HistoryTransactionsPage() {
     // Get current filters from store
     const currentAdvancedFilters = advancedFilters;
 
+    // Clear filters that are not relevant to this page (e.g., agent/agent_id from agent transactions)
+    const filtersToClear: string[] = [];
+    if (currentAdvancedFilters.agent || currentAdvancedFilters.agent_id) {
+      filtersToClear.push('agent', 'agent_id');
+    }
+
     // If no username parameter, clear it if it was previously set
     if (!trimmedUsername) {
       if (appliedFiltersRef.current.username) {
         appliedFiltersRef.current = { username: null };
         if (currentAdvancedFilters.username) {
-          const { username, ...rest } = currentAdvancedFilters;
-          setAdvancedFilters(rest);
+          filtersToClear.push('username');
         }
+      }
+      
+      // Clear all irrelevant filters if any need to be cleared
+      if (filtersToClear.length > 0) {
+        const cleanedFilters = { ...currentAdvancedFilters };
+        filtersToClear.forEach(key => delete cleanedFilters[key]);
+        console.log('🧹 Clearing irrelevant filters from player transactions page:', filtersToClear);
+        setAdvancedFilters(cleanedFilters);
       }
       return;
     }
 
     // Check if filter has changed
     if (appliedFiltersRef.current.username === trimmedUsername) {
+      // Still clear agent filters even if username hasn't changed
+      if (filtersToClear.length > 0) {
+        const cleanedFilters = { ...currentAdvancedFilters };
+        filtersToClear.forEach(key => delete cleanedFilters[key]);
+        cleanedFilters.username = trimmedUsername;
+        console.log('🧹 Clearing irrelevant filters while keeping username:', filtersToClear);
+        setAdvancedFilters(cleanedFilters);
+      }
       return;
     }
 
     // Update the ref
     appliedFiltersRef.current = { username: trimmedUsername };
 
-    // Update filters
+    // Update filters - clear agent filters and set username
     const filterUpdate: Record<string, string> = {
       ...currentAdvancedFilters,
       username: trimmedUsername,
     };
+    
+    // Remove agent-related filters (this page is for player transactions, not agent transactions)
+    delete filterUpdate.agent;
+    delete filterUpdate.agent_id;
 
     setAdvancedFilters(filterUpdate);
   }, [searchParams, setAdvancedFilters, advancedFilters]);
