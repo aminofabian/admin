@@ -94,10 +94,8 @@ export function TransactionsSection() {
   const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
   const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isGameLoading, setIsGameLoading] = useState(false);
-  const agentFilterClearedRef = useRef<string | null>(null);
-  const dateFilterNotifiedRef = useRef<string | null>(null);
-  const emptyStateNotifiedRef = useRef<boolean>(false);
-  const filterKeyRef = useRef<string>('');
+  // Unified notification ref to prevent duplicate toasts
+  const lastNotificationKeyRef = useRef<string>('');
 
   // Fetch transactions when dependencies change
   useEffect(() => {
@@ -105,155 +103,114 @@ export function TransactionsSection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, filter, advancedFilters]);
 
-  // Auto-clear agent filter if no transactions found for that agent
+  // Unified toast notification system - prevents duplicates and only fires when appropriate
   useEffect(() => {
-    // Check if we have an agent filter applied and the result is empty
-    const currentAgent = advancedFilters.agent || advancedFilters.agent_id || '';
-    const hasAgentFilter = Boolean(currentAgent);
-    const hasNoResults = transactions?.count === 0;
-    const isNotLoading = !isLoading;
-    const notAlreadyCleared = agentFilterClearedRef.current !== currentAgent;
-    
-    if (hasAgentFilter && hasNoResults && isNotLoading && notAlreadyCleared) {
-      console.log('🔍 No transactions found for agent filter, clearing filter to show all transactions');
-      
-      // Mark this agent filter as cleared to prevent infinite loop
-      agentFilterClearedRef.current = currentAgent;
-      
-      // Show toast notification
-      addToast({
-        type: 'info',
-        title: 'No transactions found',
-        description: `No transactions found for agent "${advancedFilters.agent || 'selected agent'}". Showing all transactions instead.`,
-      });
-      
-      // Clear agent filters to show all transactions
-      const updatedFilters = { ...advancedFilters };
-      delete updatedFilters.agent;
-      delete updatedFilters.agent_id;
-      setAdvancedFilters(updatedFilters);
-    } else if (!hasAgentFilter) {
-      // Reset the cleared ref when no agent filter is present
-      agentFilterClearedRef.current = null;
+    // CRITICAL: Only check when NOT loading and we have a definitive result
+    // During loading, transactions?.count might be stale from previous results
+    if (isLoading) {
+      return; // Don't show toast while loading
     }
-  }, [transactions, isLoading, advancedFilters, addToast, setAdvancedFilters]);
 
-  // Show toast notification when no transactions found for selected date range
-  useEffect(() => {
+    // Only proceed if we have a definitive "no results" state
+    // transactions must exist (not null) and count must be 0
+    const hasNoResults = transactions !== null && transactions.count === 0;
+    
+    if (!hasNoResults) {
+      // Reset notification key when results are found
+      lastNotificationKeyRef.current = '';
+      return;
+    }
+
+    // Create a unique key for this filter combination to prevent duplicate notifications
+    const filterKey = JSON.stringify({
+      ...advancedFilters,
+      filter,
+      currentPage,
+    });
+
+    // Skip if we've already shown a notification for this exact filter combination
+    if (lastNotificationKeyRef.current === filterKey) {
+      return;
+    }
+
+    // Mark this combination as notified
+    lastNotificationKeyRef.current = filterKey;
+
+    // Build the notification message based on active filters
+    const activeFilters: string[] = [];
+    
+    // Check for specific filter types and build appropriate message
+    if (advancedFilters.agent || advancedFilters.agent_id) {
+      activeFilters.push(`agent: ${advancedFilters.agent || 'selected agent'}`);
+    }
+    if (advancedFilters.username) {
+      activeFilters.push(`username: ${advancedFilters.username}`);
+    }
+    if (advancedFilters.email) {
+      activeFilters.push(`email: ${advancedFilters.email}`);
+    }
+    if (advancedFilters.status) {
+      activeFilters.push(`status: ${advancedFilters.status}`);
+    }
+    if (advancedFilters.type) {
+      activeFilters.push(`type: ${advancedFilters.type}`);
+    }
+    if (advancedFilters.payment_method) {
+      activeFilters.push(`payment method: ${advancedFilters.payment_method}`);
+    }
+    if (advancedFilters.game) {
+      activeFilters.push(`game: ${advancedFilters.game}`);
+    }
+    
+    // Handle date filters separately for better messaging
     const hasDateFrom = Boolean(advancedFilters.date_from);
     const hasDateTo = Boolean(advancedFilters.date_to);
     const hasDateFilter = hasDateFrom || hasDateTo;
-    const hasNoResults = transactions?.count === 0;
-    const isNotLoading = !isLoading;
     
-    if (hasDateFilter && hasNoResults && isNotLoading) {
-      // Create a unique key for this date range to prevent duplicate notifications
-      const dateRangeKey = `${advancedFilters.date_from || ''}_${advancedFilters.date_to || ''}`;
-      const notAlreadyNotified = dateFilterNotifiedRef.current !== dateRangeKey;
-      
-      if (notAlreadyNotified) {
-        // Mark this date range as notified
-        dateFilterNotifiedRef.current = dateRangeKey;
-        emptyStateNotifiedRef.current = true; // Mark as notified to prevent general empty state toast
-        
-        // Format dates for display
-        const formatDateForDisplay = (dateString: string | undefined): string => {
-          if (!dateString) return '';
-          try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return dateString;
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-          } catch {
-            return dateString;
-          }
-        };
-        
-        const dateFromDisplay = formatDateForDisplay(advancedFilters.date_from);
-        const dateToDisplay = formatDateForDisplay(advancedFilters.date_to);
-        
-        let dateRangeText = '';
-        if (dateFromDisplay && dateToDisplay) {
-          dateRangeText = `from ${dateFromDisplay} to ${dateToDisplay}`;
-        } else if (dateFromDisplay) {
-          dateRangeText = `from ${dateFromDisplay}`;
-        } else if (dateToDisplay) {
-          dateRangeText = `until ${dateToDisplay}`;
+    let description = '';
+    if (hasDateFilter) {
+      // Format dates for display
+      const formatDateForDisplay = (dateString: string | undefined): string => {
+        if (!dateString) return '';
+        try {
+          const date = new Date(dateString);
+          if (isNaN(date.getTime())) return dateString;
+          return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        } catch {
+          return dateString;
         }
-        
-        // Show toast notification
-        addToast({
-          type: 'info',
-          title: 'No transactions found',
-          description: `No transactions found for the selected date range ${dateRangeText}. Please try adjusting your date filters.`,
-        });
-      }
-    } else if (!hasDateFilter) {
-      // Reset the notified ref when no date filter is present
-      dateFilterNotifiedRef.current = null;
-    }
-  }, [transactions, isLoading, advancedFilters, addToast]);
-
-  // Show general toast notification when no transactions are found (replaces empty state)
-  useEffect(() => {
-    const hasNoResults = transactions?.count === 0;
-    const isNotLoading = !isLoading;
-    const hasAnyFilters = Object.keys(advancedFilters).length > 0;
-    const hasDateFilter = Boolean(advancedFilters.date_from || advancedFilters.date_to);
-    
-    // Create a unique key based on current filters to detect filter changes
-    const filterKey = JSON.stringify(advancedFilters);
-    
-    // Reset notification ref if filters have changed
-    if (filterKeyRef.current !== filterKey) {
-      filterKeyRef.current = filterKey;
-      emptyStateNotifiedRef.current = false;
-    }
-    
-    // Only show toast if:
-    // 1. No results
-    // 2. Not loading
-    // 3. Not already notified for this filter combination
-    // 4. Either has filters (but not date filters, as those have their own toast) OR no filters at all
-    if (hasNoResults && isNotLoading && !emptyStateNotifiedRef.current) {
-      // Skip if date filter toast was already shown
-      if (hasDateFilter) {
-        return;
+      };
+      
+      const dateFromDisplay = formatDateForDisplay(advancedFilters.date_from);
+      const dateToDisplay = formatDateForDisplay(advancedFilters.date_to);
+      
+      let dateRangeText = '';
+      if (dateFromDisplay && dateToDisplay) {
+        dateRangeText = `from ${dateFromDisplay} to ${dateToDisplay}`;
+      } else if (dateFromDisplay) {
+        dateRangeText = `from ${dateFromDisplay}`;
+      } else if (dateToDisplay) {
+        dateRangeText = `until ${dateToDisplay}`;
       }
       
-      emptyStateNotifiedRef.current = true;
-      
-      if (hasAnyFilters) {
-        // Build filter description for active filters
-        const activeFilters: string[] = [];
-        if (advancedFilters.agent) activeFilters.push(`agent: ${advancedFilters.agent}`);
-        if (advancedFilters.username) activeFilters.push(`username: ${advancedFilters.username}`);
-        if (advancedFilters.email) activeFilters.push(`email: ${advancedFilters.email}`);
-        if (advancedFilters.status) activeFilters.push(`status: ${advancedFilters.status}`);
-        if (advancedFilters.type) activeFilters.push(`type: ${advancedFilters.type}`);
-        if (advancedFilters.payment_method) activeFilters.push(`payment method: ${advancedFilters.payment_method}`);
-        
-        const filterText = activeFilters.length > 0 
-          ? ` with filters: ${activeFilters.join(', ')}`
-          : '';
-        
-        addToast({
-          type: 'info',
-          title: 'No transactions found',
-          description: `No transactions found${filterText}. Please try adjusting your filters.`,
-        });
+      if (activeFilters.length > 0) {
+        description = `No transactions found for the selected date range ${dateRangeText} with filters: ${activeFilters.join(', ')}. Please try adjusting your filters.`;
       } else {
-        // No filters applied
-        addToast({
-          type: 'info',
-          title: 'No transactions found',
-          description: 'No transactions found. Please try adjusting your filters or search criteria.',
-        });
+        description = `No transactions found for the selected date range ${dateRangeText}. Please try adjusting your date filters.`;
       }
-    } else if (!hasNoResults) {
-      // Reset when results are found
-      emptyStateNotifiedRef.current = false;
+    } else if (activeFilters.length > 0) {
+      description = `No transactions found with filters: ${activeFilters.join(', ')}. Please try adjusting your filters.`;
+    } else {
+      description = 'No transactions found. Please try adjusting your filters or search criteria.';
     }
-  }, [transactions, isLoading, advancedFilters, addToast]);
+
+    // Show single toast notification
+    addToast({
+      type: 'info',
+      title: 'No transactions found',
+      description,
+    });
+  }, [transactions, isLoading, advancedFilters, filter, currentPage, addToast]);
 
   // Sync filters with advanced filters and resolve agent/agent_id mappings
   useEffect(() => {
