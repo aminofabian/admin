@@ -201,7 +201,7 @@ export function StaffsSection() {
                 <TableHead className="min-w-[200px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Contact</TableHead>
                 <TableHead className="min-w-[100px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Status</TableHead>
                 <TableHead className="min-w-[100px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Role</TableHead>
-                <TableHead className="min-w-[180px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Timestamps</TableHead>
+                <TableHead className="min-w-[180px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Created</TableHead>
                 <TableHead className="min-w-[200px] text-right font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Actions</TableHead>
               </TableRow>
             </TableHeader>

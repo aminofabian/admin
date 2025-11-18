@@ -1125,7 +1125,7 @@ function PlayersTable({
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs sm:text-sm">Username</TableHead>
-              <TableHead className="text-xs sm:text-sm">Contact</TableHead>
+              <TableHead className="text-xs sm:text-sm">Email</TableHead>
               <TableHead className="text-xs sm:text-sm">Credit</TableHead>
               <TableHead className="text-xs sm:text-sm">Winning</TableHead>
               <TableHead className="text-xs sm:text-sm">Status</TableHead>

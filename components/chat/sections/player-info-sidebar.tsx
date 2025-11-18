@@ -291,48 +291,58 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 ) : purchases.length === 0 ? (
                   <p className="text-xs text-muted-foreground py-2">No purchases found</p>
                 ) : (
-                  purchases.map((purchase) => (
-                    <div
-                      key={purchase.id}
-                      className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
-                    >
-                      {/* Amount and Status Row */}
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="text-left">
-                          <p className="text-xs font-bold text-foreground">{formatCurrency(purchase.amount.toString())}</p>
-                          {purchase.bonus_amount && purchase.bonus_amount > 0 && (
-                            <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">
-                              Bonus: {formatCurrency(purchase.bonus_amount.toString())}
-                            </p>
-                          )}
-                        </div>
-                        <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
-                            purchase.status === 'completed'
-                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                              : purchase.status === 'pending'
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                              : 'bg-red-500/10 text-red-600 dark:text-red-400'
-                          }`}
-                        >
+                  purchases.map((purchase) => {
+                    // Parse bonus amount - handle both string and number formats
+                    const bonusAmount = purchase.bonus_amount 
+                      ? (typeof purchase.bonus_amount === 'string' 
+                          ? parseFloat(purchase.bonus_amount) 
+                          : purchase.bonus_amount)
+                      : null;
+                    const hasBonus = bonusAmount !== null && !isNaN(bonusAmount) && bonusAmount > 0;
+
+                    return (
+                      <div
+                        key={purchase.id}
+                        className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
+                      >
+                        {/* Amount and Status Row */}
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="text-left">
+                            <p className="text-xs font-bold text-foreground">{formatCurrency(purchase.amount.toString())}</p>
+                            {hasBonus && (
+                              <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">
+                                Bonus: {formatCurrency(bonusAmount.toString())}
+                              </p>
+                            )}
+                          </div>
                           <span
-                            className={`w-1 h-1 rounded-full ${
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
                               purchase.status === 'completed'
-                                ? 'bg-green-500'
+                                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                                 : purchase.status === 'pending'
-                                ? 'bg-amber-500'
-                                : 'bg-red-500'
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                : 'bg-red-500/10 text-red-600 dark:text-red-400'
                             }`}
-                          />
-                          {purchase.status}
-                        </span>
+                          >
+                            <span
+                              className={`w-1 h-1 rounded-full ${
+                                purchase.status === 'completed'
+                                  ? 'bg-green-500'
+                                  : purchase.status === 'pending'
+                                  ? 'bg-amber-500'
+                                  : 'bg-red-500'
+                              }`}
+                            />
+                            {purchase.status}
+                          </span>
+                        </div>
+                        {/* Payment method row */}
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>{purchase.payment_method || '—'}</span>
+                        </div>
                       </div>
-                      {/* Payment method row */}
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                        <span>{purchase.payment_method || purchase.operator}</span>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
@@ -476,26 +486,30 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   activities.map((activity) => {
                     // Determine activity type and what to display
                     const activityType = activity.type.toLowerCase();
-                    const isRechargeActivity = activityType.includes('recharge') || activityType.includes('add');
-                    const isRedeemActivity = activityType.includes('redeem') || activityType.includes('withdraw');
+                    const isRechargeActivity = activityType === 'recharge_game';
+                    const isRedeemActivity = activityType === 'redeem_game';
                     const isResetActivity = activityType.includes('reset') || activityType.includes('clear');
+                    
+                    // Parse bonus amount - handle both string and number formats
+                    const bonusAmount = activity.bonus_amount 
+                      ? (typeof activity.bonus_amount === 'string' 
+                          ? parseFloat(activity.bonus_amount) 
+                          : activity.bonus_amount)
+                      : null;
+                    const hasBonus = bonusAmount !== null && !isNaN(bonusAmount) && bonusAmount > 0;
+
+                    // Format activity type for display
+                    const formattedActivityType = activity.type.replace(/_/g, ' ');
 
                     return (
                       <div
                         key={activity.id}
                         className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
                       >
+                        {/* Row 1: Game Title and Status */}
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex-1">
                             <p className="text-xs font-bold text-foreground">{activity.game_title}</p>
-
-                            {/* Conditionally display activity type or game username */}
-                            <p className="text-[10px] text-muted-foreground capitalize">
-                              {isRechargeActivity || isRedeemActivity || isResetActivity
-                                ? activity.username  // Show Game Username for Recharge, Redeem, Reset
-                                : activity.type.replace(/_/g, ' ')  // Show Activity Type for others
-                              }
-                            </p>
                           </div>
 
                           {/* Status badge - always shown */}
@@ -521,23 +535,29 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                           </span>
                         </div>
 
-                        {/* Conditionally display Amount/Bonus or Activity Type */}
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                          {isRechargeActivity || isRedeemActivity ? (
-                            // Show Amount/Bonus for Recharge and Redeem
-                            <div className="flex items-center gap-2">
-                              <span>Amount: {formatCurrency(activity.amount)}</span>
-                              {activity.bonus_amount && parseFloat(activity.bonus_amount) > 0 && (
-                                <span className="text-green-600 dark:text-green-400">
-                                  Bonus: {formatCurrency(activity.bonus_amount)}
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            // Show Activity Type for all other types
-                            <span className="capitalize">{activity.type.replace(/_/g, ' ')}</span>
+                        {/* Row 2: Activity Type (always shown) + Game Username (for Recharge/Redeem/Reset) */}
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-[10px] text-muted-foreground capitalize">
+                            {formattedActivityType}
+                          </p>
+                          {(isRechargeActivity || isRedeemActivity || isResetActivity) && activity.username && (
+                            <p className="text-[10px] text-muted-foreground">
+                              • {activity.username}
+                            </p>
                           )}
                         </div>
+
+                        {/* Row 3: Amount/Bonus (only for Recharge and Redeem) */}
+                        {(isRechargeActivity || isRedeemActivity) && (
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <span>Amount: {formatCurrency(activity.amount || '0')}</span>
+                            {hasBonus && (
+                              <span className="text-green-600 dark:text-green-400">
+                                Bonus: {formatCurrency(bonusAmount.toString())}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })

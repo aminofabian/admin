@@ -304,7 +304,7 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions 
               <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Username</TableHead>
               <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Email</TableHead>
               <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Status</TableHead>
-              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Dates</TableHead>
+              <TableHead className="font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Created</TableHead>
               <TableHead className="text-right font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Actions</TableHead>
             </TableRow>
           </TableHeader>
