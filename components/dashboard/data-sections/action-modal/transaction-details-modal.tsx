@@ -200,8 +200,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
             <DetailsField label="Updated" value={formattedUpdatedAt} />
           </DetailsRow>
 
-          {/* View Invoice Button for Crypto Payments */}
-          {isCryptoPayment && invoiceUrl && (
+          {/* View Invoice Button for Crypto Payments - Only for Purchases */}
+          {isPurchase && isCryptoPayment && invoiceUrl && (
             <div className="pt-2 border-t border-border">
               <Button
                 variant="secondary"
