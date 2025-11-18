@@ -839,11 +839,8 @@ export default function PlayerDetailPage() {
                     <Select
                       value={selectedAgentId}
                       onChange={(value: string) => setSelectedAgentId(value)}
-                      options={[
-                        { value: '', label: 'Select an agent' },
-                        ...agentOptions,
-                      ]}
-                      placeholder="Select an agent"
+                      options={agentOptions}
+                      placeholder={selectedPlayer.agent_username || 'Select an agent'}
                       isLoading={isLoadingAgents}
                       disabled={isLoadingAgents}
                       className="w-full"
@@ -867,17 +864,6 @@ export default function PlayerDetailPage() {
                     Assign
                   </Button>
                 </div>
-                {selectedPlayer.agent_username && (
-                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 px-4 py-3 border border-gray-200 dark:border-gray-700">
-                    <svg className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Current Agent</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{selectedPlayer.agent_username}</p>
-                    </div>
-                  </div>
-                )}
               </div>
             </section>
 
@@ -934,11 +920,8 @@ export default function PlayerDetailPage() {
                     <Select
                       value={selectedAgentId}
                       onChange={(value: string) => setSelectedAgentId(value)}
-                      options={[
-                        { value: '', label: 'Select an agent' },
-                        ...agentOptions,
-                      ]}
-                      placeholder="Select an agent"
+                      options={agentOptions}
+                      placeholder={selectedPlayer.agent_username || 'Select an agent'}
                       isLoading={isLoadingAgents}
                       disabled={isLoadingAgents}
                       className="w-full"
@@ -962,17 +945,6 @@ export default function PlayerDetailPage() {
                     Assign
                   </Button>
                 </div>
-                {selectedPlayer.agent_username && (
-                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 px-4 py-3 border border-gray-200 dark:border-gray-700">
-                    <svg className="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Current Agent</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{selectedPlayer.agent_username}</p>
-                    </div>
-                  </div>
-                )}
               </div>
             </section>
 
