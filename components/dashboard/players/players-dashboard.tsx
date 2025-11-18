@@ -161,8 +161,6 @@ export default function PlayersDashboard(): ReactElement {
       <PlayersHeader 
         onAddPlayer={modalState.openCreateModal}
         totalCount={dataState.data?.count ?? 0}
-        currentPage={pagination.page}
-        pageSize={pagination.pageSize}
       />
       <PlayersFilters
         filters={filters.values}
@@ -690,19 +688,10 @@ function useSuccessMessageTimer(
 function PlayersHeader({ 
   onAddPlayer,
   totalCount,
-  currentPage,
-  pageSize,
 }: { 
   onAddPlayer: () => void;
   totalCount: number;
-  currentPage: number;
-  pageSize: number;
 }): ReactElement {
-  // Calculate the range of items shown on current page
-  const start = totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
-  const end = totalCount > 0 ? Math.min(currentPage * pageSize, totalCount) : 0;
-  const totalPages = totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0;
-  
   return (
     <Card className="overflow-hidden border-0 shadow-lg">
       <CardContent className="p-0">
@@ -741,32 +730,6 @@ function PlayersHeader({
                 </p>
               )}
             </div>
-            
-            {/* Enhanced count badge */}
-            {totalCount > 0 && (
-              <div className="hidden sm:flex items-center gap-2 md:ml-4 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-blue-200/80 dark:border-blue-800/50 shadow-lg hover:shadow-xl transition-all duration-300 shrink-0 group">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400 tabular-nums">
-                    {start.toLocaleString()}
-                  </span>
-                  <span className="text-sm text-gray-400 dark:text-gray-500 font-medium">-</span>
-                  <span className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400 tabular-nums">
-                    {end.toLocaleString()}
-                  </span>
-                </div>
-                <div className="h-4 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
-                <div className="flex flex-col items-end">
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium leading-tight">
-                    of {totalCount.toLocaleString()}
-                  </span>
-                  {totalPages > 1 && (
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 tabular-nums">
-                      Page {currentPage}/{totalPages}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
             
             {/* Spacer - pushes button to right on all screens */}
             <div className="flex-1 min-w-0" />
