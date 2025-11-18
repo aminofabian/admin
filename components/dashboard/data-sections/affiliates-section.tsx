@@ -73,22 +73,29 @@ function StatusBadge({ status }: { status: AffiliateStatus }) {
 
 function ManagersHeader({ onAdd }: { onAdd: () => void }) {
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#6366f1] dark:bg-[#312e81] dark:text-[#a5b4fc]">
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
+      <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+        {/* Icon */}
+        <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{SECTION_TITLE}</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{SECTION_SUBTITLE}</p>
-        </div>
+        
+        {/* Title */}
+        <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+          {SECTION_TITLE}
+        </h2>
+        
+        {/* Spacer */}
+        <div className="flex-1 min-w-0" />
+        
+        {/* Add Manager Button */}
+        <Button variant="primary" size="sm" onClick={onAdd} className="shrink-0">
+          {ADD_BUTTON_LABEL}
+        </Button>
       </div>
-      <Button variant="primary" size="md" onClick={onAdd} className="lg:self-auto">
-        {ADD_BUTTON_LABEL}
-      </Button>
-    </section>
+    </div>
   );
 }
 
@@ -113,35 +120,25 @@ function ManagersTable({
   affiliates: Affiliate[];
   onEdit: (affiliate: Affiliate) => void;
 }) {
-  const hasAffiliates = affiliates.length > 0;
-
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/70 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">
-            <TableHead className="w-[220px]">Username</TableHead>
-            <TableHead className="w-[240px]">Email</TableHead>
-            <TableHead className="w-[140px]">Status</TableHead>
-            <TableHead className="w-[220px]">Dates</TableHead>
+          <TableRow>
+            <TableHead>Username</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Dates</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {hasAffiliates ? (
-            affiliates.map((affiliate) => (
-              <ManagersTableRow key={affiliate.id} affiliate={affiliate} onEdit={onEdit} />
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={5} className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                {EMPTY_HEADING}
-              </TableCell>
-            </TableRow>
-          )}
+          {affiliates.map((affiliate) => (
+            <ManagersTableRow key={affiliate.id} affiliate={affiliate} onEdit={onEdit} />
+          ))}
         </TableBody>
       </Table>
-    </section>
+    </div>
   );
 }
 
@@ -157,36 +154,53 @@ function ManagersTableRow({
   const relative = formatRelativeTime(affiliate.created);
 
   return (
-    <TableRow className="border-b border-border/40 last:border-0 dark:border-slate-700/80">
+    <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eef2ff] text-sm font-semibold text-[#6366f1] dark:bg-[#312e81] dark:text-[#a5b4fc]">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
             {getInitials(affiliate.name)}
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{affiliate.name}</span>
-            <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{ROLE_LABEL}</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">{affiliate.name}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{ROLE_LABEL}</span>
           </div>
         </div>
       </TableCell>
       <TableCell>
-        <span className="text-sm text-gray-600 dark:text-gray-300">{affiliate.email || '—'}</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">{affiliate.email || '—'}</span>
       </TableCell>
       <TableCell>
         <StatusBadge status={status} />
       </TableCell>
       <TableCell>
-        <div className="flex flex-col text-sm text-gray-600 dark:text-gray-300">
+        <div className="flex flex-col text-sm text-gray-600 dark:text-gray-400">
           <span>{createdAt}</span>
           {relative && <span className="text-xs text-gray-500 dark:text-gray-400">{relative}</span>}
         </div>
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" size="sm" onClick={() => onEdit(affiliate)}>
+        <div className="flex items-center justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(affiliate)}
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
             Edit
           </Button>
-          <Button variant="danger" size="sm" disabled title="Deactivation workflow is not available yet">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled
+            title="Deactivation workflow is not available yet"
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 opacity-50 cursor-not-allowed"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
             Deactivate
           </Button>
         </div>
@@ -264,10 +278,7 @@ export function AffiliatesSection() {
   }
 
   if (loading && !data) return <LoadingState />;
-  if (error) return <ErrorState message={error} onRetry={fetchAffiliates} />;
-  if (!data?.results?.length && !searchTerm) {
-    return <EmptyState title={EMPTY_HEADING} />;
-  }
+  if (error && !data) return <ErrorState message={error} onRetry={fetchAffiliates} />;
 
   const handleUpdateAffiliate = async (formData: UpdateAffiliateRequest) => {
     if (!selectedAffiliate) return;
@@ -318,21 +329,31 @@ export function AffiliatesSection() {
     <div className="space-y-6">
       <ManagersHeader onAdd={() => setIsAddDrawerOpen(true)} />
       <ManagersSearch value={searchTerm} onChange={setSearchTerm} />
-      <ManagersTable affiliates={affiliates} onEdit={(affiliate) => {
-        setSelectedAffiliate(affiliate);
-        setIsEditDrawerOpen(true);
-      }} />
-      {data && data.count > pageSize ? (
-        <section className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(data.count / pageSize)}
-            hasNext={Boolean(data.next)}
-            hasPrevious={Boolean(data.previous)}
-            onPageChange={setPage}
-          />
-        </section>
-      ) : null}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {affiliates.length === 0 ? (
+          <div className="py-12">
+            <EmptyState title={EMPTY_HEADING} />
+          </div>
+        ) : (
+          <>
+            <ManagersTable affiliates={affiliates} onEdit={(affiliate) => {
+              setSelectedAffiliate(affiliate);
+              setIsEditDrawerOpen(true);
+            }} />
+            {data && data.count > pageSize && (
+              <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(data.count / pageSize)}
+                  hasNext={Boolean(data.next)}
+                  hasPrevious={Boolean(data.previous)}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </div>
       <Drawer isOpen={isEditDrawerOpen} onClose={handleCloseEditDrawer} title="Edit Manager" size="lg">
         {submitError && <DrawerError message={submitError} />}
         {selectedAffiliate ? (
