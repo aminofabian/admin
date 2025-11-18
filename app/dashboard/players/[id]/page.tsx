@@ -1500,7 +1500,7 @@ function EditGameDrawerContent({
               Game Password <span className="text-red-500">*</span>
             </label>
             <Input
-              type="password"
+              type="text"
               value={formData.password}
               onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
               placeholder="Enter new password for the game"
