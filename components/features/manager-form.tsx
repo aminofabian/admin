@@ -89,7 +89,7 @@ export const ManagerForm = ({ manager, onSubmit, isLoading }: ManagerFormProps) 
   };
 
   return (
-    <form id="create-manager-form" onSubmit={handleSubmit} className="space-y-6">
+    <form id="create-manager-form" onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
       {/* Basic Information Section */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-700">
@@ -108,6 +108,7 @@ export const ManagerForm = ({ manager, onSubmit, isLoading }: ManagerFormProps) 
             placeholder="manager123"
             disabled={isLoading || isEditMode}
             className="transition-all duration-200"
+            autoComplete="off"
           />
 
           <Input
@@ -119,6 +120,7 @@ export const ManagerForm = ({ manager, onSubmit, isLoading }: ManagerFormProps) 
             placeholder="manager@example.com"
             disabled={isLoading || isEditMode}
             className="transition-all duration-200"
+            autoComplete="off"
           />
         </div>
       </div>
@@ -142,6 +144,7 @@ export const ManagerForm = ({ manager, onSubmit, isLoading }: ManagerFormProps) 
               placeholder="Minimum 5 characters"
               disabled={isLoading}
               className="transition-all duration-200"
+              autoComplete="new-password"
             />
             <div className="hidden md:block" /> {/* Spacer for grid */}
           </div>
@@ -159,7 +162,7 @@ export const ManagerForm = ({ manager, onSubmit, isLoading }: ManagerFormProps) 
       )}
 
       {/* Hidden role field */}
-      <input type="hidden" value="manager" />
+      <input type="hidden" value="manager" autoComplete="off" />
 
       {isEditMode && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800/50 dark:bg-blue-950/30">
