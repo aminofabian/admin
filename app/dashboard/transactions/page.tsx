@@ -26,7 +26,7 @@ export default function TransactionsPage() {
     const trimmedAgent = agentFromQuery?.trim() || null;
     const trimmedAgentId = agentIdFromQuery?.trim() || null;
 
-    // If no agent params, just clear username filter if present
+    // If no agent params, just clear username filter if present (this page is for agent transactions)
     if (!trimmedAgent && !trimmedAgentId) {
       const currentAdvancedFilters = getStoreState().advancedFilters;
       if (currentAdvancedFilters.username) {
@@ -41,15 +41,10 @@ export default function TransactionsPage() {
     // Get current filters from store
     const currentAdvancedFilters = getStoreState().advancedFilters;
 
-    // Build the filter update - preserve existing filters except agent/agent_id, type, and username
-    // When agent filters are set from URL, we should not preserve type filter or username filter
-    // Agent filters should work with all transaction types unless explicitly filtered
+    // Build the filter update - only update agent/agent_id, preserve all other filters
+    // Only remove username filter (this page is for agent transactions, not player transactions)
     const filterUpdate: Record<string, string> = { ...currentAdvancedFilters };
     
-    // Remove type filter when agent filters are set from URL
-    // This ensures agent filters work with all transaction types
-    delete filterUpdate.type;
-    delete filterUpdate.txn;
     // Remove username filter (this page is for agent transactions, not player transactions)
     delete filterUpdate.username;
 

@@ -92,11 +92,14 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       Object.assign(filters, cleanedAdvancedFilters);
 
       // Apply filter logic based on the selected filter type
-      // IMPORTANT: When agent filters are present, don't apply type filters
-      // Agent filters should return all transaction types for that agent
       const hasAgentFilter = cleanedAdvancedFilters.agent || cleanedAdvancedFilters.agent_id;
       
-      // Only apply type filters if no agent filters are present
+      // Preserve txn from advancedFilters if it was explicitly set by user
+      // This allows transaction type filtering to work even when agent filters are present
+      const txnFromAdvancedFilters = cleanedAdvancedFilters.txn;
+      
+      // Only apply type filters from main filter dropdown if no agent filters are present
+      // But allow txn from advancedFilters to work with agent filters
       if (!hasAgentFilter) {
         if (filter === 'purchases') {
           filters.type = 'purchase';
@@ -112,11 +115,16 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           filters.type = 'history';
         }
       } else {
-        // When agent filters are present, remove any type/txn filters that might conflict
-        // This ensures agent filters work with all transaction types
+        // When agent filters are present, remove type filter from main dropdown
+        // But preserve txn from advancedFilters if user explicitly set it
         delete filters.type;
-        delete filters.txn;
-        console.log('🚫 Removed type/txn filters because agent filter is present');
+        
+        // Keep txn from advancedFilters if it was explicitly set by user
+        // Otherwise, remove it to allow all transaction types for the agent
+        if (!txnFromAdvancedFilters) {
+          delete filters.txn;
+        }
+        // If txnFromAdvancedFilters exists, it's already in filters from Object.assign above
       }
 
       // Log agent filter parameters for debugging
