@@ -70,29 +70,32 @@ export function GamesSection() {
     return <LoadingState />;
   }
 
-  if (error) {
+  if (error && !data) {
     return <ErrorState message={error} onRetry={fetchGames} />;
   }
 
-  if (!games.length) {
-    return <EmptyState title="No games found" description="No games available" />;
-  }
-
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
+      {/* Header - Compact */}
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
+        {/* Single compact row - everything in one line */}
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+          {/* Icon */}
+          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
             </svg>
           </div>
-          <div>
-            <h2 className="text-3xl font-bold text-foreground">Games</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Manage all available games and their status</p>
-          </div>
+          
+          {/* Title */}
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+            Games
+          </h2>
+          
+          {/* Spacer */}
+          <div className="flex-1 min-w-0" />
         </div>
-      </section>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map(stat => (
@@ -114,28 +117,40 @@ export function GamesSection() {
         ))}
       </div>
 
-      <GamesTable
-        games={games}
-        onEditGame={game => {
-          setEditingGame(game);
-          setSubmitError('');
-          setIsDrawerOpen(true);
-        }}
-        onCheckBalance={async game => {
-          setSelectedGame(game);
-          setBalanceError(null);
-          setBalanceData(null);
-          setIsBalanceModalOpen(true);
+      {/* Content */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {!games.length ? (
+          <div className="py-12">
+            <EmptyState 
+              title="No Games found" 
+              description="Get started by creating a new Game"
+            />
+          </div>
+        ) : (
+          <GamesTable
+            games={games}
+            onEditGame={game => {
+              setEditingGame(game);
+              setSubmitError('');
+              setIsDrawerOpen(true);
+            }}
+            onCheckBalance={async game => {
+              setSelectedGame(game);
+              setBalanceError(null);
+              setBalanceData(null);
+              setIsBalanceModalOpen(true);
 
-          try {
-            const response = await checkStoreBalance({ game_id: game.id });
-            setBalanceData(response);
-          } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to check balance';
-            setBalanceError(message);
-          }
-        }}
-      />
+              try {
+                const response = await checkStoreBalance({ game_id: game.id });
+                setBalanceData(response);
+              } catch (err) {
+                const message = err instanceof Error ? err.message : 'Failed to check balance';
+                setBalanceError(message);
+              }
+            }}
+          />
+        )}
+      </div>
 
       <GameEditor
         isOpen={isDrawerOpen}
@@ -234,94 +249,83 @@ interface GamesTableProps {
 }
 
 function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
-  if (!games.length) {
-    return null;
-  }
-
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/60 bg-muted/40 transition-colors dark:border-slate-800/70 dark:bg-slate-900/60">
-              <TableHead className="min-w-[220px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Game</TableHead>
-              <TableHead className="min-w-[160px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Status</TableHead>
-              <TableHead className="min-w-[200px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Dashboard URL</TableHead>
-              <TableHead className="min-w-[200px] text-right font-semibold uppercase tracking-wide text-muted-foreground dark:text-slate-300">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {games.map(game => (
-              <TableRow
-                key={game.id}
-                className="border-border/40 transition-colors hover:bg-slate-50 dark:border-slate-800/70 dark:hover:bg-slate-900/50"
-              >
-                <TableCell className="text-sm font-medium text-foreground">{game.title}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={game.game_status ? 'success' : 'danger'}
-                    className={
-                      game.game_status
-                        ? 'border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-300'
-                        : 'border border-rose-200 bg-rose-50 px-3 py-1 text-rose-600 dark:border-rose-700/60 dark:bg-rose-950/40 dark:text-rose-300'
-                    }
+    <div className="hidden lg:block overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Game</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Dashboard URL</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {games.map(game => (
+            <TableRow
+              key={game.id}
+              className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            >
+              <TableCell>
+                <div className="font-medium text-gray-900 dark:text-gray-100">{game.title}</div>
+              </TableCell>
+              <TableCell>
+                <Badge variant={game.game_status ? 'success' : 'danger'}>
+                  {game.game_status ? 'Active' : 'Inactive'}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                {game.dashboard_url ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(game.dashboard_url, '_blank', 'noopener,noreferrer')}
+                    title="View dashboard"
+                    className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                   >
-                    {game.game_status ? 'Active' : 'Inactive'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {game.dashboard_url ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => window.open(game.dashboard_url, '_blank', 'noopener,noreferrer')}
-                      title="View dashboard"
-                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      View
-                    </Button>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onCheckBalance(game)}
-                      title="Check store balance"
-                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Balance
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEditGame(game)}
-                      title="Edit game"
-                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </section>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    View
+                  </Button>
+                ) : (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onCheckBalance(game)}
+                    title="Check store balance"
+                    className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Balance
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEditGame(game)}
+                    title="Edit game"
+                    className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 
