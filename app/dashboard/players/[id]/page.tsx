@@ -531,6 +531,13 @@ export default function PlayerDetailPage() {
     router.push('/dashboard/players');
   }, [router]);
 
+  const handleNavigateToChat = useCallback(() => {
+    if (selectedPlayer) {
+      const chatUrl = `/dashboard/chat?playerId=${selectedPlayer.id}&username=${encodeURIComponent(selectedPlayer.username)}`;
+      router.push(chatUrl);
+    }
+  }, [selectedPlayer, router]);
+
   // Load player games - MUST be called before any conditional returns (Rules of Hooks)
   const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(playerId);
   
@@ -716,14 +723,24 @@ export default function PlayerDetailPage() {
               </svg>
             </button>
             <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 flex-1 min-w-0">
-              <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base">
+              <button
+                onClick={handleNavigateToChat}
+                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors cursor-pointer active:scale-95"
+                title="Open chat with this player"
+                aria-label="Open chat"
+              >
                 {usernameInitial}
-              </div>
+              </button>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-                  <h2 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate">
+                  <button
+                    onClick={handleNavigateToChat}
+                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer text-left"
+                    title="Open chat with this player"
+                    aria-label="Open chat"
+                  >
                     {selectedPlayer.username}
-                  </h2>
+                  </button>
                   <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
                     #{selectedPlayer.id}
                   </span>
