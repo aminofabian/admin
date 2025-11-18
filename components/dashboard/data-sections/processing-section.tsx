@@ -249,7 +249,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   const userCell = (
     <TableCell>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
           {transaction.user_username?.charAt(0).toUpperCase() ?? '?'}
         </div>
         <div>
@@ -336,7 +336,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
 
   const datesCell = (
     <TableCell>
-      <div className="text-xs text-muted-foreground space-y-1">
+      <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
         <div>{transaction.created ? formatDate(transaction.created) : '—'}</div>
         <div>{transaction.updated ? formatDate(transaction.updated) : '—'}</div>
       </div>
@@ -344,7 +344,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   );
 
   return (
-    <TableRow>
+    <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       {userCell}
       {transactionCell}
       {amountCell}
@@ -354,19 +354,25 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
       {paymentCell}
       {datesCell}
       <TableCell className="text-right">
-        <Button
-          variant="primary"
-          size="sm"
-          className="min-w-[7.5rem]"
-          disabled={isActionPending}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onView();
-          }}
-        >
-          View
-        </Button>
+        <div className="flex items-center justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+            disabled={isActionPending}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onView();
+            }}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            View
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -869,10 +875,10 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
           emptyState={emptyState}
         >
         {/* Compact Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
           <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
             {/* Icon */}
-            <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shrink-0">
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
               <div className="h-4 w-4 sm:h-5 sm:w-5 text-white">
                 {metadata.icon}
               </div>
@@ -894,43 +900,49 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
             </p>
           </DashboardActionBar>
         )}
-        {/* Desktop Table View */}
-        {transactionResults.length > 0 && (
-          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Transaction</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Previous Balance</TableHead>
-                  <TableHead>New Balance</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead>Dates</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactionResults.map((transaction) => (
-                  <ProcessingTransactionRow
-                    key={transaction.id}
-                    transaction={transaction}
-                    getStatusVariant={getStatusVariant}
-                    onView={() => handleViewTransaction(transaction)}
-                    isActionPending={pendingTransactionId === transaction.id}
-                  />
-                ))}
-              </TableBody>
-              </Table>
+        {/* Content */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {transactionResults.length === 0 ? (
+            <div className="py-12">
+              <EmptyState 
+                title="No Transactions found" 
+                description="Try adjusting your filters or search criteria"
+              />
             </div>
-          </div>
-        )}
+          ) : (
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Transaction</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Previous Balance</TableHead>
+                      <TableHead>New Balance</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Dates</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transactionResults.map((transaction) => (
+                      <ProcessingTransactionRow
+                        key={transaction.id}
+                        transaction={transaction}
+                        getStatusVariant={getStatusVariant}
+                        onView={() => handleViewTransaction(transaction)}
+                        isActionPending={pendingTransactionId === transaction.id}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
-        {/* Mobile Card View */}
-        {transactionResults.length > 0 && (
-          <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
             {transactionResults.map((transaction) => {
               const isPurchaseTransaction = transaction.type === 'purchase';
               const amountClass = isPurchaseTransaction ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
@@ -949,7 +961,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                   {/* Top Section: User, Type & Status */}
                   <div className="p-3 border-b border-gray-100 dark:border-gray-800">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
                         {userInitial}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1039,31 +1051,38 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                     </div>
                     <Button
                       size="sm"
-                      variant="primary"
+                      variant="ghost"
                       onClick={() => handleViewTransaction(transaction)}
                       disabled={pendingTransactionId === transaction.id}
-                      className="px-3 py-1.5 text-xs touch-manipulation shrink-0"
+                      className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 touch-manipulation"
+                      title="View transaction"
                     >
-                      View
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <span className="hidden sm:inline">View</span>
                     </Button>
                   </div>
                 </div>
               );
             })}
-          </div>
-        )}
+              </div>
 
-        {transactionCount > transactionsPageSize && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-            <Pagination
-              currentPage={transactionsPage}
-              totalPages={Math.ceil(transactionCount / transactionsPageSize)}
-              hasNext={!!transactions?.next}
-              hasPrevious={!!transactions?.previous}
-              onPageChange={setTransactionsPage}
-            />
-          </div>
-        )}
+              {transactionCount > transactionsPageSize && (
+                <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                  <Pagination
+                    currentPage={transactionsPage}
+                    totalPages={Math.ceil(transactionCount / transactionsPageSize)}
+                    hasNext={!!transactions?.next}
+                    hasPrevious={!!transactions?.previous}
+                    onPageChange={setTransactionsPage}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </DashboardSectionContainer>
       
       {/* View Transaction Modal */}
@@ -1120,10 +1139,10 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
       >
         <div className="space-y-3 sm:space-y-4 md:space-y-6">
           {/* Compact Header */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#eff3ff' }}>
             <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
               {/* Icon */}
-              <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 shadow-md shrink-0">
+              <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
                 <div className="h-4 w-4 sm:h-5 sm:w-5 text-white">
                   {metadata.icon}
                 </div>
@@ -1172,23 +1191,37 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
               <p className="text-sm text-muted-foreground">{metadata.hint}</p>
             </DashboardActionBar>
           )}
-          <GameActivityTable
-            activities={queues ?? []}
-            onViewDetails={handleViewGameActivity}
-            showActions={true}
-            actionLoading={actionLoading}
-          />
-          {shouldShowQueuePagination && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-              <Pagination
-                currentPage={queuePage}
-                totalPages={totalQueuePages}
-                hasNext={Boolean(queueNext)}
-                hasPrevious={Boolean(queuePrevious)}
-                onPageChange={handleQueuePageChange}
-              />
-            </div>
-          )}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {(!queues || queues.length === 0) ? (
+              <div className="py-12">
+                <EmptyState 
+                  title="No Game Activities found" 
+                  description="Try adjusting your filters or search criteria"
+                />
+              </div>
+            ) : (
+              <>
+                <GameActivityTable
+                  activities={queues}
+                  onViewDetails={handleViewGameActivity}
+                  showActions={true}
+                  actionLoading={actionLoading}
+                  className="border-0"
+                />
+                {shouldShowQueuePagination && (
+                  <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                    <Pagination
+                      currentPage={queuePage}
+                      totalPages={totalQueuePages}
+                      hasNext={Boolean(queueNext)}
+                      hasPrevious={Boolean(queuePrevious)}
+                      onPageChange={handleQueuePageChange}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </DashboardSectionContainer>
       <ActionModal
