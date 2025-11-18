@@ -111,35 +111,47 @@ export function NotesDrawer({
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 z-[9998] bg-black/50 animate-in fade-in duration-200"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[60] overflow-hidden">
+      {/* Backdrop */}
       <div 
-        className="absolute right-0 top-0 h-full w-full max-w-md bg-background shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/80"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      
+      {/* Drawer Panel */}
+      <div 
+        className="fixed inset-y-0 right-0 z-[60] w-full sm:max-w-lg bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out transform translate-x-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="border-b border-border/50 p-4 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            <h3 className="text-lg font-semibold">Player Notes</h3>
+        <div className="flex h-full flex-col">
+          {/* Drawer Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-b border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-between z-10 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Player Notes</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">Add private notes about this player</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-xl transition-all duration-200 hover:rotate-90 disabled:opacity-50"
+              disabled={isSavingNotes}
+              aria-label="Close drawer"
+            >
+              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
-            aria-label="Close"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 pb-24 md:pb-6">
+          {/* Drawer Body */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24 md:pb-6">
           {selectedPlayer ? (
             <div className="space-y-4">
               {/* Player Info */}
@@ -184,74 +196,33 @@ export function NotesDrawer({
           )}
         </div>
 
-        {/* Footer with Action Buttons */}
-        {selectedPlayer && (
-          <div className="sticky bottom-0 z-10 border-t border-border/50 p-4 flex-shrink-0 bg-background shadow-lg">
-            <div className="grid grid-cols-2 gap-3">
+          {/* Drawer Footer */}
+          {selectedPlayer && (
+            <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-end gap-3 shadow-lg">
+              <Button
+                variant="ghost"
+                onClick={() => setEditedNotes('')}
+                disabled={isSavingNotes}
+                className="px-6 py-2.5 font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Clear
+              </Button>
               <Button 
                 variant="primary" 
-                className="w-full text-sm py-2.5" 
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleSaveNotes();
                 }}
                 disabled={isSavingNotes}
-                type="button"
+                isLoading={isSavingNotes}
+                className="px-6 py-2.5 font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
               >
-                {isSavingNotes ? (
-                  <span className="flex items-center justify-center">
-                    <svg 
-                      className="w-4 h-4 mr-2 animate-spin" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                      <path 
-                        className="opacity-75" 
-                        d="M4 12a8 8 0 018-8" 
-                        strokeWidth="4" 
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    Saving...
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center">
-                    <svg 
-                      className="w-4 h-4 mr-2" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={2} 
-                        d="M5 13l4 4L19 7" 
-                      />
-                    </svg>
-                    Save
-                  </span>
-                )}
-              </Button>
-              <Button 
-                variant="secondary" 
-                className="w-full text-sm py-2.5" 
-                onClick={() => setEditedNotes('')}
-                disabled={isSavingNotes}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Clear
+                {isSavingNotes ? 'Saving...' : 'Save Notes'}
               </Button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

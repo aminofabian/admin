@@ -514,6 +514,7 @@ export default function StaffsPage() {
             onSubmit={handleCreateStaff as (data: CreateUserRequest | UpdateUserRequest) => Promise<void>}
             onCancel={closeModals}
             isLoading={isSubmitting}
+            hideActions={true}
           />
         </div>
       </Drawer>

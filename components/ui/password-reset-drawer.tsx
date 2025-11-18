@@ -79,22 +79,24 @@ export function PasswordResetDrawer({
       title={title}
       size="md"
       footer={
-        <div className="flex gap-3">
+        <>
           <Button
             variant="ghost"
             onClick={handleClose}
             disabled={isLoading}
+            className="px-6 py-2.5 font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            isLoading={isLoading}
+            className="px-6 py-2.5 font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
           >
             {isLoading ? 'Resetting...' : 'Reset Password'}
           </Button>
-        </div>
+        </>
       }
     >
       <div className="space-y-6">

@@ -9,9 +9,10 @@ interface StaffFormProps {
   onSubmit: (data: CreateUserRequest | UpdateUserRequest) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
+  hideActions?: boolean;
 }
 
-export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormProps) => {
+export const StaffForm = ({ staff, onSubmit, onCancel, isLoading, hideActions = false }: StaffFormProps) => {
   const isEditMode = !!staff;
   
   const [formData, setFormData] = useState<CreateUserRequest>({
@@ -173,23 +174,25 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
       )}
 
       {/* Form Actions */}
-      <div className="flex justify-end gap-3 pt-4">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={onCancel}
-          disabled={isLoading}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          isLoading={isLoading}
-          disabled={isLoading}
-        >
-          {isEditMode ? 'Update Staff' : 'Create Staff'}
-        </Button>
-      </div>
+      {!hideActions && (
+        <div className="flex justify-end gap-3 pt-4">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            isLoading={isLoading}
+            disabled={isLoading}
+          >
+            {isEditMode ? 'Update Staff' : 'Create Staff'}
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

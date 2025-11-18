@@ -85,35 +85,49 @@ export function AddGameDrawer({
 
   const selectedGame = availableGames.find(game => game.code === formData.code);
 
+  if (!isOpen) return null;
+
   return (
-    <div className={`fixed inset-0 z-[60] overflow-hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+    <div className="fixed inset-0 z-[60] overflow-hidden">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/80"
         onClick={() => !isSubmitting && onClose()}
+        aria-hidden="true"
       />
       
       {/* Drawer Panel */}
       <div 
-        className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-lg bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex h-full flex-col">
           {/* Drawer Header */}
-          <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-foreground">Add New Game</h2>
+          <div className="sticky top-0 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-b border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-between z-10 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Add New Game</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">Add a game to player account</p>
+              </div>
+            </div>
             <button
               onClick={onClose}
-              className="p-1 hover:bg-muted rounded-lg transition-colors"
+              className="p-2 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-xl transition-all duration-200 hover:rotate-90 disabled:opacity-50"
               disabled={isSubmitting}
+              aria-label="Close drawer"
             >
-              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24 md:pb-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24 md:pb-6">
           <form id="add-game-form" onSubmit={handleSubmit} className="space-y-4">
             {/* Game Selection */}
             <div>
@@ -223,26 +237,25 @@ export function AddGameDrawer({
           </form>
           </div>
 
-          {/* Sticky Footer with Submit Button */}
-          <div className="sticky bottom-0 z-10 bg-card border-t border-border px-6 py-4 shadow-lg">
+          {/* Drawer Footer */}
+          <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-end gap-3 shadow-lg">
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-6 py-2.5 font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               form="add-game-form"
               variant="primary"
-              className="w-full"
               disabled={isSubmitting || !formData.code || !formData.username || !formData.password}
               isLoading={isSubmitting}
+              className="px-6 py-2.5 font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
             >
-              {isSubmitting ? (
-                'Adding Game...'
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Game
-                </>
-              )}
+              {isSubmitting ? 'Adding Game...' : 'Add Game'}
             </Button>
           </div>
         </div>
