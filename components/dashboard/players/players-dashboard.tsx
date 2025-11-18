@@ -2,7 +2,7 @@
 
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { playersApi, agentsApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
 import {
@@ -196,6 +196,7 @@ export default function PlayersDashboard(): ReactElement {
 
 function usePlayersPageContext(): PlayersPageContext {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const pagination = usePagination();
   
@@ -206,8 +207,15 @@ function usePlayersPageContext(): PlayersPageContext {
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isAgentLoading, setIsAgentLoading] = useState(false);
 
-  // Initialize filters with pagination
-  const filters = usePlayerFilters(pagination.setPage);
+  // Initialize filters with pagination and initial agent from URL (if present)
+  const filters = usePlayerFilters(pagination.setPage, agentFromUrl || undefined);
+  
+  // Log when agent is initialized from URL
+  useEffect(() => {
+    if (agentFromUrl && filters.appliedFilters.agent === agentFromUrl) {
+      console.log('✅ Agent filter initialized from URL:', agentFromUrl);
+    }
+  }, [agentFromUrl, filters.appliedFilters.agent]);
 
   useEffect(() => {
     let isMounted = true;
@@ -274,19 +282,30 @@ function usePlayersPageContext(): PlayersPageContext {
     };
   }, []);
 
-  // Sync agent filter from URL params
+  // Remove URL parameter after component has mounted (if agent was in URL)
+  // This prevents it from overriding filter changes
   useEffect(() => {
-    if (agentFromUrl && !filters.values.agent) {
-      filters.setFilter('agent', agentFromUrl);
-      filters.applyFilters();
+    if (agentFromUrl) {
+      // Use setTimeout to ensure state has been committed before updating URL
+      const timeoutId = setTimeout(() => {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('agent');
+        const newSearch = params.toString();
+        const newUrl = newSearch 
+          ? `${pathname}?${newSearch}`
+          : pathname;
+        // Use window.history.replaceState to avoid triggering a navigation/reload
+        window.history.replaceState({}, '', newUrl);
+      }, 100); // Small delay to ensure filter state is initialized
+      
+      return () => clearTimeout(timeoutId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentFromUrl]);
+  }, [agentFromUrl, pathname]);
   
   const dataState = usePlayersData({
     filters: filters.appliedFilters,
     pagination,
-    agentFromUrl: agentFromUrl || filters.appliedFilters.agent,
   });
   const modalState = usePlayerModals(dataState.refresh);
   const creationHandlers = usePlayerCreation({
@@ -317,11 +336,9 @@ function usePlayersPageContext(): PlayersPageContext {
 function usePlayersData({
   filters,
   pagination,
-  agentFromUrl,
 }: {
   filters: FilterState;
   pagination: ReturnType<typeof usePagination>;
-  agentFromUrl?: string;
 }): {
   data: PaginatedResponse<Player> | null;
   error: string;
@@ -355,10 +372,12 @@ function usePlayersData({
         params.email = filters.email.trim();
       }
       
-      // Add agent (username) if provided (from URL params or filter)
-      const effectiveAgent = agentFromUrl || (filters.agent.trim() || undefined);
-      if (effectiveAgent) {
-        params.agent = effectiveAgent;
+      // Add agent (username) if provided from filter
+      if (filters.agent.trim()) {
+        params.agent = filters.agent.trim();
+        console.log('🔍 Loading players with agent filter:', params.agent);
+      } else {
+        console.log('🔍 Loading players without agent filter');
       }
 
       // Add date filters if provided (backend expects date_from/date_to in YYYY-MM-DD format)
@@ -426,7 +445,6 @@ function usePlayersData({
     filters.date_to,
     filters.status,
     filters.state,
-    agentFromUrl,
     pagination.page,
     pagination.pageSize,
   ]);
@@ -447,10 +465,12 @@ function usePlayersData({
 
 function usePlayerFilters(
   setPage: (page: number) => void,
+  initialAgent?: string,
 ): {
   applyFilters: () => void;
   clearFilters: () => void;
   setFilter: (key: keyof FilterState, value: string) => void;
+  setFilterAndApply: (key: keyof FilterState, value: string) => void;
   appliedFilters: FilterState;
   values: FilterState;
   hasActiveFilters: boolean;
@@ -459,7 +479,7 @@ function usePlayerFilters(
     username: '',
     full_name: '',
     email: '',
-    agent: '',
+    agent: initialAgent || '',
     date_from: '',
     date_to: '',
     status: 'all',
@@ -470,7 +490,7 @@ function usePlayerFilters(
     username: '',
     full_name: '',
     email: '',
-    agent: '',
+    agent: initialAgent || '',
     date_from: '',
     date_to: '',
     status: 'all',
@@ -515,10 +535,22 @@ function usePlayerFilters(
     );
   }, [appliedFilters]);
 
+  const setFilterAndApply = useCallback((key: keyof FilterState, value: string) => {
+    setFilters((prevFilters) => {
+      const updatedFilters = { ...prevFilters, [key]: value };
+      // Update appliedFilters with the new value immediately
+      setAppliedFilters(updatedFilters);
+      setPage(1);
+      console.log('✅ Filter set and applied:', key, '=', value, 'Updated filters:', updatedFilters);
+      return updatedFilters;
+    });
+  }, [setPage]);
+
   return {
     applyFilters,
     clearFilters,
     setFilter,
+    setFilterAndApply,
     appliedFilters,
     values: filters,
     hasActiveFilters,
