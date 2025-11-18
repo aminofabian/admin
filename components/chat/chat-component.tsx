@@ -240,6 +240,7 @@ export function ChatComponent() {
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Debounce refresh calls
   const scrollPositionBeforeRefreshRef = useRef<number | null>(null); // Preserve scroll position during refresh
   const displayedMessageIdsRef = useRef<Set<string>>(new Set()); // Track displayed messages for animation
+  const hasScrolledForQueryParamsRef = useRef<string | null>(null); // Track if we've scrolled for query param navigation
   const { addToast } = useToast();
   const { games: playerGames, isLoading: isLoadingPlayerGames } = usePlayerGames(selectedPlayer?.user_id || null);
 
@@ -878,6 +879,8 @@ export function ChatComponent() {
       isRefreshingMessagesRef.current = false;
       scrollPositionBeforeRefreshRef.current = null;
       displayedMessageIdsRef.current.clear(); // Reset animation tracking
+      // Reset query param scroll tracking when player changes
+      hasScrolledForQueryParamsRef.current = null;
     }
   }, [markChatAsRead, activeTab]);
 
@@ -1309,6 +1312,70 @@ export function ChatComponent() {
     selectedPlayer,
     handlePlayerSelect,
   ]);
+
+  // Scroll to bottom when navigating from player page via query params
+  useEffect(() => {
+    if (!queryPlayerId && !queryUsername) {
+      // Clear the ref when query params are removed
+      hasScrolledForQueryParamsRef.current = null;
+      return;
+    }
+
+    if (!selectedPlayer) {
+      return;
+    }
+
+    // Verify this is the player from query params
+    const rawUserId = queryPlayerId ? Number(queryPlayerId) : NaN;
+    const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
+    const normalizedUsername = queryUsername?.trim().toLowerCase();
+    
+    const matchesId = targetUserId !== null && selectedPlayer.user_id === targetUserId;
+    const matchesUsername = normalizedUsername && selectedPlayer.username.toLowerCase() === normalizedUsername;
+    
+    if (!matchesId && !matchesUsername) {
+      return;
+    }
+
+    // Create a unique key for this query param navigation
+    const queryKey = `${queryPlayerId || ''}-${queryUsername || ''}`;
+    
+    // Skip if we've already scrolled for this query param combination
+    if (hasScrolledForQueryParamsRef.current === queryKey) {
+      return;
+    }
+
+    // Wait for messages to load, then scroll to bottom
+    if (wsMessages.length > 0 && !isHistoryLoadingMessages) {
+      // Mark that we've scrolled for this query param combination
+      hasScrolledForQueryParamsRef.current = queryKey;
+      
+      !IS_PROD && console.log('📍 Scrolling to bottom for query param navigation:', {
+        playerId: queryPlayerId,
+        username: queryUsername,
+        messagesCount: wsMessages.length,
+      });
+
+      // Use multiple timeouts to ensure scroll happens after DOM updates
+      const scrollTimeout1 = setTimeout(() => {
+        scrollToBottom(true, true); // Force + instant scroll
+      }, 100);
+
+      const scrollTimeout2 = setTimeout(() => {
+        scrollToBottom(true, true); // Verification scroll
+      }, 300);
+
+      const scrollTimeout3 = setTimeout(() => {
+        scrollToBottom(true, true); // Final verification
+      }, 500);
+
+      return () => {
+        clearTimeout(scrollTimeout1);
+        clearTimeout(scrollTimeout2);
+        clearTimeout(scrollTimeout3);
+      };
+    }
+  }, [queryPlayerId, queryUsername, selectedPlayer, wsMessages.length, isHistoryLoadingMessages, scrollToBottom]);
 
   // Removed auto-selection of first player - users should manually select a player to chat with
 
