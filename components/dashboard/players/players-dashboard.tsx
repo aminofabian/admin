@@ -161,7 +161,8 @@ export default function PlayersDashboard(): ReactElement {
       <PlayersHeader 
         onAddPlayer={modalState.openCreateModal}
         totalCount={dataState.data?.count ?? 0}
-        currentPageCount={dataState.data?.results.length ?? 0}
+        currentPage={pagination.page}
+        pageSize={pagination.pageSize}
       />
       <PlayersFilters
         filters={filters.values}
@@ -689,24 +690,33 @@ function useSuccessMessageTimer(
 function PlayersHeader({ 
   onAddPlayer,
   totalCount,
-  currentPageCount,
+  currentPage,
+  pageSize,
 }: { 
   onAddPlayer: () => void;
   totalCount: number;
-  currentPageCount: number;
+  currentPage: number;
+  pageSize: number;
 }): ReactElement {
-  const hasPagination = totalCount > 0 && currentPageCount < totalCount;
+  // Calculate the range of items shown on current page
+  const start = totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+  const end = totalCount > 0 ? Math.min(currentPage * pageSize, totalCount) : 0;
+  const totalPages = totalCount > 0 ? Math.ceil(totalCount / pageSize) : 0;
   
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden border-0 shadow-lg">
       <CardContent className="p-0">
-        <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-900">
-          {/* Single compact row - everything in one line */}
-          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-            {/* Icon */}
-            <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shrink-0">
+        <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+          {/* Subtle gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent dark:via-white/5" />
+          
+          {/* Main content */}
+          <div className="relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 md:p-4">
+            {/* Icon with enhanced styling */}
+            <div className="relative flex h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 shadow-lg ring-2 ring-blue-200/50 dark:ring-blue-900/50 shrink-0 group hover:scale-105 transition-transform duration-200">
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />
               <svg
-                className="h-4 w-4 sm:h-5 sm:w-5 text-white"
+                className="relative h-5 w-5 sm:h-6 sm:w-6 text-white drop-shadow-sm"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -720,30 +730,51 @@ function PlayersHeader({
               </svg>
             </div>
             
-            {/* Title */}
-            <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-gray-100 shrink-0">
-              Players
-            </h1>
+            {/* Title with improved typography */}
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+                Players
+              </h1>
+              {totalCount > 0 && (
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 font-medium">
+                  {totalCount.toLocaleString()} total
+                </p>
+              )}
+            </div>
             
-            {/* Count badge - inline: current page / total */}
+            {/* Enhanced count badge */}
             {totalCount > 0 && (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/90 dark:bg-gray-800/90 border border-blue-200/50 dark:border-blue-800/30 shadow-sm shrink-0">
-                <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100">
-                  {currentPageCount}
-                </span>
-                <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                  / {totalCount.toLocaleString()}
-                </span>
+              <div className="hidden sm:flex items-center gap-2 md:ml-4 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-blue-200/80 dark:border-blue-800/50 shadow-lg hover:shadow-xl transition-all duration-300 shrink-0 group">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400 tabular-nums">
+                    {start.toLocaleString()}
+                  </span>
+                  <span className="text-sm text-gray-400 dark:text-gray-500 font-medium">-</span>
+                  <span className="text-base sm:text-lg font-bold text-blue-600 dark:text-blue-400 tabular-nums">
+                    {end.toLocaleString()}
+                  </span>
+                </div>
+                <div className="h-4 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+                <div className="flex flex-col items-end">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium leading-tight">
+                    of {totalCount.toLocaleString()}
+                  </span>
+                  {totalPages > 1 && (
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 tabular-nums">
+                      Page {currentPage}/{totalPages}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
             
-            {/* Spacer */}
+            {/* Spacer - pushes button to right on all screens */}
             <div className="flex-1 min-w-0" />
             
-            {/* Add button - compact */}
+            {/* Enhanced Add button */}
             <Button 
               onClick={onAddPlayer}
-              className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
+              className="shadow-lg hover:shadow-xl transition-all duration-200 touch-manipulation px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-0 font-semibold"
               size="sm"
             >
               <svg
@@ -751,15 +782,15 @@ function PlayersHeader({
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                strokeWidth={2.5}
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              <span className="hidden md:inline ml-1.5">Add Player</span>
+              <span className="hidden md:inline ml-2 font-medium">Add Player</span>
             </Button>
           </div>
         </div>
