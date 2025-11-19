@@ -401,7 +401,8 @@ export function BonusesSection() {
                                       variant="ghost"
                                       size="sm"
                                       className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                                      onClick={() => {/* Handle edit */}}
+                                      onClick={() => handleEditBonus(item as unknown as TransferBonus, 'transfer')}
+                                      disabled={operationLoading.transfer}
                                     >
                                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -415,7 +416,7 @@ export function BonusesSection() {
                                       variant="ghost"
                                       size="sm"
                                       className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                                      onClick={() => activeTab === 'transfer' && handleEditBonus(item as unknown as TransferBonus, 'transfer')}
+                                      onClick={() => handleEditBonus(item as unknown as TransferBonus, 'transfer')}
                                       disabled={operationLoading.transfer}
                                     >
                                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
