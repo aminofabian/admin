@@ -1,25 +1,3 @@
-/**
- * WebSocket Hook for Real-Time Processing Notifications
- * 
- * This hook manages WebSocket connections to receive real-time updates
- * for transaction queue processing activities (purchases, cashouts, and game activities).
- * 
- * The WebSocket now uses a unified format that sends all three data types together.
- * 
- * @example
- * ```tsx
- * const { isConnected, error } = useProcessingWebSocket({
- *   enabled: true,
- *   onQueueUpdate: (queue) => {
- *     console.log('New queue:', queue);
- *   },
- *   onTransactionUpdate: (transaction) => {
- *     console.log('New transaction:', transaction);
- *   },
- * });
- * ```
- */
-
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { API_BASE_URL } from '@/lib/constants/api';
@@ -29,11 +7,9 @@ export interface WebSocketMessage {
   type: 'all_activities' | 'send_notification' | 'connection' | 'error';
   message?: string;
   title?: string;
-  // Unified format fields for all_activities (arrays)
-  purchase_data?: any[] | any; // Array for all_activities, object for send_notification
-  cashout_data?: any[] | any; // Array for all_activities, object for send_notification
-  game_activities_data?: any[] | any; // Array for all_activities, object for send_notification
-  // For send_notification messages
+  purchase_data?: any[] | any;
+  cashout_data?: any[] | any;
+  game_activities_data?: any[] | any;
   activity_type?: 'purchase' | 'cashout' | 'game_activity';
   data?: any;
 }
@@ -60,11 +36,7 @@ interface UseProcessingWebSocketReturn {
   connect: () => void;
 }
 
-/**
- * Transform raw purchase data to Transaction
- */
 function transformPurchaseToTransaction(rawPurchase: any): Transaction {
-  // Handle nested user data structure
   const userData = rawPurchase.user && typeof rawPurchase.user === 'object' ? rawPurchase.user : null;
   const nestedData = rawPurchase.data && typeof rawPurchase.data === 'object' ? rawPurchase.data : null;
   
@@ -96,11 +68,7 @@ function transformPurchaseToTransaction(rawPurchase: any): Transaction {
   };
 }
 
-/**
- * Transform raw cashout data to Transaction
- */
 function transformCashoutToTransaction(rawCashout: any): Transaction {
-  // Handle nested user data structure
   const userData = rawCashout.user && typeof rawCashout.user === 'object' ? rawCashout.user : null;
   const nestedData = rawCashout.data && typeof rawCashout.data === 'object' ? rawCashout.data : null;
   
@@ -132,9 +100,6 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
   };
 }
 
-/**
- * Transform raw game activity data to TransactionQueue
- */
 function transformActivityToQueue(rawActivity: any): TransactionQueue {
   return {
     id: rawActivity.id || rawActivity.transaction_id || '',
@@ -157,22 +122,6 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
   };
 }
 
-/**
- * Custom hook for managing WebSocket connection to processing notifications
- * 
- * @example
- * ```tsx
- * const { isConnected, error } = useProcessingWebSocket({
- *   enabled: true,
- *   onQueueUpdate: (queue) => {
- *     console.log('Queue updated:', queue);
- *   },
- *   onTransactionUpdate: (transaction) => {
- *     console.log('Transaction updated:', transaction);
- *   },
- * });
- * ```
- */
 export function useProcessingWebSocket({
   enabled = true,
   onMessage,
@@ -202,9 +151,7 @@ export function useProcessingWebSocket({
       return null;
     }
 
-    // Convert HTTP/HTTPS to WS/WSS
     const baseUrl = API_BASE_URL.replace(/^http/, 'ws');
-    // Unified endpoint - no longer needs type parameter
     const wsUrl = `${baseUrl}/ws/notifications/${user.username}/`;
     
     console.log('🔌 WebSocket URL:', wsUrl);
@@ -215,7 +162,6 @@ export function useProcessingWebSocket({
     console.log('🔌 Disconnecting WebSocket...');
     shouldReconnectRef.current = false;
     
-    // Clear all timeouts
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -230,13 +176,11 @@ export function useProcessingWebSocket({
       const ws = wsRef.current;
       const currentState = ws.readyState;
       
-      // Remove event listeners before closing
       ws.onopen = null;
       ws.onclose = null;
       ws.onerror = null;
       ws.onmessage = null;
       
-      // Only close if not already closed or closing
       if (currentState === WebSocket.OPEN || currentState === WebSocket.CONNECTING) {
         try {
           ws.close(1000, 'Client disconnecting');
@@ -278,7 +222,6 @@ export function useProcessingWebSocket({
   }, [reconnectInterval, maxReconnectAttempts]);
 
   const connect = useCallback(() => {
-    // Don't connect if already connected or connecting
     if (wsRef.current) {
       const state = wsRef.current.readyState;
       if (state === WebSocket.OPEN) {
@@ -289,7 +232,6 @@ export function useProcessingWebSocket({
         console.log('⚠️ WebSocket already connecting, please wait...');
         return;
       }
-      // If CLOSING or CLOSED, clean up first
       if (state === WebSocket.CLOSING || state === WebSocket.CLOSED) {
         console.log('🔄 Cleaning up previous WebSocket instance...');
         wsRef.current = null;
@@ -316,7 +258,6 @@ export function useProcessingWebSocket({
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
-      // Set connection timeout (10 seconds)
       connectionTimeoutRef.current = setTimeout(() => {
         if (ws.readyState === WebSocket.CONNECTING) {
           console.error('❌ WebSocket connection timeout');
@@ -331,7 +272,6 @@ export function useProcessingWebSocket({
           
           wsRef.current = null;
           
-          // Attempt reconnection
           if (shouldReconnectRef.current) {
             handleReconnect();
           }
@@ -341,7 +281,6 @@ export function useProcessingWebSocket({
       ws.onopen = () => {
         console.log('✅ WebSocket connected');
         
-        // Clear connection timeout
         if (connectionTimeoutRef.current) {
           clearTimeout(connectionTimeoutRef.current);
           connectionTimeoutRef.current = null;
@@ -363,7 +302,6 @@ export function useProcessingWebSocket({
           wasClean: event.wasClean,
         });
         
-        // Clear connection timeout
         if (connectionTimeoutRef.current) {
           clearTimeout(connectionTimeoutRef.current);
           connectionTimeoutRef.current = null;
@@ -375,7 +313,6 @@ export function useProcessingWebSocket({
         
         onDisconnect?.();
 
-        // Attempt reconnection if it wasn't a clean close
         if (!event.wasClean && shouldReconnectRef.current) {
           handleReconnect();
         }
@@ -384,7 +321,6 @@ export function useProcessingWebSocket({
       ws.onerror = (event) => {
         console.error('❌ WebSocket error:', event);
         
-        // Clear connection timeout
         if (connectionTimeoutRef.current) {
           clearTimeout(connectionTimeoutRef.current);
           connectionTimeoutRef.current = null;
@@ -401,10 +337,8 @@ export function useProcessingWebSocket({
           const message: WebSocketMessage = JSON.parse(event.data);
           console.log('📨 WebSocket message received:', message.type);
 
-          // Call the generic message handler
           onMessage?.(message);
 
-          // Handle all_activities message type (unified format with all three data types)
           if (message.type === 'all_activities') {
             console.log('📦 All activities message received:', {
               purchase_count: message.purchase_data?.length || 0,
@@ -412,31 +346,27 @@ export function useProcessingWebSocket({
               game_activities_count: message.game_activities_data?.length || 0,
             });
 
-            // Process purchase_data array (initial load - no toasts)
             if (message.purchase_data && Array.isArray(message.purchase_data)) {
               message.purchase_data.forEach((rawPurchase) => {
                 const transaction = transformPurchaseToTransaction(rawPurchase);
-                onTransactionUpdate?.(transaction, true); // true = isInitialLoad
+                onTransactionUpdate?.(transaction, true);
               });
             }
 
-            // Process cashout_data array (initial load - no toasts)
             if (message.cashout_data && Array.isArray(message.cashout_data)) {
               message.cashout_data.forEach((rawCashout) => {
                 const transaction = transformCashoutToTransaction(rawCashout);
-                onTransactionUpdate?.(transaction, true); // true = isInitialLoad
+                onTransactionUpdate?.(transaction, true);
               });
             }
 
-            // Process game_activities_data array (initial load - no toasts)
             if (message.game_activities_data && Array.isArray(message.game_activities_data)) {
               message.game_activities_data.forEach((rawActivity) => {
                 const queue = transformActivityToQueue(rawActivity);
-                onQueueUpdate?.(queue, true); // true = isInitialLoad
+                onQueueUpdate?.(queue, true);
               });
             }
           } 
-          // Handle send_notification for individual updates
           else if (message.type === 'send_notification') {
             console.log('📨 Notification received:', {
               activity_type: message.activity_type,
@@ -445,31 +375,23 @@ export function useProcessingWebSocket({
               fullMessage: message,
             });
             
-            // Check if purchase_data is nested in the message (new format)
             if (message.purchase_data && typeof message.purchase_data === 'object' && !Array.isArray(message.purchase_data)) {
               const transaction = transformPurchaseToTransaction(message.purchase_data);
               onTransactionUpdate?.(transaction);
               return;
             }
             
-            // Check if cashout_data is nested in the message (new format)
             if (message.cashout_data && typeof message.cashout_data === 'object' && !Array.isArray(message.cashout_data)) {
               const transaction = transformCashoutToTransaction(message.cashout_data);
               onTransactionUpdate?.(transaction);
               return;
             }
             
-            // Handle game activities FIRST - check if activity_type is game_activity (case-insensitive)
             const activityType = String(message.activity_type || '').toLowerCase().trim();
             if (activityType === 'game_activity' || activityType === 'gameactivity') {
-              // Game activity data can be in:
-              // 1. message.game_activities_data (for send_notification - it's an object)
-              // 2. message.data (fallback)
-              // 3. Top level of message (last resort)
-              const msg = message as any; // Type assertion for dynamic property access
+              const msg = message as any;
               let gameActivityData = msg.game_activities_data || message.data;
               
-              // If no game_activities_data or data, check if game activity fields are at the top level
               if (!gameActivityData) {
                 if (msg.operation_type || msg.game_title || msg.game || msg.game_code || msg.id) {
                   gameActivityData = msg;
@@ -481,7 +403,7 @@ export function useProcessingWebSocket({
                     hasGameActivitiesData: !!msg.game_activities_data,
                     hasData: !!message.data,
                   });
-                  return; // Can't process without data
+                  return;
                 }
               }
               
@@ -496,7 +418,6 @@ export function useProcessingWebSocket({
               
               const queue = transformActivityToQueue(gameActivityData);
               
-              // Validate that we have a valid queue ID
               if (!queue.id) {
                 console.error('❌ Transformed queue has no ID!', {
                   rawData: gameActivityData,
@@ -518,7 +439,6 @@ export function useProcessingWebSocket({
               return;
             }
             
-            // Handle game activities by data structure (fallback detection)
             const hasGameActivityData = message.data && (
               message.data.operation_type || 
               message.data.type === 'recharge_game' || 
@@ -540,7 +460,6 @@ export function useProcessingWebSocket({
               return;
             }
             
-            // Handle purchases and cashouts based on activity_type
             if (message.activity_type === 'purchase' && message.data) {
               const transaction = transformPurchaseToTransaction(message.data);
               onTransactionUpdate?.(transaction);
@@ -548,8 +467,6 @@ export function useProcessingWebSocket({
               const transaction = transformCashoutToTransaction(message.data);
               onTransactionUpdate?.(transaction);
             } else if (message.data && !message.activity_type) {
-              // Fallback: if we have data but no activity_type, try to detect the type
-              // Check if it looks like a game activity (has game-related fields)
               const data = message.data;
               if (data.game_title || data.game || data.game_code || data.operation_type || 
                   data.type === 'recharge_game' || data.type === 'redeem_game' || 
@@ -558,7 +475,6 @@ export function useProcessingWebSocket({
                 const queue = transformActivityToQueue(data);
                 onQueueUpdate?.(queue);
               } else if (data.type === 'purchase' || data.type === 'cashout') {
-                // Fallback: detect transaction type from data.type
                 if (data.type === 'purchase') {
                   const transaction = transformPurchaseToTransaction(data);
                   onTransactionUpdate?.(transaction);
@@ -617,7 +533,6 @@ export function useProcessingWebSocket({
     }
   }, []);
 
-  // Connect on mount and when dependencies change
   useEffect(() => {
     if (enabled && isAuthenticated) {
       console.log('🔌 Initiating WebSocket connection...');
@@ -625,12 +540,10 @@ export function useProcessingWebSocket({
       connect();
     }
 
-    // Cleanup on unmount or when conditions change
     return () => {
       console.log('🔌 Cleaning up WebSocket connection...');
       disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, isAuthenticated]);
 
   return {
