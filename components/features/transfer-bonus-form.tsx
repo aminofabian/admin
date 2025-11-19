@@ -37,6 +37,7 @@ export function TransferBonusForm({
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBonusFocused, setIsBonusFocused] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -143,6 +144,8 @@ export function TransferBonusForm({
               id="bonus"
               value={bonusDisplay}
               onChange={(e) => handleInputChange('bonus', e.target.value)}
+              onFocus={() => setIsBonusFocused(true)}
+              onBlur={() => setIsBonusFocused(false)}
               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
                 errors.bonus ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
@@ -151,9 +154,11 @@ export function TransferBonusForm({
               max="100"
               step="0.1"
             />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">%</span>
-            </div>
+            {!isBonusFocused && (
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">%</span>
+              </div>
+            )}
           </div>
           {errors.bonus && (
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bonus}</p>

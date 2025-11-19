@@ -44,6 +44,7 @@ export function PurchaseBonusForm({
   }, [initialData]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBonusFocused, setIsBonusFocused] = useState(false);
 
   const topupMethods = [
     { value: 'bitcoin', label: 'Bitcoin' },
@@ -260,6 +261,8 @@ export function PurchaseBonusForm({
               id="bonus"
               value={bonusDisplay}
               onChange={(e) => handleInputChange('bonus', e.target.value)}
+              onFocus={() => setIsBonusFocused(true)}
+              onBlur={() => setIsBonusFocused(false)}
               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
                 errors.bonus ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
@@ -268,8 +271,8 @@ export function PurchaseBonusForm({
               max={formData.bonus_type === 'percentage' ? '100' : undefined}
               step={formData.bonus_type === 'percentage' ? '0.1' : '0.01'}
             />
-            {formData.bonus_type === 'percentage' && (
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            {formData.bonus_type === 'percentage' && !isBonusFocused && (
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
                 <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">%</span>
               </div>
             )}
