@@ -31,7 +31,7 @@ export interface WebSocketMessage {
   title?: string;
   // Unified format fields for all_activities (arrays)
   purchase_data?: any[] | any; // Array for all_activities, object for send_notification
-  cashout_data?: any[];
+  cashout_data?: any[] | any; // Array for all_activities, object for send_notification
   game_activities_data?: any[] | any; // Array for all_activities, object for send_notification
   // For send_notification messages
   activity_type?: 'purchase' | 'cashout' | 'game_activity';
@@ -448,6 +448,13 @@ export function useProcessingWebSocket({
             // Check if purchase_data is nested in the message (new format)
             if (message.purchase_data && typeof message.purchase_data === 'object' && !Array.isArray(message.purchase_data)) {
               const transaction = transformPurchaseToTransaction(message.purchase_data);
+              onTransactionUpdate?.(transaction);
+              return;
+            }
+            
+            // Check if cashout_data is nested in the message (new format)
+            if (message.cashout_data && typeof message.cashout_data === 'object' && !Array.isArray(message.cashout_data)) {
+              const transaction = transformCashoutToTransaction(message.cashout_data);
               onTransactionUpdate?.(transaction);
               return;
             }
