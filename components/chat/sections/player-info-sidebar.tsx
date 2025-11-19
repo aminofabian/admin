@@ -3,7 +3,6 @@
 import { useState, memo, useCallback } from 'react';
 import { Button, DropdownMenu, DropdownMenuItem, ConfirmModal, useToast } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerPurchases } from '@/hooks/use-player-purchases';
 import { usePlayerCashouts } from '@/hooks/use-player-cashouts';
 import { usePlayerGameActivities } from '@/hooks/use-player-game-activities';
@@ -36,9 +35,9 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   onOpenNotesDrawer,
 }: PlayerInfoSidebarProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(selectedPlayer.user_id || null);
   const { addToast } = useToast();
   
+  // Games section is hidden - removed usePlayerGames hook to prevent unnecessary API calls
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
   const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
@@ -73,7 +72,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
     setIsDeletingGame(true);
     try {
       await playersApi.deleteGame(gameToDelete.id);
-      await refreshGames();
+      // Games section is hidden - refreshGames removed
       addToast({
         type: 'success',
         title: 'Game removed',
@@ -90,7 +89,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
     } finally {
       setIsDeletingGame(false);
     }
-  }, [gameToDelete, selectedPlayer, refreshGames, addToast]);
+  }, [gameToDelete, selectedPlayer, addToast]);
 
   const handleChangeGame = useCallback(async () => {
     if (!gameToChange) return;
@@ -104,7 +103,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
         username: gameToChange.username,
         status: newStatus 
       });
-      await refreshGames();
+      // Games section is hidden - refreshGames removed
       addToast({
         type: 'success',
         title: 'Game updated',
@@ -121,7 +120,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
     } finally {
       setIsChangingGame(false);
     }
-  }, [gameToChange, refreshGames, addToast]);
+  }, [gameToChange, addToast]);
   return (
     <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-72 lg:w-80 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
       {/* Header with Player Avatar - Compact */}
@@ -556,175 +555,6 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             )}
           </div>
 
-          {/* Games Section - Expandable - Hidden */}
-          {false && <div className="w-full">
-            <button
-              onClick={() => toggleSection('games')}
-              className="w-full flex items-center justify-between p-2 hover:bg-muted/50 rounded-md transition-colors group"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <svg className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-medium text-foreground">Games</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {isLoadingGames ? 'Loading...' : `${games.length} items`}
-                  </p>
-                </div>
-              </div>
-              <svg 
-                className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all ${
-                  expandedSection === 'games' ? 'rotate-90' : ''
-                }`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-
-            {expandedSection === 'games' && (
-              <div className="mt-2 pl-8 space-y-2 max-h-60 overflow-y-auto pr-1">
-                {isLoadingGames ? (
-                  <div className="flex items-center justify-center py-4">
-                    <svg className="w-5 h-5 animate-spin text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                ) : games.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-2">No games found</p>
-                ) : (
-                  games.map((game) => (
-                    <div
-                      key={game.id}
-                      className="group relative p-3 bg-gradient-to-br from-background to-muted/20 rounded-lg border border-border/60 hover:border-primary/40 shadow-sm hover:shadow-md transition-all duration-200"
-                    >
-                      {/* Game Title Row */}
-                      <div className="flex items-start justify-between mb-2.5">
-                        <div className="flex-1 min-w-0 pr-2">
-                          <p className="text-xs font-semibold text-foreground truncate leading-tight">{game.game__title}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">ID: {game.game__id}</p>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border ${
-                              game.status === 'active'
-                                ? 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 dark:border-green-500/30'
-                                : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20 dark:border-gray-500/30'
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                game.status === 'active' ? 'bg-green-500' : 'bg-gray-500'
-                              }`}
-                            />
-                            {game.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Actions Row */}
-                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
-                        <div className="flex items-center gap-1.5 flex-1">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              setSelectedGameForBalance(game);
-                              setBalanceError(null);
-                              setBalanceData(null);
-                              setIsBalanceModalOpen(true);
-                              
-                              try {
-                                setIsCheckingBalance(true);
-                                const response = await playersApi.checkGameBalance({
-                                  game_id: game.game__id,
-                                  player_id: selectedPlayer.user_id,
-                                });
-                                setBalanceData(response);
-                              } catch (err) {
-                                const message = err instanceof Error ? err.message : 'Failed to check game balance';
-                                setBalanceError(message);
-                              } finally {
-                                setIsCheckingBalance(false);
-                              }
-                            }}
-                            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20 rounded-md border border-blue-200/50 dark:border-blue-800/50 transition-all hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm"
-                            title="Fetch Balance"
-                          >
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Balance</span>
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(game.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </span>
-                          <DropdownMenu
-                            trigger={
-                              <button
-                                type="button"
-                                className="flex items-center justify-center p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-all border border-transparent hover:border-border/50"
-                                aria-label="Game actions"
-                                title="More actions"
-                              >
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                </svg>
-                              </button>
-                            }
-                            align="right"
-                          >
-                            <DropdownMenuItem
-                              onClick={async () => {
-                                setSelectedGameForBalance(game);
-                                setBalanceError(null);
-                                setBalanceData(null);
-                                setIsBalanceModalOpen(true);
-                                
-                                try {
-                                  setIsCheckingBalance(true);
-                                  const response = await playersApi.checkGameBalance({
-                                    game_id: game.game__id,
-                                    player_id: selectedPlayer.user_id,
-                                  });
-                                  setBalanceData(response);
-                                } catch (err) {
-                                  const message = err instanceof Error ? err.message : 'Failed to check game balance';
-                                  setBalanceError(message);
-                                } finally {
-                                  setIsCheckingBalance(false);
-                                }
-                              }}
-                            >
-                              Fetch Balance
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setGameToChange(game)}
-                            >
-                              Change
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setGameToDelete(game)}
-                              className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>}
         </div>
 
       </div>
