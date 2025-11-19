@@ -733,10 +733,15 @@ function PlayersHeader({
           </svg>
         </div>
         
-        {/* Title */}
-        <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
-          Players
-        </h2>
+        {/* Title and Count */}
+        <div className="flex flex-col shrink-0">
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            Players
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+            {totalCount.toLocaleString()} {totalCount === 1 ? 'player' : 'players'}
+          </p>
+        </div>
         
         {/* Spacer */}
         <div className="flex-1 min-w-0" />
