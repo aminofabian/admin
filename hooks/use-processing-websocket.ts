@@ -101,6 +101,16 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
 }
 
 function transformActivityToQueue(rawActivity: any): TransactionQueue {
+  // Extract nested data object if it exists, otherwise use the raw activity
+  const nestedData = rawActivity.data && typeof rawActivity.data === 'object' ? rawActivity.data : null;
+  
+  // Merge nested data properties into the main data object for easier access
+  // This ensures new_credits_balance and new_winning_balance are accessible at activity.data.new_credits_balance
+  const mergedData = {
+    ...rawActivity,
+    ...(nestedData || {}),
+  };
+  
   return {
     id: rawActivity.id || rawActivity.transaction_id || '',
     type: rawActivity.operation_type || rawActivity.type || 'recharge_game',
@@ -109,14 +119,14 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
     user_username: rawActivity.user_username || rawActivity.username || '',
     user_email: rawActivity.user_email || rawActivity.email || '',
     operator: rawActivity.operator || '',
-    game_username: rawActivity.get_usergame_username || rawActivity.game_username || '',
+    game_username: rawActivity.get_usergame_username || rawActivity.game_username || rawActivity.data?.username || '',
     game: rawActivity.game_title || rawActivity.game || '',
     game_code: rawActivity.game_code || '',
     amount: String(rawActivity.amount || rawActivity.get_total_amount || 0),
     bonus_amount: rawActivity.bonus ? String(rawActivity.bonus) : undefined,
     new_game_balance: rawActivity.new_game_balance,
     remarks: rawActivity.remarks || '',
-    data: rawActivity,
+    data: mergedData,
     created_at: rawActivity.created_at || rawActivity.created || new Date().toISOString(),
     updated_at: rawActivity.updated_at || rawActivity.updated || new Date().toISOString(),
   };
