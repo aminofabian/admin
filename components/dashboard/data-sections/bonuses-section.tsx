@@ -8,10 +8,12 @@ import type {
   SignupBonusSettings,
   AffiliateDefaults
 } from '@/types';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, useToast } from '@/components/ui';
+import { LoadingState, ErrorState, EmptyState, TransferBonusForm, SignupBonusForm, RechargeBonusForm } from '@/components/features';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, useToast, Drawer } from '@/components/ui';
 import { useBonusesStore } from '@/stores/use-bonuses-store';
 import { PurchaseBonusManager } from './purchase-bonus-manager';
+import { formatCurrency } from '@/lib/utils/formatters';
+import type { UpdateBonusRequest, TransferBonus, SignupBonus, RechargeBonus } from '@/types';
 
 type BonusItem = PurchaseBonusSettings | RechargeBonusSettings | TransferBonusSettings | SignupBonusSettings;
 type AllItems = BonusItem | AffiliateDefaults;
@@ -48,6 +50,12 @@ export function BonusesSection() {
   // Local state for UI
   const [activeTab, setActiveTab] = useState<'purchase' | 'recharge' | 'transfer' | 'signup' | 'affiliate'>('purchase');
   const { addToast } = useToast();
+
+  // Drawer state for editing bonuses
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingBonus, setEditingBonus] = useState<TransferBonus | SignupBonus | RechargeBonus | null>(null);
+  const [editingBonusType, setEditingBonusType] = useState<'transfer' | 'signup' | 'recharge' | null>(null);
 
   // Initialize data on component mount
   useEffect(() => {
@@ -120,6 +128,61 @@ export function BonusesSection() {
     }
   };
 
+  const handleEditBonus = (bonus: TransferBonus | SignupBonus | RechargeBonus, type: 'transfer' | 'signup' | 'recharge') => {
+    setEditingBonus(bonus);
+    setEditingBonusType(type);
+    setIsDrawerOpen(true);
+  };
+
+  const handleUpdateBonus = async (data: UpdateBonusRequest) => {
+    if (editingBonus && editingBonusType) {
+      try {
+        setIsSubmitting(true);
+        if (editingBonusType === 'transfer') {
+          await updateTransferBonus(editingBonus.id, data);
+          addToast({
+            type: 'success',
+            title: 'Bonus Updated',
+            description: `Bonus value has been successfully updated to ${data.bonus}%.`,
+          });
+        } else if (editingBonusType === 'signup') {
+          await updateSignupBonus(editingBonus.id, data);
+          addToast({
+            type: 'success',
+            title: 'Bonus Updated',
+            description: `Bonus amount has been successfully updated to ${formatCurrency(data.bonus?.toString() || '0')}.`,
+          });
+        } else if (editingBonusType === 'recharge') {
+          await updateRechargeBonus(editingBonus.id, data);
+          const bonusType = (editingBonus as RechargeBonus).bonus_type;
+          addToast({
+            type: 'success',
+            title: 'Bonus Updated',
+            description: `Bonus value has been successfully updated to ${data.bonus}${bonusType === 'percentage' ? '%' : ''}.`,
+          });
+        }
+        setIsDrawerOpen(false);
+        setEditingBonus(null);
+        setEditingBonusType(null);
+      } catch (err) {
+        console.error('Error updating bonus:', err);
+        addToast({
+          type: 'error',
+          title: 'Failed to Update Bonus',
+          description: 'An error occurred while processing your request. Please try again.',
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setEditingBonus(null);
+    setEditingBonusType(null);
+  };
+
 
   // Show loading state
   if (isLoading && !purchaseBonuses && !rechargeBonuses && !transferBonuses && !signupBonuses && !affiliateDefaults) {
@@ -182,22 +245,6 @@ export function BonusesSection() {
           <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
             Bonuses
           </h2>
-          
-          {/* Spacer */}
-          <div className="flex-1 min-w-0" />
-          
-          {/* Add Bonus Button */}
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {/* Handle add bonus */}}
-            className="shrink-0"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Bonus
-          </Button>
         </div>
       </div>
 
@@ -262,6 +309,30 @@ export function BonusesSection() {
                           <TableHead>Payment Method Fee %</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
+                      ) : activeTab === 'transfer' ? (
+                        <TableRow>
+                          <TableHead>Transfer/Game Name</TableHead>
+                          <TableHead>Bonus Type</TableHead>
+                          <TableHead>Bonus Value</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      ) : activeTab === 'signup' ? (
+                        <TableRow>
+                          <TableHead>Bonus Label</TableHead>
+                          <TableHead>Bonus Type</TableHead>
+                          <TableHead>Bonus Value</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      ) : activeTab === 'recharge' ? (
+                        <TableRow>
+                          <TableHead>Game Name</TableHead>
+                          <TableHead>Bonus Type</TableHead>
+                          <TableHead>Bonus Value</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
                       ) : (
                         <TableRow>
                           <TableHead>ID</TableHead>
@@ -295,6 +366,190 @@ export function BonusesSection() {
                                   </svg>
                                   Edit
                                 </Button>
+                              </TableCell>
+                            </>
+                          ) : activeTab === 'transfer' ? (
+                            <>
+                              {/* eslint-disable @typescript-eslint/no-explicit-any */}
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                {'name' in item ? (item as any).name : `Bonus ${item.id}`}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="success">Percentage</Badge>
+                              </TableCell>
+                              <TableCell className="font-bold text-gray-900 dark:text-gray-100">
+                                {'bonus' in item ? `${(item as any).bonus}%` : 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={'is_enabled' in item && (item as any).is_enabled ? 'success' : 'default'}>
+                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Disabled'}
+                                </Badge>
+                              </TableCell>
+                              {/* eslint-enable @typescript-eslint/no-explicit-any */}
+                              <TableCell className="text-right">
+                                {isToggleableBonus(item) ? (
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      variant={item.is_enabled ? 'danger' : 'primary'}
+                                      size="sm"
+                                      onClick={() => handleToggleBonus(item)}
+                                      disabled={getToggleLoading()}
+                                    >
+                                      {item.is_enabled ? BONUS_DISABLE_LABEL : BONUS_ENABLE_LABEL}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                      onClick={() => {/* Handle edit */}}
+                                    >
+                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      Edit
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-end">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                      onClick={() => activeTab === 'transfer' && handleEditBonus(item as unknown as TransferBonus, 'transfer')}
+                                      disabled={operationLoading.transfer}
+                                    >
+                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      Edit
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </>
+                          ) : activeTab === 'signup' ? (
+                            <>
+                              {/* eslint-disable @typescript-eslint/no-explicit-any */}
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                {'name' in item ? (item as any).name : `Bonus ${item.id}`}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="warning">Fixed</Badge>
+                              </TableCell>
+                              <TableCell className="font-bold text-gray-900 dark:text-gray-100">
+                                {'bonus' in item ? formatCurrency((item as any).bonus.toString()) : 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={'is_enabled' in item && (item as any).is_enabled ? 'success' : 'default'}>
+                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Disabled'}
+                                </Badge>
+                              </TableCell>
+                              {/* eslint-enable @typescript-eslint/no-explicit-any */}
+                              <TableCell className="text-right">
+                                {isToggleableBonus(item) ? (
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      variant={item.is_enabled ? 'danger' : 'primary'}
+                                      size="sm"
+                                      onClick={() => handleToggleBonus(item)}
+                                      disabled={getToggleLoading()}
+                                    >
+                                      {item.is_enabled ? BONUS_DISABLE_LABEL : BONUS_ENABLE_LABEL}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                      onClick={() => {/* Handle edit */}}
+                                    >
+                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      Edit
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-end">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                      onClick={() => activeTab === 'signup' && handleEditBonus(item as unknown as SignupBonus, 'signup')}
+                                      disabled={operationLoading.signup}
+                                    >
+                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      Edit
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </>
+                          ) : activeTab === 'recharge' ? (
+                            <>
+                              {/* eslint-disable @typescript-eslint/no-explicit-any */}
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                {'name' in item ? (item as any).name : `Bonus ${item.id}`}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={(item as any).bonus_type === 'percentage' ? 'success' : 'warning'}>
+                                  {(item as any).bonus_type === 'percentage' ? 'Percentage' : 'Fixed'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-bold text-gray-900 dark:text-gray-100">
+                                {'bonus_type' in item && 'bonus' in item 
+                                  ? ((item as any).bonus_type === 'percentage' 
+                                      ? `${(item as any).bonus}%` 
+                                      : formatCurrency((item as any).bonus.toString()))
+                                  : 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={'is_enabled' in item && (item as any).is_enabled ? 'success' : 'default'}>
+                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Disabled'}
+                                </Badge>
+                              </TableCell>
+                              {/* eslint-enable @typescript-eslint/no-explicit-any */}
+                              <TableCell className="text-right">
+                                {isToggleableBonus(item) ? (
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      variant={item.is_enabled ? 'danger' : 'primary'}
+                                      size="sm"
+                                      onClick={() => handleToggleBonus(item)}
+                                      disabled={getToggleLoading()}
+                                    >
+                                      {item.is_enabled ? BONUS_DISABLE_LABEL : BONUS_ENABLE_LABEL}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                      onClick={() => handleEditBonus(item as unknown as RechargeBonus, 'recharge')}
+                                      disabled={operationLoading.recharge}
+                                    >
+                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      Edit
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-end">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                      onClick={() => handleEditBonus(item as unknown as RechargeBonus, 'recharge')}
+                                      disabled={operationLoading.recharge}
+                                    >
+                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      Edit
+                                    </Button>
+                                  </div>
+                                )}
                               </TableCell>
                             </>
                           ) : (
@@ -383,8 +638,51 @@ export function BonusesSection() {
         </>
       )}
 
-      {/* Edit/Delete Modals would go here */}
-      {/* These would be implemented for editing other bonus types */}
+      {/* Edit Bonus Drawers */}
+      {editingBonusType === 'transfer' && (
+        <Drawer
+          isOpen={isDrawerOpen}
+          onClose={handleCloseDrawer}
+          title="Edit Transfer Bonus"
+        >
+          <TransferBonusForm
+            onSubmit={handleUpdateBonus}
+            onCancel={handleCloseDrawer}
+            isLoading={isSubmitting || operationLoading.transfer}
+            initialData={editingBonus as TransferBonus | undefined}
+          />
+        </Drawer>
+      )}
+
+      {editingBonusType === 'signup' && (
+        <Drawer
+          isOpen={isDrawerOpen}
+          onClose={handleCloseDrawer}
+          title="Edit Sign Up Bonus"
+        >
+          <SignupBonusForm
+            onSubmit={handleUpdateBonus}
+            onCancel={handleCloseDrawer}
+            isLoading={isSubmitting || operationLoading.signup}
+            initialData={editingBonus as SignupBonus | undefined}
+          />
+        </Drawer>
+      )}
+
+      {editingBonusType === 'recharge' && (
+        <Drawer
+          isOpen={isDrawerOpen}
+          onClose={handleCloseDrawer}
+          title="Edit Recharge Bonus"
+        >
+          <RechargeBonusForm
+            onSubmit={handleUpdateBonus}
+            onCancel={handleCloseDrawer}
+            isLoading={isSubmitting || operationLoading.recharge}
+            initialData={editingBonus as RechargeBonus | undefined}
+          />
+        </Drawer>
+      )}
     </div>
   );
 }
