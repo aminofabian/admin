@@ -16,6 +16,48 @@ import { Button } from '@/components/ui/button';
 import { LoadingState, ErrorState } from '@/components/features';
 import type { Game, UpdateGameSettingsRequest } from '@/types';
 
+// Hardcoded dashboard URLs mapping by game title/code
+const GAME_DASHBOARD_URLS: Record<string, string> = {
+  GAMEROOM: 'https://agentserver.gameroom777.com',
+  CASHMACHINE: 'https://agentserver.cashmachine777.com',
+  MRALLINONE: 'https://agentserver.mrallinone777.com',
+  MAFIA: 'https://agentserver.mafia77777.com',
+  CASHFRENZY: 'https://agentserver.cashfrenzy777.com',
+  KINGOFPOP: 'http://agentserver.slots88888.com:8003',
+  GAMEVAULT: 'https://agent.gamevault999.com',
+  VEGASSWEEPS: 'https://agent.lasvegassweeps.com',
+  JUWA: 'https://ht.juwa777.com',
+  ORIONSTARS: 'https://orionstars.vip:8781',
+  PANDAMASTER: 'https://www.pandamaster.vip',
+  MILKYWAY: 'https://milkywayapp.xyz:8781',
+  FIREKIRIN: 'https://firekirin.xyz:8888',
+  VBLINK: 'https://gm.vblink777.club',
+  EGAME: 'https://pko.egame99.club',
+  ULTRAPANDA: 'https://ht.ultrapanda.mobi',
+  RIVERSWEEPS: 'https://river-pay.com',
+};
+
+/**
+ * Get the dashboard URL for a game, checking both title and code (case-insensitive)
+ */
+function getGameDashboardUrl(game: Game): string | undefined {
+  const titleUpper = game.title.toUpperCase().trim();
+  const codeUpper = game.code?.toUpperCase().trim() ?? '';
+  
+  // Check by title first
+  if (GAME_DASHBOARD_URLS[titleUpper]) {
+    return GAME_DASHBOARD_URLS[titleUpper];
+  }
+  
+  // Check by code
+  if (codeUpper && GAME_DASHBOARD_URLS[codeUpper]) {
+    return GAME_DASHBOARD_URLS[codeUpper];
+  }
+  
+  // Fall back to stored dashboard_url if no hardcoded match
+  return game.dashboard_url;
+}
+
 export function GameSettingsSection() {
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [formData, setFormData] = useState({
@@ -220,7 +262,7 @@ export function GameSettingsSection() {
                       />
                     ) : (
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {game.dashboard_url || 'Not configured'}
+                        {getGameDashboardUrl(game) || 'Not configured'}
                       </span>
                     )}
                   </TableCell>

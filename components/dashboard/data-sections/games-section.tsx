@@ -9,6 +9,48 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import type { Game, UpdateGameRequest, CheckStoreBalanceResponse } from '@/types';
 
+// Hardcoded dashboard URLs mapping by game title/code
+const GAME_DASHBOARD_URLS: Record<string, string> = {
+  GAMEROOM: 'https://agentserver.gameroom777.com',
+  CASHMACHINE: 'https://agentserver.cashmachine777.com',
+  MRALLINONE: 'https://agentserver.mrallinone777.com',
+  MAFIA: 'https://agentserver.mafia77777.com',
+  CASHFRENZY: 'https://agentserver.cashfrenzy777.com',
+  KINGOFPOP: 'http://agentserver.slots88888.com:8003',
+  GAMEVAULT: 'https://agent.gamevault999.com',
+  VEGASSWEEPS: 'https://agent.lasvegassweeps.com',
+  JUWA: 'https://ht.juwa777.com',
+  ORIONSTARS: 'https://orionstars.vip:8781',
+  PANDAMASTER: 'https://www.pandamaster.vip',
+  MILKYWAY: 'https://milkywayapp.xyz:8781',
+  FIREKIRIN: 'https://firekirin.xyz:8888',
+  VBLINK: 'https://gm.vblink777.club',
+  EGAME: 'https://pko.egame99.club',
+  ULTRAPANDA: 'https://ht.ultrapanda.mobi',
+  RIVERSWEEPS: 'https://river-pay.com',
+};
+
+/**
+ * Get the dashboard URL for a game, checking both title and code (case-insensitive)
+ */
+function getGameDashboardUrl(game: Game): string | undefined {
+  const titleUpper = game.title.toUpperCase().trim();
+  const codeUpper = game.code?.toUpperCase().trim() ?? '';
+  
+  // Check by title first
+  if (GAME_DASHBOARD_URLS[titleUpper]) {
+    return GAME_DASHBOARD_URLS[titleUpper];
+  }
+  
+  // Check by code
+  if (codeUpper && GAME_DASHBOARD_URLS[codeUpper]) {
+    return GAME_DASHBOARD_URLS[codeUpper];
+  }
+  
+  // Fall back to stored dashboard_url if no hardcoded match
+  return game.dashboard_url;
+}
+
 export function GamesSection() {
   const { user } = useAuth();
   const {
@@ -275,23 +317,26 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
                 </Badge>
               </TableCell>
               <TableCell>
-                {game.dashboard_url ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.open(game.dashboard_url, '_blank', 'noopener,noreferrer')}
-                    title="View dashboard"
-                    className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    View
-                  </Button>
-                ) : (
-                  <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
-                )}
+                {(() => {
+                  const dashboardUrl = getGameDashboardUrl(game);
+                  return dashboardUrl ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => window.open(dashboardUrl, '_blank', 'noopener,noreferrer')}
+                      title="View dashboard"
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      View
+                    </Button>
+                  ) : (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
+                  );
+                })()}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
