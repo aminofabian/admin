@@ -105,7 +105,7 @@ export function RechargeBonusForm({
               Editing Bonus
             </h4>
             <p className="text-xs text-blue-700 dark:text-blue-400">
-              You can only update the bonus value and active status. Game name and bonus type cannot be changed.
+              You can only update the bonus value and active status.
             </p>
           </div>
         </div>
@@ -120,7 +120,6 @@ export function RechargeBonusForm({
           <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
             {initialData?.name || 'N/A'}
           </div>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Game name cannot be changed</p>
         </div>
 
         {/* Bonus Type Display - Display only */}

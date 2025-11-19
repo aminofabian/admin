@@ -148,7 +148,7 @@ export function PurchaseBonusForm({
                 Editing Bonus
               </h4>
               <p className="text-xs text-blue-700 dark:text-blue-400">
-                You can only update the bonus value and active status. Payment method and bonus type cannot be changed.
+                You can only update the bonus value and active status.
               </p>
             </div>
           </div>
@@ -165,7 +165,6 @@ export function PurchaseBonusForm({
             <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
               {formData.topup_method ? topupMethods.find(m => m.value === formData.topup_method)?.label || formData.topup_method.replace('_', ' ') : 'N/A'}
             </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Payment method cannot be changed</p>
           </div>
         )}
 
