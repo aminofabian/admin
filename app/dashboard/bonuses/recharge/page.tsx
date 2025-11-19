@@ -11,9 +11,10 @@ import {
   TableCell,
   Badge,
   Button,
-  Modal,
+  Drawer,
+  useToast,
 } from '@/components/ui';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
+import { RechargeBonusForm, LoadingState, ErrorState, EmptyState } from '@/components/features';
 import type { RechargeBonus, UpdateBonusRequest } from '@/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 
@@ -26,9 +27,11 @@ export default function RechargeBonusPage() {
     fetchRechargeBonuses,
     updateRechargeBonus,
   } = useBonusesStore();
+  const { addToast } = useToast();
 
-  const [selectedBonus, setSelectedBonus] = useState<RechargeBonus | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingBonus, setEditingBonus] = useState<RechargeBonus | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -37,20 +40,38 @@ export default function RechargeBonusPage() {
   }, []);
 
   const handleEditBonus = (bonus: RechargeBonus) => {
-    setSelectedBonus(bonus);
-    setIsModalOpen(true);
+    setEditingBonus(bonus);
+    setIsDrawerOpen(true);
   };
 
   const handleUpdateBonus = async (data: UpdateBonusRequest) => {
-    if (selectedBonus) {
+    if (editingBonus) {
       try {
-        await updateRechargeBonus(selectedBonus.id, data);
-        setIsModalOpen(false);
-        setSelectedBonus(null);
+        setIsSubmitting(true);
+        await updateRechargeBonus(editingBonus.id, data);
+        addToast({
+          type: 'success',
+          title: 'Bonus Updated',
+          description: `Bonus value has been successfully updated to ${data.bonus}${editingBonus.bonus_type === 'percentage' ? '%' : ''}.`,
+        });
+        setIsDrawerOpen(false);
+        setEditingBonus(null);
       } catch (err) {
         console.error('Error updating bonus:', err);
+        addToast({
+          type: 'error',
+          title: 'Failed to Update Bonus',
+          description: 'An error occurred while processing your request. Please try again.',
+        });
+      } finally {
+        setIsSubmitting(false);
       }
     }
+  };
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false);
+    setEditingBonus(null);
   };
 
   if (isLoading && !rechargeBonuses) {
@@ -65,59 +86,30 @@ export default function RechargeBonusPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-          {/* Icon */}
-          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
-            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div className="p-2.5 sm:p-3 md:p-4 lg:p-6">
+          <div className="relative flex items-center gap-2 sm:gap-3">
+            {/* Icon */}
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+              <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            
+            {/* Title */}
+            <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+              Recharge Bonus
+            </h2>
           </div>
           
-          {/* Title */}
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
-            Recharge Bonuses
-          </h2>
-          
-          {/* Spacer */}
-          <div className="flex-1 min-w-0" />
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Active Bonuses</span>
-            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          {/* Total Bonuses Count - Below the heading */}
+          <div className="mt-2 sm:mt-2.5 md:mt-3 ml-0 sm:ml-11 md:ml-12 lg:ml-14">
+            <div className="text-sm sm:text-base font-medium text-gray-600 dark:text-gray-400">
+              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                {rechargeBonuses?.count || 0}
+              </span>
+              {' '}Total Bonuses
+            </div>
           </div>
-          <div className="text-2xl font-bold text-green-600">
-            {rechargeBonuses?.results?.filter(b => b.is_enabled).length || 0}
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Disabled Bonuses</span>
-            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-            </svg>
-          </div>
-          <div className="text-2xl font-bold text-muted-foreground">
-            {rechargeBonuses?.results?.filter(b => !b.is_enabled).length || 0}
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Total Games</span>
-            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div className="text-2xl font-bold">{rechargeBonuses?.count || 0}</div>
         </div>
       </div>
 
@@ -138,7 +130,6 @@ export default function RechargeBonusPage() {
                   <TableHead>Game Name</TableHead>
                   <TableHead>Bonus Type</TableHead>
                   <TableHead>Bonus Value</TableHead>
-                  <TableHead>Min Deposit</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -157,13 +148,6 @@ export default function RechargeBonusPage() {
                         ? `${bonus.bonus}%` 
                         : formatCurrency(bonus.bonus.toString())
                       }
-                    </TableCell>
-                    <TableCell className="text-gray-600 dark:text-gray-400">
-                      {bonus.on_min_deposit && bonus.min_deposit_amount ? (
-                        <span className="text-sm">{formatCurrency(bonus.min_deposit_amount.toString())}</span>
-                      ) : (
-                        <span>-</span>
-                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={bonus.is_enabled ? 'success' : 'default'}>
@@ -193,6 +177,20 @@ export default function RechargeBonusPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Bonus Drawer */}
+      <Drawer
+        isOpen={isDrawerOpen}
+        onClose={handleCloseDrawer}
+        title="Edit Recharge Bonus"
+      >
+        <RechargeBonusForm
+          onSubmit={handleUpdateBonus}
+          onCancel={handleCloseDrawer}
+          isLoading={isSubmitting || operationLoading.recharge}
+          initialData={editingBonus || undefined}
+        />
+      </Drawer>
     </div>
   );
 }
