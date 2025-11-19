@@ -6,17 +6,24 @@ import type {
   RechargeBonusSettings,
   TransferBonusSettings,
   SignupBonusSettings,
-  AffiliateDefaults
 } from '@/types';
-import { LoadingState, ErrorState, EmptyState, TransferBonusForm, SignupBonusForm, RechargeBonusForm } from '@/components/features';
+import { LoadingState, ErrorState, EmptyState, TransferBonusForm, SignupBonusForm, RechargeBonusForm, FirstPurchaseBonusForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, useToast, Drawer } from '@/components/ui';
 import { useBonusesStore } from '@/stores/use-bonuses-store';
 import { PurchaseBonusManager } from './purchase-bonus-manager';
 import { formatCurrency } from '@/lib/utils/formatters';
-import type { UpdateBonusRequest, TransferBonus, SignupBonus, RechargeBonus } from '@/types';
+import type { UpdateBonusRequest, TransferBonus, SignupBonus, RechargeBonus, PurchaseBonus } from '@/types';
+
+interface FirstPurchaseBonus {
+  id: number;
+  name: string;
+  bonus_type: 'percentage';
+  bonus: number;
+  is_enabled: boolean;
+}
 
 type BonusItem = PurchaseBonusSettings | RechargeBonusSettings | TransferBonusSettings | SignupBonusSettings;
-type AllItems = BonusItem | AffiliateDefaults;
+type AllItems = BonusItem | FirstPurchaseBonus;
 type ToggleableBonus = RechargeBonusSettings | TransferBonusSettings | SignupBonusSettings;
 
 const BONUS_TOGGLE_SUCCESS_TITLE = 'Bonus updated';
@@ -31,7 +38,6 @@ export function BonusesSection() {
     rechargeBonuses,
     transferBonuses,
     signupBonuses,
-    affiliateDefaults,
     isLoading,
     error,
     currentPage,
@@ -42,20 +48,32 @@ export function BonusesSection() {
     updateRechargeBonus,
     updateTransferBonus,
     updateSignupBonus,
+    updatePurchaseBonus,
     setPage,
     setSearchTerm,
     clearErrors,
   } = useBonusesStore();
 
   // Local state for UI
-  const [activeTab, setActiveTab] = useState<'purchase' | 'recharge' | 'transfer' | 'signup' | 'affiliate'>('purchase');
+  const [activeTab, setActiveTab] = useState<'purchase' | 'recharge' | 'transfer' | 'signup' | 'first-purchase'>('purchase');
   const { addToast } = useToast();
 
   // Drawer state for editing bonuses
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingBonus, setEditingBonus] = useState<TransferBonus | SignupBonus | RechargeBonus | null>(null);
-  const [editingBonusType, setEditingBonusType] = useState<'transfer' | 'signup' | 'recharge' | null>(null);
+  const [editingBonus, setEditingBonus] = useState<TransferBonus | SignupBonus | RechargeBonus | FirstPurchaseBonus | null>(null);
+  const [editingBonusType, setEditingBonusType] = useState<'transfer' | 'signup' | 'recharge' | 'first-purchase' | null>(null);
+
+  // Filter for first purchase bonuses (assuming user = 0 or some identifier)
+  const firstPurchaseBonuses: FirstPurchaseBonus[] = purchaseBonuses?.results
+    ?.filter((bonus) => bonus.user === 0 && bonus.bonus_type === 'percentage')
+    .map((bonus) => ({
+      id: bonus.id,
+      name: bonus.topup_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      bonus_type: 'percentage' as const,
+      bonus: bonus.bonus,
+      is_enabled: bonus.is_enabled ?? true,
+    })) || [];
 
   // Initialize data on component mount
   useEffect(() => {
@@ -128,7 +146,7 @@ export function BonusesSection() {
     }
   };
 
-  const handleEditBonus = (bonus: TransferBonus | SignupBonus | RechargeBonus, type: 'transfer' | 'signup' | 'recharge') => {
+  const handleEditBonus = (bonus: TransferBonus | SignupBonus | RechargeBonus | FirstPurchaseBonus, type: 'transfer' | 'signup' | 'recharge' | 'first-purchase') => {
     setEditingBonus(bonus);
     setEditingBonusType(type);
     setIsDrawerOpen(true);
@@ -160,6 +178,16 @@ export function BonusesSection() {
             title: 'Bonus Updated',
             description: `Bonus value has been successfully updated to ${data.bonus}${bonusType === 'percentage' ? '%' : ''}.`,
           });
+        } else if (editingBonusType === 'first-purchase') {
+          await updatePurchaseBonus(editingBonus.id, {
+            bonus: data.bonus,
+            is_enabled: data.is_enabled,
+          });
+          addToast({
+            type: 'success',
+            title: 'Bonus Updated',
+            description: `Bonus percentage has been successfully updated to ${data.bonus}%.`,
+          });
         }
         setIsDrawerOpen(false);
         setEditingBonus(null);
@@ -185,7 +213,7 @@ export function BonusesSection() {
 
 
   // Show loading state
-  if (isLoading && !purchaseBonuses && !rechargeBonuses && !transferBonuses && !signupBonuses && !affiliateDefaults) {
+  if (isLoading && !purchaseBonuses && !rechargeBonuses && !transferBonuses && !signupBonuses) {
     return <LoadingState />;
   }
 
@@ -205,8 +233,8 @@ export function BonusesSection() {
         return transferBonuses?.results || [];
       case 'signup':
         return signupBonuses?.results || [];
-      case 'affiliate':
-        return affiliateDefaults?.results || [];
+      case 'first-purchase':
+        return firstPurchaseBonuses;
       default:
         return [];
     }
@@ -222,8 +250,8 @@ export function BonusesSection() {
         return transferBonuses?.count || 0;
       case 'signup':
         return signupBonuses?.count || 0;
-      case 'affiliate':
-        return affiliateDefaults?.count || 0;
+      case 'first-purchase':
+        return firstPurchaseBonuses.length;
       default:
         return 0;
     }
@@ -256,11 +284,11 @@ export function BonusesSection() {
             { key: 'recharge', label: 'Recharge', count: rechargeBonuses?.count || 0 },
             { key: 'transfer', label: 'Transfer', count: transferBonuses?.count || 0 },
             { key: 'signup', label: 'Signup', count: signupBonuses?.count || 0 },
-            { key: 'affiliate', label: 'Affiliate', count: affiliateDefaults?.count || 0 },
+            { key: 'first-purchase', label: 'First Purchase', count: firstPurchaseBonuses.length },
           ].map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key as 'purchase' | 'recharge' | 'transfer' | 'signup' | 'affiliate')}
+              onClick={() => setActiveTab(tab.key as 'purchase' | 'recharge' | 'transfer' | 'signup' | 'first-purchase')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                 activeTab === tab.key
                   ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
@@ -301,12 +329,12 @@ export function BonusesSection() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      {activeTab === 'affiliate' ? (
+                      {activeTab === 'first-purchase' ? (
                         <TableRow>
-                          <TableHead>ID</TableHead>
-                          <TableHead>Commission %</TableHead>
-                          <TableHead>Fee %</TableHead>
-                          <TableHead>Payment Method Fee %</TableHead>
+                          <TableHead>Bonus Name</TableHead>
+                          <TableHead>Bonus Type</TableHead>
+                          <TableHead>Bonus Value</TableHead>
+                          <TableHead>Status</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       ) : activeTab === 'transfer' ? (
@@ -348,24 +376,37 @@ export function BonusesSection() {
                     <TableBody>
                       {getCurrentData().map((item: AllItems) => (
                         <TableRow key={item.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                          {activeTab === 'affiliate' ? (
+                          {activeTab === 'first-purchase' ? (
                             <>
-                              <TableCell className="text-gray-900 dark:text-gray-100">{item.id}</TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">{(item as AffiliateDefaults).default_affiliation_percentage}%</TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">{(item as AffiliateDefaults).default_fee_percentage}%</TableCell>
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">{(item as AffiliateDefaults).default_payment_method_fee_percentage}%</TableCell>
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                {(item as FirstPurchaseBonus).name}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="success">Percentage</Badge>
+                              </TableCell>
+                              <TableCell className="font-bold text-gray-900 dark:text-gray-100">
+                                {(item as FirstPurchaseBonus).bonus}%
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={(item as FirstPurchaseBonus).is_enabled ? 'success' : 'default'}>
+                                  {(item as FirstPurchaseBonus).is_enabled ? 'Active' : 'Disabled'}
+                                </Badge>
+                              </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                                  onClick={() => {/* Handle edit */}}
-                                >
-                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                  Edit
-                                </Button>
+                                <div className="flex items-center justify-end">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                    onClick={() => handleEditBonus(item as FirstPurchaseBonus, 'first-purchase')}
+                                    disabled={operationLoading.purchase}
+                                  >
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Edit
+                                  </Button>
+                                </div>
                               </TableCell>
                             </>
                           ) : activeTab === 'transfer' ? (
@@ -682,6 +723,21 @@ export function BonusesSection() {
             onCancel={handleCloseDrawer}
             isLoading={isSubmitting || operationLoading.recharge}
             initialData={editingBonus as RechargeBonus | undefined}
+          />
+        </Drawer>
+      )}
+
+      {editingBonusType === 'first-purchase' && (
+        <Drawer
+          isOpen={isDrawerOpen}
+          onClose={handleCloseDrawer}
+          title="Edit First Purchase Bonus"
+        >
+          <FirstPurchaseBonusForm
+            onSubmit={handleUpdateBonus}
+            onCancel={handleCloseDrawer}
+            isLoading={isSubmitting || operationLoading.purchase}
+            initialData={editingBonus as FirstPurchaseBonus | undefined}
           />
         </Drawer>
       )}
