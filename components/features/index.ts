@@ -13,6 +13,7 @@ export * from './manual-affiliate-form';
 export * from './purchase-bonus-form';
 export * from './recharge-bonus-form';
 export * from './transfer-bonus-form';
+export * from './signup-bonus-form';
 export * from './store-balance-modal';
 export * from './player-game-balance-modal';
 export * from '../dashboard/data-sections/action-modal/transaction-details-modal';
