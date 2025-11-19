@@ -25,6 +25,8 @@ export function BonusSettingsForm({ onSubmit, onCancel, initialData, type }: Bon
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     is_enabled: 'is_enabled' in (initialData || {}) ? (initialData as any)?.is_enabled ?? true : true,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    is_active: 'is_active' in (initialData || {}) ? (initialData as any)?.is_active ?? true : true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     on_min_deposit: 'on_min_deposit' in (initialData || {}) ? (initialData as any)?.on_min_deposit ?? false : false,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     min_deposit_amount: 'min_deposit_amount' in (initialData || {}) ? (initialData as any)?.min_deposit_amount || null : null,
@@ -50,15 +52,8 @@ export function BonusSettingsForm({ onSubmit, onCancel, initialData, type }: Bon
       newErrors.min_deposit_amount = 'Minimum deposit amount must be positive';
     }
 
-    // Purchase bonus specific validation
-    if (type === 'purchase') {
-      if (!formData.user || formData.user <= 0) {
-        newErrors.user = 'User ID is required';
-      }
-      if (!formData.topup_method.trim()) {
-        newErrors.topup_method = 'Payment method is required';
-      }
-    }
+    // Purchase bonus specific validation (only for creating, but creation is disabled)
+    // No validation needed for purchase bonuses in edit mode
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -73,10 +68,8 @@ export function BonusSettingsForm({ onSubmit, onCancel, initialData, type }: Bon
     try {
       const submitData = type === 'purchase' 
         ? {
-            user: formData.user,
-            topup_method: formData.topup_method,
-            bonus_type: formData.bonus_type,
             bonus: formData.bonus,
+            is_active: formData.is_active,
           }
         : {
             bonus_type: formData.bonus_type,
@@ -126,42 +119,28 @@ export function BonusSettingsForm({ onSubmit, onCancel, initialData, type }: Bon
       </div>
 
       {/* Purchase bonus specific fields */}
-      {type === 'purchase' && (
+      {type === 'purchase' && initialData && (
         <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
           <h4 className="text-md font-medium text-gray-900 dark:text-gray-100">
-            User & Payment Method
+            Bonus Information
           </h4>
           
           <div>
             <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-              User ID *
+              Payment Method
             </label>
-            <Input
-              type="number"
-              value={formData.user}
-              onChange={(e) => setFormData({ ...formData, user: parseInt(e.target.value) || 0 })}
-              className={errors.user ? 'border-red-500' : ''}
-              placeholder="Enter user ID"
-            />
-            {errors.user && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.user}</p>
-            )}
+            <div className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+              {(initialData as PurchaseBonusSettings).topup_method}
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-              Payment Method *
+              Bonus Type
             </label>
-            <Input
-              type="text"
-              value={formData.topup_method}
-              onChange={(e) => setFormData({ ...formData, topup_method: e.target.value })}
-              className={errors.topup_method ? 'border-red-500' : ''}
-              placeholder="e.g., credit_card, bank_transfer, crypto"
-            />
-            {errors.topup_method && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.topup_method}</p>
-            )}
+            <div className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 capitalize">
+              {initialData.bonus_type}
+            </div>
           </div>
         </div>
       )}
@@ -172,23 +151,25 @@ export function BonusSettingsForm({ onSubmit, onCancel, initialData, type }: Bon
           Bonus Configuration
         </h4>
         
-        <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-            Bonus Type *
-          </label>
-          <select
-            value={formData.bonus_type}
-            onChange={(e) => setFormData({ ...formData, bonus_type: e.target.value as BonusType })}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
-          >
-            <option value="percentage">Percentage (%)</option>
-            <option value="fixed">Fixed Amount</option>
-          </select>
-        </div>
+        {type !== 'purchase' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+              Bonus Type *
+            </label>
+            <select
+              value={formData.bonus_type}
+              onChange={(e) => setFormData({ ...formData, bonus_type: e.target.value as BonusType })}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
+            >
+              <option value="percentage">Percentage (%)</option>
+              <option value="fixed">Fixed Amount</option>
+            </select>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-            Bonus Value *
+            Bonus {type === 'purchase' && initialData ? 'Value' : 'Value *'}
           </label>
           <div className="relative">
             <Input
@@ -200,7 +181,7 @@ export function BonusSettingsForm({ onSubmit, onCancel, initialData, type }: Bon
               min="0"
               step="0.01"
             />
-            {formData.bonus_type === 'percentage' && (
+            {(type === 'purchase' ? initialData?.bonus_type : formData.bonus_type) === 'percentage' && (
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
                 %
               </span>
@@ -210,12 +191,28 @@ export function BonusSettingsForm({ onSubmit, onCancel, initialData, type }: Bon
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bonus}</p>
           )}
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            {formData.bonus_type === 'percentage' 
+            {(type === 'purchase' ? initialData?.bonus_type : formData.bonus_type) === 'percentage' 
               ? 'Percentage of the deposit amount (0-100%)'
               : 'Fixed amount to be added as bonus'
             }
           </p>
         </div>
+
+        {/* Active/Inactive toggle for purchase bonuses */}
+        {type === 'purchase' && (
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="is_active"
+              checked={formData.is_active}
+              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              className="w-4 h-4 text-[#6366f1] bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-[#6366f1]"
+            />
+            <label htmlFor="is_active" className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              Active
+            </label>
+          </div>
+        )}
 
         {/* Status and minimum deposit settings for non-purchase bonuses */}
         {type !== 'purchase' && (
@@ -275,7 +272,9 @@ export function BonusSettingsForm({ onSubmit, onCancel, initialData, type }: Bon
           disabled={isSubmitting}
           className="flex-1"
         >
-          {isSubmitting ? (initialData ? 'Updating...' : 'Creating...') : (initialData ? 'Update Bonus' : 'Create Bonus')}
+          {isSubmitting 
+            ? (type === 'purchase' || initialData ? 'Updating...' : 'Creating...') 
+            : (type === 'purchase' || initialData ? 'Update Bonus' : 'Create Bonus')}
         </Button>
         <Button
           type="button"

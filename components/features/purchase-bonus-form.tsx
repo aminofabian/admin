@@ -5,7 +5,7 @@ import { Button } from '@/components/ui';
 import type { CreatePurchaseBonusRequest, PurchaseBonus } from '@/types';
 
 interface PurchaseBonusFormProps {
-  onSubmit: (data: CreatePurchaseBonusRequest) => Promise<void>;
+  onSubmit: (data: CreatePurchaseBonusRequest & { is_enabled?: boolean }) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
   initialData?: PurchaseBonus;
@@ -19,11 +19,12 @@ export function PurchaseBonusForm({
   initialData,
   mode = 'create'
 }: PurchaseBonusFormProps) {
-  const [formData, setFormData] = useState<CreatePurchaseBonusRequest>({
+  const [formData, setFormData] = useState<CreatePurchaseBonusRequest & { is_enabled?: boolean }>({
     user: initialData?.user || 0,
     topup_method: initialData?.topup_method || '',
     bonus_type: initialData?.bonus_type || 'percentage',
     bonus: initialData?.bonus || 0,
+    is_enabled: initialData?.is_enabled ?? true,
   });
   const [bonusDisplay, setBonusDisplay] = useState<string>(
     initialData?.bonus ? String(initialData.bonus) : ''
@@ -36,6 +37,7 @@ export function PurchaseBonusForm({
         topup_method: initialData.topup_method,
         bonus_type: initialData.bonus_type,
         bonus: initialData.bonus,
+        is_enabled: initialData.is_enabled ?? true,
       });
       setBonusDisplay(String(initialData.bonus));
     }
@@ -55,12 +57,15 @@ export function PurchaseBonusForm({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.user || formData.user <= 0) {
-      newErrors.user = 'User ID is required and must be greater than 0';
-    }
+    // Only validate user and topup_method in create mode
+    if (mode === 'create') {
+      if (!formData.user || formData.user <= 0) {
+        newErrors.user = 'User ID is required and must be greater than 0';
+      }
 
-    if (!formData.topup_method) {
-      newErrors.topup_method = 'Topup method is required';
+      if (!formData.topup_method) {
+        newErrors.topup_method = 'Topup method is required';
+      }
     }
 
     if (!formData.bonus || formData.bonus <= 0) {
@@ -82,14 +87,22 @@ export function PurchaseBonusForm({
 
     setIsSubmitting(true);
     try {
-      const submitData: CreatePurchaseBonusRequest = {
-        user: Number(formData.user),
-        topup_method: formData.topup_method,
-        bonus_type: formData.bonus_type,
-        bonus: Number(formData.bonus),
-      };
-      
-      await onSubmit(submitData);
+      if (mode === 'edit') {
+        // In edit mode, only send bonus and is_enabled
+        await onSubmit({
+          bonus: Number(formData.bonus),
+          is_enabled: formData.is_enabled,
+        } as CreatePurchaseBonusRequest & { is_enabled?: boolean });
+      } else {
+        // In create mode, send all fields
+        const submitData: CreatePurchaseBonusRequest = {
+          user: Number(formData.user),
+          topup_method: formData.topup_method,
+          bonus_type: formData.bonus_type,
+          bonus: Number(formData.bonus),
+        };
+        await onSubmit(submitData);
+      }
     } catch (error) {
       console.error('Error submitting form:', error);
     } finally {
@@ -97,13 +110,15 @@ export function PurchaseBonusForm({
     }
   };
 
-  const handleInputChange = (field: keyof CreatePurchaseBonusRequest, value: string) => {
+  const handleInputChange = (field: keyof CreatePurchaseBonusRequest | 'is_enabled', value: string | boolean) => {
     if (field === 'bonus') {
-      setBonusDisplay(value);
-      const numValue = parseFloat(value) || 0;
+      setBonusDisplay(value as string);
+      const numValue = parseFloat(value as string) || 0;
       setFormData(prev => ({ ...prev, bonus: numValue }));
+    } else if (field === 'is_enabled') {
+      setFormData(prev => ({ ...prev, is_enabled: value as boolean }));
     } else {
-      const processedValue = field === 'user' ? parseInt(value) || 0 : value;
+      const processedValue = field === 'user' ? parseInt(value as string) || 0 : value;
       setFormData(prev => ({ ...prev, [field]: processedValue }));
     }
     
@@ -133,7 +148,7 @@ export function PurchaseBonusForm({
                 Editing Bonus
               </h4>
               <p className="text-xs text-blue-700 dark:text-blue-400">
-                You can only update the bonus percentage value. User ID, payment method, and bonus type cannot be changed.
+                You can only update the bonus value and active status. Payment method and bonus type cannot be changed.
               </p>
             </div>
           </div>
@@ -141,82 +156,99 @@ export function PurchaseBonusForm({
       )}
 
       <div className="space-y-4">
-        {/* User ID */}
-        <div>
-          <label htmlFor="user" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            User ID *
-          </label>
-          <input
-            type="number"
-            id="user"
-            value={formData.user}
-            onChange={(e) => handleInputChange('user', e.target.value)}
-            disabled={mode === 'edit'}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
-              errors.user ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
-            } ${mode === 'edit' ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-900' : ''}`}
-            placeholder="Enter user ID"
-            min="1"
-            step="1"
-          />
-          {errors.user && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.user}</p>
-          )}
-          {mode === 'edit' && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">User ID cannot be changed</p>
-          )}
-        </div>
-
-        {/* Topup Method */}
-        <div>
-          <label htmlFor="topup_method" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Topup Method *
-          </label>
-          <select
-            id="topup_method"
-            value={formData.topup_method}
-            onChange={(e) => handleInputChange('topup_method', e.target.value)}
-            disabled={mode === 'edit'}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
-              errors.topup_method ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
-            } ${mode === 'edit' ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-900' : ''}`}
-          >
-            <option value="">Select topup method</option>
-            {topupMethods.map((method) => (
-              <option key={method.value} value={method.value}>
-                {method.label}
-              </option>
-            ))}
-          </select>
-          {errors.topup_method && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.topup_method}</p>
-          )}
-          {mode === 'edit' && (
+        {/* Payment Method - Display only in edit mode */}
+        {mode === 'edit' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Payment Method
+            </label>
+            <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+              {formData.topup_method ? topupMethods.find(m => m.value === formData.topup_method)?.label || formData.topup_method.replace('_', ' ') : 'N/A'}
+            </div>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Payment method cannot be changed</p>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Bonus Type */}
-        <div>
-          <label htmlFor="bonus_type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Bonus Type *
-          </label>
-          <select
-            id="bonus_type"
-            value={formData.bonus_type}
-            onChange={(e) => handleInputChange('bonus_type', e.target.value)}
-            disabled={mode === 'edit'}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
-              mode === 'edit' ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-900' : 'border-gray-300 dark:border-gray-600'
-            }`}
-          >
-            <option value="percentage">Percentage</option>
-            <option value="fixed">Fixed Amount</option>
-          </select>
-          {mode === 'edit' && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Bonus type cannot be changed</p>
-          )}
-        </div>
+        {/* User ID - Only in create mode */}
+        {mode === 'create' && (
+          <div>
+            <label htmlFor="user" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              User ID *
+            </label>
+            <input
+              type="number"
+              id="user"
+              value={formData.user}
+              onChange={(e) => handleInputChange('user', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
+                errors.user ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+              }`}
+              placeholder="Enter user ID"
+              min="1"
+              step="1"
+            />
+            {errors.user && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.user}</p>
+            )}
+          </div>
+        )}
+
+        {/* Topup Method - Only in create mode */}
+        {mode === 'create' && (
+          <div>
+            <label htmlFor="topup_method" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Payment Method *
+            </label>
+            <select
+              id="topup_method"
+              value={formData.topup_method}
+              onChange={(e) => handleInputChange('topup_method', e.target.value)}
+              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
+                errors.topup_method ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <option value="">Select payment method</option>
+              {topupMethods.map((method) => (
+                <option key={method.value} value={method.value}>
+                  {method.label}
+                </option>
+              ))}
+            </select>
+            {errors.topup_method && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.topup_method}</p>
+            )}
+          </div>
+        )}
+
+        {/* Bonus Type - Only in create mode */}
+        {mode === 'create' && (
+          <div>
+            <label htmlFor="bonus_type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Bonus Type *
+            </label>
+            <select
+              id="bonus_type"
+              value={formData.bonus_type}
+              onChange={(e) => handleInputChange('bonus_type', e.target.value)}
+              className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors border-gray-300 dark:border-gray-600"
+            >
+              <option value="percentage">Percentage</option>
+              <option value="fixed">Fixed Amount</option>
+            </select>
+          </div>
+        )}
+
+        {/* Bonus Type Display - Only in edit mode */}
+        {mode === 'edit' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Bonus Type
+            </label>
+            <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+              {formData.bonus_type === 'percentage' ? 'Percentage' : 'Fixed Amount'}
+            </div>
+          </div>
+        )}
 
         {/* Bonus Value */}
         <div>
@@ -253,6 +285,40 @@ export function PurchaseBonusForm({
             }
           </p>
         </div>
+
+        {/* Active/Inactive Toggle - Only in edit mode */}
+        {mode === 'edit' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Status
+            </label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleInputChange('is_enabled', !formData.is_enabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  formData.is_enabled
+                    ? 'bg-primary'
+                    : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+                role="switch"
+                aria-checked={formData.is_enabled}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.is_enabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {formData.is_enabled ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Toggle to activate or deactivate this bonus
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Form Actions */}

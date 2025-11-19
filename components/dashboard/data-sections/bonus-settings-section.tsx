@@ -227,14 +227,21 @@ export function BonusSettingsSection() {
             </div>
             <div>
               <h2 className="text-3xl font-bold text-foreground">
-                Bonus Settings
+                {activeTab === 'purchase' ? 'Purchase Bonus' : 'Bonus Settings'}
               </h2>
-              <p className="text-muted-foreground mt-1">
-                Configure various types of bonuses across the platform
-              </p>
+              {activeTab === 'purchase' && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Total Bonuses: <span className="font-semibold text-foreground">{purchaseBonusesData?.count || 0}</span>
+                </p>
+              )}
+              {activeTab !== 'purchase' && (
+                <p className="text-muted-foreground mt-1">
+                  Configure various types of bonuses across the platform
+                </p>
+              )}
             </div>
           </div>
-          {(activeTab === 'purchase' || (activeTab === 'transfer' && !transferBonus) || (activeTab === 'signup' && !signupBonus)) && (
+          {((activeTab === 'transfer' && !transferBonus) || (activeTab === 'signup' && !signupBonus)) && (
             <button
               onClick={() => {
                 setSelectedBonus(null);
@@ -245,8 +252,7 @@ export function BonusSettingsSection() {
               <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              {activeTab === 'purchase' ? 'Add Purchase Bonus' : 
-               activeTab === 'transfer' ? 'Configure Transfer Bonus' : 
+              {activeTab === 'transfer' ? 'Configure Transfer Bonus' : 
                activeTab === 'signup' ? 'Configure Signup Bonus' : 'Add Bonus'}
             </button>
           )}
@@ -298,7 +304,6 @@ export function BonusSettingsSection() {
             <TableRow>
               {activeTab === 'purchase' ? (
                 <>
-                  <TableHead>User ID</TableHead>
                   <TableHead>Payment Method</TableHead>
                   <TableHead>Bonus Type</TableHead>
                   <TableHead>Bonus Value</TableHead>
@@ -320,7 +325,7 @@ export function BonusSettingsSection() {
               <TableRow>
                 <TableCell 
                   className="text-center py-12 text-gray-500 dark:text-gray-400" 
-                  colSpan={activeTab === 'purchase' ? 5 : 5}
+                  colSpan={activeTab === 'purchase' ? 4 : 5}
                 >
                   {activeTab === 'purchase' ? 'No purchase bonuses found' :
                    activeTab === 'recharge' ? 'No recharge bonuses found' :
@@ -333,7 +338,6 @@ export function BonusSettingsSection() {
                 <TableRow key={bonus.id}>
                   {activeTab === 'purchase' ? (
                     <>
-                      <TableCell className="font-medium">{(bonus as PurchaseBonusSettings).user}</TableCell>
                       <TableCell>{(bonus as PurchaseBonusSettings).topup_method}</TableCell>
                       <TableCell>
                         <Badge variant={bonus.bonus_type === 'percentage' ? 'info' : 'success'}>
@@ -424,7 +428,7 @@ export function BonusSettingsSection() {
           setIsDrawerOpen(false);
           setSelectedBonus(null);
         }}
-        title={selectedBonus ? `Edit ${getTabTitle(activeTab)}` : `Add ${getTabTitle(activeTab)}`}
+        title={selectedBonus ? `Edit ${getTabTitle(activeTab)}` : activeTab === 'purchase' ? `Edit ${getTabTitle(activeTab)}` : `Add ${getTabTitle(activeTab)}`}
       >
         <BonusSettingsForm
           onSubmit={handleSubmit}

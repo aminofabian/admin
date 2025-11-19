@@ -18,6 +18,7 @@ export interface PurchaseBonus {
   topup_method: string;
   bonus_type: BonusType;
   bonus: number;
+  is_enabled?: boolean;
 }
 
 export interface RechargeBonus extends BaseBonus {
@@ -52,5 +53,6 @@ export interface UpdateBonusRequest {
 
 export interface UpdatePurchaseBonusRequest {
   bonus?: number;
+  is_enabled?: boolean;
 }
 

@@ -43,12 +43,14 @@ export interface PurchaseBonusSettings {
   topup_method: string;
   bonus_type: BonusType;
   bonus: number;
+  is_active?: boolean;
 }
 
 export interface UpdateBonusSettingsRequest {
   bonus_type?: BonusType;
   bonus?: number;
   is_enabled?: boolean;
+  is_active?: boolean;
   on_min_deposit?: boolean;
   min_deposit_amount?: number | null;
 }
