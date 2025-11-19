@@ -148,6 +148,7 @@ export function PurchaseBonusManager({
                   <TableHead>Payment Method</TableHead>
                   <TableHead>Bonus Type</TableHead>
                   <TableHead>Bonus Value</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -182,6 +183,11 @@ export function PurchaseBonusManager({
                         ? `${bonus.bonus}%` 
                         : formatCurrency(bonus.bonus.toString())
                       }
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={bonus.is_enabled ? 'success' : 'default'}>
+                        {bonus.is_enabled ? 'Active' : 'Disabled'}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end">
