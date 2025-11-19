@@ -317,15 +317,25 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       }
       
       // Update existing transaction (for status changes like pending -> processing)
+      // Merge WebSocket update with existing transaction to preserve user data from API
+      const existingTransaction = transactions.results[transactionIndex];
+      const mergedTransaction: Transaction = {
+        ...existingTransaction,
+        ...updatedTransaction,
+        // Preserve user data from API if WebSocket update doesn't have it
+        user_username: updatedTransaction.user_username || existingTransaction.user_username || '',
+        user_email: updatedTransaction.user_email || existingTransaction.user_email || '',
+      };
+      
       const updatedResults = [...transactions.results];
-      updatedResults[transactionIndex] = updatedTransaction;
+      updatedResults[transactionIndex] = mergedTransaction;
       set({ 
         transactions: {
           ...transactions,
           results: updatedResults,
         }
       });
-      console.log('✅ Transaction updated:', updatedTransaction.id, 'Status:', updatedTransaction.status);
+      console.log('✅ Transaction updated:', mergedTransaction.id, 'Status:', mergedTransaction.status);
     } else {
       // Item is NEW - don't add if it's already completed and we're viewing pending
       if (isPendingView && isCompleted) {

@@ -214,7 +214,8 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
    * @param updatedQueue - The queue item to update or add
    */
   updateQueue: (updatedQueue: TransactionQueue) => {
-    const { queues, filter } = get();
+    const state = get();
+    const { queues, filter } = state;
     
     if (!queues || !Array.isArray(queues)) {
       console.log('No queues to update, fetching fresh data...');
@@ -225,37 +226,72 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
     const status = updatedQueue.status?.toLowerCase();
     const isCompleted = status === 'completed' || status === 'complete';
     
-    console.log('🔍 Store updateQueue - ID:', updatedQueue.id, 'Status:', updatedQueue.status, 'IsCompleted:', isCompleted, 'Filter:', filter);
+    // Check if we're viewing processing queues
+    const isProcessingView = filter === 'processing';
+    
+    console.log('🔍 Store updateQueue - ID:', updatedQueue.id, 'Status:', updatedQueue.status, 'IsCompleted:', isCompleted, 'Filter:', filter, 'IsProcessingView:', isProcessingView);
 
     // Find the index of the queue to check if it already exists
     const queueIndex = queues.findIndex((q) => q.id === updatedQueue.id);
     
     if (queueIndex >= 0) {
       // Item EXISTS in the list
-      if (filter === 'processing' && isCompleted) {
+      if (isProcessingView && isCompleted) {
         // Remove completed items from processing view
         const updatedQueues = queues.filter((q) => q.id !== updatedQueue.id);
-        set({ queues: updatedQueues });
-        console.log(' Removed completed activity from processing view:', updatedQueue.id);
+        set({ 
+          queues: updatedQueues,
+          count: Math.max(0, (state.count || 0) - 1),
+        });
+        console.log('✅ Removed completed activity from processing view:', updatedQueue.id);
         return;
       }
       
       // Update existing queue (for status changes like pending -> processing)
+      // Merge WebSocket update with existing queue to preserve user data from API
+      const existingQueue = queues[queueIndex];
+      const mergedQueue: TransactionQueue = {
+        ...existingQueue,
+        ...updatedQueue,
+        // Preserve user data from API if WebSocket update doesn't have it
+        user_username: updatedQueue.user_username || existingQueue.user_username,
+        user_email: updatedQueue.user_email || existingQueue.user_email,
+        // Preserve other optional fields
+        game_username: updatedQueue.game_username || existingQueue.game_username,
+        operator: updatedQueue.operator || existingQueue.operator,
+        bonus_amount: updatedQueue.bonus_amount || existingQueue.bonus_amount,
+        new_game_balance: updatedQueue.new_game_balance || existingQueue.new_game_balance,
+        remarks: updatedQueue.remarks || existingQueue.remarks,
+        data: updatedQueue.data || existingQueue.data,
+      };
+      
       const updatedQueues = [...queues];
-      updatedQueues[queueIndex] = updatedQueue;
-      set({ queues: updatedQueues });
-      console.log(' Queue updated:', updatedQueue.id, 'Status:', updatedQueue.status);
+      updatedQueues[queueIndex] = mergedQueue;
+      set({ 
+        queues: updatedQueues,
+        // Preserve other state properties
+        count: state.count,
+        next: state.next,
+        previous: state.previous,
+      });
+      console.log('✅ Queue updated:', mergedQueue.id, 'Status:', mergedQueue.status);
     } else {
-      // Item is NEW - don't add if it's already completed
-      if (filter === 'processing' && isCompleted) {
+      // Item is NEW - don't add if it's already completed and we're viewing processing
+      if (isProcessingView && isCompleted) {
         console.log('⏭️ Store: Not adding new completed activity to processing view:', updatedQueue.id);
         return;
       }
       
-      // Add new queue to the beginning of the list
+      // Add new queue to the beginning of the list (same as purchases)
       const updatedQueues = [updatedQueue, ...queues];
-      set({ queues: updatedQueues });
-      console.log(' New queue added:', updatedQueue.id, 'Status:', updatedQueue.status);
+      set({ 
+        queues: updatedQueues,
+        count: (state.count || 0) + 1,
+        // Preserve other state properties
+        next: state.next,
+        previous: state.previous,
+      });
+      console.log('✅ New queue added:', updatedQueue.id, 'Status:', updatedQueue.status, 'Total count:', (state.count || 0) + 1);
     }
   },
 

@@ -2,9 +2,9 @@
  * WebSocket Hook for Real-Time Processing Notifications
  * 
  * This hook manages WebSocket connections to receive real-time updates
- * for transaction queue processing activities.
+ * for transaction queue processing activities (purchases, cashouts, and game activities).
  * 
- * @see /WEBSOCKET_IMPLEMENTATION.md for detailed documentation
+ * The WebSocket now uses a unified format that sends all three data types together.
  * 
  * @example
  * ```tsx
@@ -12,6 +12,9 @@
  *   enabled: true,
  *   onQueueUpdate: (queue) => {
  *     console.log('New queue:', queue);
+ *   },
+ *   onTransactionUpdate: (transaction) => {
+ *     console.log('New transaction:', transaction);
  *   },
  * });
  * ```
@@ -23,23 +26,23 @@ import { API_BASE_URL } from '@/lib/constants/api';
 import type { TransactionQueue, Transaction } from '@/types';
 
 export interface WebSocketMessage {
-  type: 'processing_update' | 'queue_update' | 'send_notification' | 'connection' | 'error' | 'purchase_activities' | 'cashout_activities';
-  data?: TransactionQueue | Transaction | Transaction[];
+  type: 'all_activities' | 'send_notification' | 'connection' | 'error';
   message?: string;
-  queues?: TransactionQueue[];
   title?: string;
-  game_title?: string;
-  transaction_id?: string;
+  // Unified format fields for all_activities (arrays)
+  purchase_data?: any[] | any; // Array for all_activities, object for send_notification
+  cashout_data?: any[];
+  game_activities_data?: any[] | any; // Array for all_activities, object for send_notification
+  // For send_notification messages
+  activity_type?: 'purchase' | 'cashout' | 'game_activity';
+  data?: any;
 }
-
-type ProcessingWebSocketType = 'processing' | 'purchase_processing' | 'cashout_processing';
 
 interface UseProcessingWebSocketOptions {
   enabled?: boolean;
-  type?: ProcessingWebSocketType;
   onMessage?: (message: WebSocketMessage) => void;
-  onQueueUpdate?: (queue: TransactionQueue) => void;
-  onTransactionUpdate?: (transaction: Transaction) => void;
+  onQueueUpdate?: (queue: TransactionQueue, isInitialLoad?: boolean) => void;
+  onTransactionUpdate?: (transaction: Transaction, isInitialLoad?: boolean) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
@@ -58,6 +61,103 @@ interface UseProcessingWebSocketReturn {
 }
 
 /**
+ * Transform raw purchase data to Transaction
+ */
+function transformPurchaseToTransaction(rawPurchase: any): Transaction {
+  // Handle nested user data structure
+  const userData = rawPurchase.user && typeof rawPurchase.user === 'object' ? rawPurchase.user : null;
+  const nestedData = rawPurchase.data && typeof rawPurchase.data === 'object' ? rawPurchase.data : null;
+  
+  return {
+    id: rawPurchase.id || rawPurchase.transaction_id || nestedData?.id || nestedData?.transaction_id || '',
+    user_username: rawPurchase.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawPurchase.username || nestedData?.username || '',
+    user_email: rawPurchase.user_email || userData?.email || userData?.user_email || nestedData?.user_email || rawPurchase.email || nestedData?.email || '',
+    amount: String(rawPurchase.amount || nestedData?.amount || 0),
+    bonus_amount: rawPurchase.bonus_amount || nestedData?.bonus_amount ? String(rawPurchase.bonus_amount || nestedData?.bonus_amount) : '',
+    status: rawPurchase.status || nestedData?.status || 'pending',
+    type: 'purchase',
+    operator: rawPurchase.operator || nestedData?.operator || '',
+    payment_method: rawPurchase.payment_method || nestedData?.payment_method || rawPurchase.operator || nestedData?.operator || '',
+    currency: rawPurchase.currency || nestedData?.currency || 'USD',
+    description: rawPurchase.description || nestedData?.description || '',
+    journal_entry: 'credit',
+    previous_balance: String(rawPurchase.previous_balance || nestedData?.previous_balance || 0),
+    new_balance: String(rawPurchase.new_balance || nestedData?.new_balance || 0),
+    previous_winning_balance: String(rawPurchase.previous_winning_balance || nestedData?.previous_winning_balance || 0),
+    new_winning_balance: String(rawPurchase.new_winning_balance || nestedData?.new_winning_balance || 0),
+    unique_id: rawPurchase.unique_id || nestedData?.unique_id || rawPurchase.id || nestedData?.id || '',
+    role: rawPurchase.role || nestedData?.role || '',
+    action: rawPurchase.action || nestedData?.action || '',
+    remarks: rawPurchase.remarks || nestedData?.remarks || null,
+    created: rawPurchase.created || rawPurchase.created_at || nestedData?.created || nestedData?.created_at || new Date().toISOString(),
+    updated: rawPurchase.updated || rawPurchase.updated_at || nestedData?.updated || nestedData?.updated_at || new Date().toISOString(),
+    payment_url: rawPurchase.payment_url || nestedData?.payment_url || null,
+    invoice_url: rawPurchase.invoice_url || nestedData?.invoice_url,
+  };
+}
+
+/**
+ * Transform raw cashout data to Transaction
+ */
+function transformCashoutToTransaction(rawCashout: any): Transaction {
+  // Handle nested user data structure
+  const userData = rawCashout.user && typeof rawCashout.user === 'object' ? rawCashout.user : null;
+  const nestedData = rawCashout.data && typeof rawCashout.data === 'object' ? rawCashout.data : null;
+  
+  return {
+    id: rawCashout.id || rawCashout.transaction_id || nestedData?.id || nestedData?.transaction_id || '',
+    user_username: rawCashout.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawCashout.username || nestedData?.username || '',
+    user_email: rawCashout.user_email || userData?.email || userData?.user_email || nestedData?.user_email || rawCashout.email || nestedData?.email || '',
+    amount: String(rawCashout.amount || nestedData?.amount || 0),
+    bonus_amount: rawCashout.bonus_amount || nestedData?.bonus_amount ? String(rawCashout.bonus_amount || nestedData?.bonus_amount) : '',
+    status: rawCashout.status || nestedData?.status || 'pending',
+    type: 'cashout',
+    operator: rawCashout.operator || nestedData?.operator || '',
+    payment_method: rawCashout.payment_method || nestedData?.payment_method || rawCashout.operator || nestedData?.operator || '',
+    currency: rawCashout.currency || nestedData?.currency || 'USD',
+    description: rawCashout.description || nestedData?.description || '',
+    journal_entry: 'debit',
+    previous_balance: String(rawCashout.previous_balance || nestedData?.previous_balance || 0),
+    new_balance: String(rawCashout.new_balance || nestedData?.new_balance || 0),
+    previous_winning_balance: String(rawCashout.previous_winning_balance || nestedData?.previous_winning_balance || 0),
+    new_winning_balance: String(rawCashout.new_winning_balance || nestedData?.new_winning_balance || 0),
+    unique_id: rawCashout.unique_id || nestedData?.unique_id || rawCashout.id || nestedData?.id || '',
+    role: rawCashout.role || nestedData?.role || '',
+    action: rawCashout.action || nestedData?.action || '',
+    remarks: rawCashout.remarks || nestedData?.remarks || null,
+    created: rawCashout.created || rawCashout.created_at || nestedData?.created || nestedData?.created_at || new Date().toISOString(),
+    updated: rawCashout.updated || rawCashout.updated_at || nestedData?.updated || nestedData?.updated_at || new Date().toISOString(),
+    payment_url: rawCashout.payment_url || nestedData?.payment_url || null,
+    invoice_url: rawCashout.invoice_url || nestedData?.invoice_url,
+  };
+}
+
+/**
+ * Transform raw game activity data to TransactionQueue
+ */
+function transformActivityToQueue(rawActivity: any): TransactionQueue {
+  return {
+    id: rawActivity.id || rawActivity.transaction_id || '',
+    type: rawActivity.operation_type || rawActivity.type || 'recharge_game',
+    status: rawActivity.status || 'pending',
+    user_id: rawActivity.user_id || 0,
+    user_username: rawActivity.user_username || rawActivity.username || '',
+    user_email: rawActivity.user_email || rawActivity.email || '',
+    operator: rawActivity.operator || '',
+    game_username: rawActivity.get_usergame_username || rawActivity.game_username || '',
+    game: rawActivity.game_title || rawActivity.game || '',
+    game_code: rawActivity.game_code || '',
+    amount: String(rawActivity.amount || rawActivity.get_total_amount || 0),
+    bonus_amount: rawActivity.bonus ? String(rawActivity.bonus) : undefined,
+    new_game_balance: rawActivity.new_game_balance,
+    remarks: rawActivity.remarks || '',
+    data: rawActivity,
+    created_at: rawActivity.created_at || rawActivity.created || new Date().toISOString(),
+    updated_at: rawActivity.updated_at || rawActivity.updated || new Date().toISOString(),
+  };
+}
+
+/**
  * Custom hook for managing WebSocket connection to processing notifications
  * 
  * @example
@@ -66,14 +166,15 @@ interface UseProcessingWebSocketReturn {
  *   enabled: true,
  *   onQueueUpdate: (queue) => {
  *     console.log('Queue updated:', queue);
- *     // Update your store here
+ *   },
+ *   onTransactionUpdate: (transaction) => {
+ *     console.log('Transaction updated:', transaction);
  *   },
  * });
  * ```
  */
 export function useProcessingWebSocket({
   enabled = true,
-  type = 'processing',
   onMessage,
   onQueueUpdate,
   onTransactionUpdate,
@@ -103,11 +204,12 @@ export function useProcessingWebSocket({
 
     // Convert HTTP/HTTPS to WS/WSS
     const baseUrl = API_BASE_URL.replace(/^http/, 'ws');
-    const wsUrl = `${baseUrl}/ws/notifications/${user.username}/?type=${type}`;
+    // Unified endpoint - no longer needs type parameter
+    const wsUrl = `${baseUrl}/ws/notifications/${user.username}/`;
     
     console.log('🔌 WebSocket URL:', wsUrl);
     return wsUrl;
-  }, [user?.username, type]);
+  }, [user?.username]);
 
   const disconnect = useCallback(() => {
     console.log('🔌 Disconnecting WebSocket...');
@@ -128,13 +230,6 @@ export function useProcessingWebSocket({
       const ws = wsRef.current;
       const currentState = ws.readyState;
       
-      console.log('🔌 Current WebSocket state:', {
-        0: 'CONNECTING',
-        1: 'OPEN',
-        2: 'CLOSING',
-        3: 'CLOSED'
-      }[currentState]);
-      
       // Remove event listeners before closing
       ws.onopen = null;
       ws.onclose = null;
@@ -144,7 +239,7 @@ export function useProcessingWebSocket({
       // Only close if not already closed or closing
       if (currentState === WebSocket.OPEN || currentState === WebSocket.CONNECTING) {
         try {
-          ws.close(1000, 'Client disconnecting'); // Normal closure
+          ws.close(1000, 'Client disconnecting');
         } catch (err) {
           console.warn('⚠️ Error closing WebSocket:', err);
         }
@@ -159,7 +254,6 @@ export function useProcessingWebSocket({
 
   const handleReconnect = useCallback(() => {
     if (!shouldReconnectRef.current) {
-      console.log('🔌 Reconnection disabled, skipping...');
       return;
     }
 
@@ -245,7 +339,7 @@ export function useProcessingWebSocket({
       }, 10000);
 
       ws.onopen = () => {
-        console.log(' WebSocket connected');
+        console.log('✅ WebSocket connected');
         
         // Clear connection timeout
         if (connectionTimeoutRef.current) {
@@ -305,105 +399,173 @@ export function useProcessingWebSocket({
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          console.log('📨 WebSocket message received:', message);
+          console.log('📨 WebSocket message received:', message.type);
 
-          // Call the generic message handler (this will pass the message to the component)
+          // Call the generic message handler
           onMessage?.(message);
 
-          // Handle specific message types
-          if (message.type === 'processing_update' || message.type === 'queue_update') {
-            if (message.data) {
-              onQueueUpdate?.(message.data as TransactionQueue);
-            } else if (message.queues && Array.isArray(message.queues)) {
-              // Handle bulk queue updates
-              message.queues.forEach((queue) => onQueueUpdate?.(queue));
+          // Handle all_activities message type (unified format with all three data types)
+          if (message.type === 'all_activities') {
+            console.log('📦 All activities message received:', {
+              purchase_count: message.purchase_data?.length || 0,
+              cashout_count: message.cashout_data?.length || 0,
+              game_activities_count: message.game_activities_data?.length || 0,
+            });
+
+            // Process purchase_data array (initial load - no toasts)
+            if (message.purchase_data && Array.isArray(message.purchase_data)) {
+              message.purchase_data.forEach((rawPurchase) => {
+                const transaction = transformPurchaseToTransaction(rawPurchase);
+                onTransactionUpdate?.(transaction, true); // true = isInitialLoad
+              });
             }
-          } else if (message.type === 'send_notification') {
-            // Handle send_notification type - this can be for game activities, purchases, or cashouts
-            console.log('📨 Notification received:', message);
+
+            // Process cashout_data array (initial load - no toasts)
+            if (message.cashout_data && Array.isArray(message.cashout_data)) {
+              message.cashout_data.forEach((rawCashout) => {
+                const transaction = transformCashoutToTransaction(rawCashout);
+                onTransactionUpdate?.(transaction, true); // true = isInitialLoad
+              });
+            }
+
+            // Process game_activities_data array (initial load - no toasts)
+            if (message.game_activities_data && Array.isArray(message.game_activities_data)) {
+              message.game_activities_data.forEach((rawActivity) => {
+                const queue = transformActivityToQueue(rawActivity);
+                onQueueUpdate?.(queue, true); // true = isInitialLoad
+              });
+            }
+          } 
+          // Handle send_notification for individual updates
+          else if (message.type === 'send_notification') {
+            console.log('📨 Notification received:', {
+              activity_type: message.activity_type,
+              hasData: !!message.data,
+              dataKeys: message.data ? Object.keys(message.data) : [],
+              fullMessage: message,
+            });
             
-            if (type === 'processing') {
-              // Game activities - transform to TransactionQueue
-              if (message.data) {
-                const rawData = message.data as any;
-                
-                console.log('🔍 DEBUG - Raw WebSocket data:', {
-                  status: rawData.status,
-                  transaction_status: rawData.transaction_status,
-                  queue_status: rawData.queue_status,
-                  fullData: rawData
-                });
-                
-                const transformedQueue: TransactionQueue = {
-                  id: rawData.id || rawData.transaction_id,
-                  type: rawData.operation_type || rawData.type,
-                  status: rawData.status,
-                  user_id: rawData.user_id,
-                  user_username: rawData.user_username,
-                  user_email: rawData.user_email,
-                  operator: rawData.operator,
-                  game_username: rawData.get_usergame_username || rawData.game_username,
-                  game: rawData.game_title || rawData.game,
-                  game_code: rawData.game_code || '',
-                  amount: String(rawData.amount || rawData.get_total_amount || 0),
-                  bonus_amount: rawData.bonus ? String(rawData.bonus) : undefined,
-                  new_game_balance: rawData.new_game_balance,
-                  remarks: rawData.remarks || '',
-                  data: rawData,
-                  created_at: rawData.created_at,
-                  updated_at: rawData.updated_at,
-                };
-                
-                console.log('✅ Transformed queue - ID:', transformedQueue.id, 'Status:', transformedQueue.status);
-                onQueueUpdate?.(transformedQueue);
+            // Check if purchase_data is nested in the message (new format)
+            if (message.purchase_data && typeof message.purchase_data === 'object' && !Array.isArray(message.purchase_data)) {
+              const transaction = transformPurchaseToTransaction(message.purchase_data);
+              onTransactionUpdate?.(transaction);
+              return;
+            }
+            
+            // Handle game activities FIRST - check if activity_type is game_activity (case-insensitive)
+            const activityType = String(message.activity_type || '').toLowerCase().trim();
+            if (activityType === 'game_activity' || activityType === 'gameactivity') {
+              // Game activity data can be in:
+              // 1. message.game_activities_data (for send_notification - it's an object)
+              // 2. message.data (fallback)
+              // 3. Top level of message (last resort)
+              const msg = message as any; // Type assertion for dynamic property access
+              let gameActivityData = msg.game_activities_data || message.data;
+              
+              // If no game_activities_data or data, check if game activity fields are at the top level
+              if (!gameActivityData) {
+                if (msg.operation_type || msg.game_title || msg.game || msg.game_code || msg.id) {
+                  gameActivityData = msg;
+                  console.log('📦 Using message itself as game activity data (no game_activities_data or data)');
+                } else {
+                  console.warn('⚠️ Game activity detected but no data found:', {
+                    activity_type: message.activity_type,
+                    messageKeys: Object.keys(message),
+                    hasGameActivitiesData: !!msg.game_activities_data,
+                    hasData: !!message.data,
+                  });
+                  return; // Can't process without data
+                }
               }
-            } else if (type === 'purchase_processing' || type === 'cashout_processing') {
-              // Purchase/Cashout transactions - transform to Transaction
-              if (message.data) {
-                const rawData = message.data as any;
-                
-                console.log('🔍 DEBUG - Raw transaction data:', {
-                  id: rawData.id,
-                  status: rawData.status,
-                  type: rawData.type,
-                  user_username: rawData.user_username,
-                  user_email: rawData.user_email,
-                  fullData: rawData
+              
+              console.log('🎮 Game activity notification detected (activity_type=game_activity):', {
+                hasGameActivitiesData: !!msg.game_activities_data,
+                hasMessageData: !!message.data,
+                usingMessageAsData: gameActivityData === message,
+                dataKeys: gameActivityData ? Object.keys(gameActivityData) : [],
+                queueId: gameActivityData?.id || gameActivityData?.transaction_id,
+                status: gameActivityData?.status,
+              });
+              
+              const queue = transformActivityToQueue(gameActivityData);
+              
+              // Validate that we have a valid queue ID
+              if (!queue.id) {
+                console.error('❌ Transformed queue has no ID!', {
+                  rawData: gameActivityData,
+                  transformedQueue: queue,
                 });
-                
-                // Check if user data is nested (similar to game activities normalization)
-                const nestedData = rawData.data && typeof rawData.data === 'object' ? rawData.data : null;
-                const userData = rawData.user && typeof rawData.user === 'object' ? rawData.user : null;
-                
-                const transformedTransaction: Transaction = {
-                  id: rawData.id || rawData.transaction_id || nestedData?.id || nestedData?.transaction_id,
-                  user_username: rawData.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawData.username || nestedData?.username || '',
-                  user_email: rawData.user_email || userData?.email || userData?.user_email || nestedData?.user_email || rawData.email || nestedData?.email || '',
-                  amount: String(rawData.amount || nestedData?.amount || 0),
-                  bonus_amount: rawData.bonus_amount || nestedData?.bonus_amount ? String(rawData.bonus_amount || nestedData.bonus_amount) : '',
-                  status: rawData.status || nestedData?.status || 'pending',
-                  type: rawData.type || nestedData?.type || (type === 'purchase_processing' ? 'purchase' : 'cashout'),
-                  operator: rawData.operator || nestedData?.operator || '',
-                  payment_method: rawData.payment_method || nestedData?.payment_method || rawData.operator || nestedData?.operator || '',
-                  currency: rawData.currency || nestedData?.currency || 'USD',
-                  description: rawData.description || nestedData?.description || '',
-                  journal_entry: rawData.journal_entry || nestedData?.journal_entry || (type === 'purchase_processing' ? 'credit' : 'debit'),
-                  previous_balance: String(rawData.previous_balance || nestedData?.previous_balance || 0),
-                  new_balance: String(rawData.new_balance || nestedData?.new_balance || 0),
-                  previous_winning_balance: String(rawData.previous_winning_balance || nestedData?.previous_winning_balance || 0),
-                  new_winning_balance: String(rawData.new_winning_balance || nestedData?.new_winning_balance || 0),
-                  unique_id: rawData.unique_id || nestedData?.unique_id || rawData.id || nestedData?.id || '',
-                  role: rawData.role || nestedData?.role || '',
-                  action: rawData.action || nestedData?.action || '',
-                  remarks: rawData.remarks || nestedData?.remarks || null,
-                  created: rawData.created || rawData.created_at || nestedData?.created || nestedData?.created_at || new Date().toISOString(),
-                  updated: rawData.updated || rawData.updated_at || nestedData?.updated || nestedData?.updated_at || new Date().toISOString(),
-                  payment_url: rawData.payment_url || nestedData?.payment_url || null,
-                  invoice_url: rawData.invoice_url || nestedData?.invoice_url,
-                };
-                
-                console.log('✅ Transformed transaction - ID:', transformedTransaction.id, 'Status:', transformedTransaction.status, 'User:', transformedTransaction.user_username);
-                onTransactionUpdate?.(transformedTransaction);
+                return;
+              }
+              
+              console.log('✅ Transformed game activity queue - ID:', queue.id, 'Status:', queue.status, 'Type:', queue.type);
+              
+              if (!onQueueUpdate) {
+                console.error('❌ onQueueUpdate callback is not defined!');
+                return;
+              }
+              
+              console.log('📞 Calling onQueueUpdate with queue:', queue.id);
+              onQueueUpdate(queue);
+              console.log('✅ onQueueUpdate called for game activity:', queue.id);
+              return;
+            }
+            
+            // Handle game activities by data structure (fallback detection)
+            const hasGameActivityData = message.data && (
+              message.data.operation_type || 
+              message.data.type === 'recharge_game' || 
+              message.data.type === 'redeem_game' || 
+              message.data.type === 'add_user_game' ||
+              message.data.type === 'create_game' ||
+              message.data.game_title ||
+              message.data.game ||
+              message.data.game_code
+            );
+            
+            if (!message.activity_type && hasGameActivityData) {
+              console.log('🎮 Game activity detected by data structure (no activity_type):', {
+                dataKeys: message.data ? Object.keys(message.data) : [],
+              });
+              const queue = transformActivityToQueue(message.data);
+              console.log('✅ Transformed game activity queue - ID:', queue.id, 'Status:', queue.status);
+              onQueueUpdate?.(queue);
+              return;
+            }
+            
+            // Handle purchases and cashouts based on activity_type
+            if (message.activity_type === 'purchase' && message.data) {
+              const transaction = transformPurchaseToTransaction(message.data);
+              onTransactionUpdate?.(transaction);
+            } else if (message.activity_type === 'cashout' && message.data) {
+              const transaction = transformCashoutToTransaction(message.data);
+              onTransactionUpdate?.(transaction);
+            } else if (message.data && !message.activity_type) {
+              // Fallback: if we have data but no activity_type, try to detect the type
+              // Check if it looks like a game activity (has game-related fields)
+              const data = message.data;
+              if (data.game_title || data.game || data.game_code || data.operation_type || 
+                  data.type === 'recharge_game' || data.type === 'redeem_game' || 
+                  data.type === 'add_user_game' || data.type === 'create_game') {
+                console.log('🎮 Fallback: Detected game activity from data structure');
+                const queue = transformActivityToQueue(data);
+                onQueueUpdate?.(queue);
+              } else if (data.type === 'purchase' || data.type === 'cashout') {
+                // Fallback: detect transaction type from data.type
+                if (data.type === 'purchase') {
+                  const transaction = transformPurchaseToTransaction(data);
+                  onTransactionUpdate?.(transaction);
+                } else if (data.type === 'cashout') {
+                  const transaction = transformCashoutToTransaction(data);
+                  onTransactionUpdate?.(transaction);
+                }
+              } else {
+                console.warn('⚠️ Unrecognized send_notification format:', {
+                  activity_type: message.activity_type,
+                  hasData: !!message.data,
+                  dataKeys: message.data ? Object.keys(message.data) : [],
+                  message: message.message,
+                });
               }
             }
           }
@@ -424,7 +586,6 @@ export function useProcessingWebSocket({
     enabled,
     isAuthenticated,
     getWebSocketUrl,
-    type,
     onMessage,
     onQueueUpdate,
     onTransactionUpdate,
@@ -475,4 +636,3 @@ export function useProcessingWebSocket({
     connect,
   };
 }
-

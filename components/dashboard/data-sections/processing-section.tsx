@@ -32,7 +32,7 @@ import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
-import { useProcessingWebSocket, type WebSocketMessage } from '@/hooks/use-processing-websocket';
+import { useProcessingWebSocket } from '@/hooks/use-processing-websocket';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
@@ -441,34 +441,44 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     setPage: setQueuePage,
   } = useTransactionQueuesStore();
 
-  // WebSocket connection for real-time updates
-  const wsType = useMemo(() => {
-    if (isGameActivitiesView) return 'processing';
-    if (viewType === 'purchases') return 'purchase_processing';
-    if (viewType === 'cashouts') return 'cashout_processing';
-    return 'processing';
-  }, [isGameActivitiesView, viewType]);
-
+  // WebSocket connection for real-time updates (unified connection for all types)
   const { isConnected: wsConnected, isConnecting: wsConnecting, error: wsError } = useProcessingWebSocket({
     enabled: true, // Enable for all views
-    type: wsType,
-    onQueueUpdate: useCallback((updatedQueue: TransactionQueue) => {
+    onQueueUpdate: useCallback((updatedQueue: TransactionQueue, isInitialLoad = false) => {
       // Only handle queue updates for game activities
-      if (!isGameActivitiesView) return;
+      if (!isGameActivitiesView) {
+        console.log('⏭️ Skipping queue update - not in game activities view');
+        return;
+      }
       
       console.log('📨 Real-time queue update received:', updatedQueue);
       console.log('   Status:', updatedQueue.status);
       console.log('   ID:', updatedQueue.id);
+      console.log('   Type:', updatedQueue.type);
+      console.log('   IsInitialLoad:', isInitialLoad);
+      console.log('   Current queues count:', queues?.length || 0);
+      
+      // Check if it's new BEFORE updating (using current state)
+      const isNewActivity = !queues?.find(q => q.id === updatedQueue.id);
+      console.log('   IsNewActivity:', isNewActivity);
       
       // Pass ALL updates to the store - it will handle the filtering logic:
       // - New completed items won't be added
       // - Existing items that become completed will be removed
+      // - User data from API will be preserved when merging WebSocket updates
+      // - New items will be appended to the beginning of the list
       updateQueue(updatedQueue);
+      
+      console.log('✅ updateQueue called for:', updatedQueue.id);
+      
+      // Don't show toasts during initial load (all_activities message)
+      if (isInitialLoad) {
+        return;
+      }
       
       // Show toast notifications (but not for completed items being removed)
       const statusLower = String(updatedQueue.status || '').toLowerCase();
       const isCompleted = statusLower === 'completed' || statusLower === 'complete';
-      const isNewActivity = !queues?.find(q => q.id === updatedQueue.id);
       
       if (!isCompleted) {
         // Only show notifications for non-completed activities
@@ -502,25 +512,41 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         console.log('✅ Activity completed and removed:', updatedQueue.id);
       }
     }, [updateQueue, addToast, queues, isGameActivitiesView]),
-    onTransactionUpdate: useCallback((updatedTransaction: Transaction) => {
+    onTransactionUpdate: useCallback((updatedTransaction: Transaction, isInitialLoad = false) => {
       // Only handle transaction updates for purchases and cashouts
       if (isGameActivitiesView) return;
+      
+      // Filter by view type - only process transactions that match the current view
+      if (viewType === 'purchases' && updatedTransaction.type !== 'purchase') {
+        return; // Ignore non-purchase transactions in purchases view
+      }
+      if (viewType === 'cashouts' && updatedTransaction.type !== 'cashout') {
+        return; // Ignore non-cashout transactions in cashouts view
+      }
       
       console.log('📨 Real-time transaction update received:', updatedTransaction);
       console.log('   Status:', updatedTransaction.status);
       console.log('   ID:', updatedTransaction.id);
       console.log('   Type:', updatedTransaction.type);
+      console.log('   IsInitialLoad:', isInitialLoad);
+      
+      // Check if it's new BEFORE updating (using current state)
+      const currentTransactions = transactions?.results ?? [];
+      const isNewTransaction = !currentTransactions.find(t => t.id === updatedTransaction.id);
       
       // Pass ALL updates to the store - it will handle the filtering logic:
       // - New completed items won't be added
       // - Existing items that become completed will be removed
+      // - User data from API will be preserved when merging WebSocket updates
+      // - New items will be appended to the beginning of the list
       updateTransaction(updatedTransaction);
       
-      // Get current transactions for checking if it's new
-      const currentTransactions = transactions?.results ?? [];
-      const isNewTransaction = !currentTransactions.find(t => t.id === updatedTransaction.id);
+      // Don't show toasts during initial load (all_activities message)
+      if (isInitialLoad) {
+        return;
+      }
       
-      // Show toast notifications (but not for completed items being removed)
+      // Show toast notifications only for real-time updates (not initial load)
       const statusLower = String(updatedTransaction.status || '').toLowerCase();
       const isCompleted = statusLower === 'completed' || statusLower === 'complete' || statusLower === 'cancelled' || statusLower === 'failed';
       
@@ -529,7 +555,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         if (isNewTransaction) {
           // New transaction - show detailed notification
           const transactionType = updatedTransaction.type?.toUpperCase() || 'TRANSACTION';
-          const userName = updatedTransaction.user_username || 'Unknown User';
+          // Use transaction's username if available, otherwise show a fallback
+          // Note: For new transactions, user data will be empty from WebSocket, but will be populated after API refresh
+          const userName = updatedTransaction.user_username || 'New Transaction';
           const amount = formatCurrency(updatedTransaction.amount || '0');
           
           addToast({
@@ -555,7 +583,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         // Completed items are being removed (no toast needed)
         console.log('✅ Transaction completed and removed:', updatedTransaction.id);
       }
-    }, [updateTransaction, addToast, transactions, isGameActivitiesView]),
+    }, [updateTransaction, addToast, transactions, isGameActivitiesView, viewType]),
     onConnect: useCallback(() => {
       console.log('✅ WebSocket connected - real-time updates enabled');
       const viewName = isGameActivitiesView ? 'game activities' : viewType === 'purchases' ? 'purchases' : 'cashouts';
