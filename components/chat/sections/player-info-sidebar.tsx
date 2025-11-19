@@ -48,8 +48,19 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
   // Use the chat 'id' field (chatroom ID) for purchases and cashouts
-  const { purchases, isLoading: isLoadingPurchases } = usePlayerPurchases(selectedPlayer.id || null);
-  const { cashouts: allCashouts, isLoading: isLoadingCashouts } = usePlayerCashouts(selectedPlayer.id || null);
+  // Pass player info for real-time websocket matching
+  const { purchases, isLoading: isLoadingPurchases } = usePlayerPurchases(
+    selectedPlayer.id || null,
+    selectedPlayer.username,
+    selectedPlayer.email,
+    selectedPlayer.user_id
+  );
+  const { cashouts: allCashouts, isLoading: isLoadingCashouts } = usePlayerCashouts(
+    selectedPlayer.id || null,
+    selectedPlayer.username,
+    selectedPlayer.email,
+    selectedPlayer.user_id
+  );
   // Use user_id for game activities
   const { activities: allActivities, isLoading: isLoadingActivities } = usePlayerGameActivities(selectedPlayer.user_id || null);
 
