@@ -32,7 +32,7 @@ import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
-import { useProcessingWebSocket } from '@/hooks/use-processing-websocket';
+import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 
 type ViewType = 'purchases' | 'cashouts' | 'game_activities';
 type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
@@ -441,10 +441,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     setPage: setQueuePage,
   } = useTransactionQueuesStore();
 
-  // WebSocket connection for real-time updates (unified connection for all types)
-  const { isConnected: wsConnected, isConnecting: wsConnecting, error: wsError } = useProcessingWebSocket({
-    enabled: true, // Enable for all views
-    onQueueUpdate: useCallback((updatedQueue: TransactionQueue, isInitialLoad = false) => {
+  const { isConnected: wsConnected, isConnecting: wsConnecting, error: wsError, subscribeToQueueUpdates, subscribeToTransactionUpdates } = useProcessingWebSocketContext();
+
+  useEffect(() => {
+    const unsubscribeQueue = subscribeToQueueUpdates((updatedQueue: TransactionQueue, isInitialLoad = false) => {
       // Only handle queue updates for game activities
       if (!isGameActivitiesView) {
         console.log('⏭️ Skipping queue update - not in game activities view');
@@ -511,8 +511,13 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         // Completed items are being removed (no toast needed)
         console.log('✅ Activity completed and removed:', updatedQueue.id);
       }
-    }, [updateQueue, addToast, queues, isGameActivitiesView]),
-    onTransactionUpdate: useCallback((updatedTransaction: Transaction, isInitialLoad = false) => {
+    });
+
+    return unsubscribeQueue;
+  }, [subscribeToQueueUpdates, updateQueue, addToast, queues, isGameActivitiesView]);
+
+  useEffect(() => {
+    const unsubscribeTransaction = subscribeToTransactionUpdates((updatedTransaction: Transaction, isInitialLoad = false) => {
       // Only handle transaction updates for purchases and cashouts
       if (isGameActivitiesView) return;
       
@@ -583,24 +588,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         // Completed items are being removed (no toast needed)
         console.log('✅ Transaction completed and removed:', updatedTransaction.id);
       }
-    }, [updateTransaction, addToast, transactions, isGameActivitiesView, viewType]),
-    onConnect: useCallback(() => {
-      console.log('✅ WebSocket connected - real-time updates enabled');
-      const viewName = isGameActivitiesView ? 'game activities' : viewType === 'purchases' ? 'purchases' : 'cashouts';
-      addToast({
-        type: 'success',
-        title: 'Live Updates Active',
-        description: `Real-time ${viewName} monitoring is now active`,
-        duration: 3000,
-      });
-    }, [addToast, isGameActivitiesView, viewType]),
-    onDisconnect: useCallback(() => {
-      console.log('🔌 WebSocket disconnected');
-    }, []),
-    onError: useCallback(() => {
-      console.error('❌ WebSocket connection error');
-    }, []),
-  });
+    });
+
+    return unsubscribeTransaction;
+  }, [subscribeToTransactionUpdates, updateTransaction, addToast, transactions, isGameActivitiesView, viewType]);
 
   const transactionResults = useMemo<Transaction[]>(
     () => transactions?.results ?? [],

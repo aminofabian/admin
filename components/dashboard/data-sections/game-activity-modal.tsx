@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useEffect } from 'react';
 import { Drawer } from '@/components/ui';
 import { GameActivityTable } from './game-activity-table';
 import { useTransactionQueuesStore } from '@/stores/use-transaction-queues-store';
-import { useProcessingWebSocket } from '@/hooks/use-processing-websocket';
+import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import type { TransactionQueue } from '@/types';
 
 interface GameActivityModalProps {
@@ -30,23 +30,18 @@ export function GameActivityModal({
 }: GameActivityModalProps) {
   const { updateQueue, actionLoading } = useTransactionQueuesStore();
 
-  // WebSocket connection for real-time updates (only when modal is open)
-  const { isConnected: wsConnected, isConnecting: wsConnecting, error: wsError } = useProcessingWebSocket({
-    enabled: isOpen,
-    onQueueUpdate: useCallback((updatedQueue: TransactionQueue) => {
+  const { isConnected: wsConnected, isConnecting: wsConnecting, error: wsError, subscribeToQueueUpdates } = useProcessingWebSocketContext();
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const unsubscribe = subscribeToQueueUpdates((updatedQueue: TransactionQueue) => {
       console.log('📨 [Modal] Real-time queue update received:', updatedQueue.id, updatedQueue.status);
       updateQueue(updatedQueue);
-    }, [updateQueue]),
-    onConnect: useCallback(() => {
-      console.log(' [Modal] WebSocket connected - real-time updates enabled');
-    }, []),
-    onDisconnect: useCallback(() => {
-      console.log('🔌 [Modal] WebSocket disconnected');
-    }, []),
-    onError: useCallback(() => {
-      console.error('❌ [Modal] WebSocket connection error');
-    }, []),
-  });
+    });
+
+    return unsubscribe;
+  }, [isOpen, subscribeToQueueUpdates, updateQueue]);
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={title} size="full">

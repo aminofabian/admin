@@ -744,6 +744,20 @@ select {
   }
 }
 
+/* Activity ticker slide animation */
+@keyframes slideLeft {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-slide-left {
+  animation: slideLeft linear infinite;
+}
+
 /* Reduce motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-in-from-bottom-4,
@@ -751,7 +765,8 @@ select {
   .animate-slide-in-from-bottom-1,
   .animate-fade-in-smooth,
   .animate-bounce-in-smooth,
-  .animate-scroll-indicator {
+  .animate-scroll-indicator,
+  .animate-slide-left {
     animation: none;
   }
 

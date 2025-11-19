@@ -8,6 +8,7 @@ import { TopNavigation } from './top-navigation';
 import { MobileBottomNav } from './mobile-bottom-nav';
 import { LoadingState } from '@/components/features';
 import { ChatDrawerProvider } from '@/contexts/chat-drawer-context';
+import { ProcessingWebSocketProvider } from '@/contexts/processing-websocket-context';
 import { ChatDrawer } from '@/components/chat/chat-drawer';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -31,7 +32,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ChatDrawerProvider>
-      <div className="flex min-h-screen bg-background">
+      <ProcessingWebSocketProvider>
+        <div className="flex min-h-screen bg-background">
         {/* Mobile sidebar overlay */}
         {sidebarOpen && (
           <div 
@@ -62,6 +64,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* Chat Drawer */}
         <ChatDrawer />
       </div>
+      </ProcessingWebSocketProvider>
     </ChatDrawerProvider>
   );
 }
