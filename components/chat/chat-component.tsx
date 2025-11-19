@@ -8,7 +8,6 @@ import { formatCurrency, isValidTimestamp } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
 import { useOnlinePlayers } from '@/hooks/use-online-players';
-import { usePlayerGames } from '@/hooks/use-player-games';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
@@ -243,7 +242,6 @@ export function ChatComponent() {
   const displayedMessageIdsRef = useRef<Set<string>>(new Set()); // Track displayed messages for animation
   const hasScrolledForQueryParamsRef = useRef<string | null>(null); // Track if we've scrolled for query param navigation
   const { addToast } = useToast();
-  const { games: playerGames, isLoading: isLoadingPlayerGames } = usePlayerGames(selectedPlayer?.user_id || null);
 
   // Common emojis for quick access
   const commonEmojis = [
