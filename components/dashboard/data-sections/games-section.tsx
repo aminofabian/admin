@@ -9,46 +9,12 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import type { Game, UpdateGameRequest, CheckStoreBalanceResponse, ApiError } from '@/types';
 
-// Hardcoded dashboard URLs mapping by game title/code
-const GAME_DASHBOARD_URLS: Record<string, string> = {
-  GAMEROOM: 'https://agentserver.gameroom777.com',
-  CASHMACHINE: 'https://agentserver.cashmachine777.com',
-  MRALLINONE: 'https://agentserver.mrallinone777.com',
-  MAFIA: 'https://agentserver.mafia77777.com',
-  CASHFRENZY: 'https://agentserver.cashfrenzy777.com',
-  KINGOFPOP: 'http://agentserver.slots88888.com:8003',
-  GAMEVAULT: 'https://agent.gamevault999.com',
-  VEGASSWEEPS: 'https://agent.lasvegassweeps.com',
-  JUWA: 'https://ht.juwa777.com',
-  ORIONSTARS: 'https://orionstars.vip:8781',
-  PANDAMASTER: 'https://www.pandamaster.vip',
-  MILKYWAY: 'https://milkywayapp.xyz:8781',
-  FIREKIRIN: 'https://firekirin.xyz:8888',
-  VBLINK: 'https://gm.vblink777.club',
-  EGAME: 'https://pko.egame99.club',
-  ULTRAPANDA: 'https://ht.ultrapanda.mobi',
-  RIVERSWEEPS: 'https://river-pay.com',
-};
-
 /**
- * Get the dashboard URL for a game, checking both title and code (case-insensitive)
+ * Get the dashboard URL for a game from the API response
  */
 function getGameDashboardUrl(game: Game): string | undefined {
-  const titleUpper = game.title.toUpperCase().trim();
-  const codeUpper = game.code?.toUpperCase().trim() ?? '';
-  
-  // Check by title first
-  if (GAME_DASHBOARD_URLS[titleUpper]) {
-    return GAME_DASHBOARD_URLS[titleUpper];
-  }
-  
-  // Check by code
-  if (codeUpper && GAME_DASHBOARD_URLS[codeUpper]) {
-    return GAME_DASHBOARD_URLS[codeUpper];
-  }
-  
-  // Fall back to stored dashboard_url if no hardcoded match
-  return game.dashboard_url;
+  // Use dashboard_url from API response (can be edited via the form)
+  return game.dashboard_url || undefined;
 }
 
 export function GamesSection() {
