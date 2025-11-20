@@ -7,7 +7,7 @@ import { EmptyState, ErrorState, GameForm, LoadingState, StoreBalanceModal } fro
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
-import type { Game, UpdateGameRequest, CheckStoreBalanceResponse } from '@/types';
+import type { Game, UpdateGameRequest, CheckStoreBalanceResponse, ApiError } from '@/types';
 
 // Hardcoded dashboard URLs mapping by game title/code
 const GAME_DASHBOARD_URLS: Record<string, string> = {
@@ -67,6 +67,7 @@ export function GamesSection() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [balanceData, setBalanceData] = useState<CheckStoreBalanceResponse | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
@@ -174,6 +175,7 @@ export function GamesSection() {
             onEditGame={game => {
               setEditingGame(game);
               setSubmitError('');
+              setFieldErrors({});
               setIsDrawerOpen(true);
             }}
             onCheckBalance={async game => {
@@ -199,23 +201,80 @@ export function GamesSection() {
         game={editingGame}
         isLoading={isSubmitting}
         error={submitError}
+        fieldErrors={fieldErrors}
+        onClearFieldError={(field) => {
+          setFieldErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[field];
+            return newErrors;
+          });
+        }}
         onClose={() => {
           setIsDrawerOpen(false);
           setEditingGame(null);
           setSubmitError('');
+          setFieldErrors({});
         }}
         onSubmit={async formData => {
           if (!editingGame) return;
           try {
             setIsSubmitting(true);
             setSubmitError('');
+            setFieldErrors({});
             await updateGame(editingGame.id, formData);
             setIsDrawerOpen(false);
             setEditingGame(null);
+            setSubmitError('');
+            setFieldErrors({});
           } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to update game';
-            setSubmitError(message);
-            throw err;
+            // Extract error message from ApiError structure
+            let errorMessage = 'Failed to update game';
+            const newFieldErrors: Record<string, string> = {};
+
+            if (err && typeof err === 'object') {
+              const apiError = err as ApiError;
+              
+              // Extract main error message
+              errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
+              
+              // Extract field-specific validation errors
+              if (apiError.errors && typeof apiError.errors === 'object') {
+                Object.entries(apiError.errors).forEach(([field, messages]) => {
+                  if (Array.isArray(messages) && messages.length > 0) {
+                    // Join multiple error messages for the same field
+                    newFieldErrors[field] = messages.join(', ');
+                  } else if (typeof messages === 'string') {
+                    newFieldErrors[field] = messages;
+                  }
+                });
+              }
+              
+              // If detail is a string and contains field-specific info, try to parse it
+              if (apiError.detail && typeof apiError.detail === 'string' && !newFieldErrors.detail) {
+                // Sometimes detail contains JSON with field errors
+                try {
+                  const parsed = JSON.parse(apiError.detail);
+                  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    Object.entries(parsed).forEach(([field, messages]) => {
+                      if (Array.isArray(messages) && messages.length > 0) {
+                        newFieldErrors[field] = messages.join(', ');
+                      } else if (typeof messages === 'string') {
+                        newFieldErrors[field] = messages;
+                      }
+                    });
+                  }
+                } catch {
+                  // detail is not JSON, that's fine
+                }
+              }
+            } else if (err instanceof Error) {
+              errorMessage = err.message;
+            }
+
+            setSubmitError(errorMessage);
+            setFieldErrors(newFieldErrors);
+            
+            // Don't throw - error is already handled and displayed to user
           } finally {
             setIsSubmitting(false);
           }
@@ -379,11 +438,13 @@ interface GameEditorProps {
   game: Game | null;
   isLoading: boolean;
   error: string;
+  fieldErrors?: Record<string, string>;
   onClose: () => void;
   onSubmit: (data: UpdateGameRequest) => Promise<void>;
+  onClearFieldError: (field: string) => void;
 }
 
-function GameEditor({ isOpen, game, isLoading, error, onClose, onSubmit }: GameEditorProps) {
+function GameEditor({ isOpen, game, isLoading, error, fieldErrors = {}, onClose, onSubmit, onClearFieldError }: GameEditorProps) {
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title="Edit Game" size="lg">
       {error && (
@@ -392,7 +453,14 @@ function GameEditor({ isOpen, game, isLoading, error, onClose, onSubmit }: GameE
         </div>
       )}
       {game && (
-        <GameForm game={game} onSubmit={onSubmit} onCancel={onClose} isLoading={isLoading} />
+        <GameForm 
+          game={game} 
+          onSubmit={onSubmit} 
+          onCancel={onClose} 
+          isLoading={isLoading}
+          backendErrors={fieldErrors}
+          onClearBackendError={onClearFieldError}
+        />
       )}
     </Drawer>
   );

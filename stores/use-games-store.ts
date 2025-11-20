@@ -5,6 +5,7 @@ import type {
   UpdateGameRequest,
   CheckStoreBalanceRequest,
   CheckStoreBalanceResponse,
+  ApiError,
 } from '@/types';
 
 interface GamesState {
@@ -88,18 +89,41 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
     } catch (err: unknown) {
       let errorMessage = 'Failed to update game';
       
-      if (err && typeof err === 'object' && 'detail' in err) {
+      // If it's already an ApiError, preserve it
+      if (err && typeof err === 'object' && 'status' in err && err.status === 'error') {
+        const apiError = err as ApiError;
+        errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
+        
+        if (errorMessage.toLowerCase().includes('permission')) {
+          errorMessage = 'Access Denied: You need company or superadmin privileges to update games.';
+        }
+        
+        set({ error: errorMessage });
+        // Preserve the full ApiError structure
+        throw apiError;
+      } else if (err && typeof err === 'object' && 'detail' in err) {
+        // Handle case where error has detail but not full ApiError structure
         errorMessage = String(err.detail);
         
         if (errorMessage.toLowerCase().includes('permission')) {
           errorMessage = 'Access Denied: You need company or superadmin privileges to update games.';
         }
+        
+        set({ error: errorMessage });
+        // Create ApiError-like structure
+        throw {
+          status: 'error' as const,
+          message: errorMessage,
+          detail: errorMessage,
+        } as ApiError;
       } else if (err instanceof Error) {
         errorMessage = err.message;
+        set({ error: errorMessage });
+        throw err;
+      } else {
+        set({ error: errorMessage });
+        throw new Error(errorMessage);
       }
-      
-      set({ error: errorMessage });
-      throw new Error(errorMessage);
     }
   },
 

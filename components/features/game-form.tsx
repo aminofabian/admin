@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useMemo } from 'react';
 import { Input, Button } from '@/components/ui';
 import type { Game, UpdateGameRequest } from '@/types';
 
@@ -9,15 +9,22 @@ interface GameFormProps {
   onSubmit: (data: UpdateGameRequest) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
+  backendErrors?: Record<string, string>;
+  onClearBackendError?: (field: string) => void;
 }
 
-export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps) => {
+export const GameForm = ({ game, onSubmit, onCancel, isLoading, backendErrors = {}, onClearBackendError }: GameFormProps) => {
   const [formData, setFormData] = useState<UpdateGameRequest>({
     dashboard_url: game.dashboard_url || '',
     game_status: game.game_status,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Merge backend errors with client-side validation errors
+  const allErrors = useMemo(() => {
+    return { ...backendErrors, ...errors };
+  }, [backendErrors, errors]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -49,9 +56,13 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps)
 
   const handleChange = (field: keyof UpdateGameRequest, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
+    // Clear client-side validation error when user starts typing
     if (errors[field as string]) {
       setErrors(prev => ({ ...prev, [field as string]: '' }));
+    }
+    // Clear backend error for this field when user starts typing
+    if (backendErrors[field as string] && onClearBackendError) {
+      onClearBackendError(field as string);
     }
   };
 
@@ -73,7 +84,7 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps)
           type="url"
           value={formData.dashboard_url}
           onChange={(e) => handleChange('dashboard_url', e.target.value)}
-          error={errors.dashboard_url}
+          error={allErrors.dashboard_url}
           placeholder="https://dashboard.game.com"
           disabled={isLoading}
         />
@@ -102,6 +113,9 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading }: GameFormProps)
               {formData.game_status ? 'Active' : 'Inactive'}
             </span>
           </div>
+          {allErrors.game_status && (
+            <p className="mt-1 text-xs text-destructive">{allErrors.game_status}</p>
+          )}
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Toggle to enable or disable this game for users
           </p>
