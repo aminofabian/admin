@@ -188,7 +188,7 @@ export default function TransferBonusPage() {
               <TableBody>
                 {transferBonuses?.results.map((bonus) => (
                   <TableRow key={bonus.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <TableCell className="font-medium text-gray-900 dark:text-gray-100">{bonus.name}</TableCell>
+                    <TableCell className="font-medium text-gray-900 dark:text-gray-100">{bonus.name || 'Transfer Bonus'}</TableCell>
                     <TableCell>
                       <Badge variant="success">
                         Percentage

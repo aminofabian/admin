@@ -470,7 +470,7 @@ export function BonusesSection() {
                             <>
                               {/* eslint-disable @typescript-eslint/no-explicit-any */}
                               <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {'name' in item ? (item as any).name : 'N/A'}
+                                {'name' in item ? ((item as any).name || 'Transfer Bonus') : 'Transfer Bonus'}
                               </TableCell>
                               <TableCell>
                                 <Badge variant="success">Percentage</Badge>

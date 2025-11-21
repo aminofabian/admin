@@ -119,7 +119,7 @@ export function TransferBonusForm({
             Transfer/Game Name
           </label>
           <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-            {initialData?.name || 'N/A'}
+            {initialData?.name || 'Transfer Bonus'}
           </div>
         </div>
 
