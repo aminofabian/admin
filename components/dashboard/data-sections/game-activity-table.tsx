@@ -74,6 +74,18 @@ function GameActivityRow({
   }, [activity.bonus_amount, activity.data?.bonus_amount]);
 
   const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+  
+  const shouldShowDash = useMemo(() => {
+    const amountValue = parseFloat(activity.amount || '0');
+    const isZeroAmount = amountValue === 0 || isNaN(amountValue);
+    const typeStr = String(activity.type);
+    const isNonMonetaryType = typeStr === 'create_game' || 
+                              typeStr === 'reset_password' || 
+                              typeStr === 'change_password' ||
+                              typeStr === 'add_user_game';
+    return isZeroAmount && isNonMonetaryType;
+  }, [activity.amount, activity.type]);
+  
   const amountColorClass = activity.type === 'redeem_game'
     ? 'text-red-600 dark:text-red-400'
     : 'text-green-600 dark:text-green-400';
@@ -98,8 +110,22 @@ function GameActivityRow({
   }, [activity.data?.new_winning_balance]);
 
   const zeroCurrency = formatCurrency('0');
-  const creditsDisplay = useMemo(() => newCreditsBalance ?? zeroCurrency, [newCreditsBalance, zeroCurrency]);
-  const winningsDisplay = useMemo(() => newWinningBalance ?? zeroCurrency, [newWinningBalance, zeroCurrency]);
+  
+  // Check if this is a reset or add user action - these should show hyphen for balance
+  const shouldShowBlankBalance = useMemo(() => {
+    const typeStr = String(activity.type);
+    return typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
+  }, [activity.type]);
+
+  const creditsDisplay = useMemo(() => {
+    if (shouldShowBlankBalance) return '—';
+    return newCreditsBalance ?? zeroCurrency;
+  }, [shouldShowBlankBalance, newCreditsBalance, zeroCurrency]);
+  
+  const winningsDisplay = useMemo(() => {
+    if (shouldShowBlankBalance) return '—';
+    return newWinningBalance ?? zeroCurrency;
+  }, [shouldShowBlankBalance, newWinningBalance, zeroCurrency]);
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
@@ -111,6 +137,12 @@ function GameActivityRow({
 
   const gameName = activity.game || 'Unknown Game';
   const gameUsername = activity.game_username || null;
+
+  // Check if this is an "Add user" action - should show hyphen for game username
+  const isAddUserAction = useMemo(() => {
+    const typeStr = String(activity.type);
+    return typeStr === 'add_user_game' || typeStr === 'create_game';
+  }, [activity.type]);
 
   const userInitial = websiteUsername
     ? websiteUsername.charAt(0).toUpperCase()
@@ -154,7 +186,11 @@ function GameActivityRow({
         <div className="font-medium">{gameName}</div>
       </TableCell>
       <TableCell>
-        {gameUsername ? (
+        {isAddUserAction ? (
+          <div className="font-medium text-gray-900 dark:text-gray-100">
+            —
+          </div>
+        ) : gameUsername ? (
           <div className="font-medium text-gray-900 dark:text-gray-100">
             {gameUsername}
           </div>
@@ -169,9 +205,9 @@ function GameActivityRow({
         )}
       </TableCell>
       <TableCell>
-        <div className={`text-sm font-bold ${amountColorClass}`}>
-          {formattedAmount}
-          {formattedBonus && (
+        <div className={`text-sm font-bold ${shouldShowDash ? '' : amountColorClass}`}>
+          {shouldShowDash ? '—' : formattedAmount}
+          {!shouldShowDash && formattedBonus && (
             <div className={`text-xs font-semibold ${bonusColorClass} mt-0.5`}>
               +{formattedBonus} bonus
             </div>
@@ -354,17 +390,26 @@ const GameActivityCard = memo(function GameActivityCard({
   }, [activity.data?.winnings]);
 
   const zeroCurrency = formatCurrency('0');
+  
+  // Check if this is a reset or add user action - these should show hyphen for balance
+  const shouldShowBlankBalance = useMemo(() => {
+    const typeStr = String(activity.type);
+    return typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
+  }, [activity.type]);
+
   const creditsDisplay = useMemo(() => {
+    if (shouldShowBlankBalance) return '—';
     if (newCreditsBalance) return newCreditsBalance;
     if (credit) return credit;
     return zeroCurrency;
-  }, [newCreditsBalance, credit, zeroCurrency]);
+  }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency]);
 
   const winningsDisplay = useMemo(() => {
+    if (shouldShowBlankBalance) return '—';
     if (newWinningBalance) return newWinningBalance;
     if (winnings) return winnings;
     return zeroCurrency;
-  }, [newWinningBalance, winnings, zeroCurrency]);
+  }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency]);
 
   const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
@@ -392,6 +437,12 @@ const GameActivityCard = memo(function GameActivityCard({
     }
     return null;
   }, [activity.game_username, activity.data]);
+
+  // Check if this is an "Add user" action - should show hyphen for game username
+  const isAddUserAction = useMemo(() => {
+    const typeStr = String(activity.type);
+    return typeStr === 'add_user_game' || typeStr === 'create_game';
+  }, [activity.type]);
 
   const userInitial = useMemo(() => {
     if (websiteUsername) {
@@ -473,7 +524,16 @@ const GameActivityCard = memo(function GameActivityCard({
         </div>
 
         {/* Game Username */}
-        {gameUsername && (
+        {isAddUserAction ? (
+          <div className="flex items-center gap-2">
+            <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">
+              —
+            </span>
+          </div>
+        ) : gameUsername && (
           <div className="flex items-center gap-2">
             <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -491,7 +551,7 @@ const GameActivityCard = memo(function GameActivityCard({
           <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
           <div className="text-right">
             <div className={`text-base font-bold ${amountColorClassFinal}`}>
-              {shouldShowDash ? '-' : formattedAmount}
+              {shouldShowDash ? '—' : formattedAmount}
             </div>
             {!shouldShowDash && formattedBonus && (
               <div className={`text-xs font-semibold mt-0.5 ${bonusColorClassFinal}`}>
