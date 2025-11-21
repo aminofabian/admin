@@ -195,7 +195,7 @@ export default function TransferBonusPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-bold text-gray-900 dark:text-gray-100">
-                      {bonus.bonus}
+                      {bonus.bonus}%
                     </TableCell>
                     <TableCell>
                       <Badge variant={bonus.is_enabled ? 'success' : 'default'}>

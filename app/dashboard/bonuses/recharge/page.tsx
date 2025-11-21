@@ -197,7 +197,7 @@ export default function RechargeBonusPage() {
                     </TableCell>
                     <TableCell className="font-bold text-gray-900 dark:text-gray-100">
                       {bonus.bonus_type === 'percentage' 
-                        ? `${bonus.bonus}` 
+                        ? `${bonus.bonus}%` 
                         : formatCurrency(bonus.bonus.toString())
                       }
                     </TableCell>

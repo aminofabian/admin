@@ -200,7 +200,7 @@ export default function FirstPurchaseBonusPage() {
                     <TableCell className="font-bold text-gray-900 dark:text-gray-100">
                       {bonus.bonus_type === 'fixed' 
                         ? formatCurrency(bonus.bonus.toString())
-                        : `${bonus.bonus}`
+                        : `${bonus.bonus}%`
                       }
                     </TableCell>
                     <TableCell>
