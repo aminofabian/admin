@@ -11,7 +11,8 @@ import {
   TableCell,
   Badge, 
   Button, 
-  Pagination
+  Pagination,
+  Skeleton
 } from '@/components/ui';
 import {
   DashboardActionBar,
@@ -44,79 +45,68 @@ interface ProcessingSectionProps {
 // Skeleton loaders for better UX
 function ProcessingTransactionTableSkeleton() {
   return (
-    <div className="space-y-6">
-      {/* Header skeleton */}
-      <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64 mb-2" />
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-96" />
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
+      {/* Header Skeleton */}
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+          <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+          <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-48 shrink-0" />
+          <div className="flex-1 min-w-0" />
+          <Skeleton className="h-8 w-32 rounded-lg shrink-0" />
+        </div>
+      </div>
+
+      {/* Hint bar skeleton */}
+      <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <Skeleton className="h-4 w-full" />
       </div>
       
-      {/* Hint bar skeleton */}
-      <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded" />
-      
       {/* Table skeleton */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800/50">
-              <tr>
-                {[...Array(11)].map((_, i) => (
-                  <th key={i} className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
-                  </th>
+          <div className="min-w-full">
+            {/* Table Header Skeleton */}
+            <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-9 gap-4 px-4 py-3">
+                {[...Array(9)].map((_, i) => (
+                  <Skeleton key={i} className="h-4 w-24" />
                 ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+              </div>
+            </div>
+            
+            {/* Table Rows Skeleton */}
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {[...Array(5)].map((_, i) => (
-                <tr key={i}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse" />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex justify-end gap-2">
-                      <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse" />
-                      <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
+                <div key={i} className="grid grid-cols-9 gap-4 px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-24 mb-2" />
+                      <Skeleton className="h-3 w-16" />
                     </div>
-                  </td>
-                </tr>
+                  </div>
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-32" />
+                  <div className="flex justify-end gap-2">
+                    <Skeleton className="h-8 w-20 rounded-full" />
+                    <Skeleton className="h-8 w-20 rounded-full" />
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
       </div>
       
       {/* Pagination skeleton */}
       <div className="flex justify-center gap-2">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-10 animate-pulse" />
+          <Skeleton key={i} className="h-10 w-10 rounded-md" />
         ))}
       </div>
     </div>
@@ -125,55 +115,61 @@ function ProcessingTransactionTableSkeleton() {
 
 function ProcessingQueueTableSkeleton() {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-black/20 overflow-hidden animate-pulse">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800/50">
-            <tr>
-              {[...Array(10)].map((_, i) => (
-                <th key={i} className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
-                </th>
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
+      {/* Header Skeleton */}
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+          <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+          <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-48 shrink-0" />
+          <div className="flex-1 min-w-0" />
+          <Skeleton className="h-8 w-32 rounded-lg shrink-0" />
+        </div>
+      </div>
+
+      {/* Hint bar skeleton */}
+      <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <Skeleton className="h-4 w-full" />
+      </div>
+
+      {/* Table skeleton */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <div className="min-w-full">
+            {/* Table Header Skeleton */}
+            <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-9 gap-4 px-4 py-3">
+                {[...Array(9)].map((_, i) => (
+                  <Skeleton key={i} className="h-4 w-24" />
+                ))}
+              </div>
+            </div>
+            
+            {/* Table Rows Skeleton */}
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="grid grid-cols-9 gap-4 px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-24 mb-2" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Skeleton className="h-4 w-32" />
+                  <div className="flex justify-end">
+                    <Skeleton className="h-8 w-20 rounded-full" />
+                  </div>
+                </div>
               ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
-            {[...Array(5)].map((_, i) => (
-              <tr key={i}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28 animate-pulse" />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-24 animate-pulse ml-auto" />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -842,8 +838,8 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
   }, [handleQuickAction]);
 
   if (isTransactionsView) {
-    const isInitialLoading = transactionsLoading && !transactions;
-    const isEmpty = transactionResults.length === 0;
+    const isInitialLoading = transactionsLoading;
+    const isEmpty = transactionResults.length === 0 && !transactionsLoading;
     // Custom empty state for cashouts and purchases with theme styling
     const emptyState = viewType === 'cashouts' ? (
       <div className="flex flex-col items-center justify-center p-12 text-center">
@@ -1229,9 +1225,9 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
     );
   }
 
-  const isGameInitialLoading = queuesLoading && !queues;
+  const isGameInitialLoading = queuesLoading;
   const gameResults = queues ?? [];
-  const isGameEmpty = gameResults.length === 0;
+  const isGameEmpty = gameResults.length === 0 && !queuesLoading;
   const totalQueuePages = queuePageSize > 0 ? Math.max(1, Math.ceil(queueCount / queuePageSize)) : 1;
   const shouldShowQueuePagination = queueCount > queuePageSize || Boolean(queueNext) || Boolean(queuePrevious);
   const gameEmptyState = (
