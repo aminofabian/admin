@@ -147,7 +147,7 @@ export function BonusesSection() {
           addToast({
             type: 'success',
             title: 'Bonus Updated',
-            description: `Bonus value has been successfully updated to ${data.bonus}%.`,
+            description: `Bonus value has been successfully updated to ${data.bonus}.`,
           });
         } else if (editingBonusType === 'signup') {
           await updateSignupBonus(editingBonus.id, data);
@@ -162,7 +162,7 @@ export function BonusesSection() {
           addToast({
             type: 'success',
             title: 'Bonus Updated',
-            description: `Bonus value has been successfully updated to ${data.bonus}${bonusType === 'percentage' ? '%' : ''}.`,
+            description: `Bonus value has been successfully updated to ${data.bonus}.`,
           });
         } else if (editingBonusType === 'first-purchase') {
           await updateFirstPurchaseBonus(editingBonus.id, data);
@@ -172,7 +172,7 @@ export function BonusesSection() {
             title: 'Bonus Updated',
             description: bonusType === 'fixed'
               ? `Bonus amount has been successfully updated to ${formatCurrency(data.bonus?.toString() || '0')}.`
-              : `Bonus percentage has been successfully updated to ${data.bonus}%.`,
+              : `Bonus percentage has been successfully updated to ${data.bonus}.`,
           });
         }
         setIsDrawerOpen(false);
@@ -441,7 +441,7 @@ export function BonusesSection() {
                               <TableCell className="font-bold text-gray-900 dark:text-gray-100">
                                 {(item as FirstPurchaseBonus).bonus_type === 'fixed'
                                   ? formatCurrency((item as FirstPurchaseBonus).bonus.toString())
-                                  : `${(item as FirstPurchaseBonus).bonus}%`
+                                  : `${(item as FirstPurchaseBonus).bonus}`
                                 }
                               </TableCell>
                               <TableCell>
@@ -476,7 +476,7 @@ export function BonusesSection() {
                                 <Badge variant="success">Percentage</Badge>
                               </TableCell>
                               <TableCell className="font-bold text-gray-900 dark:text-gray-100">
-                                {'bonus' in item ? `${(item as any).bonus}%` : 'N/A'}
+                                {'bonus' in item ? `${(item as any).bonus}` : 'N/A'}
                               </TableCell>
                               <TableCell>
                                 <Badge variant={'is_enabled' in item && (item as any).is_enabled ? 'success' : 'default'}>
@@ -600,7 +600,7 @@ export function BonusesSection() {
                               <TableCell className="font-bold text-gray-900 dark:text-gray-100">
                                 {'bonus_type' in item && 'bonus' in item 
                                   ? ((item as any).bonus_type === 'percentage' 
-                                      ? `${(item as any).bonus}%` 
+                                      ? `${(item as any).bonus}` 
                                       : formatCurrency((item as any).bonus.toString()))
                                   : 'N/A'}
                               </TableCell>
@@ -662,7 +662,7 @@ export function BonusesSection() {
                               </TableCell>
                               <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                                 {'bonus_type' in item && 'bonus' in item 
-                                  ? ((item as any).bonus_type === 'percentage' ? `${(item as any).bonus}%` : `$${(item as any).bonus}`)
+                                  ? ((item as any).bonus_type === 'percentage' ? `${(item as any).bonus}` : `$${(item as any).bonus}`)
                                   : 'N/A'}
                               </TableCell>
                               <TableCell>

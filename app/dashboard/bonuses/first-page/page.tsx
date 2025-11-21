@@ -55,7 +55,7 @@ export default function FirstPurchaseBonusPage() {
           title: 'Bonus Updated',
           description: editingBonus.bonus_type === 'fixed'
             ? `Bonus amount has been successfully updated to ${formatCurrency(data.bonus?.toString() || '0')}.`
-            : `Bonus percentage has been successfully updated to ${data.bonus}%.`,
+            : `Bonus percentage has been successfully updated to ${data.bonus}.`,
         });
         setIsDrawerOpen(false);
         setEditingBonus(null);
@@ -200,7 +200,7 @@ export default function FirstPurchaseBonusPage() {
                     <TableCell className="font-bold text-gray-900 dark:text-gray-100">
                       {bonus.bonus_type === 'fixed' 
                         ? formatCurrency(bonus.bonus.toString())
-                        : `${bonus.bonus}%`
+                        : `${bonus.bonus}`
                       }
                     </TableCell>
                     <TableCell>

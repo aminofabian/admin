@@ -63,7 +63,7 @@ export function PurchaseBonusManager({
         addToast({
           type: 'success',
           title: 'Bonus Updated',
-          description: `Bonus value has been successfully updated to ${data.bonus}${bonusType === 'percentage' ? '%' : ''}.`,
+          description: `Bonus value has been successfully updated to ${data.bonus}.`,
         });
       }
       setIsDrawerOpen(false);
@@ -234,7 +234,7 @@ export function PurchaseBonusManager({
                     </TableCell>
                     <TableCell className="font-bold text-gray-900 dark:text-gray-100">
                       {bonus.bonus_type === 'percentage' 
-                        ? `${bonus.bonus}%` 
+                        ? `${bonus.bonus}` 
                         : formatCurrency(bonus.bonus.toString())
                       }
                     </TableCell>

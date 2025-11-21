@@ -345,7 +345,7 @@ export function BonusSettingsSection() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {bonus.bonus_type === 'percentage' ? `${bonus.bonus}%` : `${bonus.bonus}`}
+                        {bonus.bonus_type === 'percentage' ? `${bonus.bonus}` : `${bonus.bonus}`}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
@@ -372,7 +372,7 @@ export function BonusSettingsSection() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {bonus.bonus_type === 'percentage' ? `${bonus.bonus}%` : `${bonus.bonus}`}
+                        {bonus.bonus_type === 'percentage' ? `${bonus.bonus}` : `${bonus.bonus}`}
                       </TableCell>
                       <TableCell>
                         <Badge variant={(bonus as RechargeBonusSettings).is_enabled ? 'success' : 'danger'}>

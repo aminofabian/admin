@@ -53,7 +53,7 @@ export default function RechargeBonusPage() {
         addToast({
           type: 'success',
           title: 'Bonus Updated',
-          description: `Bonus value has been successfully updated to ${data.bonus}${editingBonus.bonus_type === 'percentage' ? '%' : ''}.`,
+          description: `Bonus value has been successfully updated to ${data.bonus}.`,
         });
         setIsDrawerOpen(false);
         setEditingBonus(null);
@@ -197,7 +197,7 @@ export default function RechargeBonusPage() {
                     </TableCell>
                     <TableCell className="font-bold text-gray-900 dark:text-gray-100">
                       {bonus.bonus_type === 'percentage' 
-                        ? `${bonus.bonus}%` 
+                        ? `${bonus.bonus}` 
                         : formatCurrency(bonus.bonus.toString())
                       }
                     </TableCell>

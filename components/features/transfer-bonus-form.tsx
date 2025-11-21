@@ -45,7 +45,7 @@ export function TransferBonusForm({
     if (!formData.bonus || formData.bonus <= 0) {
       newErrors.bonus = 'Bonus value is required and must be greater than 0';
     } else if (formData.bonus > 100) {
-      newErrors.bonus = 'Percentage bonus cannot exceed 100%';
+      newErrors.bonus = 'Percentage bonus cannot exceed 100';
     }
 
     setErrors(newErrors);
@@ -154,11 +154,6 @@ export function TransferBonusForm({
               max="100"
               step="0.1"
             />
-            {!isBonusFocused && (
-              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">%</span>
-              </div>
-            )}
           </div>
           {errors.bonus && (
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bonus}</p>
