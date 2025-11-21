@@ -701,7 +701,7 @@ export function TransactionsSection() {
     return transactions?.count ?? 0;
   }, [transactions?.count, isLoading]);
   
-  const isInitialLoading = useMemo(() => isLoading && !transactions, [isLoading, transactions]);
+  const isInitialLoading = useMemo(() => isLoading, [isLoading]);
   const isEmpty = useMemo(() => !results.length && !isLoading, [results.length, isLoading]);
 
   return (

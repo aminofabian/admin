@@ -294,8 +294,8 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   }, [setPage]);
 
   const results = useMemo(() => queues ?? [], [queues]);
-  const isInitialLoading = useMemo(() => isLoading && !queues, [isLoading, queues]);
-  const isEmpty = useMemo(() => !results.length, [results.length]);
+  const isInitialLoading = useMemo(() => isLoading, [isLoading]);
+  const isEmpty = useMemo(() => !results.length && !isLoading, [results.length, isLoading]);
   const hasNext = useMemo(() => Boolean(next), [next]);
   const hasPrevious = useMemo(() => Boolean(previous), [previous]);
 
