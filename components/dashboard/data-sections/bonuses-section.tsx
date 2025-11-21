@@ -446,7 +446,7 @@ export function BonusesSection() {
                               </TableCell>
                               <TableCell>
                                 <Badge variant={(item as FirstPurchaseBonus).is_enabled ? 'success' : 'default'}>
-                                  {(item as FirstPurchaseBonus).is_enabled ? 'Active' : 'Disabled'}
+                                  {(item as FirstPurchaseBonus).is_enabled ? 'Active' : 'Inactive'}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">
@@ -480,7 +480,7 @@ export function BonusesSection() {
                               </TableCell>
                               <TableCell>
                                 <Badge variant={'is_enabled' in item && (item as any).is_enabled ? 'success' : 'default'}>
-                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Disabled'}
+                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Inactive'}
                                 </Badge>
                               </TableCell>
                               {/* eslint-enable @typescript-eslint/no-explicit-any */}
@@ -540,7 +540,7 @@ export function BonusesSection() {
                               </TableCell>
                               <TableCell>
                                 <Badge variant={'is_enabled' in item && (item as any).is_enabled ? 'success' : 'default'}>
-                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Disabled'}
+                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Inactive'}
                                 </Badge>
                               </TableCell>
                               {/* eslint-enable @typescript-eslint/no-explicit-any */}
@@ -606,7 +606,7 @@ export function BonusesSection() {
                               </TableCell>
                               <TableCell>
                                 <Badge variant={'is_enabled' in item && (item as any).is_enabled ? 'success' : 'default'}>
-                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Disabled'}
+                                  {'is_enabled' in item && (item as any).is_enabled ? 'Active' : 'Inactive'}
                                 </Badge>
                               </TableCell>
                               {/* eslint-enable @typescript-eslint/no-explicit-any */}

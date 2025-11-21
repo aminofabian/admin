@@ -240,7 +240,7 @@ export function PurchaseBonusManager({
                     </TableCell>
                     <TableCell>
                       <Badge variant={bonus.is_enabled ? 'success' : 'default'}>
-                        {bonus.is_enabled ? 'Active' : 'Disabled'}
+                        {bonus.is_enabled ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
