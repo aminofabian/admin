@@ -7,8 +7,8 @@ import type {
   TransferBonusSettings,
   SignupBonusSettings,
 } from '@/types';
-import { LoadingState, ErrorState, EmptyState, TransferBonusForm, SignupBonusForm, RechargeBonusForm, FirstPurchaseBonusForm } from '@/components/features';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, useToast, Drawer } from '@/components/ui';
+import { ErrorState, EmptyState, TransferBonusForm, SignupBonusForm, RechargeBonusForm, FirstPurchaseBonusForm } from '@/components/features';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Badge, Button, useToast, Drawer, Skeleton } from '@/components/ui';
 import { useBonusesStore } from '@/stores/use-bonuses-store';
 import { PurchaseBonusManager } from './purchase-bonus-manager';
 import { formatCurrency } from '@/lib/utils/formatters';
@@ -199,8 +199,66 @@ export function BonusesSection() {
 
 
   // Show loading state
-  if (isLoading && !purchaseBonuses && !rechargeBonuses && !transferBonuses && !signupBonuses && !storeFirstPurchaseBonuses) {
-    return <LoadingState />;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+            {/* Icon Skeleton */}
+            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+            
+            {/* Title Skeleton */}
+            <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 shrink-0" />
+          </div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <section className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+          <div className="flex space-x-1">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-10 w-24 rounded-md" />
+            ))}
+          </div>
+        </section>
+
+        {/* Search Skeleton */}
+        <section className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+          <Skeleton className="h-10 w-full" />
+        </section>
+
+        {/* Table Skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {/* Table Header Skeleton */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-5 gap-4 px-4 py-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-24" />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Table Rows Skeleton */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-5 gap-4 px-4 py-4">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <div className="flex justify-end">
+                      <Skeleton className="h-8 w-20 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Show error state

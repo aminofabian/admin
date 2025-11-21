@@ -14,7 +14,8 @@ import {
   Drawer,
   useToast,
 } from '@/components/ui';
-import { TransferBonusForm, LoadingState, ErrorState, EmptyState } from '@/components/features';
+import { TransferBonusForm, ErrorState, EmptyState } from '@/components/features';
+import { Skeleton } from '@/components/ui';
 import type { TransferBonus, UpdateBonusRequest } from '@/types';
 
 export default function TransferBonusPage() {
@@ -73,8 +74,58 @@ export default function TransferBonusPage() {
     setEditingBonus(null);
   };
 
-  if (isLoading && !transferBonuses) {
-    return <LoadingState />;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+          <div className="p-2.5 sm:p-3 md:p-4 lg:p-6">
+            <div className="relative flex items-center gap-2 sm:gap-3">
+              {/* Icon Skeleton */}
+              <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+              
+              {/* Title Skeleton */}
+              <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-40 shrink-0" />
+            </div>
+            
+            {/* Count Skeleton */}
+            <div className="mt-2 sm:mt-2.5 md:mt-3 ml-0 sm:ml-11 md:ml-12 lg:ml-14">
+              <Skeleton className="h-5 sm:h-6 w-32" />
+            </div>
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {/* Table Header Skeleton */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-4 gap-4 px-4 py-3">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-24" />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Table Rows Skeleton */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-4 gap-4 px-4 py-4">
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <div className="flex justify-end">
+                      <Skeleton className="h-8 w-20 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error && !transferBonuses) {
@@ -114,7 +165,7 @@ export default function TransferBonusPage() {
 
       {/* Bonuses Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {transferBonuses?.results.length === 0 ? (
+        {!transferBonuses || transferBonuses.results.length === 0 ? (
           <div className="py-12">
             <EmptyState 
               title="No transfer bonuses" 
