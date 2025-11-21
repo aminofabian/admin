@@ -36,6 +36,16 @@ export interface SignupBonus extends BaseBonus {
   name: string;
 }
 
+export interface FirstPurchaseBonus extends BaseBonus {
+  category: 'signup';
+  name: string;
+}
+
+export interface FirstPurchaseBonusSettings extends BaseBonus {
+  category: 'signup';
+  name: string;
+}
+
 export interface CreatePurchaseBonusRequest {
   user: number;
   topup_method: string;

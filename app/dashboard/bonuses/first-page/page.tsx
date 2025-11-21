@@ -15,24 +15,17 @@ import {
   useToast,
 } from '@/components/ui';
 import { FirstPurchaseBonusForm, LoadingState, ErrorState, EmptyState } from '@/components/features';
-import type { UpdateBonusRequest } from '@/types';
-
-interface FirstPurchaseBonus {
-  id: number;
-  name: string;
-  bonus_type: 'percentage';
-  bonus: number;
-  is_enabled: boolean;
-}
+import type { FirstPurchaseBonus, UpdateBonusRequest } from '@/types';
+import { formatCurrency } from '@/lib/utils/formatters';
 
 export default function FirstPurchaseBonusPage() {
   const { 
-    purchaseBonuses,
+    firstPurchaseBonuses,
     isLoading,
     error,
     operationLoading,
-    fetchPurchaseBonuses,
-    updatePurchaseBonus,
+    fetchFirstPurchaseBonuses,
+    updateFirstPurchaseBonus,
   } = useBonusesStore();
   const { addToast } = useToast();
 
@@ -40,23 +33,9 @@ export default function FirstPurchaseBonusPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingBonus, setEditingBonus] = useState<FirstPurchaseBonus | null>(null);
 
-  // Filter for first purchase bonuses (assuming user = 0 or some identifier)
-  // TODO: Replace with dedicated first purchase bonus API endpoint when available
-  const firstPurchaseBonuses = purchaseBonuses?.results
-    ?.filter((bonus) => bonus.user === 0 && bonus.bonus_type === 'percentage')
-    .map((bonus) => ({
-      id: bonus.id,
-      name: bonus.topup_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      bonus_type: 'percentage' as const,
-      bonus: bonus.bonus,
-      is_enabled: bonus.is_enabled ?? true,
-    })) || [];
-
-  const firstPurchaseCount = firstPurchaseBonuses.length;
-
   // Initial load
   useEffect(() => {
-    fetchPurchaseBonuses();
+    fetchFirstPurchaseBonuses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -69,14 +48,13 @@ export default function FirstPurchaseBonusPage() {
     if (editingBonus) {
       try {
         setIsSubmitting(true);
-        await updatePurchaseBonus(editingBonus.id, {
-          bonus: data.bonus,
-          is_enabled: data.is_enabled,
-        });
+        await updateFirstPurchaseBonus(editingBonus.id, data);
         addToast({
           type: 'success',
           title: 'Bonus Updated',
-          description: `Bonus percentage has been successfully updated to ${data.bonus}%.`,
+          description: editingBonus.bonus_type === 'fixed'
+            ? `Bonus amount has been successfully updated to ${formatCurrency(data.bonus?.toString() || '0')}.`
+            : `Bonus percentage has been successfully updated to ${data.bonus}%.`,
         });
         setIsDrawerOpen(false);
         setEditingBonus(null);
@@ -98,12 +76,12 @@ export default function FirstPurchaseBonusPage() {
     setEditingBonus(null);
   };
 
-  if (isLoading && !purchaseBonuses) {
+  if (isLoading && !firstPurchaseBonuses) {
     return <LoadingState />;
   }
 
-  if (error && !purchaseBonuses) {
-    return <ErrorState message={error} onRetry={fetchPurchaseBonuses} />;
+  if (error && !firstPurchaseBonuses) {
+    return <ErrorState message={error} onRetry={fetchFirstPurchaseBonuses} />;
   }
 
   return (
@@ -129,7 +107,7 @@ export default function FirstPurchaseBonusPage() {
           <div className="mt-2 sm:mt-2.5 md:mt-3 ml-0 sm:ml-11 md:ml-12 lg:ml-14">
             <div className="text-sm sm:text-base font-medium text-gray-600 dark:text-gray-400">
               <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {firstPurchaseCount}
+                {firstPurchaseBonuses?.count || 0}
               </span>
               {' '}Total Bonuses
             </div>
@@ -139,7 +117,7 @@ export default function FirstPurchaseBonusPage() {
 
       {/* Bonuses Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {firstPurchaseBonuses.length === 0 ? (
+        {firstPurchaseBonuses?.results.length === 0 ? (
           <div className="py-12">
             <EmptyState 
               title="No first purchase bonuses" 
@@ -159,16 +137,19 @@ export default function FirstPurchaseBonusPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {firstPurchaseBonuses.map((bonus) => (
+                {firstPurchaseBonuses?.results.map((bonus) => (
                   <TableRow key={bonus.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <TableCell className="font-medium text-gray-900 dark:text-gray-100">{bonus.name}</TableCell>
                     <TableCell>
-                      <Badge variant="success">
-                        Percentage
+                      <Badge variant={bonus.bonus_type === 'fixed' ? 'warning' : 'success'}>
+                        {bonus.bonus_type === 'fixed' ? 'Fixed' : 'Percentage'}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-bold text-gray-900 dark:text-gray-100">
-                      {bonus.bonus}%
+                      {bonus.bonus_type === 'fixed' 
+                        ? formatCurrency(bonus.bonus.toString())
+                        : `${bonus.bonus}%`
+                      }
                     </TableCell>
                     <TableCell>
                       <Badge variant={bonus.is_enabled ? 'success' : 'default'}>
@@ -181,7 +162,7 @@ export default function FirstPurchaseBonusPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditBonus(bonus)}
-                          disabled={operationLoading.purchase}
+                          disabled={operationLoading.firstPurchase}
                           className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                         >
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -208,7 +189,7 @@ export default function FirstPurchaseBonusPage() {
         <FirstPurchaseBonusForm
           onSubmit={handleUpdateBonus}
           onCancel={handleCloseDrawer}
-          isLoading={isSubmitting || operationLoading.purchase}
+          isLoading={isSubmitting || operationLoading.firstPurchase}
           initialData={editingBonus || undefined}
         />
       </Drawer>

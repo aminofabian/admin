@@ -2,15 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
-import type { UpdateBonusRequest } from '@/types';
-
-interface FirstPurchaseBonus {
-  id: number;
-  name: string;
-  bonus_type: 'percentage';
-  bonus: number;
-  is_enabled: boolean;
-}
+import type { FirstPurchaseBonus, UpdateBonusRequest } from '@/types';
 
 interface FirstPurchaseBonusFormProps {
   onSubmit: (data: UpdateBonusRequest) => Promise<void>;
@@ -49,10 +41,13 @@ export function FirstPurchaseBonusForm({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+    const bonusType = initialData?.bonus_type || 'percentage';
 
     if (!formData.bonus || formData.bonus <= 0) {
-      newErrors.bonus = 'Bonus value is required and must be greater than 0';
-    } else if (formData.bonus > 100) {
+      newErrors.bonus = bonusType === 'fixed' 
+        ? 'Bonus amount is required and must be greater than 0'
+        : 'Bonus value is required and must be greater than 0';
+    } else if (bonusType === 'percentage' && formData.bonus > 100) {
       newErrors.bonus = 'Percentage bonus cannot exceed 100%';
     }
 
@@ -114,7 +109,7 @@ export function FirstPurchaseBonusForm({
               Editing Bonus
             </h4>
             <p className="text-xs text-blue-700 dark:text-blue-400">
-              You can only update the bonus percentage and active status.
+              You can only update the bonus {initialData?.bonus_type === 'fixed' ? 'amount' : 'percentage'} and active status.
             </p>
           </div>
         </div>
@@ -131,50 +126,81 @@ export function FirstPurchaseBonusForm({
           </div>
         </div>
 
-        {/* Bonus Type Display - Always Percentage */}
+        {/* Bonus Type Display */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Bonus Type
           </label>
           <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-            Percentage
+            {initialData?.bonus_type === 'fixed' ? 'Fixed' : 'Percentage'}
           </div>
         </div>
 
-        {/* Percentage Bonus Value */}
-        <div>
-          <label htmlFor="bonus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Percentage Bonus *
-          </label>
-          <div className="relative">
-            <input
-              type="number"
-              id="bonus"
-              value={bonusDisplay}
-              onChange={(e) => handleInputChange('bonus', e.target.value)}
-              onFocus={() => setIsBonusFocused(true)}
-              onBlur={() => setIsBonusFocused(false)}
-              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
-                errors.bonus ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
-              }`}
-              placeholder="Enter percentage (e.g., 10)"
-              min="0"
-              max="100"
-              step="0.1"
-            />
-            {!isBonusFocused && (
-              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">%</span>
+        {/* Bonus Value - Fixed or Percentage */}
+        {initialData?.bonus_type === 'fixed' ? (
+          <div>
+            <label htmlFor="bonus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Fixed Bonus Amount *
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">$</span>
               </div>
+              <input
+                type="number"
+                id="bonus"
+                value={bonusDisplay}
+                onChange={(e) => handleInputChange('bonus', e.target.value)}
+                className={`w-full pl-8 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
+                  errors.bonus ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                }`}
+                placeholder="Enter amount (e.g., 100)"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            {errors.bonus && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bonus}</p>
             )}
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Enter fixed bonus amount in dollars
+            </p>
           </div>
-          {errors.bonus && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bonus}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Enter percentage value (0-100)
-          </p>
-        </div>
+        ) : (
+          <div>
+            <label htmlFor="bonus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Percentage Bonus *
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                id="bonus"
+                value={bonusDisplay}
+                onChange={(e) => handleInputChange('bonus', e.target.value)}
+                onFocus={() => setIsBonusFocused(true)}
+                onBlur={() => setIsBonusFocused(false)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
+                  errors.bonus ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                }`}
+                placeholder="Enter percentage (e.g., 10)"
+                min="0"
+                max="100"
+                step="0.1"
+              />
+              {!isBonusFocused && (
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">%</span>
+                </div>
+              )}
+            </div>
+            {errors.bonus && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.bonus}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Enter percentage value (0-100)
+            </p>
+          </div>
+        )}
 
         {/* Active/Inactive Toggle */}
         <div>

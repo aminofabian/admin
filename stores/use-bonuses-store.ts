@@ -5,6 +5,7 @@ import type {
   RechargeBonus,
   TransferBonus,
   SignupBonus,
+  FirstPurchaseBonus,
   CreatePurchaseBonusRequest,
   UpdateBonusRequest,
   UpdatePurchaseBonusRequest,
@@ -17,6 +18,7 @@ interface BonusesState {
   rechargeBonuses: PaginatedResponse<RechargeBonus> | null;
   transferBonuses: PaginatedResponse<TransferBonus> | null;
   signupBonuses: PaginatedResponse<SignupBonus> | null;
+  firstPurchaseBonuses: PaginatedResponse<FirstPurchaseBonus> | null;
   affiliateDefaults: PaginatedResponse<AffiliateDefaults> | null;
   isLoading: boolean;
   error: string | null;
@@ -28,6 +30,7 @@ interface BonusesState {
     recharge: boolean;
     transfer: boolean;
     signup: boolean;
+    firstPurchase: boolean;
     affiliateDefaults: boolean;
   };
 }
@@ -47,6 +50,9 @@ interface BonusesActions {
   fetchSignupBonuses: () => Promise<void>;
   updateSignupBonus: (id: number, data: UpdateBonusRequest) => Promise<SignupBonus>;
   
+  fetchFirstPurchaseBonuses: () => Promise<void>;
+  updateFirstPurchaseBonus: (id: number, data: UpdateBonusRequest) => Promise<FirstPurchaseBonus>;
+  
   fetchAffiliateDefaults: () => Promise<void>;
   updateAffiliateDefaults: (id: number, data: UpdateAffiliateDefaultsRequest) => Promise<AffiliateDefaults>;
   
@@ -64,6 +70,7 @@ const initialState: BonusesState = {
   rechargeBonuses: null,
   transferBonuses: null,
   signupBonuses: null,
+  firstPurchaseBonuses: null,
   affiliateDefaults: null,
   isLoading: false,
   error: null,
@@ -75,6 +82,7 @@ const initialState: BonusesState = {
     recharge: false,
     transfer: false,
     signup: false,
+    firstPurchase: false,
     affiliateDefaults: false,
   },
 };
@@ -351,6 +359,60 @@ export const useBonusesStore = create<BonusesStore>((set, get) => ({
     }
   },
 
+  fetchFirstPurchaseBonuses: async () => {
+    set((state) => ({ 
+      operationLoading: { ...state.operationLoading, firstPurchase: true },
+      error: null 
+    }));
+
+    try {
+      const data = await bonusesApi.firstPurchase.list();
+      
+      set((state) => ({ 
+        firstPurchaseBonuses: data,
+        operationLoading: { ...state.operationLoading, firstPurchase: false },
+        error: null,
+      }));
+    } catch (err: unknown) {
+      const errorMessage = extractErrorMessage(err, 'Failed to load first purchase bonuses');
+      
+      set((state) => ({ 
+        error: errorMessage,
+        operationLoading: { ...state.operationLoading, firstPurchase: false },
+      }));
+    }
+  },
+
+  updateFirstPurchaseBonus: async (id: number, data: UpdateBonusRequest) => {
+    set((state) => ({ 
+      operationLoading: { ...state.operationLoading, firstPurchase: true },
+    }));
+
+    try {
+      const bonus = await bonusesApi.firstPurchase.update(id, data);
+      
+      if (!bonus) {
+        throw new Error('No data returned from server');
+      }
+      
+      await get().fetchFirstPurchaseBonuses();
+      
+      set((state) => ({ 
+        operationLoading: { ...state.operationLoading, firstPurchase: false },
+      }));
+      
+      return bonus;
+    } catch (err: unknown) {
+      const errorMessage = extractErrorMessage(err, 'Failed to update first purchase bonus');
+      
+      set((state) => ({ 
+        error: errorMessage,
+        operationLoading: { ...state.operationLoading, firstPurchase: false },
+      }));
+      throw new Error(errorMessage);
+    }
+  },
+
   fetchAffiliateDefaults: async () => {
     set((state) => ({ 
       operationLoading: { ...state.operationLoading, affiliateDefaults: true },
@@ -414,6 +476,7 @@ export const useBonusesStore = create<BonusesStore>((set, get) => ({
         get().fetchRechargeBonuses(),
         get().fetchTransferBonuses(),
         get().fetchSignupBonuses(),
+        get().fetchFirstPurchaseBonuses(),
         get().fetchAffiliateDefaults(),
       ]);
       

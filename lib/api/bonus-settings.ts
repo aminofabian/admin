@@ -4,6 +4,7 @@ import type {
   RechargeBonusSettings,
   TransferBonusSettings,
   SignupBonusSettings,
+  FirstPurchaseBonusSettings,
   PurchaseBonusSettings,
   CreatePurchaseBonusRequest,
   UpdateBonusSettingsRequest,
@@ -106,4 +107,35 @@ export const signupBonusSettingsApi = {
 
   patch: (data: UpdateBonusSettingsRequest) =>
     apiClient.patch<SignupBonusSettings>(API_ENDPOINTS.BONUSES.SIGNUP, data),
+};
+
+// First Purchase Bonuses API (GET, PUT, PATCH only)
+export const firstPurchaseBonusSettingsApi = {
+  list: (filters?: BonusListFilters) => {
+    const params = new URLSearchParams();
+    
+    if (filters?.page) {
+      params.append('page', String(filters.page));
+    }
+    
+    if (filters?.page_size) {
+      params.append('page_size', String(filters.page_size));
+    }
+    
+    const queryString = params.toString();
+    const url = queryString 
+      ? `${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}?${queryString}`
+      : API_ENDPOINTS.BONUSES.FIRST_PURCHASE;
+    
+    return apiClient.get<PaginatedResponse<FirstPurchaseBonusSettings>>(url);
+  },
+
+  get: (id: number) =>
+    apiClient.get<FirstPurchaseBonusSettings>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`),
+
+  update: (id: number, data: UpdateBonusSettingsRequest) =>
+    apiClient.put<FirstPurchaseBonusSettings>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`, data),
+
+  patch: (id: number, data: UpdateBonusSettingsRequest) =>
+    apiClient.patch<FirstPurchaseBonusSettings>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`, data),
 };

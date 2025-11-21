@@ -12,15 +12,7 @@ import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Paginati
 import { useBonusesStore } from '@/stores/use-bonuses-store';
 import { PurchaseBonusManager } from './purchase-bonus-manager';
 import { formatCurrency } from '@/lib/utils/formatters';
-import type { UpdateBonusRequest, TransferBonus, SignupBonus, RechargeBonus, PurchaseBonus } from '@/types';
-
-interface FirstPurchaseBonus {
-  id: number;
-  name: string;
-  bonus_type: 'percentage';
-  bonus: number;
-  is_enabled: boolean;
-}
+import type { UpdateBonusRequest, TransferBonus, SignupBonus, RechargeBonus, PurchaseBonus, FirstPurchaseBonus } from '@/types';
 
 type BonusItem = PurchaseBonusSettings | RechargeBonusSettings | TransferBonusSettings | SignupBonusSettings;
 type AllItems = BonusItem | FirstPurchaseBonus;
@@ -38,6 +30,7 @@ export function BonusesSection() {
     rechargeBonuses,
     transferBonuses,
     signupBonuses,
+    firstPurchaseBonuses: storeFirstPurchaseBonuses,
     isLoading,
     error,
     currentPage,
@@ -49,6 +42,7 @@ export function BonusesSection() {
     updateTransferBonus,
     updateSignupBonus,
     updatePurchaseBonus,
+    updateFirstPurchaseBonus,
     setPage,
     setSearchTerm,
     clearErrors,
@@ -64,16 +58,8 @@ export function BonusesSection() {
   const [editingBonus, setEditingBonus] = useState<TransferBonus | SignupBonus | RechargeBonus | FirstPurchaseBonus | null>(null);
   const [editingBonusType, setEditingBonusType] = useState<'transfer' | 'signup' | 'recharge' | 'first-purchase' | null>(null);
 
-  // Filter for first purchase bonuses (assuming user = 0 or some identifier)
-  const firstPurchaseBonuses: FirstPurchaseBonus[] = purchaseBonuses?.results
-    ?.filter((bonus) => bonus.user === 0 && bonus.bonus_type === 'percentage')
-    .map((bonus) => ({
-      id: bonus.id,
-      name: bonus.topup_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      bonus_type: 'percentage' as const,
-      bonus: bonus.bonus,
-      is_enabled: bonus.is_enabled ?? true,
-    })) || [];
+  // Use first purchase bonuses from store
+  const firstPurchaseBonuses = storeFirstPurchaseBonuses?.results || [];
 
   // Initialize data on component mount
   useEffect(() => {
@@ -179,14 +165,14 @@ export function BonusesSection() {
             description: `Bonus value has been successfully updated to ${data.bonus}${bonusType === 'percentage' ? '%' : ''}.`,
           });
         } else if (editingBonusType === 'first-purchase') {
-          await updatePurchaseBonus(editingBonus.id, {
-            bonus: data.bonus,
-            is_enabled: data.is_enabled,
-          });
+          await updateFirstPurchaseBonus(editingBonus.id, data);
+          const bonusType = (editingBonus as FirstPurchaseBonus).bonus_type;
           addToast({
             type: 'success',
             title: 'Bonus Updated',
-            description: `Bonus percentage has been successfully updated to ${data.bonus}%.`,
+            description: bonusType === 'fixed'
+              ? `Bonus amount has been successfully updated to ${formatCurrency(data.bonus?.toString() || '0')}.`
+              : `Bonus percentage has been successfully updated to ${data.bonus}%.`,
           });
         }
         setIsDrawerOpen(false);
@@ -213,7 +199,7 @@ export function BonusesSection() {
 
 
   // Show loading state
-  if (isLoading && !purchaseBonuses && !rechargeBonuses && !transferBonuses && !signupBonuses) {
+  if (isLoading && !purchaseBonuses && !rechargeBonuses && !transferBonuses && !signupBonuses && !storeFirstPurchaseBonuses) {
     return <LoadingState />;
   }
 
@@ -232,7 +218,10 @@ export function BonusesSection() {
       case 'transfer':
         return transferBonuses?.results || [];
       case 'signup':
-        return signupBonuses?.results || [];
+        // Filter out first purchase bonuses from signup bonuses
+        return signupBonuses?.results.filter(
+          (bonus) => !bonus.name.toLowerCase().includes('first purchase')
+        ) || [];
       case 'first-purchase':
         return firstPurchaseBonuses;
       default:
@@ -249,9 +238,12 @@ export function BonusesSection() {
       case 'transfer':
         return transferBonuses?.count || 0;
       case 'signup':
-        return signupBonuses?.count || 0;
+        // Return filtered count (excluding first purchase bonuses)
+        return signupBonuses?.results.filter(
+          (bonus) => !bonus.name.toLowerCase().includes('first purchase')
+        ).length || 0;
       case 'first-purchase':
-        return firstPurchaseBonuses.length;
+        return storeFirstPurchaseBonuses?.count || firstPurchaseBonuses.length;
       default:
         return 0;
     }
@@ -283,8 +275,10 @@ export function BonusesSection() {
             { key: 'purchase', label: 'Purchase', count: purchaseBonuses?.count || 0 },
             { key: 'recharge', label: 'Recharge', count: rechargeBonuses?.count || 0 },
             { key: 'transfer', label: 'Transfer', count: transferBonuses?.count || 0 },
-            { key: 'signup', label: 'Signup', count: signupBonuses?.count || 0 },
-            { key: 'first-purchase', label: 'First Purchase', count: firstPurchaseBonuses.length },
+            { key: 'signup', label: 'Signup', count: signupBonuses?.results.filter(
+              (bonus) => !bonus.name.toLowerCase().includes('first purchase')
+            ).length || 0 },
+            { key: 'first-purchase', label: 'First Purchase', count: storeFirstPurchaseBonuses?.count || firstPurchaseBonuses.length },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -339,7 +333,6 @@ export function BonusesSection() {
                         </TableRow>
                       ) : activeTab === 'transfer' ? (
                         <TableRow>
-                          <TableHead>Transfer/Game Name</TableHead>
                           <TableHead>Bonus Type</TableHead>
                           <TableHead>Bonus Value</TableHead>
                           <TableHead>Status</TableHead>
@@ -382,10 +375,15 @@ export function BonusesSection() {
                                 {(item as FirstPurchaseBonus).name}
                               </TableCell>
                               <TableCell>
-                                <Badge variant="success">Percentage</Badge>
+                                <Badge variant={(item as FirstPurchaseBonus).bonus_type === 'fixed' ? 'warning' : 'success'}>
+                                  {(item as FirstPurchaseBonus).bonus_type === 'fixed' ? 'Fixed' : 'Percentage'}
+                                </Badge>
                               </TableCell>
                               <TableCell className="font-bold text-gray-900 dark:text-gray-100">
-                                {(item as FirstPurchaseBonus).bonus}%
+                                {(item as FirstPurchaseBonus).bonus_type === 'fixed'
+                                  ? formatCurrency((item as FirstPurchaseBonus).bonus.toString())
+                                  : `${(item as FirstPurchaseBonus).bonus}%`
+                                }
                               </TableCell>
                               <TableCell>
                                 <Badge variant={(item as FirstPurchaseBonus).is_enabled ? 'success' : 'default'}>
@@ -399,7 +397,7 @@ export function BonusesSection() {
                                     size="sm"
                                     className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                                     onClick={() => handleEditBonus(item as FirstPurchaseBonus, 'first-purchase')}
-                                    disabled={operationLoading.purchase}
+                                    disabled={operationLoading.firstPurchase}
                                   >
                                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -412,9 +410,6 @@ export function BonusesSection() {
                           ) : activeTab === 'transfer' ? (
                             <>
                               {/* eslint-disable @typescript-eslint/no-explicit-any */}
-                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
-                                {'name' in item ? (item as any).name : `Bonus ${item.id}`}
-                              </TableCell>
                               <TableCell>
                                 <Badge variant="success">Percentage</Badge>
                               </TableCell>
@@ -736,7 +731,7 @@ export function BonusesSection() {
           <FirstPurchaseBonusForm
             onSubmit={handleUpdateBonus}
             onCancel={handleCloseDrawer}
-            isLoading={isSubmitting || operationLoading.purchase}
+            isLoading={isSubmitting || operationLoading.firstPurchase}
             initialData={editingBonus as FirstPurchaseBonus | undefined}
           />
         </Drawer>

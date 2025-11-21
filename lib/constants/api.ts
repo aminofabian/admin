@@ -47,6 +47,7 @@ export const API_ENDPOINTS = {
     RECHARGE: `${API_PREFIX}/recharge-bonuses/`,
     TRANSFER: `${API_PREFIX}/transfer-bonuses/`,
     SIGNUP: `${API_PREFIX}/signup-bonuses/`,
+    FIRST_PURCHASE: `${API_PREFIX}/first-purchase-bonuses/`,
   },
   BANNERS: {
     LIST: `${API_PREFIX}/admin-banners/`,

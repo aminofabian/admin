@@ -5,6 +5,7 @@ import type {
   RechargeBonus,
   TransferBonus,
   SignupBonus,
+  FirstPurchaseBonus,
   CreatePurchaseBonusRequest,
   UpdateBonusRequest,
   UpdatePurchaseBonusRequest,
@@ -58,6 +59,17 @@ export const bonusesApi = {
 
     update: (id: number, data: UpdateBonusRequest) => 
       apiClient.patch<SignupBonus>(`${API_ENDPOINTS.BONUSES.SIGNUP}${id}/`, data),
+  },
+
+  firstPurchase: {
+    list: () => 
+      apiClient.get<PaginatedResponse<FirstPurchaseBonus>>(API_ENDPOINTS.BONUSES.FIRST_PURCHASE),
+
+    get: (id: number) =>
+      apiClient.get<FirstPurchaseBonus>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`),
+
+    update: (id: number, data: UpdateBonusRequest) => 
+      apiClient.patch<FirstPurchaseBonus>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`, data),
   },
 
   affiliateDefaults: {

@@ -258,7 +258,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Recharge Bonus', href: '/dashboard/bonuses/recharge', icon: <RechargeBonusIcon /> },
       { name: 'Transfer Bonus', href: '/dashboard/bonuses/transfer', icon: <TransferBonusIcon /> },
       { name: 'Sign Up Bonus', href: '/dashboard/bonuses/signup', icon: <SignUpBonusIcon /> },
-      { name: 'First Page Bonus', href: '/dashboard/bonuses/first-page', icon: <FirstPageBonusIcon /> },
+      { name: 'First Purchase', href: '/dashboard/bonuses/first-page', icon: <FirstPageBonusIcon /> },
     ],
   },
   {
