@@ -19,7 +19,8 @@ import {
   useToast,
   ConfirmModal,
 } from '@/components/ui';
-import { AgentForm, EmptyState, ErrorState, LoadingState, EditProfileDrawer, type EditProfileFormData } from '@/components/features';
+import { AgentForm, EmptyState, ErrorState, EditProfileDrawer, type EditProfileFormData } from '@/components/features';
+import { Skeleton } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
 import type { Agent, CreateUserRequest, PaginatedResponse, UpdateUserRequest } from '@/types';
 
@@ -705,7 +706,59 @@ function AgentsDashboardView({
   onConfirmToggle,
   onCancelToggle,
 }: AgentsDashboardViewProps) {
-  if (isLoading && !data) return <LoadingState />;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        {/* Header Skeleton */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+            <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 shrink-0" />
+            <div className="flex-1 min-w-0" />
+            <Skeleton className="h-9 w-24 sm:w-32 rounded-md shrink-0" />
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {/* Table Header Skeleton */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-5 gap-4 px-4 py-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-24" />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Table Rows Skeleton */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-5 gap-4 px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <div className="flex justify-end">
+                      <Skeleton className="h-8 w-20 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (error && !data) return <ErrorState message={error} onRetry={onRetry} />;
 
   const agent = actionDrawerState.agent;

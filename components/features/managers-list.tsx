@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useManagersStore } from '@/stores';
 import type { Manager, CreateUserRequest, UpdateUserRequest } from '@/types';
-import { LoadingState, ErrorState, EmptyState, EditProfileDrawer, type EditProfileFormData } from '@/components/features';
+import { ErrorState, EmptyState, EditProfileDrawer, type EditProfileFormData } from '@/components/features';
 import { ManagerForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import {
@@ -20,6 +20,7 @@ import {
   ConfirmModal,
   PasswordResetDrawer,
   useToast,
+  Skeleton,
 } from '@/components/ui';
 
 // Icon Components
@@ -102,7 +103,59 @@ export function ManagersList() {
   }, [fetchManagers]);
 
   // Early Returns
-  if (isLoading && !managers) return <LoadingState />;
+  if (isLoading) {
+    return (
+      <div className="space-y-3 sm:space-y-4 md:space-y-6">
+        {/* Header Skeleton */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+            <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 shrink-0" />
+            <div className="flex-1 min-w-0" />
+            <Skeleton className="h-9 w-24 sm:w-32 rounded-md shrink-0" />
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {/* Table Header Skeleton */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-5 gap-4 px-4 py-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-24" />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Table Rows Skeleton */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-5 gap-4 px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-24 mb-2" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <div className="flex justify-end">
+                      <Skeleton className="h-8 w-20 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (error && !managers) return <ErrorState message={error} onRetry={fetchManagers} />;
 
   // Event Handlers
@@ -451,7 +504,7 @@ export function ManagersList() {
 
       {/* Content */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {!managers?.results?.length ? (
+        {!managers || !managers.results?.length ? (
           <div className="py-12">
             <EmptyState 
               title="No Managers found" 
