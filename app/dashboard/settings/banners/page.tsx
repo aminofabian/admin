@@ -13,12 +13,12 @@ import {
   Button,
   SearchInput,
   Pagination,
-  Modal,
+  Drawer,
+  Skeleton,
 } from '@/components/ui';
 import { BannerForm, ErrorState, EmptyState } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
-import { Skeleton } from '@/components/ui';
 
 const SECTION_TITLE = 'Banners';
 const SECTION_SUBTITLE = 'Manage promotional banners and advertisements';
@@ -320,7 +320,7 @@ export default function BannersPage() {
           </>
         )}
       </div>
-      <Modal
+      <Drawer
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
@@ -336,7 +336,7 @@ export default function BannersPage() {
           }}
           initialData={selectedBanner || undefined}
         />
-      </Modal>
+      </Drawer>
     </div>
   );
 }
