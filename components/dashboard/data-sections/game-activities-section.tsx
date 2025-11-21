@@ -733,7 +733,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
           <div>{formattedCreatedAt}</div>
           {showUpdatedAt && (
             <div>{formattedUpdatedAt}</div>

@@ -332,7 +332,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
 
   const datesCell = (
     <TableCell>
-      <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
         <div>{transaction.created ? formatDate(transaction.created) : '—'}</div>
         <div>{transaction.updated ? formatDate(transaction.updated) : '—'}</div>
       </div>
