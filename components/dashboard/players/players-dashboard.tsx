@@ -868,7 +868,9 @@ function PlayersFilters({
   isAgentLoading,
   isLoading,
 }: PlayersFiltersProps): ReactElement {
-  const [isOpen, setIsOpen] = useState(false);
+  // Open filters automatically if agent filter is present (e.g., from URL navigation)
+  // This ensures the filter dropdown is visible when navigating from agent section
+  const [isOpen, setIsOpen] = useState(() => Boolean(filters.agent?.trim()));
   const { theme } = useTheme();
   
   const inputClasses =
