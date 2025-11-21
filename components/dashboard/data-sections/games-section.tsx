@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
-import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui';
-import { EmptyState, ErrorState, GameForm, LoadingState, StoreBalanceModal } from '@/components/features';
+import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
+import { EmptyState, ErrorState, GameForm, StoreBalanceModal } from '@/components/features';
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
@@ -75,8 +75,68 @@ export function GamesSection() {
     );
   }
 
-  if (isLoading && !data) {
-    return <LoadingState />;
+  if (isLoading) {
+    return (
+      <div className="space-y-3 sm:space-y-4 md:space-y-6">
+        {/* Header Skeleton */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+            <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 shrink-0" />
+            <div className="flex-1 min-w-0" />
+          </div>
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-24 mb-2" />
+                  <Skeleton className="h-8 w-16" />
+                </div>
+                <Skeleton className="h-10 w-10 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {/* Table Header Skeleton */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-4 gap-4 px-4 py-3">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-24" />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Table Rows Skeleton */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-4 gap-4 px-4 py-4">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <Skeleton className="h-8 w-20 rounded-full" />
+                    <div className="flex justify-end gap-2">
+                      <Skeleton className="h-8 w-20 rounded-full" />
+                      <Skeleton className="h-8 w-20 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error && !data) {
@@ -128,7 +188,7 @@ export function GamesSection() {
 
       {/* Content */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {!games.length ? (
+        {!data || !games.length ? (
           <div className="py-12">
             <EmptyState 
               title="No Games found" 
