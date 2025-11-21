@@ -472,39 +472,16 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         return;
       }
       
-      // Show toast notifications (but not for completed items being removed)
+      // Toast notifications are now handled globally by GlobalTransactionNotifications
+      // component in the dashboard layout, so we don't show them here to avoid duplicates
       const statusLower = String(updatedQueue.status || '').toLowerCase();
       const isCompleted = statusLower === 'completed' || statusLower === 'complete';
       
-      if (!isCompleted) {
-        // Only show notifications for non-completed activities
-        if (isNewActivity) {
-          // New activity - show detailed notification
-          const activityType = updatedQueue.type?.replace(/_/g, ' ').toUpperCase() || 'ACTIVITY';
-          const userName = updatedQueue.user_username || 'Unknown User';
-          const gameName = updatedQueue.game || 'Unknown Game';
-          
-          addToast({
-            type: 'info',
-            title: `New ${activityType}`,
-            description: `${userName} - ${gameName}`,
-            duration: 5000,
-          });
-          
-          console.log('✅ New activity added to table:', updatedQueue.id);
-        } else {
-          // Existing activity updated (status change)
-          addToast({
-            type: 'info',
-            title: 'Activity Updated',
-            description: `${updatedQueue.type} activity status changed`,
-            duration: 3000,
-          });
-          
-          console.log('✅ Activity updated in table:', updatedQueue.id);
-        }
+      if (isNewActivity) {
+        console.log('✅ New activity added to table:', updatedQueue.id);
+      } else if (!isCompleted) {
+        console.log('✅ Activity updated in table:', updatedQueue.id);
       } else {
-        // Completed items are being removed (no toast needed)
         console.log('✅ Activity completed and removed:', updatedQueue.id);
       }
     });
@@ -547,41 +524,16 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         return;
       }
       
-      // Show toast notifications only for real-time updates (not initial load)
+      // Toast notifications are now handled globally by GlobalTransactionNotifications
+      // component in the dashboard layout, so we don't show them here to avoid duplicates
       const statusLower = String(updatedTransaction.status || '').toLowerCase();
       const isCompleted = statusLower === 'completed' || statusLower === 'complete' || statusLower === 'cancelled' || statusLower === 'failed';
       
-      if (!isCompleted) {
-        // Only show notifications for non-completed transactions
-        if (isNewTransaction) {
-          // New transaction - show detailed notification
-          const transactionType = updatedTransaction.type?.toUpperCase() || 'TRANSACTION';
-          // Use transaction's username if available, otherwise show a fallback
-          // Note: For new transactions, user data will be empty from WebSocket, but will be populated after API refresh
-          const userName = updatedTransaction.user_username || 'New Transaction';
-          const amount = formatCurrency(updatedTransaction.amount || '0');
-          
-          addToast({
-            type: 'info',
-            title: `New ${transactionType}`,
-            description: `${userName} - ${amount}`,
-            duration: 5000,
-          });
-          
-          console.log('✅ New transaction added to table:', updatedTransaction.id);
-        } else {
-          // Existing transaction updated (status change)
-          addToast({
-            type: 'info',
-            title: 'Transaction Updated',
-            description: `${updatedTransaction.type} transaction status changed`,
-            duration: 3000,
-          });
-          
-          console.log('✅ Transaction updated in table:', updatedTransaction.id);
-        }
+      if (isNewTransaction) {
+        console.log('✅ New transaction added to table:', updatedTransaction.id);
+      } else if (!isCompleted) {
+        console.log('✅ Transaction updated in table:', updatedTransaction.id);
       } else {
-        // Completed items are being removed (no toast needed)
         console.log('✅ Transaction completed and removed:', updatedTransaction.id);
       }
     });

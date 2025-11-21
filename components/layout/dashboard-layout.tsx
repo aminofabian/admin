@@ -10,6 +10,7 @@ import { LoadingState } from '@/components/features';
 import { ChatDrawerProvider } from '@/contexts/chat-drawer-context';
 import { ProcessingWebSocketProvider } from '@/contexts/processing-websocket-context';
 import { ChatDrawer } from '@/components/chat/chat-drawer';
+import { GlobalTransactionNotifications } from '@/components/dashboard/global-transaction-notifications';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -33,6 +34,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <ChatDrawerProvider>
       <ProcessingWebSocketProvider>
+        <GlobalTransactionNotifications />
         <div className="flex min-h-screen bg-background">
         {/* Mobile sidebar overlay */}
         {sidebarOpen && (
