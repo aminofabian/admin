@@ -11,9 +11,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Skeleton,
 } from '@/components/ui';
 import { Input } from '@/components/ui/input';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
+import { ErrorState, EmptyState } from '@/components/features';
 
 type FormFieldKey =
   | 'default_affiliation_percentage'
@@ -192,8 +193,60 @@ export default function AffiliateSettingsPage() {
     [searchTerm],
   );
 
-  if (isLoading && !affiliateDefaults) {
-    return <LoadingState />;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+            <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-40 shrink-0" />
+            <div className="flex-1 min-w-0" />
+            <Skeleton className="h-9 w-32 rounded-md shrink-0" />
+          </div>
+        </div>
+
+        {/* Search Skeleton */}
+        <div className="rounded-2xl border border-border/70 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <Skeleton className="h-10 w-full" />
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {/* Table Header Skeleton */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-2 gap-4 px-4 py-3">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              </div>
+              
+              {/* Table Rows Skeleton */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-4 px-4 py-4">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-10 w-10 rounded-lg" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-3 w-64" />
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <div className="relative max-w-[220px] w-full">
+                        <Skeleton className="h-10 w-full" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error && !affiliateDefaults) {
@@ -253,7 +306,7 @@ export default function AffiliateSettingsPage() {
 
       <form id="affiliate-settings-form" onSubmit={handleSubmit}>
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {filteredSettings.length === 0 ? (
+          {!affiliateDefaults || filteredSettings.length === 0 ? (
             <div className="py-12">
               <EmptyState title="No settings match your search" />
             </div>
