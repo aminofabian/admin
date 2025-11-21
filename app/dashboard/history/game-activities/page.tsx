@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { GameActivitiesSection } from '@/components/dashboard/data-sections/game-activities-section';
 import { useTransactionQueuesStore } from '@/stores';
 
@@ -49,8 +50,9 @@ export default function HistoryGameActivitiesPage() {
   }, [searchParams, setAdvancedFilters, advancedFilters]);
 
   return (
-    <div className="space-y-3 sm:space-y-4 md:space-y-6">
-      <GameActivitiesSection showTabs={true} />
-    </div>
+    <>
+      <HistoryTabs />
+      <GameActivitiesSection showTabs={false} />
+    </>
   );
 }
