@@ -133,7 +133,7 @@ export function SignupBonusForm({
         {/* Fixed Bonus Amount */}
         <div>
           <label htmlFor="bonus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Fixed Bonus Amount *
+            Bonus Value * ($)
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">

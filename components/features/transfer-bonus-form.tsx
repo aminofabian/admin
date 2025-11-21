@@ -136,7 +136,7 @@ export function TransferBonusForm({
         {/* Percentage Bonus Value */}
         <div>
           <label htmlFor="bonus" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Percentage Bonus *
+            Bonus Value * (%)
           </label>
           <div className="relative">
             <input
