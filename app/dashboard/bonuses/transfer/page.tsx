@@ -101,8 +101,8 @@ export default function TransferBonusPage() {
             <div className="min-w-full">
               {/* Table Header Skeleton */}
               <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-4 gap-4 px-4 py-3">
-                  {[...Array(4)].map((_, i) => (
+                <div className="grid grid-cols-5 gap-4 px-4 py-3">
+                  {[...Array(5)].map((_, i) => (
                     <Skeleton key={i} className="h-4 w-24" />
                   ))}
                 </div>
@@ -111,7 +111,8 @@ export default function TransferBonusPage() {
               {/* Table Rows Skeleton */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-4 gap-4 px-4 py-4">
+                  <div key={i} className="grid grid-cols-5 gap-4 px-4 py-4">
+                    <Skeleton className="h-5 w-32" />
                     <Skeleton className="h-6 w-20 rounded-full" />
                     <Skeleton className="h-5 w-24" />
                     <Skeleton className="h-6 w-16 rounded-full" />
@@ -177,6 +178,7 @@ export default function TransferBonusPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Bonus Name</TableHead>
                   <TableHead>Bonus Type</TableHead>
                   <TableHead>Bonus Value</TableHead>
                   <TableHead>Status</TableHead>
@@ -186,6 +188,7 @@ export default function TransferBonusPage() {
               <TableBody>
                 {transferBonuses?.results.map((bonus) => (
                   <TableRow key={bonus.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <TableCell className="font-medium text-gray-900 dark:text-gray-100">{bonus.name}</TableCell>
                     <TableCell>
                       <Badge variant="success">
                         Percentage

@@ -184,7 +184,7 @@ export default function SignUpBonusPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Bonus Label</TableHead>
+                  <TableHead>Bonus Name</TableHead>
                   <TableHead>Bonus Type</TableHead>
                   <TableHead>Bonus Value</TableHead>
                   <TableHead>Status</TableHead>

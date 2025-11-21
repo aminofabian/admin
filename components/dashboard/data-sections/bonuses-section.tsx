@@ -391,6 +391,7 @@ export function BonusesSection() {
                         </TableRow>
                       ) : activeTab === 'transfer' ? (
                         <TableRow>
+                          <TableHead>Bonus Name</TableHead>
                           <TableHead>Bonus Type</TableHead>
                           <TableHead>Bonus Value</TableHead>
                           <TableHead>Status</TableHead>
@@ -398,7 +399,7 @@ export function BonusesSection() {
                         </TableRow>
                       ) : activeTab === 'signup' ? (
                         <TableRow>
-                          <TableHead>Bonus Label</TableHead>
+                          <TableHead>Bonus Name</TableHead>
                           <TableHead>Bonus Type</TableHead>
                           <TableHead>Bonus Value</TableHead>
                           <TableHead>Status</TableHead>
@@ -468,6 +469,9 @@ export function BonusesSection() {
                           ) : activeTab === 'transfer' ? (
                             <>
                               {/* eslint-disable @typescript-eslint/no-explicit-any */}
+                              <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                {'name' in item ? (item as any).name : 'N/A'}
+                              </TableCell>
                               <TableCell>
                                 <Badge variant="success">Percentage</Badge>
                               </TableCell>

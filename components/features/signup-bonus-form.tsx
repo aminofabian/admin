@@ -110,10 +110,10 @@ export function SignupBonusForm({
       </div>
 
       <div className="space-y-4">
-        {/* Bonus Label - Display only */}
+        {/* Bonus Name - Display only */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Bonus Label
+            Bonus Name
           </label>
           <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
             {initialData?.name || 'N/A'}

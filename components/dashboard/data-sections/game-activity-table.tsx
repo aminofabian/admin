@@ -34,6 +34,7 @@ const mapTypeToLabel = (type: string): string => {
   if (type === 'recharge_game') return 'Recharge';
   if (type === 'redeem_game') return 'Redeem';
   if (type === 'add_user_game' || type === 'create_game') return 'Add User';
+  if (type === 'change_password') return 'Reset';
   return type;
 };
 
