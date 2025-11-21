@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
-import { LoadingState, ErrorState, EmptyState } from '@/components/features';
+import { ErrorState, EmptyState } from '@/components/features';
 import { usePaymentMethodsStore } from '@/stores';
 import { useToast } from '@/components/ui/toast';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Skeleton } from '@/components/ui';
 import type { PaymentMethod, PaymentMethodAction } from '@/types';
 
 const PAYMENT_ICON: JSX.Element = (
@@ -71,8 +71,76 @@ export function PaymentSettingsSection() {
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);
 
-  if (isLoading && !paymentMethods) {
-    return <LoadingState />;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+            <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-40 shrink-0" />
+            <div className="flex-1 min-w-0" />
+            <div className="flex items-center gap-2 shrink-0">
+              <Skeleton className="h-9 w-24 rounded-lg" />
+              <Skeleton className="h-9 w-24 rounded-lg" />
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700"
+            >
+              <Skeleton className="h-4 w-32 mb-2" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {/* Table Header Skeleton */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-6 gap-4 px-4 py-3">
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-24" />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Table Rows Skeleton */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-6 gap-4 px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-lg" />
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-32 mb-2" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-6 w-20 rounded-md" />
+                    <Skeleton className="h-6 w-20 rounded-md" />
+                    <div className="flex justify-center">
+                      <Skeleton className="h-6 w-16 rounded-md" />
+                    </div>
+                    <Skeleton className="h-4 w-24" />
+                    <div className="flex justify-end">
+                      <Skeleton className="h-9 w-24 rounded-lg" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error && !paymentMethods) {
@@ -157,7 +225,7 @@ export function PaymentSettingsSection() {
 
       {/* Payment Methods Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {filteredResults.length === 0 ? (
+        {!paymentMethods || filteredResults.length === 0 ? (
           <div className="py-12">
             <EmptyState 
               title="No Payment Methods" 
