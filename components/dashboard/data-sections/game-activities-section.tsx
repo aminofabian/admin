@@ -730,10 +730,10 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
       <TableCell>
         <div className="space-y-1">
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            {creditsDisplay}
+            C: {creditsDisplay}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            {winningsDisplay}
+            W: {winningsDisplay}
           </div>
         </div>
       </TableCell>
