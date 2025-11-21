@@ -77,7 +77,7 @@ export default function FirstPurchaseBonusPage() {
     setEditingBonus(null);
   };
 
-  if (isLoading) {
+  if (isLoading || operationLoading.firstPurchase || !firstPurchaseBonuses) {
     return (
       <div className="space-y-6">
         {/* Header Skeleton */}

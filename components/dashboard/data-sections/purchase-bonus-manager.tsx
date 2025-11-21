@@ -90,7 +90,7 @@ export function PurchaseBonusManager({
     setEditingBonus(null);
   };
 
-  if (isLoading) {
+  if (isLoading || operationLoading.purchase || !purchaseBonuses) {
     return (
       <div className="space-y-6">
         {/* Header Skeleton */}

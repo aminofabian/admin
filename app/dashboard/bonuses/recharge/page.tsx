@@ -75,7 +75,7 @@ export default function RechargeBonusPage() {
     setEditingBonus(null);
   };
 
-  if (isLoading) {
+  if (isLoading || operationLoading.recharge || !rechargeBonuses) {
     return (
       <div className="space-y-6">
         {/* Header Skeleton */}

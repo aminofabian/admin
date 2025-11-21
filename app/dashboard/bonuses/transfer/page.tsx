@@ -74,7 +74,7 @@ export default function TransferBonusPage() {
     setEditingBonus(null);
   };
 
-  if (isLoading) {
+  if (isLoading || operationLoading.transfer || !transferBonuses) {
     return (
       <div className="space-y-6">
         {/* Header Skeleton */}

@@ -80,7 +80,7 @@ export default function SignUpBonusPage() {
     setEditingBonus(null);
   };
 
-  if (isLoading) {
+  if (isLoading || operationLoading.signup || !signupBonuses) {
     return (
       <div className="space-y-6">
         {/* Header Skeleton */}
