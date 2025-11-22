@@ -113,8 +113,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
       : undefined;
   }, [sanitizedInvoiceUrl, transaction.id]);
 
-  const formattedCreatedAt = useMemo(() => formatDate(transaction.created), [transaction.created]);
-  const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated), [transaction.updated]);
+  const formattedCreatedAt = useMemo(() => formatDate(transaction.created_at), [transaction.created_at]);
+  const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated_at), [transaction.updated_at]);
 
   const handleOpenInvoice = useCallback(() => {
     if (invoiceUrl) {

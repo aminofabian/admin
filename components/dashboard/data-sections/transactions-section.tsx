@@ -670,7 +670,7 @@ export function TransactionsSection() {
           }
 
           // Check date range filters
-          const transactionDate = new Date(transaction.created);
+          const transactionDate = new Date(transaction.created_at || transaction.created);
 
           if (advancedFilters.date_from) {
             const fromDate = new Date(advancedFilters.date_from);
@@ -1169,8 +1169,8 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     return transaction.user_username.charAt(0).toUpperCase();
   }, [transaction.user_username]);
 
-  const formattedCreatedAt = useMemo(() => formatDate(transaction.created), [transaction.created]);
-  const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated), [transaction.updated]);
+  const formattedCreatedAt = useMemo(() => formatDate(transaction.created_at), [transaction.created_at]);
+  const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated_at), [transaction.updated_at]);
 
   const handleViewClick = useCallback(() => {
     onView(transaction);
@@ -1273,6 +1273,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     prevProps.transaction.id === nextProps.transaction.id &&
     prevProps.transaction.status === nextProps.transaction.status &&
     prevProps.transaction.amount === nextProps.transaction.amount &&
+    prevProps.transaction.updated_at === nextProps.transaction.updated_at &&
     prevProps.transaction.updated === nextProps.transaction.updated &&
     prevProps.onView === nextProps.onView
   );
@@ -1304,7 +1305,7 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
     return transaction.user_username.charAt(0).toUpperCase();
   }, [transaction.user_username]);
 
-  const formattedCreatedAt = useMemo(() => formatDate(transaction.created), [transaction.created]);
+  const formattedCreatedAt = useMemo(() => formatDate(transaction.created_at), [transaction.created_at]);
 
   const handleViewClick = useCallback(() => {
     onView(transaction);

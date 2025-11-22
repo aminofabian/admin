@@ -25,8 +25,10 @@ export interface Transaction {
   role: string;
   action: string;
   remarks: string | null;
-  created: string;
-  updated: string;
+  created: string; // Deprecated: use created_at instead
+  updated: string; // Deprecated: use updated_at instead
+  created_at: string;
+  updated_at: string;
   payment_url?: string | null;
   invoice_url?: string;
 }
