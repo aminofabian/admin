@@ -22,24 +22,11 @@ export interface HistoryTransactionsFiltersState {
 
 type HistoryTransactionsFilterKey = keyof HistoryTransactionsFiltersState;
 
-interface InputFieldConfig {
-  key: HistoryTransactionsFilterKey;
-  label: string;
-  placeholder?: string;
-  type?: 'text' | 'email' | 'date' | 'number';
-  step?: string;
-}
-
 interface SelectFieldConfig {
   key: HistoryTransactionsFilterKey;
   label: string;
   options: Array<{ value: string; label: string }>;
 }
-
-const TEXT_FIELDS: InputFieldConfig[] = [
-  { key: 'email', label: 'Email', placeholder: 'Filter by email', type: 'email' },
-  { key: 'transaction_id', label: 'Transaction ID', placeholder: 'Enter transaction ID' },
-];
 
 const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
   {
@@ -51,11 +38,6 @@ const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
       { value: 'cashout', label: 'Cashout' },
     ],
   },
-];
-
-const AMOUNT_FIELDS: InputFieldConfig[] = [
-  { key: 'amount_min', label: 'Min Amount', type: 'number', placeholder: '0.00', step: '0.01' },
-  { key: 'amount_max', label: 'Max Amount', type: 'number', placeholder: '999999.99', step: '0.01' },
 ];
 
 const FILTER_ICON = (
@@ -149,6 +131,7 @@ export function HistoryTransactionsFilters({
       {isOpen && (
         <div className="pt-5 text-foreground transition-colors">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
+          {/* 1. Username */}
           <div className="min-w-0">
             <label className={labelClasses}>Player Username</label>
             <input
@@ -160,6 +143,31 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
+          {/* 2. Email */}
+          <div className="min-w-0">
+            <label className={labelClasses}>Email</label>
+            <input
+              type="email"
+              value={filters.email}
+              onChange={(event) => onFilterChange('email', event.target.value)}
+              placeholder="Filter by email"
+              className={inputClasses}
+            />
+          </div>
+
+          {/* 3. Transaction ID */}
+          <div className="min-w-0">
+            <label className={labelClasses}>Transaction ID</label>
+            <input
+              type="text"
+              value={filters.transaction_id}
+              onChange={(event) => onFilterChange('transaction_id', event.target.value)}
+              placeholder="Enter transaction ID"
+              className={inputClasses}
+            />
+          </div>
+
+          {/* 4. Agent */}
           <div className="min-w-0">
             <label className={labelClasses}>Agent</label>
             <Select
@@ -178,6 +186,7 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
+          {/* 5. Payment Method */}
           <div className="min-w-0">
             <label className={labelClasses}>Payment Method</label>
             <Select
@@ -196,19 +205,7 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
-          {TEXT_FIELDS.map(({ key, label, placeholder, type = 'text' }) => (
-            <div key={key} className="min-w-0">
-              <label className={labelClasses}>{label}</label>
-              <input
-                type={type}
-                value={filters[key]}
-                onChange={(event) => onFilterChange(key, event.target.value)}
-                placeholder={placeholder}
-                className={inputClasses}
-              />
-            </div>
-          ))}
-
+          {/* 6. Transaction Type */}
           {BASE_SELECT_FIELDS.map(({ key, label, options }) => (
             <div key={key} className="min-w-0">
               <label className={labelClasses}>{label}</label>
@@ -221,6 +218,7 @@ export function HistoryTransactionsFilters({
             </div>
           ))}
 
+          {/* 7. Operator */}
           <div className="min-w-0">
             <label className={labelClasses}>Operator</label>
             <Select
@@ -239,6 +237,7 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
+          {/* 8. Status */}
           <div className="min-w-0">
             <label className={labelClasses}>Status</label>
             <Select
@@ -249,7 +248,7 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
-          {/* Date Range - Compact Design */}
+          {/* 9. From Date */}
           <div className="min-w-0">
             <label className={labelClasses}>From Date</label>
             <input
@@ -262,6 +261,7 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
+          {/* 10. To Date */}
           <div className="min-w-0">
             <label className={labelClasses}>To Date</label>
             <input
@@ -274,19 +274,31 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
-          {AMOUNT_FIELDS.map(({ key, label, placeholder, type = 'number', step }) => (
-            <div key={key} className="min-w-0">
-              <label className={labelClasses}>{label}</label>
-              <input
-                type={type}
-                value={filters[key]}
-                onChange={(event) => onFilterChange(key, event.target.value)}
-                placeholder={placeholder}
-                step={step}
-                className={inputClasses}
-              />
-            </div>
-          ))}
+          {/* 11. Min Amount */}
+          <div className="min-w-0">
+            <label className={labelClasses}>Min Amount</label>
+            <input
+              type="number"
+              value={filters.amount_min}
+              onChange={(event) => onFilterChange('amount_min', event.target.value)}
+              placeholder="0.00"
+              step="0.01"
+              className={inputClasses}
+            />
+          </div>
+
+          {/* 12. Max Amount */}
+          <div className="min-w-0">
+            <label className={labelClasses}>Max Amount</label>
+            <input
+              type="number"
+              value={filters.amount_max}
+              onChange={(event) => onFilterChange('amount_max', event.target.value)}
+              placeholder="999999.99"
+              step="0.01"
+              className={inputClasses}
+            />
+          </div>
 
           <div className="col-span-full flex flex-wrap justify-end gap-2 mt-4 pt-4 border-t border-border">
             <Button 

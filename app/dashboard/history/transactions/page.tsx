@@ -8,8 +8,9 @@ import { useTransactionsStore } from '@/stores';
 
 export default function HistoryTransactionsPage() {
   const searchParams = useSearchParams();
-  const { setFilterWithoutFetch, setAdvancedFiltersWithoutFetch } = useTransactionsStore();
+  const { setFilterWithoutFetch, setAdvancedFiltersWithoutFetch, clearAdvancedFilters } = useTransactionsStore();
   const advancedFilters = useTransactionsStore((state) => state.advancedFilters);
+  const hasInitializedRef = useRef(false);
   const appliedFiltersRef = useRef<{ username: string | null }>({
     username: null,
   });
@@ -18,66 +19,61 @@ export default function HistoryTransactionsPage() {
     setFilterWithoutFetch('history');
   }, [setFilterWithoutFetch]);
 
+  // Reset all filters when revisiting the page (unless there's a username query param)
   useEffect(() => {
+    // Only reset on initial mount, not on every render
+    if (hasInitializedRef.current) {
+      return;
+    }
+
     const usernameFromQuery = searchParams.get('username');
     const trimmedUsername = usernameFromQuery?.trim() || null;
 
-    // Get current filters from store
-    const currentAdvancedFilters = advancedFilters;
-
-    // Clear filters that are not relevant to this page (e.g., agent/agent_id from agent transactions)
-    const filtersToClear: string[] = [];
-    if (currentAdvancedFilters.agent || currentAdvancedFilters.agent_id) {
-      filtersToClear.push('agent', 'agent_id');
-    }
-
-    // If no username parameter, clear it if it was previously set
+    // If no username parameter, reset all filters to default state
     if (!trimmedUsername) {
-      if (appliedFiltersRef.current.username) {
-        appliedFiltersRef.current = { username: null };
-        if (currentAdvancedFilters.username) {
-          filtersToClear.push('username');
-        }
-      }
-      
-      // Clear all irrelevant filters if any need to be cleared
-      if (filtersToClear.length > 0) {
-        const cleanedFilters = { ...currentAdvancedFilters };
-        filtersToClear.forEach(key => delete cleanedFilters[key]);
-        console.log('🧹 Clearing irrelevant filters from player transactions page:', filtersToClear);
-        setAdvancedFiltersWithoutFetch(cleanedFilters);
-      }
+      console.log('🔄 Resetting all filters on Transaction History page visit');
+      clearAdvancedFilters();
+      hasInitializedRef.current = true;
       return;
     }
 
-    // Check if filter has changed
-    if (appliedFiltersRef.current.username === trimmedUsername) {
-      // Still clear agent filters even if username hasn't changed
-      if (filtersToClear.length > 0) {
-        const cleanedFilters = { ...currentAdvancedFilters };
-        filtersToClear.forEach(key => delete cleanedFilters[key]);
-        cleanedFilters.username = trimmedUsername;
-        console.log('🧹 Clearing irrelevant filters while keeping username:', filtersToClear);
-        setAdvancedFiltersWithoutFetch(cleanedFilters);
-      }
-      return;
-    }
-
-    // Update the ref
-    appliedFiltersRef.current = { username: trimmedUsername };
-
-    // Update filters - clear agent filters and set username
+    // If username is provided, set it and clear other filters
     const filterUpdate: Record<string, string> = {
-      ...currentAdvancedFilters,
       username: trimmedUsername,
     };
     
-    // Remove agent-related filters (this page is for player transactions, not agent transactions)
-    delete filterUpdate.agent;
-    delete filterUpdate.agent_id;
-
     setAdvancedFiltersWithoutFetch(filterUpdate);
-  }, [searchParams, setAdvancedFiltersWithoutFetch, advancedFilters]);
+    appliedFiltersRef.current = { username: trimmedUsername };
+    hasInitializedRef.current = true;
+  }, [searchParams, setAdvancedFiltersWithoutFetch, clearAdvancedFilters]);
+
+  // Handle username query param changes after initial mount
+  useEffect(() => {
+    // Skip if not initialized yet (handled by the first useEffect)
+    if (!hasInitializedRef.current) {
+      return;
+    }
+
+    const usernameFromQuery = searchParams.get('username');
+    const trimmedUsername = usernameFromQuery?.trim() || null;
+
+    // If username was removed from query, reset all filters
+    if (!trimmedUsername && appliedFiltersRef.current.username) {
+      console.log('🔄 Username removed from query, resetting all filters');
+      clearAdvancedFilters();
+      appliedFiltersRef.current = { username: null };
+      return;
+    }
+
+    // If username changed, update it
+    if (trimmedUsername && appliedFiltersRef.current.username !== trimmedUsername) {
+      const filterUpdate: Record<string, string> = {
+        username: trimmedUsername,
+      };
+      setAdvancedFiltersWithoutFetch(filterUpdate);
+      appliedFiltersRef.current = { username: trimmedUsername };
+    }
+  }, [searchParams, setAdvancedFiltersWithoutFetch, clearAdvancedFilters]);
 
   return (
     <>
