@@ -130,8 +130,10 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       } else if (filter === 'cashouts') {
         filters.type = 'cashout';
       } else if (filter === 'pending-purchases') {
+        filters.type = 'purchase';
         filters.txn = 'purchases';
       } else if (filter === 'pending-cashouts') {
+        filters.type = 'cashout';
         filters.txn = 'cashouts';
       } else if (filter === 'processing') {
         filters.type = 'processing';

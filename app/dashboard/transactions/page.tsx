@@ -26,14 +26,20 @@ export default function TransactionsPage() {
     const trimmedAgent = agentFromQuery?.trim() || null;
     const trimmedAgentId = agentIdFromQuery?.trim() || null;
 
-    // If no agent params, just clear username filter if present (this page is for agent transactions)
+    // If no agent params, clear all filters except agent-related ones
+    // This prevents filters from other pages (like transactions history) from being prefilled
     if (!trimmedAgent && !trimmedAgentId) {
       const currentAdvancedFilters = getStoreState().advancedFilters;
-      if (currentAdvancedFilters.username) {
-        const cleanedFilters = { ...currentAdvancedFilters };
-        delete cleanedFilters.username;
-        setAdvancedFilters(cleanedFilters);
+      // Only preserve agent filters if they exist, clear everything else
+      const filterUpdate: Record<string, string> = {};
+      if (currentAdvancedFilters.agent) {
+        filterUpdate.agent = currentAdvancedFilters.agent;
       }
+      if (currentAdvancedFilters.agent_id) {
+        filterUpdate.agent_id = currentAdvancedFilters.agent_id;
+      }
+      // Clear all other filters (username, email, type, status, payment_method, dates, amounts, etc.)
+      setAdvancedFilters(filterUpdate);
       hasInitializedRef.current = true;
       return;
     }
@@ -41,24 +47,24 @@ export default function TransactionsPage() {
     // Get current filters from store
     const currentAdvancedFilters = getStoreState().advancedFilters;
 
-    // Build the filter update - only update agent/agent_id, preserve all other filters
-    // Only remove username filter (this page is for agent transactions, not player transactions)
-    const filterUpdate: Record<string, string> = { ...currentAdvancedFilters };
-    
-    // Remove username filter (this page is for agent transactions, not player transactions)
-    delete filterUpdate.username;
+    // Build the filter update - only preserve agent/agent_id from current filters
+    // Clear all other filters (username, email, type, status, payment_method, dates, amounts, etc.)
+    // to prevent filters from other pages from being prefilled
+    const filterUpdate: Record<string, string> = {};
 
     // Update agent filters from URL
     if (trimmedAgent) {
       filterUpdate.agent = trimmedAgent;
-    } else {
-      delete filterUpdate.agent;
+    } else if (currentAdvancedFilters.agent) {
+      // Preserve existing agent filter if not in URL
+      filterUpdate.agent = currentAdvancedFilters.agent;
     }
 
     if (trimmedAgentId) {
       filterUpdate.agent_id = trimmedAgentId;
-    } else {
-      delete filterUpdate.agent_id;
+    } else if (currentAdvancedFilters.agent_id) {
+      // Preserve existing agent_id filter if not in URL
+      filterUpdate.agent_id = currentAdvancedFilters.agent_id;
     }
 
     console.log('✅ Initializing agent filter from URL:', { agent: trimmedAgent, agent_id: trimmedAgentId });
