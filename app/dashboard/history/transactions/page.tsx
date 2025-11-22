@@ -37,7 +37,9 @@ export default function HistoryTransactionsPage() {
       return;
     }
 
-    // If username is provided, set it and clear other filters
+    // If username is provided, clear all filters first, then set only the username filter
+    console.log('🔄 Clearing previous filters and setting username filter:', trimmedUsername);
+    clearAdvancedFiltersWithoutFetch();
     const filterUpdate: Record<string, string> = {
       username: trimmedUsername,
     };
@@ -65,8 +67,10 @@ export default function HistoryTransactionsPage() {
       return;
     }
 
-    // If username changed, update it
+    // If username changed, clear all filters first, then set only the username filter
     if (trimmedUsername && appliedFiltersRef.current.username !== trimmedUsername) {
+      console.log('🔄 Username changed, clearing previous filters and setting new username filter:', trimmedUsername);
+      clearAdvancedFiltersWithoutFetch();
       const filterUpdate: Record<string, string> = {
         username: trimmedUsername,
       };

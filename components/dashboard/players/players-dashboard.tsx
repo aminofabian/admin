@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { playersApi, agentsApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
@@ -280,12 +280,23 @@ function usePlayersPageContext(): PlayersPageContext {
   // Initialize filters with pagination and initial agent from URL (if present)
   const filters = usePlayerFilters(pagination.setPage, agentFromUrl || undefined);
   
-  // Log when agent is initialized from URL
+  // Clear all filters and set only agent filter when agent is in URL
+  const hasInitializedAgentRef = useRef(false);
   useEffect(() => {
-    if (agentFromUrl && filters.appliedFilters.agent === agentFromUrl) {
-      console.log('✅ Agent filter initialized from URL:', agentFromUrl);
+    // Only initialize once when agent is in URL
+    if (agentFromUrl && !hasInitializedAgentRef.current) {
+      console.log('🔄 Clearing previous filters and setting agent filter from URL:', agentFromUrl);
+      // Clear all filters first
+      filters.clearFilters();
+      // Then set only the agent filter and apply it immediately
+      filters.setFilterAndApply('agent', agentFromUrl);
+      hasInitializedAgentRef.current = true;
+    } else if (!agentFromUrl && hasInitializedAgentRef.current) {
+      // Reset the ref when agent is removed from URL
+      hasInitializedAgentRef.current = false;
     }
-  }, [agentFromUrl, filters.appliedFilters.agent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentFromUrl]); // Only run when agentFromUrl changes
 
   useEffect(() => {
     let isMounted = true;

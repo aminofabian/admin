@@ -26,48 +26,31 @@ export default function TransactionsPage() {
     const trimmedAgent = agentFromQuery?.trim() || null;
     const trimmedAgentId = agentIdFromQuery?.trim() || null;
 
-    // If no agent params, clear all filters except agent-related ones
+    // If no agent params, clear all filters
     // This prevents filters from other pages (like transactions history) from being prefilled
     if (!trimmedAgent && !trimmedAgentId) {
-      const currentAdvancedFilters = getStoreState().advancedFilters;
-      // Only preserve agent filters if they exist, clear everything else
-      const filterUpdate: Record<string, string> = {};
-      if (currentAdvancedFilters.agent) {
-        filterUpdate.agent = currentAdvancedFilters.agent;
-      }
-      if (currentAdvancedFilters.agent_id) {
-        filterUpdate.agent_id = currentAdvancedFilters.agent_id;
-      }
-      // Clear all other filters (username, email, type, status, payment_method, dates, amounts, etc.)
-      setAdvancedFilters(filterUpdate);
+      console.log('🔄 No agent in query, clearing all filters');
+      setAdvancedFilters({});
       hasInitializedRef.current = true;
       return;
     }
 
-    // Get current filters from store
-    const currentAdvancedFilters = getStoreState().advancedFilters;
+    // Clear all previous filters first, then set only the agent filter
+    console.log('🔄 Clearing previous filters and setting agent filter:', { agent: trimmedAgent, agent_id: trimmedAgentId });
+    setAdvancedFilters({});
 
-    // Build the filter update - only preserve agent/agent_id from current filters
-    // Clear all other filters (username, email, type, status, payment_method, dates, amounts, etc.)
-    // to prevent filters from other pages from being prefilled
+    // Build the filter update with only agent filters from URL
     const filterUpdate: Record<string, string> = {};
 
     // Update agent filters from URL
     if (trimmedAgent) {
       filterUpdate.agent = trimmedAgent;
-    } else if (currentAdvancedFilters.agent) {
-      // Preserve existing agent filter if not in URL
-      filterUpdate.agent = currentAdvancedFilters.agent;
     }
 
     if (trimmedAgentId) {
       filterUpdate.agent_id = trimmedAgentId;
-    } else if (currentAdvancedFilters.agent_id) {
-      // Preserve existing agent_id filter if not in URL
-      filterUpdate.agent_id = currentAdvancedFilters.agent_id;
     }
 
-    console.log('✅ Initializing agent filter from URL:', { agent: trimmedAgent, agent_id: trimmedAgentId });
     setAdvancedFilters(filterUpdate);
     hasInitializedRef.current = true;
   }, [searchParams, setAdvancedFilters, getStoreState]);

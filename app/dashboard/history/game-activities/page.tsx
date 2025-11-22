@@ -8,46 +8,47 @@ import { useTransactionQueuesStore } from '@/stores';
 
 export default function HistoryGameActivitiesPage() {
   const searchParams = useSearchParams();
-  const { setAdvancedFilters, advancedFilters } = useTransactionQueuesStore();
+  const { setAdvancedFiltersWithoutFetch, setAdvancedFilters } = useTransactionQueuesStore();
   const appliedFiltersRef = useRef<{ username: string | null }>({
     username: null,
   });
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
     const usernameFromQuery = searchParams.get('username');
     const trimmedUsername = usernameFromQuery?.trim() || null;
 
-    // Get current filters from store
-    const currentAdvancedFilters = advancedFilters;
-
-    // If no username parameter, clear it if it was previously set
+    // If no username parameter, clear all filters if it was previously set
     if (!trimmedUsername) {
-      if (appliedFiltersRef.current.username) {
+      if (appliedFiltersRef.current.username || hasInitializedRef.current) {
+        console.log('🔄 No username in query, clearing all filters');
+        setAdvancedFiltersWithoutFetch({});
         appliedFiltersRef.current = { username: null };
-        if (currentAdvancedFilters.username) {
-          const { username, ...rest } = currentAdvancedFilters;
-          setAdvancedFilters(rest);
-        }
+        hasInitializedRef.current = true;
       }
       return;
     }
 
     // Check if filter has changed
-    if (appliedFiltersRef.current.username === trimmedUsername) {
+    if (appliedFiltersRef.current.username === trimmedUsername && hasInitializedRef.current) {
       return;
     }
 
+    // Clear all previous filters first, then set only the username filter
+    console.log('🔄 Clearing previous filters and setting username filter:', trimmedUsername);
+    setAdvancedFiltersWithoutFetch({});
+    
     // Update the ref
     appliedFiltersRef.current = { username: trimmedUsername };
+    hasInitializedRef.current = true;
 
-    // Update filters
+    // Set only the username filter
     const filterUpdate: Record<string, string> = {
-      ...currentAdvancedFilters,
       username: trimmedUsername,
     };
 
-    setAdvancedFilters(filterUpdate);
-  }, [searchParams, setAdvancedFilters, advancedFilters]);
+    setAdvancedFiltersWithoutFetch(filterUpdate);
+  }, [searchParams, setAdvancedFiltersWithoutFetch]);
 
   return (
     <>
