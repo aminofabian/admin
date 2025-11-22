@@ -9,7 +9,7 @@ import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
 import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
-import type { Agent, PaymentMethod, Transaction, Staff, Manager } from '@/types';
+import type { Agent, PaymentMethod, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 
@@ -821,7 +821,7 @@ export function TransactionsSection() {
         onClearAdvancedFilters={handleClearAdvancedFilters}
         areAdvancedFiltersOpen={areFiltersOpen}
         onToggleAdvancedFilters={handleToggleAdvancedFilters}
-        transactions={results}
+        transactions={transactions}
         currentPage={currentPage}
         totalCount={totalCount}
         pageSize={pageSize}
@@ -846,7 +846,7 @@ interface TransactionsLayoutProps {
   onClearAdvancedFilters: () => void;
   areAdvancedFiltersOpen: boolean;
   onToggleAdvancedFilters: () => void;
-  transactions: Transaction[];
+  transactions: PaginatedResponse<Transaction> | null;
   currentPage: number;
   totalCount: number;
   pageSize: number;
@@ -940,7 +940,7 @@ function TransactionsLayout({
 }
 
 interface TransactionsTableProps {
-  transactions: Transaction[];
+  transactions: PaginatedResponse<Transaction> | null;
   currentPage: number;
   totalCount: number;
   pageSize: number;
@@ -967,14 +967,15 @@ function TransactionsTable({
     setSelectedTransaction(null);
   }, []);
 
+  const transactionResults = useMemo(() => transactions?.results ?? [], [transactions?.results]);
   const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
-  const hasNext = useMemo(() => currentPage * pageSize < totalCount, [currentPage, pageSize, totalCount]);
-  const hasPrevious = useMemo(() => currentPage > 1, [currentPage]);
+  const hasNext = useMemo(() => !!transactions?.next, [transactions?.next]);
+  const hasPrevious = useMemo(() => !!transactions?.previous, [transactions?.previous]);
 
   return (
     <>
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {!transactions.length ? (
+        {!transactionResults.length ? (
           <div className="py-12">
             <EmptyState 
               title="No Transactions found" 
@@ -984,7 +985,7 @@ function TransactionsTable({
         ) : (
           <>
         <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
-          {transactions.map((transaction) => (
+          {transactionResults.map((transaction) => (
             <TransactionCard
               key={transaction.id}
               transaction={transaction}
@@ -1009,7 +1010,7 @@ function TransactionsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((transaction) => (
+              {transactionResults.map((transaction) => (
                 <TransactionsRow 
                   key={transaction.id} 
                   transaction={transaction}

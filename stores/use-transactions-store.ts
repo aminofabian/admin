@@ -282,14 +282,19 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           emailFilter,
           originalCount: response.results.length,
           filteredCount: normalizedTransactions.length,
+          totalCount: response.count,
         });
       }
       
+      // Preserve the original API count for pagination
+      // When client-side filtering is applied, we still need the total count from the API
+      // to properly calculate pagination. The filtered results length is only for the current page.
       set({ 
         transactions: {
           ...response,
           results: normalizedTransactions,
-          count: normalizedTransactions.length, // Update count for client-side filtering
+          // Keep the original API count for pagination, not the filtered length
+          count: response.count ?? normalizedTransactions.length,
         }, 
         isLoading: false,
         error: null,
