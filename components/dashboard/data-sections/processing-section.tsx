@@ -333,8 +333,8 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   const datesCell = (
     <TableCell>
       <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-        <div>{transaction.created ? formatDate(transaction.created) : '—'}</div>
-        <div>{transaction.updated ? formatDate(transaction.updated) : '—'}</div>
+        <div>{transaction.created_at ? formatDate(transaction.created_at) : '—'}</div>
+        <div>{transaction.updated_at ? formatDate(transaction.updated_at) : '—'}</div>
       </div>
     </TableCell>
   );
@@ -1109,7 +1109,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span>{formatDate(transaction.created)}</span>
+                      <span>{transaction.created_at ? formatDate(transaction.created_at) : '—'}</span>
                     </div>
                     <Button
                       size="sm"
