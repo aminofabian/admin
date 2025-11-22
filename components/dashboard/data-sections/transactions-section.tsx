@@ -28,7 +28,6 @@ const EMPTY_STATE = (
 
 const TRANSACTIONS_SKELETON = (
   <div className="space-y-6">
-    {/* Header Skeleton */}
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
       <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
         <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
@@ -37,7 +36,6 @@ const TRANSACTIONS_SKELETON = (
       </div>
     </div>
 
-    {/* Filters Skeleton */}
     <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
       <div className="space-y-4">
         <div className="flex gap-2">
@@ -53,11 +51,9 @@ const TRANSACTIONS_SKELETON = (
       </div>
     </div>
 
-    {/* Table Skeleton */}
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="overflow-x-auto">
         <div className="min-w-full">
-          {/* Table Header Skeleton */}
           <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-9 gap-4 px-4 py-3">
               {[...Array(9)].map((_, i) => (
@@ -66,7 +62,6 @@ const TRANSACTIONS_SKELETON = (
             </div>
           </div>
           
-          {/* Table Rows Skeleton */}
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="grid grid-cols-9 gap-4 px-4 py-4">
@@ -135,7 +130,6 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
 }
 
 export function TransactionsSection() {
-  // Selective store subscriptions - only subscribe to what we need
   const transactions = useTransactionsStore((state) => state.transactions);
   const isLoading = useTransactionsStore((state) => state.isLoading);
   const error = useTransactionsStore((state) => state.error);
@@ -159,13 +153,10 @@ export function TransactionsSection() {
   const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
   const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isGameLoading, setIsGameLoading] = useState(false);
-  // Unified notification ref to prevent duplicate toasts
   const lastNotificationKeyRef = useRef<string>('');
 
-  // Memoize advanced filters string to prevent unnecessary re-renders
   const advancedFiltersString = useMemo(() => JSON.stringify(advancedFilters), [advancedFilters]);
 
-  // Log component mount/unmount for debugging duplicate API calls
   useEffect(() => {
     console.log('🏗️ TransactionsSection component MOUNTED at:', new Date().toISOString());
     return () => {
@@ -173,54 +164,40 @@ export function TransactionsSection() {
     };
   }, []);
 
-  // Fetch transactions when dependencies change
   useEffect(() => {
-    // Only fetch when filter is properly set to prevent duplicate calls
-    // In history context, we should only fetch when filter is 'history'
     if (filter === 'all') {
-      return; // Skip fetch - waiting for history filter to be set
+      return;
     }
 
     fetchTransactions();
   }, [currentPage, filter, fetchTransactions, advancedFiltersString]);
 
-  // Unified toast notification system - prevents duplicates and only fires when appropriate
   useEffect(() => {
-    // CRITICAL: Only check when NOT loading and we have a definitive result
-    // During loading, transactions?.count might be stale from previous results
     if (isLoading) {
-      return; // Don't show toast while loading
+      return;
     }
 
-    // Only proceed if we have a definitive "no results" state
-    // transactions must exist (not null) and count must be 0
     const hasNoResults = transactions !== null && transactions.count === 0;
     
     if (!hasNoResults) {
-      // Reset notification key when results are found
       lastNotificationKeyRef.current = '';
       return;
     }
 
-    // Create a unique key for this filter combination to prevent duplicate notifications
     const filterKey = JSON.stringify({
       ...advancedFilters,
       filter,
       currentPage,
     });
 
-    // Skip if we've already shown a notification for this exact filter combination
     if (lastNotificationKeyRef.current === filterKey) {
       return;
     }
 
-    // Mark this combination as notified
     lastNotificationKeyRef.current = filterKey;
 
-    // Build the notification message based on active filters
     const activeFilters: string[] = [];
     
-    // Check for specific filter types and build appropriate message
     if (advancedFilters.agent || advancedFilters.agent_id) {
       activeFilters.push(`agent: ${advancedFilters.agent || 'selected agent'}`);
     }
@@ -243,14 +220,12 @@ export function TransactionsSection() {
       activeFilters.push(`game: ${advancedFilters.game}`);
     }
     
-    // Handle date filters separately for better messaging
     const hasDateFrom = Boolean(advancedFilters.date_from);
     const hasDateTo = Boolean(advancedFilters.date_to);
     const hasDateFilter = hasDateFrom || hasDateTo;
     
     let description = '';
     if (hasDateFilter) {
-      // Format dates for display
       const formatDateForDisplay = (dateString: string | undefined): string => {
         if (!dateString) return '';
         try {
@@ -285,7 +260,6 @@ export function TransactionsSection() {
       description = 'No transactions found. Please try adjusting your filters or search criteria.';
     }
 
-    // Show single toast notification
     addToast({
       type: 'info',
       title: 'No transactions found',
@@ -293,10 +267,7 @@ export function TransactionsSection() {
     });
   }, [transactions, isLoading, advancedFilters, filter, currentPage, addToast]);
 
-  // Sync filters with advanced filters and resolve agent/agent_id mappings
   useEffect(() => {
-    // Only run this sync logic if we actually have agent data loaded
-    // This prevents unnecessary updates on initial load when agentIdMap is empty
     if (agentIdMap.size === 0) {
       return;
     }
@@ -305,7 +276,6 @@ export function TransactionsSection() {
     let needsUpdate = false;
     const updatedFilters = { ...advancedFilters };
     
-    // If we have agent_id but no agent, try to resolve it from the agent map
     if (filterState.agent_id && !filterState.agent && agentIdMap.size > 0) {
       const agentUsername = Array.from(agentIdMap.entries()).find(
         ([, id]) => String(id) === filterState.agent_id
@@ -318,7 +288,6 @@ export function TransactionsSection() {
       }
     }
     
-    // If we have agent but no agent_id, try to resolve it from the agent map
     if (filterState.agent && !filterState.agent_id && agentIdMap.size > 0) {
       const agentId = agentIdMap.get(filterState.agent);
       if (agentId && advancedFilters.agent_id !== String(agentId)) {
@@ -328,18 +297,13 @@ export function TransactionsSection() {
       }
     }
     
-    // Only update if we resolved a missing value
     if (needsUpdate) {
       setAdvancedFiltersWithoutFetch(updatedFilters);
     }
     
-    // Ensure date values are properly formatted for HTML date inputs (YYYY-MM-DD)
-    // and preserve them when syncing
     if (filterState.date_from) {
-      // Ensure date_from is in YYYY-MM-DD format
       const dateFromValue = filterState.date_from.trim();
       if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
-        // Try to parse and reformat if needed
         const parsedDate = new Date(dateFromValue);
         if (!isNaN(parsedDate.getTime())) {
           filterState.date_from = parsedDate.toISOString().split('T')[0];
@@ -348,10 +312,8 @@ export function TransactionsSection() {
     }
     
     if (filterState.date_to) {
-      // Ensure date_to is in YYYY-MM-DD format
       const dateToValue = filterState.date_to.trim();
       if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
-        // Try to parse and reformat if needed
         const parsedDate = new Date(dateToValue);
         if (!isNaN(parsedDate.getTime())) {
           filterState.date_to = parsedDate.toISOString().split('T')[0];
@@ -428,21 +390,17 @@ export function TransactionsSection() {
         setAgentOptions(mappedOptions);
         setAgentIdMap(idMap);
         
-        // After agents are loaded, if we have agent filter but no agent_id, resolve it
         if (isMounted && idMap.size > 0) {
           const currentFilters = getStoreState().advancedFilters;
           if (currentFilters.agent && !currentFilters.agent_id) {
-            // Try exact match first
             let agentId = idMap.get(currentFilters.agent);
             
-            // If not found, try case-insensitive match
             if (!agentId) {
               const agentKey = Array.from(idMap.keys()).find(
                 (key) => key.toLowerCase() === currentFilters.agent.toLowerCase()
               );
               if (agentKey) {
                 agentId = idMap.get(agentKey);
-                // Update the agent name to the correct case
                 console.log('🔍 Found agent with case-insensitive match:', currentFilters.agent, '→', agentKey);
               }
             }
@@ -453,7 +411,6 @@ export function TransactionsSection() {
                 ...currentFilters,
                 agent_id: String(agentId),
               };
-              // Update agent name if we found a case-insensitive match
               const agentKey = Array.from(idMap.keys()).find(
                 (key) => idMap.get(key) === agentId
               );
@@ -588,12 +545,9 @@ export function TransactionsSection() {
     };
   }, []);
 
-  // WebSocket subscription for real-time transaction updates
   const { subscribeToTransactionUpdates } = useProcessingWebSocketContext();
 
   useEffect(() => {
-    // Only subscribe to WebSocket updates if we're in the history view
-    // This prevents interference with other views like processing/pending
     const isHistoryView = filter === 'history';
 
     if (!isHistoryView) {
@@ -602,7 +556,6 @@ export function TransactionsSection() {
 
     const unsubscribeTransaction = subscribeToTransactionUpdates(
       (updatedTransaction: Transaction, isInitialLoad = false) => {
-        // Skip initial load updates (they're already loaded via API)
         if (isInitialLoad) {
           return;
         }
@@ -615,61 +568,47 @@ export function TransactionsSection() {
           hasAdvancedFilters: Object.keys(advancedFilters).length > 0,
         });
 
-        // Check if this transaction matches our current filters
         const transactionMatchesFilters = (transaction: Transaction): boolean => {
-          // For history view, we typically want to show all transactions regardless of status
-          // But we should respect advanced filters if they're applied
-
-          // Check agent filter
           if (advancedFilters.agent && transaction.user_username !== advancedFilters.agent) {
             return false;
           }
 
           if (advancedFilters.agent_id) {
-            // Use the agentIdMap to check if the transaction's username matches the agent_id
             const agentIdForTransaction = agentIdMap.get(transaction.user_username);
             if (!agentIdForTransaction || String(agentIdForTransaction) !== advancedFilters.agent_id) {
               return false;
             }
           }
 
-          // Check username filter
           if (advancedFilters.username &&
               !transaction.user_username.toLowerCase().includes(advancedFilters.username.toLowerCase())) {
             return false;
           }
 
-          // Check email filter
           if (advancedFilters.email &&
               !transaction.user_email.toLowerCase().includes(advancedFilters.email.toLowerCase())) {
             return false;
           }
 
-          // Check status filter
           if (advancedFilters.status && transaction.status !== advancedFilters.status) {
             return false;
           }
 
-          // Check type filter
           if (advancedFilters.type && transaction.type !== advancedFilters.type) {
             return false;
           }
 
-          // Check payment method filter
           if (advancedFilters.payment_method && transaction.payment_method !== advancedFilters.payment_method) {
             return false;
           }
 
-          // Check game filter
           if (advancedFilters.game) {
-            // For transactions, we might need to check description or other fields for game info
             const gameLower = advancedFilters.game.toLowerCase();
             if (transaction.description && !transaction.description.toLowerCase().includes(gameLower)) {
               return false;
             }
           }
 
-          // Check date range filters
           const transactionDate = new Date(transaction.created_at || transaction.created);
 
           if (advancedFilters.date_from) {
@@ -681,13 +620,12 @@ export function TransactionsSection() {
 
           if (advancedFilters.date_to) {
             const toDate = new Date(advancedFilters.date_to);
-            toDate.setHours(23, 59, 59, 999); // Include the entire day
+            toDate.setHours(23, 59, 59, 999);
             if (transactionDate > toDate) {
               return false;
             }
           }
 
-          // Check amount range filters
           const transactionAmount = parseFloat(transaction.amount) || 0;
 
           if (advancedFilters.amount_min) {
@@ -704,7 +642,6 @@ export function TransactionsSection() {
             }
           }
 
-          // Check transaction ID filter
           if (advancedFilters.transaction_id) {
             const searchId = advancedFilters.transaction_id.toLowerCase();
             if (!transaction.id.toLowerCase().includes(searchId) &&
@@ -716,13 +653,11 @@ export function TransactionsSection() {
           return true;
         };
 
-        // Only process updates that match our current filters
         if (!transactionMatchesFilters(updatedTransaction)) {
           console.log('⏭️ Skipping transaction update - does not match current filters');
           return;
         }
 
-        // Pass the update to the store - it will handle adding/updating/removing based on business logic
         updateTransaction(updatedTransaction);
 
         console.log('✅ Transaction history updated via WebSocket:', updatedTransaction.id);
@@ -736,7 +671,6 @@ export function TransactionsSection() {
     setFilters((previous) => {
       const updated = { ...previous, [key]: value };
       
-      // When agent is changed, also update agent_id if we have a mapping
       if (key === 'agent') {
         const agentId = agentIdMap.get(value);
         if (agentId) {
@@ -746,7 +680,6 @@ export function TransactionsSection() {
         }
       }
       
-      // When agent_id is changed, try to find the corresponding agent username
       if (key === 'agent_id') {
         if (value) {
           const agentUsername = Array.from(agentIdMap.entries()).find(([, id]) => String(id) === value)?.[0];
@@ -763,27 +696,19 @@ export function TransactionsSection() {
   }, [agentIdMap]);
 
   const handleApplyAdvancedFilters = useCallback(() => {
-    // Sanitize filters - keep only non-empty values
-    // Handle both string and non-string values properly
     const sanitized = Object.fromEntries(
       Object.entries(filters).filter(([key, value]) => {
-        // Keep date filters even if they might be empty initially
-        // They will be filtered out if truly empty
         if (typeof value === 'string') {
           return value.trim() !== '';
         }
-        // For non-string values, keep if truthy
         return Boolean(value);
       })
     ) as Record<string, string>;
 
-    // Ensure date values are properly formatted (YYYY-MM-DD) before applying
     if (sanitized.date_from) {
       const dateFromValue = sanitized.date_from.trim();
       if (dateFromValue) {
-        // If already in YYYY-MM-DD format, keep it
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
-          // Try to parse and reformat if needed
           const parsedDate = new Date(dateFromValue);
           if (!isNaN(parsedDate.getTime())) {
             sanitized.date_from = parsedDate.toISOString().split('T')[0];
@@ -795,9 +720,7 @@ export function TransactionsSection() {
     if (sanitized.date_to) {
       const dateToValue = sanitized.date_to.trim();
       if (dateToValue) {
-        // If already in YYYY-MM-DD format, keep it
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
-          // Try to parse and reformat if needed
           const parsedDate = new Date(dateToValue);
           if (!isNaN(parsedDate.getTime())) {
             sanitized.date_to = parsedDate.toISOString().split('T')[0];
@@ -806,16 +729,8 @@ export function TransactionsSection() {
       }
     }
 
-    // For history view, we should NOT convert type to txn parameter
-    // The history view should use type parameter directly, not txn
-    // txn parameter is only for processing views (pending-purchases, pending-cashouts)
-    // Keep the type parameter as-is for history view
     if (sanitized.type && (sanitized.type === 'purchase' || sanitized.type === 'cashout')) {
-      // For history view, keep type as 'purchase' or 'cashout'
-      // Do NOT convert to txn parameter
-      // The API should handle type=purchase/cashout for history view
     } else if (sanitized.type) {
-      // For other types, still convert to txn if needed
       const txnValue = sanitized.type === 'purchase'
         ? 'purchases'
         : sanitized.type === 'cashout'
@@ -829,8 +744,6 @@ export function TransactionsSection() {
       delete sanitized.type;
     }
 
-    // Ensure both agent and agent_id are included if either is present
-    // This ensures the API receives both parameters as expected: ?agent=agent2&agent_id=24
     if (sanitized.agent && !sanitized.agent_id) {
       const agentId = agentIdMap.get(sanitized.agent);
       if (agentId) {
@@ -838,13 +751,6 @@ export function TransactionsSection() {
       }
     }
     
-    // If agent_id is provided but agent is not (e.g., from URL), keep agent_id
-    // The agent username will be resolved when agents are loaded
-    // Both parameters will be sent to API: ?agent_id=24 (and agent if resolved)
-
-    // Date filters (date_from, date_to) are now included in sanitized if they have values
-    // They will be passed through to the API via setAdvancedFilters
-
     console.log('🔍 Applying filters:', {
       originalFilters: filters,
       sanitizedFilters: sanitized,
@@ -854,15 +760,11 @@ export function TransactionsSection() {
       hasDateTo: Boolean(sanitized.date_to),
     });
 
-    // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
-    // The useEffect will handle fetching with the new filters
     setAdvancedFiltersWithoutFetch(sanitized);
   }, [filters, setAdvancedFiltersWithoutFetch, agentIdMap]);
 
   const handleClearAdvancedFilters = useCallback(() => {
     setFilters({ ...DEFAULT_HISTORY_FILTERS });
-    // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
-    // The useEffect will handle fetching with cleared filters
     setAdvancedFiltersWithoutFetch({});
   }, [setAdvancedFiltersWithoutFetch]);
 
@@ -871,10 +773,7 @@ export function TransactionsSection() {
   }, []);
 
 
-  // Only show results when not loading - this ensures filtered results are shown
-  // and stale data is hidden while new filters are being applied
   const results = useMemo(() => {
-    // If loading, return empty array to hide stale data while fetching filtered results
     if (isLoading) {
       return [];
     }
@@ -882,7 +781,6 @@ export function TransactionsSection() {
   }, [transactions?.results, isLoading]);
   
   const totalCount = useMemo(() => {
-    // If loading, return 0 to hide stale count while fetching filtered results
     if (isLoading) {
       return 0;
     }
@@ -974,29 +872,24 @@ function TransactionsLayout({
 
   return (
     <>
-      {/* Compact Header */}
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
         <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-          {/* Icon */}
           <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
             <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5h6m-6 4h6m-6 4h6m-9 4h12" />
             </svg>
           </div>
           
-          {/* Title */}
           <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
             {headingTitle}
           </h2>
           
-          {/* Badge */}
           {shouldShowFilterBadge && (
             <Badge variant="info" className="uppercase tracking-wide text-[10px] sm:text-xs shrink-0">
               {formatFilterLabel(filter)}
             </Badge>
           )}
           
-          {/* Spacer */}
           <div className="flex-1 min-w-0" />
         </div>
       </div>
@@ -1077,7 +970,6 @@ function TransactionsTable({
           </div>
         ) : (
           <>
-        {/* Mobile Card View */}
         <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
           {transactions.map((transaction) => (
             <TransactionCard
@@ -1088,7 +980,6 @@ function TransactionsTable({
           ))}
         </div>
 
-        {/* Desktop Table View */}
         <div className="hidden lg:block overflow-x-auto">
           <Table>
             <TableHeader>
@@ -1148,7 +1039,6 @@ interface TransactionsRowProps {
 }
 
 const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: TransactionsRowProps) {
-  // Memoize expensive computations
   const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
   const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
@@ -1268,7 +1158,6 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     </TableRow>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison function for better performance
   return (
     prevProps.transaction.id === nextProps.transaction.id &&
     prevProps.transaction.status === nextProps.transaction.status &&
@@ -1279,7 +1168,6 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
   );
 });
 
-// Transaction Card Component for Mobile
 interface TransactionCardProps {
   transaction: Transaction;
   onView: (transaction: Transaction) => void;
@@ -1313,7 +1201,6 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
-      {/* Top Section: User, Type & Status */}
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
@@ -1345,7 +1232,6 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
         </div>
       </div>
 
-      {/* Middle Section: Amount */}
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
@@ -1362,7 +1248,6 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
         </div>
       </div>
 
-      {/* Balance Section */}
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
@@ -1396,7 +1281,6 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
         </div>
       </div>
 
-      {/* Bottom Section: Date & Action */}
       <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1424,7 +1308,6 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
   );
 });
 
-// Memoize pure functions
 const mapStatusToVariant = (status: string): 'success' | 'warning' | 'danger' | 'default' => {
   if (status === 'completed') return 'success';
   if (status === 'pending') return 'warning';

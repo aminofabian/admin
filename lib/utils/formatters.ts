@@ -18,27 +18,21 @@ export const formatCurrency = (amount: string | number): string => {
 };
 
 export const formatDate = (dateString: string | null | undefined): string => {
-  // Handle null, undefined, or empty strings
   if (!dateString || dateString.trim() === '') {
     return 'N/A';
   }
 
-  // Handle common invalid date strings
   if (dateString === 'null' || dateString === 'undefined' || dateString === 'Invalid Date') {
     return 'N/A';
   }
 
-  // Try to create date object
   let date: Date;
   
-  // Handle DD/MM/YYYY HH:mm:ss format (from backend)
   const ddmmyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/;
   const match = dateString.match(ddmmyyyyPattern);
   
   if (match) {
-    // Parse DD/MM/YYYY HH:mm:ss format
     const [, day, month, year, hour, minute, second] = match;
-    // Month is 0-indexed in JavaScript Date
     date = new Date(
       parseInt(year),
       parseInt(month) - 1,
@@ -48,16 +42,12 @@ export const formatDate = (dateString: string | null | undefined): string => {
       parseInt(second)
     );
   } else if (dateString.includes('T')) {
-    // ISO format with time
     date = new Date(dateString);
   } else if (dateString.includes('-')) {
-    // Date format YYYY-MM-DD
     date = new Date(dateString + 'T00:00:00Z');
   } else if (dateString.includes('/')) {
-    // Try standard date parsing (fallback)
     date = new Date(dateString);
   } else {
-    // Try parsing as timestamp
     const timestamp = parseInt(dateString);
     if (!isNaN(timestamp)) {
       date = new Date(timestamp);
@@ -66,19 +56,38 @@ export const formatDate = (dateString: string | null | undefined): string => {
     }
   }
   
-  // Check if the date is valid
   if (isNaN(date.getTime())) {
     console.warn('Invalid date string:', dateString);
     return 'N/A';
   }
 
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
+  try {
+    const formatted = new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'UTC',
+    }).format(date);
+    
+    if (!formatted || formatted === 'Invalid Date') {
+      throw new Error('Intl.DateTimeFormat returned invalid result');
+    }
+    
+    return formatted;
+  } catch (error) {
+    console.warn('Intl.DateTimeFormat failed, using fallback:', error);
+    
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const year = date.getUTCFullYear();
+    const month = months[date.getUTCMonth()];
+    const day = date.getUTCDate();
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    
+    return `${month} ${day}, ${year}, ${hours}:${minutes}`;
+  }
 };
 
 export const formatPercentage = (value: string | number): string => {
