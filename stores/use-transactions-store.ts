@@ -33,6 +33,7 @@ interface TransactionsActions {
   setPage: (page: number) => void;
   setSearchTerm: (term: string) => void;
   setFilter: (filter: FilterType) => void;
+  setFilterWithoutFetch: (filter: FilterType) => void;
   setAdvancedFilters: (filters: Record<string, string>) => void;
   setAdvancedFiltersWithoutFetch: (filters: Record<string, string>) => void;
   clearAdvancedFilters: () => void;
@@ -227,11 +228,19 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   },
 
   setFilter: (filter: FilterType) => {
-    set({ 
+    set({
       filter,
       currentPage: 1,
     });
     get().fetchTransactions();
+  },
+
+  setFilterWithoutFetch: (filter: FilterType) => {
+    set({
+      filter,
+      currentPage: 1,
+    });
+    // Note: Does not call fetchTransactions() - let component handle it
   },
 
   setAdvancedFilters: (filtersMap: Record<string, string>) => {

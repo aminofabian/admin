@@ -8,15 +8,15 @@ import { useTransactionsStore } from '@/stores';
 
 export default function HistoryTransactionsPage() {
   const searchParams = useSearchParams();
-  const { setFilter, setAdvancedFilters } = useTransactionsStore();
+  const { setFilterWithoutFetch, setAdvancedFiltersWithoutFetch } = useTransactionsStore();
   const advancedFilters = useTransactionsStore((state) => state.advancedFilters);
   const appliedFiltersRef = useRef<{ username: string | null }>({
     username: null,
   });
 
   useEffect(() => {
-    setFilter('history');
-  }, [setFilter]);
+    setFilterWithoutFetch('history');
+  }, [setFilterWithoutFetch]);
 
   useEffect(() => {
     const usernameFromQuery = searchParams.get('username');
@@ -45,7 +45,7 @@ export default function HistoryTransactionsPage() {
         const cleanedFilters = { ...currentAdvancedFilters };
         filtersToClear.forEach(key => delete cleanedFilters[key]);
         console.log('🧹 Clearing irrelevant filters from player transactions page:', filtersToClear);
-        setAdvancedFilters(cleanedFilters);
+        setAdvancedFiltersWithoutFetch(cleanedFilters);
       }
       return;
     }
@@ -58,7 +58,7 @@ export default function HistoryTransactionsPage() {
         filtersToClear.forEach(key => delete cleanedFilters[key]);
         cleanedFilters.username = trimmedUsername;
         console.log('🧹 Clearing irrelevant filters while keeping username:', filtersToClear);
-        setAdvancedFilters(cleanedFilters);
+        setAdvancedFiltersWithoutFetch(cleanedFilters);
       }
       return;
     }
@@ -76,8 +76,8 @@ export default function HistoryTransactionsPage() {
     delete filterUpdate.agent;
     delete filterUpdate.agent_id;
 
-    setAdvancedFilters(filterUpdate);
-  }, [searchParams, setAdvancedFilters, advancedFilters]);
+    setAdvancedFiltersWithoutFetch(filterUpdate);
+  }, [searchParams, setAdvancedFiltersWithoutFetch, advancedFilters]);
 
   return (
     <>

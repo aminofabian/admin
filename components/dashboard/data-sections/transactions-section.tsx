@@ -162,11 +162,27 @@ export function TransactionsSection() {
   // Unified notification ref to prevent duplicate toasts
   const lastNotificationKeyRef = useRef<string>('');
 
+  // Memoize advanced filters string to prevent unnecessary re-renders
+  const advancedFiltersString = useMemo(() => JSON.stringify(advancedFilters), [advancedFilters]);
+
+  // Log component mount/unmount for debugging duplicate API calls
+  useEffect(() => {
+    console.log('🏗️ TransactionsSection component MOUNTED at:', new Date().toISOString());
+    return () => {
+      console.log('🏗️ TransactionsSection component UNMOUNTED at:', new Date().toISOString());
+    };
+  }, []);
+
   // Fetch transactions when dependencies change
   useEffect(() => {
+    // Only fetch when filter is properly set to prevent duplicate calls
+    // In history context, we should only fetch when filter is 'history'
+    if (filter === 'all') {
+      return; // Skip fetch - waiting for history filter to be set
+    }
+
     fetchTransactions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, filter, advancedFilters]);
+  }, [currentPage, filter, fetchTransactions, advancedFiltersString]);
 
   // Unified toast notification system - prevents duplicates and only fires when appropriate
   useEffect(() => {
@@ -279,6 +295,12 @@ export function TransactionsSection() {
 
   // Sync filters with advanced filters and resolve agent/agent_id mappings
   useEffect(() => {
+    // Only run this sync logic if we actually have agent data loaded
+    // This prevents unnecessary updates on initial load when agentIdMap is empty
+    if (agentIdMap.size === 0) {
+      return;
+    }
+
     const filterState = buildHistoryFilterState(advancedFilters);
     let needsUpdate = false;
     const updatedFilters = { ...advancedFilters };
@@ -349,12 +371,14 @@ export function TransactionsSection() {
     if (Object.keys(advancedFilters).length > 0) {
       setAreFiltersOpen(true);
     }
-  }, [advancedFilters, agentIdMap]);
+  }, [advancedFilters, agentIdMap, setAdvancedFiltersWithoutFetch]);
 
   useEffect(() => {
+    console.log('🚀 Agents useEffect triggered - mount at:', new Date().toISOString());
     let isMounted = true;
 
     const loadAgents = async () => {
+      console.log('📥 Loading agents API at:', new Date().toISOString());
       setIsAgentLoading(true);
 
       try {
@@ -455,15 +479,18 @@ export function TransactionsSection() {
     loadAgents();
 
     return () => {
+      console.log('🧹 Agents useEffect cleanup - unmount');
       isMounted = false;
     };
-  }, [getStoreState]);
+  }, []);
 
 
   useEffect(() => {
+    console.log('🚀 Payment Methods useEffect triggered - mount at:', new Date().toISOString());
     let isMounted = true;
 
     const loadPaymentMethods = async () => {
+      console.log('📥 Loading payment-methods API at:', new Date().toISOString());
       setIsPaymentMethodLoading(true);
 
       try {
@@ -511,14 +538,17 @@ export function TransactionsSection() {
     loadPaymentMethods();
 
     return () => {
+      console.log('🧹 Payment Methods useEffect cleanup - unmount');
       isMounted = false;
     };
   }, []);
 
   useEffect(() => {
+    console.log('🚀 Games useEffect triggered - mount at:', new Date().toISOString());
     let isMounted = true;
 
     const loadGames = async () => {
+      console.log('📥 Loading games API at:', new Date().toISOString());
       setIsGameLoading(true);
 
       try {
@@ -553,6 +583,7 @@ export function TransactionsSection() {
     loadGames();
 
     return () => {
+      console.log('🧹 Games useEffect cleanup - unmount');
       isMounted = false;
     };
   }, []);
