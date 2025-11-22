@@ -188,13 +188,15 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
       // Log username/email specifically for debugging partial search
       if (filters.username || filters.email) {
+        const usernameStr = typeof filters.username === 'string' ? filters.username : String(filters.username || '');
+        const emailStr = typeof filters.email === 'string' ? filters.email : String(filters.email || '');
         console.log('🔍 Username/Email filters being sent:', {
           username: filters.username,
           email: filters.email,
           usernameType: typeof filters.username,
           emailType: typeof filters.email,
-          usernameLength: filters.username?.length,
-          emailLength: filters.email?.length,
+          usernameLength: usernameStr.length,
+          emailLength: emailStr.length,
         });
       }
 
@@ -251,8 +253,10 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       // Apply client-side filtering for username/email (partial search)
       // This is needed because the backend transactions API may not support these parameters
       if (usernameFilter || emailFilter) {
-        const usernameLower = usernameFilter?.toLowerCase().trim() || '';
-        const emailLower = emailFilter?.toLowerCase().trim() || '';
+        const usernameStr = typeof usernameFilter === 'string' ? usernameFilter : String(usernameFilter || '');
+        const emailStr = typeof emailFilter === 'string' ? emailFilter : String(emailFilter || '');
+        const usernameLower = usernameStr.toLowerCase().trim();
+        const emailLower = emailStr.toLowerCase().trim();
         
         normalizedTransactions = normalizedTransactions.filter((transaction: Transaction) => {
           if (usernameLower) {
