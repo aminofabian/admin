@@ -150,8 +150,8 @@ export function TransactionsSection() {
     fetchTransactionsRef.current();
   }, []);
 
-  // Track initialization to prevent duplicate calls during React's strict mode double render
-  const isInitializedRef = useRef(false);
+  // Track component mount to prevent duplicate calls during React's strict mode double render
+  const mountCountRef = useRef(0);
 
   const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
@@ -178,12 +178,19 @@ export function TransactionsSection() {
       return;
     }
 
-    // Prevent duplicate calls during initial render (React strict mode)
-    if (!isInitializedRef.current) {
-      isInitializedRef.current = true;
-    }
+    // Increment mount count to track component renders
+    mountCountRef.current += 1;
 
-    fetchTransactionsRef.current();
+    // Only fetch on the first actual mount, skip duplicate renders from React strict mode
+    if (mountCountRef.current === 1) {
+      fetchTransactionsRef.current();
+    } else if (mountCountRef.current === 2) {
+      // Second mount in strict mode - skip fetch
+      console.log('⏭️ Skipping duplicate fetch due to React strict mode');
+    } else {
+      // Subsequent legitimate changes
+      fetchTransactionsRef.current();
+    }
   }, [currentPage, filter, advancedFiltersString]);
 
   // Removed toast notification for zero results - per requirements
@@ -260,7 +267,8 @@ export function TransactionsSection() {
     console.log('🚀 Agents useEffect triggered - mount at:', new Date().toISOString());
 
     // Prevent duplicate calls during initial render (React strict mode)
-    if (isInitializedRef.current) {
+    if (mountCountRef.current === 2) {
+      console.log('⏭️ Skipping duplicate agents fetch due to React strict mode');
       return;
     }
 
@@ -373,7 +381,8 @@ export function TransactionsSection() {
     console.log('🚀 Payment Methods useEffect triggered - mount at:', new Date().toISOString());
 
     // Prevent duplicate calls during initial render (React strict mode)
-    if (isInitializedRef.current) {
+    if (mountCountRef.current === 2) {
+      console.log('⏭️ Skipping duplicate payment methods fetch due to React strict mode');
       return;
     }
 
@@ -437,7 +446,8 @@ export function TransactionsSection() {
     console.log('🚀 Operators useEffect triggered - mount at:', new Date().toISOString());
 
     // Prevent duplicate calls during initial render (React strict mode)
-    if (isInitializedRef.current) {
+    if (mountCountRef.current === 2) {
+      console.log('⏭️ Skipping duplicate operators fetch due to React strict mode');
       return;
     }
 
