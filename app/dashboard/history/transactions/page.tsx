@@ -8,7 +8,7 @@ import { useTransactionsStore } from '@/stores';
 
 export default function HistoryTransactionsPage() {
   const searchParams = useSearchParams();
-  const { setFilterWithoutFetch, setAdvancedFiltersWithoutFetch, clearAdvancedFilters } = useTransactionsStore();
+  const { setFilterWithoutFetch, setAdvancedFiltersWithoutFetch, clearAdvancedFiltersWithoutFetch } = useTransactionsStore();
   const advancedFilters = useTransactionsStore((state) => state.advancedFilters);
   const hasInitializedRef = useRef(false);
   const appliedFiltersRef = useRef<{ username: string | null }>({
@@ -32,7 +32,7 @@ export default function HistoryTransactionsPage() {
     // If no username parameter, reset all filters to default state
     if (!trimmedUsername) {
       console.log('🔄 Resetting all filters on Transaction History page visit');
-      clearAdvancedFilters();
+      clearAdvancedFiltersWithoutFetch();
       hasInitializedRef.current = true;
       return;
     }
@@ -45,7 +45,7 @@ export default function HistoryTransactionsPage() {
     setAdvancedFiltersWithoutFetch(filterUpdate);
     appliedFiltersRef.current = { username: trimmedUsername };
     hasInitializedRef.current = true;
-  }, [searchParams, setAdvancedFiltersWithoutFetch, clearAdvancedFilters]);
+  }, [searchParams, setAdvancedFiltersWithoutFetch, clearAdvancedFiltersWithoutFetch]);
 
   // Handle username query param changes after initial mount
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function HistoryTransactionsPage() {
     // If username was removed from query, reset all filters
     if (!trimmedUsername && appliedFiltersRef.current.username) {
       console.log('🔄 Username removed from query, resetting all filters');
-      clearAdvancedFilters();
+      clearAdvancedFiltersWithoutFetch();
       appliedFiltersRef.current = { username: null };
       return;
     }
@@ -73,7 +73,7 @@ export default function HistoryTransactionsPage() {
       setAdvancedFiltersWithoutFetch(filterUpdate);
       appliedFiltersRef.current = { username: trimmedUsername };
     }
-  }, [searchParams, setAdvancedFiltersWithoutFetch, clearAdvancedFilters]);
+  }, [searchParams, setAdvancedFiltersWithoutFetch, clearAdvancedFiltersWithoutFetch]);
 
   return (
     <>

@@ -37,6 +37,7 @@ interface TransactionsActions {
   setAdvancedFilters: (filters: Record<string, string>) => void;
   setAdvancedFiltersWithoutFetch: (filters: Record<string, string>) => void;
   clearAdvancedFilters: () => void;
+  clearAdvancedFiltersWithoutFetch: () => void;
   updateTransactionStatus: (options: { id: string; status: 'completed' | 'cancelled' }) => Promise<void>;
   updateTransaction: (transaction: Transaction) => void;
   reset: () => void;
@@ -364,6 +365,14 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       currentPage: 1,
     });
     get().fetchTransactions();
+  },
+
+  clearAdvancedFiltersWithoutFetch: () => {
+    set({
+      advancedFilters: {},
+      currentPage: 1,
+    });
+    // Note: Does not call fetchTransactions() - let component handle it
   },
 
   updateTransactionStatus: async ({ id, status }) => {
