@@ -25,47 +25,6 @@ export interface HistoryGameActivitiesFiltersState {
 
 type HistoryGameActivitiesFilterKey = keyof HistoryGameActivitiesFiltersState;
 
-interface InputFieldConfig {
-  key: HistoryGameActivitiesFilterKey;
-  label: string;
-  placeholder?: string;
-  type?: 'text' | 'email' | 'date' | 'number';
-}
-
-interface SelectFieldConfig {
-  key: HistoryGameActivitiesFilterKey;
-  label: string;
-  options: Array<{ value: string; label: string }>;
-}
-
-const TEXT_FIELDS: InputFieldConfig[] = [
-  { key: 'email', label: 'Email', placeholder: 'Filter by email', type: 'email' },
-  { key: 'transaction_id', label: 'Transaction ID', placeholder: 'Enter transaction ID' },
-  { key: 'game_username', label: 'Game Username', placeholder: 'Enter game username' },
-];
-
-const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
-  {
-    key: 'operator',
-    label: 'Operator Type',
-    options: [
-      { value: '', label: 'All Types' },
-      { value: 'bot', label: 'Bot' },
-      { value: 'admin', label: 'Admin' },
-    ],
-  },
-  {
-    key: 'type',
-    label: 'Activity Type',
-    options: [
-      { value: '', label: 'All Types' },
-      { value: 'recharge_game', label: 'Recharge Game' },
-      { value: 'redeem_game', label: 'Redeem Game' },
-      { value: 'add_user_game', label: 'Add User Game' },
-      { value: 'create_game', label: 'Create Game' },
-    ],
-  },
-];
 
 const QUEUE_TYPE_OPTIONS: Array<{ value: QueueFilterOption; label: string }> = [
   { value: 'history', label: 'History' },
@@ -79,7 +38,6 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: '', label: 'All Statuses' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
-  { value: 'pending', label: 'Pending' },
 ];
 
 const FILTER_ICON = (
@@ -161,8 +119,9 @@ export function HistoryGameActivitiesFilters({
       {isOpen && (
         <div className="pt-5 text-foreground transition-colors">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
+            {/* 1. Username */}
             <div className="min-w-0">
-              <label className={labelClasses}>Player Username</label>
+              <label className={labelClasses}>Username</label>
               <input
                 type="text"
                 value={filters.username}
@@ -172,33 +131,45 @@ export function HistoryGameActivitiesFilters({
               />
             </div>
 
-            {TEXT_FIELDS.map(({ key, label, placeholder, type = 'text' }) => (
-              <div key={key} className="min-w-0">
-                <label className={labelClasses}>{label}</label>
-                <input
-                  type={type}
-                  value={filters[key]}
-                  onChange={(event) => onFilterChange(key, event.target.value)}
-                  placeholder={placeholder}
-                  className={inputClasses}
-                />
-              </div>
-            ))}
-
-            {BASE_SELECT_FIELDS.map(({ key, label, options }) => (
-              <div key={key} className="min-w-0">
-                <label className={labelClasses}>{label}</label>
-                <Select
-                  value={filters[key]}
-                  onChange={(value: string) => onFilterChange(key, value)}
-                  options={options}
-                  placeholder={options[0]?.label || 'Select...'}
-                />
-              </div>
-            ))}
-
+            {/* 2. Email */}
             <div className="min-w-0">
-              <label className={labelClasses}>Game</label>
+              <label className={labelClasses}>Email</label>
+              <input
+                type="email"
+                value={filters.email}
+                onChange={(event) => onFilterChange('email', event.target.value)}
+                placeholder="Filter by email"
+                className={inputClasses}
+              />
+            </div>
+
+            {/* 3. Transaction ID */}
+            <div className="min-w-0">
+              <label className={labelClasses}>Transaction ID</label>
+              <input
+                type="text"
+                value={filters.transaction_id}
+                onChange={(event) => onFilterChange('transaction_id', event.target.value)}
+                placeholder="Enter transaction ID"
+                className={inputClasses}
+              />
+            </div>
+
+            {/* 4. Game Username */}
+            <div className="min-w-0">
+              <label className={labelClasses}>Game Username</label>
+              <input
+                type="text"
+                value={filters.game_username}
+                onChange={(event) => onFilterChange('game_username', event.target.value)}
+                placeholder="Enter game username"
+                className={inputClasses}
+              />
+            </div>
+
+            {/* 5. Games */}
+            <div className="min-w-0">
+              <label className={labelClasses}>Games</label>
               <Select
                 value={filters.game}
                 onChange={(value: string) => onFilterChange('game', value)}
@@ -215,6 +186,39 @@ export function HistoryGameActivitiesFilters({
               />
             </div>
 
+            {/* 6. Activity Type */}
+            <div className="min-w-0">
+              <label className={labelClasses}>Activity Type</label>
+              <Select
+                value={filters.type}
+                onChange={(value: string) => onFilterChange('type', value)}
+                options={[
+                  { value: '', label: 'All Types' },
+                  { value: 'recharge_game', label: 'Recharge Game' },
+                  { value: 'redeem_game', label: 'Redeem Game' },
+                  { value: 'add_user_game', label: 'Add User Game' },
+                  { value: 'create_game', label: 'Create Game' },
+                ]}
+                placeholder="All Types"
+              />
+            </div>
+
+            {/* 7. Operator */}
+            <div className="min-w-0">
+              <label className={labelClasses}>Operator</label>
+              <Select
+                value={filters.operator}
+                onChange={(value: string) => onFilterChange('operator', value)}
+                options={[
+                  { value: '', label: 'All Types' },
+                  { value: 'bot', label: 'Bot' },
+                  { value: 'admin', label: 'Admin' },
+                ]}
+                placeholder="All Types"
+              />
+            </div>
+
+            {/* 8. Status */}
             <div className="min-w-0">
               <label className={labelClasses}>Status</label>
               <Select
@@ -225,7 +229,7 @@ export function HistoryGameActivitiesFilters({
               />
             </div>
 
-            {/* Date Range - Compact Design */}
+            {/* 9. From Date */}
             <div className="min-w-0">
               <label className={labelClasses}>From Date</label>
               <input
@@ -238,6 +242,7 @@ export function HistoryGameActivitiesFilters({
               />
             </div>
 
+            {/* 10. To Date */}
             <div className="min-w-0">
               <label className={labelClasses}>To Date</label>
               <input

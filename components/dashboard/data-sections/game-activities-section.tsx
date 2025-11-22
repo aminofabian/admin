@@ -307,8 +307,8 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       isLoading={isInitialLoading}
       error={error ?? ''}
       onRetry={fetchQueues}
-      isEmpty={isEmpty}
-      emptyState={HISTORY_EMPTY_STATE}
+      isEmpty={false}
+      emptyState={null}
       loadingState={GAME_ACTIVITIES_SKELETON}
     >
       {showTabs && <HistoryTabs />}
@@ -451,7 +451,7 @@ function HistoryGameActivitiesTable({
         {!queues.length ? (
           <div className="py-12">
             <EmptyState 
-              title="No Game Activity History found" 
+              title="No game activity history" 
               description="No completed or cancelled game activities matched your filters"
             />
           </div>

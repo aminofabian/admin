@@ -71,9 +71,23 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         page_size: pageSize,
       };
 
-      const cleanedAdvancedFilters = Object.fromEntries(
-        Object.entries(advancedFilters).filter(([, value]) => value !== undefined && value !== '')
-      );
+      const cleanedAdvancedFilters: Record<string, string> = {};
+      
+      Object.entries(advancedFilters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          // Username, email, and game_username: trim and send as-is for partial search
+          // Backend should handle partial matching when these parameters are provided
+          if (key === 'username' || key === 'email' || key === 'game_username') {
+            const trimmedValue = String(value).trim();
+            if (trimmedValue) {
+              cleanedAdvancedFilters[key] = trimmedValue;
+            }
+          } else {
+            // Transaction ID: exact match only (send as-is)
+            cleanedAdvancedFilters[key] = value;
+          }
+        }
+      });
 
       Object.assign(filters, cleanedAdvancedFilters);
 
