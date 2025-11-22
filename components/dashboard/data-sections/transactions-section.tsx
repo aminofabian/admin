@@ -150,6 +150,9 @@ export function TransactionsSection() {
     fetchTransactionsRef.current();
   }, []);
 
+  // Track initialization to prevent duplicate calls during React's strict mode double render
+  const isInitializedRef = useRef(false);
+
   const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
@@ -173,6 +176,11 @@ export function TransactionsSection() {
   useEffect(() => {
     if (filter === 'all') {
       return;
+    }
+
+    // Prevent duplicate calls during initial render (React strict mode)
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
     }
 
     fetchTransactionsRef.current();
@@ -250,6 +258,12 @@ export function TransactionsSection() {
 
   useEffect(() => {
     console.log('🚀 Agents useEffect triggered - mount at:', new Date().toISOString());
+
+    // Prevent duplicate calls during initial render (React strict mode)
+    if (isInitializedRef.current) {
+      return;
+    }
+
     let isMounted = true;
 
     const loadAgents = async () => {
@@ -357,6 +371,12 @@ export function TransactionsSection() {
 
   useEffect(() => {
     console.log('🚀 Payment Methods useEffect triggered - mount at:', new Date().toISOString());
+
+    // Prevent duplicate calls during initial render (React strict mode)
+    if (isInitializedRef.current) {
+      return;
+    }
+
     let isMounted = true;
 
     const loadPaymentMethods = async () => {
@@ -415,6 +435,12 @@ export function TransactionsSection() {
 
   useEffect(() => {
     console.log('🚀 Operators useEffect triggered - mount at:', new Date().toISOString());
+
+    // Prevent duplicate calls during initial render (React strict mode)
+    if (isInitializedRef.current) {
+      return;
+    }
+
     let isMounted = true;
 
     const loadOperators = async () => {
