@@ -111,33 +111,40 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       // This allows transaction type filtering to work even when agent filters are present
       const txnFromAdvancedFilters = cleanedAdvancedFilters.txn;
       
-      // Only apply type filters from main filter dropdown if no agent filters are present
-      // But allow txn from advancedFilters to work with agent filters
-      if (!hasAgentFilter) {
-        if (filter === 'purchases') {
-          filters.type = 'purchase';
-        } else if (filter === 'cashouts') {
-          filters.type = 'cashout';
-        } else if (filter === 'pending-purchases') {
-          filters.txn = 'purchases';
-        } else if (filter === 'pending-cashouts') {
-          filters.txn = 'cashouts';
-        } else if (filter === 'processing') {
-          filters.type = 'processing';
-        } else if (filter === 'history') {
-          filters.type = 'history';
+      // When agent filters are present, ensure we only send one agent parameter
+      // Prefer agent_id over agent username for better backend compatibility
+      if (hasAgentFilter) {
+        if (cleanedAdvancedFilters.agent_id) {
+          // If agent_id is present, use it and remove agent username
+          delete filters.agent;
+        } else if (cleanedAdvancedFilters.agent) {
+          // If only agent username is present, keep it (agent_id will be resolved by component)
+          // But ensure we don't send both
         }
-      } else {
-        // When agent filters are present, remove type filter from main dropdown
-        // But preserve txn from advancedFilters if user explicitly set it
-        delete filters.type;
-        
-        // Keep txn from advancedFilters if it was explicitly set by user
-        // Otherwise, remove it to allow all transaction types for the agent
-        if (!txnFromAdvancedFilters) {
-          delete filters.txn;
-        }
-        // If txnFromAdvancedFilters exists, it's already in filters from Object.assign above
+      }
+      
+      // Apply type filters from main filter dropdown
+      // For history filter, always apply type=history even when agent filters are present
+      if (filter === 'purchases') {
+        filters.type = 'purchase';
+      } else if (filter === 'cashouts') {
+        filters.type = 'cashout';
+      } else if (filter === 'pending-purchases') {
+        filters.txn = 'purchases';
+      } else if (filter === 'pending-cashouts') {
+        filters.txn = 'cashouts';
+      } else if (filter === 'processing') {
+        filters.type = 'processing';
+      } else if (filter === 'history') {
+        // Always apply history type, even when agent filters are present
+        // This ensures pending transactions are excluded from history view
+        filters.type = 'history';
+      }
+      
+      // When agent filters are present, preserve txn from advancedFilters if user explicitly set it
+      // Otherwise, remove it to allow all transaction types for the agent
+      if (hasAgentFilter && !txnFromAdvancedFilters) {
+        delete filters.txn;
       }
 
       // Exclude pending status from history filter
