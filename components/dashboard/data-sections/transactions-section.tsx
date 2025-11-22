@@ -11,6 +11,7 @@ import { useTransactionsStore } from '@/stores';
 import { agentsApi, paymentMethodsApi, gamesApi } from '@/lib/api';
 import type { Agent, PaymentMethod, Transaction, Game } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
+import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 
 const HEADER_ICON = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -144,8 +145,8 @@ export function TransactionsSection() {
   const advancedFilters = useTransactionsStore((state) => state.advancedFilters);
   const setPage = useTransactionsStore((state) => state.setPage);
   const fetchTransactions = useTransactionsStore((state) => state.fetchTransactions);
-  const setAdvancedFilters = useTransactionsStore((state) => state.setAdvancedFilters);
-  const clearAdvancedFilters = useTransactionsStore((state) => state.clearAdvancedFilters);
+  const setAdvancedFiltersWithoutFetch = useTransactionsStore((state) => state.setAdvancedFiltersWithoutFetch);
+  const updateTransaction = useTransactionsStore((state) => state.updateTransaction);
   const getStoreState = useTransactionsStore.getState;
   const { addToast } = useToast();
 
@@ -307,7 +308,7 @@ export function TransactionsSection() {
     
     // Only update if we resolved a missing value
     if (needsUpdate) {
-      setAdvancedFilters(updatedFilters);
+      setAdvancedFiltersWithoutFetch(updatedFilters);
     }
     
     // Ensure date values are properly formatted for HTML date inputs (YYYY-MM-DD)
@@ -348,7 +349,7 @@ export function TransactionsSection() {
     if (Object.keys(advancedFilters).length > 0) {
       setAreFiltersOpen(true);
     }
-  }, [advancedFilters, agentIdMap, setAdvancedFilters]);
+  }, [advancedFilters, agentIdMap]);
 
   useEffect(() => {
     let isMounted = true;
@@ -436,7 +437,7 @@ export function TransactionsSection() {
                 updatedFilters.agent = agentKey;
                 console.log('🔍 Updated agent name to match case:', agentKey);
               }
-              setAdvancedFilters(updatedFilters);
+              setAdvancedFiltersWithoutFetch(updatedFilters);
             } else {
               console.warn('⚠️ Agent not found in loaded agents:', currentFilters.agent);
             }
@@ -456,7 +457,7 @@ export function TransactionsSection() {
     return () => {
       isMounted = false;
     };
-  }, [setAdvancedFilters, getStoreState]);
+  }, [getStoreState]);
 
 
   useEffect(() => {
@@ -556,6 +557,150 @@ export function TransactionsSection() {
     };
   }, []);
 
+  // WebSocket subscription for real-time transaction updates
+  const { subscribeToTransactionUpdates } = useProcessingWebSocketContext();
+
+  useEffect(() => {
+    // Only subscribe to WebSocket updates if we're in the history view
+    // This prevents interference with other views like processing/pending
+    const isHistoryView = filter === 'history';
+
+    if (!isHistoryView) {
+      return;
+    }
+
+    const unsubscribeTransaction = subscribeToTransactionUpdates(
+      (updatedTransaction: Transaction, isInitialLoad = false) => {
+        // Skip initial load updates (they're already loaded via API)
+        if (isInitialLoad) {
+          return;
+        }
+
+        console.log('📨 Transaction history WebSocket update received:', {
+          id: updatedTransaction.id,
+          status: updatedTransaction.status,
+          type: updatedTransaction.type,
+          currentFilter: filter,
+          hasAdvancedFilters: Object.keys(advancedFilters).length > 0,
+        });
+
+        // Check if this transaction matches our current filters
+        const transactionMatchesFilters = (transaction: Transaction): boolean => {
+          // For history view, we typically want to show all transactions regardless of status
+          // But we should respect advanced filters if they're applied
+
+          // Check agent filter
+          if (advancedFilters.agent && transaction.user_username !== advancedFilters.agent) {
+            return false;
+          }
+
+          if (advancedFilters.agent_id) {
+            // Use the agentIdMap to check if the transaction's username matches the agent_id
+            const agentIdForTransaction = agentIdMap.get(transaction.user_username);
+            if (!agentIdForTransaction || String(agentIdForTransaction) !== advancedFilters.agent_id) {
+              return false;
+            }
+          }
+
+          // Check username filter
+          if (advancedFilters.username &&
+              !transaction.user_username.toLowerCase().includes(advancedFilters.username.toLowerCase())) {
+            return false;
+          }
+
+          // Check email filter
+          if (advancedFilters.email &&
+              !transaction.user_email.toLowerCase().includes(advancedFilters.email.toLowerCase())) {
+            return false;
+          }
+
+          // Check status filter
+          if (advancedFilters.status && transaction.status !== advancedFilters.status) {
+            return false;
+          }
+
+          // Check type filter
+          if (advancedFilters.type && transaction.type !== advancedFilters.type) {
+            return false;
+          }
+
+          // Check payment method filter
+          if (advancedFilters.payment_method && transaction.payment_method !== advancedFilters.payment_method) {
+            return false;
+          }
+
+          // Check game filter
+          if (advancedFilters.game) {
+            // For transactions, we might need to check description or other fields for game info
+            const gameLower = advancedFilters.game.toLowerCase();
+            if (transaction.description && !transaction.description.toLowerCase().includes(gameLower)) {
+              return false;
+            }
+          }
+
+          // Check date range filters
+          const transactionDate = new Date(transaction.created);
+
+          if (advancedFilters.date_from) {
+            const fromDate = new Date(advancedFilters.date_from);
+            if (transactionDate < fromDate) {
+              return false;
+            }
+          }
+
+          if (advancedFilters.date_to) {
+            const toDate = new Date(advancedFilters.date_to);
+            toDate.setHours(23, 59, 59, 999); // Include the entire day
+            if (transactionDate > toDate) {
+              return false;
+            }
+          }
+
+          // Check amount range filters
+          const transactionAmount = parseFloat(transaction.amount) || 0;
+
+          if (advancedFilters.amount_min) {
+            const minAmount = parseFloat(advancedFilters.amount_min) || 0;
+            if (transactionAmount < minAmount) {
+              return false;
+            }
+          }
+
+          if (advancedFilters.amount_max) {
+            const maxAmount = parseFloat(advancedFilters.amount_max) || 0;
+            if (transactionAmount > maxAmount) {
+              return false;
+            }
+          }
+
+          // Check transaction ID filter
+          if (advancedFilters.transaction_id) {
+            const searchId = advancedFilters.transaction_id.toLowerCase();
+            if (!transaction.id.toLowerCase().includes(searchId) &&
+                !transaction.unique_id.toLowerCase().includes(searchId)) {
+              return false;
+            }
+          }
+
+          return true;
+        };
+
+        // Only process updates that match our current filters
+        if (!transactionMatchesFilters(updatedTransaction)) {
+          console.log('⏭️ Skipping transaction update - does not match current filters');
+          return;
+        }
+
+        // Pass the update to the store - it will handle adding/updating/removing based on business logic
+        updateTransaction(updatedTransaction);
+
+        console.log('✅ Transaction history updated via WebSocket:', updatedTransaction.id);
+      }
+    );
+
+    return unsubscribeTransaction;
+  }, [subscribeToTransactionUpdates, updateTransaction, filter, advancedFilters, agentIdMap]);
+
   const handleAdvancedFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
     setFilters((previous) => {
       const updated = { ...previous, [key]: value };
@@ -630,8 +775,16 @@ export function TransactionsSection() {
       }
     }
 
-    // Handle transaction type conversion
-    if (sanitized.type) {
+    // For history view, we should NOT convert type to txn parameter
+    // The history view should use type parameter directly, not txn
+    // txn parameter is only for processing views (pending-purchases, pending-cashouts)
+    // Keep the type parameter as-is for history view
+    if (sanitized.type && (sanitized.type === 'purchase' || sanitized.type === 'cashout')) {
+      // For history view, keep type as 'purchase' or 'cashout'
+      // Do NOT convert to txn parameter
+      // The API should handle type=purchase/cashout for history view
+    } else if (sanitized.type) {
+      // For other types, still convert to txn if needed
       const txnValue = sanitized.type === 'purchase'
         ? 'purchases'
         : sanitized.type === 'cashout'
@@ -670,13 +823,17 @@ export function TransactionsSection() {
       hasDateTo: Boolean(sanitized.date_to),
     });
 
-    setAdvancedFilters(sanitized);
-  }, [filters, setAdvancedFilters, agentIdMap]);
+    // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
+    // The useEffect will handle fetching with the new filters
+    setAdvancedFiltersWithoutFetch(sanitized);
+  }, [filters, setAdvancedFiltersWithoutFetch, agentIdMap]);
 
   const handleClearAdvancedFilters = useCallback(() => {
     setFilters({ ...DEFAULT_HISTORY_FILTERS });
-    clearAdvancedFilters();
-  }, [clearAdvancedFilters]);
+    // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
+    // The useEffect will handle fetching with cleared filters
+    setAdvancedFiltersWithoutFetch({});
+  }, [setAdvancedFiltersWithoutFetch]);
 
   const handleToggleAdvancedFilters = useCallback(() => {
     setAreFiltersOpen((previous) => !previous);

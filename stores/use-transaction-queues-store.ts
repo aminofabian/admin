@@ -33,6 +33,7 @@ interface TransactionQueuesActions {
   setFilter: (filter: FilterType) => void;
   handleGameAction: (data: GameActionRequest) => Promise<void>;
   setAdvancedFilters: (filters: Record<string, string>) => void;
+  setAdvancedFiltersWithoutFetch: (filters: Record<string, string>) => void;
   clearAdvancedFilters: () => void;
   updateQueue: (updatedQueue: TransactionQueue) => void;
   setPage: (page: number) => Promise<void>;
@@ -151,15 +152,23 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
   },
 
   setAdvancedFilters: (filtersMap: Record<string, string>) => {
-    set({ 
+    set({
       advancedFilters: filtersMap,
       currentPage: 1,
     });
     get().fetchQueues();
   },
 
+  setAdvancedFiltersWithoutFetch: (filtersMap: Record<string, string>) => {
+    set({
+      advancedFilters: filtersMap,
+      currentPage: 1,
+    });
+    // Note: Does not call fetchQueues() - let component handle it
+  },
+
   clearAdvancedFilters: () => {
-    set({ 
+    set({
       advancedFilters: {},
       currentPage: 1,
     });

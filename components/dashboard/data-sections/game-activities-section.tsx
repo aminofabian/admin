@@ -132,8 +132,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const advancedFilters = useTransactionQueuesStore((state) => state.advancedFilters);
   const setFilter = useTransactionQueuesStore((state) => state.setFilter);
   const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
-  const setAdvancedFilters = useTransactionQueuesStore((state) => state.setAdvancedFilters);
-  const clearAdvancedFilters = useTransactionQueuesStore((state) => state.clearAdvancedFilters);
+  const setAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.setAdvancedFiltersWithoutFetch);
   const totalCount = useTransactionQueuesStore((state) => state.count);
   const next = useTransactionQueuesStore((state) => state.next);
   const previous = useTransactionQueuesStore((state) => state.previous);
@@ -273,13 +272,17 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       }
     }
 
-    setAdvancedFilters(sanitized);
-  }, [filters, setAdvancedFilters]);
+    // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
+    // The useEffect will handle fetching with the new filters
+    setAdvancedFiltersWithoutFetch(sanitized);
+  }, [filters, setAdvancedFiltersWithoutFetch]);
 
   const handleClearFilters = useCallback(() => {
     setFilters({ ...DEFAULT_GAME_ACTIVITY_FILTERS });
-    clearAdvancedFilters();
-  }, [clearAdvancedFilters]);
+    // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
+    // The useEffect will handle fetching with cleared filters
+    setAdvancedFiltersWithoutFetch({});
+  }, [setAdvancedFiltersWithoutFetch]);
 
   const handleToggleFilters = useCallback(() => {
     setAreFiltersOpen((previous) => !previous);
