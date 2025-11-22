@@ -8,8 +8,8 @@ import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, Tabl
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
-import { agentsApi, paymentMethodsApi, gamesApi } from '@/lib/api';
-import type { Agent, PaymentMethod, Transaction, Game } from '@/types';
+import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
+import type { Agent, PaymentMethod, Transaction, Staff, Manager } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 
@@ -95,7 +95,7 @@ const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
   type: '',
   payment_method: '',
   status: '',
-  game: '',
+  game: '', // Keep in state for compatibility but will be removed when applying
   date_from: '',
   date_to: '',
   amount_min: '',
@@ -151,8 +151,8 @@ export function TransactionsSection() {
   const [isAgentLoading, setIsAgentLoading] = useState(false);
   const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
-  const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
-  const [isGameLoading, setIsGameLoading] = useState(false);
+  const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [isOperatorLoading, setIsOperatorLoading] = useState(false);
   const lastNotificationKeyRef = useRef<string>('');
 
   const advancedFiltersString = useMemo(() => JSON.stringify(advancedFilters), [advancedFilters]);
@@ -172,100 +172,7 @@ export function TransactionsSection() {
     fetchTransactions();
   }, [currentPage, filter, fetchTransactions, advancedFiltersString]);
 
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    const hasNoResults = transactions !== null && transactions.count === 0;
-    
-    if (!hasNoResults) {
-      lastNotificationKeyRef.current = '';
-      return;
-    }
-
-    const filterKey = JSON.stringify({
-      ...advancedFilters,
-      filter,
-      currentPage,
-    });
-
-    if (lastNotificationKeyRef.current === filterKey) {
-      return;
-    }
-
-    lastNotificationKeyRef.current = filterKey;
-
-    const activeFilters: string[] = [];
-    
-    if (advancedFilters.agent || advancedFilters.agent_id) {
-      activeFilters.push(`agent: ${advancedFilters.agent || 'selected agent'}`);
-    }
-    if (advancedFilters.username) {
-      activeFilters.push(`username: ${advancedFilters.username}`);
-    }
-    if (advancedFilters.email) {
-      activeFilters.push(`email: ${advancedFilters.email}`);
-    }
-    if (advancedFilters.status) {
-      activeFilters.push(`status: ${advancedFilters.status}`);
-    }
-    if (advancedFilters.type) {
-      activeFilters.push(`type: ${advancedFilters.type}`);
-    }
-    if (advancedFilters.payment_method) {
-      activeFilters.push(`payment method: ${advancedFilters.payment_method}`);
-    }
-    if (advancedFilters.game) {
-      activeFilters.push(`game: ${advancedFilters.game}`);
-    }
-    
-    const hasDateFrom = Boolean(advancedFilters.date_from);
-    const hasDateTo = Boolean(advancedFilters.date_to);
-    const hasDateFilter = hasDateFrom || hasDateTo;
-    
-    let description = '';
-    if (hasDateFilter) {
-      const formatDateForDisplay = (dateString: string | undefined): string => {
-        if (!dateString) return '';
-        try {
-          const date = new Date(dateString);
-          if (isNaN(date.getTime())) return dateString;
-          return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        } catch {
-          return dateString;
-        }
-      };
-      
-      const dateFromDisplay = formatDateForDisplay(advancedFilters.date_from);
-      const dateToDisplay = formatDateForDisplay(advancedFilters.date_to);
-      
-      let dateRangeText = '';
-      if (dateFromDisplay && dateToDisplay) {
-        dateRangeText = `from ${dateFromDisplay} to ${dateToDisplay}`;
-      } else if (dateFromDisplay) {
-        dateRangeText = `from ${dateFromDisplay}`;
-      } else if (dateToDisplay) {
-        dateRangeText = `until ${dateToDisplay}`;
-      }
-      
-      if (activeFilters.length > 0) {
-        description = `No transactions found for the selected date range ${dateRangeText} with filters: ${activeFilters.join(', ')}. Please try adjusting your filters.`;
-      } else {
-        description = `No transactions found for the selected date range ${dateRangeText}. Please try adjusting your date filters.`;
-      }
-    } else if (activeFilters.length > 0) {
-      description = `No transactions found with filters: ${activeFilters.join(', ')}. Please try adjusting your filters.`;
-    } else {
-      description = 'No transactions found. Please try adjusting your filters or search criteria.';
-    }
-
-    addToast({
-      type: 'info',
-      title: 'No transactions found',
-      description,
-    });
-  }, [transactions, isLoading, advancedFilters, filter, currentPage, addToast]);
+  // Removed toast notification for zero results - per requirements
 
   useEffect(() => {
     if (agentIdMap.size === 0) {
@@ -501,46 +408,73 @@ export function TransactionsSection() {
   }, []);
 
   useEffect(() => {
-    console.log('🚀 Games useEffect triggered - mount at:', new Date().toISOString());
+    console.log('🚀 Operators useEffect triggered - mount at:', new Date().toISOString());
     let isMounted = true;
 
-    const loadGames = async () => {
-      console.log('📥 Loading games API at:', new Date().toISOString());
-      setIsGameLoading(true);
+    const loadOperators = async () => {
+      console.log('📥 Loading operators API at:', new Date().toISOString());
+      setIsOperatorLoading(true);
 
       try {
-        const games = await gamesApi.list();
+        // Fetch active staff
+        const staffResponse = await staffsApi.list({ page_size: 100 });
+        const activeStaff = (staffResponse?.results || []).filter((staff: Staff) => staff.is_active);
+
+        // Fetch active managers
+        const managersResponse = await managersApi.list({ page_size: 100 });
+        const activeManagers = (managersResponse?.results || []).filter((manager: Manager) => manager.is_active);
 
         if (!isMounted) {
           return;
         }
 
-        const uniqueGames = new Map<string, string>();
+        const operatorMap = new Map<string, string>();
 
-        games.forEach((game: Game) => {
-          if (game?.title) {
-            uniqueGames.set(game.title, game.title);
+        // Add Company (Admin)
+        operatorMap.set('admin', 'Admin');
+
+        // Add Bot
+        operatorMap.set('bot', 'Bot');
+
+        // Add active staff
+        activeStaff.forEach((staff: Staff) => {
+          if (staff?.username) {
+            operatorMap.set(staff.username, staff.username);
           }
         });
 
-        const mappedOptions = Array.from(uniqueGames.entries())
-          .map(([value, label]) => ({ value, label }))
-          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+        // Add active managers
+        activeManagers.forEach((manager: Manager) => {
+          if (manager?.username) {
+            operatorMap.set(manager.username, manager.username);
+          }
+        });
 
-        setGameOptions(mappedOptions);
+        const mappedOptions = Array.from(operatorMap.entries())
+          .map(([value, label]) => ({ value, label }))
+          .sort((a, b) => {
+            // Sort: Admin first, Bot second, then alphabetically
+            if (a.value === 'admin') return -1;
+            if (b.value === 'admin') return 1;
+            if (a.value === 'bot') return -1;
+            if (b.value === 'bot') return 1;
+            return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+          });
+
+        setOperatorOptions(mappedOptions);
       } catch (error) {
-        console.error('Failed to load games for transaction filters:', error);
+        console.error('Failed to load operators for transaction filters:', error);
       } finally {
         if (isMounted) {
-          setIsGameLoading(false);
+          setIsOperatorLoading(false);
         }
       }
     };
 
-    loadGames();
+    loadOperators();
 
     return () => {
-      console.log('🧹 Games useEffect cleanup - unmount');
+      console.log('🧹 Operators useEffect cleanup - unmount');
       isMounted = false;
     };
   }, []);
@@ -580,14 +514,21 @@ export function TransactionsSection() {
             }
           }
 
-          if (advancedFilters.username &&
-              !transaction.user_username.toLowerCase().includes(advancedFilters.username.toLowerCase())) {
-            return false;
+          // Username/Email: Partial search (like player section)
+          if (advancedFilters.username) {
+            const searchUsername = advancedFilters.username.toLowerCase().trim();
+            const transactionUsername = (transaction.user_username || '').toLowerCase();
+            if (!transactionUsername.includes(searchUsername)) {
+              return false;
+            }
           }
 
-          if (advancedFilters.email &&
-              !transaction.user_email.toLowerCase().includes(advancedFilters.email.toLowerCase())) {
-            return false;
+          if (advancedFilters.email) {
+            const searchEmail = advancedFilters.email.toLowerCase().trim();
+            const transactionEmail = (transaction.user_email || '').toLowerCase();
+            if (!transactionEmail.includes(searchEmail)) {
+              return false;
+            }
           }
 
           if (advancedFilters.status && transaction.status !== advancedFilters.status) {
@@ -642,10 +583,12 @@ export function TransactionsSection() {
             }
           }
 
+          // Transaction ID: Exact match only
           if (advancedFilters.transaction_id) {
-            const searchId = advancedFilters.transaction_id.toLowerCase();
-            if (!transaction.id.toLowerCase().includes(searchId) &&
-                !transaction.unique_id.toLowerCase().includes(searchId)) {
+            const searchId = advancedFilters.transaction_id.trim();
+            const transactionId = transaction.id?.trim() || '';
+            const transactionUniqueId = transaction.unique_id?.trim() || '';
+            if (transactionId !== searchId && transactionUniqueId !== searchId) {
               return false;
             }
           }
@@ -705,6 +648,9 @@ export function TransactionsSection() {
       })
     ) as Record<string, string>;
 
+    // Remove game filter (not needed in history)
+    delete sanitized.game;
+
     if (sanitized.date_from) {
       const dateFromValue = sanitized.date_from.trim();
       if (dateFromValue) {
@@ -729,7 +675,25 @@ export function TransactionsSection() {
       }
     }
 
+    // For history filter, exclude pending status
+    const isHistoryView = filter === 'history';
+    if (isHistoryView) {
+      // If status is pending, remove it (history shouldn't show pending)
+      if (sanitized.status === 'pending') {
+        delete sanitized.status;
+      }
+      // If no status is set, ensure we exclude pending
+      // The backend should handle this, but we'll make sure status is not pending
+      if (!sanitized.status) {
+        // Don't set status, let backend exclude pending for history
+        // The store will handle status__ne = 'pending' for history
+      }
+    }
+
+    // Transaction type filter: ensure it works correctly
     if (sanitized.type && (sanitized.type === 'purchase' || sanitized.type === 'cashout')) {
+      // Keep type as is for purchase/cashout
+      // For history, pending will be excluded by the store
     } else if (sanitized.type) {
       const txnValue = sanitized.type === 'purchase'
         ? 'purchases'
@@ -758,10 +722,11 @@ export function TransactionsSection() {
       dateTo: sanitized.date_to,
       hasDateFrom: Boolean(sanitized.date_from),
       hasDateTo: Boolean(sanitized.date_to),
+      isHistoryView,
     });
 
     setAdvancedFiltersWithoutFetch(sanitized);
-  }, [filters, setAdvancedFiltersWithoutFetch, agentIdMap]);
+  }, [filters, setAdvancedFiltersWithoutFetch, agentIdMap, filter]);
 
   const handleClearAdvancedFilters = useCallback(() => {
     setFilters({ ...DEFAULT_HISTORY_FILTERS });
@@ -816,8 +781,8 @@ export function TransactionsSection() {
         isAgentLoadingAgents={isAgentLoading}
         paymentMethodOptions={paymentMethodOptions}
         isPaymentMethodLoading={isPaymentMethodLoading}
-        gameOptions={gameOptions}
-        isGameLoading={isGameLoading}
+        operatorOptions={operatorOptions}
+        isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}
       />
     </DashboardSectionContainer>
@@ -841,8 +806,8 @@ interface TransactionsLayoutProps {
   isAgentLoadingAgents: boolean;
   paymentMethodOptions: Array<{ value: string; label: string }>;
   isPaymentMethodLoading: boolean;
-  gameOptions: Array<{ value: string; label: string }>;
-  isGameLoading: boolean;
+  operatorOptions: Array<{ value: string; label: string }>;
+  isOperatorLoading: boolean;
   isLoading: boolean;
 }
 
@@ -863,8 +828,8 @@ function TransactionsLayout({
   isAgentLoadingAgents,
   paymentMethodOptions,
   isPaymentMethodLoading,
-  gameOptions,
-  isGameLoading,
+  operatorOptions,
+  isOperatorLoading,
   isLoading,
 }: TransactionsLayoutProps) {
   const headingTitle = filter === 'history' ? 'Transactions History' : 'Transactions';
@@ -902,7 +867,6 @@ function TransactionsLayout({
         onToggle={onToggleAdvancedFilters}
         statusOptions={[
           { value: '', label: 'All Statuses' },
-          { value: 'pending', label: 'Pending' },
           { value: 'completed', label: 'Completed' },
           { value: 'cancelled', label: 'Cancelled' },
         ]}
@@ -910,8 +874,8 @@ function TransactionsLayout({
         isAgentLoading={isAgentLoadingAgents}
         paymentMethodOptions={paymentMethodOptions}
         isPaymentMethodLoading={isPaymentMethodLoading}
-        gameOptions={gameOptions}
-        isGameLoading={isGameLoading}
+        operatorOptions={operatorOptions}
+        isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}
       />
 

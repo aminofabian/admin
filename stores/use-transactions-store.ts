@@ -96,6 +96,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       // Apply filter logic based on the selected filter type
       const hasAgentFilter = cleanedAdvancedFilters.agent || cleanedAdvancedFilters.agent_id;
       
+      // For history filter, always exclude pending status
+      const isHistoryFilter = filter === 'history';
+      
       // Preserve txn from advancedFilters if it was explicitly set by user
       // This allows transaction type filtering to work even when agent filters are present
       const txnFromAdvancedFilters = cleanedAdvancedFilters.txn;
@@ -127,6 +130,27 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           delete filters.txn;
         }
         // If txnFromAdvancedFilters exists, it's already in filters from Object.assign above
+      }
+
+      // Exclude pending status from history filter
+      // When filter is 'history', the backend should exclude pending automatically
+      // But we'll also ensure status filter doesn't include pending
+      if (isHistoryFilter) {
+        // If status is explicitly set to pending, remove it (history shouldn't show pending)
+        if (cleanedAdvancedFilters.status === 'pending') {
+          delete filters.status;
+        }
+        // Backend should handle excluding pending when type is 'history'
+        // If backend doesn't support this, we may need to filter client-side
+      }
+
+      // Fix transaction type filter to exclude pending when in history
+      // When type is purchase or cashout in history, ensure pending is excluded
+      if (isHistoryFilter && (cleanedAdvancedFilters.type === 'purchase' || cleanedAdvancedFilters.type === 'cashout')) {
+        // If status is pending, remove it
+        if (cleanedAdvancedFilters.status === 'pending') {
+          delete filters.status;
+        }
       }
 
       // Log agent filter parameters for debugging

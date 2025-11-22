@@ -43,15 +43,6 @@ const TEXT_FIELDS: InputFieldConfig[] = [
 
 const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
   {
-    key: 'operator',
-    label: 'Operator Type',
-    options: [
-      { value: '', label: 'All Types' },
-      { value: 'bot', label: 'Bot' },
-      { value: 'admin', label: 'Admin' },
-    ],
-  },
-  {
     key: 'type',
     label: 'Transaction Type',
     options: [
@@ -91,8 +82,8 @@ interface HistoryTransactionsFiltersProps {
   isAgentLoading?: boolean;
   paymentMethodOptions?: Array<{ value: string; label: string }>;
   isPaymentMethodLoading?: boolean;
-  gameOptions?: Array<{ value: string; label: string }>;
-  isGameLoading?: boolean;
+  operatorOptions?: Array<{ value: string; label: string }>;
+  isOperatorLoading?: boolean;
   isLoading?: boolean;
 }
 
@@ -108,8 +99,8 @@ export function HistoryTransactionsFilters({
   isAgentLoading = false,
   paymentMethodOptions,
   isPaymentMethodLoading = false,
-  gameOptions,
-  isGameLoading = false,
+  operatorOptions,
+  isOperatorLoading = false,
   isLoading = false,
 }: HistoryTransactionsFiltersProps) {
   const { theme } = useTheme();
@@ -119,7 +110,6 @@ export function HistoryTransactionsFilters({
     'block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300';
   const effectiveStatusOptions = statusOptions ?? [
     { value: '', label: 'All Statuses' },
-    { value: 'pending', label: 'Pending' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
   ];
@@ -232,30 +222,30 @@ export function HistoryTransactionsFilters({
           ))}
 
           <div className="min-w-0">
+            <label className={labelClasses}>Operator</label>
+            <Select
+              value={filters.operator}
+              onChange={(value: string) => onFilterChange('operator', value)}
+              options={[
+                { value: '', label: 'All Operators' },
+                ...(operatorOptions || []),
+                ...(filters.operator && operatorOptions && !operatorOptions.some((option) => option.value === filters.operator)
+                  ? [{ value: filters.operator, label: filters.operator }]
+                  : []),
+              ]}
+              placeholder="All Operators"
+              isLoading={isOperatorLoading}
+              disabled={isOperatorLoading}
+            />
+          </div>
+
+          <div className="min-w-0">
             <label className={labelClasses}>Status</label>
             <Select
               value={filters.status}
               onChange={(value: string) => onFilterChange('status', value)}
               options={effectiveStatusOptions}
               placeholder={effectiveStatusOptions[0]?.label || 'All Statuses'}
-            />
-          </div>
-
-          <div className="min-w-0">
-            <label className={labelClasses}>Game</label>
-            <Select
-              value={filters.game}
-              onChange={(value: string) => onFilterChange('game', value)}
-              options={[
-                { value: '', label: 'All Games' },
-                ...(gameOptions || []),
-                ...(filters.game && gameOptions && !gameOptions.some((option) => option.value === filters.game)
-                  ? [{ value: filters.game, label: filters.game }]
-                  : []),
-              ]}
-              placeholder="All Games"
-              isLoading={isGameLoading}
-              disabled={isGameLoading}
             />
           </div>
 
