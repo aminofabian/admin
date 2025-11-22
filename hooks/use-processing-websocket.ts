@@ -63,6 +63,8 @@ function transformPurchaseToTransaction(rawPurchase: any): Transaction {
     remarks: rawPurchase.remarks || nestedData?.remarks || null,
     created: rawPurchase.created || rawPurchase.created_at || nestedData?.created || nestedData?.created_at || new Date().toISOString(),
     updated: rawPurchase.updated || rawPurchase.updated_at || nestedData?.updated || nestedData?.updated_at || new Date().toISOString(),
+    created_at: rawPurchase.created_at || rawPurchase.created || nestedData?.created_at || nestedData?.created || new Date().toISOString(),
+    updated_at: rawPurchase.updated_at || rawPurchase.updated || nestedData?.updated_at || nestedData?.updated || new Date().toISOString(),
     payment_url: rawPurchase.payment_url || nestedData?.payment_url || null,
     invoice_url: rawPurchase.invoice_url || nestedData?.invoice_url,
   };
@@ -95,6 +97,8 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
     remarks: rawCashout.remarks || nestedData?.remarks || null,
     created: rawCashout.created || rawCashout.created_at || nestedData?.created || nestedData?.created_at || new Date().toISOString(),
     updated: rawCashout.updated || rawCashout.updated_at || nestedData?.updated || nestedData?.updated_at || new Date().toISOString(),
+    created_at: rawCashout.created_at || rawCashout.created || nestedData?.created_at || nestedData?.created || new Date().toISOString(),
+    updated_at: rawCashout.updated_at || rawCashout.updated || nestedData?.updated_at || nestedData?.updated || new Date().toISOString(),
     payment_url: rawCashout.payment_url || nestedData?.payment_url || null,
     invoice_url: rawCashout.invoice_url || nestedData?.invoice_url,
   };
