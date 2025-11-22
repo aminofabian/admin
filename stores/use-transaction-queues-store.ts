@@ -73,17 +73,16 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
 
       const cleanedAdvancedFilters: Record<string, string> = {};
       
+      // Extract username, email, and game_username for client-side filtering
+      const usernameFilter = advancedFilters.username;
+      const emailFilter = advancedFilters.email;
+      const gameUsernameFilter = advancedFilters.game_username;
+      
       Object.entries(advancedFilters).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
-          // Username, email, and game_username: trim and send as-is for partial search
-          // Backend should handle partial matching when these parameters are provided
-          if (key === 'username' || key === 'email' || key === 'game_username') {
-            const trimmedValue = String(value).trim();
-            if (trimmedValue) {
-              cleanedAdvancedFilters[key] = trimmedValue;
-            }
-          } else {
-            // Transaction ID: exact match only (send as-is)
+          // Username, email, and game_username: don't send to backend, filter client-side
+          // Transaction ID: exact match only (send as-is)
+          if (key !== 'username' && key !== 'email' && key !== 'game_username') {
             cleanedAdvancedFilters[key] = value;
           }
         }
@@ -121,22 +120,75 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         return queue;
       });
       
+      // Apply client-side filtering for username/email/game_username (partial search)
+      // This is needed because the backend may not support partial matching for these parameters
+      let filteredQueues = normalizedQueues;
+      
+      if (usernameFilter || emailFilter || gameUsernameFilter) {
+        const usernameStr = typeof usernameFilter === 'string' ? usernameFilter : String(usernameFilter || '');
+        const emailStr = typeof emailFilter === 'string' ? emailFilter : String(emailFilter || '');
+        const gameUsernameStr = typeof gameUsernameFilter === 'string' ? gameUsernameFilter : String(gameUsernameFilter || '');
+        const usernameLower = usernameStr.toLowerCase().trim();
+        const emailLower = emailStr.toLowerCase().trim();
+        const gameUsernameLower = gameUsernameStr.toLowerCase().trim();
+        
+        filteredQueues = filteredQueues.filter((queue: TransactionQueue) => {
+          if (usernameLower) {
+            const queueUsername = (queue.user_username || '').toLowerCase();
+            if (!queueUsername.includes(usernameLower)) {
+              return false;
+            }
+          }
+          
+          if (emailLower) {
+            const queueEmail = (queue.user_email || '').toLowerCase();
+            if (!queueEmail.includes(emailLower)) {
+              return false;
+            }
+          }
+          
+          if (gameUsernameLower) {
+            // Check both top-level game_username and data.username
+            const queueGameUsername = (queue.game_username || '').toLowerCase();
+            let dataUsername = '';
+            if (queue.data && typeof queue.data === 'object' && queue.data !== null) {
+              const data = queue.data as any;
+              dataUsername = (data.username || data.game_username || '').toLowerCase();
+            }
+            
+            if (!queueGameUsername.includes(gameUsernameLower) && !dataUsername.includes(gameUsernameLower)) {
+              return false;
+            }
+          }
+          
+          return true;
+        });
+
+        console.log('🔍 Client-side username/email/game_username filter applied:', {
+          usernameFilter,
+          emailFilter,
+          gameUsernameFilter,
+          originalCount: normalizedQueues.length,
+          filteredCount: filteredQueues.length,
+        });
+      }
+      
       // Filter out completed activities when in processing view
-      const filteredQueues = filter === 'processing' 
-        ? normalizedQueues.filter(queue => {
+      const finalFilteredQueues = filter === 'processing' 
+        ? filteredQueues.filter(queue => {
             const isCompleted = queue.status === 'completed';
             if (isCompleted) {
               console.log('⏭️ Filtering out completed activity from fetch:', queue.id, queue.status);
             }
             return !isCompleted;
           })
-        : normalizedQueues;
+        : filteredQueues;
 
       set({ 
-        queues: filteredQueues, 
+        queues: finalFilteredQueues, 
         isLoading: false,
         error: null,
-        count: response.count ?? filteredQueues.length,
+        count: finalFilteredQueues.length, // Update count for client-side filtering
         next: response.next ?? null,
         previous: response.previous ?? null,
       });
