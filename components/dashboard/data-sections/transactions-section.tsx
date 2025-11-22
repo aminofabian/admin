@@ -138,11 +138,17 @@ export function TransactionsSection() {
   const filter = useTransactionsStore((state) => state.filter);
   const advancedFilters = useTransactionsStore((state) => state.advancedFilters);
   const setPage = useTransactionsStore((state) => state.setPage);
-  const fetchTransactions = useTransactionsStore((state) => state.fetchTransactions);
+  const fetchTransactionsStore = useTransactionsStore((state) => state.fetchTransactions);
   const setAdvancedFiltersWithoutFetch = useTransactionsStore((state) => state.setAdvancedFiltersWithoutFetch);
   const updateTransaction = useTransactionsStore((state) => state.updateTransaction);
   const getStoreState = useTransactionsStore.getState;
   const { addToast } = useToast();
+  const fetchTransactionsRef = useRef(fetchTransactionsStore);
+  fetchTransactionsRef.current = fetchTransactionsStore;
+
+  const handleFetchTransactions = useCallback(() => {
+    fetchTransactionsRef.current();
+  }, []);
 
   const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
@@ -169,8 +175,8 @@ export function TransactionsSection() {
       return;
     }
 
-    fetchTransactions();
-  }, [currentPage, filter, fetchTransactions, advancedFiltersString]);
+    fetchTransactionsRef.current();
+  }, [currentPage, filter, advancedFiltersString]);
 
   // Removed toast notification for zero results - per requirements
 
@@ -771,7 +777,7 @@ export function TransactionsSection() {
     <DashboardSectionContainer
       isLoading={isInitialLoading}
       error={error ?? ''}
-      onRetry={fetchTransactions}
+      onRetry={handleFetchTransactions}
       isEmpty={false}
       emptyState={null}
       loadingState={TRANSACTIONS_SKELETON}
