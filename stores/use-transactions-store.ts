@@ -85,6 +85,13 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
             } else {
               cleanedAdvancedFilters[key] = value;
             }
+          } else if (key === 'username' || key === 'email') {
+            // Username and email: trim and send as-is for partial search (like player section)
+            // Backend should handle partial matching when these parameters are provided
+            const trimmedValue = String(value).trim();
+            if (trimmedValue) {
+              cleanedAdvancedFilters[key] = trimmedValue;
+            }
           } else {
             cleanedAdvancedFilters[key] = value;
           }
@@ -179,22 +186,53 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         });
       }
 
+      // Log username/email specifically for debugging partial search
+      if (filters.username || filters.email) {
+        console.log('🔍 Username/Email filters being sent:', {
+          username: filters.username,
+          email: filters.email,
+          usernameType: typeof filters.username,
+          emailType: typeof filters.email,
+          usernameLength: filters.username?.length,
+          emailLength: filters.email?.length,
+        });
+      }
+
       console.log('📊 Fetching transactions:', {
         filter,
         filters,
         cleanedAdvancedFilters,
         originalAdvancedFilters: advancedFilters,
         hasAgentFilter,
+        username: filters.username,
+        email: filters.email,
         dateFilters: {
           date_from: filters.date_from,
           date_to: filters.date_to,
         },
+        allFilterKeys: Object.keys(filters),
       });
 
-      const response = await transactionsApi.list(filters);
+      // Remove username/email from API filters if backend doesn't support them
+      // We'll filter client-side instead
+      // Increase page size when filtering by username/email to get more results for client-side filtering
+      const apiFilters = { ...filters };
+      const usernameFilter = apiFilters.username;
+      const emailFilter = apiFilters.email;
+      const hasUsernameEmailFilter = Boolean(usernameFilter || emailFilter);
+      
+      // Increase page size for client-side filtering to get more results
+      if (hasUsernameEmailFilter && apiFilters.page_size && apiFilters.page_size < 100) {
+        apiFilters.page_size = 100; // Fetch more results for client-side filtering
+      }
+      
+      delete apiFilters.username;
+      delete apiFilters.email;
+
+      const response = await transactionsApi.list(apiFilters);
       
       // Normalize API response to ensure user data is at top level (similar to game activities)
-      const normalizedTransactions: Transaction[] = response.results.map((transaction: Transaction) => {
+      let normalizedTransactions: Transaction[] = response.results.map((transaction: Transaction) => {
         // If transaction has nested data, check for user info there
         if (transaction && typeof transaction === 'object') {
           // Check if user data might be in a nested user object
@@ -209,11 +247,44 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         }
         return transaction;
       });
+
+      // Apply client-side filtering for username/email (partial search)
+      // This is needed because the backend transactions API may not support these parameters
+      if (usernameFilter || emailFilter) {
+        const usernameLower = usernameFilter?.toLowerCase().trim() || '';
+        const emailLower = emailFilter?.toLowerCase().trim() || '';
+        
+        normalizedTransactions = normalizedTransactions.filter((transaction: Transaction) => {
+          if (usernameLower) {
+            const transactionUsername = (transaction.user_username || '').toLowerCase();
+            if (!transactionUsername.includes(usernameLower)) {
+              return false;
+            }
+          }
+          
+          if (emailLower) {
+            const transactionEmail = (transaction.user_email || '').toLowerCase();
+            if (!transactionEmail.includes(emailLower)) {
+              return false;
+            }
+          }
+          
+          return true;
+        });
+
+        console.log('🔍 Client-side username/email filter applied:', {
+          usernameFilter,
+          emailFilter,
+          originalCount: response.results.length,
+          filteredCount: normalizedTransactions.length,
+        });
+      }
       
       set({ 
         transactions: {
           ...response,
           results: normalizedTransactions,
+          count: normalizedTransactions.length, // Update count for client-side filtering
         }, 
         isLoading: false,
         error: null,

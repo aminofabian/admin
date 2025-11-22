@@ -163,8 +163,22 @@ class ApiClient {
     
     // Enhanced logging for agent filter requests
     const hasAgentFilter = config?.params && ('agent' in config.params || 'agent_id' in config.params);
+    const hasUsernameEmailFilter = config?.params && ('username' in config.params || 'email' in config.params);
+    const isTransactionsEndpoint = endpoint.includes('/transactions/');
     
-    if (hasAgentFilter) {
+    if (isTransactionsEndpoint && (hasUsernameEmailFilter || hasAgentFilter)) {
+      console.log('🔵 API GET (Transactions with filters):', { 
+        endpoint, 
+        fullUrl: url,
+        params: config?.params,
+        username: config?.params?.username,
+        email: config?.params?.email,
+        agent: config?.params?.agent,
+        agent_id: config?.params?.agent_id,
+        hasAuthToken: !!((headers as Record<string, string>)['Authorization']),
+        allParamKeys: Object.keys(config?.params || {}),
+      });
+    } else if (hasAgentFilter) {
       console.log('🔵 API GET (Agent Filter):', { 
         endpoint, 
         fullUrl: url,

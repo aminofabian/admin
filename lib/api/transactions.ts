@@ -47,11 +47,13 @@ async function normalizePaginatedResponse<T>(
 
 export const transactionsApi = {
   list: async (filters?: TransactionFilters) => {
-    // Log filters before sending
-    if (filters?.agent || filters?.agent_id) {
+    // Log filters before sending (especially username/email for partial search)
+    if (filters?.username || filters?.email || filters?.agent || filters?.agent_id) {
       console.log('📤 Sending to transactionsApi.list:', {
         endpoint: API_ENDPOINTS.TRANSACTIONS.LIST,
         filters,
+        username: filters.username,
+        email: filters.email,
         agent: filters.agent,
         agent_id: filters.agent_id,
       });
@@ -64,12 +66,14 @@ export const transactionsApi = {
     
     const result = await normalizePaginatedResponse(response);
     
-    // Log result for agent filters
-    if (filters?.agent || filters?.agent_id) {
+    // Log result for username/email/agent filters
+    if (filters?.username || filters?.email || filters?.agent || filters?.agent_id) {
       console.log('📥 Received from transactionsApi.list:', {
         count: result.count,
         resultsLength: result.results.length,
         hasResults: result.results.length > 0,
+        searchedUsername: filters.username,
+        searchedEmail: filters.email,
       });
     }
     

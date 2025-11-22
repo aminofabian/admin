@@ -715,6 +715,16 @@ export function TransactionsSection() {
       }
     }
     
+    // Log username/email specifically for debugging partial search
+    if (sanitized.username || sanitized.email) {
+      console.log('🔍 Username/Email in sanitized filters:', {
+        username: sanitized.username,
+        email: sanitized.email,
+        usernameTrimmed: sanitized.username?.trim(),
+        emailTrimmed: sanitized.email?.trim(),
+      });
+    }
+
     console.log('🔍 Applying filters:', {
       originalFilters: filters,
       sanitizedFilters: sanitized,
@@ -723,6 +733,8 @@ export function TransactionsSection() {
       hasDateFrom: Boolean(sanitized.date_from),
       hasDateTo: Boolean(sanitized.date_to),
       isHistoryView,
+      username: sanitized.username,
+      email: sanitized.email,
     });
 
     setAdvancedFiltersWithoutFetch(sanitized);
