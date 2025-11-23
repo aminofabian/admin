@@ -49,10 +49,11 @@ export function GamesSection() {
   const stats = useMemo(() => buildGameStats(games, totalCount), [games, totalCount]);
 
   useEffect(() => {
-    if (canManageGames) {
+    // Only fetch if user has permission, we don't have data, and we're not already loading
+    if (canManageGames && !data && !isLoading) {
       fetchGames();
     }
-  }, [fetchGames, canManageGames]);
+  }, [canManageGames]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!canManageGames) {
     return (

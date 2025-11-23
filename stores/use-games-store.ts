@@ -38,6 +38,12 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
   ...initialState,
 
   fetchGames: async () => {
+    // Prevent concurrent requests
+    const state = get();
+    if (state.isLoading) {
+      return;
+    }
+
     set({ isLoading: true, error: null });
 
     try {
@@ -162,10 +168,14 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
   },
 
   setSearchTerm: (term: string) => {
-    set({ 
-      searchTerm: term,
-    });
-    get().fetchGames();
+    const currentTerm = get().searchTerm;
+    // Only update and fetch if the term actually changed
+    if (currentTerm !== term) {
+      set({ 
+        searchTerm: term,
+      });
+      get().fetchGames();
+    }
   },
 
   reset: () => {

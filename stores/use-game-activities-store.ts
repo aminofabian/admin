@@ -41,6 +41,12 @@ export const useGameActivitiesStore = create<GameActivitiesStore>((set, get) => 
   ...initialState,
 
   fetchGameActivities: async () => {
+    // Prevent concurrent requests
+    const state = get();
+    if (state.isLoading) {
+      return;
+    }
+
     set({ isLoading: true, error: null });
 
     try {
