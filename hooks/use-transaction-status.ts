@@ -127,13 +127,11 @@ export function useTransactionStatus() {
   }, [getTodayDate, processTransactionData, determineStatus]);
 
   useEffect(() => {
+    // Initial fetch only - no polling
+    // Real-time updates should come from websocket, not polling
     fetchTransactionStatus();
-
-    // Set up periodic refresh every 30 seconds for real-time data
-    const interval = setInterval(fetchTransactionStatus, 30000);
-
-    return () => clearInterval(interval);
-  }, [fetchTransactionStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only fetch once on mount
 
   return data;
 }
