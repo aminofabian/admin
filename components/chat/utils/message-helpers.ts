@@ -78,25 +78,40 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
   const textWithHtml = message.text.toLowerCase();
   
   // Check for auto message patterns in the text (works with or without HTML)
+  // Note: "You successfully purchased" messages with Credits/Winnings are NOT auto messages
+  // They're purchase notifications that should be displayed normally
   const autoPatterns = [
     /<b>recharge<\/b>/i,
-    /recharge/i,
-    /you successfully/i,
-    /successfully recharged/i,
-    /recharge.*credits/i,
-    /credits:.*\$/i,
-    /winnings:.*\$/i,
+    /^recharge$/i, // Only exact "recharge" word, not "purchased"
+    /successfully recharged/i, // But not "successfully purchased"
     /^system:/i,
     /^auto:/i,
     /^notification:/i,
     /transaction (completed|pending|failed)/i,
-    /balance updated/i,
+    /^balance updated$/i, // Only exact phrase, not in purchase messages
   ];
   
+  // Don't treat purchase messages as auto messages even if they contain "credits" or "winnings"
+  // Purchase messages typically say "You successfully purchased" and show balance info
+  const isPurchaseMessage = /you successfully purchased/i.test(textWithHtml) || 
+                           /you successfully purchased/i.test(textWithoutHtml);
+  
+  if (isPurchaseMessage) {
+    return false; // Purchase notifications should be displayed as regular messages
+  }
+  
   // Check if message type indicates it's an auto message
+  // Note: 'balanceUpdated' type messages are NOT auto messages - they're purchase notifications
+  // that should be displayed as regular messages in the chat
   const autoTypes = ['system', 'auto', 'notification', 'recharge', 'transaction', 'balance_update'];
-  if (message.type && autoTypes.includes(message.type.toLowerCase())) {
+  const messageTypeLower = message.type?.toLowerCase();
+  if (messageTypeLower && autoTypes.includes(messageTypeLower) && messageTypeLower !== 'balanceupdated') {
     return true;
+  }
+  
+  // Don't treat balanceUpdated type messages as auto messages
+  if (messageTypeLower === 'balanceupdated') {
+    return false;
   }
   
   // Check if userId is 0 or undefined (system messages often have no user ID)

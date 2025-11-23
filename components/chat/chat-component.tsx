@@ -310,6 +310,7 @@ export function ChatComponent() {
     updateMessagePinnedState,
     markAllAsRead,
     refreshMessages,
+    updateMessagesBalance,
     notes,
   } = useChatWebSocket({
     userId: selectedPlayer?.user_id ?? null,
@@ -317,20 +318,57 @@ export function ChatComponent() {
     adminId: adminUserId,
     enabled: !!selectedPlayer && hasValidAdminUser,
     onMessageReceived: useCallback(async (message: Message) => {
-      !IS_PROD && console.log('🔔 onMessageReceived callback fired:', {
-        messageText: message.text,
-        messageTime: message.time,
-        selectedPlayer: selectedPlayer?.username,
-        userId: selectedPlayer?.user_id,
-        chatId: selectedPlayer?.id,
+      // No need to refresh chat list - websocket updates handle this in real-time
+      // Only update chat list if needed for unread counts (handled by chat list websocket)
+    }, []),
+    onBalanceUpdated: useCallback((data: { playerId: number; balance: string; winningBalance: string }) => {
+      !IS_PROD && console.log('💰 [Chat Component] Balance updated via WebSocket callback:', {
+        playerId: data.playerId,
+        balance: data.balance,
+        winningBalance: data.winningBalance,
+        selectedPlayerId: selectedPlayer?.user_id,
+        matchesSelectedPlayer: selectedPlayer?.user_id === data.playerId,
       });
-      
-      // Refresh chat list from backend API when a new message is received
-      // This ensures we get the latest unread counts and last messages from the server
-      !IS_PROD && console.log('🔄 Refreshing chat list from backend after message...');
-      await refreshActiveChats();
-      !IS_PROD && console.log(' Chat list refreshed with latest backend data');
-    }, [selectedPlayer, refreshActiveChats]),
+
+      // Update selected player's balance if this is the current player
+      // Always create a new object to ensure React detects the change
+      if (selectedPlayer && selectedPlayer.user_id === data.playerId) {
+        setSelectedPlayer(prev => {
+          if (!prev) return null;
+          
+          // Parse balance values - handle both string and number formats
+          const newBalance = data.balance && data.balance !== '0' && data.balance !== 'undefined' 
+            ? String(data.balance) 
+            : prev.balance;
+          const newWinningBalance = data.winningBalance && data.winningBalance !== '0' && data.winningBalance !== 'undefined'
+            ? String(data.winningBalance)
+            : prev.winningBalance;
+          
+          // Only update if values actually changed to avoid unnecessary re-renders
+          if (newBalance === prev.balance && newWinningBalance === prev.winningBalance) {
+            !IS_PROD && console.log('⏭️ [Chat Component] Balance values unchanged, skipping update');
+            return prev;
+          }
+          
+          const updated = {
+            ...prev,
+            balance: newBalance,
+            winningBalance: newWinningBalance,
+          };
+          
+          !IS_PROD && console.log('✅ [Chat Component] Updated selected player balance:', {
+            before: { balance: prev.balance, winningBalance: prev.winningBalance },
+            after: { balance: updated.balance, winningBalance: updated.winningBalance },
+            objectReferenceChanged: prev !== updated,
+          });
+          
+          return updated;
+        });
+      }
+
+      // Balance updates are handled by websocket in real-time, no need to refresh
+      // The chat list websocket will update balances automatically
+    }, [selectedPlayer]),
   });
 
   // Use scroll management hook
@@ -712,21 +750,7 @@ export function ChatComponent() {
         // Rule 2: User sends a message → Force scroll to bottom (bypasses cooldown)
         scrollToBottom(true);
 
-        // Refresh messages after sending
-        if (refreshTimeoutRef.current) {
-          clearTimeout(refreshTimeoutRef.current);
-        }
-        refreshTimeoutRef.current = setTimeout(() => {
-          isRefreshingMessagesRef.current = true;
-          refreshMessages().catch((error) => {
-            !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending image:', error);
-          }).finally(() => {
-            Promise.resolve().then(() => {
-              scrollToBottom(true);
-              isRefreshingMessagesRef.current = false;
-            });
-          });
-        }, 250);
+        // No need to refresh - websocket will send the message back with real ID
       } catch (error) {
         console.error('❌ Failed to upload image:', error);
         addToast({
@@ -762,21 +786,7 @@ export function ChatComponent() {
     // Rule 2: User sends a message → Force scroll to bottom (bypasses cooldown)
     scrollToBottom(true);
 
-    // Refresh messages after sending
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
-    refreshTimeoutRef.current = setTimeout(() => {
-      isRefreshingMessagesRef.current = true;
-      refreshMessages().catch((error) => {
-        !IS_PROD && console.warn('⚠️ Failed to refresh messages after sending:', error);
-      }).finally(() => {
-        Promise.resolve().then(() => {
-          scrollToBottom(true);
-          isRefreshingMessagesRef.current = false;
-        });
-      });
-    }, 250);
+    // No need to refresh - websocket will send the message back with real ID
   }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast, refreshMessages, scrollToBottom]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
@@ -1003,11 +1013,11 @@ export function ChatComponent() {
           !IS_PROD && console.log('🔄 Message not found, refreshing to get real IDs...');
           
           try {
-            // Refresh messages to get real database IDs
-            await refreshMessages();
-            !IS_PROD && console.log(' Messages refreshed, retrying pin...');
+            // Wait a bit for websocket to update message IDs, then retry
+            await new Promise(resolve => setTimeout(resolve, 500));
+            !IS_PROD && console.log(' Retrying pin after brief delay...');
             
-            // Retry the pin operation with refreshed messages
+            // Retry the pin operation
             const retryResponse = await fetch('/api/chat-message-pin', {
               method: 'POST',
               headers: {
@@ -1071,12 +1081,11 @@ export function ChatComponent() {
     } finally {
       setPendingPinMessageId(null);
     }
-  }, [selectedPlayer, pendingPinMessageId, addToast, updateMessagePinnedState, refreshMessages]);
+  }, [selectedPlayer, pendingPinMessageId, addToast, updateMessagePinnedState]);
 
   const handleNotesSaved = useCallback(async () => {
-    // Refresh messages to get updated notes from backend
-    await refreshMessages();
-  }, [refreshMessages]);
+    // Notes are updated via websocket in real-time, no refresh needed
+  }, []);
 
   const handleOpenEditProfile = useCallback(() => {
     if (!selectedPlayer) return;

@@ -40,17 +40,6 @@ export const MessageBubble = memo(function MessageBubble({
   const messageHasHtml = hasHtmlContent(message.text);
   const isAuto = isAutoMessage(message);
 
-  // Debug logging for auto message detection
-  if (process.env.NODE_ENV !== 'production' && message.sender === 'admin') {
-    console.log('🔍 Checking message for auto detection:', {
-      text: message.text.substring(0, 50),
-      sender: message.sender,
-      userId: message.userId,
-      type: message.type,
-      isAuto,
-    });
-  }
-
   // Render auto messages in a centered, neutral style with italics
   if (isAuto) {
     // Convert <br> tags to line breaks and preserve HTML formatting

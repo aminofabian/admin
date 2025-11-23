@@ -235,6 +235,42 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             return;
           }
 
+          // Handle "balanceUpdated" or "balance_updated" message type
+          if (messageType === 'balanceUpdated' || messageType === 'balance_updated') {
+            const playerId = data.player_id || data.user_id;
+            const balance = data.balance ?? data.player_bal;
+            const winningBalance = data.winning_balance ?? data.player_winning_bal;
+            
+            !IS_PROD && console.log('💰 [Chat List WS] Balance updated notification received:', {
+              playerId,
+              balance,
+              winningBalance,
+              fullData: data,
+            });
+
+            if (playerId && (balance !== undefined || winningBalance !== undefined)) {
+              setActiveChats((prevChats) => {
+                return prevChats.map((chat) => {
+                  if (chat.user_id === Number(playerId)) {
+                    !IS_PROD && console.log(`💰 [Chat List WS] Updating balance for player ${playerId}:`, {
+                      oldBalance: chat.balance,
+                      newBalance: balance !== undefined ? String(balance) : chat.balance,
+                      oldWinningBalance: chat.winningBalance,
+                      newWinningBalance: winningBalance !== undefined ? String(winningBalance) : chat.winningBalance,
+                    });
+                    return {
+                      ...chat,
+                      balance: balance !== undefined ? String(balance) : chat.balance,
+                      winningBalance: winningBalance !== undefined ? String(winningBalance) : chat.winningBalance,
+                    };
+                  }
+                  return chat;
+                });
+              });
+            }
+            return;
+          }
+
           // Handle "add_new_chats" message type
           if (data.message && data.message.type === 'add_new_chats' && Array.isArray(data.message.chats)) {
             //  Check if we recently refreshed from API - if so, skip WebSocket update
@@ -375,13 +411,34 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
               // Update existing chat
               !IS_PROD && console.log('🔄 [Chat List WS] Updating existing chat at index', chatIndex);
               const updatedChats = [...prevChats];
+              const existingChat = updatedChats[chatIndex];
+              
+              // Extract balance data from updateData (could be in player object or top level)
+              const playerData = updateData.player || {};
+              const newBalance = updateData.balance ?? playerData.balance ?? updateData.player_bal;
+              const newWinningBalance = updateData.winning_balance ?? playerData.winning_balance ?? updateData.player_winning_bal;
+              
               const updatedChat = {
-                ...updatedChats[chatIndex],
-                lastMessage: updateData.last_message || updatedChats[chatIndex].lastMessage,
+                ...existingChat,
+                lastMessage: updateData.last_message || existingChat.lastMessage,
                 // Only update timestamp if the incoming one is valid
-                lastMessageTime: isValidTimestamp(updateData.last_message_time) ? updateData.last_message_time : updatedChats[chatIndex].lastMessageTime,
-                unreadCount: extractUnreadCount(updateData) ?? updatedChats[chatIndex].unreadCount,
+                lastMessageTime: isValidTimestamp(updateData.last_message_time) ? updateData.last_message_time : existingChat.lastMessageTime,
+                unreadCount: extractUnreadCount(updateData) ?? existingChat.unreadCount,
+                // Update balance if provided in the update
+                balance: newBalance !== undefined ? String(newBalance) : existingChat.balance,
+                winningBalance: newWinningBalance !== undefined ? String(newWinningBalance) : existingChat.winningBalance,
               };
+
+              // Log balance updates if they changed
+              if (newBalance !== undefined || newWinningBalance !== undefined) {
+                !IS_PROD && console.log('💰 [Chat List WS] Balance updated in update_chat:', {
+                  chatId,
+                  oldBalance: existingChat.balance,
+                  newBalance: updatedChat.balance,
+                  oldWinningBalance: existingChat.winningBalance,
+                  newWinningBalance: updatedChat.winningBalance,
+                });
+              }
 
               // Move to top of list
               updatedChats.splice(chatIndex, 1);

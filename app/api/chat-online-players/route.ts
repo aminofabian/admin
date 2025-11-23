@@ -28,10 +28,45 @@ export async function GET(request: NextRequest) {
       'Authorization': authHeader,
     };
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers,
-    });
+    // Create AbortController for timeout (30 seconds for online players API)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+
+    let response: Response;
+    try {
+      response = await fetch(apiUrl, {
+        method: 'GET',
+        headers,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      // Handle timeout/abort errors
+      if (fetchError instanceof Error && (fetchError.name === 'AbortError' || fetchError.message.includes('timeout'))) {
+        console.error('❌ Request timeout after 30 seconds');
+        return NextResponse.json({
+          status: 'error',
+          message: 'Request timeout. The server is taking too long to respond. Please try again.',
+          detail: 'Connection timeout after 30 seconds',
+        }, { status: 408 });
+      }
+      
+      // Handle connection errors
+      if (fetchError instanceof Error && (fetchError.message.includes('fetch failed') || fetchError.message.includes('ConnectTimeoutError'))) {
+        console.error('❌ Connection error:', fetchError.message);
+        return NextResponse.json({
+          status: 'error',
+          message: 'Failed to connect to server. Please check your connection and try again.',
+          detail: fetchError.message,
+        }, { status: 503 });
+      }
+      
+      // Re-throw other errors to be handled by outer catch
+      throw fetchError;
+    }
 
     console.log('📥 Backend response status:', response.status, response.statusText);
 
@@ -64,11 +99,28 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error proxying online players request:', error);
     
+    // Provide more specific error messages
+    let errorMessage = 'Failed to fetch online players';
+    let errorDetail = error instanceof Error ? error.message : 'Unknown error';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      if (error.message.includes('timeout') || error.message.includes('Timeout')) {
+        errorMessage = 'Request timeout. The server is taking too long to respond.';
+        errorDetail = 'The request exceeded the timeout limit. Please try again.';
+        statusCode = 408;
+      } else if (error.message.includes('fetch failed') || error.message.includes('ConnectTimeoutError')) {
+        errorMessage = 'Connection failed. Unable to reach the server.';
+        errorDetail = 'Please check your network connection and try again.';
+        statusCode = 503;
+      }
+    }
+    
     return NextResponse.json({
       status: 'error',
-      message: 'Failed to fetch online players',
-      detail: error instanceof Error ? error.message : 'Unknown error',
-    }, { status: 500 });
+      message: errorMessage,
+      detail: errorDetail,
+    }, { status: statusCode });
   }
 }
 

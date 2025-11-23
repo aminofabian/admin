@@ -502,17 +502,8 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       }
     })();
 
-    //  PERFORMANCE: Auto-refresh every 60 seconds
-    refreshIntervalRef.current = setInterval(() => {
-      !IS_PROD && console.log('🔄 [Online Players] Auto-refreshing...');
-      fetchFromApi(true).then((players) => {
-        if (isMountedRef.current) {
-          setOnlinePlayers(players);
-        }
-      }).catch((err) => {
-        console.error('❌ [Online Players] Auto-refresh failed:', err);
-      });
-    }, REFRESH_INTERVAL);
+    // No polling - websocket handles real-time updates
+    // Removed auto-refresh interval to prevent unnecessary API calls
 
     return () => {
       if (refreshIntervalRef.current) {

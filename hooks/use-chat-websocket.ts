@@ -92,6 +92,7 @@ interface UseChatWebSocketParams {
   adminId: number;
   enabled: boolean;
   onMessageReceived?: (message: ChatMessage) => void; // Callback to update chat list
+  onBalanceUpdated?: (data: { playerId: number; balance: string; winningBalance: string }) => void; // Callback for balance updates
 }
 
 interface UseChatWebSocketReturn {
@@ -111,6 +112,7 @@ interface UseChatWebSocketReturn {
   isHistoryLoading: boolean;
   updateMessagePinnedState: (messageId: string, pinned: boolean) => void;
   refreshMessages: () => Promise<void>;
+  updateMessagesBalance: (balance: string, winningBalance: string) => void;
   notes: string;
 }
 
@@ -120,6 +122,7 @@ export function useChatWebSocket({
   adminId,
   enabled,
   onMessageReceived,
+  onBalanceUpdated,
 }: UseChatWebSocketParams): UseChatWebSocketReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -146,6 +149,11 @@ export function useChatWebSocket({
   useEffect(() => {
     onMessageReceivedRef.current = onMessageReceived;
   }, [onMessageReceived]);
+
+  const onBalanceUpdatedRef = useRef(onBalanceUpdated);
+  useEffect(() => {
+    onBalanceUpdatedRef.current = onBalanceUpdated;
+  }, [onBalanceUpdated]);
 
   useEffect(() => {
     setMessages([]);
@@ -437,35 +445,62 @@ export function useChatWebSocket({
           return;
         }
 
-        !IS_PROD && console.log(' Chat WebSocket connected');
+        !IS_PROD && console.log('✅ [Chat WS] WebSocket connected successfully:', {
+          userId,
+          chatId,
+          connectionKey,
+          readyState: ws.readyState,
+        });
         setIsConnected(true);
         setConnectionError(null);
         reconnectAttemptsRef.current = 0;
         
         // Fetch message history after connecting
+        !IS_PROD && console.log('📜 [Chat WS] Fetching message history after connection...');
         void fetchMessageHistory(1, 'replace');
       };
 
       ws.onmessage = (event) => {
         if (activeConnectionKeyRef.current !== connectionKey) {
-          !IS_PROD && console.log('⚠️ Ignoring message from stale WebSocket connection');
+          !IS_PROD && console.log('⚠️ [Chat WS] Ignoring message from stale WebSocket connection');
           return;
         }
 
         try {
           const rawData = JSON.parse(event.data);
-          !IS_PROD && console.log('📨 Received WebSocket message:', {
+          
+          !IS_PROD && console.log('📨 [Chat WS] Raw WebSocket message received:', {
+            hasData: !!rawData,
+            type: rawData?.type,
+            messagePreview: rawData?.message?.substring(0, 30),
+          });
+          
+          // Log ALL websocket messages for debugging balance updates
+          !IS_PROD && console.log('📨 [Chat WS] Received WebSocket message (FULL):', {
             type: rawData.type,
             message: rawData.message?.substring(0, 50),
             sender: rawData.is_player_sender ? 'player' : 'admin',
             timestamp: rawData.sent_time,
             userBalance: rawData.user_balance,
+            balance: rawData.balance,
+            player_bal: rawData.player_bal,
+            winning_balance: rawData.winning_balance,
+            player_winning_bal: rawData.player_winning_bal,
+            player_id: rawData.player_id,
+            user_id: rawData.user_id,
+            fullData: rawData,
           });
 
           // Handle different message types from backend
           const messageType = rawData.type;
 
-          if (messageType === 'message') {
+          // Handle 'message' type and 'balanceUpdated' type (if it has message content) as regular messages
+          // balanceUpdated messages with content should be displayed as regular messages
+          const hasMessageContent = rawData.message || rawData.text;
+          const isMessageType = messageType === 'message' || 
+                               (messageType === 'balanceUpdated' || messageType === 'balance_updated') && hasMessageContent;
+
+          if (isMessageType) {
             // Determine sender based on backend fields
             const isPlayerSender = rawData.is_player_sender ?? true;
             const sender: 'player' | 'admin' = isPlayerSender ? 'player' : 'admin';
@@ -475,7 +510,7 @@ export function useChatWebSocket({
             const messageDate = new Date(timestamp);
 
             const newMessage: ChatMessage = {
-              id: rawData.id || rawData.message_id || Date.now().toString(),
+              id: rawData.id || rawData.message_id || `temp-${Date.now()}-${Math.random()}`,
               text: rawData.message || '',
               sender,
               timestamp: messageDate.toISOString(),
@@ -486,50 +521,93 @@ export function useChatWebSocket({
               }),
               isRead: false,
               userId: rawData.sender_id || rawData.player_id,
+              type: rawData.type, // Preserve the message type (e.g., 'balanceUpdated')
               // Include additional metadata from the backend
               isFile: rawData.is_file || false,
               fileExtension: rawData.file_extension || undefined,
               fileUrl: rawData.file || rawData.file_url || undefined,
               isComment: rawData.is_comment || false,
               isPinned: rawData.is_pinned ?? false,
+              userBalance: rawData.user_balance ? String(rawData.user_balance) : undefined,
             };
 
-            !IS_PROD && console.log(' Parsed message and adding to state:', {
+            !IS_PROD && console.log('✅ [Chat WS] Parsed message and adding to state:', {
               id: newMessage.id,
               text: newMessage.text.substring(0, 50),
               sender: newMessage.sender,
               time: newMessage.time,
               isFile: newMessage.isFile,
-              userBalance: rawData.user_balance,
+              userBalance: newMessage.userBalance,
+              userId: newMessage.userId,
+              currentUserId: userId,
+              matchesCurrentUser: newMessage.userId === userId,
             });
             
-            //  Check for duplicate messages before adding
+            // Simply append the websocket message to the messages array
             setMessages((prev) => {
-              // Prevent duplicate messages by checking if message with same ID exists
+              // Quick duplicate check by ID only
               const isDuplicate = prev.some(msg => msg.id === newMessage.id);
               if (isDuplicate) {
-                !IS_PROD && console.log('⚠️ Duplicate message detected, skipping:', newMessage.id);
+                !IS_PROD && console.log('⚠️ [Chat WS] Duplicate message by ID, skipping:', newMessage.id);
                 return prev;
               }
               
+              // Append new message
               const updated = [...prev, newMessage];
-              !IS_PROD && console.log(`📝 Messages state updated: ${prev.length} -> ${updated.length} messages`);
+              !IS_PROD && console.log(`✅ [Chat WS] Appended message: ${prev.length} -> ${updated.length} messages`);
               return updated;
             });
             
-            //  Update user balance if provided in the message
-            if (rawData.user_balance !== undefined) {
-              !IS_PROD && console.log('💰 User balance update:', rawData.user_balance);
-              // You can emit this to a balance update callback if needed
+            // Notify parent component about new message (this updates chat list)
+            // Only call once per message to avoid duplicates
+            !IS_PROD && console.log('🔔 [Chat WS] Calling onMessageReceived callback for new message...');
+            if (onMessageReceivedRef.current) {
+              try {
+                onMessageReceivedRef.current(newMessage);
+                !IS_PROD && console.log('✅ [Chat WS] onMessageReceived callback executed successfully');
+              } catch (error) {
+                console.error('❌ [Chat WS] Error in onMessageReceived callback:', error);
+              }
+            } else {
+              !IS_PROD && console.warn('⚠️ [Chat WS] onMessageReceived callback is not defined');
             }
             
-            // Notify parent component to update chat list (ONLY for actual messages, not typing)
-            !IS_PROD && console.log('🔔 Calling onMessageReceived callback...');
-            if (onMessageReceivedRef.current) {
-              onMessageReceivedRef.current(newMessage);
-              !IS_PROD && console.log(' onMessageReceived callback executed');
-            } else {
-              !IS_PROD && console.warn('⚠️ onMessageReceived callback is not defined');
+            //  Update user balance if provided in the message
+            // This handles balance updates that come embedded in regular messages
+            if (rawData.user_balance !== undefined || rawData.balance !== undefined || rawData.player_bal !== undefined) {
+              const balance = rawData.user_balance ?? rawData.balance ?? rawData.player_bal;
+              const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal;
+              const playerId = rawData.player_id || rawData.user_id || userId;
+              
+              !IS_PROD && console.log('💰 [Chat WS] Balance update detected in message:', {
+                balance,
+                winningBalance,
+                playerId,
+                hasCallback: !!onBalanceUpdatedRef.current,
+              });
+              
+              // Update balance in all existing messages for this player
+              if (playerId && String(playerId) === String(userId) && balance !== undefined && balance !== null) {
+                const balanceValue = String(balance);
+                setMessages((prev) =>
+                  prev.map((msg) => {
+                    if (msg.userId === Number(playerId) || msg.sender === 'player') {
+                      return { ...msg, userBalance: balanceValue };
+                    }
+                    return msg;
+                  }),
+                );
+                !IS_PROD && console.log('✅ [Chat WS] Updated balance in existing messages from embedded balance data');
+              }
+              
+              // Notify parent component about balance update if callback is available
+              if (onBalanceUpdatedRef.current && playerId) {
+                onBalanceUpdatedRef.current({
+                  playerId: Number(playerId),
+                  balance: balance !== undefined && balance !== null ? String(balance) : '0',
+                  winningBalance: winningBalance !== undefined && winningBalance !== null ? String(winningBalance) : '0',
+                });
+              }
             }
           } else if (messageType === 'typing') {
             !IS_PROD && console.log('⌨️ User is typing...');
@@ -577,6 +655,45 @@ export function useChatWebSocket({
             // Update online status if this is the player we're chatting with
             if (String(playerId) === String(userId)) {
               setIsUserOnline(isActive);
+            }
+          } else if (messageType === 'balanceUpdated' || messageType === 'balance_updated') {
+            // balanceUpdated messages are already handled in the main message block above
+            // This block is for standalone balance update notifications without message content
+            const playerId = rawData.player_id || rawData.user_id || userId;
+            const balance = rawData.balance ?? rawData.player_bal ?? rawData.player?.balance;
+            const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal ?? rawData.player?.winning_balance;
+            
+            !IS_PROD && console.log('💰 [Chat WS] Standalone balance updated notification (no message content):', {
+              messageType,
+              playerId,
+              balance,
+              winningBalance,
+            });
+            
+            // Only handle if there's no message content (pure balance update notification)
+            if (!rawData.message && playerId) {
+              // Update balance in all messages for this player
+              if (String(playerId) === String(userId) && balance !== undefined && balance !== null) {
+                const balanceValue = String(balance);
+                setMessages((prev) =>
+                  prev.map((message) => {
+                    if (message.userId === Number(playerId) || message.sender === 'player') {
+                      return { ...message, userBalance: balanceValue };
+                    }
+                    return message;
+                  }),
+                );
+                !IS_PROD && console.log('✅ [Chat WS] Updated balance in existing messages');
+              }
+              
+              // Notify parent component about balance update
+              if (onBalanceUpdatedRef.current) {
+                onBalanceUpdatedRef.current({
+                  playerId: Number(playerId),
+                  balance: balance !== undefined && balance !== null ? String(balance) : '0',
+                  winningBalance: winningBalance !== undefined && winningBalance !== null ? String(winningBalance) : '0',
+                });
+              }
             }
           } else if (messageType === 'error') {
             console.error('❌ WebSocket error message:', rawData.error || rawData.message);
@@ -772,6 +889,31 @@ export function useChatWebSocket({
     );
   }, []);
 
+  // Update balance in all messages for the current user
+  const updateMessagesBalance = useCallback((balance: string, winningBalance: string) => {
+    if (!userId) return;
+    
+    !IS_PROD && console.log('💰 [Chat WS] Updating balance in messages:', {
+      userId,
+      balance,
+      winningBalance,
+    });
+
+    setMessages((prev) =>
+      prev.map((message) => {
+        // Only update messages from the current player
+        if (message.userId === userId || message.sender === 'player') {
+          // Update userBalance field - use main balance for userBalance
+          return {
+            ...message,
+            userBalance: balance,
+          };
+        }
+        return message;
+      }),
+    );
+  }, [userId]);
+
   // Refresh the latest messages to get real IDs from backend
   const refreshMessages = useCallback(async () => {
     if (!chatId && !userId) {
@@ -813,6 +955,7 @@ export function useChatWebSocket({
     isHistoryLoading,
     updateMessagePinnedState,
     refreshMessages,
+    updateMessagesBalance,
     notes,
   };
 }
