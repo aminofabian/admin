@@ -138,11 +138,13 @@ export function BannersSection() {
           <div className="space-y-2 text-xs text-muted-foreground">
             <div className="flex flex-wrap gap-4">
               <span><strong className="text-primary">Types:</strong> HOMEPAGE (main page banners) • PROMOTIONAL (marketing banners)</span>
-              <span><strong className="text-primary">Categories:</strong> DESKTOP • MOBILE_RESPONSIVE • MOBILE_APP</span>
             </div>
             <div>
-              <strong className="text-primary">Note:</strong> At least one image (web, mobile, or thumbnail) is required for new banners. 
+              <strong className="text-primary">Note:</strong> At least one image (web or mobile) is required for new banners. 
               File formats: PNG, JPEG, JPG (max 5MB each)
+            </div>
+            <div>
+              <strong className="text-primary">Dimensions:</strong> Web banners display at 85vh max-height on desktop, mobile banners at 65vh max-height on mobile (≤640px)
             </div>
           </div>
         </div>
@@ -156,7 +158,7 @@ export function BannersSection() {
           <SearchInput
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search banners by title, type, or category..."
+            placeholder="Search banners by title or type..."
           />
         </div>
       </div>
@@ -188,7 +190,6 @@ export function BannersSection() {
                 <TableHead className="font-semibold text-foreground">Preview</TableHead>
                 <TableHead className="font-semibold text-foreground">Title</TableHead>
                 <TableHead className="font-semibold text-foreground">Type</TableHead>
-                <TableHead className="font-semibold text-foreground">Category</TableHead>
                 <TableHead className="font-semibold text-foreground">Status</TableHead>
                 <TableHead className="font-semibold text-foreground">Redirect URL</TableHead>
                 <TableHead className="font-semibold text-foreground">Created</TableHead>
@@ -198,7 +199,7 @@ export function BannersSection() {
             <TableBody>
               {banners.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center py-12 text-muted-foreground" colSpan={8}>
+                  <TableCell className="text-center py-12 text-muted-foreground" colSpan={7}>
                     No banners found
                   </TableCell>
                 </TableRow>
@@ -206,10 +207,10 @@ export function BannersSection() {
                 banners.map((banner) => (
                   <TableRow key={banner.id} className="hover:bg-card/50 border-border/20 transition-colors">
                     <TableCell>
-                      {banner.web_banner || banner.mobile_banner || banner.banner_thumbnail ? (
+                      {banner.web_banner || banner.mobile_banner ? (
                         <div className="relative overflow-hidden border border-border/30 shadow-sm">
                           <Image
-                            src={banner.web_banner || banner.mobile_banner || banner.banner_thumbnail || ''}
+                            src={banner.web_banner || banner.mobile_banner || ''}
                             alt={`${banner.title} preview`}
                             width={64}
                             height={40}
@@ -235,11 +236,6 @@ export function BannersSection() {
                       >
                         {banner.banner_type}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground font-medium">
-                        {banner.banner_category}
-                      </span>
                     </TableCell>
                     <TableCell>
                       <button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,22 +16,38 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     banner_type: initialData?.banner_type || 'HOMEPAGE' as const,
-    banner_category: initialData?.banner_category || 'DESKTOP' as const,
     redirect_url: initialData?.redirect_url || '',
     is_active: initialData?.is_active ?? true,
   });
   const [files, setFiles] = useState<{
     web_banner?: File;
     mobile_banner?: File;
-    banner_thumbnail?: File;
   }>({});
   const [previews, setPreviews] = useState<{
     web_banner?: string;
     mobile_banner?: string;
-    banner_thumbnail?: string;
   }>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validating, setValidating] = useState<{
+    web_banner?: boolean;
+    mobile_banner?: boolean;
+  }>({});
+
+  // Clear files and errors when banner type changes (different validation rules)
+  useEffect(() => {
+    if (files.web_banner || files.mobile_banner) {
+      // Clear files and previews when banner type changes
+      setFiles({});
+      setPreviews({});
+      // Clear file-related errors
+      const newErrors = { ...errors };
+      delete newErrors.web_banner;
+      delete newErrors.mobile_banner;
+      delete newErrors.banner;
+      setErrors(newErrors);
+    }
+  }, [formData.banner_type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -45,42 +61,318 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
     }
 
     // Validate at least one banner image for new banners
-    if (!initialData && !files.web_banner && !files.mobile_banner && !files.banner_thumbnail) {
-      newErrors.banner = 'At least one banner image (web, mobile, or thumbnail) is required';
+    if (!initialData && !files.web_banner && !files.mobile_banner) {
+      newErrors.banner = 'At least one banner image (web or mobile) is required';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'web_banner' | 'mobile_banner' | 'banner_thumbnail') => {
+  const validateImageDimensions = (
+    file: File,
+    field: 'web_banner' | 'mobile_banner',
+    bannerType: 'HOMEPAGE' | 'PROMOTIONAL' = formData.banner_type
+  ): Promise<{ valid: boolean; error?: string }> => {
+    return new Promise((resolve) => {
+      // Use browser's native Image constructor, not Next.js Image component
+      // The imported Image from 'next/image' shadows the global Image, so we use HTMLImageElement
+      const img = document.createElement('img') as HTMLImageElement;
+      const url = URL.createObjectURL(file);
+
+      img.onload = () => {
+        try {
+          URL.revokeObjectURL(url);
+          const width = img.width;
+          const height = img.height;
+          
+          if (!width || !height || width === 0 || height === 0) {
+            resolve({
+              valid: false,
+              error: 'Unable to read image dimensions. Please ensure the image file is valid and not corrupted.',
+            });
+            return;
+          }
+          
+          const aspectRatio = width / height;
+
+          console.log('Image dimensions:', { width, height, aspectRatio, field, bannerType });
+
+        if (field === 'web_banner') {
+          if (bannerType === 'HOMEPAGE') {
+            // HOMEPAGE: Nearly 3/4 screen height, nearly full width
+            // Flexible range to accommodate various screen sizes
+            // Width: 1280-2560px (allows smaller widths like 1280px)
+            // Height: 600-1080px (nearly 3/4 viewport height range)
+            // Aspect ratio: ~1.5:1 to ~3:1 (flexible landscape)
+            const minWidth = 1280;
+            const maxWidth = 2560;
+            const minHeight = 600;
+            const maxHeight = 1080;
+            const minRatio = 1.2; // More lenient - allow slightly narrower
+            const maxRatio = 4.0; // More lenient - allow wider banners
+
+            if (width < minWidth || width > maxWidth) {
+              const widthIssue = width < minWidth ? 'too narrow' : 'too wide';
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to between ${minWidth} and ${maxWidth}px.`,
+              });
+              return;
+            }
+            if (height < minHeight || height > maxHeight) {
+              const heightIssue = height < minHeight ? 'too short' : 'too tall';
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. The height is ${heightIssue} (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
+              });
+              return;
+            }
+            // Validate aspect ratio is reasonable landscape (1.2:1 to 4:1) - more lenient
+            if (aspectRatio < minRatio || aspectRatio > maxRatio) {
+              const ratioIssue = aspectRatio < minRatio ? 'too narrow (portrait-like)' : 'too wide';
+              const suggestedWidth = Math.round(height * 2.5); // Suggest a good width based on current height
+              const suggestedHeight = Math.round(width / 2.5); // Suggest a good height based on current width
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). The aspect ratio is ${ratioIssue}. Kindly adjust to: width ${minWidth}-${maxWidth}px and height ${minHeight}-${maxHeight}px. Suggested: ${suggestedWidth}x${height}px or ${width}x${suggestedHeight}px.`,
+              });
+              return;
+            }
+          } else if (bannerType === 'PROMOTIONAL') {
+            // PROMOTIONAL: 1/3 screen height, full width (Facebook cover photo spec)
+            // Flexible range to accommodate various screen sizes
+            // Width: 1280-2560px (allows smaller widths like 1280px)
+            // Height: 400-950px (1/3 viewport height range)
+            // Aspect ratio: ~1.5:1 to ~3:1 (flexible landscape, Facebook-like)
+            const minWidth = 1280;
+            const maxWidth = 2560;
+            const minHeight = 400;
+            const maxHeight = 950;
+            const minRatio = 1.2; // More lenient - allow slightly narrower
+            const maxRatio = 4.0; // More lenient - allow wider banners
+
+            if (width < minWidth || width > maxWidth) {
+              const widthIssue = width < minWidth ? 'too narrow' : 'too wide';
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to between ${minWidth} and ${maxWidth}px.`,
+              });
+              return;
+            }
+            if (height < minHeight || height > maxHeight) {
+              const heightIssue = height < minHeight ? 'too short' : 'too tall';
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. The height is ${heightIssue} (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
+              });
+              return;
+            }
+            // Validate aspect ratio is reasonable landscape (1.2:1 to 4:1) - more lenient
+            if (aspectRatio < minRatio || aspectRatio > maxRatio) {
+              const ratioIssue = aspectRatio < minRatio ? 'too narrow (portrait-like)' : 'too wide';
+              const suggestedWidth = Math.round(height * 2.5); // Suggest a good width based on current height
+              const suggestedHeight = Math.round(width / 2.5); // Suggest a good height based on current width
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). The aspect ratio is ${ratioIssue}. Kindly adjust to: width ${minWidth}-${maxWidth}px and height ${minHeight}-${maxHeight}px. Suggested: ${suggestedWidth}x${height}px or ${width}x${suggestedHeight}px.`,
+              });
+              return;
+            }
+          }
+        } else if (field === 'mobile_banner') {
+          if (bannerType === 'HOMEPAGE') {
+            // HOMEPAGE mobile: Nearly 3/4 screen height
+            // Mobile viewports: 375x667 to 414x896
+            // 3/4 of 667 = 500px, 3/4 of 896 = 672px
+            // Width: 375-414px (nearly full width)
+            // Height: 500-672px (nearly 3/4 viewport height)
+            if (width < 375 || width > 414) {
+              const widthIssue = width < 375 ? 'too narrow' : 'too wide';
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to between 375 and 414px.`,
+              });
+              return;
+            }
+            if (height < 500 || height > 672) {
+              const heightIssue = height < 500 ? 'too short' : 'too tall';
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. The height is ${heightIssue} (${height}px). Kindly adjust the height to between 500 and 672px.`,
+              });
+              return;
+            }
+          } else if (bannerType === 'PROMOTIONAL') {
+            // PROMOTIONAL mobile: Facebook spec 640x360
+            // Width: 640px (standard mobile width, allow small range)
+            // Height: 360px (1/3 viewport height, allow small range)
+            // Aspect ratio: ~1.78:1
+            if (width < 600 || width > 680) {
+              const widthIssue = width < 600 ? 'too narrow' : 'too wide';
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to approximately 640px (600-680px range, Facebook spec).`,
+              });
+              return;
+            }
+            if (height < 340 || height > 380) {
+              const heightIssue = height < 340 ? 'too short' : 'too tall';
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. The height is ${heightIssue} (${height}px). Kindly adjust the height to approximately 360px (340-380px range, Facebook spec).`,
+              });
+              return;
+            }
+            // Validate aspect ratio is approximately 1.78:1 (Facebook spec)
+            const expectedRatio = 1.78;
+            const ratioTolerance = 0.1;
+            if (Math.abs(aspectRatio - expectedRatio) > ratioTolerance) {
+              const suggestedWidth = Math.round(height * 1.78);
+              const suggestedHeight = Math.round(width / 1.78);
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). The aspect ratio doesn't match Facebook spec (1.78:1). Kindly adjust to approximately 640x360px. Suggested: ${suggestedWidth}x${height}px or ${width}x${suggestedHeight}px.`,
+              });
+              return;
+            }
+          }
+        }
+
+          resolve({ valid: true });
+        } catch (error) {
+          URL.revokeObjectURL(url);
+          console.error('Error during image validation:', error);
+          resolve({
+            valid: false,
+            error: error instanceof Error 
+              ? `Validation error: ${error.message}. Please try a different image file.`
+              : 'An error occurred while validating image dimensions. Please try a different image file.',
+          });
+        }
+      };
+
+      img.onerror = (error) => {
+        URL.revokeObjectURL(url);
+        console.error('Image load error:', error);
+        resolve({
+          valid: false,
+          error: 'Failed to load image. Please ensure the file is a valid image file (PNG, JPEG, or JPG).',
+        });
+      };
+
+      img.onabort = () => {
+        URL.revokeObjectURL(url);
+        resolve({
+          valid: false,
+          error: 'Image loading was cancelled. Please try uploading again.',
+        });
+      };
+
+      try {
+        img.src = url;
+      } catch (error) {
+        URL.revokeObjectURL(url);
+        console.error('Error setting image source:', error);
+        resolve({
+          valid: false,
+          error: error instanceof Error 
+            ? `Error loading image: ${error.message}. Please try a different image file.`
+            : 'Error loading image. Please try a different image file.',
+        });
+      }
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'web_banner' | 'mobile_banner') => {
     const file = e.target.files?.[0];
-    if (file) {
+    const fileInput = e.target;
+    
+    // Clear previous errors for this field
+    const newErrors = { ...errors };
+    delete newErrors[field];
+    delete newErrors.banner;
+    setErrors(newErrors);
+
+    // Clear previous file and preview if validation fails
+    const clearFile = () => {
+      setFiles((prev) => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+      setPreviews((prev) => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+      // Reset file input
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    };
+
+    if (!file) {
+      clearFile();
+      return;
+    }
+
+    // Set validating state
+    setValidating((prev) => ({ ...prev, [field]: true }));
+
+    try {
       // Validate file type
       if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-        setErrors({ ...errors, [field]: 'Only PNG, JPEG, and JPG files are allowed' });
+        setErrors({ ...newErrors, [field]: 'Only PNG, JPEG, and JPG files are allowed' });
+        clearFile();
+        setValidating((prev) => ({ ...prev, [field]: false }));
         return;
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setErrors({ ...errors, [field]: 'File size must be less than 5MB' });
+        setErrors({ ...newErrors, [field]: 'File size must be less than 5MB' });
+        clearFile();
+        setValidating((prev) => ({ ...prev, [field]: false }));
         return;
       }
 
-      // Create preview
+      // Validate image dimensions (pass current banner type)
+      const dimensionValidation = await validateImageDimensions(file, field, formData.banner_type);
+      if (!dimensionValidation.valid) {
+        console.log('Validation failed:', {
+          field,
+          bannerType: formData.banner_type,
+          error: dimensionValidation.error,
+        });
+        setErrors({ ...newErrors, [field]: dimensionValidation.error || 'Invalid image dimensions' });
+        clearFile();
+        setValidating((prev) => ({ ...prev, [field]: false }));
+        return;
+      }
+
+      // All validations passed - create preview and set file
       const reader = new FileReader();
       reader.onload = (event) => {
-        setPreviews({ ...previews, [field]: event.target?.result as string });
+        setPreviews((prev) => ({ ...prev, [field]: event.target?.result as string }));
+        setValidating((prev) => ({ ...prev, [field]: false }));
+      };
+      reader.onerror = () => {
+        setErrors({ ...newErrors, [field]: 'Failed to read image file' });
+        clearFile();
+        setValidating((prev) => ({ ...prev, [field]: false }));
       };
       reader.readAsDataURL(file);
 
-      setFiles({ ...files, [field]: file });
-      // Clear error for this field
-      const newErrors = { ...errors };
-      delete newErrors[field];
-      delete newErrors.banner;
-      setErrors(newErrors);
+      setFiles((prev) => ({ ...prev, [field]: file }));
+    } catch (error) {
+      console.error('Error validating image:', error);
+      const errorMessage = error instanceof Error 
+        ? `Error: ${error.message}. Please ensure the image file is valid and try again.`
+        : 'An error occurred while validating the image. Please ensure the image file is valid and try again.';
+      setErrors({ ...newErrors, [field]: errorMessage });
+      clearFile();
+      setValidating((prev) => ({ ...prev, [field]: false }));
     }
   };
 
@@ -91,7 +383,6 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
     const newErrors = { ...errors };
     delete newErrors.web_banner;
     delete newErrors.mobile_banner;
-    delete newErrors.banner_thumbnail;
     delete newErrors.banner;
     setErrors(newErrors);
   };
@@ -155,21 +446,6 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
 
       <div>
         <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-          Banner Category *
-        </label>
-        <select
-          value={formData.banner_category}
-          onChange={(e) => setFormData({ ...formData, banner_category: e.target.value as 'DESKTOP' | 'MOBILE_RESPONSIVE' | 'MOBILE_APP' })}
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
-        >
-          <option value="DESKTOP">Desktop</option>
-          <option value="MOBILE_RESPONSIVE">Mobile Responsive</option>
-          <option value="MOBILE_APP">Mobile App</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
           Redirect URL
         </label>
         <Input
@@ -193,23 +469,53 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
             Web Banner (Desktop)
           </label>
+          {formData.banner_type === 'HOMEPAGE' ? (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Required: Width 1280-2560px, Height 600-1080px (aspect ratio 1.2:1 to 4:1). 
+              Designed for nearly full-width, nearly 3/4 viewport height display. Displays at max 85vh height on desktop.
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Required: Width 1280-2560px, Height 400-950px (aspect ratio 1.2:1 to 4:1). 
+              Designed for full-width, 1/3 viewport height display. Displays at max 85vh height on desktop.
+            </p>
+          )}
           <input
             type="file"
             accept="image/png,image/jpeg,image/jpg"
             onChange={(e) => handleFileChange(e, 'web_banner')}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#6366f1] file:text-white hover:file:bg-[#5558e3]"
+            disabled={validating.web_banner}
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#6366f1] file:text-white hover:file:bg-[#5558e3] disabled:opacity-50 disabled:cursor-not-allowed"
           />
+          {validating.web_banner && (
+            <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">
+              Validating image dimensions...
+            </p>
+          )}
           
           {/* Image Preview */}
           {(previews.web_banner || initialData?.web_banner) && (
             <div className="mt-3">
-              <Image
-                src={previews.web_banner || initialData?.web_banner || ''}
-                alt="Web banner preview"
-                width={400}
-                height={128}
-                className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-              />
+              <div className="hidden sm:block">
+                <div className="max-h-[85vh] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600">
+                  <Image
+                    src={previews.web_banner || initialData?.web_banner || ''}
+                    alt="Web banner preview (desktop)"
+                    width={800}
+                    height={600}
+                    className="w-full max-h-[85vh] object-contain"
+                  />
+                </div>
+              </div>
+              <div className="sm:hidden">
+                <Image
+                  src={previews.web_banner || initialData?.web_banner || ''}
+                  alt="Web banner preview (mobile view)"
+                  width={400}
+                  height={128}
+                  className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                />
+              </div>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {previews.web_banner ? 'New image' : `Current: ${initialData?.web_banner?.split('/').pop()}`}
               </p>
@@ -225,23 +531,53 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
             Mobile Banner
           </label>
+          {formData.banner_type === 'HOMEPAGE' ? (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Required: Width 375-414px, Height 500-672px. 
+              Designed for nearly full-width, nearly 3/4 viewport height on mobile. Displays at max 65vh height on mobile (≤640px).
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Required: Width ~640px (600-680px), Height ~360px (340-380px) (Facebook spec). 
+              Designed for full-width, 1/3 viewport height on mobile. Displays at max 65vh height on mobile (≤640px).
+            </p>
+          )}
           <input
             type="file"
             accept="image/png,image/jpeg,image/jpg"
             onChange={(e) => handleFileChange(e, 'mobile_banner')}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#6366f1] file:text-white hover:file:bg-[#5558e3]"
+            disabled={validating.mobile_banner}
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#6366f1] file:text-white hover:file:bg-[#5558e3] disabled:opacity-50 disabled:cursor-not-allowed"
           />
+          {validating.mobile_banner && (
+            <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">
+              Validating image dimensions...
+            </p>
+          )}
           
           {/* Image Preview */}
           {(previews.mobile_banner || initialData?.mobile_banner) && (
             <div className="mt-3">
-              <Image
-                src={previews.mobile_banner || initialData?.mobile_banner || ''}
-                alt="Mobile banner preview"
-                width={400}
-                height={128}
-                className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-              />
+              <div className="block sm:hidden">
+                <div className="max-h-[65vh] overflow-hidden rounded-lg border border-gray-200 dark:border-gray-600">
+                  <Image
+                    src={previews.mobile_banner || initialData?.mobile_banner || ''}
+                    alt="Mobile banner preview (mobile)"
+                    width={400}
+                    height={600}
+                    className="w-full max-h-[65vh] object-contain"
+                  />
+                </div>
+              </div>
+              <div className="hidden sm:block">
+                <Image
+                  src={previews.mobile_banner || initialData?.mobile_banner || ''}
+                  alt="Mobile banner preview (desktop view)"
+                  width={400}
+                  height={128}
+                  className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                />
+              </div>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {previews.mobile_banner ? 'New image' : `Current: ${initialData?.mobile_banner?.split('/').pop()}`}
               </p>
@@ -250,38 +586,6 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           
           {errors.mobile_banner && (
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.mobile_banner}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-            Banner Thumbnail (Legacy)
-          </label>
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/jpg"
-            onChange={(e) => handleFileChange(e, 'banner_thumbnail')}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#6366f1] file:text-white hover:file:bg-[#5558e3]"
-          />
-          
-          {/* Image Preview */}
-          {(previews.banner_thumbnail || initialData?.banner_thumbnail) && (
-            <div className="mt-3">
-              <Image
-                src={previews.banner_thumbnail || initialData?.banner_thumbnail || ''}
-                alt="Banner thumbnail preview"
-                width={400}
-                height={128}
-                className="max-w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {previews.banner_thumbnail ? 'New image' : `Current: ${initialData?.banner_thumbnail?.split('/').pop()}`}
-              </p>
-            </div>
-          )}
-          
-          {errors.banner_thumbnail && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.banner_thumbnail}</p>
           )}
         </div>
 
