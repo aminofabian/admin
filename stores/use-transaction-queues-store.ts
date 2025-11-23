@@ -90,7 +90,24 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
 
       Object.assign(filters, cleanedAdvancedFilters);
 
-      const response = await transactionsApi.queues(filters);
+      // Use new separate endpoints based on filter type
+      let response: PaginatedResponse<TransactionQueue>;
+      
+      if (filter === 'history') {
+        // Use transaction-queues-history endpoint - remove type since endpoint handles it
+        const historyFilters = { ...filters };
+        delete historyFilters.type;
+        response = await transactionsApi.queuesHistory(historyFilters);
+      } else if (filter === 'processing') {
+        // Use transaction-queues-processing endpoint - remove type since endpoint handles it
+        const processingFilters = { ...filters };
+        delete processingFilters.type;
+        response = await transactionsApi.queuesProcessing(processingFilters);
+      } else {
+        // Use legacy endpoint for specific queue types (recharge_game, redeem_game, etc.)
+        // These still need the type parameter
+        response = await transactionsApi.queues(filters);
+      }
       
       // Normalize API response to match the structure we expect (same as WebSocket transformation)
       const normalizedQueues: TransactionQueue[] = response.results.map((queue: TransactionQueue) => {

@@ -39,6 +39,12 @@ export const API_ENDPOINTS = {
     LIST: `${API_PREFIX}/transactions/`,
     DETAIL: (id: string | number) => `${API_PREFIX}/transactions/${id}/`,
     QUEUES: `${API_PREFIX}/transaction-queues/`,
+    // New separate endpoints for history and processing
+    HISTORY: `${API_PREFIX}/transactions-history/`,
+    PURCHASES: `${API_PREFIX}/transaction-purchases/`,
+    CASHOUTS: `${API_PREFIX}/transaction-cashouts/`,
+    QUEUES_HISTORY: `${API_PREFIX}/transaction-queues-history/`,
+    QUEUES_PROCESSING: `${API_PREFIX}/transaction-queues-processing/`,
     HANDLE_GAME_ACTION: 'api/handle-game-action', // Using Next.js API route to proxy request
     ACTION: 'api/transaction-action', // Using Next.js API route to proxy request for cancel/complete
   },

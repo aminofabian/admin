@@ -88,6 +88,47 @@ export const transactionsApi = {
     return normalizePaginatedResponse(response);
   },
 
+  // New separate endpoints for history and processing
+  listHistory: async (filters?: Omit<TransactionFilters, 'type'>) => {
+    const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
+      API_ENDPOINTS.TRANSACTIONS.HISTORY, 
+      { params: filters }
+    );
+    return normalizePaginatedResponse(response);
+  },
+
+  listPurchases: async (filters?: Omit<TransactionFilters, 'type' | 'txn' | 'txn_type'>) => {
+    const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
+      API_ENDPOINTS.TRANSACTIONS.PURCHASES, 
+      { params: filters }
+    );
+    return normalizePaginatedResponse(response);
+  },
+
+  listCashouts: async (filters?: Omit<TransactionFilters, 'type' | 'txn' | 'txn_type'>) => {
+    const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
+      API_ENDPOINTS.TRANSACTIONS.CASHOUTS, 
+      { params: filters }
+    );
+    return normalizePaginatedResponse(response);
+  },
+
+  queuesHistory: async (filters?: Omit<QueueFilters, 'type'>) => {
+    const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
+      API_ENDPOINTS.TRANSACTIONS.QUEUES_HISTORY, 
+      { params: filters }
+    );
+    return normalizePaginatedResponse(response);
+  },
+
+  queuesProcessing: async (filters?: Omit<QueueFilters, 'type'>) => {
+    const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
+      API_ENDPOINTS.TRANSACTIONS.QUEUES_PROCESSING, 
+      { params: filters }
+    );
+    return normalizePaginatedResponse(response);
+  },
+
   updateStatus: (id: string, payload: { status: string }) =>
     apiClient.patch<Transaction>(
       API_ENDPOINTS.TRANSACTIONS.DETAIL(id),

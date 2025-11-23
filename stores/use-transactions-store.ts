@@ -343,7 +343,35 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           .join('&'),
       });
 
-      const response = await transactionsApi.list(apiFilters);
+      // Use new separate endpoints based on filter type
+      let response: PaginatedResponse<Transaction>;
+      
+      if (filter === 'history') {
+        // Use transactions-history endpoint - remove type/txn/txn_type since endpoint handles it
+        const historyFilters = { ...apiFilters };
+        delete historyFilters.type;
+        delete historyFilters.txn;
+        delete historyFilters.txn_type;
+        delete historyFilters.status__ne; // History endpoint excludes pending by default
+        response = await transactionsApi.listHistory(historyFilters);
+      } else if (filter === 'purchases' || filter === 'pending-purchases') {
+        // Use transaction-purchases endpoint - remove type/txn/txn_type since endpoint handles it
+        const purchaseFilters = { ...apiFilters };
+        delete purchaseFilters.type;
+        delete purchaseFilters.txn;
+        delete purchaseFilters.txn_type;
+        response = await transactionsApi.listPurchases(purchaseFilters);
+      } else if (filter === 'cashouts' || filter === 'pending-cashouts') {
+        // Use transaction-cashouts endpoint - remove type/txn/txn_type since endpoint handles it
+        const cashoutFilters = { ...apiFilters };
+        delete cashoutFilters.type;
+        delete cashoutFilters.txn;
+        delete cashoutFilters.txn_type;
+        response = await transactionsApi.listCashouts(cashoutFilters);
+      } else {
+        // Use legacy endpoint for other filters (all, processing, etc.)
+        response = await transactionsApi.list(apiFilters);
+      }
       
       // Normalize API response to ensure user data is at top level (similar to game activities)
       let normalizedTransactions: Transaction[] = response.results.map((transaction: Transaction) => {
