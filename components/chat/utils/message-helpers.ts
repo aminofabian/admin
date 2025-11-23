@@ -69,6 +69,31 @@ export const formatMessageDate = (dateString: string): string => {
   });
 };
 
+// Check if a message is a purchase notification (should be displayed centered)
+export const isPurchaseNotification = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
+  if (!message.text) return false;
+  
+  // Strip HTML tags for pattern matching
+  const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
+  const textWithHtml = message.text.toLowerCase();
+  
+  // Check for purchase notification patterns
+  const purchasePatterns = [
+    /you successfully purchased/i,
+    /credits:.*winnings:/i,
+    /credits.*winnings/i,
+  ];
+  
+  // Check if message type indicates it's a purchase notification
+  const messageTypeLower = message.type?.toLowerCase();
+  if (messageTypeLower === 'balanceupdated' || messageTypeLower === 'purchase_notification') {
+    return true;
+  }
+  
+  // Check if text matches purchase notification patterns (check both HTML and plain text)
+  return purchasePatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
+};
+
 // Check if a message is an auto/system message (not sent by staff)
 export const isAutoMessage = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
   if (!message.text) return false;
@@ -78,8 +103,6 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
   const textWithHtml = message.text.toLowerCase();
   
   // Check for auto message patterns in the text (works with or without HTML)
-  // Note: "You successfully purchased" messages with Credits/Winnings are NOT auto messages
-  // They're purchase notifications that should be displayed normally
   const autoPatterns = [
     /<b>recharge<\/b>/i,
     /^recharge$/i, // Only exact "recharge" word, not "purchased"
@@ -91,18 +114,12 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
     /^balance updated$/i, // Only exact phrase, not in purchase messages
   ];
   
-  // Don't treat purchase messages as auto messages even if they contain "credits" or "winnings"
-  // Purchase messages typically say "You successfully purchased" and show balance info
-  const isPurchaseMessage = /you successfully purchased/i.test(textWithHtml) || 
-                           /you successfully purchased/i.test(textWithoutHtml);
-  
-  if (isPurchaseMessage) {
-    return false; // Purchase notifications should be displayed as regular messages
+  // Don't treat purchase messages as auto messages - they have their own handler
+  if (isPurchaseNotification(message)) {
+    return false;
   }
   
   // Check if message type indicates it's an auto message
-  // Note: 'balanceUpdated' type messages are NOT auto messages - they're purchase notifications
-  // that should be displayed as regular messages in the chat
   const autoTypes = ['system', 'auto', 'notification', 'recharge', 'transaction', 'balance_update'];
   const messageTypeLower = message.type?.toLowerCase();
   if (messageTypeLower && autoTypes.includes(messageTypeLower) && messageTypeLower !== 'balanceupdated') {

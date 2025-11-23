@@ -11,6 +11,7 @@ function transformQueueToGameActivity(queue: TransactionQueue): GameActivity {
     id: queue.id,
     user_id: queue.user_id,
     username: queue.user_username || rawData?.user_username || rawData?.username || '',
+    game_username: queue.game_username || rawData?.game_username || rawData?.gameUsername || undefined,
     full_name: rawData?.full_name || rawData?.fullName || '',
     game_id: rawData?.game_id || rawData?.gameId || 0,
     game_title: queue.game || rawData?.game_title || rawData?.gameTitle || '',

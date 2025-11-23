@@ -14,7 +14,7 @@ import type { ChatUser, ChatMessage } from '@/types';
 import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
-import { isAutoMessage } from './utils/message-helpers';
+import { isAutoMessage, isPurchaseNotification } from './utils/message-helpers';
 import { MessageHistorySkeleton } from './skeletons';
 import { useScrollManagement } from './hooks/use-scroll-management';
 import { useViewportMessages } from './hooks/use-viewport-messages';
@@ -1653,14 +1653,16 @@ export function ChatComponent() {
           {dateMessages.map((message, idx) => {
             const prevMessage = idx > 0 ? dateMessages[idx - 1] : null;
             const isAuto = isAutoMessage(message);
-            const showAvatar = !isAuto && message.sender === 'player' && (
+            const isPurchase = isPurchaseNotification(message);
+            const isSystemMessage = isAuto || isPurchase;
+            const showAvatar = !isSystemMessage && message.sender === 'player' && (
               !prevMessage || prevMessage.sender !== message.sender || 
               (prevMessage.time && message.time && 
                Math.abs(new Date(`2000-01-01 ${prevMessage.time}`).getTime() - 
                         new Date(`2000-01-01 ${message.time || ''}`).getTime()) > 5 * 60 * 1000)
             );
-            const isConsecutive = !isAuto && prevMessage && !isAutoMessage(prevMessage) && prevMessage.sender === message.sender;
-            const isAdmin = !isAuto && message.sender === 'admin';
+            const isConsecutive = !isSystemMessage && prevMessage && !isAutoMessage(prevMessage) && !isPurchaseNotification(prevMessage) && prevMessage.sender === message.sender;
+            const isAdmin = !isSystemMessage && message.sender === 'admin';
             const isPinning = pendingPinMessageId === message.id;
             
             //  ANIMATION: Check if this is a new message (not seen before)

@@ -540,9 +540,9 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                           <p className="text-[10px] text-muted-foreground capitalize">
                             {formattedActivityType}
                           </p>
-                          {(isRechargeActivity || isRedeemActivity || isResetActivity) && activity.username && (
+                          {(isRechargeActivity || isRedeemActivity || isResetActivity) && activity.game_username && (
                             <p className="text-[10px] text-muted-foreground">
-                              • {activity.username}
+                              • {activity.game_username}
                             </p>
                           )}
                         </div>

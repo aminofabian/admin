@@ -101,6 +101,7 @@ export interface GameActivity {
   id: string;
   user_id: number;
   username: string;
+  game_username?: string;
   full_name: string;
   game_id: number;
   game_title: string;

@@ -10,6 +10,7 @@ import {
   linkifyText,
   MESSAGE_HTML_CONTENT_CLASS,
   isAutoMessage,
+  isPurchaseNotification,
 } from '../utils/message-helpers';
 
 interface MessageBubbleProps {
@@ -39,9 +40,10 @@ export const MessageBubble = memo(function MessageBubble({
 }: MessageBubbleProps) {
   const messageHasHtml = hasHtmlContent(message.text);
   const isAuto = isAutoMessage(message);
+  const isPurchase = isPurchaseNotification(message);
 
-  // Render auto messages in a centered, neutral style with italics
-  if (isAuto) {
+  // Render purchase notifications and auto messages in a centered, neutral style
+  if (isAuto || isPurchase) {
     // Convert <br> tags to line breaks and preserve HTML formatting
     const formattedText = message.text
       .replace(/<br\s*\/?>/gi, '<br />')
@@ -51,15 +53,23 @@ export const MessageBubble = memo(function MessageBubble({
     return (
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-200 my-4">
         <div className="max-w-[85%] md:max-w-[75%]">
-          <div className="bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm">
+          <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${
+            isPurchase ? 'bg-blue-500/10 border-blue-500/30' : ''
+          }`}>
             <div 
-              className="text-center text-[13px] md:text-sm leading-relaxed break-words text-muted-foreground italic [&_b]:not-italic [&_b]:font-semibold space-y-1"
+              className={`text-center text-[13px] md:text-sm leading-relaxed break-words space-y-1 ${
+                isPurchase 
+                  ? 'text-foreground [&_b]:not-italic [&_b]:font-semibold' 
+                  : 'text-muted-foreground italic [&_b]:not-italic [&_b]:font-semibold'
+              }`}
               dangerouslySetInnerHTML={{ __html: formattedText }}
             />
             
             {message.time && (
               <div className="flex items-center justify-center gap-1.5 mt-2.5 pt-2 border-t border-border/30">
-                <span className="text-[10px] md:text-xs text-muted-foreground/70 font-medium italic">
+                <span className={`text-[10px] md:text-xs font-medium ${
+                  isPurchase ? 'text-muted-foreground' : 'text-muted-foreground/70 italic'
+                }`}>
                   {message.time}
                 </span>
               </div>
