@@ -3,7 +3,8 @@ import { transactionsApi } from '@/lib/api';
 import type { 
   TransactionQueue,
   QueueFilters,
-  GameActionRequest
+  GameActionRequest,
+  PaginatedResponse
 } from '@/types';
 
 type FilterType = 
