@@ -124,24 +124,69 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       }
       
       // Apply type filters from main filter dropdown
-      // For history filter, always apply type=history even when agent filters are present
+      // For history filter, respect advanced filter type if set, otherwise use 'history'
+      // NOTE: API uses txn_type for purchase/cashout, and type for processing/history
+      const hasAdvancedTypeFilter = cleanedAdvancedFilters.type === 'purchase' || cleanedAdvancedFilters.type === 'cashout';
+      
+      console.log('🔍 Type filter processing:', {
+        filter,
+        hasAdvancedTypeFilter,
+        cleanedAdvancedFiltersType: cleanedAdvancedFilters.type,
+        filtersTypeBefore: filters.type,
+        filtersTxnTypeBefore: filters.txn_type,
+      });
+      
       if (filter === 'purchases') {
-        filters.type = 'purchase';
+        // Main filter explicitly sets purchases - use txn_type parameter
+        filters.txn_type = 'purchase';
+        delete filters.type; // Remove type if it was set
       } else if (filter === 'cashouts') {
-        filters.type = 'cashout';
+        // Main filter explicitly sets cashouts - use txn_type parameter
+        filters.txn_type = 'cashout';
+        delete filters.type; // Remove type if it was set
       } else if (filter === 'pending-purchases') {
-        filters.type = 'purchase';
+        filters.txn_type = 'purchase';
         filters.txn = 'purchases';
+        delete filters.type;
       } else if (filter === 'pending-cashouts') {
-        filters.type = 'cashout';
+        filters.txn_type = 'cashout';
         filters.txn = 'cashouts';
+        delete filters.type;
       } else if (filter === 'processing') {
         filters.type = 'processing';
+        delete filters.txn_type; // Remove txn_type if it was set
       } else if (filter === 'history') {
-        // Always apply history type, even when agent filters are present
-        // This ensures pending transactions are excluded from history view
-        filters.type = 'history';
+        // If user selected a type filter (purchase/cashout), use txn_type
+        // Otherwise, use 'history' to exclude pending transactions
+        if (!hasAdvancedTypeFilter) {
+          filters.type = 'history';
+          delete filters.txn_type;
+        } else {
+          // Use txn_type for purchase/cashout filters
+          filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout';
+          delete filters.type; // Don't use type when txn_type is set
+        }
+      } else if (filter === 'all') {
+        // For 'all' filter, respect advanced type filter if set
+        // If no advanced type filter, don't set type (show all types)
+        if (!hasAdvancedTypeFilter) {
+          // Don't set type - let it be undefined to show all types
+          delete filters.type;
+          delete filters.txn_type;
+        } else {
+          // Use txn_type for purchase/cashout filters
+          filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout';
+          delete filters.type;
+        }
       }
+      // For any other filter values, preserve the advanced type filter if set
+      
+      console.log('🔍 Type filter after processing:', {
+        filter,
+        filtersTypeAfter: filters.type,
+        filtersTxnTypeAfter: filters.txn_type,
+        hasAdvancedTypeFilter,
+      });
       
       // When agent filters are present, preserve txn from advancedFilters if user explicitly set it
       // Otherwise, remove it to allow all transaction types for the agent
@@ -162,12 +207,38 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       }
 
       // Fix transaction type filter to exclude pending when in history
-      // When type is purchase or cashout in history, ensure pending is excluded
+      // When txn_type is purchase or cashout in history, ensure pending is excluded
+      // According to API docs: type=history excludes pending, but txn_type=cashout includes all cashouts
+      // So when using txn_type=cashout in history view, we need to exclude pending
       if (isHistoryFilter && (cleanedAdvancedFilters.type === 'purchase' || cleanedAdvancedFilters.type === 'cashout')) {
-        // If status is pending, remove it
+        console.log('🔍 History view with type filter - ensuring txn_type is preserved:', {
+          cleanedAdvancedFiltersType: cleanedAdvancedFilters.type,
+          filtersTxnTypeBefore: filters.txn_type,
+          isHistoryFilter,
+        });
+        
+        // CRITICAL: Ensure txn_type is set correctly (it might have been lost)
+        filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout';
+        delete filters.type; // Don't use type when txn_type is set
+        
+        // If status is pending, remove it (history shouldn't show pending)
         if (cleanedAdvancedFilters.status === 'pending') {
           delete filters.status;
         }
+        // When no status filter is set, we need to exclude pending
+        // Try Django REST framework style: status__ne=pending
+        // If API doesn't support this, backend should handle it or we filter client-side
+        if (!filters.status) {
+          // Exclude pending transactions - try status__ne (Django style)
+          // Note: If API doesn't support this, transactions will be filtered client-side
+          filters.status__ne = 'pending';
+        }
+        
+        console.log('🔍 History view with type filter - after processing:', {
+          filtersTxnTypeAfter: filters.txn_type,
+          hasStatusNe: 'status__ne' in filters,
+          status: filters.status,
+        });
       }
 
       // Log agent filter parameters for debugging
@@ -182,17 +253,19 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         
         // Log what will be sent to API
         const apiParams = Object.entries(filters)
-          .filter(([, value]) => value !== undefined && value !== '')
+          .filter(([_key, value]) => value !== undefined && value !== '')
           .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
           .join('&');
         console.log('🌐 API Request URL: /api/v1/transactions/?' + apiParams);
+        const excludedKeys = ['agent', 'agent_id', 'page', 'page_size'];
+        const otherFilterKeys = Object.keys(filters).filter((key) => !excludedKeys.includes(key));
         console.log('📋 Filter Summary:', {
           hasAgentFilter: true,
           agent: filters.agent,
           agent_id: filters.agent_id,
           page: filters.page,
           page_size: filters.page_size,
-          otherFilters: Object.keys(filters).filter(k => !['agent', 'agent_id', 'page', 'page_size'].includes(k)),
+          otherFilters: otherFilterKeys,
         });
       }
 
@@ -216,6 +289,8 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         cleanedAdvancedFilters,
         originalAdvancedFilters: advancedFilters,
         hasAgentFilter,
+        hasAdvancedTypeFilter,
+        type: filters.type,
         username: filters.username,
         email: filters.email,
         dateFilters: {
@@ -240,6 +315,33 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       
       delete apiFilters.username;
       delete apiFilters.email;
+
+      // FINAL CHECK: Ensure txn_type filter is preserved if it was set in advanced filters
+      // This is a safety check in case the txn_type got lost during processing
+      if (isHistoryFilter && (cleanedAdvancedFilters.type === 'purchase' || cleanedAdvancedFilters.type === 'cashout')) {
+        if (!apiFilters.txn_type || (apiFilters.txn_type !== 'purchase' && apiFilters.txn_type !== 'cashout')) {
+          console.warn('⚠️ txn_type filter was lost! Restoring from cleanedAdvancedFilters:', {
+            originalType: cleanedAdvancedFilters.type,
+            currentApiFiltersTxnType: apiFilters.txn_type,
+          });
+          apiFilters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout';
+          delete apiFilters.type; // Ensure type is not set when txn_type is used
+        }
+      }
+
+      console.log('🌐 Final API filters being sent:', {
+        apiFilters,
+        type: apiFilters.type,
+        txn_type: apiFilters.txn_type,
+        hasType: 'type' in apiFilters,
+        hasTxnType: 'txn_type' in apiFilters,
+        status__ne: apiFilters.status__ne,
+        allKeys: Object.keys(apiFilters),
+        filterKeysWithValues: Object.entries(apiFilters)
+          .filter(([_key, value]) => value !== undefined && value !== '')
+          .map(([key, value]) => `${key}=${value}`)
+          .join('&'),
+      });
 
       const response = await transactionsApi.list(apiFilters);
       
@@ -285,7 +387,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           
           return true;
         });
-
+        
         console.log('🔍 Client-side username/email filter applied:', {
           usernameFilter,
           emailFilter,
@@ -293,6 +395,37 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           filteredCount: normalizedTransactions.length,
           totalCount: response.count,
         });
+      }
+
+      // Client-side filtering for type and status in history view
+      // This is a fallback in case the API doesn't support status__ne parameter
+      if (isHistoryFilter && (cleanedAdvancedFilters.type === 'purchase' || cleanedAdvancedFilters.type === 'cashout')) {
+        const expectedType = cleanedAdvancedFilters.type;
+        const beforeCount = normalizedTransactions.length;
+        
+        normalizedTransactions = normalizedTransactions.filter((transaction: Transaction) => {
+          // Filter by type
+          if (transaction.type !== expectedType) {
+            return false;
+          }
+          
+          // Exclude pending transactions in history view
+          if (transaction.status === 'pending') {
+            return false;
+          }
+          
+          return true;
+        });
+        
+        const afterCount = normalizedTransactions.length;
+        if (beforeCount !== afterCount) {
+          console.log('🔍 Client-side filtering applied (history + type filter):', {
+            expectedType,
+            beforeCount,
+            afterCount,
+            filteredOut: beforeCount - afterCount,
+          });
+        }
       }
       
       // Preserve the original API count for pagination
@@ -389,13 +522,13 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     // Note: Does not call fetchTransactions() - let component handle it
   },
 
-  updateTransactionStatus: async ({ id, status }) => {
+  updateTransactionStatus: async ({ id, status }: { id: string; status: 'completed' | 'cancelled' }) => {
     set({ isUpdatingTransaction: true, updatingTransactionId: id });
 
     try {
       await transactionsApi.updateStatus(id, { status });
       await get().fetchTransactions();
-    } catch (err) {
+    } catch (err: unknown) {
       let errorMessage = 'Failed to update transaction';
 
       if (err && typeof err === 'object' && 'detail' in err) {
@@ -438,13 +571,13 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
     console.log('🔍 Store updateTransaction - ID:', updatedTransaction.id, 'Status:', updatedTransaction.status, 'IsCompleted:', isCompleted, 'Filter:', filter, 'IsPendingView:', isPendingView);
 
     // Find the index of the transaction to check if it already exists
-    const transactionIndex = transactions.results.findIndex((t) => t.id === updatedTransaction.id);
+    const transactionIndex = transactions.results.findIndex((t: Transaction) => t.id === updatedTransaction.id);
     
     if (transactionIndex >= 0) {
       // Item EXISTS in the list
       if (isPendingView && isCompleted) {
         // Remove completed items from pending view
-        const updatedResults = transactions.results.filter((t) => t.id !== updatedTransaction.id);
+        const updatedResults = transactions.results.filter((t: Transaction) => t.id !== updatedTransaction.id);
         set({ 
           transactions: {
             ...transactions,

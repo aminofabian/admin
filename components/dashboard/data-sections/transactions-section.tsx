@@ -727,23 +727,20 @@ export function TransactionsSection() {
       }
     }
 
-    // Transaction type filter: ensure it works correctly
-    if (sanitized.type && (sanitized.type === 'purchase' || sanitized.type === 'cashout')) {
-      // Keep type as is for purchase/cashout
-      // For history, pending will be excluded by the store
-    } else if (sanitized.type) {
-      const txnValue = sanitized.type === 'purchase'
-        ? 'purchases'
-        : sanitized.type === 'cashout'
-          ? 'cashouts'
-          : '';
-
-      if (txnValue) {
-        sanitized.txn = txnValue;
-      }
-
+    // Transaction type filter: keep purchase/cashout as type parameter
+    // The store will respect this when filter is 'history' or 'all'
+    if (sanitized.type && sanitized.type !== 'purchase' && sanitized.type !== 'cashout') {
+      // For other types, remove it (not supported in advanced filters)
       delete sanitized.type;
     }
+    // If type is purchase or cashout, keep it as-is - the store will use it
+
+    console.log('🔍 Applying advanced filters - type filter:', {
+      originalType: filters.type,
+      sanitizedType: sanitized.type,
+      mainFilter: filter,
+      willPreserveType: sanitized.type === 'purchase' || sanitized.type === 'cashout',
+    });
 
     if (sanitized.agent && !sanitized.agent_id) {
       const agentId = agentIdMap.get(sanitized.agent);

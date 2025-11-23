@@ -55,7 +55,8 @@ export interface TransactionQueue {
 
 export interface TransactionFilters {
   search?: string;
-  type?: 'processing' | 'history' | 'purchase' | 'cashout';
+  type?: 'processing' | 'history'; // Use type for processing/history views
+  txn_type?: 'purchase' | 'cashout'; // Use txn_type for purchase/cashout filters
   txn?: 'purchases' | 'cashouts';
   page?: number;
   page_size?: number;
