@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useCallback, useRef, ReactNode } from 'react';
-import { useProcessingWebSocket } from '@/hooks/use-processing-websocket';
+import { createContext, useContext, useCallback, useRef, useState, ReactNode } from 'react';
+import { useProcessingWebSocket, type ProcessingCounts } from '@/hooks/use-processing-websocket';
 import type { TransactionQueue, Transaction } from '@/types';
 
 interface ProcessingWebSocketContextValue {
@@ -9,6 +9,7 @@ interface ProcessingWebSocketContextValue {
   isConnecting: boolean;
   error: string | null;
   reconnectAttempts: number;
+  counts: ProcessingCounts;
   subscribeToQueueUpdates: (callback: (queue: TransactionQueue, isInitialLoad?: boolean) => void) => () => void;
   subscribeToTransactionUpdates: (callback: (transaction: Transaction, isInitialLoad?: boolean) => void) => () => void;
   subscribeToMessages: (callback: (message: any) => void) => () => void;
@@ -20,6 +21,11 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
   const queueUpdateCallbacksRef = useRef<Set<(queue: TransactionQueue, isInitialLoad?: boolean) => void>>(new Set());
   const transactionUpdateCallbacksRef = useRef<Set<(transaction: Transaction, isInitialLoad?: boolean) => void>>(new Set());
   const messageCallbacksRef = useRef<Set<(message: any) => void>>(new Set());
+  const [counts, setCounts] = useState<ProcessingCounts>({
+    purchase_count: 0,
+    cashout_count: 0,
+    game_activities_count: 0,
+  });
 
   const handleQueueUpdate = useCallback((queue: TransactionQueue, isInitialLoad = false) => {
     queueUpdateCallbacksRef.current.forEach((callback) => {
@@ -51,11 +57,16 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
     });
   }, []);
 
+  const handleCountsUpdate = useCallback((newCounts: ProcessingCounts) => {
+    setCounts(newCounts);
+  }, []);
+
   const { isConnected, isConnecting, error, reconnectAttempts } = useProcessingWebSocket({
     enabled: true,
     onQueueUpdate: handleQueueUpdate,
     onTransactionUpdate: handleTransactionUpdate,
     onMessage: handleMessage,
+    onCountsUpdate: handleCountsUpdate,
   });
 
   const subscribeToQueueUpdates = useCallback(
@@ -95,6 +106,7 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
         isConnecting,
         error,
         reconnectAttempts,
+        counts,
         subscribeToQueueUpdates,
         subscribeToTransactionUpdates,
         subscribeToMessages,

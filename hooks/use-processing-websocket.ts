@@ -3,6 +3,12 @@ import { useAuth } from '@/providers/auth-provider';
 import { API_BASE_URL } from '@/lib/constants/api';
 import type { TransactionQueue, Transaction } from '@/types';
 
+export interface ProcessingCounts {
+  purchase_count?: number;
+  cashout_count?: number;
+  game_activities_count?: number;
+}
+
 export interface WebSocketMessage {
   type: 'all_activities' | 'send_notification' | 'connection' | 'error';
   message?: string;
@@ -12,6 +18,7 @@ export interface WebSocketMessage {
   game_activities_data?: any[] | any;
   activity_type?: 'purchase' | 'cashout' | 'game_activity';
   data?: any;
+  counts?: ProcessingCounts;
 }
 
 interface UseProcessingWebSocketOptions {
@@ -19,6 +26,7 @@ interface UseProcessingWebSocketOptions {
   onMessage?: (message: WebSocketMessage) => void;
   onQueueUpdate?: (queue: TransactionQueue, isInitialLoad?: boolean) => void;
   onTransactionUpdate?: (transaction: Transaction, isInitialLoad?: boolean) => void;
+  onCountsUpdate?: (counts: ProcessingCounts) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
@@ -141,6 +149,7 @@ export function useProcessingWebSocket({
   onMessage,
   onQueueUpdate,
   onTransactionUpdate,
+  onCountsUpdate,
   onConnect,
   onDisconnect,
   onError,
@@ -354,11 +363,17 @@ export function useProcessingWebSocket({
           onMessage?.(message);
 
           if (message.type === 'all_activities') {
-            console.log('📦 All activities message received:', {
+            // Use counts from message if available, otherwise calculate from data arrays
+            const counts: ProcessingCounts = message.counts || {
               purchase_count: message.purchase_data?.length || 0,
               cashout_count: message.cashout_data?.length || 0,
               game_activities_count: message.game_activities_data?.length || 0,
-            });
+            };
+
+            console.log('📦 All activities message received:', counts);
+
+            // Notify about counts update
+            onCountsUpdate?.(counts);
 
             if (message.purchase_data && Array.isArray(message.purchase_data)) {
               message.purchase_data.forEach((rawPurchase) => {
@@ -526,6 +541,7 @@ export function useProcessingWebSocket({
     onMessage,
     onQueueUpdate,
     onTransactionUpdate,
+    onCountsUpdate,
     onConnect,
     onDisconnect,
     onError,

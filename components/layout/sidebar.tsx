@@ -6,6 +6,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { Logo } from '@/components/ui';
 import { useState } from 'react';
+import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 
 interface SubMenuItem {
   name: string;
@@ -293,13 +294,15 @@ function SubMenuItemComponent({
   pathname, 
   onClose,
   isCollapsed,
-  level = 1
+  level = 1,
+  count
 }: { 
   item: SubMenuItem; 
   pathname: string; 
   onClose?: () => void;
   isCollapsed?: boolean;
   level?: number;
+  count?: number;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasSubmenu = item.submenu && item.submenu.length > 0;
@@ -323,7 +326,16 @@ function SubMenuItemComponent({
         }`}>
           {item.icon}
         </div>
-        <span className="block text-sm font-medium whitespace-nowrap">{item.name}</span>
+        <span className="text-sm font-medium whitespace-nowrap">{item.name}</span>
+        {count !== undefined && count > 0 && (
+          <span className={`shrink-0 -ml-1.5 inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1.5 text-[10px] font-semibold rounded-md transition-all duration-200 ${
+            isActive
+              ? 'bg-primary/90 text-primary-foreground shadow-sm'
+              : 'bg-gradient-to-br from-primary/15 to-primary/10 text-primary border border-primary/20 dark:from-primary/25 dark:to-primary/15 dark:border-primary/30 shadow-sm'
+          }`}>
+            {count > 99 ? '99+' : count}
+          </span>
+        )}
       </Link>
     );
   }
@@ -381,16 +393,28 @@ function MenuItem({
   category, 
   pathname, 
   onClose,
-  isCollapsed 
+  isCollapsed,
+  processingCounts
 }: { 
   category: MenuCategory; 
   pathname: string; 
   onClose?: () => void;
   isCollapsed?: boolean;
+  processingCounts?: { purchase_count?: number; cashout_count?: number; game_activities_count?: number };
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasSubmenu = category.submenu && category.submenu.length > 0;
   const isActive = category.href && pathname === category.href;
+
+  // Get count for a specific submenu item
+  const getCountForItem = (itemName: string): number | undefined => {
+    if (!processingCounts || category.name !== 'Processing') return undefined;
+    
+    if (itemName === 'Cashout') return processingCounts.cashout_count;
+    if (itemName === 'Purchase') return processingCounts.purchase_count;
+    if (itemName === 'Game Activities') return processingCounts.game_activities_count;
+    return undefined;
+  };
 
   if (!hasSubmenu && category.href) {
     return (
@@ -472,6 +496,7 @@ function MenuItem({
               pathname={pathname}
               onClose={onClose}
               isCollapsed={isCollapsed}
+              count={getCountForItem(item.name)}
             />
           ))}
         </div>
@@ -483,6 +508,7 @@ function MenuItem({
 export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { counts: processingCounts } = useProcessingWebSocketContext();
 
   const filteredCategories = user 
     ? MENU_CATEGORIES.filter((cat) => cat.roles.includes(user.role))
@@ -541,6 +567,7 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
             pathname={pathname}
             onClose={onClose}
             isCollapsed={isCollapsed}
+            processingCounts={processingCounts}
           />
         ))}
       </nav>
