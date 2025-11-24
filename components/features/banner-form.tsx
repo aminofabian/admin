@@ -107,7 +107,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             // Aspect ratio: ~1.5:1 to ~3:1 (flexible landscape)
             const minWidth = 1000;
             const maxWidth = 2560;
-            const minHeight = 600;
+            const minHeight = 500;
             const maxHeight = 1080;
             const minRatio = 1.2; // More lenient - allow slightly narrower
             const maxRatio = 4.0; // More lenient - allow wider banners
@@ -147,7 +147,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             // Aspect ratio: ~1.5:1 to ~3:1 (flexible landscape, Facebook-like)
             const minWidth = 1000;
             const maxWidth = 2560;
-            const minHeight = 400;
+            const minHeight = 350;
             const maxHeight = 950;
             const minRatio = 1.2; // More lenient - allow slightly narrower
             const maxRatio = 4.0; // More lenient - allow wider banners
