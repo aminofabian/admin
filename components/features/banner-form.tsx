@@ -816,17 +816,35 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         )}
       </div>
 
-      <div className="flex items-center space-x-3">
-        <input
-          type="checkbox"
-          id="is_active"
-          checked={formData.is_active}
-          onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-          className="w-4 h-4 text-[#6366f1] bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-[#6366f1]"
-        />
-        <label htmlFor="is_active" className="text-sm font-medium text-gray-900 dark:text-gray-100">
-          Active
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Status
         </label>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6366f1] focus:ring-offset-2 ${
+              formData.is_active
+                ? 'bg-[#6366f1]'
+                : 'bg-gray-300 dark:bg-gray-600'
+            }`}
+            role="switch"
+            aria-checked={formData.is_active}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                formData.is_active ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <span className="text-sm text-gray-700 dark:text-gray-300">
+            {formData.is_active ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Toggle to activate or deactivate this banner
+        </p>
       </div>
 
       <div className="flex space-x-3 pt-4">
