@@ -44,7 +44,9 @@ export const usePlayerCashouts = (
         console.log('🎯 usePlayerCashouts: Fetching for chatroom ID:', chatroomId);
         const data = await playersApi.cashouts(chatroomId);
         console.log(' usePlayerCashouts: Got cashouts:', data);
-        setCashouts(data);
+        // Filter out completed cashouts - only show pending/processing ones
+        const activeCashouts = data.filter((c) => c.status !== 'completed');
+        setCashouts(activeCashouts);
       } catch (err) {
         console.error('❌ Failed to fetch player cashouts:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch cashouts');
@@ -88,13 +90,23 @@ export const usePlayerCashouts = (
         // Check if transaction already exists
         const existingIndex = prev.findIndex((c) => c.id === transaction.id);
         
+        // If status is completed, remove it from the list
+        if (transaction.status === 'completed') {
+          if (existingIndex >= 0) {
+            // Remove completed cashout
+            return prev.filter((c) => c.id !== transaction.id);
+          }
+          // If it doesn't exist and is completed, don't add it
+          return prev;
+        }
+        
         if (existingIndex >= 0) {
-          // Update existing cashout
+          // Update existing cashout (only if not completed)
           const updated = [...prev];
           updated[existingIndex] = transformTransactionToChatPurchase(transaction, playerUserId);
           return updated;
         } else {
-          // Add new cashout at the beginning
+          // Add new cashout at the beginning (only if not completed)
           return [transformTransactionToChatPurchase(transaction, playerUserId), ...prev];
         }
       });

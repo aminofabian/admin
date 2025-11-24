@@ -77,7 +77,9 @@ export const usePlayerGameActivities = (userId: number | null) => {
         });
         
         console.log('✅ usePlayerGameActivities: Transformed activities:', transformedActivities);
-        setActivities(transformedActivities);
+        // Filter out completed activities - only show pending/processing ones
+        const activeActivities = transformedActivities.filter((a) => a.status !== 'completed');
+        setActivities(activeActivities);
       } catch (err) {
         console.error('❌ Failed to fetch game activities:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch game activities');
@@ -113,13 +115,24 @@ export const usePlayerGameActivities = (userId: number | null) => {
         // Check if activity already exists
         const existingIndex = prev.findIndex((a) => a.id === queue.id);
         
+        // If status is completed, remove it from the list
+        const status = queue.status || (queue.data as any)?.status || 'pending';
+        if (status === 'completed') {
+          if (existingIndex >= 0) {
+            // Remove completed activity
+            return prev.filter((a) => a.id !== queue.id);
+          }
+          // If it doesn't exist and is completed, don't add it
+          return prev;
+        }
+        
         if (existingIndex >= 0) {
-          // Update existing activity
+          // Update existing activity (only if not completed)
           const updated = [...prev];
           updated[existingIndex] = transformQueueToGameActivity(queue);
           return updated;
         } else {
-          // Add new activity at the beginning
+          // Add new activity at the beginning (only if not completed)
           return [transformQueueToGameActivity(queue), ...prev];
         }
       });

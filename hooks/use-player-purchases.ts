@@ -44,7 +44,9 @@ export const usePlayerPurchases = (
         console.log('🎯 usePlayerPurchases: Fetching for chatroom ID:', chatroomId);
         const data = await playersApi.purchases(chatroomId);
         console.log(' usePlayerPurchases: Got purchases:', data);
-        setPurchases(data);
+        // Filter out completed purchases - only show pending/processing ones
+        const activePurchases = data.filter((p) => p.status !== 'completed');
+        setPurchases(activePurchases);
       } catch (err) {
         console.error('❌ Failed to fetch player purchases:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch purchases');
@@ -88,13 +90,23 @@ export const usePlayerPurchases = (
         // Check if transaction already exists
         const existingIndex = prev.findIndex((p) => p.id === transaction.id);
         
+        // If status is completed, remove it from the list
+        if (transaction.status === 'completed') {
+          if (existingIndex >= 0) {
+            // Remove completed purchase
+            return prev.filter((p) => p.id !== transaction.id);
+          }
+          // If it doesn't exist and is completed, don't add it
+          return prev;
+        }
+        
         if (existingIndex >= 0) {
-          // Update existing purchase
+          // Update existing purchase (only if not completed)
           const updated = [...prev];
           updated[existingIndex] = transformTransactionToChatPurchase(transaction, playerUserId);
           return updated;
         } else {
-          // Add new purchase at the beginning
+          // Add new purchase at the beginning (only if not completed)
           return [transformTransactionToChatPurchase(transaction, playerUserId), ...prev];
         }
       });
