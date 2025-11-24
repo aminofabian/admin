@@ -497,7 +497,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             submitData.redirect_url = trimmedRedirectUrl;
           } else {
             // If clearing redirect_url, send null
-            submitData.redirect_url = null as any;
+            submitData.redirect_url = null;
           }
         }
         

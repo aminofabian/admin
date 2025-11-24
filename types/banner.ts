@@ -35,7 +35,7 @@ export interface UpdateBannerRequest {
   web_banner?: File | string; // File for new uploads, string URL for existing images
   mobile_banner?: File | string; // File for new uploads, string URL for existing images
   banner_thumbnail?: File | string; // File for new uploads, string URL for existing images
-  redirect_url?: string;
+  redirect_url?: string | null;
   is_active?: boolean;
 }
 
