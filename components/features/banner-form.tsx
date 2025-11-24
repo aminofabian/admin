@@ -105,7 +105,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             // Width: 1280-2560px (allows smaller widths like 1280px)
             // Height: 600-1080px (nearly 3/4 viewport height range)
             // Aspect ratio: ~1.5:1 to ~3:1 (flexible landscape)
-            const minWidth = 1280;
+            const minWidth = 1000;
             const maxWidth = 2560;
             const minHeight = 600;
             const maxHeight = 1080;
@@ -145,7 +145,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             // Width: 1280-2560px (allows smaller widths like 1280px)
             // Height: 400-950px (1/3 viewport height range)
             // Aspect ratio: ~1.5:1 to ~3:1 (flexible landscape, Facebook-like)
-            const minWidth = 1280;
+            const minWidth = 1000;
             const maxWidth = 2560;
             const minHeight = 400;
             const maxHeight = 950;
