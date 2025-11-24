@@ -140,7 +140,7 @@ export const playersApi = {
     if (userId) {
       params.user_id = userId;
     }
-    return apiClient.get<{ status: string; results: any[]; count: number }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
+    return apiClient.get<{ status: string; results: GameActivity[]; count: number }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
       params,
     }).then(response => {
       console.log('🎮 Game activities response:', response);
@@ -149,7 +149,7 @@ export const playersApi = {
         return response.results;
       }
       // Fallback for old structure
-      return (response as any).game_activities || [];
+      return (response as { game_activities?: GameActivity[] }).game_activities || [];
     });
   },
 
