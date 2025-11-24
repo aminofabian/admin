@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, memo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button, ConfirmModal, useToast } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { usePlayerPurchases } from '@/hooks/use-player-purchases';
@@ -33,6 +34,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   onOpenEditProfile: _onOpenEditProfile,
   onOpenNotesDrawer: _onOpenNotesDrawer,
 }: PlayerInfoSidebarProps) {
+  const router = useRouter();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const { addToast } = useToast();
   
@@ -302,7 +304,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                     return (
                       <div
                         key={purchase.id}
-                        className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
+                        onClick={() => router.push('/dashboard/processing/purchase')}
+                        className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors cursor-pointer"
                       >
                         {/* Amount and Status Row */}
                         <div className="flex items-center justify-between mb-1">
@@ -394,7 +397,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   cashouts.map((cashout) => (
                     <div
                       key={cashout.id}
-                      className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
+                      onClick={() => router.push('/dashboard/processing/cashout')}
+                      className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors cursor-pointer"
                     >
                       {/* Amount and Status Row */}
                       <div className="flex items-center justify-between mb-1">
@@ -512,7 +516,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                     return (
                       <div
                         key={activity.id}
-                        className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors"
+                        onClick={() => router.push('/dashboard/processing/game-activities')}
+                        className="p-2 bg-background/50 rounded-md border border-border/50 hover:border-primary/30 transition-colors cursor-pointer"
                       >
                         {/* Row 1: Game Title and Status */}
                         <div className="flex items-center justify-between mb-1">
