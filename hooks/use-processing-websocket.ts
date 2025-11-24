@@ -404,6 +404,12 @@ export function useProcessingWebSocket({
               fullMessage: message,
             });
             
+            // Update counts if provided in the message
+            if (message.counts) {
+              console.log('📊 Counts update received in notification:', message.counts);
+              onCountsUpdate?.(message.counts);
+            }
+            
             if (message.purchase_data && typeof message.purchase_data === 'object' && !Array.isArray(message.purchase_data)) {
               const transaction = transformPurchaseToTransaction(message.purchase_data);
               onTransactionUpdate?.(transaction);

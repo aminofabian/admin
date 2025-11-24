@@ -310,6 +310,12 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
     const state = get();
     const { queues, filter } = state;
     
+    // Don't update queues when viewing history - history should only be updated via API calls
+    if (filter === 'history') {
+      console.log('⏭️ Store: Skipping queue update - history view does not receive real-time updates');
+      return;
+    }
+    
     if (!queues || !Array.isArray(queues)) {
       console.log('No queues to update, fetching fresh data...');
       get().fetchQueues();

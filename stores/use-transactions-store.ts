@@ -586,6 +586,12 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   updateTransaction: (updatedTransaction: Transaction) => {
     const { transactions, filter } = get();
     
+    // Don't update transactions when viewing history - history should only be updated via API calls
+    if (filter === 'history') {
+      console.log('⏭️ Store: Skipping transaction update - history view does not receive real-time updates');
+      return;
+    }
+    
     if (!transactions?.results || !Array.isArray(transactions.results)) {
       console.log('No transactions to update, fetching fresh data...');
       get().fetchTransactions();
