@@ -91,9 +91,8 @@ function BannersTable({
           <TableRow>
             <TableHead>Title</TableHead>
             <TableHead>Type</TableHead>
-            <TableHead>Category</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Dates</TableHead>
+            <TableHead>Created</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -127,19 +126,13 @@ function BannersTableRow({
         </Badge>
       </TableCell>
       <TableCell>
-        <Badge variant="warning">{formatBannerLabel(banner.banner_category)}</Badge>
-      </TableCell>
-      <TableCell>
         <Badge variant={banner.is_active ? 'success' : 'default'}>
           {banner.is_active ? 'Active' : 'Inactive'}
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="flex flex-col text-sm text-gray-600 dark:text-gray-400">
-          <span>{formatDate(banner.created)}</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Updated {formatDate(banner.modified)}
-          </span>
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {formatDate(banner.created)}
         </div>
       </TableCell>
       <TableCell className="text-right">
@@ -207,6 +200,8 @@ export default function BannersPage() {
       setSelectedBanner(null);
     } catch (err) {
       console.error('Error saving banner:', err);
+      // Re-throw to let the form handle the error display
+      throw err;
     }
   };
 

@@ -387,6 +387,78 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
     setErrors(newErrors);
   };
 
+  // Helper function to convert image URL to File object using proxy to avoid CORS
+  const urlToFile = async (url: string, filename: string): Promise<File> => {
+    try {
+      console.log('📥 Fetching image via proxy:', {
+        original: url,
+        filename,
+      });
+      
+      // Get auth token for authenticated requests
+      const { storage } = await import('@/lib/utils/storage');
+      const { TOKEN_KEY } = await import('@/lib/constants/api');
+      const token = storage.get(TOKEN_KEY);
+      
+      // Use Next.js API route to proxy the image fetch (avoids CORS)
+      const proxyUrl = `/api/banner-image-proxy?url=${encodeURIComponent(url)}`;
+      
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: token ? {
+          'Authorization': `Bearer ${token}`,
+        } : {},
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      console.log('📦 Blob created:', {
+        size: blob.size,
+        type: blob.type,
+        filename,
+      });
+      
+      if (blob.size === 0) {
+        throw new Error('Received empty image file');
+      }
+      
+      // Determine MIME type from blob or filename
+      let mimeType = blob.type;
+      if (!mimeType || mimeType === 'application/octet-stream') {
+        const ext = filename.split('.').pop()?.toLowerCase();
+        const mimeTypes: Record<string, string> = {
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'gif': 'image/gif',
+          'webp': 'image/webp',
+        };
+        mimeType = mimeTypes[ext || ''] || 'image/jpeg';
+      }
+      
+      const file = new File([blob], filename, { type: mimeType });
+      console.log('✅ File object created:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+      
+      return file;
+    } catch (error) {
+      console.error('❌ Error converting URL to File:', {
+        url,
+        filename,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw new Error(`Failed to load existing image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -394,14 +466,164 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
 
     setIsSubmitting(true);
     try {
-      const submitData = {
-        ...formData,
-        ...files,
-      };
+      const trimmedTitle = formData.title.trim();
+      const trimmedRedirectUrl = formData.redirect_url.trim();
+      
+      // Prepare submit data
+      let submitData: CreateBannerRequest | UpdateBannerRequest;
+      
+      if (initialData) {
+        // For updates: only include fields that have changed or new files
+        submitData = {} as UpdateBannerRequest;
+        
+        // Only include title if it changed
+        if (trimmedTitle !== initialData.title) {
+          submitData.title = trimmedTitle;
+        }
+        
+        // Only include banner_type if it changed
+        if (formData.banner_type !== initialData.banner_type) {
+          submitData.banner_type = formData.banner_type;
+        }
+        
+        // Only include is_active if it changed
+        if (formData.is_active !== initialData.is_active) {
+          submitData.is_active = formData.is_active;
+        }
+        
+        // Handle redirect_url: include if it changed
+        if (trimmedRedirectUrl !== (initialData.redirect_url || '')) {
+          if (trimmedRedirectUrl) {
+            submitData.redirect_url = trimmedRedirectUrl;
+          } else {
+            // If clearing redirect_url, send null
+            submitData.redirect_url = null as any;
+          }
+        }
+        
+        // Include files if they exist (new uploads)
+        if (files.web_banner) {
+          submitData.web_banner = files.web_banner;
+        }
+        if (files.mobile_banner) {
+          submitData.mobile_banner = files.mobile_banner;
+        }
+        
+        // Backend requires at least one image for ALL updates, not just title/banner_type changes
+        // So we always need to include existing images if no new files are being uploaded
+        const hasNewFiles = files.web_banner || files.mobile_banner;
+        
+        if (!hasNewFiles) {
+          console.log('🔄 Fetching existing images for update (backend requires images for all updates):', {
+            webBanner: initialData.web_banner,
+            mobileBanner: initialData.mobile_banner,
+            bannerThumbnail: initialData.banner_thumbnail,
+          });
+          
+          let imageFetched = false;
+          
+          // Try to fetch web_banner first
+          if (initialData.web_banner) {
+            try {
+              const fileName = initialData.web_banner.split('/').pop() || 'web_banner.jpg';
+              submitData.web_banner = await urlToFile(initialData.web_banner, fileName);
+              imageFetched = true;
+              console.log('✅ Successfully fetched web_banner:', fileName);
+            } catch (error) {
+              console.error('❌ Failed to fetch web_banner:', error);
+            }
+          }
+          
+          // Try mobile_banner if web_banner failed or doesn't exist
+          if (!imageFetched && initialData.mobile_banner) {
+            try {
+              const fileName = initialData.mobile_banner.split('/').pop() || 'mobile_banner.jpg';
+              submitData.mobile_banner = await urlToFile(initialData.mobile_banner, fileName);
+              imageFetched = true;
+              console.log('✅ Successfully fetched mobile_banner:', fileName);
+            } catch (error) {
+              console.error('❌ Failed to fetch mobile_banner:', error);
+            }
+          }
+          
+          // Try banner_thumbnail as last resort
+          if (!imageFetched && initialData.banner_thumbnail) {
+            try {
+              const fileName = initialData.banner_thumbnail.split('/').pop() || 'banner_thumbnail.jpg';
+              submitData.banner_thumbnail = await urlToFile(initialData.banner_thumbnail, fileName);
+              imageFetched = true;
+              console.log('✅ Successfully fetched banner_thumbnail:', fileName);
+            } catch (error) {
+              console.error('❌ Failed to fetch banner_thumbnail:', error);
+            }
+          }
+          
+          if (!imageFetched) {
+            throw new Error('Failed to fetch existing images. The backend requires at least one banner image for all updates. Please upload at least one new image or ensure existing images are accessible.');
+          }
+          
+          console.log('📦 Final submitData before sending:', {
+            keys: Object.keys(submitData),
+            hasWebBanner: submitData.web_banner instanceof File,
+            hasMobileBanner: submitData.mobile_banner instanceof File,
+            hasBannerThumbnail: submitData.banner_thumbnail instanceof File,
+            webBannerName: submitData.web_banner instanceof File ? submitData.web_banner.name : 'N/A',
+            mobileBannerName: submitData.mobile_banner instanceof File ? submitData.mobile_banner.name : 'N/A',
+          });
+        }
+        
+        // If no fields changed and no new files, don't submit
+        if (Object.keys(submitData).length === 0) {
+          alert('No changes to save');
+          setIsSubmitting(false);
+          return;
+        }
+      } else {
+        // For creates: include all required fields
+        submitData = {
+          title: trimmedTitle,
+          banner_type: formData.banner_type,
+          is_active: formData.is_active,
+        };
+        
+        // Handle redirect_url: include if it has a value
+        if (trimmedRedirectUrl) {
+          submitData.redirect_url = trimmedRedirectUrl;
+        }
+        
+        // Include files if they exist
+        if (files.web_banner) {
+          submitData.web_banner = files.web_banner;
+        }
+        if (files.mobile_banner) {
+          submitData.mobile_banner = files.mobile_banner;
+        }
+      }
+
       await onSubmit(submitData);
       clearFilePreviews();
     } catch (error) {
       console.error('Form submission error:', error);
+      // Display error to user
+      let errorMessage = 'Failed to save banner. Please try again.';
+      if (error && typeof error === 'object' && 'detail' in error) {
+        const detail = error.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (typeof detail === 'object' && detail !== null) {
+          // Handle validation errors object
+          const errorMessages = Object.entries(detail)
+            .map(([field, messages]) => {
+              const msgArray = Array.isArray(messages) ? messages : [String(messages)];
+              return `${field}: ${msgArray.join(', ')}`;
+            })
+            .join('\n');
+          errorMessage = errorMessages || errorMessage;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -628,4 +850,5 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
     </form>
   );
 }
+
 

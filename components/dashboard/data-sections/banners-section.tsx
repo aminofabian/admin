@@ -23,6 +23,7 @@ import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 export function BannersSection() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
+  const [togglingBannerId, setTogglingBannerId] = useState<number | null>(null);
 
   const {
     banners: bannersData,
@@ -74,11 +75,29 @@ export function BannersSection() {
   };
 
   const handleToggleActive = async (banner: Banner) => {
+    if (togglingBannerId === banner.id) return; // Prevent double-clicks
+    
+    setTogglingBannerId(banner.id);
     try {
-      await updateBanner(banner.id, { is_active: !banner.is_active });
+      const newActiveState = !banner.is_active;
+      console.log('Toggling banner active state:', {
+        bannerId: banner.id,
+        currentState: banner.is_active,
+        newState: newActiveState,
+      });
+      
+      await updateBanner(banner.id, { is_active: newActiveState });
+      
+      // The store will automatically refresh the list after update
+      console.log('Banner active state updated successfully');
     } catch (err) {
       console.error('Error toggling banner status:', err);
-      alert('Failed to update banner status');
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to update banner status. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setTogglingBannerId(null);
     }
   };
 
@@ -240,7 +259,8 @@ export function BannersSection() {
                     <TableCell>
                       <button
                         onClick={() => handleToggleActive(banner)}
-                        className="focus:outline-none transition-transform hover:scale-105"
+                        disabled={togglingBannerId === banner.id}
+                        className="focus:outline-none transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Badge 
                           variant={banner.is_active ? 'success' : 'danger'}
@@ -249,7 +269,7 @@ export function BannersSection() {
                             : 'bg-red-500/10 text-red-500 border-red-500/20'
                           }
                         >
-                          {banner.is_active ? 'Active' : 'Inactive'}
+                          {togglingBannerId === banner.id ? 'Updating...' : (banner.is_active ? 'Active' : 'Inactive')}
                         </Badge>
                       </button>
                     </TableCell>

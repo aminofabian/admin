@@ -32,9 +32,9 @@ export interface UpdateBannerRequest {
   title?: string;
   banner_type?: BannerType;
   banner_category?: BannerCategory;
-  web_banner?: File;
-  mobile_banner?: File;
-  banner_thumbnail?: File;
+  web_banner?: File | string; // File for new uploads, string URL for existing images
+  mobile_banner?: File | string; // File for new uploads, string URL for existing images
+  banner_thumbnail?: File | string; // File for new uploads, string URL for existing images
   redirect_url?: string;
   is_active?: boolean;
 }

@@ -76,27 +76,71 @@ export const bannersApi = {
   },
 
   update: (id: number, data: UpdateBannerRequest) => {
-    // Check if we have file uploads
-    const hasFiles = 'web_banner' in data || 'mobile_banner' in data || 'banner_thumbnail' in data;
+    // Check if we have file uploads (File objects)
+    const hasFileUploads = 
+      (data.web_banner instanceof File) || 
+      (data.mobile_banner instanceof File) || 
+      (data.banner_thumbnail instanceof File);
     
-    if (hasFiles) {
+    if (hasFileUploads) {
       const formData = new FormData();
       
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
+          // Skip empty strings for optional fields
+          if (typeof value === 'string' && value.trim() === '' && key !== 'title') {
+            return; // Skip empty strings (except title which is required)
+          }
+          
           if (value instanceof File) {
             formData.append(key, value);
+          } else if (typeof value === 'boolean') {
+            formData.append(key, String(value));
           } else {
             formData.append(key, String(value));
           }
         }
       });
       
+      console.log('🔄 Banner API Update (with files):', {
+        id,
+        hasFileUploads: true,
+        dataKeys: Object.keys(data),
+        isActive: data.is_active,
+        webBannerType: data.web_banner instanceof File ? 'File' : typeof data.web_banner,
+        mobileBannerType: data.mobile_banner instanceof File ? 'File' : typeof data.mobile_banner,
+      });
+      
       return apiClient.patch<Banner>(API_ENDPOINTS.BANNERS.DETAIL(id), formData);
     }
     
-    // For simple updates without files, use JSON
-    return apiClient.patch<Banner>(API_ENDPOINTS.BANNERS.DETAIL(id), data);
+    // For simple updates without any file uploads, use JSON
+    const jsonData: Record<string, unknown> = {};
+    Object.entries(data).forEach(([key, value]) => {
+      // Include null values (for clearing fields like redirect_url)
+      if (value === null) {
+        jsonData[key] = null;
+        return;
+      }
+      
+      if (value !== undefined) {
+        // Skip empty strings for optional fields (like redirect_url) - but allow null
+        if (typeof value === 'string' && value.trim() === '' && key !== 'title') {
+          return; // Skip empty strings (except title which is required)
+        }
+        jsonData[key] = value;
+      }
+    });
+    
+    console.log('🔄 Banner API Update (JSON):', {
+      id,
+      hasFileUploads: false,
+      jsonData,
+      isActive: jsonData.is_active,
+      isActiveType: typeof jsonData.is_active,
+    });
+    
+    return apiClient.patch<Banner>(API_ENDPOINTS.BANNERS.DETAIL(id), jsonData);
   },
 
   delete: (id: number) => 
