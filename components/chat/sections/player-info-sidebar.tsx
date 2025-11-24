@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, memo, useCallback } from 'react';
-import { Button, DropdownMenu, DropdownMenuItem, ConfirmModal, useToast } from '@/components/ui';
+import { Button, ConfirmModal, useToast } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { usePlayerPurchases } from '@/hooks/use-player-purchases';
 import { usePlayerCashouts } from '@/hooks/use-player-cashouts';
 import { usePlayerGameActivities } from '@/hooks/use-player-game-activities';
-import { PlayerInfoSkeleton } from '../skeletons';
 import { PlayerGameBalanceModal } from '@/components/features';
 import { playersApi } from '@/lib/api/users';
 import type { ChatUser, PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
@@ -28,11 +27,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   isConnected,
   mobileView,
   setMobileView,
-  notes,
+  notes: _notes,
   onNavigateToPlayer,
   onOpenEditBalance,
-  onOpenEditProfile,
-  onOpenNotesDrawer,
+  onOpenEditProfile: _onOpenEditProfile,
+  onOpenNotesDrawer: _onOpenNotesDrawer,
 }: PlayerInfoSidebarProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const { addToast } = useToast();
@@ -46,7 +45,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   const [selectedGameForBalance, setSelectedGameForBalance] = useState<PlayerGame | null>(null);
   const [balanceData, setBalanceData] = useState<CheckPlayerGameBalanceResponse | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
-  const [isCheckingBalance, setIsCheckingBalance] = useState(false);
+  const [isCheckingBalance] = useState(false);
   // Use the chat 'id' field (chatroom ID) for purchases and cashouts
   // Pass player info for real-time websocket matching
   const { purchases, isLoading: isLoadingPurchases } = usePlayerPurchases(
@@ -502,11 +501,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                     const formattedActivityType = activity.type.replace(/_/g, ' ');
 
                     // Extract additional data from new structure
-                    const activityData = (activity as any).data || {};
+                    const activityData = activity.data || {};
                     const newCreditsBalance = activityData.new_credits_balance;
                     const newWinningBalance = activityData.new_winning_balance;
                     const gameUsername = activity.game_username || activityData.username;
-                    const gameCode = (activity as any).game_code || '';
+                    const gameCode = activity.game_code || '';
                     const operator = activity.operator || '';
                     const remarks = activity.remarks || '';
 
