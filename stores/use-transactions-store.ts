@@ -347,12 +347,14 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       let response: PaginatedResponse<Transaction>;
       
       if (filter === 'history') {
-        // Use transactions-history endpoint - remove type/txn/txn_type since endpoint handles it
+        // Use transactions-history endpoint
         const historyFilters = { ...apiFilters };
         delete historyFilters.type;
         delete historyFilters.txn;
-        delete historyFilters.txn_type;
-        delete historyFilters.status__ne; // History endpoint excludes pending by default
+        // Preserve txn_type if set (for purchase/cashout filtering in history)
+        // Only delete status__ne as history endpoint excludes pending by default
+        delete historyFilters.status__ne;
+        // Keep txn_type if it's set (purchase or cashout) - backend should support this
         response = await transactionsApi.listHistory(historyFilters);
       } else if (filter === 'purchases' || filter === 'pending-purchases') {
         // Use transaction-purchases endpoint - remove type/txn/txn_type since endpoint handles it
