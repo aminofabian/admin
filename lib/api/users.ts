@@ -140,11 +140,16 @@ export const playersApi = {
     if (userId) {
       params.user_id = userId;
     }
-    return apiClient.get<{ game_activities: GameActivity[] }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
+    return apiClient.get<{ status: string; results: any[]; count: number }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
       params,
     }).then(response => {
       console.log('🎮 Game activities response:', response);
-      return response.game_activities || [];
+      // Handle new response structure: { status, results, count }
+      if (response.status === 'success' && Array.isArray(response.results)) {
+        return response.results;
+      }
+      // Fallback for old structure
+      return (response as any).game_activities || [];
     });
   },
 

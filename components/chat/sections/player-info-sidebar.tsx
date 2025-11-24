@@ -501,6 +501,15 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                     // Format activity type for display
                     const formattedActivityType = activity.type.replace(/_/g, ' ');
 
+                    // Extract additional data from new structure
+                    const activityData = (activity as any).data || {};
+                    const newCreditsBalance = activityData.new_credits_balance;
+                    const newWinningBalance = activityData.new_winning_balance;
+                    const gameUsername = activity.game_username || activityData.username;
+                    const gameCode = (activity as any).game_code || '';
+                    const operator = activity.operator || '';
+                    const remarks = activity.remarks || '';
+
                     return (
                       <div
                         key={activity.id}
@@ -508,8 +517,15 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                       >
                         {/* Row 1: Game Title and Status */}
                         <div className="flex items-center justify-between mb-1">
-                          <div className="flex-1">
-                            <p className="text-xs font-bold text-foreground">{activity.game_title}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">
+                              {activity.game_title || 'Unknown Game'}
+                            </p>
+                            {gameCode && (
+                              <p className="text-[9px] text-muted-foreground truncate">
+                                {gameCode}
+                              </p>
+                            )}
                           </div>
 
                           {/* Status badge - always shown */}
@@ -519,7 +535,9 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                                 ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                                 : activity.status === 'pending'
                                 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                : activity.status === 'failed'
+                                ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
                             }`}
                           >
                             <span
@@ -528,7 +546,9 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                                   ? 'bg-green-500'
                                   : activity.status === 'pending'
                                   ? 'bg-amber-500'
-                                  : 'bg-red-500'
+                                  : activity.status === 'failed'
+                                  ? 'bg-red-500'
+                                  : 'bg-gray-500'
                               }`}
                             />
                             {activity.status}
@@ -536,26 +556,56 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                         </div>
 
                         {/* Row 2: Activity Type (always shown) + Game Username (for Recharge/Redeem/Reset) */}
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="text-[10px] text-muted-foreground capitalize">
                             {formattedActivityType}
                           </p>
-                          {(isRechargeActivity || isRedeemActivity || isResetActivity) && activity.game_username && (
+                          {(isRechargeActivity || isRedeemActivity || isResetActivity) && gameUsername && (
                             <p className="text-[10px] text-muted-foreground">
-                              • {activity.game_username}
+                              • {gameUsername}
+                            </p>
+                          )}
+                          {operator && (
+                            <p className="text-[10px] text-muted-foreground">
+                              • {operator}
                             </p>
                           )}
                         </div>
 
                         {/* Row 3: Amount/Bonus (only for Recharge and Redeem) */}
                         {(isRechargeActivity || isRedeemActivity) && (
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1 flex-wrap">
                             <span>Amount: {formatCurrency(activity.amount || '0')}</span>
                             {hasBonus && (
                               <span className="text-green-600 dark:text-green-400">
                                 Bonus: {formatCurrency(bonusAmount.toString())}
                               </span>
                             )}
+                          </div>
+                        )}
+
+                        {/* Row 4: Balance Updates (if available) */}
+                        {(newCreditsBalance !== undefined || newWinningBalance !== undefined) && (
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1 flex-wrap">
+                            {newCreditsBalance !== undefined && (
+                              <span className="text-blue-600 dark:text-blue-400">
+                                Credits: {formatCurrency(String(newCreditsBalance))}
+                              </span>
+                            )}
+                            {newWinningBalance !== undefined && (
+                              <span className="text-yellow-600 dark:text-yellow-400">
+                                Winnings: {formatCurrency(String(newWinningBalance))}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Row 5: Remarks (if available and not empty) */}
+                        {remarks && (
+                          <div className="mt-1 pt-1 border-t border-border/30">
+                            <p className="text-[10px] text-muted-foreground italic">
+                              {remarks}
+                            </p>
                           </div>
                         )}
                       </div>

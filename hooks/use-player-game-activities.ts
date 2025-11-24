@@ -46,9 +46,38 @@ export const usePlayerGameActivities = (userId: number | null) => {
       
       try {
         console.log('🎯 usePlayerGameActivities: Fetching for user ID:', userId);
-        const data = await playersApi.gameActivities(userId);
-        console.log(' usePlayerGameActivities: Got activities:', data);
-        setActivities(data);
+        const rawData = await playersApi.gameActivities(userId);
+        console.log(' usePlayerGameActivities: Got raw data:', rawData);
+        
+        // Transform new API response structure to GameActivity format
+        const transformedActivities = rawData.map((item: any) => {
+          const activityData = item.data || {};
+          return {
+            id: item.id,
+            user_id: item.user_id,
+            username: item.user_username || activityData.username || '',
+            game_username: activityData.username || item.game_username || undefined,
+            full_name: item.user_username || '',
+            game_id: 0, // Not provided in new structure
+            game_title: item.game || '',
+            game_code: item.game_code || '',
+            amount: String(item.amount || '0'),
+            bonus_amount: String(item.bonus_amount || '0'),
+            total_amount: String(item.amount || '0'),
+            type: item.type || '',
+            status: item.status || 'pending',
+            operator: item.operator || '',
+            remarks: item.remarks || '',
+            created_at: item.created_at || new Date().toISOString(),
+            // Additional fields from new structure
+            updated_at: item.updated_at || item.created_at || new Date().toISOString(),
+            user_email: item.user_email || '',
+            data: activityData, // Preserve full data object
+          };
+        });
+        
+        console.log('✅ usePlayerGameActivities: Transformed activities:', transformedActivities);
+        setActivities(transformedActivities);
       } catch (err) {
         console.error('❌ Failed to fetch game activities:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch game activities');

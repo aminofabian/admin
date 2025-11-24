@@ -114,5 +114,14 @@ export interface GameActivity {
   operator: string;
   remarks: string;
   created_at: string;
+  // Additional fields from new API response structure
+  updated_at?: string;
+  user_email?: string;
+  data?: {
+    new_credits_balance?: number;
+    new_winning_balance?: number;
+    username?: string;
+    [key: string]: unknown;
+  };
 }
 
