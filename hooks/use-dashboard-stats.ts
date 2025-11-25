@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { companiesApi, playersApi, gamesApi, managersApi, agentsApi, staffsApi, affiliatesApi, transactionsApi } from '@/lib/api';
 import { usePlatformLiquidity } from './use-platform-liquidity';
+import { useAuth } from '@/providers/auth-provider';
 import type { DashboardStats } from '@/lib/api/dashboard';
 import type { PaginatedResponse, Game } from '@/types';
 
 export function useDashboardStats() {
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,20 +18,8 @@ export function useDashboardStats() {
         setLoading(true);
         setError(null);
 
-        // Fetch all stats in parallel for better performance
-        const [
-          companiesResponse,
-          playersResponse,
-          gamesResponse,
-          managersResponse,
-          agentsResponse,
-          staffsResponse,
-          affiliatesResponse,
-          transactionsResponse,
-          processingQueuesResponse,
-        ] = await Promise.allSettled([
-          // Companies count (for superadmin)
-          companiesApi.list({ page_size: 1 }),
+        // Build API calls array - only include companies API for superadmins
+        const apiCalls = [
           // Players count
           playersApi.list({ page_size: 1 }),
           // Games list (to calculate active/inactive)
@@ -46,43 +36,61 @@ export function useDashboardStats() {
           transactionsApi.list({ page_size: 100 }),
           // Processing queues (pending transactions)
           transactionsApi.queuesProcessing({ page_size: 1 }),
-        ]);
+        ];
+
+        // Only add companies API call for superadmins
+        if (user?.role === 'superadmin') {
+          apiCalls.unshift(companiesApi.list({ page_size: 1 }));
+        }
+
+        // Fetch all stats in parallel for better performance
+        const responses = await Promise.allSettled(apiCalls);
+
+        // Extract companies response (only if it was requested)
+        let companiesResponse;
+        let otherResponses;
+        if (user?.role === 'superadmin') {
+          companiesResponse = responses[0];
+          otherResponses = responses.slice(1);
+        } else {
+          otherResponses = responses;
+        }
 
         // Extract counts from responses
-        const totalCompanies = companiesResponse.status === 'fulfilled' 
-          ? (companiesResponse.value as PaginatedResponse<any>).count || 0 
+        const totalCompanies = companiesResponse?.status === 'fulfilled'
+          ? (companiesResponse.value as PaginatedResponse<any>).count || 0
           : 0;
 
-        const totalPlayers = playersResponse.status === 'fulfilled'
-          ? (playersResponse.value as PaginatedResponse<any>).count || 0
+        const totalPlayers = otherResponses[0]?.status === 'fulfilled'
+          ? (otherResponses[0].value as PaginatedResponse<any>).count || 0
           : 0;
 
-        const games = gamesResponse.status === 'fulfilled'
-          ? (Array.isArray(gamesResponse.value) ? gamesResponse.value : []) as Game[]
+        const games = otherResponses[1]?.status === 'fulfilled'
+          ? (Array.isArray(otherResponses[1].value) ? otherResponses[1].value : []) as Game[]
           : [];
 
         const activeGames = games.filter((game: any) => game.game_status === true).length;
         const inactiveGames = games.filter((game: any) => game.game_status === false).length;
         const totalGames = games.length;
 
-        const totalManagers = managersResponse.status === 'fulfilled'
-          ? (managersResponse.value as PaginatedResponse<any>).count || 0
+        const totalManagers = otherResponses[2]?.status === 'fulfilled'
+          ? (otherResponses[2].value as PaginatedResponse<any>).count || 0
           : 0;
 
-        const totalAgents = agentsResponse.status === 'fulfilled'
-          ? (agentsResponse.value as PaginatedResponse<any>).count || 0
+        const totalAgents = otherResponses[3]?.status === 'fulfilled'
+          ? (otherResponses[3].value as PaginatedResponse<any>).count || 0
           : 0;
 
-        const totalStaff = staffsResponse.status === 'fulfilled'
-          ? (staffsResponse.value as PaginatedResponse<any>).count || 0
+        const totalStaff = otherResponses[4]?.status === 'fulfilled'
+          ? (otherResponses[4].value as PaginatedResponse<any>).count || 0
           : 0;
 
-        const totalAffiliates = affiliatesResponse.status === 'fulfilled'
-          ? (affiliatesResponse.value as PaginatedResponse<any>).count || 0
+        const totalAffiliates = otherResponses[5]?.status === 'fulfilled'
+          ? (otherResponses[5].value as PaginatedResponse<any>).count || 0
           : 0;
 
-        const pendingTransactions = processingQueuesResponse.status === 'fulfilled'
-          ? (processingQueuesResponse.value as PaginatedResponse<any>).count || 0
+        const pendingTransactions = otherResponses[7]?.status === 'fulfilled'
+          ? (otherResponses[7].value as PaginatedResponse<any>).count || 0
           : 0;
 
         // Calculate today's transaction stats
@@ -94,8 +102,8 @@ export function useDashboardStats() {
         let totalPurchasesToday = 0;
         let totalCashoutsToday = 0;
 
-        if (transactionsResponse.status === 'fulfilled') {
-          const transactions = (transactionsResponse.value as PaginatedResponse<any>).results || [];
+        if (otherResponses[6]?.status === 'fulfilled') {
+          const transactions = (otherResponses[6].value as PaginatedResponse<any>).results || [];
           
           transactions.forEach((txn: any) => {
             const txnDate = new Date(txn.created || txn.date || txn.timestamp);
@@ -189,7 +197,7 @@ export function useDashboardStats() {
     };
 
     fetchStats();
-  }, [platformLiquidity, liquidityLoading]);
+  }, [platformLiquidity, liquidityLoading, user?.role]);
 
   // Combine loading states - stats are loading OR liquidity is still loading
   const isLoading = loading || liquidityLoading;
