@@ -21,6 +21,7 @@ export function GamesSection() {
   const { user } = useAuth();
   const {
     games: data,
+    minimumRedeemMultiplier,
     isLoading,
     error,
     balanceCheckLoading,
@@ -49,7 +50,7 @@ export function GamesSection() {
     return [...data].sort((a, b) => a.title.localeCompare(b.title));
   }, [data]);
   const totalCount = games.length;
-  const stats = useMemo(() => buildGameStats(games, totalCount), [games, totalCount]);
+  const stats = useMemo(() => buildGameStats(games, totalCount, minimumRedeemMultiplier), [games, totalCount, minimumRedeemMultiplier]);
 
   useEffect(() => {
     // Only fetch if user has permission, we don't have data, and we're not already loading
@@ -92,8 +93,8 @@ export function GamesSection() {
         </div>
 
         {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
             <div
               key={i}
               className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
@@ -170,7 +171,7 @@ export function GamesSection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map(stat => (
           <div
             key={stat.title}
@@ -336,11 +337,11 @@ interface GameStat {
   icon: JSX.Element;
 }
 
-function buildGameStats(games: Game[], total: number): GameStat[] {
+function buildGameStats(games: Game[], total: number, minimumRedeemMultiplier: string | null): GameStat[] {
   const active = games.filter((game) => game.game_status).length;
   const inactive = games.filter((game) => !game.game_status).length;
 
-  return [
+  const stats: GameStat[] = [
     {
       title: 'Total Games',
       value: total.toLocaleString(),
@@ -371,6 +372,23 @@ function buildGameStats(games: Game[], total: number): GameStat[] {
       ),
     },
   ];
+
+  // Add multiplier stat if available
+  if (minimumRedeemMultiplier) {
+    stats.push({
+      title: 'Min Redeem Multiplier',
+      value: minimumRedeemMultiplier,
+      variant: 'info',
+      helper: 'Minimum multiplier for redemption',
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      ),
+    });
+  }
+
+  return stats;
 }
 
 interface GamesTableProps {

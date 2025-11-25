@@ -10,6 +10,7 @@ import type {
 
 interface GamesState {
   games: Game[] | null;
+  minimumRedeemMultiplier: string | null;
   isLoading: boolean;
   error: string | null;
   searchTerm: string;
@@ -28,6 +29,7 @@ type GamesStore = GamesState & GamesActions;
 
 const initialState: GamesState = {
   games: null,
+  minimumRedeemMultiplier: null,
   isLoading: false,
   error: null,
   searchTerm: '',
@@ -62,8 +64,15 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
           ? data.results
           : [];
       
+      // Extract minimum_redeem_multiplier if present
+      const minimumRedeemMultiplier = 
+        (data && typeof data === 'object' && 'minimum_redeem_multiplier' in data)
+          ? String(data.minimum_redeem_multiplier)
+          : null;
+      
       set({ 
         games, 
+        minimumRedeemMultiplier,
         isLoading: false,
         error: null,
       });
