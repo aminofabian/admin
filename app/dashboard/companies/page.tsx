@@ -214,11 +214,6 @@ export default function CompaniesPage() {
   const { page, pageSize, setPage } = usePagination();
   const { search, debouncedSearch, setSearch } = useSearch();
 
-  // If user is superadmin, render superadmin companies view
-  if (user?.role === 'superadmin') {
-    return <SuperAdminCompanies />;
-  }
-
   useEffect(() => {
     loadCompanies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,6 +225,11 @@ export default function CompaniesPage() {
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
+
+  // If user is superadmin, render superadmin companies view
+  if (user?.role === 'superadmin') {
+    return <SuperAdminCompanies />;
+  }
 
   const loadCompanies = async () => {
     try {

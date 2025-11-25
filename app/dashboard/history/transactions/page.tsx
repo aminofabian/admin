@@ -12,16 +12,10 @@ export default function HistoryTransactionsPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const { setFilterWithoutFetch, setAdvancedFiltersWithoutFetch, clearAdvancedFiltersWithoutFetch } = useTransactionsStore();
-  const advancedFilters = useTransactionsStore((state) => state.advancedFilters);
   const hasInitializedRef = useRef(false);
   const appliedFiltersRef = useRef<{ username: string | null }>({
     username: null,
   });
-
-  // If user is superadmin, render superadmin history view
-  if (user?.role === 'superadmin') {
-    return <SuperAdminHistoryTransactions />;
-  }
 
   useEffect(() => {
     setFilterWithoutFetch('history');
@@ -86,6 +80,11 @@ export default function HistoryTransactionsPage() {
       appliedFiltersRef.current = { username: trimmedUsername };
     }
   }, [searchParams, setAdvancedFiltersWithoutFetch, clearAdvancedFiltersWithoutFetch]);
+
+  // If user is superadmin, render superadmin history view
+  if (user?.role === 'superadmin') {
+    return <SuperAdminHistoryTransactions />;
+  }
 
   return (
     <>

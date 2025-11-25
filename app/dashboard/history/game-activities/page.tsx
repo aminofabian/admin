@@ -11,16 +11,11 @@ import { useTransactionQueuesStore } from '@/stores';
 export default function HistoryGameActivitiesPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
-  const { setAdvancedFiltersWithoutFetch, setAdvancedFilters } = useTransactionQueuesStore();
+  const { setAdvancedFiltersWithoutFetch } = useTransactionQueuesStore();
   const appliedFiltersRef = useRef<{ username: string | null }>({
     username: null,
   });
   const hasInitializedRef = useRef(false);
-
-  // If user is superadmin, render superadmin history view
-  if (user?.role === 'superadmin') {
-    return <SuperAdminHistoryGameActivities />;
-  }
 
   useEffect(() => {
     const usernameFromQuery = searchParams.get('username');
@@ -57,6 +52,11 @@ export default function HistoryGameActivitiesPage() {
 
     setAdvancedFiltersWithoutFetch(filterUpdate);
   }, [searchParams, setAdvancedFiltersWithoutFetch]);
+
+  // If user is superadmin, render superadmin history view
+  if (user?.role === 'superadmin') {
+    return <SuperAdminHistoryGameActivities />;
+  }
 
   return (
     <>
