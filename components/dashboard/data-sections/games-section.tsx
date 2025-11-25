@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
-import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton, Modal, Input } from '@/components/ui';
+import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton, Modal, Input, useToast } from '@/components/ui';
 import { EmptyState, ErrorState, GameForm, StoreBalanceModal } from '@/components/features';
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
@@ -19,6 +19,7 @@ function getGameDashboardUrl(game: Game): string | undefined {
 
 export function GamesSection() {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const {
     games: data,
     minimumRedeemMultiplier,
@@ -189,23 +190,22 @@ export function GamesSection() {
         {stats.map(stat => (
           <div
             key={stat.title}
-            className={`rounded-2xl border border-border bg-card p-4 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 ${
+            className={`rounded-xl border border-border bg-card p-3 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 ${
               stat.onClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-900' : ''
             }`}
             onClick={stat.onClick}
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-muted-foreground">{stat.title}</div>
-                <div className="mt-2 text-2xl font-semibold text-foreground">{stat.value}</div>
+                <div className="text-xs text-muted-foreground">{stat.title}</div>
+                <div className="mt-1 text-xl font-semibold text-foreground">{stat.value}</div>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
                 {stat.icon}
               </div>
             </div>
-            {stat.helper && <div className="mt-2 text-sm text-muted-foreground">{stat.helper}</div>}
             {stat.onClick && (
-              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+              <div className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
@@ -386,6 +386,11 @@ export function GamesSection() {
                   await updateMinimumRedeemMultiplier(value);
                   setIsMultiplierModalOpen(false);
                   setMultiplierValue('');
+                  addToast({
+                    type: 'success',
+                    title: 'Success',
+                    description: 'Minimum redeem multiplier updated successfully',
+                  });
                 } catch (err) {
                   const message = err instanceof Error ? err.message : 'Failed to update multiplier';
                   setMultiplierError(message);
@@ -446,7 +451,7 @@ function buildGameStats(
       title: 'Total Games',
       value: total.toLocaleString(),
       icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6-3 6 3m-12 0v6l6 3m0-6l6-3m-6 3v6" />
         </svg>
       ),
@@ -456,7 +461,7 @@ function buildGameStats(
       value: active.toLocaleString(),
       variant: 'success',
       icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       ),
@@ -466,7 +471,7 @@ function buildGameStats(
       value: inactive.toLocaleString(),
       variant: 'danger',
       icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-12.728 12.728" />
         </svg>
       ),
@@ -479,10 +484,9 @@ function buildGameStats(
       title: 'Min Redeem Multiplier',
       value: minimumRedeemMultiplier,
       variant: 'info',
-      helper: 'Minimum multiplier for redemption',
       onClick: onMultiplierClick,
       icon: (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
       ),
