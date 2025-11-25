@@ -15,8 +15,10 @@ import {
     Pagination,
     SearchInput,
     Button,
-    Modal
+    Drawer,
+    ConfirmModal
 } from '@/components/ui';
+import { useToast } from '@/components/ui/toast';
 import { LoadingState, ErrorState, EmptyState, CompanyForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import { useCompaniesStore } from '@/stores';
@@ -37,30 +39,37 @@ export function SuperAdminCompanies() {
         setSearchTerm,
     } = useCompaniesStore();
 
+    const { addToast } = useToast();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        company: Company | null;
+        isLoading: boolean;
+    }>({
+        isOpen: false,
+        company: null,
+        isLoading: false,
+    });
 
     useEffect(() => {
         fetchCompanies();
     }, [fetchCompanies]);
 
-    useEffect(() => {
-        if (successMessage) {
-            const timer = setTimeout(() => setSuccessMessage(''), 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [successMessage]);
 
     const handleCreateCompany = async (formData: CreateCompanyRequest | UpdateCompanyRequest) => {
         try {
             setIsSubmitting(true);
             setSubmitError('');
             await createCompany(formData as CreateCompanyRequest);
-            setSuccessMessage('Company created successfully!');
+            addToast({
+                type: 'success',
+                title: 'Company Created',
+                description: 'Company has been created successfully.',
+            });
             setIsCreateModalOpen(false);
         } catch (err: unknown) {
             let errorMessage = 'Failed to create company';
@@ -93,6 +102,11 @@ export function SuperAdminCompanies() {
             
             console.error('Company creation error:', err);
             setSubmitError(errorMessage);
+            addToast({
+                type: 'error',
+                title: 'Failed to Create Company',
+                description: errorMessage,
+            });
             throw err;
         } finally {
             setIsSubmitting(false);
@@ -106,29 +120,62 @@ export function SuperAdminCompanies() {
             setIsSubmitting(true);
             setSubmitError('');
             await updateCompany(selectedCompany.id, formData as UpdateCompanyRequest);
-            setSuccessMessage('Company updated successfully!');
+            addToast({
+                type: 'success',
+                title: 'Company Updated',
+                description: 'Company has been updated successfully.',
+            });
             setIsEditModalOpen(false);
             setSelectedCompany(null);
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to update company';
             setSubmitError(errorMessage);
+            addToast({
+                type: 'error',
+                title: 'Failed to Update Company',
+                description: errorMessage,
+            });
             throw err;
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleToggleStatus = async (company: Company) => {
-        if (!confirm(`Are you sure you want to ${company.is_active ? 'deactivate' : 'activate'} ${company.project_name}?`)) {
-            return;
-        }
+    const handleToggleStatusClick = (company: Company) => {
+        setConfirmModal({
+            isOpen: true,
+            company,
+            isLoading: false,
+        });
+    };
+
+    const handleConfirmToggleStatus = async () => {
+        if (!confirmModal.company) return;
+
+        const company = confirmModal.company;
+        setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
         try {
             await updateCompany(company.id, { is_active: !company.is_active });
-            setSuccessMessage(`Company ${company.is_active ? 'deactivated' : 'activated'} successfully!`);
+            addToast({
+                type: 'success',
+                title: 'Company Status Updated',
+                description: `Company "${company.project_name}" has been ${company.is_active ? 'deactivated' : 'activated'} successfully.`,
+            });
+            setConfirmModal({ isOpen: false, company: null, isLoading: false });
         } catch (err) {
-            setSubmitError(err instanceof Error ? err.message : 'Failed to update company status');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to update company status';
+            addToast({
+                type: 'error',
+                title: 'Failed to Update Status',
+                description: errorMessage,
+            });
+            setConfirmModal(prev => ({ ...prev, isLoading: false }));
         }
+    };
+
+    const handleCancelToggleStatus = () => {
+        setConfirmModal({ isOpen: false, company: null, isLoading: false });
     };
 
     const openEditModal = (company: Company) => {
@@ -175,22 +222,6 @@ export function SuperAdminCompanies() {
                 </Button>
             </div>
 
-            {/* Success Message */}
-            {successMessage && (
-                <div className="mb-6 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-300 px-4 py-3 flex items-center justify-between rounded-lg">
-                    <div className="flex items-center">
-                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span>{successMessage}</span>
-                    </div>
-                    <button onClick={() => setSuccessMessage('')} className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            )}
 
             <Card>
                 <CardHeader>
@@ -255,7 +286,7 @@ export function SuperAdminCompanies() {
                                                     <Button
                                                         size="sm"
                                                         variant={company.is_active ? 'danger' : 'secondary'}
-                                                        onClick={() => handleToggleStatus(company)}
+                                                        onClick={() => handleToggleStatusClick(company)}
                                                         title={company.is_active ? 'Deactivate' : 'Activate'}
                                                     >
                                                         {company.is_active ? (
@@ -288,16 +319,19 @@ export function SuperAdminCompanies() {
                 </CardContent>
             </Card>
 
-            {/* Create Company Modal */}
-            <Modal
+            {/* Create Company Drawer */}
+            <Drawer
                 isOpen={isCreateModalOpen}
                 onClose={closeModals}
                 title="Create New Company"
                 size="xl"
             >
                 {submitError && (
-                    <div className="mb-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg">
-                        {submitError}
+                    <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+                        <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <span>{submitError}</span>
                     </div>
                 )}
                 <CompanyForm
@@ -305,18 +339,21 @@ export function SuperAdminCompanies() {
                     onCancel={closeModals}
                     isLoading={isSubmitting}
                 />
-            </Modal>
+            </Drawer>
 
-            {/* Edit Company Modal */}
-            <Modal
+            {/* Edit Company Drawer */}
+            <Drawer
                 isOpen={isEditModalOpen}
                 onClose={closeModals}
                 title="Edit Company"
                 size="xl"
             >
                 {submitError && (
-                    <div className="mb-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg">
-                        {submitError}
+                    <div className="mb-6 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+                        <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <span>{submitError}</span>
                     </div>
                 )}
                 {selectedCompany && (
@@ -327,7 +364,22 @@ export function SuperAdminCompanies() {
                         isLoading={isSubmitting}
                     />
                 )}
-            </Modal>
+            </Drawer>
+
+            {/* Confirmation Modal for Toggle Status */}
+            {confirmModal.company && (
+                <ConfirmModal
+                    isOpen={confirmModal.isOpen}
+                    onClose={handleCancelToggleStatus}
+                    onConfirm={handleConfirmToggleStatus}
+                    title={confirmModal.company.is_active ? 'Deactivate Company' : 'Activate Company'}
+                    description={`Are you sure you want to ${confirmModal.company.is_active ? 'deactivate' : 'activate'} "${confirmModal.company.project_name}"?`}
+                    confirmText={confirmModal.company.is_active ? 'Yes, Deactivate' : 'Yes, Activate'}
+                    cancelText="Cancel"
+                    variant={confirmModal.company.is_active ? 'warning' : 'info'}
+                    isLoading={confirmModal.isLoading}
+                />
+            )}
         </div>
     );
 }
