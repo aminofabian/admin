@@ -197,11 +197,18 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       setIsGameLoading(true);
 
       try {
-        const games = await gamesApi.list();
+        const data = await gamesApi.list();
 
         if (!isMounted) {
           return;
         }
+
+        // Handle paginated response with results array
+        const games = Array.isArray(data) 
+          ? data 
+          : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
+            ? data.results
+            : [];
 
         const uniqueGames = new Map<string, string>();
 
