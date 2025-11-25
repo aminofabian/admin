@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const TABS = [
+  { href: '/dashboard/processing/game-activities', label: 'Game Activities' },
   { href: '/dashboard/processing/purchase', label: 'Purchase' },
   { href: '/dashboard/processing/cashout', label: 'Cashout' },
-  { href: '/dashboard/processing/game-activities', label: 'Game Activities' },
 ];
 
 export function ProcessingTabs() {
