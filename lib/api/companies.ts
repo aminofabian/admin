@@ -22,10 +22,11 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
   const cleaned = { ...data };
   
   // Remove empty strings from optional fields
-  const optionalFields: (keyof T)[] = ['game_api_url', 'game_api_key', 'service_creds'];
+  // Use type assertion since these fields may not exist on all T types
+  const optionalFields = ['game_api_url', 'game_api_key', 'service_creds'] as const;
   optionalFields.forEach(field => {
-    if (field in cleaned && cleaned[field] === '') {
-      delete cleaned[field];
+    if (field in cleaned && (cleaned as any)[field] === '') {
+      delete (cleaned as any)[field];
     }
   });
   
