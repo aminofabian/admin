@@ -289,19 +289,34 @@ export function SuperAdminPaymentSettings() {
                             description="No companies available to manage payment methods"
                         />
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                             {companies.map((company) => (
                                 <button
                                     key={company.id}
                                     onClick={() => setSelectedCompanyId(company.id)}
-                                    className={`p-4 rounded-lg border-2 transition-all text-left ${
+                                    className={`relative p-4 rounded-lg border-2 transition-all text-left w-full group ${
                                         selectedCompanyId === company.id
-                                            ? 'border-primary bg-primary/5'
-                                            : 'border-border hover:border-primary/50'
+                                            ? 'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                                            : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-md active:scale-[0.98]'
                                     }`}
                                 >
-                                    <div className="font-medium text-foreground">{company.project_name}</div>
-                                    <div className="text-sm text-muted-foreground mt-1">{company.username}</div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <div className={`font-semibold ${selectedCompanyId === company.id ? 'text-primary-foreground' : 'text-foreground'}`}>
+                                                {company.project_name}
+                                            </div>
+                                            <div className={`text-sm mt-1 ${selectedCompanyId === company.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                                                {company.username}
+                                            </div>
+                                        </div>
+                                        {selectedCompanyId === company.id && (
+                                            <div className="ml-3 flex-shrink-0">
+                                                <svg className="w-5 h-5 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                    </div>
                                 </button>
                             ))}
                         </div>
