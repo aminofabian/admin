@@ -153,14 +153,14 @@ export function SuperAdminGames() {
                     description: 'Game status has been toggled successfully.',
                 });
             } else if (confirmModal.action === 'enableAll') {
-                await gamesApi.enableAllGames();
+                await gamesApi.enableAllGames(selectedCompanyId);
                 addToast({
                     type: 'success',
                     title: 'All Games Enabled',
                     description: 'All games have been enabled successfully.',
                 });
             } else if (confirmModal.action === 'disableAll') {
-                await gamesApi.disableAllGames();
+                await gamesApi.disableAllGames(selectedCompanyId);
                 addToast({
                     type: 'success',
                     title: 'All Games Disabled',

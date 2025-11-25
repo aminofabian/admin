@@ -40,10 +40,12 @@ interface ToggleGameStatusRequest {
 
 interface EnableAllGamesRequest {
   type: 'enable_all_games';
+  company_id: number;
 }
 
 interface DisableAllGamesRequest {
   type: 'disable_all_games';
+  company_id: number;
 }
 
 export const gamesApi = {
@@ -81,16 +83,16 @@ export const gamesApi = {
       { type: 'toggle_enabled_by_superadmin', game_id: gameId } as ToggleGameStatusRequest
     ),
 
-  enableAllGames: () =>
+  enableAllGames: (companyId: number) =>
     apiClient.post<{ status: string; message?: string }>(
       API_ENDPOINTS.GAMES.OFFMARKET_MANAGEMENT,
-      { type: 'enable_all_games' } as EnableAllGamesRequest
+      { type: 'enable_all_games', company_id: companyId } as EnableAllGamesRequest
     ),
 
-  disableAllGames: () =>
+  disableAllGames: (companyId: number) =>
     apiClient.post<{ status: string; message?: string }>(
       API_ENDPOINTS.GAMES.OFFMARKET_MANAGEMENT,
-      { type: 'disable_all_games' } as DisableAllGamesRequest
+      { type: 'disable_all_games', company_id: companyId } as DisableAllGamesRequest
     ),
 };
 
