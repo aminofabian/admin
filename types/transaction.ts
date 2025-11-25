@@ -76,6 +76,8 @@ export interface GameActionRequest {
   new_password?: string;
   new_balance?: string;
   new_username?: string;
+  game_username?: string; // For add_user_game and create_game types
+  game_password?: string; // For add_user_game and create_game types
 }
 
 export interface GameActionResponse {

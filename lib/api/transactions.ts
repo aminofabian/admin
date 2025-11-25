@@ -140,8 +140,21 @@ export const transactionsApi = {
     const formData = new FormData();
     formData.append('txn_id', String(data.txn_id));
     formData.append('type', data.type);
-    if (data.new_username) formData.append('new_username', data.new_username);
-    if (data.new_password) formData.append('new_password', data.new_password);
+    
+    // For add_user_game and create_game types, use game_username and game_password
+    // For other types, use new_username and new_password
+    if (data.game_username) {
+      formData.append('game_username', data.game_username);
+    } else if (data.new_username) {
+      formData.append('new_username', data.new_username);
+    }
+    
+    if (data.game_password) {
+      formData.append('game_password', data.game_password);
+    } else if (data.new_password) {
+      formData.append('new_password', data.new_password);
+    }
+    
     if (data.new_balance) formData.append('new_balance', data.new_balance);
 
     // Use the Next.js API proxy route to avoid CORS issues

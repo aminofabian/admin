@@ -13,6 +13,8 @@ interface ActionModalProps {
     new_password?: string;
     new_balance?: string;
     new_username?: string;
+    game_username?: string;
+    game_password?: string;
   }) => Promise<void>;
   onClose: () => void;
 }
@@ -28,6 +30,8 @@ export function ActionModal({ isOpen, queue, onSubmit, onClose }: ActionModalPro
     new_password?: string;
     new_balance?: string;
     new_username?: string;
+    game_username?: string;
+    game_password?: string;
   }) => {
     try {
       await onSubmit(data);

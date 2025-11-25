@@ -22,6 +22,8 @@ interface GameActionFormProps {
     new_password?: string;
     new_balance?: string;
     new_username?: string;
+    game_username?: string;
+    game_password?: string;
   }) => Promise<void>;
   onCancel: () => void;
 }
@@ -123,14 +125,25 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         new_password?: string;
         new_balance?: string;
         new_username?: string;
+        game_username?: string;
+        game_password?: string;
       } = {
         txn_id: queue.id,
         type: action,
       };
 
       if (action === 'complete') {
-        if (username?.trim()) data.new_username = username.trim();
-        if (password?.trim()) data.new_password = password.trim();
+        // For add_user_game and create_game types, use game_username and game_password
+        const isAddUserType = queue.type === 'add_user_game' || queue.type === 'create_game';
+        
+        if (isAddUserType) {
+          if (username?.trim()) data.game_username = username.trim();
+          if (password?.trim()) data.game_password = password.trim();
+        } else {
+          if (username?.trim()) data.new_username = username.trim();
+          if (password?.trim()) data.new_password = password.trim();
+        }
+        
         if (balance?.trim()) data.new_balance = balance.trim();
       }
 
