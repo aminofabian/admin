@@ -15,18 +15,24 @@ interface CompanyFilters {
 }
 
 // Helper to clean up optional fields - remove empty strings and problematic fields
+type CleanableFields = {
+  game_api_url?: string;
+  game_api_key?: string;
+  service_creds?: string;
+};
+
 const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>(
   data: T,
   isCreate: boolean = false
 ): T => {
-  const cleaned = { ...data };
+  const cleaned = { ...data } as T & CleanableFields;
   
   // Remove empty strings from optional fields
-  // Use type assertion since these fields may not exist on all T types
-  const optionalFields = ['game_api_url', 'game_api_key', 'service_creds'] as const;
+  // These fields may exist on CreateCompanyRequest but not UpdateCompanyRequest
+  const optionalFields: (keyof CleanableFields)[] = ['game_api_url', 'game_api_key', 'service_creds'];
   optionalFields.forEach(field => {
-    if (field in cleaned && (cleaned as any)[field] === '') {
-      delete (cleaned as any)[field];
+    if (field in cleaned && cleaned[field] === '') {
+      delete cleaned[field];
     }
   });
   
@@ -34,11 +40,11 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
   // These fields cause backend errors as they don't exist on the Users model
   // They may need to be set separately after company creation
   if (isCreate) {
-    delete (cleaned as any).game_api_url;
-    delete (cleaned as any).game_api_key;
+    delete cleaned.game_api_url;
+    delete cleaned.game_api_key;
   }
   
-  return cleaned;
+  return cleaned as T;
 };
 
 export const companiesApi = {
