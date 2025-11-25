@@ -267,9 +267,9 @@ const MENU_CATEGORIES: MenuCategory[] = [
     icon: <ProcessingIcon />,
     roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT, USER_ROLES.STAFF, USER_ROLES.PLAYER],
     submenu: [
-      { name: 'Cashout', href: '/dashboard/processing/cashout', icon: <CashoutIcon /> },
-      { name: 'Purchase', href: '/dashboard/processing/purchase', icon: <PurchaseIcon /> },
       { name: 'Game Activities', href: '/dashboard/processing/game-activities', icon: <GameActivityIcon /> },
+      { name: 'Purchase', href: '/dashboard/processing/purchase', icon: <PurchaseIcon /> },
+      { name: 'Cashout', href: '/dashboard/processing/cashout', icon: <CashoutIcon /> },
     ],
   },
   {
