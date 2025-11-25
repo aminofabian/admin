@@ -51,9 +51,16 @@ export const useGameActivitiesStore = create<GameActivitiesStore>((set, get) => 
 
     try {
       // Fetch all games
-      const gamesResponse: Game[] = await gamesApi.list({
+      const gamesData = await gamesApi.list({
         page_size: 1000, // Get all games
       });
+
+      // Handle paginated response with results array
+      const gamesResponse: Game[] = Array.isArray(gamesData) 
+        ? gamesData 
+        : (gamesData && typeof gamesData === 'object' && 'results' in gamesData && Array.isArray(gamesData.results))
+          ? gamesData.results
+          : [];
 
       // Fetch pending transaction queues
       const queuesResponse: PaginatedResponse<TransactionQueue> = await transactionsApi.queues({
