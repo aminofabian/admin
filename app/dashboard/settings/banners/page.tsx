@@ -89,6 +89,7 @@ function BannersTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Thumbnail</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Status</TableHead>
@@ -115,8 +116,30 @@ function BannersTableRow({
   onEdit: (item: Banner) => void;
   onDelete: (item: Banner) => void;
 }) {
+  // Prefer web_banner, fallback to mobile_banner
+  const thumbnailUrl = banner.web_banner || banner.mobile_banner;
+
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+      <TableCell>
+        {thumbnailUrl ? (
+          <div className="relative h-16 w-24 overflow-hidden rounded-md border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+            <img
+              src={thumbnailUrl}
+              alt={banner.title}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                // Hide image on error
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+        ) : (
+          <div className="flex h-16 w-24 items-center justify-center rounded-md border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+            <span className="text-xs text-gray-400 dark:text-gray-500">No image</span>
+          </div>
+        )}
+      </TableCell>
       <TableCell>
         <span className="font-medium text-gray-900 dark:text-gray-100">{banner.title}</span>
       </TableCell>
@@ -260,10 +283,10 @@ export default function BannersPage() {
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="grid grid-cols-6 gap-4 px-4 py-4">
+                    <Skeleton className="h-16 w-24 rounded-md" />
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-6 w-20 rounded-full" />
                     <Skeleton className="h-6 w-20 rounded-full" />
-                    <Skeleton className="h-6 w-16 rounded-full" />
                     <div className="flex flex-col gap-1">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-3 w-20" />
