@@ -74,6 +74,7 @@ export const API_ENDPOINTS = {
   PAYMENT_METHODS: {
     LIST: `${API_PREFIX}/payment-methods/`,
     DETAIL: (id: number) => `${API_PREFIX}/payment-methods/${id}/`,
+    MANAGEMENT: `${API_PREFIX}/payment-methods-management/`,
   },
   CHAT: {
     MESSAGES: 'api/chat-messages', // Chat messages history
