@@ -208,15 +208,37 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard',
   },
   {
-    name: 'Companies',
+    name: 'Company',
     icon: <CompanyIcon />,
     roles: [USER_ROLES.SUPERADMIN],
     href: '/dashboard/companies',
   },
   {
+    name: 'Games Management',
+    icon: <GameIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/games',
+  },
+  {
+    name: 'Payment Methods',
+    icon: <PaymentSettingsIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/settings/payment',
+  },
+  {
+    name: 'History',
+    icon: <HistoryIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    submenu: [
+      { name: 'Transactions', href: '/dashboard/history/transactions', icon: <HistoryTransactionIcon /> },
+      { name: 'Game Activities', href: '/dashboard/history/game-activities', icon: <HistoryGameActivityIcon /> },
+    ],
+  },
+  // Admin/Other roles menu items
+  {
     name: 'User Management',
     icon: <UsersIcon />,
-    roles: [USER_ROLES.SUPERADMIN, USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT],
+    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT],
     submenu: [
       { name: 'Players', href: '/dashboard/players', icon: <PlayerIcon /> },
       { name: 'Agents', href: '/dashboard/agents', icon: <AgentIcon /> },
@@ -228,13 +250,13 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Games',
     icon: <GameIcon />,
-    roles: Object.values(USER_ROLES),
+    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT, USER_ROLES.STAFF, USER_ROLES.PLAYER],
     href: '/dashboard/games',
   },
   {
     name: 'History',
     icon: <HistoryIcon />,
-    roles: Object.values(USER_ROLES),
+    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT, USER_ROLES.STAFF, USER_ROLES.PLAYER],
     submenu: [
       { name: 'Transactions', href: '/dashboard/history/transactions', icon: <HistoryTransactionIcon /> },
       { name: 'Game Activities', href: '/dashboard/history/game-activities', icon: <HistoryGameActivityIcon /> },
@@ -243,7 +265,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Processing',
     icon: <ProcessingIcon />,
-    roles: Object.values(USER_ROLES),
+    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT, USER_ROLES.STAFF, USER_ROLES.PLAYER],
     submenu: [
       { name: 'Cashout', href: '/dashboard/processing/cashout', icon: <CashoutIcon /> },
       { name: 'Purchase', href: '/dashboard/processing/purchase', icon: <PurchaseIcon /> },
@@ -253,7 +275,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Bonuses',
     icon: <BonusIcon />,
-    roles: [USER_ROLES.SUPERADMIN, USER_ROLES.COMPANY],
+    roles: [USER_ROLES.COMPANY],
     submenu: [
       { name: 'Purchase Bonus', href: '/dashboard/bonuses/purchase', icon: <PurchaseBonusIcon /> },
       { name: 'Recharge Bonus', href: '/dashboard/bonuses/recharge', icon: <RechargeBonusIcon /> },
@@ -265,7 +287,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Settings',
     icon: <SettingsIcon />,
-    roles: [USER_ROLES.SUPERADMIN, USER_ROLES.COMPANY],
+    roles: [USER_ROLES.COMPANY],
     submenu: [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
       { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
@@ -275,7 +297,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Affiliates',
     icon: <AffiliateIcon />,
-    roles: [USER_ROLES.SUPERADMIN, USER_ROLES.COMPANY, USER_ROLES.MANAGER],
+    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER],
     submenu: [
       { name: 'Agents', href: '/dashboard/agents', icon: <AffiliatesAgentIcon /> },
       { name: 'Affiliates', href: '/dashboard/affiliates', icon: <AffiliateIcon /> },
@@ -289,16 +311,16 @@ interface SidebarProps {
   isCollapsed?: boolean;
 }
 
-function SubMenuItemComponent({ 
-  item, 
-  pathname, 
+function SubMenuItemComponent({
+  item,
+  pathname,
   onClose,
   isCollapsed,
   level = 1,
   count
-}: { 
-  item: SubMenuItem; 
-  pathname: string; 
+}: {
+  item: SubMenuItem;
+  pathname: string;
   onClose?: () => void;
   isCollapsed?: boolean;
   level?: number;
@@ -314,47 +336,42 @@ function SubMenuItemComponent({
       <Link
         href={item.href || '#'}
         onClick={onClose}
-        className={`group relative flex items-center gap-3 py-2.5 px-6 transition-all duration-200 rounded-md ${
-          isActive
+        className={`group relative flex items-center gap-3 py-2.5 px-6 transition-all duration-200 rounded-md ${isActive
             ? 'bg-primary/10 dark:bg-primary/15 text-primary font-semibold shadow-sm'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
-        }`}
+          }`}
         title={isCollapsed ? item.name : undefined}
       >
-        <div className={`shrink-0 transition-all duration-200 ${
-          isActive ? 'text-primary' : 'group-hover:text-primary'
-        }`}>
+        <div className={`shrink-0 transition-all duration-200 ${isActive ? 'text-primary' : 'group-hover:text-primary'
+          }`}>
           {item.icon}
         </div>
         <span className="text-sm font-medium whitespace-nowrap">{item.name}</span>
         {count !== undefined && count > 0 && (
-          <span className={`shrink-0 -ml-1.5 inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1.5 text-[10px] font-semibold rounded-md transition-all duration-200 ${
-            isActive
+          <span className={`shrink-0 -ml-1.5 inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1.5 text-[10px] font-semibold rounded-md transition-all duration-200 ${isActive
               ? 'bg-primary/90 text-primary-foreground shadow-sm'
               : 'bg-gradient-to-br from-primary/15 to-primary/10 text-primary border border-primary/20 dark:from-primary/25 dark:to-primary/15 dark:border-primary/30 shadow-sm'
-          }`}>
+            }`}>
             {count > 99 ? '99+' : count}
           </span>
         )}
       </Link>
     );
   }
-  
+
   return (
     <div className="space-y-1">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`group w-full flex items-center justify-between gap-3 py-2.5 px-6 transition-all duration-200 rounded-md ${
-          isExpanded 
-            ? 'bg-muted/80 text-foreground font-medium' 
+        className={`group w-full flex items-center justify-between gap-3 py-2.5 px-6 transition-all duration-200 rounded-md ${isExpanded
+            ? 'bg-muted/80 text-foreground font-medium'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-        }`}
+          }`}
         title={isCollapsed ? item.name : undefined}
       >
         <div className="flex items-center gap-3 relative z-10">
-          <div className={`shrink-0 transition-all duration-200 ${
-            isExpanded ? 'text-primary' : 'group-hover:text-primary'
-          }`}>
+          <div className={`shrink-0 transition-all duration-200 ${isExpanded ? 'text-primary' : 'group-hover:text-primary'
+            }`}>
             {item.icon}
           </div>
           <span className="block text-sm font-medium whitespace-nowrap">{item.name}</span>
@@ -368,9 +385,9 @@ function SubMenuItemComponent({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      
+
       {isExpanded && item.submenu && (
-        <div 
+        <div
           className="ml-8 space-y-1 animate-in fade-in-0 slide-in-from-top-1 duration-200"
         >
           {item.submenu.map((subItem) => (
@@ -389,15 +406,15 @@ function SubMenuItemComponent({
   );
 }
 
-function MenuItem({ 
-  category, 
-  pathname, 
+function MenuItem({
+  category,
+  pathname,
   onClose,
   isCollapsed,
   processingCounts
-}: { 
-  category: MenuCategory; 
-  pathname: string; 
+}: {
+  category: MenuCategory;
+  pathname: string;
   onClose?: () => void;
   isCollapsed?: boolean;
   processingCounts?: { purchase_count?: number; cashout_count?: number; game_activities_count?: number };
@@ -409,7 +426,7 @@ function MenuItem({
   // Get count for a specific submenu item
   const getCountForItem = (itemName: string): number | undefined => {
     if (!processingCounts || category.name !== 'Processing') return undefined;
-    
+
     if (itemName === 'Cashout') return processingCounts.cashout_count;
     if (itemName === 'Purchase') return processingCounts.purchase_count;
     if (itemName === 'Game Activities') return processingCounts.game_activities_count;
@@ -421,16 +438,14 @@ function MenuItem({
       <Link
         href={category.href}
         onClick={onClose}
-        className={`group relative flex items-center gap-3 py-3 px-6 text-sm font-medium transition-all duration-200 rounded-lg ${
-          isActive
+        className={`group relative flex items-center gap-3 py-3 px-6 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
             ? 'bg-primary/10 text-primary font-semibold shadow-sm'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-        }`}
+          }`}
         title={isCollapsed ? category.name : undefined}
       >
-        <div className={`shrink-0 transition-all duration-200 ${
-          isActive ? 'text-primary' : 'group-hover:text-primary'
-        }`}>
+        <div className={`shrink-0 transition-all duration-200 ${isActive ? 'text-primary' : 'group-hover:text-primary'
+          }`}>
           {category.icon}
         </div>
         <span className="text-sm font-semibold whitespace-nowrap">{category.name}</span>
@@ -462,17 +477,15 @@ function MenuItem({
     <div className="space-y-1">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`group w-full flex items-center justify-between gap-3 py-3 px-6 text-sm font-medium transition-all duration-200 rounded-lg ${
-          isExpanded 
-            ? 'bg-primary/10 text-primary font-semibold' 
+        className={`group w-full flex items-center justify-between gap-3 py-3 px-6 text-sm font-medium transition-all duration-200 rounded-lg ${isExpanded
+            ? 'bg-primary/10 text-primary font-semibold'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-        }`}
+          }`}
         title={isCollapsed ? category.name : undefined}
       >
         <div className="flex items-center gap-3">
-          <div className={`shrink-0 transition-all duration-200 ${
-            isExpanded ? 'text-primary' : 'group-hover:text-primary'
-          }`}>
+          <div className={`shrink-0 transition-all duration-200 ${isExpanded ? 'text-primary' : 'group-hover:text-primary'
+            }`}>
             {category.icon}
           </div>
           <span className="text-sm font-semibold whitespace-nowrap">{category.name}</span>
@@ -486,7 +499,7 @@ function MenuItem({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      
+
       {isExpanded && category.submenu && (
         <div className="ml-4 space-y-1 pt-1 animate-in fade-in-0 slide-in-from-top-1 duration-200">
           {category.submenu.map((item) => (
@@ -510,7 +523,7 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
   const { user, logout } = useAuth();
   const { counts: processingCounts } = useProcessingWebSocketContext();
 
-  const filteredCategories = user 
+  const filteredCategories = user
     ? MENU_CATEGORIES.filter((cat) => cat.roles.includes(user.role))
     : MENU_CATEGORIES;
 
@@ -523,9 +536,9 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
     <aside className="w-full h-screen bg-gradient-to-b from-background via-background/98 to-background border-r border-border/50 flex flex-col">
       {/* Header */}
       <div className="relative p-6 flex items-center justify-between border-b border-border/50">
-        <Logo 
-          showText={true} 
-          size="sm" 
+        <Logo
+          showText={true}
+          size="sm"
           className="relative z-10"
         />
         <button
@@ -578,15 +591,13 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
         <Link
           href="/dashboard/chat"
           onClick={onClose}
-          className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors ${
-            pathname === '/dashboard/chat'
+          className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors ${pathname === '/dashboard/chat'
               ? 'bg-primary/10 text-primary font-semibold shadow-sm'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-          }`}
+            }`}
         >
-          <div className={`shrink-0 transition-all duration-200 ${
-            pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
-          }`}>
+          <div className={`shrink-0 transition-all duration-200 ${pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
+            }`}>
             <ChatIcon />
           </div>
           <span>Chat</span>
@@ -597,7 +608,7 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
           <span className="w-2 h-2 bg-green-500 rounded-full" />
           <span className="text-xs font-medium text-green-600 dark:text-green-400">System Online</span>
         </div>
-        
+
         {/* Logout Button */}
         <button
           onClick={handleLogout}

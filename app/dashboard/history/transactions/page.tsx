@@ -2,11 +2,14 @@
 
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@/providers/auth-provider';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { TransactionsSection } from '@/components/dashboard/data-sections/transactions-section';
+import { SuperAdminHistoryTransactions } from '@/components/superadmin';
 import { useTransactionsStore } from '@/stores';
 
 export default function HistoryTransactionsPage() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const { setFilterWithoutFetch, setAdvancedFiltersWithoutFetch, clearAdvancedFiltersWithoutFetch } = useTransactionsStore();
   const advancedFilters = useTransactionsStore((state) => state.advancedFilters);
@@ -14,6 +17,11 @@ export default function HistoryTransactionsPage() {
   const appliedFiltersRef = useRef<{ username: string | null }>({
     username: null,
   });
+
+  // If user is superadmin, render superadmin history view
+  if (user?.role === 'superadmin') {
+    return <SuperAdminHistoryTransactions />;
+  }
 
   useEffect(() => {
     setFilterWithoutFetch('history');
@@ -43,7 +51,7 @@ export default function HistoryTransactionsPage() {
     const filterUpdate: Record<string, string> = {
       username: trimmedUsername,
     };
-    
+
     setAdvancedFiltersWithoutFetch(filterUpdate);
     appliedFiltersRef.current = { username: trimmedUsername };
     hasInitializedRef.current = true;

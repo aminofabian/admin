@@ -20,9 +20,10 @@ export interface DashboardStats {
   totalGames: number;
   activeGames: number;
   inactiveGames: number;
+  totalCompanies?: number; // Optional for superadmin dashboard
 }
 
 export const dashboardApi = {
-  getStats: () => 
+  getStats: () =>
     apiClient.get<DashboardStats>(API_ENDPOINTS.DASHBOARD.STATS),
 };

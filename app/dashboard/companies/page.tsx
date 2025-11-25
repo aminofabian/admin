@@ -1,26 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/providers/auth-provider';
 // import { companiesApi } from '@/lib/api'; // Suspended for mock data
 import { usePagination, useSearch } from '@/lib/hooks';
-import { 
-  Card, 
-  CardHeader, 
-  CardContent, 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableRow, 
-  TableHead, 
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
   TableCell,
   Badge,
   Pagination,
   SearchInput,
   Button,
-  Modal 
+  Modal
 } from '@/components/ui';
 import { LoadingState, ErrorState, EmptyState, CompanyForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
+import { SuperAdminCompanies } from '@/components/superadmin';
 import type { Company, PaginatedResponse, CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
 
 // 🎭 MOCK DATA - Remove when backend is ready
@@ -198,6 +200,7 @@ const mockCompaniesApi = {
 };
 
 export default function CompaniesPage() {
+  const { user } = useAuth();
   const [data, setData] = useState<PaginatedResponse<Company> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -207,9 +210,14 @@ export default function CompaniesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
+
   const { page, pageSize, setPage } = usePagination();
   const { search, debouncedSearch, setSearch } = useSearch();
+
+  // If user is superadmin, render superadmin companies view
+  if (user?.role === 'superadmin') {
+    return <SuperAdminCompanies />;
+  }
 
   useEffect(() => {
     loadCompanies();
@@ -245,10 +253,10 @@ export default function CompaniesPage() {
     try {
       setIsSubmitting(true);
       setSubmitError('');
-      
+
       // Using mock API - replace with companiesApi.create when backend is ready
       await mockCompaniesApi.create(formData as CreateCompanyRequest);
-      
+
       setSuccessMessage('Company created successfully!');
       setIsCreateModalOpen(false);
       await loadCompanies();
@@ -263,14 +271,14 @@ export default function CompaniesPage() {
 
   const handleUpdateCompany = async (formData: CreateCompanyRequest | UpdateCompanyRequest) => {
     if (!selectedCompany) return;
-    
+
     try {
       setIsSubmitting(true);
       setSubmitError('');
-      
+
       // Using mock API - replace with companiesApi.partialUpdate when backend is ready
       await mockCompaniesApi.partialUpdate(selectedCompany.id, formData as UpdateCompanyRequest);
-      
+
       setSuccessMessage('Company updated successfully!');
       setIsEditModalOpen(false);
       setSelectedCompany(null);
@@ -372,8 +380,8 @@ export default function CompaniesPage() {
         </CardHeader>
         <CardContent className="p-0">
           {data?.results.length === 0 ? (
-            <EmptyState 
-              title="No companies found" 
+            <EmptyState
+              title="No companies found"
               description="Get started by creating a new company"
             />
           ) : (

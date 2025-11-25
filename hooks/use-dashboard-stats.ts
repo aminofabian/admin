@@ -12,15 +12,15 @@ export function useDashboardStats() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // NOTE: Dashboard stats endpoint doesn't exist on backend yet
         // Using fallback data until backend implements /api/v1/dashboard/stats/
         console.info('ℹ️ Dashboard stats endpoint not implemented yet, using fallback data');
-        
+
         // TODO: Uncomment when backend implements the endpoint
         // const data = await dashboardApi.getStats();
         // setStats(data);
-        
+
         setStats({
           totalPlayers: 0,
           activePlayers: 0,
@@ -40,19 +40,20 @@ export function useDashboardStats() {
           totalGames: 0,
           activeGames: 0,
           inactiveGames: 0,
+          totalCompanies: 0,
         });
       } catch (err: unknown) {
         let errorMessage = 'Failed to load dashboard statistics';
-        
+
         if (err && typeof err === 'object' && 'message' in err) {
           errorMessage = String(err.message);
         } else if (err instanceof Error) {
           errorMessage = err.message;
         }
-        
+
         console.warn('⚠️ Dashboard stats failed:', errorMessage);
         setError(errorMessage);
-        
+
         // Fallback to empty stats
         setStats({
           totalPlayers: 0,
@@ -73,6 +74,7 @@ export function useDashboardStats() {
           totalGames: 0,
           activeGames: 0,
           inactiveGames: 0,
+          totalCompanies: 0,
         });
       } finally {
         setLoading(false);

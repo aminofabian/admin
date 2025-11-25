@@ -20,7 +20,6 @@ interface CompaniesActions {
   fetchCompanies: () => Promise<void>;
   createCompany: (data: CreateCompanyRequest) => Promise<Company>;
   updateCompany: (id: number, data: UpdateCompanyRequest) => Promise<Company>;
-  partialUpdateCompany: (id: number, data: Partial<UpdateCompanyRequest>) => Promise<Company>;
   setPage: (page: number) => void;
   setSearchTerm: (term: string) => void;
   reset: () => void;
@@ -65,7 +64,6 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
       if (err && typeof err === 'object' && 'detail' in err) {
         errorMessage = String(err.detail);
         
-        // Handle permission error specifically
         if (errorMessage.toLowerCase().includes('permission')) {
           errorMessage = 'Access Denied: You need superadmin privileges to view companies.';
         }
@@ -81,6 +79,7 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
   },
 
   createCompany: async (data: CreateCompanyRequest) => {
+    set({ error: null });
     try {
       const company = await companiesApi.create(data);
       
@@ -88,18 +87,64 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
         throw new Error('No data returned from server');
       }
       
-      // Refresh the list after creation
       await get().fetchCompanies();
       
       return company;
     } catch (err: unknown) {
       let errorMessage = 'Failed to create company';
       
-      if (err && typeof err === 'object' && 'detail' in err) {
-        errorMessage = String(err.detail);
-        
-        if (errorMessage.toLowerCase().includes('permission')) {
-          errorMessage = 'Access Denied: You need superadmin privileges to create companies.';
+      if (err && typeof err === 'object') {
+        // Check for detail field (common error format)
+        if ('detail' in err) {
+          const detail = err.detail;
+          
+          // If detail is a string, use it directly
+          if (typeof detail === 'string') {
+            errorMessage = detail;
+          } 
+          // If detail is an object with field errors, format them
+          else if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+            const validationErrors: string[] = [];
+            Object.entries(detail).forEach(([field, messages]) => {
+              if (Array.isArray(messages)) {
+                validationErrors.push(`${field}: ${messages.join(', ')}`);
+              } else if (typeof messages === 'string') {
+                validationErrors.push(`${field}: ${messages}`);
+              }
+            });
+            
+            if (validationErrors.length > 0) {
+              errorMessage = validationErrors.join('; ');
+            }
+          }
+          
+          if (errorMessage.toLowerCase().includes('permission')) {
+            errorMessage = 'Access Denied: You need superadmin privileges to create companies.';
+          }
+        } 
+        // Check for field-level validation errors (Django REST framework format)
+        else {
+          const validationErrors: string[] = [];
+          Object.entries(err).forEach(([field, messages]) => {
+            if (Array.isArray(messages)) {
+              validationErrors.push(`${field}: ${messages.join(', ')}`);
+            } else if (typeof messages === 'string') {
+              validationErrors.push(`${field}: ${messages}`);
+            } else if (typeof messages === 'object' && messages !== null) {
+              // Handle nested errors
+              const nestedErrors = Object.entries(messages).map(([nestedField, nestedMessages]) => {
+                if (Array.isArray(nestedMessages)) {
+                  return `${field}.${nestedField}: ${nestedMessages.join(', ')}`;
+                }
+                return `${field}.${nestedField}: ${String(nestedMessages)}`;
+              });
+              validationErrors.push(...nestedErrors);
+            }
+          });
+          
+          if (validationErrors.length > 0) {
+            errorMessage = validationErrors.join('; ');
+          }
         }
       } else if (err instanceof Error) {
         errorMessage = err.message;
@@ -111,36 +156,7 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
   },
 
   updateCompany: async (id: number, data: UpdateCompanyRequest) => {
-    try {
-      const company = await companiesApi.update(id, data);
-      
-      if (!company) {
-        throw new Error('No data returned from server');
-      }
-      
-      // Refresh the list after update
-      await get().fetchCompanies();
-      
-      return company;
-    } catch (err: unknown) {
-      let errorMessage = 'Failed to update company';
-      
-      if (err && typeof err === 'object' && 'detail' in err) {
-        errorMessage = String(err.detail);
-        
-        if (errorMessage.toLowerCase().includes('permission')) {
-          errorMessage = 'Access Denied: You need superadmin privileges to update companies.';
-        }
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-      
-      set({ error: errorMessage });
-      throw new Error(errorMessage);
-    }
-  },
-
-  partialUpdateCompany: async (id: number, data: Partial<UpdateCompanyRequest>) => {
+    set({ error: null });
     try {
       const company = await companiesApi.partialUpdate(id, data);
       
@@ -148,7 +164,6 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
         throw new Error('No data returned from server');
       }
       
-      // Refresh the list after update
       await get().fetchCompanies();
       
       return company;
@@ -178,7 +193,7 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
   setSearchTerm: (term: string) => {
     set({ 
       searchTerm: term,
-      currentPage: 1, // Reset to first page when searching
+      currentPage: 1,
     });
     get().fetchCompanies();
   },
@@ -187,4 +202,3 @@ export const useCompaniesStore = create<CompaniesStore>((set, get) => ({
     set(initialState);
   },
 }));
-
