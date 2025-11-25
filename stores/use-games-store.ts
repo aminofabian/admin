@@ -55,8 +55,15 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
 
       const data = await gamesApi.list(filters);
       
+      // Handle paginated response with results array
+      const games = Array.isArray(data) 
+        ? data 
+        : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
+          ? data.results
+          : [];
+      
       set({ 
-        games: data, 
+        games, 
         isLoading: false,
         error: null,
       });

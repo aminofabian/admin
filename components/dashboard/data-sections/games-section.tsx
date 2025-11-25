@@ -41,9 +41,12 @@ export function GamesSection() {
 
   const canManageGames = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
   const games = useMemo<Game[]>(() => {
-    const gamesList = data ?? [];
+    // Ensure data is an array before processing
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
     // Sort alphabetically by title (A to Z)
-    return [...gamesList].sort((a, b) => a.title.localeCompare(b.title));
+    return [...data].sort((a, b) => a.title.localeCompare(b.title));
   }, [data]);
   const totalCount = games.length;
   const stats = useMemo(() => buildGameStats(games, totalCount), [games, totalCount]);
