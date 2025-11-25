@@ -56,7 +56,13 @@ export function AddGameDrawer({
         setIsLoadingGames(true);
         try {
           const data = await gamesApi.list();
-          setAllGames(data);
+          // Handle paginated response with results array
+          const games = Array.isArray(data) 
+            ? data 
+            : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
+              ? data.results
+              : [];
+          setAllGames(games);
         } catch (error) {
           console.error('Failed to fetch games:', error);
         } finally {
