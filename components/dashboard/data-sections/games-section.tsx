@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
-import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
+import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton, Modal, Input } from '@/components/ui';
 import { EmptyState, ErrorState, GameForm, StoreBalanceModal } from '@/components/features';
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
@@ -27,6 +27,7 @@ export function GamesSection() {
     balanceCheckLoading,
     fetchGames,
     updateGame,
+    updateMinimumRedeemMultiplier,
     checkStoreBalance,
   } = useGamesStore();
 
@@ -39,6 +40,10 @@ export function GamesSection() {
   const [balanceData, setBalanceData] = useState<CheckStoreBalanceResponse | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isMultiplierModalOpen, setIsMultiplierModalOpen] = useState(false);
+  const [multiplierValue, setMultiplierValue] = useState('');
+  const [isUpdatingMultiplier, setIsUpdatingMultiplier] = useState(false);
+  const [multiplierError, setMultiplierError] = useState<string | null>(null);
 
   const canManageGames = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
   const games = useMemo<Game[]>(() => {
@@ -50,7 +55,16 @@ export function GamesSection() {
     return [...data].sort((a, b) => a.title.localeCompare(b.title));
   }, [data]);
   const totalCount = games.length;
-  const stats = useMemo(() => buildGameStats(games, totalCount, minimumRedeemMultiplier), [games, totalCount, minimumRedeemMultiplier]);
+  const stats = useMemo(() => buildGameStats(
+    games, 
+    totalCount, 
+    minimumRedeemMultiplier,
+    () => {
+      setMultiplierValue(minimumRedeemMultiplier || '');
+      setMultiplierError(null);
+      setIsMultiplierModalOpen(true);
+    }
+  ), [games, totalCount, minimumRedeemMultiplier]);
 
   useEffect(() => {
     // Only fetch if user has permission, we don't have data, and we're not already loading
@@ -175,7 +189,10 @@ export function GamesSection() {
         {stats.map(stat => (
           <div
             key={stat.title}
-            className="rounded-2xl border border-border bg-card p-4 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30"
+            className={`rounded-2xl border border-border bg-card p-4 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 ${
+              stat.onClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-900' : ''
+            }`}
+            onClick={stat.onClick}
           >
             <div className="flex items-center justify-between">
               <div>
@@ -187,6 +204,14 @@ export function GamesSection() {
               </div>
             </div>
             {stat.helper && <div className="mt-2 text-sm text-muted-foreground">{stat.helper}</div>}
+            {stat.onClick && (
+              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Click to edit
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -325,6 +350,75 @@ export function GamesSection() {
         isLoading={balanceCheckLoading}
         error={balanceError}
       />
+
+      <Modal
+        isOpen={isMultiplierModalOpen}
+        onClose={() => {
+          setIsMultiplierModalOpen(false);
+          setMultiplierValue('');
+          setMultiplierError(null);
+        }}
+        title="Update Minimum Redeem Multiplier"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setIsMultiplierModalOpen(false);
+                setMultiplierValue('');
+                setMultiplierError(null);
+              }}
+              disabled={isUpdatingMultiplier}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                const value = parseFloat(multiplierValue);
+                if (isNaN(value) || value < 0) {
+                  setMultiplierError('Please enter a valid number greater than or equal to 0');
+                  return;
+                }
+
+                try {
+                  setIsUpdatingMultiplier(true);
+                  setMultiplierError(null);
+                  await updateMinimumRedeemMultiplier(value);
+                  setIsMultiplierModalOpen(false);
+                  setMultiplierValue('');
+                } catch (err) {
+                  const message = err instanceof Error ? err.message : 'Failed to update multiplier';
+                  setMultiplierError(message);
+                } finally {
+                  setIsUpdatingMultiplier(false);
+                }
+              }}
+              disabled={isUpdatingMultiplier}
+            >
+              {isUpdatingMultiplier ? 'Updating...' : 'Update'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {multiplierError && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {multiplierError}
+            </div>
+          )}
+          
+          <Input
+            label="Minimum Redeem Multiplier"
+            type="number"
+            step="0.01"
+            min="0"
+            value={multiplierValue}
+            onChange={(e) => setMultiplierValue(e.target.value)}
+            placeholder="e.g., 1.00"
+            disabled={isUpdatingMultiplier}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -335,9 +429,15 @@ interface GameStat {
   helper?: string;
   variant?: 'default' | 'success' | 'danger' | 'info';
   icon: JSX.Element;
+  onClick?: () => void;
 }
 
-function buildGameStats(games: Game[], total: number, minimumRedeemMultiplier: string | null): GameStat[] {
+function buildGameStats(
+  games: Game[], 
+  total: number, 
+  minimumRedeemMultiplier: string | null,
+  onMultiplierClick?: () => void
+): GameStat[] {
   const active = games.filter((game) => game.game_status).length;
   const inactive = games.filter((game) => !game.game_status).length;
 
@@ -380,6 +480,7 @@ function buildGameStats(games: Game[], total: number, minimumRedeemMultiplier: s
       value: minimumRedeemMultiplier,
       variant: 'info',
       helper: 'Minimum multiplier for redemption',
+      onClick: onMultiplierClick,
       icon: (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />

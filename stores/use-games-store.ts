@@ -20,6 +20,7 @@ interface GamesState {
 interface GamesActions {
   fetchGames: () => Promise<void>;
   updateGame: (id: number, data: UpdateGameRequest) => Promise<Game>;
+  updateMinimumRedeemMultiplier: (multiplier: number) => Promise<void>;
   checkStoreBalance: (data: CheckStoreBalanceRequest) => Promise<CheckStoreBalanceResponse>;
   setSearchTerm: (term: string) => void;
   reset: () => void;
@@ -146,6 +147,38 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
         set({ error: errorMessage });
         throw new Error(errorMessage);
       }
+    }
+  },
+
+  updateMinimumRedeemMultiplier: async (multiplier: number) => {
+    try {
+      const response = await gamesApi.updateMinimumRedeemMultiplier({ minimum_redeem_multiplier: multiplier });
+      
+      if (response.status !== 'success') {
+        throw new Error(response.message || 'Failed to update minimum redeem multiplier');
+      }
+      
+      // Update the multiplier in state
+      set({ minimumRedeemMultiplier: response.minimum_redeem_multiplier });
+    } catch (err: unknown) {
+      let errorMessage = 'Failed to update minimum redeem multiplier';
+      
+      if (err && typeof err === 'object') {
+        if ('detail' in err) {
+          errorMessage = String(err.detail);
+        } else if ('message' in err) {
+          errorMessage = String(err.message);
+        }
+        
+        if (errorMessage.toLowerCase().includes('permission')) {
+          errorMessage = 'Access Denied: You need proper privileges.';
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
+      set({ error: errorMessage });
+      throw new Error(errorMessage);
     }
   },
 

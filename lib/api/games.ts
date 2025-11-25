@@ -53,6 +53,16 @@ interface GamesListResponse {
   minimum_redeem_multiplier?: string;
 }
 
+interface UpdateMinimumRedeemMultiplierRequest {
+  minimum_redeem_multiplier: number;
+}
+
+interface UpdateMinimumRedeemMultiplierResponse {
+  status: 'success';
+  message: string;
+  minimum_redeem_multiplier: string;
+}
+
 export const gamesApi = {
   list: (filters?: GameFilters) => 
     apiClient.get<GamesListResponse | Game[]>(API_ENDPOINTS.GAMES.LIST, {
@@ -70,6 +80,12 @@ export const gamesApi = {
   checkStoreBalance: (data: CheckStoreBalanceRequest) => 
     apiClient.post<CheckStoreBalanceResponse>(
       API_ENDPOINTS.GAMES.CHECK_STORE_BALANCE, 
+      data
+    ),
+
+  updateMinimumRedeemMultiplier: (data: UpdateMinimumRedeemMultiplierRequest) =>
+    apiClient.post<UpdateMinimumRedeemMultiplierResponse>(
+      API_ENDPOINTS.GAMES.UPDATE_MINIMUM_REDEEM_MULTIPLIER,
       data
     ),
 
