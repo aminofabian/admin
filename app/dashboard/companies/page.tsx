@@ -214,23 +214,6 @@ export default function CompaniesPage() {
   const { page, pageSize, setPage } = usePagination();
   const { search, debouncedSearch, setSearch } = useSearch();
 
-  useEffect(() => {
-    loadCompanies();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, debouncedSearch]);
-
-  useEffect(() => {
-    if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(''), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage]);
-
-  // If user is superadmin, render superadmin companies view
-  if (user?.role === 'superadmin') {
-    return <SuperAdminCompanies />;
-  }
-
   const loadCompanies = async () => {
     try {
       setIsLoading(true);
@@ -248,6 +231,23 @@ export default function CompaniesPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadCompanies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, debouncedSearch]);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  // If user is superadmin, render superadmin companies view
+  if (user?.role === 'superadmin') {
+    return <SuperAdminCompanies />;
+  }
 
   const handleCreateCompany = async (formData: CreateCompanyRequest | UpdateCompanyRequest) => {
     try {
