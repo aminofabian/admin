@@ -100,10 +100,9 @@ export function GlobalTransactionNotifications() {
         }
 
         const statusLower = String(updatedQueue.status || '').toLowerCase();
-        const isCompleted = statusLower === 'completed' || statusLower === 'complete';
-
-        // Only show notifications for non-completed activities
-        if (isCompleted) {
+        
+        // Only show toast notifications when a request fails
+        if (statusLower !== 'failed') {
           return;
         }
 
@@ -133,17 +132,16 @@ export function GlobalTransactionNotifications() {
         };
 
         const queueTypeDisplay = queueTypeMap[updatedQueue.type] || updatedQueue.type || 'Game Activity';
-        const userName = updatedQueue.user_username || updatedQueue.user_email || 'New Activity';
-        const amount = formatCurrency(updatedQueue.amount || '0');
+        const userName = updatedQueue.user_username || updatedQueue.user_email || 'Activity';
 
         addToast({
-          type: 'info',
-          title: `New ${queueTypeDisplay}`,
-          description: `${userName} - ${amount}`,
+          type: 'error',
+          title: `${queueTypeDisplay} Failed`,
+          description: `${userName} - Request failed`,
           duration: 5000,
         });
 
-        console.log('🔔 Global notification: New game activity', {
+        console.log('🔔 Global notification: Game activity failed', {
           id: updatedQueue.id,
           type: updatedQueue.type,
           status: updatedQueue.status,
