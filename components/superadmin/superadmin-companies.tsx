@@ -200,11 +200,25 @@ export function SuperAdminCompanies() {
     }
 
     return (
-        <div>
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground">Company Management</h1>
+        <div className="md:pb-0 pb-6">
+            {/* Sticky Mobile Header */}
+            <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-4 md:px-0 py-3 md:py-0">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Company Management</h1>
+                    <Button 
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="md:hidden h-10 px-3 text-sm active:scale-[0.98]"
+                    >
+                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add
+                    </Button>
                 </div>
+            </div>
+
+            {/* Desktop Add Button */}
+            <div className="hidden md:flex items-center justify-end mb-6">
                 <Button onClick={() => setIsCreateModalOpen(true)}>
                     <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -213,17 +227,20 @@ export function SuperAdminCompanies() {
                 </Button>
             </div>
 
-
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-semibold">All Companies</h2>
-                        <div className="w-64">
-                            <SearchInput
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search companies..."
-                            />
+            <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
+                <CardHeader className="pb-3 md:pb-6 px-4 md:px-6 pt-4 md:pt-6 border-b md:border-b-0">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
+                        <h2 className="text-base md:text-lg font-semibold">All Companies</h2>
+                        {/* Sticky Search on Mobile */}
+                        <div className="sticky top-14 md:static z-10 bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none -mx-4 md:mx-0 px-4 md:px-0 py-2 md:py-0 -mb-2 md:mb-0">
+                            <div className="w-full md:w-64">
+                                <SearchInput
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search companies..."
+                                    className="w-full"
+                                />
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -301,32 +318,38 @@ export function SuperAdminCompanies() {
                             </div>
 
                             {/* Mobile Cards */}
-                            <div className="md:hidden space-y-4 p-4">
+                            <div className="md:hidden space-y-3 px-4 pb-4">
                                 {data?.results.map((company) => (
-                                    <Card key={company.id} className="border">
+                                    <Card 
+                                        key={company.id} 
+                                        className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
+                                    >
                                         <CardContent className="p-4 space-y-3">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="font-semibold text-lg truncate">{company.project_name}</h3>
-                                                    <p className="text-sm text-muted-foreground truncate">{company.username}</p>
+                                                    <h3 className="font-semibold text-base leading-tight mb-1">{company.project_name}</h3>
+                                                    <p className="text-xs text-muted-foreground mb-2">{company.username}</p>
+                                                    <Badge 
+                                                        variant={company.is_active ? 'success' : 'danger'} 
+                                                        className="text-xs px-2 py-0.5"
+                                                    >
+                                                        {company.is_active ? 'Active' : 'Inactive'}
+                                                    </Badge>
                                                 </div>
-                                                <Badge variant={company.is_active ? 'success' : 'danger'} className="ml-2 flex-shrink-0">
-                                                    {company.is_active ? 'Active' : 'Inactive'}
-                                                </Badge>
                                             </div>
                                             
-                                            <div className="space-y-2 text-sm">
-                                                <div>
+                                            <div className="space-y-2 text-sm pt-2 border-t">
+                                                <div className="flex items-start justify-between">
                                                     <span className="font-medium text-muted-foreground">Email:</span>
-                                                    <p className="mt-0.5 break-words">{company.email}</p>
+                                                    <p className="text-right break-words flex-1 ml-2">{company.email}</p>
                                                 </div>
-                                                <div>
+                                                <div className="flex items-start justify-between">
                                                     <span className="font-medium text-muted-foreground">Domain:</span>
-                                                    <p className="mt-0.5 break-all">{company.project_domain}</p>
+                                                    <p className="text-right break-all flex-1 ml-2">{company.project_domain}</p>
                                                 </div>
-                                                <div>
+                                                <div className="flex items-center justify-between">
                                                     <span className="font-medium text-muted-foreground">Created:</span>
-                                                    <p className="mt-0.5">{formatDate(company.created)}</p>
+                                                    <span className="text-xs text-muted-foreground">{formatDate(company.created)}</span>
                                                 </div>
                                             </div>
 
@@ -336,6 +359,7 @@ export function SuperAdminCompanies() {
                                                     variant="ghost"
                                                     onClick={() => openEditModal(company)}
                                                     title="Edit company"
+                                                    className="flex-1 h-11 text-sm font-medium active:scale-[0.98]"
                                                 >
                                                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -344,9 +368,14 @@ export function SuperAdminCompanies() {
                                                 </Button>
                                                 <Button
                                                     size="sm"
-                                                    variant={company.is_active ? 'danger' : 'secondary'}
+                                                    variant={company.is_active ? 'ghost' : 'secondary'}
                                                     onClick={() => handleToggleStatusClick(company)}
                                                     title={company.is_active ? 'Deactivate' : 'Activate'}
+                                                    className={`flex-1 h-11 text-sm font-medium active:scale-[0.98] ${
+                                                        company.is_active 
+                                                            ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50' 
+                                                            : ''
+                                                    }`}
                                                 >
                                                     {company.is_active ? (
                                                         <>
