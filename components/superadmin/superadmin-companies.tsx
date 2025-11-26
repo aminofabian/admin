@@ -228,7 +228,7 @@ export function SuperAdminCompanies() {
             </div>
 
             <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                <CardHeader className="pb-3 md:pb-6 px-4 md:px-6 pt-4 md:pt-6 border-b md:border-b-0">
+                <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6 border-b md:border-b-0">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
                         <h2 className="text-base md:text-lg font-semibold">All Companies</h2>
                         {/* Sticky Search on Mobile */}
@@ -318,13 +318,13 @@ export function SuperAdminCompanies() {
                             </div>
 
                             {/* Mobile Cards */}
-                            <div className="md:hidden space-y-3 px-4 pb-4">
+                            <div className="md:hidden space-y-2 px-2 pb-3">
                                 {data?.results.map((company) => (
                                     <Card 
                                         key={company.id} 
                                         className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
                                     >
-                                        <CardContent className="p-4 space-y-3">
+                                        <CardContent className="p-3 space-y-2">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className="font-semibold text-base leading-tight mb-1">{company.project_name}</h3>

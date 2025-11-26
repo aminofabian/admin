@@ -92,7 +92,7 @@ export function SuperAdminHistoryTransactions() {
 
             {/* Transactions Table */}
             <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                <CardHeader className="pb-3 md:pb-6 px-4 md:px-6 pt-4 md:pt-6 border-b md:border-b-0">
+                <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6 border-b md:border-b-0">
                     <h2 className="text-base md:text-lg font-semibold">Recent Transactions</h2>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -135,13 +135,13 @@ export function SuperAdminHistoryTransactions() {
                     </div>
 
                     {/* Mobile Cards */}
-                    <div className="md:hidden space-y-3 px-4 pb-4">
+                    <div className="md:hidden space-y-2 px-2 pb-3">
                         {MOCK_TRANSACTIONS.map((transaction) => (
                             <Card 
                                 key={transaction.id} 
                                 className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
                             >
-                                <CardContent className="p-4 space-y-3">
+                                <CardContent className="p-3 space-y-2">
                                     <div className="flex items-start justify-between">
                                         <div className="flex-1 min-w-0">
                                             <h3 className="font-semibold text-base leading-tight mb-1">{transaction.username}</h3>

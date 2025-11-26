@@ -271,10 +271,10 @@ export function SuperAdminPaymentSettings() {
 
             {/* Company Selector */}
             <Card className="mb-4 md:mb-6 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                <CardHeader className="pb-3 md:pb-6 px-4 md:px-6 pt-4 md:pt-6">
+                <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6">
                     <h2 className="text-base md:text-lg font-semibold">Select Company</h2>
                 </CardHeader>
-                <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+                <CardContent className="px-2 md:px-6 pb-3 md:pb-6">
                     {companies.length === 0 ? (
                         <EmptyState
                             title="No companies found"
@@ -386,7 +386,7 @@ export function SuperAdminPaymentSettings() {
             {/* Payment Methods Table */}
             {selectedCompanyId ? (
                 <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                    <CardHeader className="pb-3 md:pb-6 px-4 md:px-6 pt-4 md:pt-6 border-b md:border-b-0">
+                    <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6 border-b md:border-b-0">
                         <div className="flex flex-col gap-3 md:gap-4">
                             <div>
                                 <h2 className="text-base md:text-lg font-semibold">
@@ -529,13 +529,13 @@ export function SuperAdminPaymentSettings() {
                                 </div>
 
                                 {/* Mobile Cards */}
-                                <div className="md:hidden space-y-3 px-4 pb-4">
+                                <div className="md:hidden space-y-2 px-2 pb-3">
                                     {filteredPaymentMethods.map((method) => (
                                         <Card 
                                             key={method.id} 
                                             className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
                                         >
-                                            <CardContent className="p-4 space-y-3">
+                                            <CardContent className="p-3 space-y-2">
                                                 <div className="flex items-start gap-3">
                                                     <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center shadow-sm">
                                                         <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -601,7 +601,7 @@ export function SuperAdminPaymentSettings() {
                 </Card>
             ) : (
                 <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-6 md:p-8">
+                    <CardContent className="p-3 md:p-8">
                         <EmptyState
                             title="No Company Selected"
                             description="Please select a company from above to view and manage its payment methods"

@@ -362,10 +362,10 @@ export function SuperAdminDashboard() {
                 {/* System Status - Below Stats */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                 <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                    <CardHeader className="pb-3 md:pb-6 px-4 md:px-6 pt-4 md:pt-6">
+                    <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6">
                         <h2 className="text-base md:text-lg font-semibold">System Health</h2>
                     </CardHeader>
-                    <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+                    <CardContent className="px-2 md:px-6 pb-3 md:pb-6">
                         <div className="space-y-3 md:space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -393,10 +393,10 @@ export function SuperAdminDashboard() {
                 </Card>
 
                 <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                    <CardHeader className="pb-3 md:pb-6 px-4 md:px-6 pt-4 md:pt-6">
+                    <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6">
                         <h2 className="text-base md:text-lg font-semibold">Recent Activity</h2>
                     </CardHeader>
-                    <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+                    <CardContent className="px-2 md:px-6 pb-3 md:pb-6">
                         <div className="space-y-3">
                             <p className="text-sm text-muted-foreground">No recent system alerts</p>
                         </div>
