@@ -600,19 +600,55 @@ export function SuperAdminPaymentSettings() {
                                                         <div className="flex items-center justify-end gap-2">
                                                             <Button
                                                                 size="sm"
-                                                                variant={method.is_enabled_for_purchase ? 'danger' : 'secondary'}
+                                                                variant={method.is_enabled_for_purchase ? 'ghost' : 'secondary'}
                                                                 onClick={() => handleTogglePurchase(method.id)}
                                                                 disabled={confirmModal.isLoading}
+                                                                className={`${method.is_enabled_for_purchase
+                                                                        ? 'border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-800 dark:hover:text-red-200'
+                                                                        : 'border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/30 hover:text-green-800 dark:hover:text-green-200'
+                                                                    }`}
                                                             >
-                                                                {method.is_enabled_for_purchase ? 'Disable Purchase' : 'Enable Purchase'}
+                                                                {method.is_enabled_for_purchase ? (
+                                                                    <>
+                                                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                                        </svg>
+                                                                        Disable
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                        </svg>
+                                                                        Enable
+                                                                    </>
+                                                                )} Purchase
                                                             </Button>
                                                             <Button
                                                                 size="sm"
-                                                                variant={method.is_enabled_for_cashout ? 'danger' : 'secondary'}
+                                                                variant={method.is_enabled_for_cashout ? 'ghost' : 'secondary'}
                                                                 onClick={() => handleToggleCashout(method.id)}
                                                                 disabled={confirmModal.isLoading}
+                                                                className={`${method.is_enabled_for_cashout
+                                                                        ? 'border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-800 dark:hover:text-red-200'
+                                                                        : 'border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/30 hover:text-green-800 dark:hover:text-green-200'
+                                                                    }`}
                                                             >
-                                                                {method.is_enabled_for_cashout ? 'Disable Cashout' : 'Enable Cashout'}
+                                                                {method.is_enabled_for_cashout ? (
+                                                                    <>
+                                                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                                        </svg>
+                                                                        Disable
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                        </svg>
+                                                                        Enable
+                                                                    </>
+                                                                )} Cashout
                                                             </Button>
                                                         </div>
                                                     </TableCell>
