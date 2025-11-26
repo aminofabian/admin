@@ -1,23 +1,220 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton } from '@/components/ui';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination } from '@/components/ui';
 import { useTransactionQueuesStore } from '@/stores';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { EmptyState } from '@/components/features';
+import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
+import { gamesApi } from '@/lib/api';
+import type { Game } from '@/types';
+
+const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
+  username: '',
+  email: '',
+  transaction_id: '',
+  operator: '',
+  type: '',
+  game: '',
+  game_username: '',
+  status: '',
+  date_from: '',
+  date_to: '',
+};
+
+function buildGameActivityFilterState(advanced: Record<string, string>): HistoryGameActivitiesFiltersState {
+  return {
+    username: advanced.username ?? '',
+    email: advanced.email ?? '',
+    transaction_id: advanced.transaction_id ?? '',
+    operator: advanced.operator ?? '',
+    type: advanced.type ?? '',
+    game: advanced.game ?? '',
+    game_username: advanced.game_username ?? '',
+    status: advanced.status ?? '',
+    date_from: advanced.date_from ?? '',
+    date_to: advanced.date_to ?? '',
+  };
+}
 
 export function SuperAdminHistoryGameActivities() {
     const queues = useTransactionQueuesStore((state) => state.queues);
     const isLoading = useTransactionQueuesStore((state) => state.isLoading);
     const error = useTransactionQueuesStore((state) => state.error);
+    const queueFilter = useTransactionQueuesStore((state) => state.filter);
+    const advancedFilters = useTransactionQueuesStore((state) => state.advancedFilters);
     const setFilter = useTransactionQueuesStore((state) => state.setFilter);
     const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
-    const count = useTransactionQueuesStore((state) => state.count);
+    const setAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.setAdvancedFiltersWithoutFetch);
+    const totalCount = useTransactionQueuesStore((state) => state.count);
+    const next = useTransactionQueuesStore((state) => state.next);
+    const previous = useTransactionQueuesStore((state) => state.previous);
+    const currentPage = useTransactionQueuesStore((state) => state.currentPage);
+    const pageSize = useTransactionQueuesStore((state) => state.pageSize);
+    const setPage = useTransactionQueuesStore((state) => state.setPage);
 
-    // Set filter to 'history' on mount (this also triggers fetchQueues)
+    const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(() => buildGameActivityFilterState(advancedFilters));
+    const [areFiltersOpen, setAreFiltersOpen] = useState(false);
+    const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
+    const [isGameLoading, setIsGameLoading] = useState(false);
+
+    // Initialize filter once
     useEffect(() => {
         setFilter('history');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Fetch queues when dependencies change
+    useEffect(() => {
+        fetchQueues();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [queueFilter, advancedFilters]);
+
+    // Sync filters with advanced filters
+    useEffect(() => {
+        const filterState = buildGameActivityFilterState(advancedFilters);
+        
+        // Ensure date values are properly formatted for HTML date inputs (YYYY-MM-DD)
+        if (filterState.date_from) {
+            const dateFromValue = filterState.date_from.trim();
+            if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
+                const parsedDate = new Date(dateFromValue);
+                if (!isNaN(parsedDate.getTime())) {
+                    filterState.date_from = parsedDate.toISOString().split('T')[0];
+                }
+            }
+        }
+        
+        if (filterState.date_to) {
+            const dateToValue = filterState.date_to.trim();
+            if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
+                const parsedDate = new Date(dateToValue);
+                if (!isNaN(parsedDate.getTime())) {
+                    filterState.date_to = parsedDate.toISOString().split('T')[0];
+                }
+            }
+        }
+        
+        setFilters(filterState);
+
+        if (Object.keys(advancedFilters).length > 0) {
+            setAreFiltersOpen(true);
+        }
+    }, [advancedFilters]);
+
+    // Fetch games for dropdown
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadGames = async () => {
+            setIsGameLoading(true);
+
+            try {
+                const data = await gamesApi.list();
+
+                if (!isMounted) {
+                    return;
+                }
+
+                // Handle paginated response with results array
+                const games = Array.isArray(data) 
+                    ? data 
+                    : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
+                        ? data.results
+                        : [];
+
+                const uniqueGames = new Map<string, string>();
+
+                games.forEach((game: Game) => {
+                    if (game?.title) {
+                        uniqueGames.set(game.title, game.title);
+                    }
+                });
+
+                const mappedOptions = Array.from(uniqueGames.entries())
+                    .map(([value, label]) => ({ value, label }))
+                    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+                setGameOptions(mappedOptions);
+            } catch (error) {
+                console.error('Failed to load games for game activity filters:', error);
+            } finally {
+                if (isMounted) {
+                    setIsGameLoading(false);
+                }
+            }
+        };
+
+        loadGames();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
+        setFilters((previous) => ({ ...previous, [key]: value }));
+    }, []);
+
+    const handleApplyFilters = useCallback(() => {
+        // Sanitize filters - keep only non-empty values
+        const sanitized = Object.fromEntries(
+            Object.entries(filters).filter(([key, value]) => {
+                if (typeof value === 'string') {
+                    return value.trim() !== '';
+                }
+                return Boolean(value);
+            })
+        ) as Record<string, string>;
+
+        // Ensure date values are properly formatted (YYYY-MM-DD) before applying
+        if (sanitized.date_from) {
+            const dateFromValue = sanitized.date_from.trim();
+            if (dateFromValue) {
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
+                    const parsedDate = new Date(dateFromValue);
+                    if (!isNaN(parsedDate.getTime())) {
+                        sanitized.date_from = parsedDate.toISOString().split('T')[0];
+                    }
+                }
+            }
+        }
+
+        if (sanitized.date_to) {
+            const dateToValue = sanitized.date_to.trim();
+            if (dateToValue) {
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
+                    const parsedDate = new Date(dateToValue);
+                    if (!isNaN(parsedDate.getTime())) {
+                        sanitized.date_to = parsedDate.toISOString().split('T')[0];
+                    }
+                }
+            }
+        }
+
+        // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
+        // The useEffect will handle fetching with the new filters
+        setAdvancedFiltersWithoutFetch(sanitized);
+    }, [filters, setAdvancedFiltersWithoutFetch]);
+
+    const handleClearFilters = useCallback(() => {
+        setFilters({ ...DEFAULT_GAME_ACTIVITY_FILTERS });
+        // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
+        // The useEffect will handle fetching with cleared filters
+        setAdvancedFiltersWithoutFetch({});
+    }, [setAdvancedFiltersWithoutFetch]);
+
+    const handleToggleFilters = useCallback(() => {
+        setAreFiltersOpen((previous) => !previous);
+    }, []);
+
+    const handleQueueFilterChange = useCallback((value: QueueFilterOption) => {
+        setFilter(value);
     }, [setFilter]);
+
+    const handlePageChange = useCallback((page: number) => {
+        void setPage(page);
+    }, [setPage]);
 
     // Calculate stats from actual data
     const stats = useMemo(() => {
@@ -181,6 +378,21 @@ export function SuperAdminHistoryGameActivities() {
                 </Card>
             </div>
 
+            {/* Filters */}
+            <HistoryGameActivitiesFilters
+                queueFilter={queueFilter as QueueFilterOption}
+                onQueueFilterChange={handleQueueFilterChange}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onApply={handleApplyFilters}
+                onClear={handleClearFilters}
+                isOpen={areFiltersOpen}
+                onToggle={handleToggleFilters}
+                gameOptions={gameOptions}
+                isGameLoading={isGameLoading}
+                isLoading={isLoading}
+            />
+
             {/* Game Activities Table */}
             <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
                 <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6 border-b md:border-b-0">
@@ -305,6 +517,26 @@ export function SuperAdminHistoryGameActivities() {
                                     );
                                 })}
                             </div>
+
+                            {/* Pagination */}
+                            {(() => {
+                                const totalPages = pageSize > 0
+                                    ? Math.max(1, Math.ceil(totalCount / pageSize))
+                                    : 1;
+                                const shouldShowPagination = totalCount > pageSize || next || previous;
+
+                                return shouldShowPagination ? (
+                                    <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                                        <Pagination
+                                            currentPage={currentPage}
+                                            totalPages={totalPages}
+                                            hasNext={Boolean(next)}
+                                            hasPrevious={Boolean(previous)}
+                                            onPageChange={handlePageChange}
+                                        />
+                                    </div>
+                                ) : null;
+                            })()}
                         </>
                     )}
                 </CardContent>
