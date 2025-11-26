@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { 
-    Card, 
-    CardHeader, 
-    CardContent, 
-    Table, 
-    TableHeader, 
-    TableBody, 
-    TableRow, 
-    TableHead, 
-    TableCell, 
+import {
+    Card,
+    CardHeader,
+    CardContent,
+    Table,
+    TableHeader,
+    TableBody,
+    TableRow,
+    TableHead,
+    TableCell,
     Badge,
     SearchInput,
     Button,
@@ -29,6 +29,8 @@ interface OffmarketGame extends Game {
 
 export function SuperAdminGames() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [companySearchTerm, setCompanySearchTerm] = useState('');
+    const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
     const [games, setGames] = useState<OffmarketGame[]>([]);
@@ -59,6 +61,22 @@ export function SuperAdminGames() {
             setGames([]);
         }
     }, [selectedCompanyId]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (isCompanyDropdownOpen && !target.closest('[data-company-dropdown]')) {
+                setIsCompanyDropdownOpen(false);
+                setCompanySearchTerm('');
+            }
+        };
+
+        if (isCompanyDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }
+    }, [isCompanyDropdownOpen]);
 
     const fetchCompanies = async () => {
         setIsLoadingCompanies(true);
@@ -186,9 +204,20 @@ export function SuperAdminGames() {
         setConfirmModal({ isOpen: false, action: 'toggle', isLoading: false });
     };
 
+    const filteredCompanies = useMemo(() => {
+        if (!companySearchTerm.trim()) return companies;
+
+        const search = companySearchTerm.toLowerCase();
+        return companies.filter(
+            (company) =>
+                company.project_name.toLowerCase().includes(search) ||
+                company.username.toLowerCase().includes(search)
+        );
+    }, [companies, companySearchTerm]);
+
     const filteredGames = useMemo(() => {
         if (!searchTerm.trim()) return games;
-        
+
         const search = searchTerm.toLowerCase();
         return games.filter(
             (game) =>
@@ -200,7 +229,7 @@ export function SuperAdminGames() {
     const stats = useMemo(() => {
         const activeGames = games.filter(g => g.enabled_by_superadmin).length;
         const totalGames = games.length;
-        
+
         return {
             total: totalGames,
             active: activeGames,
@@ -225,48 +254,154 @@ export function SuperAdminGames() {
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">Games Management</h1>
             </div>
 
-            {/* Company Selector */}
-            <Card className="mb-4 md:mb-6 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6">
-                    <h2 className="text-base md:text-lg font-semibold">Select Company</h2>
+            {/* Company Selector - Searchable Dropdown */}
+            <Card className="mb-4 md:mb-6 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-visible">
+                <CardHeader className="pb-3 md:pb-4 px-4 md:px-6 pt-4 md:pt-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-base md:text-lg font-semibold">Select Company</h2>
+                            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                                {companies.length} {companies.length === 1 ? 'company' : 'companies'} available
+                            </p>
+                        </div>
+                        {selectedCompany && (
+                            <Badge variant="info" className="hidden md:inline-flex">
+                                {games.length} games
+                            </Badge>
+                        )}
+                    </div>
                 </CardHeader>
-                <CardContent className="px-2 md:px-6 pb-3 md:pb-6">
+                <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
                     {companies.length === 0 ? (
                         <EmptyState
                             title="No companies found"
                             description="No companies available to manage games"
                         />
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3">
-                            {companies.map((company) => (
-                                <button
-                                    key={company.id}
-                                    onClick={() => setSelectedCompanyId(company.id)}
-                                    className={`relative p-3 md:p-4 rounded-xl md:rounded-lg border-2 transition-all text-left w-full group active:scale-[0.97] md:active:scale-[0.98] ${
-                                        selectedCompanyId === company.id
-                                            ? 'border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/30 md:shadow-md md:shadow-primary/20'
-                                            : 'border-border bg-card hover:border-primary/50 hover:bg-accent hover:shadow-lg md:hover:shadow-md'
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex-1 min-w-0">
-                                            <div className={`font-semibold text-sm md:text-base truncate ${selectedCompanyId === company.id ? 'text-primary-foreground' : 'text-foreground'}`}>
-                                                {company.project_name}
-                                            </div>
-                                            <div className={`text-xs md:text-sm mt-0.5 md:mt-1 truncate ${selectedCompanyId === company.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                                                {company.username}
-                                            </div>
+                        <div className="relative" data-company-dropdown>
+                            {/* Selected Company Display / Dropdown Trigger */}
+                            <button
+                                onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+                                className="w-full p-4 md:p-5 rounded-xl border-2 border-border bg-card hover:border-primary/50 hover:bg-accent transition-all text-left group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-[0.99]"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                                        {/* Company Icon */}
+                                        <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 rounded-xl flex items-center justify-center shadow-sm border border-primary/10">
+                                            <svg className="w-6 h-6 md:w-7 md:h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
                                         </div>
-                                        {selectedCompanyId === company.id && (
-                                            <div className="ml-2 md:ml-3 flex-shrink-0">
-                                                <svg className="w-4 h-4 md:w-5 md:h-5 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+
+                                        {/* Company Info */}
+                                        <div className="flex-1 min-w-0">
+                                            {selectedCompany ? (
+                                                <>
+                                                    <div className="font-semibold text-base md:text-lg text-foreground truncate">
+                                                        {selectedCompany.project_name}
+                                                    </div>
+                                                    <div className="text-sm md:text-base text-muted-foreground mt-0.5 truncate">
+                                                        @{selectedCompany.username}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-base md:text-lg text-muted-foreground">
+                                                    Choose a company to manage...
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Dropdown Arrow */}
+                                    <div className="flex-shrink-0 ml-3">
+                                        <svg
+                                            className={`w-5 h-5 md:w-6 md:h-6 text-muted-foreground transition-transform duration-200 ${isCompanyDropdownOpen ? 'rotate-180' : ''
+                                                }`}
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {isCompanyDropdownOpen && (
+                                <div className="absolute z-50 w-full mt-2 bg-card border-2 border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                    {/* Search Input */}
+                                    <div className="p-3 border-b border-border bg-muted/30">
+                                        <div className="relative">
+                                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                            <input
+                                                type="text"
+                                                value={companySearchTerm}
+                                                onChange={(e) => setCompanySearchTerm(e.target.value)}
+                                                placeholder="Search companies..."
+                                                className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Company List */}
+                                    <div className="max-h-[300px] md:max-h-[400px] overflow-y-auto">
+                                        {filteredCompanies.length === 0 ? (
+                                            <div className="p-6 text-center text-muted-foreground">
+                                                <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
+                                                <p className="text-sm">No companies match your search</p>
                                             </div>
+                                        ) : (
+                                            filteredCompanies.map((company, index) => (
+                                                <button
+                                                    key={company.id}
+                                                    onClick={() => {
+                                                        setSelectedCompanyId(company.id);
+                                                        setIsCompanyDropdownOpen(false);
+                                                        setCompanySearchTerm('');
+                                                    }}
+                                                    className={`w-full p-3 md:p-4 text-left transition-all hover:bg-accent border-b border-border/50 last:border-b-0 group ${selectedCompanyId === company.id ? 'bg-primary/5' : ''
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        {/* Company Avatar */}
+                                                        <div className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center font-bold text-sm md:text-base transition-all ${selectedCompanyId === company.id
+                                                            ? 'bg-primary text-primary-foreground shadow-md'
+                                                            : 'bg-gradient-to-br from-muted to-muted/50 text-muted-foreground group-hover:from-primary/20 group-hover:to-primary/10 group-hover:text-primary'
+                                                            }`}>
+                                                            {company.project_name.charAt(0).toUpperCase()}
+                                                        </div>
+
+                                                        {/* Company Details */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="font-semibold text-sm md:text-base text-foreground truncate">
+                                                                {company.project_name}
+                                                            </div>
+                                                            <div className="text-xs md:text-sm text-muted-foreground truncate">
+                                                                @{company.username}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Selected Indicator */}
+                                                        {selectedCompanyId === company.id && (
+                                                            <div className="flex-shrink-0">
+                                                                <svg className="w-5 h-5 md:w-6 md:h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                </svg>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            ))
                                         )}
                                     </div>
-                                </button>
-                            ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>
@@ -454,8 +589,8 @@ export function SuperAdminGames() {
                                 {/* Mobile Cards */}
                                 <div className="md:hidden space-y-2 px-2 pb-3">
                                     {filteredGames.map((game) => (
-                                        <Card 
-                                            key={game.id} 
+                                        <Card
+                                            key={game.id}
                                             className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
                                         >
                                             <CardContent className="p-3 space-y-2">
@@ -470,7 +605,7 @@ export function SuperAdminGames() {
                                                         <h3 className="font-semibold text-base leading-tight mb-2">{game.title}</h3>
                                                         <div className="flex flex-wrap items-center gap-2">
                                                             <Badge variant="info" className="text-xs px-2 py-0.5">{game.code}</Badge>
-                                                            <Badge 
+                                                            <Badge
                                                                 variant={game.enabled_by_superadmin ? 'success' : 'default'}
                                                                 className="text-xs px-2 py-0.5"
                                                             >
@@ -486,11 +621,10 @@ export function SuperAdminGames() {
                                                         variant={game.enabled_by_superadmin ? 'ghost' : 'secondary'}
                                                         onClick={() => handleToggleGame(game.id)}
                                                         disabled={confirmModal.isLoading}
-                                                        className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${
-                                                            game.enabled_by_superadmin 
-                                                                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50' 
-                                                                : ''
-                                                        }`}
+                                                        className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${game.enabled_by_superadmin
+                                                            ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                                            : ''
+                                                            }`}
                                                     >
                                                         {game.enabled_by_superadmin ? (
                                                             <>
@@ -537,22 +671,22 @@ export function SuperAdminGames() {
                     confirmModal.action === 'toggle'
                         ? 'Toggle Game Status'
                         : confirmModal.action === 'enableAll'
-                        ? 'Enable All Games'
-                        : 'Disable All Games'
+                            ? 'Enable All Games'
+                            : 'Disable All Games'
                 }
                 description={
                     confirmModal.action === 'toggle'
                         ? 'Are you sure you want to toggle this game\'s status?'
                         : confirmModal.action === 'enableAll'
-                        ? `Are you sure you want to enable all games for ${selectedCompany?.project_name || 'this company'}?`
-                        : `Are you sure you want to disable all games for ${selectedCompany?.project_name || 'this company'}?`
+                            ? `Are you sure you want to enable all games for ${selectedCompany?.project_name || 'this company'}?`
+                            : `Are you sure you want to disable all games for ${selectedCompany?.project_name || 'this company'}?`
                 }
                 confirmText={
                     confirmModal.action === 'toggle'
                         ? 'Yes, Toggle'
                         : confirmModal.action === 'enableAll'
-                        ? 'Yes, Enable All'
-                        : 'Yes, Disable All'
+                            ? 'Yes, Enable All'
+                            : 'Yes, Disable All'
                 }
                 cancelText="Cancel"
                 variant={confirmModal.action === 'disableAll' ? 'warning' : 'info'}
