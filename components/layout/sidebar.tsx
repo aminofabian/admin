@@ -587,21 +587,23 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
 
       {/* Footer */}
       <div className="border-t border-border/50 p-6 space-y-3">
-        {/* Chat Link */}
-        <Link
-          href="/dashboard/chat"
-          onClick={onClose}
-          className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors ${pathname === '/dashboard/chat'
-              ? 'bg-primary/10 text-primary font-semibold shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-            }`}
-        >
-          <div className={`shrink-0 transition-all duration-200 ${pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
-            }`}>
-            <ChatIcon />
-          </div>
-          <span>Chat</span>
-        </Link>
+        {/* Chat Link - Hidden for superadmin */}
+        {user?.role !== 'superadmin' && (
+          <Link
+            href="/dashboard/chat"
+            onClick={onClose}
+            className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors ${pathname === '/dashboard/chat'
+                ? 'bg-primary/10 text-primary font-semibold shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+              }`}
+          >
+            <div className={`shrink-0 transition-all duration-200 ${pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
+              }`}>
+              <ChatIcon />
+            </div>
+            <span>Chat</span>
+          </Link>
+        )}
 
         {/* Status */}
         <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
