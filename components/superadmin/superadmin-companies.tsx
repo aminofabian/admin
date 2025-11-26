@@ -201,18 +201,9 @@ export function SuperAdminCompanies() {
 
     return (
         <div>
-            {/* Superadmin Badge */}
-            <div className="mb-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 px-4 py-3 flex items-center gap-2 rounded-lg">
-                <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                <span className="font-medium text-primary">Superadmin View - System-Wide Company Management</span>
-            </div>
-
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground">Company Management</h1>
-                    <p className="text-muted-foreground mt-1">Manage all companies across the platform</p>
                 </div>
                 <Button onClick={() => setIsCreateModalOpen(true)}>
                     <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -244,67 +235,141 @@ export function SuperAdminCompanies() {
                         />
                     ) : (
                         <>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Username</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Project Name</TableHead>
-                                        <TableHead>Domain</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Created</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {data?.results.map((company) => (
-                                        <TableRow key={company.id}>
-                                            <TableCell className="font-medium">{company.username}</TableCell>
-                                            <TableCell>{company.email}</TableCell>
-                                            <TableCell>{company.project_name}</TableCell>
-                                            <TableCell className="text-xs max-w-xs truncate" title={company.project_domain}>
-                                                {company.project_domain}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={company.is_active ? 'success' : 'danger'}>
+                            {/* Desktop Table */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Username</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Project Name</TableHead>
+                                            <TableHead>Domain</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Created</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {data?.results.map((company) => (
+                                            <TableRow key={company.id}>
+                                                <TableCell className="font-medium">{company.username}</TableCell>
+                                                <TableCell>{company.email}</TableCell>
+                                                <TableCell>{company.project_name}</TableCell>
+                                                <TableCell className="text-xs max-w-xs truncate" title={company.project_domain}>
+                                                    {company.project_domain}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={company.is_active ? 'success' : 'danger'}>
+                                                        {company.is_active ? 'Active' : 'Inactive'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-xs">{formatDate(company.created)}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => openEditModal(company)}
+                                                            title="Edit company"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant={company.is_active ? 'danger' : 'secondary'}
+                                                            onClick={() => handleToggleStatusClick(company)}
+                                                            title={company.is_active ? 'Deactivate' : 'Activate'}
+                                                        >
+                                                            {company.is_active ? (
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Mobile Cards */}
+                            <div className="md:hidden space-y-4 p-4">
+                                {data?.results.map((company) => (
+                                    <Card key={company.id} className="border">
+                                        <CardContent className="p-4 space-y-3">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-semibold text-lg truncate">{company.project_name}</h3>
+                                                    <p className="text-sm text-muted-foreground truncate">{company.username}</p>
+                                                </div>
+                                                <Badge variant={company.is_active ? 'success' : 'danger'} className="ml-2 flex-shrink-0">
                                                     {company.is_active ? 'Active' : 'Inactive'}
                                                 </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-xs">{formatDate(company.created)}</TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => openEditModal(company)}
-                                                        title="Edit company"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                        </svg>
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant={company.is_active ? 'danger' : 'secondary'}
-                                                        onClick={() => handleToggleStatusClick(company)}
-                                                        title={company.is_active ? 'Deactivate' : 'Activate'}
-                                                    >
-                                                        {company.is_active ? (
-                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            </div>
+                                            
+                                            <div className="space-y-2 text-sm">
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Email:</span>
+                                                    <p className="mt-0.5 break-words">{company.email}</p>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Domain:</span>
+                                                    <p className="mt-0.5 break-all">{company.project_domain}</p>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-muted-foreground">Created:</span>
+                                                    <p className="mt-0.5">{formatDate(company.created)}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => openEditModal(company)}
+                                                    title="Edit company"
+                                                >
+                                                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant={company.is_active ? 'danger' : 'secondary'}
+                                                    onClick={() => handleToggleStatusClick(company)}
+                                                    title={company.is_active ? 'Deactivate' : 'Activate'}
+                                                >
+                                                    {company.is_active ? (
+                                                        <>
+                                                            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                                             </svg>
-                                                        ) : (
-                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            Deactivate
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                             </svg>
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                                            Activate
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+
                             {data && (
                                 <Pagination
                                     currentPage={currentPage}
