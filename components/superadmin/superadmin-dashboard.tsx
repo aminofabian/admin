@@ -99,13 +99,10 @@ export function SuperAdminDashboard() {
                 </div>
             )}
 
-            <div className="space-y-6">
-            {/* Page Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground">Superadmin Dashboard</h1>
-                    <p className="text-muted-foreground mt-1">System-wide overview and management</p>
-                </div>
+            <div className="space-y-4 md:space-y-6 md:pb-0 pb-6">
+            {/* Sticky Mobile Header */}
+            <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-4 md:px-0 py-3 md:py-0">
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground">Superadmin Dashboard</h1>
             </div>
 
             {/* Stats and Quick Actions Row */}
@@ -141,7 +138,7 @@ export function SuperAdminDashboard() {
                     {/* Companies */}
                     <button
                         onClick={() => handleQuickActionClick('companies')}
-                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg"
+                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg active:scale-[0.97]"
                         title="Companies"
                     >
                         {/* Icon Container */}
@@ -163,7 +160,7 @@ export function SuperAdminDashboard() {
                     {/* Games */}
                     <button
                         onClick={() => handleQuickActionClick('games')}
-                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg"
+                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg active:scale-[0.97]"
                         title="Games"
                     >
                         <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 2xl:w-8 2xl:h-8 flex items-center justify-center transition-all duration-200 opacity-70 group-hover:opacity-100">
@@ -184,7 +181,7 @@ export function SuperAdminDashboard() {
                     {/* Payment Methods */}
                     <button
                         onClick={() => handleQuickActionClick('payment-settings')}
-                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg"
+                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg active:scale-[0.97]"
                         title="Payment Methods"
                     >
                         <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 2xl:w-8 2xl:h-8 flex items-center justify-center transition-all duration-200 opacity-70 group-hover:opacity-100">
@@ -204,7 +201,7 @@ export function SuperAdminDashboard() {
                     {/* Transactions */}
                     <button
                         onClick={() => handleQuickActionClick('transactions')}
-                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg"
+                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg active:scale-[0.97]"
                         title="Transactions"
                     >
                         <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 2xl:w-8 2xl:h-8 flex items-center justify-center transition-all duration-200 opacity-70 group-hover:opacity-100">
@@ -224,7 +221,7 @@ export function SuperAdminDashboard() {
                     {/* Game Activities */}
                     <button
                         onClick={() => handleQuickActionClick('game-activities')}
-                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg"
+                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg active:scale-[0.97]"
                         title="Game Activities"
                     >
                         <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 2xl:w-8 2xl:h-8 flex items-center justify-center transition-all duration-200 opacity-70 group-hover:opacity-100">
@@ -244,7 +241,7 @@ export function SuperAdminDashboard() {
                     {/* System Settings */}
                     <button
                         onClick={() => handleQuickActionClick('system-settings')}
-                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg"
+                        className="group relative w-full flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 lg:p-4 2xl:p-2.5 min-h-[85px] sm:min-h-[95px] lg:min-h-[110px] 2xl:min-h-[95px] rounded-2xl border transition-all duration-200 bg-gradient-to-br from-card/95 via-card/90 to-card/85 hover:from-card hover:via-card/95 hover:to-card/90 border-border/30 hover:border-primary/30 shadow-md hover:shadow-lg active:scale-[0.97]"
                         title="System Settings"
                     >
                         <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 2xl:w-8 2xl:h-8 flex items-center justify-center transition-all duration-200 opacity-70 group-hover:opacity-100">
@@ -282,20 +279,20 @@ export function SuperAdminDashboard() {
                 </div>
 
                 {/* Key Metrics Grid - Right Side */}
-                <div className="lg:col-span-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-8 space-y-4 md:space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-6">
                     {/* Total Companies */}
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Total Companies</p>
-                                    <p className="text-3xl font-bold text-foreground mt-2">
+                    <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
+                        <CardContent className="p-3 md:p-6">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
+                                <div className="flex-1">
+                                    <p className="text-xs md:text-sm font-medium text-blue-700 dark:text-blue-300 mb-0.5 md:mb-1">Companies</p>
+                                    <p className="text-xl md:text-3xl font-bold text-blue-900 dark:text-blue-100">
                                         {statsLoading ? '...' : (stats?.totalCompanies ?? 0)}
                                     </p>
                                 </div>
-                                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="p-2 md:p-3 bg-blue-500/10 rounded-lg md:rounded-xl w-fit">
+                                    <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                     </svg>
                                 </div>
@@ -304,17 +301,17 @@ export function SuperAdminDashboard() {
                     </Card>
 
                     {/* Total Players */}
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Total Players</p>
-                                    <p className="text-3xl font-bold text-foreground mt-2">
+                    <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 border-green-200 dark:border-green-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
+                        <CardContent className="p-3 md:p-6">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
+                                <div className="flex-1">
+                                    <p className="text-xs md:text-sm font-medium text-green-700 dark:text-green-300 mb-0.5 md:mb-1">Players</p>
+                                    <p className="text-xl md:text-3xl font-bold text-green-900 dark:text-green-100">
                                         {statsLoading ? '...' : (stats?.totalPlayers ?? 0).toLocaleString()}
                                     </p>
                                 </div>
-                                <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="p-2 md:p-3 bg-green-500/10 rounded-lg md:rounded-xl w-fit">
+                                    <svg className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
                                 </div>
@@ -323,17 +320,17 @@ export function SuperAdminDashboard() {
                     </Card>
 
                     {/* Active Games */}
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Active Games</p>
-                                    <p className="text-3xl font-bold text-foreground mt-2">
+                    <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10 border-purple-200 dark:border-purple-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
+                        <CardContent className="p-3 md:p-6">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
+                                <div className="flex-1">
+                                    <p className="text-xs md:text-sm font-medium text-purple-700 dark:text-purple-300 mb-0.5 md:mb-1">Games</p>
+                                    <p className="text-xl md:text-3xl font-bold text-purple-900 dark:text-purple-100">
                                         {statsLoading ? '...' : (stats?.activeGames ?? 0)}
                                     </p>
                                 </div>
-                                <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="p-2 md:p-3 bg-purple-500/10 rounded-lg md:rounded-xl w-fit">
+                                    <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
@@ -343,17 +340,17 @@ export function SuperAdminDashboard() {
                     </Card>
 
                     {/* Platform Liquidity */}
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Platform Liquidity</p>
-                                    <p className="text-3xl font-bold text-foreground mt-2">
+                    <Card className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/10 border-amber-200 dark:border-amber-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
+                        <CardContent className="p-3 md:p-6">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
+                                <div className="flex-1">
+                                    <p className="text-xs md:text-sm font-medium text-amber-700 dark:text-amber-300 mb-0.5 md:mb-1">Liquidity</p>
+                                    <p className="text-xl md:text-3xl font-bold text-amber-900 dark:text-amber-100">
                                         {statsLoading ? '...' : `$${(stats?.platformLiquidity ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                                     </p>
                                 </div>
-                                <div className="w-12 h-12 bg-amber-500/10 rounded-lg flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="p-2 md:p-3 bg-amber-500/10 rounded-lg md:rounded-xl w-fit">
+                                    <svg className="w-5 h-5 md:w-6 md:h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
@@ -363,13 +360,13 @@ export function SuperAdminDashboard() {
                 </div>
 
                 {/* System Status - Below Stats */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <h2 className="text-lg font-semibold">System Health</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
+                    <CardHeader className="pb-3 md:pb-6 px-4 md:px-6 pt-4 md:pt-6">
+                        <h2 className="text-base md:text-lg font-semibold">System Health</h2>
                     </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
+                    <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
+                        <div className="space-y-3 md:space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -395,11 +392,11 @@ export function SuperAdminDashboard() {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <h2 className="text-lg font-semibold">Recent Activity</h2>
+                <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
+                    <CardHeader className="pb-3 md:pb-6 px-4 md:px-6 pt-4 md:pt-6">
+                        <h2 className="text-base md:text-lg font-semibold">Recent Activity</h2>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
                         <div className="space-y-3">
                             <p className="text-sm text-muted-foreground">No recent system alerts</p>
                         </div>
