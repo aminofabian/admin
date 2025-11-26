@@ -505,7 +505,7 @@ export function SuperAdminHistoryTransactions() {
             />
 
             {/* Transactions Table */}
-            <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
+            <Card className="mt-4 md:mt-6 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
                 <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6 border-b md:border-b-0">
                     <h2 className="text-base md:text-lg font-semibold">Recent Transactions</h2>
                 </CardHeader>
