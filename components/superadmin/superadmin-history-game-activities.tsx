@@ -213,7 +213,11 @@ export function SuperAdminHistoryGameActivities() {
     }, [setFilter]);
 
     const handlePageChange = useCallback((page: number) => {
-        void setPage(page);
+        // setPage is async but Pagination expects synchronous callback
+        // Handle promise to prevent race conditions and catch errors
+        setPage(page).catch((error) => {
+            console.error('Failed to change page:', error);
+        });
     }, [setPage]);
 
     // Calculate stats from actual data
@@ -453,7 +457,7 @@ export function SuperAdminHistoryGameActivities() {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="text-xs text-muted-foreground">
-                                                        {formatDate(activity.created_at)}
+                                                        {formatDate(activity.created_at || (activity as any).created || '')}
                                                     </TableCell>
                                                 </TableRow>
                                             );
@@ -509,7 +513,7 @@ export function SuperAdminHistoryGameActivities() {
                                                     </div>
                                                     <div className="flex items-center justify-between">
                                                         <span className="font-medium text-muted-foreground">Date:</span>
-                                                        <span className="text-xs text-muted-foreground">{formatDate(activity.created_at)}</span>
+                                                        <span className="text-xs text-muted-foreground">{formatDate(activity.created_at || (activity as any).created || '')}</span>
                                                     </div>
                                                 </div>
                                             </CardContent>
