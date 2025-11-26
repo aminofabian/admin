@@ -523,7 +523,8 @@ export function SuperAdminHistoryGameActivities() {
                                 const totalPages = pageSize > 0
                                     ? Math.max(1, Math.ceil(totalCount / pageSize))
                                     : 1;
-                                const shouldShowPagination = totalCount > pageSize || next || previous;
+                                // Only show pagination if there's more than one page
+                                const shouldShowPagination = totalPages > 1;
 
                                 return shouldShowPagination ? (
                                     <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
