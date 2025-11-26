@@ -266,20 +266,6 @@ export function SuperAdminPaymentSettings() {
         );
     }, [paymentMethods, searchTerm]);
 
-    const stats = useMemo(() => {
-        const enabledForCashout = paymentMethods.filter(m => m.is_enabled_for_cashout).length;
-        const enabledForPurchase = paymentMethods.filter(m => m.is_enabled_for_purchase).length;
-        const totalMethods = paymentMethods.length;
-        const types = new Set(paymentMethods.map(m => m.method_type).filter(Boolean)).size;
-
-        return {
-            total: totalMethods,
-            enabledCashout: enabledForCashout,
-            enabledPurchase: enabledForPurchase,
-            types,
-        };
-    }, [paymentMethods]);
-
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
     if (isLoadingCompanies && companies.length === 0) {
@@ -414,8 +400,8 @@ export function SuperAdminPaymentSettings() {
                                                     <div className="flex items-center gap-3">
                                                         {/* Company Avatar */}
                                                         <div className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center font-bold text-sm md:text-base transition-all ${selectedCompanyId === company.id
-                                                                ? 'bg-primary text-primary-foreground shadow-md'
-                                                                : 'bg-gradient-to-br from-muted to-muted/50 text-muted-foreground group-hover:from-primary/20 group-hover:to-primary/10 group-hover:text-primary'
+                                                            ? 'bg-primary text-primary-foreground shadow-md'
+                                                            : 'bg-gradient-to-br from-muted to-muted/50 text-muted-foreground group-hover:from-primary/20 group-hover:to-primary/10 group-hover:text-primary'
                                                             }`}>
                                                             {company.project_name.charAt(0).toUpperCase()}
                                                         </div>
@@ -449,73 +435,6 @@ export function SuperAdminPaymentSettings() {
                     )}
                 </CardContent>
             </Card>
-
-            {/* Payment Stats - Compact Mobile Design */}
-            <div className="grid grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-blue-700 dark:text-blue-300 mb-0.5 md:mb-1">Total</div>
-                                <div className="text-xl md:text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.total}</div>
-                            </div>
-                            <div className="p-2 md:p-3 bg-blue-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 border-green-200 dark:border-green-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-green-700 dark:text-green-300 mb-0.5 md:mb-1">Purchase</div>
-                                <div className="text-xl md:text-3xl font-bold text-green-900 dark:text-green-100">{stats.enabledPurchase}</div>
-                            </div>
-                            <div className="p-2 md:p-3 bg-green-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10 border-purple-200 dark:border-purple-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-purple-700 dark:text-purple-300 mb-0.5 md:mb-1">Cashout</div>
-                                <div className="text-xl md:text-3xl font-bold text-purple-900 dark:text-purple-100">{stats.enabledCashout}</div>
-                            </div>
-                            <div className="p-2 md:p-3 bg-purple-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/20 dark:to-orange-900/10 border-orange-200 dark:border-orange-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-orange-700 dark:text-orange-300 mb-0.5 md:mb-1">Types</div>
-                                <div className="text-xl md:text-3xl font-bold text-orange-900 dark:text-orange-100">{stats.types}</div>
-                            </div>
-                            <div className="p-2 md:p-3 bg-orange-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
 
             {/* Payment Methods Table */}
             {selectedCompanyId ? (
@@ -740,7 +659,8 @@ export function SuperAdminPaymentSettings() {
                         />
                     </CardContent>
                 </Card>
-            )}
+            )
+            }
 
             {/* Confirmation Modal */}
             <ConfirmModal
@@ -784,6 +704,6 @@ export function SuperAdminPaymentSettings() {
                 variant={confirmModal.action === 'disableAllPurchase' || confirmModal.action === 'disableAllCashout' ? 'warning' : 'info'}
                 isLoading={confirmModal.isLoading}
             />
-        </div>
+        </div >
     );
 }

@@ -226,17 +226,6 @@ export function SuperAdminGames() {
         );
     }, [games, searchTerm]);
 
-    const stats = useMemo(() => {
-        const activeGames = games.filter(g => g.enabled_by_superadmin).length;
-        const totalGames = games.length;
-
-        return {
-            total: totalGames,
-            active: activeGames,
-            inactive: totalGames - activeGames,
-        };
-    }, [games]);
-
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
     if (isLoadingCompanies && companies.length === 0) {
@@ -406,58 +395,6 @@ export function SuperAdminGames() {
                     )}
                 </CardContent>
             </Card>
-
-            {/* Games Stats - Compact Mobile Design */}
-            <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-blue-700 dark:text-blue-300 mb-0.5 md:mb-1">Total</div>
-                                <div className="text-xl md:text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.total}</div>
-                            </div>
-                            <div className="p-2 md:p-3 bg-blue-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 border-green-200 dark:border-green-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-green-700 dark:text-green-300 mb-0.5 md:mb-1">Active</div>
-                                <div className="text-xl md:text-3xl font-bold text-green-900 dark:text-green-100">{stats.active}</div>
-                            </div>
-                            <div className="p-2 md:p-3 bg-green-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/20 dark:to-red-900/10 border-red-200 dark:border-red-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-red-700 dark:text-red-300 mb-0.5 md:mb-1">Inactive</div>
-                                <div className="text-xl md:text-3xl font-bold text-red-900 dark:text-red-100">{stats.inactive}</div>
-                            </div>
-                            <div className="p-2 md:p-3 bg-red-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
 
             {/* Games Table */}
             {selectedCompanyId ? (
@@ -660,7 +597,8 @@ export function SuperAdminGames() {
                         />
                     </CardContent>
                 </Card>
-            )}
+            )
+            }
 
             {/* Confirmation Modal */}
             <ConfirmModal
@@ -692,6 +630,6 @@ export function SuperAdminGames() {
                 variant={confirmModal.action === 'disableAll' ? 'warning' : 'info'}
                 isLoading={confirmModal.isLoading}
             />
-        </div>
+        </div >
     );
 }
