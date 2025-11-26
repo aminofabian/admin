@@ -439,8 +439,9 @@ export function SuperAdminPaymentSettings() {
             {/* Payment Methods Table */}
             {selectedCompanyId ? (
                 <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                    <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6 border-b md:border-b-0">
-                        <div className="flex flex-col gap-3 md:gap-4">
+                    <CardHeader className="pb-4 md:pb-6 px-4 md:px-6 pt-4 md:pt-6 border-b">
+                        <div className="space-y-4">
+                            {/* Title Section */}
                             <div>
                                 <h2 className="text-base md:text-lg font-semibold">
                                     {selectedCompany ? `${selectedCompany.project_name} Payment Methods` : 'Payment Methods'}
@@ -451,54 +452,94 @@ export function SuperAdminPaymentSettings() {
                                     </p>
                                 )}
                             </div>
-                            {/* Sticky Search on Mobile */}
-                            <div className="sticky top-14 md:static z-10 bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none -mx-4 md:mx-0 px-2 md:px-0 py-2 md:py-0 -mb-2 md:mb-0">
-                                <div className="w-full md:w-64">
-                                    <SearchInput
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Search payment methods..."
-                                        className="w-full"
-                                    />
-                                </div>
+
+                            {/* Full-Width Search */}
+                            <div className="w-full">
+                                <SearchInput
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search payment methods by name, code, or type..."
+                                    className="w-full"
+                                />
                             </div>
-                            <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-2">
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={handleEnableAllPurchase}
-                                    disabled={isLoadingMethods || paymentMethods.length === 0}
-                                    className="w-full h-11 md:h-auto text-xs md:text-sm active:scale-[0.98]"
-                                >
-                                    Enable Purchase
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={handleEnableAllCashout}
-                                    disabled={isLoadingMethods || paymentMethods.length === 0}
-                                    className="w-full h-11 md:h-auto text-xs md:text-sm active:scale-[0.98]"
-                                >
-                                    Enable Cashout
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={handleDisableAllPurchase}
-                                    disabled={isLoadingMethods || paymentMethods.length === 0}
-                                    className="w-full h-11 md:h-auto text-xs md:text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 active:scale-[0.98]"
-                                >
-                                    Disable Purchase
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={handleDisableAllCashout}
-                                    disabled={isLoadingMethods || paymentMethods.length === 0}
-                                    className="w-full h-11 md:h-auto text-xs md:text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 active:scale-[0.98]"
-                                >
-                                    Disable Cashout
-                                </Button>
+
+                            {/* Action Buttons - Organized by Type */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {/* Enable Actions Card */}
+                                <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/30 dark:from-green-950/20 dark:to-emerald-950/10 border border-green-200 dark:border-green-800/50 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="p-1.5 bg-green-500/10 rounded-md">
+                                            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <span className="text-sm font-semibold text-green-900 dark:text-green-100">Enable All</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={handleEnableAllPurchase}
+                                            disabled={isLoadingMethods || paymentMethods.length === 0}
+                                            className="w-full bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 active:scale-[0.98] transition-all"
+                                        >
+                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            Purchase
+                                        </Button>
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={handleEnableAllCashout}
+                                            disabled={isLoadingMethods || paymentMethods.length === 0}
+                                            className="w-full bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 active:scale-[0.98] transition-all"
+                                        >
+                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            Cashout
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Disable Actions Card */}
+                                <div className="bg-gradient-to-br from-red-50/50 to-orange-50/30 dark:from-red-950/20 dark:to-orange-950/10 border border-red-200 dark:border-red-800/50 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="p-1.5 bg-red-500/10 rounded-md">
+                                            <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                            </svg>
+                                        </div>
+                                        <span className="text-sm font-semibold text-red-900 dark:text-red-100">Disable All</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleDisableAllPurchase}
+                                            disabled={isLoadingMethods || paymentMethods.length === 0}
+                                            className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 active:scale-[0.98] transition-all"
+                                        >
+                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            Purchase
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={handleDisableAllCashout}
+                                            disabled={isLoadingMethods || paymentMethods.length === 0}
+                                            className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 active:scale-[0.98] transition-all"
+                                        >
+                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            Cashout
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </CardHeader>
