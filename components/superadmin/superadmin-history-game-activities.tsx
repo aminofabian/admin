@@ -159,7 +159,7 @@ export function SuperAdminHistoryGameActivities() {
     const handleApplyFilters = useCallback(() => {
         // Sanitize filters - keep only non-empty values
         const sanitized = Object.fromEntries(
-            Object.entries(filters).filter(([key, value]) => {
+            Object.entries(filters).filter(([, value]) => {
                 if (typeof value === 'string') {
                     return value.trim() !== '';
                 }
@@ -428,7 +428,6 @@ export function SuperAdminHistoryGameActivities() {
                                     <TableBody>
                                         {activities.map((activity) => {
                                             const username = activity.user_username || `User ${activity.user_id}`;
-                                            const amount = parseFloat(activity.amount || '0');
                                             const isRecharge = activity.type === 'recharge_game';
                                             const isRedeem = activity.type === 'redeem_game';
                                             
@@ -457,7 +456,7 @@ export function SuperAdminHistoryGameActivities() {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="text-xs text-muted-foreground">
-                                                        {formatDate(activity.created_at || (activity as any).created || '')}
+                                                        {formatDate(activity.created_at || '')}
                                                     </TableCell>
                                                 </TableRow>
                                             );
@@ -513,7 +512,7 @@ export function SuperAdminHistoryGameActivities() {
                                                     </div>
                                                     <div className="flex items-center justify-between">
                                                         <span className="font-medium text-muted-foreground">Date:</span>
-                                                        <span className="text-xs text-muted-foreground">{formatDate(activity.created_at || (activity as any).created || '')}</span>
+                                                        <span className="text-xs text-muted-foreground">{formatDate(activity.created_at || '')}</span>
                                                     </div>
                                                 </div>
                                             </CardContent>
