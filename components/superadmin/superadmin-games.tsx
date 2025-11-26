@@ -193,21 +193,18 @@ export function SuperAdminGames() {
         return games.filter(
             (game) =>
                 game.title.toLowerCase().includes(search) ||
-                game.code.toLowerCase().includes(search) ||
-                (game.game_category && game.game_category.toLowerCase().includes(search))
+                game.code.toLowerCase().includes(search)
         );
     }, [games, searchTerm]);
 
     const stats = useMemo(() => {
         const activeGames = games.filter(g => g.enabled_by_superadmin).length;
         const totalGames = games.length;
-        const categories = new Set(games.map(g => g.game_category).filter(Boolean)).size;
         
         return {
             total: totalGames,
             active: activeGames,
             inactive: totalGames - activeGames,
-            categories,
         };
     }, [games]);
 
@@ -284,7 +281,7 @@ export function SuperAdminGames() {
             </Card>
 
             {/* Games Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-800">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
@@ -328,22 +325,6 @@ export function SuperAdminGames() {
                             <div className="p-3 bg-red-500/10 rounded-xl">
                                 <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/20 dark:to-orange-900/10 border-orange-200 dark:border-orange-800">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-1">Categories</div>
-                                <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">{stats.categories}</div>
-                            </div>
-                            <div className="p-3 bg-orange-500/10 rounded-xl">
-                                <svg className="w-8 h-8 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                 </svg>
                             </div>
                         </div>
@@ -413,7 +394,6 @@ export function SuperAdminGames() {
                                     <TableRow>
                                         <TableHead>Game Name</TableHead>
                                         <TableHead>Code</TableHead>
-                                        <TableHead>Category</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
@@ -434,11 +414,6 @@ export function SuperAdminGames() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="info">{game.code}</Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-sm text-muted-foreground">
-                                                    {game.game_category || 'N/A'}
-                                                </span>
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant={game.enabled_by_superadmin ? 'success' : 'default'}>
