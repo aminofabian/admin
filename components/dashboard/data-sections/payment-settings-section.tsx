@@ -444,7 +444,7 @@ export function PaymentSettingsSection() {
         </>
       )}
     </div>
-  );
+  
 
 
 </div>)}
