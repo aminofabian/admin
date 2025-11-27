@@ -1566,7 +1566,11 @@ export function ChatComponent() {
         displayedPlayers={displayedPlayers}
         selectedPlayer={selectedPlayer}
         onlinePlayersCount={onlinePlayers.length}
-        activeChatsCount={activeChatsUsers.length}
+        activeChatsCount={
+          activeTab === 'online'
+            ? activeChatsUsers.filter((user) => user.isOnline).length
+            : activeChatsUsers.length
+        }
         isCurrentTabLoading={isCurrentTabLoading}
         isLoadingApiOnlinePlayers={isLoadingApiOnlinePlayers}
         isLoadingMore={isLoadingMore}
