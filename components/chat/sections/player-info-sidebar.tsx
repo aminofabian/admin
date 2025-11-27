@@ -506,12 +506,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
 
                     // Extract additional data from new structure
                     const activityData = activity.data || {};
-                    const newCreditsBalance = activityData.new_credits_balance;
-                    const newWinningBalance = activityData.new_winning_balance;
                     const gameUsername = activity.game_username || activityData.username;
                     const gameCode = activity.game_code || '';
-                    const operator = activity.operator || '';
-                    const remarks = activity.remarks || '';
 
                     return (
                       <div
@@ -569,11 +565,6 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                               • {gameUsername}
                             </p>
                           )}
-                          {operator && (
-                            <p className="text-[10px] text-muted-foreground">
-                              • {operator}
-                            </p>
-                          )}
                         </div>
 
                         {/* Row 3: Amount/Bonus (only for Recharge and Redeem) */}
@@ -585,31 +576,6 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                                 Bonus: {formatCurrency(bonusAmount.toString())}
                               </span>
                             )}
-                          </div>
-                        )}
-
-                        {/* Row 4: Balance Updates (if available) */}
-                        {(newCreditsBalance !== undefined || newWinningBalance !== undefined) && (
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1 flex-wrap">
-                            {newCreditsBalance !== undefined && (
-                              <span className="text-blue-600 dark:text-blue-400">
-                                Credits: {formatCurrency(String(newCreditsBalance))}
-                              </span>
-                            )}
-                            {newWinningBalance !== undefined && (
-                              <span className="text-yellow-600 dark:text-yellow-400">
-                                Winnings: {formatCurrency(String(newWinningBalance))}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Row 5: Remarks (if available and not empty) */}
-                        {remarks && (
-                          <div className="mt-1 pt-1 border-t border-border/30">
-                            <p className="text-[10px] text-muted-foreground italic">
-                              {remarks}
-                            </p>
                           </div>
                         )}
                       </div>
