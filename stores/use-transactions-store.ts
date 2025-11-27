@@ -363,7 +363,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       }
       
       // Normalize API response to ensure user data is at top level (similar to game activities)
-      const normalizedTransactions: Transaction[] = response.results.map((transaction: Transaction) => {
+      let normalizedTransactions: Transaction[] = response.results.map((transaction: Transaction) => {
         // If transaction has nested data, check for user info there
         if (transaction && typeof transaction === 'object') {
           // Check if user data might be in a nested user object
