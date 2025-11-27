@@ -177,7 +177,7 @@ export function PaymentSettingsSection() {
           
           {/* Filter Buttons */}
           <div className="flex items-center gap-2 shrink-0">
-            {(['cashout', 'purchase'] as PaymentMethodAction[]).map((action) => {
+            {(['purchase', 'cashout'] as PaymentMethodAction[]).map((action) => {
               const isActive = filterAction === action;
               return (
                 <button
