@@ -94,6 +94,36 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
   return purchasePatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
 };
 
+/**
+ * Remove heading from automated messages (e.g., "Recharge", "Redeem")
+ * Removes the first line or bold tag that contains common automated message headings
+ */
+export const removeAutomatedMessageHeading = (text: string): string => {
+  if (!text) return text;
+  
+  let cleanedText = text;
+  
+  // Remove HTML bold heading tags at the start (e.g., <b>Recharge</b> or <b>Redeem</b>)
+  // This handles cases like: <b>Recharge</b><br />You successfully recharged...
+  cleanedText = cleanedText.replace(/^<b>(recharge|redeem|balance\s+updated|transaction|system|auto|notification)<\/b>\s*(<br\s*\/?>)?\s*/i, '');
+  
+  // Remove standalone bold tags at the start (any bold tag on its own line)
+  // This handles cases like: <b>Some Heading</b><br />Content...
+  cleanedText = cleanedText.replace(/^<b>[^<]*<\/b>\s*(<br\s*\/?>)?\s*/i, '');
+  
+  // Remove plain text headings at the start of a line (case-insensitive, multiline)
+  // This handles cases like: Recharge\nYou successfully recharged...
+  cleanedText = cleanedText.replace(/^(recharge|redeem|balance\s+updated|transaction|system|auto|notification):?\s*$/im, '');
+  
+  // Remove any leading line breaks, whitespace, or HTML breaks
+  cleanedText = cleanedText.replace(/^(<br\s*\/?>|\s|\n)+/i, '');
+  
+  // Clean up any excessive line breaks (more than 2 consecutive)
+  cleanedText = cleanedText.replace(/(<br\s*\/?>\s*){3,}/gi, '<br /><br />');
+  
+  return cleanedText.trim();
+};
+
 // Check if a message is an auto/system message (not sent by staff)
 export const isAutoMessage = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
   if (!message.text) return false;

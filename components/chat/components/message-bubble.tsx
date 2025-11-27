@@ -11,6 +11,7 @@ import {
   MESSAGE_HTML_CONTENT_CLASS,
   isAutoMessage,
   isPurchaseNotification,
+  removeAutomatedMessageHeading,
 } from '../utils/message-helpers';
 
 interface MessageBubbleProps {
@@ -44,8 +45,11 @@ export const MessageBubble = memo(function MessageBubble({
 
   // Render purchase notifications and auto messages in a centered, neutral style
   if (isAuto || isPurchase) {
+    // Remove heading from automated messages (e.g., "Recharge", "Redeem")
+    const textWithoutHeading = removeAutomatedMessageHeading(message.text);
+    
     // Convert <br> tags to line breaks and preserve HTML formatting
-    const formattedText = message.text
+    const formattedText = textWithoutHeading
       .replace(/<br\s*\/?>/gi, '<br />')
       .replace(/<b>/gi, '<b>')
       .replace(/<\/b>/gi, '</b>');
