@@ -1,13 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination } from '@/components/ui';
-import { useTransactionQueuesStore } from '@/stores';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge, Button, Card, CardContent, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
+import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
-import { EmptyState } from '@/components/features';
+import { useTransactionQueuesStore } from '@/stores';
+import { gamesApi, paymentMethodsApi } from '@/lib/api';
+import type { TransactionQueue, Game, Company } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
-import { gamesApi } from '@/lib/api';
-import type { Game } from '@/types';
 
 const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
   username: '',
@@ -57,11 +57,23 @@ export function SuperAdminHistoryGameActivities() {
     const [areFiltersOpen, setAreFiltersOpen] = useState(false);
     const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
     const [isGameLoading, setIsGameLoading] = useState(false);
+    
+    // Company filter state
+    const [companySearchTerm, setCompanySearchTerm] = useState('');
+    const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+    const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
     // Initialize filter once
     useEffect(() => {
         setFilter('history');
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Fetch companies
+    useEffect(() => {
+        fetchCompanies();
     }, []);
 
     // Fetch queues when dependencies change
@@ -97,10 +109,36 @@ export function SuperAdminHistoryGameActivities() {
         
         setFilters(filterState);
 
+        // Sync selected company from filters
+        if (advancedFilters.company_id) {
+            const companyId = parseInt(advancedFilters.company_id, 10);
+            if (!isNaN(companyId)) {
+                setSelectedCompanyId(companyId);
+            }
+        } else {
+            setSelectedCompanyId(null);
+        }
+
         if (Object.keys(advancedFilters).length > 0) {
             setAreFiltersOpen(true);
         }
     }, [advancedFilters]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (isCompanyDropdownOpen && !target.closest('[data-company-dropdown]')) {
+                setIsCompanyDropdownOpen(false);
+                setCompanySearchTerm('');
+            }
+        };
+
+        if (isCompanyDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }
+    }, [isCompanyDropdownOpen]);
 
     // Fetch games for dropdown
     useEffect(() => {
@@ -152,9 +190,38 @@ export function SuperAdminHistoryGameActivities() {
         };
     }, []);
 
+    const fetchCompanies = async () => {
+        setIsLoadingCompanies(true);
+        try {
+            const response = await paymentMethodsApi.getManagementCompanies();
+            if (response.companies) {
+                setCompanies(response.companies);
+            } else {
+                setCompanies([]);
+            }
+        } catch (err: unknown) {
+            console.error('Failed to load companies:', err);
+            setCompanies([]);
+        } finally {
+            setIsLoadingCompanies(false);
+        }
+    };
+
     const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
         setFilters((previous) => ({ ...previous, [key]: value }));
     }, []);
+
+    const handleCompanyChange = useCallback((companyId: number | null) => {
+        setSelectedCompanyId(companyId);
+        // Update advanced filters with company_id
+        const updatedFilters = { ...advancedFilters };
+        if (companyId) {
+            updatedFilters.company_id = String(companyId);
+        } else {
+            delete updatedFilters.company_id;
+        }
+        setAdvancedFiltersWithoutFetch(updatedFilters);
+    }, [advancedFilters, setAdvancedFiltersWithoutFetch]);
 
     const handleApplyFilters = useCallback(() => {
         // Sanitize filters - keep only non-empty values
@@ -166,6 +233,11 @@ export function SuperAdminHistoryGameActivities() {
                 return Boolean(value);
             })
         ) as Record<string, string>;
+
+        // Add company_id if selected
+        if (selectedCompanyId) {
+            sanitized.company_id = String(selectedCompanyId);
+        }
 
         // Ensure date values are properly formatted (YYYY-MM-DD) before applying
         if (sanitized.date_from) {
@@ -195,10 +267,11 @@ export function SuperAdminHistoryGameActivities() {
         // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
         // The useEffect will handle fetching with the new filters
         setAdvancedFiltersWithoutFetch(sanitized);
-    }, [filters, setAdvancedFiltersWithoutFetch]);
+    }, [filters, selectedCompanyId, setAdvancedFiltersWithoutFetch]);
 
     const handleClearFilters = useCallback(() => {
         setFilters({ ...DEFAULT_GAME_ACTIVITY_FILTERS });
+        setSelectedCompanyId(null);
         // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
         // The useEffect will handle fetching with cleared filters
         setAdvancedFiltersWithoutFetch({});
@@ -220,169 +293,208 @@ export function SuperAdminHistoryGameActivities() {
         });
     }, [setPage]);
 
-    // Calculate stats from actual data
-    const stats = useMemo(() => {
-        if (!queues || queues.length === 0) {
-            return {
-                totalActivities: 0,
-                totalBets: 0,
-                totalWins: 0,
-                netProfit: 0,
-            };
-        }
+    const filteredCompanies = useMemo(() => {
+        if (!companySearchTerm.trim()) return companies;
 
-        let totalBets = 0;
-        let totalWins = 0;
+        const search = companySearchTerm.toLowerCase();
+        return companies.filter(
+            (company) =>
+                company.project_name.toLowerCase().includes(search) ||
+                company.username.toLowerCase().includes(search)
+        );
+    }, [companies, companySearchTerm]);
 
-        queues.forEach((activity) => {
-            const amount = parseFloat(activity.amount || '0');
-            if (activity.type === 'recharge_game') {
-                totalBets += amount;
-            } else if (activity.type === 'redeem_game') {
-                totalWins += amount;
-            }
-        });
+    const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
-        const netProfit = totalBets - totalWins;
+    const results = useMemo(() => queues ?? [], [queues]);
+    const isInitialLoading = useMemo(() => isLoading, [isLoading]);
+    const isEmpty = useMemo(() => !results.length && !isLoading, [results.length, isLoading]);
+    const hasNext = useMemo(() => Boolean(next), [next]);
+    const hasPrevious = useMemo(() => Boolean(previous), [previous]);
 
-        return {
-            totalActivities: queues.length,
-            totalBets,
-            totalWins,
-            netProfit,
-        };
-    }, [queues]);
+    const totalPages = pageSize > 0
+        ? Math.max(1, Math.ceil(totalCount / pageSize))
+        : 1;
 
-    const activities = queues || [];
+    const shouldShowPagination = totalCount > pageSize || hasNext || hasPrevious;
 
-    if (isLoading && !activities.length) {
+    if (isInitialLoading && !results.length) {
         return (
-            <div className="md:pb-0 pb-6 -mx-4 md:mx-0 px-2 md:px-0">
-                <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-2 md:px-0 py-3 md:py-0">
-                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Game Activity History</h1>
+            <div className="space-y-6">
+                {/* Header Skeleton */}
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+                    <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+                        <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+                        <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-48 shrink-0" />
+                        <div className="flex-1 min-w-0" />
+                    </div>
                 </div>
-                <div className="space-y-4">
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-64 w-full" />
-                </div>
+                <Skeleton className="h-64 w-full" />
             </div>
         );
     }
 
-    if (error) {
+    if (error && !results.length) {
         return (
-            <div className="md:pb-0 pb-6 -mx-4 md:mx-0 px-2 md:px-0">
-                <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-2 md:px-0 py-3 md:py-0">
-                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Game Activity History</h1>
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <div className="text-center text-red-600 dark:text-red-400">
+                    <p className="font-semibold">Error loading game activities</p>
+                    <p className="text-sm mt-2">{error}</p>
                 </div>
-                <Card className="p-6">
-                    <div className="text-center text-red-600 dark:text-red-400">
-                        <p className="font-semibold">Error loading game activities</p>
-                        <p className="text-sm mt-2">{error}</p>
-                    </div>
-                </Card>
             </div>
         );
     }
 
     return (
-        <div className="md:pb-0 pb-6 -mx-4 md:mx-0 px-2 md:px-0">
-            {/* Sticky Mobile Header */}
-            <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-2 md:px-0 py-3 md:py-0">
-                <h1 className="text-2xl md:text-3xl font-bold text-foreground">Game Activity History</h1>
+        <>
+            {/* Compact Header */}
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+                <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+                    {/* Icon */}
+                    <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z" />
+                        </svg>
+                    </div>
+                    
+                    {/* Title */}
+                    <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+                        Game Activity History
+                    </h2>
+                    
+                    {/* Spacer */}
+                    <div className="flex-1 min-w-0" />
+                </div>
             </div>
 
-            {/* Activity Stats - Compact Mobile Design */}
-            <div className="grid grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-blue-700 dark:text-blue-300 mb-0.5 md:mb-1">Activities</div>
-                                <div className="text-xl md:text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.totalActivities}</div>
-                            </div>
-                            <div className="p-2 md:p-3 bg-blue-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10 border-purple-200 dark:border-purple-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-purple-700 dark:text-purple-300 mb-0.5 md:mb-1">Bets</div>
-                                <div className="text-xl md:text-3xl font-bold text-purple-900 dark:text-purple-100">
-                                    {formatCurrency(String(stats.totalBets))}
+            {/* Company Filter */}
+            <Card className="mt-4 mb-4 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-visible">
+                <CardContent className="px-4 md:px-6 py-4 md:py-6">
+                    <div className="relative" data-company-dropdown>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Filter by Company
+                        </label>
+                        <button
+                            onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+                            className="w-full p-3 rounded-lg border-2 border-border bg-card hover:border-primary/50 hover:bg-accent transition-all text-left group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 rounded-lg flex items-center justify-center shadow-sm border border-primary/10">
+                                        <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        {selectedCompany ? (
+                                            <>
+                                                <div className="font-semibold text-sm text-foreground truncate">
+                                                    {selectedCompany.project_name}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground truncate">
+                                                    @{selectedCompany.username}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-sm text-muted-foreground">
+                                                All Companies
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex-shrink-0 ml-3">
+                                    <svg
+                                        className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isCompanyDropdownOpen ? 'rotate-180' : ''}`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
                                 </div>
                             </div>
-                            <div className="p-2 md:p-3 bg-purple-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 border-green-200 dark:border-green-800 shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden">
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className="text-xs md:text-sm font-medium text-green-700 dark:text-green-300 mb-0.5 md:mb-1">Wins</div>
-                                <div className="text-xl md:text-3xl font-bold text-green-900 dark:text-green-100">
-                                    {formatCurrency(String(stats.totalWins))}
-                                </div>
-                            </div>
-                            <div className="p-2 md:p-3 bg-green-500/10 rounded-lg md:rounded-xl w-fit">
-                                <svg className="w-5 h-5 md:w-8 md:h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className={`bg-gradient-to-br shadow-sm md:shadow-md rounded-xl md:rounded-lg overflow-hidden ${
-                    stats.netProfit >= 0 
-                        ? 'from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10 border-green-200 dark:border-green-800'
-                        : 'from-red-50 to-red-100/50 dark:from-red-950/20 dark:to-red-900/10 border-red-200 dark:border-red-800'
-                }`}>
-                    <CardContent className="p-3 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
-                            <div className="flex-1">
-                                <div className={`text-xs md:text-sm font-medium mb-0.5 md:mb-1 ${
-                                    stats.netProfit >= 0 
-                                        ? 'text-green-700 dark:text-green-300' 
-                                        : 'text-red-700 dark:text-red-300'
-                                }`}>Profit</div>
-                                <div className={`text-xl md:text-3xl font-bold ${
-                                    stats.netProfit >= 0 
-                                        ? 'text-green-900 dark:text-green-100' 
-                                        : 'text-red-900 dark:text-red-100'
-                                }`}>
-                                    {formatCurrency(String(stats.netProfit))}
-                                </div>
-                            </div>
-                            <div className={`p-2 md:p-3 rounded-lg md:rounded-xl w-fit ${
-                                stats.netProfit >= 0 
-                                    ? 'bg-green-500/10' 
-                                    : 'bg-red-500/10'
-                            }`}>
-                                <svg className={`w-5 h-5 md:w-8 md:h-8 ${
-                                    stats.netProfit >= 0 
-                                        ? 'text-green-600 dark:text-green-400' 
-                                        : 'text-red-600 dark:text-red-400'
-                                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                </svg>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                        </button>
 
-            {/* Filters */}
+                        {/* Dropdown Menu */}
+                        {isCompanyDropdownOpen && (
+                            <div className="absolute z-50 w-full mt-2 bg-card border-2 border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                {/* Search Input */}
+                                <div className="p-3 border-b border-border bg-muted/30">
+                                    <div className="relative">
+                                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            value={companySearchTerm}
+                                            onChange={(e) => setCompanySearchTerm(e.target.value)}
+                                            placeholder="Search companies..."
+                                            className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Company List */}
+                                <div className="max-h-[300px] overflow-y-auto">
+                                    <button
+                                        onClick={() => {
+                                            handleCompanyChange(null);
+                                            setIsCompanyDropdownOpen(false);
+                                            setCompanySearchTerm('');
+                                        }}
+                                        className={`w-full p-3 text-left transition-all hover:bg-accent border-b border-border/50 ${!selectedCompanyId ? 'bg-primary/5' : ''}`}
+                                    >
+                                        <div className="font-semibold text-sm">All Companies</div>
+                                    </button>
+                                    {filteredCompanies.length === 0 ? (
+                                        <div className="p-6 text-center text-muted-foreground">
+                                            <p className="text-sm">No companies match your search</p>
+                                        </div>
+                                    ) : (
+                                        filteredCompanies.map((company) => (
+                                            <button
+                                                key={company.id}
+                                                onClick={() => {
+                                                    handleCompanyChange(company.id);
+                                                    setIsCompanyDropdownOpen(false);
+                                                    setCompanySearchTerm('');
+                                                }}
+                                                className={`w-full p-3 text-left transition-all hover:bg-accent border-b border-border/50 last:border-b-0 ${selectedCompanyId === company.id ? 'bg-primary/5' : ''}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm transition-all ${selectedCompanyId === company.id
+                                                        ? 'bg-primary text-primary-foreground shadow-md'
+                                                        : 'bg-gradient-to-br from-muted to-muted/50 text-muted-foreground'
+                                                        }`}>
+                                                        {company.project_name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-semibold text-sm text-foreground truncate">
+                                                            {company.project_name}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground truncate">
+                                                            @{company.username}
+                                                        </div>
+                                                    </div>
+                                                    {selectedCompanyId === company.id && (
+                                                        <div className="flex-shrink-0">
+                                                            <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
             <HistoryGameActivitiesFilters
                 queueFilter={queueFilter as QueueFilterOption}
                 onQueueFilterChange={handleQueueFilterChange}
@@ -397,154 +509,575 @@ export function SuperAdminHistoryGameActivities() {
                 isLoading={isLoading}
             />
 
-            {/* Game Activities Table */}
-            <Card className="mt-4 md:mt-6 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6 border-b md:border-b-0">
-                    <h2 className="text-base md:text-lg font-semibold">Recent Game Activities</h2>
-                </CardHeader>
-                <CardContent className="p-0">
-                    {activities.length === 0 ? (
-                        <div className="py-12">
-                            <EmptyState 
-                                title="No game activity history" 
-                                description="No completed or cancelled game activities found"
-                            />
-                        </div>
-                    ) : (
-                        <>
-                            {/* Desktop Table */}
-                            <div className="hidden md:block overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Username</TableHead>
-                                            <TableHead>Game</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Date</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {activities.map((activity) => {
-                                            const username = activity.user_username || `User ${activity.user_id}`;
-                                            const isRecharge = activity.type === 'recharge_game';
-                                            const isRedeem = activity.type === 'redeem_game';
-                                            
-                                            return (
-                                                <TableRow key={activity.id}>
-                                                    <TableCell className="font-medium">{username}</TableCell>
-                                                    <TableCell>{activity.game || '—'}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={isRecharge ? 'success' : isRedeem ? 'danger' : 'info'} className="capitalize">
-                                                            {isRecharge ? 'Recharge' : isRedeem ? 'Redeem' : activity.type}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className={isRecharge ? 'text-green-600 font-semibold' : isRedeem ? 'text-red-600 font-semibold' : ''}>
-                                                        {formatCurrency(activity.amount || '0')}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge 
-                                                            variant={
-                                                                activity.status === 'completed' ? 'success' :
-                                                                activity.status === 'pending' ? 'warning' :
-                                                                activity.status === 'failed' ? 'danger' : 'default'
-                                                            }
-                                                            className="capitalize"
-                                                        >
-                                                            {activity.status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground">
-                                                        {formatDate(activity.created_at || '')}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </div>
-
-                            {/* Mobile Cards */}
-                            <div className="md:hidden space-y-2 px-2 pb-3">
-                                {activities.map((activity) => {
-                                    const username = activity.user_username || `User ${activity.user_id}`;
-                                    const isRecharge = activity.type === 'recharge_game';
-                                    const isRedeem = activity.type === 'redeem_game';
-                                    
-                                    return (
-                                        <Card 
-                                            key={activity.id} 
-                                            className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
-                                        >
-                                            <CardContent className="p-3 space-y-2">
-                                                <div className="flex items-start justify-between">
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="font-semibold text-base leading-tight mb-1">{username}</h3>
-                                                        <p className="text-xs text-muted-foreground mb-2">{activity.game || '—'}</p>
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <Badge 
-                                                                variant={isRecharge ? 'success' : isRedeem ? 'danger' : 'info'} 
-                                                                className="text-xs px-2 py-0.5 capitalize"
-                                                            >
-                                                                {isRecharge ? 'Recharge' : isRedeem ? 'Redeem' : activity.type}
-                                                            </Badge>
-                                                            <Badge 
-                                                                variant={
-                                                                    activity.status === 'completed' ? 'success' :
-                                                                    activity.status === 'pending' ? 'warning' :
-                                                                    activity.status === 'failed' ? 'danger' : 'default'
-                                                                }
-                                                                className="text-xs px-2 py-0.5 capitalize"
-                                                            >
-                                                                {activity.status}
-                                                            </Badge>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-2 text-sm pt-2 border-t">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="font-medium text-muted-foreground">Amount:</span>
-                                                        <span className={`font-semibold ${isRecharge ? 'text-green-600' : isRedeem ? 'text-red-600' : ''}`}>
-                                                            {formatCurrency(activity.amount || '0')}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="font-medium text-muted-foreground">Date:</span>
-                                                        <span className="text-xs text-muted-foreground">{formatDate(activity.created_at || '')}</span>
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Pagination */}
-                            {(() => {
-                                const totalPages = pageSize > 0
-                                    ? Math.max(1, Math.ceil(totalCount / pageSize))
-                                    : 1;
-                                // Only show pagination if there's more than one page
-                                const shouldShowPagination = totalPages > 1;
-
-                                return shouldShowPagination ? (
-                                    <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
-                                        <Pagination
-                                            currentPage={currentPage}
-                                            totalPages={totalPages}
-                                            hasNext={Boolean(next)}
-                                            hasPrevious={Boolean(previous)}
-                                            onPageChange={handlePageChange}
-                                        />
-                                    </div>
-                                ) : null;
-                            })()}
-                        </>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+            <HistoryGameActivitiesTable 
+                queues={results} 
+                pagination={{
+                    totalCount,
+                    pageSize,
+                    currentPage,
+                    hasNext,
+                    hasPrevious,
+                    onPageChange: handlePageChange,
+                }}
+                totalPages={totalPages}
+                shouldShowPagination={shouldShowPagination}
+                selectedCompany={selectedCompany}
+            />
+        </>
     );
 }
+
+interface HistoryPaginationState {
+    totalCount: number;
+    pageSize: number;
+    currentPage: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+    onPageChange: (page: number) => void;
+}
+
+interface HistoryGameActivitiesTableProps {
+    queues: TransactionQueue[];
+    pagination: HistoryPaginationState;
+    totalPages: number;
+    shouldShowPagination: boolean;
+    selectedCompany: Company | undefined;
+}
+
+function HistoryGameActivitiesTable({ 
+    queues, 
+    pagination, 
+    totalPages, 
+    shouldShowPagination,
+    selectedCompany
+}: HistoryGameActivitiesTableProps) {
+    const [selectedActivity, setSelectedActivity] = useState<TransactionQueue | null>(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+    const handleViewActivity = useCallback((activity: TransactionQueue) => {
+        setSelectedActivity(activity);
+        setIsViewModalOpen(true);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setIsViewModalOpen(false);
+        setSelectedActivity(null);
+    }, []);
+
+    return (
+        <>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                {!queues.length ? (
+                    <div className="py-12">
+                        <EmptyState 
+                            title="No game activity history" 
+                            description="No completed or cancelled game activities matched your filters"
+                        />
+                    </div>
+                ) : (
+                    <>
+                        {/* Mobile Card View */}
+                        <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+                            {queues.map((activity) => (
+                                <GameActivityCard
+                                    key={activity.id}
+                                    activity={activity}
+                                    onView={handleViewActivity}
+                                    company={selectedCompany}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className="hidden lg:block overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>User</TableHead>
+                                        <TableHead>Company</TableHead>
+                                        <TableHead>Activity</TableHead>
+                                        <TableHead>Game</TableHead>
+                                        <TableHead>Game Username</TableHead>
+                                        <TableHead>Amount</TableHead>
+                                        <TableHead>New Balance</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Dates</TableHead>
+                                        <TableHead className="text-right">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {queues.map((activity) => (
+                                        <HistoryGameActivityRow 
+                                            key={activity.id} 
+                                            activity={activity} 
+                                            onView={handleViewActivity}
+                                            company={selectedCompany}
+                                        />
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {shouldShowPagination && (
+                            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                                <Pagination
+                                    currentPage={pagination.currentPage}
+                                    totalPages={totalPages}
+                                    hasNext={pagination.hasNext}
+                                    hasPrevious={pagination.hasPrevious}
+                                    onPageChange={pagination.onPageChange}
+                                />
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {selectedActivity && (
+                <ActivityDetailsModal
+                    activity={selectedActivity}
+                    isOpen={isViewModalOpen}
+                    onClose={handleCloseModal}
+                />
+            )}
+        </>
+    );
+}
+
+interface HistoryGameActivityRowProps {
+    activity: TransactionQueue;
+    onView: (activity: TransactionQueue) => void;
+    company: Company | undefined;
+}
+
+const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, onView, company }: HistoryGameActivityRowProps) {
+    const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
+    const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
+    const typeVariant = useMemo(() => mapTypeToVariant(activity.type), [activity.type]);
+    const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
+    const isRecharge = useMemo(() => activity.type === 'recharge_game', [activity.type]);
+    const isRedeem = useMemo(() => activity.type === 'redeem_game', [activity.type]);
+    const shouldShowDash = useMemo(() => {
+        const amountValue = parseFloat(activity.amount || '0');
+        const isZeroAmount = amountValue === 0 || isNaN(amountValue);
+        const typeStr = String(activity.type);
+        const isNonMonetaryType = typeStr === 'create_game' || 
+                                  typeStr === 'reset_password' || 
+                                  typeStr === 'change_password' ||
+                                  typeStr === 'add_user_game';
+        return isZeroAmount && isNonMonetaryType;
+    }, [activity.amount, activity.type]);
+    
+    const bonusAmount = useMemo(() => {
+        const bonus = activity.bonus_amount || activity.data?.bonus_amount;
+        if (!bonus) return null;
+        const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
+            ? parseFloat(String(bonus)) 
+            : 0;
+        return bonusValue > 0 ? bonus : null;
+    }, [activity.bonus_amount, activity.data?.bonus_amount]);
+
+    const formattedBonus = useMemo(() => {
+        return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+    }, [bonusAmount]);
+
+    const credit = useMemo(() => {
+        const creditValue = activity.data?.credit;
+        if (creditValue === undefined || creditValue === null) return null;
+        return formatCurrency(String(creditValue));
+    }, [activity.data?.credit]);
+
+    const winnings = useMemo(() => {
+        const winningsValue = activity.data?.winnings;
+        if (winningsValue === undefined || winningsValue === null) return null;
+        return formatCurrency(String(winningsValue));
+    }, [activity.data?.winnings]);
+
+    const newCreditsBalance = useMemo(() => {
+        const credits = activity.data?.new_credits_balance;
+        if (credits === undefined || credits === null) return null;
+        const creditsValue = typeof credits === 'string' || typeof credits === 'number'
+            ? parseFloat(String(credits))
+            : null;
+        return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
+    }, [activity.data?.new_credits_balance]);
+
+    const newWinningBalance = useMemo(() => {
+        const winnings = activity.data?.new_winning_balance;
+        if (winnings === undefined || winnings === null) return null;
+        const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
+            ? parseFloat(String(winnings))
+            : null;
+        return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
+    }, [activity.data?.new_winning_balance]);
+
+    const zeroCurrency = formatCurrency('0');
+
+    const shouldShowBlankBalance = useMemo(() => {
+        const typeStr = String(activity.type);
+        return typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
+    }, [activity.type]);
+
+    const creditsDisplay = useMemo(() => {
+        if (shouldShowBlankBalance) return '—';
+        if (newCreditsBalance) return newCreditsBalance;
+        if (credit) return credit;
+        return zeroCurrency;
+    }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency]);
+
+    const winningsDisplay = useMemo(() => {
+        if (shouldShowBlankBalance) return '—';
+        if (newWinningBalance) return newWinningBalance;
+        if (winnings) return winnings;
+        return zeroCurrency;
+    }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency]);
+
+    const websiteUsername = useMemo(() => {
+        if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
+            return activity.user_username.trim();
+        }
+        return null;
+    }, [activity.user_username]);
+
+    const websiteEmail = useMemo(() => {
+        if (typeof activity.user_email === 'string' && activity.user_email.trim()) {
+            return activity.user_email.trim();
+        }
+        return null;
+    }, [activity.user_email]);
+
+    const gameUsername = useMemo(() => {
+        if (typeof activity.game_username === 'string' && activity.game_username.trim()) {
+            return activity.game_username.trim();
+        }
+        if (activity.data && typeof activity.data === 'object' && activity.data !== null) {
+            const dataUsername = activity.data.username;
+            if (typeof dataUsername === 'string' && dataUsername.trim()) {
+                return dataUsername.trim();
+            }
+        }
+        return null;
+    }, [activity.game_username, activity.data]);
+
+    const isAddUserAction = useMemo(() => {
+        const typeStr = String(activity.type);
+        return typeStr === 'add_user_game' || typeStr === 'create_game';
+    }, [activity.type]);
+
+    const userInitial = useMemo(() => {
+        if (websiteUsername) {
+            return websiteUsername.charAt(0).toUpperCase();
+        }
+        return activity.user_id ? String(activity.user_id).charAt(0) : '—';
+    }, [websiteUsername, activity.user_id]);
+
+    const formattedCreatedAt = useMemo(() => formatDate(activity.created_at), [activity.created_at]);
+    const formattedUpdatedAt = useMemo(() => formatDate(activity.updated_at), [activity.updated_at]);
+    const showUpdatedAt = useMemo(() => activity.updated_at !== activity.created_at, [activity.updated_at, activity.created_at]);
+
+    const handleViewClick = useCallback(() => {
+        onView(activity);
+    }, [activity, onView]);
+
+    const amountColorClass = useMemo(() => {
+        if (shouldShowDash) return '';
+        if (isRedeem) return 'text-red-600 dark:text-red-400';
+        if (isRecharge) return 'text-green-600 dark:text-green-400';
+        return 'text-foreground';
+    }, [isRedeem, isRecharge, shouldShowDash]);
+
+    const bonusColorClass = useMemo(() => {
+        if (shouldShowDash) return '';
+        return isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
+    }, [isRedeem, shouldShowDash]);
+
+    return (
+        <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+            <TableCell>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                        {userInitial}
+                    </div>
+                    <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {websiteUsername || `User ${activity.user_id}`}
+                        </div>
+                        {websiteEmail && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {websiteEmail}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </TableCell>
+            <TableCell>
+                {company ? (
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                        {company.project_name}
+                    </div>
+                ) : (
+                    <div className="text-gray-500 dark:text-gray-400">—</div>
+                )}
+            </TableCell>
+            <TableCell>
+                <Badge variant={typeVariant} className="capitalize">
+                    {typeLabel}
+                </Badge>
+            </TableCell>
+            <TableCell>
+                <div className="font-medium">{activity.game}</div>
+            </TableCell>
+            <TableCell>
+                {isAddUserAction ? (
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                        —
+                    </div>
+                ) : gameUsername ? (
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                        {gameUsername}
+                    </div>
+                ) : activity.status === 'cancelled' ? (
+                    <Badge variant="default" className="text-xs">
+                        Cancelled
+                    </Badge>
+                ) : (
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                        —
+                    </div>
+                )}
+            </TableCell>
+            <TableCell>
+                <div className={`text-sm font-bold ${amountColorClass}`}>
+                    {shouldShowDash ? '—' : formattedAmount}
+                    {!shouldShowDash && formattedBonus && (
+                        <div className={`text-xs font-semibold mt-0.5 ${bonusColorClass}`}>
+                            +{formattedBonus} bonus
+                        </div>
+                    )}
+                </div>
+            </TableCell>
+            <TableCell>
+                <div className="space-y-1">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                        C: {creditsDisplay}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                        W: {winningsDisplay}
+                    </div>
+                </div>
+            </TableCell>
+            <TableCell>
+                <Badge variant={statusVariant} className="capitalize">
+                    {activity.status}
+                </Badge>
+            </TableCell>
+            <TableCell>
+                <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                    <div>{formattedCreatedAt}</div>
+                    {showUpdatedAt && (
+                        <div>{formattedUpdatedAt}</div>
+                    )}
+                </div>
+            </TableCell>
+            <TableCell className="text-right">
+                <div className="flex items-center justify-end">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleViewClick}
+                        title="View activity"
+                        className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                    >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View
+                    </Button>
+                </div>
+            </TableCell>
+        </TableRow>
+    );
+}, (prevProps, nextProps) => {
+    return (
+        prevProps.activity.id === nextProps.activity.id &&
+        prevProps.activity.status === nextProps.activity.status &&
+        prevProps.activity.type === nextProps.activity.type &&
+        prevProps.activity.amount === nextProps.activity.amount &&
+        prevProps.activity.bonus_amount === nextProps.activity.bonus_amount &&
+        prevProps.activity.operator === nextProps.activity.operator &&
+        prevProps.activity.user_email === nextProps.activity.user_email &&
+        prevProps.activity.updated_at === nextProps.activity.updated_at &&
+        prevProps.company?.id === nextProps.company?.id &&
+        prevProps.onView === nextProps.onView
+    );
+});
+
+const mapStatusToVariant = (status: string): 'success' | 'warning' | 'danger' | 'default' => {
+    if (status === 'completed') return 'success';
+    if (status === 'pending') return 'warning';
+    if (status === 'failed') return 'danger';
+    return 'default';
+};
+
+const mapTypeToLabel = (type: string): string => {
+    if (type === 'recharge_game') return 'Recharge';
+    if (type === 'redeem_game') return 'Redeem';
+    if (type === 'add_user_game') return 'Add User';
+    if (type === 'change_password') return 'Reset';
+    return type;
+};
+
+const mapTypeToVariant = (type: string): 'success' | 'danger' | 'info' | 'default' => {
+    if (type === 'recharge_game') return 'success';
+    if (type === 'redeem_game') return 'danger';
+    return 'info';
+};
+
+interface GameActivityCardProps {
+    activity: TransactionQueue;
+    onView: (activity: TransactionQueue) => void;
+    company: Company | undefined;
+}
+
+const GameActivityCard = memo(function GameActivityCard({ activity, onView, company }: GameActivityCardProps) {
+    const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
+    const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
+    const typeVariant = useMemo(() => mapTypeToVariant(activity.type), [activity.type]);
+    const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
+    const isRecharge = useMemo(() => activity.type === 'recharge_game', [activity.type]);
+    const isRedeem = useMemo(() => activity.type === 'redeem_game', [activity.type]);
+
+    const websiteUsername = useMemo(() => {
+        if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
+            return activity.user_username.trim();
+        }
+        return null;
+    }, [activity.user_username]);
+
+    const websiteEmail = useMemo(() => {
+        if (typeof activity.user_email === 'string' && activity.user_email.trim()) {
+            return activity.user_email.trim();
+        }
+        return null;
+    }, [activity.user_email]);
+
+    const gameUsername = useMemo(() => {
+        if (typeof activity.game_username === 'string' && activity.game_username.trim()) {
+            return activity.game_username.trim();
+        }
+        if (activity.data && typeof activity.data === 'object' && activity.data !== null) {
+            const dataUsername = activity.data.username;
+            if (typeof dataUsername === 'string' && dataUsername.trim()) {
+                return dataUsername.trim();
+            }
+        }
+        return null;
+    }, [activity.game_username, activity.data]);
+
+    const isAddUserAction = useMemo(() => {
+        const typeStr = String(activity.type);
+        return typeStr === 'add_user_game' || typeStr === 'create_game';
+    }, [activity.type]);
+
+    const userInitial = useMemo(() => {
+        if (websiteUsername) {
+            return websiteUsername.charAt(0).toUpperCase();
+        }
+        return activity.user_id ? String(activity.user_id).charAt(0) : '—';
+    }, [websiteUsername, activity.user_id]);
+
+    const formattedCreatedAt = useMemo(() => formatDate(activity.created_at), [activity.created_at]);
+    const formattedUpdatedAt = useMemo(() => formatDate(activity.updated_at), [activity.updated_at]);
+    const showUpdatedAt = useMemo(() => activity.updated_at !== activity.created_at, [activity.updated_at, activity.created_at]);
+
+    const handleViewClick = useCallback(() => {
+        onView(activity);
+    }, [activity, onView]);
+
+    return (
+        <Card className="border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm shrink-0">
+                            {userInitial}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                {websiteUsername || `User ${activity.user_id}`}
+                            </div>
+                            {websiteEmail && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {websiteEmail}
+                                </div>
+                            )}
+                            {company && (
+                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                    {company.project_name}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <Badge variant={statusVariant} className="capitalize shrink-0">
+                        {activity.status}
+                    </Badge>
+                </div>
+
+                <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Activity:</span>
+                        <Badge variant={typeVariant} className="capitalize">
+                            {typeLabel}
+                        </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Game:</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{activity.game}</span>
+                    </div>
+                    {!isAddUserAction && gameUsername && (
+                        <div className="flex items-center justify-between">
+                            <span className="text-gray-600 dark:text-gray-400">Game Username:</span>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{gameUsername}</span>
+                        </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Amount:</span>
+                        <span className={`font-bold ${isRedeem ? 'text-red-600 dark:text-red-400' : isRecharge ? 'text-green-600 dark:text-green-400' : ''}`}>
+                            {formattedAmount}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">Date:</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {formattedCreatedAt}
+                            {showUpdatedAt && ` (Updated: ${formattedUpdatedAt})`}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleViewClick}
+                        className="w-full flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                    >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View Details
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}, (prevProps, nextProps) => {
+    return (
+        prevProps.activity.id === nextProps.activity.id &&
+        prevProps.activity.status === nextProps.activity.status &&
+        prevProps.company?.id === nextProps.company?.id &&
+        prevProps.onView === nextProps.onView
+    );
+});
