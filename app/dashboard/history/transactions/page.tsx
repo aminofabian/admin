@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { TransactionsSection } from '@/components/dashboard/data-sections/transactions-section';
@@ -11,6 +11,7 @@ import { useTransactionsStore } from '@/stores';
 export default function HistoryTransactionsPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { setFilterWithoutFetch, setAdvancedFiltersWithoutFetch, clearAdvancedFiltersWithoutFetch } = useTransactionsStore();
   const hasInitializedRef = useRef(false);
   const appliedFiltersRef = useRef<{ username: string | null }>({
@@ -80,6 +81,30 @@ export default function HistoryTransactionsPage() {
       appliedFiltersRef.current = { username: trimmedUsername };
     }
   }, [searchParams, setAdvancedFiltersWithoutFetch, clearAdvancedFiltersWithoutFetch]);
+
+  // Remove username query param from URL after it's been read and applied to filters
+  // This prevents the URL from showing query params after they've been applied
+  useEffect(() => {
+    const usernameFromQuery = searchParams.get('username');
+
+    if (usernameFromQuery) {
+      // Use setTimeout to ensure state has been committed before updating URL
+      const timeoutId = setTimeout(() => {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('username');
+        const newSearch = params.toString();
+        const newUrl = newSearch 
+          ? `${pathname}?${newSearch}`
+          : pathname;
+        // Use window.history.replaceState to avoid triggering a navigation/reload
+        window.history.replaceState({}, '', newUrl);
+        console.log('🧹 Removed username parameter from URL to prevent override');
+      }, 100); // Small delay to ensure filter state is initialized
+      
+      return () => clearTimeout(timeoutId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   // If user is superadmin, render superadmin history view
   if (user?.role === 'superadmin') {

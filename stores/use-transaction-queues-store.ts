@@ -74,16 +74,15 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
 
       const cleanedAdvancedFilters: Record<string, string> = {};
       
-      // Extract username, email, and game_username for client-side filtering
-      const usernameFilter = advancedFilters.username;
-      const emailFilter = advancedFilters.email;
+      // Pass username and email as query params to backend for server-side filtering
+      // game_username can still be filtered client-side if backend doesn't support it
       const gameUsernameFilter = advancedFilters.game_username;
       
       Object.entries(advancedFilters).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
-          // Username, email, and game_username: don't send to backend, filter client-side
-          // Transaction ID: exact match only (send as-is)
-          if (key !== 'username' && key !== 'email' && key !== 'game_username') {
+          // game_username: filter client-side if backend doesn't support it
+          // All other filters including username and email: send to backend
+          if (key !== 'game_username') {
             cleanedAdvancedFilters[key] = value;
           }
         }
@@ -138,33 +137,15 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         return queue;
       });
       
-      // Apply client-side filtering for username/email/game_username (partial search)
-      // This is needed because the backend may not support partial matching for these parameters
+      // Apply client-side filtering only for game_username if backend doesn't support it
+      // Username and email are now handled by the backend
       let filteredQueues = normalizedQueues;
       
-      if (usernameFilter || emailFilter || gameUsernameFilter) {
-        const usernameStr = typeof usernameFilter === 'string' ? usernameFilter : String(usernameFilter || '');
-        const emailStr = typeof emailFilter === 'string' ? emailFilter : String(emailFilter || '');
+      if (gameUsernameFilter) {
         const gameUsernameStr = typeof gameUsernameFilter === 'string' ? gameUsernameFilter : String(gameUsernameFilter || '');
-        const usernameLower = usernameStr.toLowerCase().trim();
-        const emailLower = emailStr.toLowerCase().trim();
         const gameUsernameLower = gameUsernameStr.toLowerCase().trim();
         
         filteredQueues = filteredQueues.filter((queue: TransactionQueue) => {
-          if (usernameLower) {
-            const queueUsername = (queue.user_username || '').toLowerCase();
-            if (!queueUsername.includes(usernameLower)) {
-              return false;
-            }
-          }
-          
-          if (emailLower) {
-            const queueEmail = (queue.user_email || '').toLowerCase();
-            if (!queueEmail.includes(emailLower)) {
-              return false;
-            }
-          }
-          
           if (gameUsernameLower) {
             // Check both top-level game_username and data.username
             const queueGameUsername = (queue.game_username || '').toLowerCase();
@@ -182,9 +163,7 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
           return true;
         });
 
-        console.log('🔍 Client-side username/email/game_username filter applied:', {
-          usernameFilter,
-          emailFilter,
+        console.log('🔍 Client-side game_username filter applied:', {
           gameUsernameFilter,
           originalCount: normalizedQueues.length,
           filteredCount: filteredQueues.length,
@@ -206,7 +185,7 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         queues: finalFilteredQueues, 
         isLoading: false,
         error: null,
-        count: finalFilteredQueues.length, // Update count for client-side filtering
+        count: response.count, // Use backend count (handles pagination correctly)
         next: response.next ?? null,
         previous: response.previous ?? null,
       });

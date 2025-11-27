@@ -300,21 +300,8 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         allFilterKeys: Object.keys(filters),
       });
 
-      // Remove username/email from API filters if backend doesn't support them
-      // We'll filter client-side instead
-      // Increase page size when filtering by username/email to get more results for client-side filtering
+      // Pass username and email as query params to backend for server-side filtering
       const apiFilters = { ...filters };
-      const usernameFilter = apiFilters.username;
-      const emailFilter = apiFilters.email;
-      const hasUsernameEmailFilter = Boolean(usernameFilter || emailFilter);
-      
-      // Increase page size for client-side filtering to get more results
-      if (hasUsernameEmailFilter && apiFilters.page_size && apiFilters.page_size < 100) {
-        apiFilters.page_size = 100; // Fetch more results for client-side filtering
-      }
-      
-      delete apiFilters.username;
-      delete apiFilters.email;
 
       // FINAL CHECK: Ensure txn_type filter is preserved if it was set in advanced filters
       // This is a safety check in case the txn_type got lost during processing
@@ -376,7 +363,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       }
       
       // Normalize API response to ensure user data is at top level (similar to game activities)
-      let normalizedTransactions: Transaction[] = response.results.map((transaction: Transaction) => {
+      const normalizedTransactions: Transaction[] = response.results.map((transaction: Transaction) => {
         // If transaction has nested data, check for user info there
         if (transaction && typeof transaction === 'object') {
           // Check if user data might be in a nested user object
@@ -391,41 +378,6 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         }
         return transaction;
       });
-
-      // Apply client-side filtering for username/email (partial search)
-      // This is needed because the backend transactions API may not support these parameters
-      if (usernameFilter || emailFilter) {
-        const usernameStr = typeof usernameFilter === 'string' ? usernameFilter : String(usernameFilter || '');
-        const emailStr = typeof emailFilter === 'string' ? emailFilter : String(emailFilter || '');
-        const usernameLower = usernameStr.toLowerCase().trim();
-        const emailLower = emailStr.toLowerCase().trim();
-        
-        normalizedTransactions = normalizedTransactions.filter((transaction: Transaction) => {
-          if (usernameLower) {
-            const transactionUsername = (transaction.user_username || '').toLowerCase();
-            if (!transactionUsername.includes(usernameLower)) {
-              return false;
-            }
-          }
-          
-          if (emailLower) {
-            const transactionEmail = (transaction.user_email || '').toLowerCase();
-            if (!transactionEmail.includes(emailLower)) {
-              return false;
-            }
-          }
-          
-          return true;
-        });
-        
-        console.log('🔍 Client-side username/email filter applied:', {
-          usernameFilter,
-          emailFilter,
-          originalCount: response.results.length,
-          filteredCount: normalizedTransactions.length,
-          totalCount: response.count,
-        });
-      }
 
       // Client-side filtering for type and status in history view
       // This is a fallback in case the API doesn't support status__ne parameter
