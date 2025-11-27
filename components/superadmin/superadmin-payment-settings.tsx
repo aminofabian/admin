@@ -31,6 +31,7 @@ export function SuperAdminPaymentSettings() {
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
     const [isLoadingMethods, setIsLoadingMethods] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'purchase' | 'cashout'>('purchase');
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         action: 'toggleCashout' | 'togglePurchase' | 'enableAllPurchase' | 'enableAllCashout' | 'disableAllPurchase' | 'disableAllCashout';
@@ -441,16 +442,51 @@ export function SuperAdminPaymentSettings() {
                 <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
                     <CardHeader className="pb-4 md:pb-6 px-4 md:px-6 pt-4 md:pt-6 border-b">
                         <div className="space-y-4">
-                            {/* Title Section */}
-                            <div>
-                                <h2 className="text-base md:text-lg font-semibold">
-                                    {selectedCompany ? `${selectedCompany.project_name} Payment Methods` : 'Payment Methods'}
-                                </h2>
-                                {selectedCompany && (
-                                    <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1">
-                                        Managing payment methods for {selectedCompany.username}
-                                    </p>
-                                )}
+                            {/* Title Section with Toggle Buttons */}
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex-1">
+                                    <h2 className="text-base md:text-lg font-semibold">
+                                        {selectedCompany ? `${selectedCompany.project_name} Payment Methods` : 'Payment Methods'}
+                                    </h2>
+                                    {selectedCompany && (
+                                        <p className="text-xs md:text-sm text-muted-foreground mt-0.5 md:mt-1">
+                                            Managing payment methods for {selectedCompany.username}
+                                        </p>
+                                    )}
+                                </div>
+                                {/* View Mode Toggle */}
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <div className="flex gap-2 bg-background p-1.5 rounded-xl border-2 border-primary/20 shadow-md">
+                                        <Button
+                                            variant={viewMode === 'purchase' ? 'secondary' : 'ghost'}
+                                            size="md"
+                                            onClick={() => setViewMode('purchase')}
+                                            className={`font-semibold transition-all min-w-[120px] ${viewMode === 'purchase'
+                                                ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                                                : 'hover:bg-muted hover:scale-105'
+                                                }`}
+                                        >
+                                            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            Purchase
+                                        </Button>
+                                        <Button
+                                            variant={viewMode === 'cashout' ? 'secondary' : 'ghost'}
+                                            size="md"
+                                            onClick={() => setViewMode('cashout')}
+                                            className={`font-semibold transition-all min-w-[120px] ${viewMode === 'cashout'
+                                                ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                                                : 'hover:bg-muted hover:scale-105'
+                                                }`}
+                                        >
+                                            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            Cashout
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Full-Width Search */}
@@ -475,32 +511,22 @@ export function SuperAdminPaymentSettings() {
                                         </div>
                                         <span className="text-sm font-semibold text-green-900 dark:text-green-100">Enable All</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Button
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={handleEnableAllPurchase}
-                                            disabled={isLoadingMethods || paymentMethods.length === 0}
-                                            className="w-full bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 active:scale-[0.98] transition-all"
-                                        >
-                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={viewMode === 'purchase' ? handleEnableAllPurchase : handleEnableAllCashout}
+                                        disabled={isLoadingMethods || paymentMethods.length === 0}
+                                        className="w-full bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 active:scale-[0.98] transition-all"
+                                    >
+                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            {viewMode === 'purchase' ? (
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            </svg>
-                                            Purchase
-                                        </Button>
-                                        <Button
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={handleEnableAllCashout}
-                                            disabled={isLoadingMethods || paymentMethods.length === 0}
-                                            className="w-full bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 active:scale-[0.98] transition-all"
-                                        >
-                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            ) : (
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            </svg>
-                                            Cashout
-                                        </Button>
-                                    </div>
+                                            )}
+                                        </svg>
+                                        {viewMode === 'purchase' ? 'Enable All Purchase' : 'Enable All Cashout'}
+                                    </Button>
                                 </div>
 
                                 {/* Disable Actions Card */}
@@ -513,32 +539,22 @@ export function SuperAdminPaymentSettings() {
                                         </div>
                                         <span className="text-sm font-semibold text-red-900 dark:text-red-100">Disable All</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={handleDisableAllPurchase}
-                                            disabled={isLoadingMethods || paymentMethods.length === 0}
-                                            className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 active:scale-[0.98] transition-all"
-                                        >
-                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={viewMode === 'purchase' ? handleDisableAllPurchase : handleDisableAllCashout}
+                                        disabled={isLoadingMethods || paymentMethods.length === 0}
+                                        className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 active:scale-[0.98] transition-all"
+                                    >
+                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            {viewMode === 'purchase' ? (
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            </svg>
-                                            Purchase
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={handleDisableAllCashout}
-                                            disabled={isLoadingMethods || paymentMethods.length === 0}
-                                            className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 active:scale-[0.98] transition-all"
-                                        >
-                                            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            ) : (
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            </svg>
-                                            Cashout
-                                        </Button>
-                                    </div>
+                                            )}
+                                        </svg>
+                                        {viewMode === 'purchase' ? 'Disable All Purchase' : 'Disable All Cashout'}
+                                    </Button>
                                 </div>
                             </div>
                         </div>
@@ -562,8 +578,7 @@ export function SuperAdminPaymentSettings() {
                                             <TableRow>
                                                 <TableHead>Payment Method</TableHead>
                                                 <TableHead>Type</TableHead>
-                                                <TableHead>Purchase</TableHead>
-                                                <TableHead>Cashout</TableHead>
+                                                <TableHead>{viewMode === 'purchase' ? 'Purchase' : 'Cashout'}</TableHead>
                                                 <TableHead className="text-right">Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -587,69 +602,73 @@ export function SuperAdminPaymentSettings() {
                                                         <Badge variant="info">{method.method_type || 'N/A'}</Badge>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge variant={method.is_enabled_for_purchase ? 'success' : 'default'}>
-                                                            {method.is_enabled_for_purchase ? 'Enabled' : 'Disabled'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={method.is_enabled_for_cashout ? 'success' : 'default'}>
-                                                            {method.is_enabled_for_cashout ? 'Enabled' : 'Disabled'}
+                                                        <Badge variant={viewMode === 'purchase' 
+                                                            ? (method.is_enabled_for_purchase ? 'success' : 'default')
+                                                            : (method.is_enabled_for_cashout ? 'success' : 'default')
+                                                        }>
+                                                            {viewMode === 'purchase' 
+                                                                ? (method.is_enabled_for_purchase ? 'Enabled' : 'Disabled')
+                                                                : (method.is_enabled_for_cashout ? 'Enabled' : 'Disabled')
+                                                            }
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <div className="flex items-center justify-end gap-2">
-                                                            <Button
-                                                                size="sm"
-                                                                variant={method.is_enabled_for_purchase ? 'ghost' : 'secondary'}
-                                                                onClick={() => handleTogglePurchase(method.id)}
-                                                                disabled={confirmModal.isLoading}
-                                                                className={`${method.is_enabled_for_purchase
-                                                                        ? 'border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-800 dark:hover:text-red-200'
-                                                                        : 'border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/30 hover:text-green-800 dark:hover:text-green-200'
-                                                                    }`}
-                                                            >
-                                                                {method.is_enabled_for_purchase ? (
-                                                                    <>
-                                                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                                                        </svg>
-                                                                        Disable
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                        </svg>
-                                                                        Enable
-                                                                    </>
-                                                                )} Purchase
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant={method.is_enabled_for_cashout ? 'ghost' : 'secondary'}
-                                                                onClick={() => handleToggleCashout(method.id)}
-                                                                disabled={confirmModal.isLoading}
-                                                                className={`${method.is_enabled_for_cashout
-                                                                        ? 'border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-800 dark:hover:text-red-200'
-                                                                        : 'border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/30 hover:text-green-800 dark:hover:text-green-200'
-                                                                    }`}
-                                                            >
-                                                                {method.is_enabled_for_cashout ? (
-                                                                    <>
-                                                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                                                        </svg>
-                                                                        Disable
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                        </svg>
-                                                                        Enable
-                                                                    </>
-                                                                )} Cashout
-                                                            </Button>
+                                                            {viewMode === 'purchase' ? (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant={method.is_enabled_for_purchase ? 'ghost' : 'secondary'}
+                                                                    onClick={() => handleTogglePurchase(method.id)}
+                                                                    disabled={confirmModal.isLoading}
+                                                                    className={`${method.is_enabled_for_purchase
+                                                                            ? 'border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-800 dark:hover:text-red-200'
+                                                                            : 'border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/30 hover:text-green-800 dark:hover:text-green-200'
+                                                                        }`}
+                                                                >
+                                                                    {method.is_enabled_for_purchase ? (
+                                                                        <>
+                                                                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                                            </svg>
+                                                                            Disable
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                            </svg>
+                                                                            Enable
+                                                                        </>
+                                                                    )} Purchase
+                                                                </Button>
+                                                            ) : (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant={method.is_enabled_for_cashout ? 'ghost' : 'secondary'}
+                                                                    onClick={() => handleToggleCashout(method.id)}
+                                                                    disabled={confirmModal.isLoading}
+                                                                    className={`${method.is_enabled_for_cashout
+                                                                            ? 'border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-800 dark:hover:text-red-200'
+                                                                            : 'border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/30 hover:text-green-800 dark:hover:text-green-200'
+                                                                        }`}
+                                                                >
+                                                                    {method.is_enabled_for_cashout ? (
+                                                                        <>
+                                                                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                                            </svg>
+                                                                            Disable
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                            </svg>
+                                                                            Enable
+                                                                        </>
+                                                                    )} Cashout
+                                                                </Button>
+                                                            )}
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>
@@ -678,46 +697,49 @@ export function SuperAdminPaymentSettings() {
                                                         <div className="flex flex-wrap items-center gap-2">
                                                             <Badge variant="info" className="text-xs px-2 py-0.5">{method.method_type || 'N/A'}</Badge>
                                                             <Badge
-                                                                variant={method.is_enabled_for_purchase ? 'success' : 'default'}
+                                                                variant={viewMode === 'purchase' 
+                                                                    ? (method.is_enabled_for_purchase ? 'success' : 'default')
+                                                                    : (method.is_enabled_for_cashout ? 'success' : 'default')
+                                                                }
                                                                 className="text-xs px-2 py-0.5"
                                                             >
-                                                                Purchase: {method.is_enabled_for_purchase ? 'Enabled' : 'Disabled'}
-                                                            </Badge>
-                                                            <Badge
-                                                                variant={method.is_enabled_for_cashout ? 'success' : 'default'}
-                                                                className="text-xs px-2 py-0.5"
-                                                            >
-                                                                Cashout: {method.is_enabled_for_cashout ? 'Enabled' : 'Disabled'}
+                                                                {viewMode === 'purchase' ? 'Purchase' : 'Cashout'}: {viewMode === 'purchase' 
+                                                                    ? (method.is_enabled_for_purchase ? 'Enabled' : 'Disabled')
+                                                                    : (method.is_enabled_for_cashout ? 'Enabled' : 'Disabled')
+                                                                }
                                                             </Badge>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="pt-2 border-t space-y-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant={method.is_enabled_for_purchase ? 'ghost' : 'secondary'}
-                                                        onClick={() => handleTogglePurchase(method.id)}
-                                                        disabled={confirmModal.isLoading}
-                                                        className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.is_enabled_for_purchase
-                                                            ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                                                            : ''
-                                                            }`}
-                                                    >
-                                                        {method.is_enabled_for_purchase ? 'Disable Purchase' : 'Enable Purchase'}
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant={method.is_enabled_for_cashout ? 'ghost' : 'secondary'}
-                                                        onClick={() => handleToggleCashout(method.id)}
-                                                        disabled={confirmModal.isLoading}
-                                                        className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.is_enabled_for_cashout
-                                                            ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                                                            : ''
-                                                            }`}
-                                                    >
-                                                        {method.is_enabled_for_cashout ? 'Disable Cashout' : 'Enable Cashout'}
-                                                    </Button>
+                                                <div className="pt-2 border-t">
+                                                    {viewMode === 'purchase' ? (
+                                                        <Button
+                                                            size="sm"
+                                                            variant={method.is_enabled_for_purchase ? 'ghost' : 'secondary'}
+                                                            onClick={() => handleTogglePurchase(method.id)}
+                                                            disabled={confirmModal.isLoading}
+                                                            className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.is_enabled_for_purchase
+                                                                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                                                : ''
+                                                                }`}
+                                                        >
+                                                            {method.is_enabled_for_purchase ? 'Disable Purchase' : 'Enable Purchase'}
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            size="sm"
+                                                            variant={method.is_enabled_for_cashout ? 'ghost' : 'secondary'}
+                                                            onClick={() => handleToggleCashout(method.id)}
+                                                            disabled={confirmModal.isLoading}
+                                                            className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.is_enabled_for_cashout
+                                                                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                                                : ''
+                                                                }`}
+                                                        >
+                                                            {method.is_enabled_for_cashout ? 'Disable Cashout' : 'Enable Cashout'}
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </CardContent>
                                         </Card>
