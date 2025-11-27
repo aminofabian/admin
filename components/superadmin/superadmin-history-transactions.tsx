@@ -7,7 +7,7 @@ import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { EmptyState } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
-import type { Agent, PaymentMethod, Staff, Manager } from '@/types';
+import type { Agent, PaymentMethod, Staff, Manager, Company } from '@/types';
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
   agent: '',
@@ -76,10 +76,22 @@ export function SuperAdminHistoryTransactions() {
     const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
     const [isOperatorLoading, setIsOperatorLoading] = useState(false);
 
+    // Company filter state
+    const [companySearchTerm, setCompanySearchTerm] = useState('');
+    const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+    const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
+
     // Initialize filter once
     useEffect(() => {
         setFilter('history');
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Fetch companies
+    useEffect(() => {
+        fetchCompanies();
     }, []);
 
     // Fetch transactions when dependencies change
@@ -117,10 +129,36 @@ export function SuperAdminHistoryTransactions() {
         
         setFilters(filterState);
 
+        // Sync selected company from filters
+        if (advancedFilters.company_id) {
+            const companyId = parseInt(advancedFilters.company_id, 10);
+            if (!isNaN(companyId)) {
+                setSelectedCompanyId(companyId);
+            }
+        } else {
+            setSelectedCompanyId(null);
+        }
+
         if (Object.keys(advancedFilters).length > 0) {
             setAreFiltersOpen(true);
         }
     }, [advancedFilters]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (isCompanyDropdownOpen && !target.closest('[data-company-dropdown]')) {
+                setIsCompanyDropdownOpen(false);
+                setCompanySearchTerm('');
+            }
+        };
+
+        if (isCompanyDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }
+    }, [isCompanyDropdownOpen]);
 
     // Fetch agents for dropdown
     useEffect(() => {
@@ -293,9 +331,38 @@ export function SuperAdminHistoryTransactions() {
         };
     }, []);
 
+    const fetchCompanies = async () => {
+        setIsLoadingCompanies(true);
+        try {
+            const response = await paymentMethodsApi.getManagementCompanies();
+            if (response.companies) {
+                setCompanies(response.companies);
+            } else {
+                setCompanies([]);
+            }
+        } catch (err: unknown) {
+            console.error('Failed to load companies:', err);
+            setCompanies([]);
+        } finally {
+            setIsLoadingCompanies(false);
+        }
+    };
+
     const handleFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
         setFilters((previous) => ({ ...previous, [key]: value }));
     }, []);
+
+    const handleCompanyChange = useCallback((companyId: number | null) => {
+        setSelectedCompanyId(companyId);
+        // Update advanced filters with company_id
+        const updatedFilters = { ...advancedFilters };
+        if (companyId) {
+            updatedFilters.company_id = String(companyId);
+        } else {
+            delete updatedFilters.company_id;
+        }
+        setAdvancedFiltersWithoutFetch(updatedFilters);
+    }, [advancedFilters, setAdvancedFiltersWithoutFetch]);
 
     const handleApplyFilters = useCallback(() => {
         // Sanitize filters - keep only non-empty values
@@ -315,6 +382,11 @@ export function SuperAdminHistoryTransactions() {
             if (agentId) {
                 sanitized.agent_id = String(agentId);
             }
+        }
+
+        // Add company_id if selected
+        if (selectedCompanyId) {
+            sanitized.company_id = String(selectedCompanyId);
         }
 
         // Ensure date values are properly formatted (YYYY-MM-DD) before applying
@@ -345,10 +417,11 @@ export function SuperAdminHistoryTransactions() {
         // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
         // The useEffect will handle fetching with the new filters
         setAdvancedFiltersWithoutFetch(sanitized);
-    }, [filters, setAdvancedFiltersWithoutFetch, agentIdMap]);
+    }, [filters, selectedCompanyId, setAdvancedFiltersWithoutFetch, agentIdMap]);
 
     const handleClearFilters = useCallback(() => {
         setFilters({ ...DEFAULT_HISTORY_FILTERS });
+        setSelectedCompanyId(null);
         // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
         // The useEffect will handle fetching with cleared filters
         setAdvancedFiltersWithoutFetch({});
@@ -383,6 +456,20 @@ export function SuperAdminHistoryTransactions() {
     }, [transactions]);
 
     const transactionList = transactions?.results || [];
+
+    // Filter companies based on search term
+    const filteredCompanies = useMemo(() => {
+        if (!companySearchTerm.trim()) return companies;
+
+        const search = companySearchTerm.toLowerCase();
+        return companies.filter(
+            (company) =>
+                company.project_name.toLowerCase().includes(search) ||
+                company.username.toLowerCase().includes(search)
+        );
+    }, [companies, companySearchTerm]);
+
+    const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
     if (isLoading && !transactionList.length) {
         return (
@@ -487,6 +574,136 @@ export function SuperAdminHistoryTransactions() {
                 </Card>
             </div>
 
+            {/* Company Filter */}
+            <Card className="mt-4 mb-4 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-visible">
+                <CardContent className="px-4 md:px-6 py-4 md:py-6">
+                    <div className="relative" data-company-dropdown>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Filter by Company
+                        </label>
+                        <button
+                            onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+                            className="w-full p-3 rounded-lg border-2 border-border bg-card hover:border-primary/50 hover:bg-accent transition-all text-left group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 rounded-lg flex items-center justify-center shadow-sm border border-primary/10">
+                                        <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        {selectedCompany ? (
+                                            <>
+                                                <div className="font-semibold text-sm text-foreground truncate">
+                                                    {selectedCompany.project_name}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground truncate">
+                                                    @{selectedCompany.username}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-sm text-muted-foreground">
+                                                All Companies
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex-shrink-0 ml-3">
+                                    <svg
+                                        className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isCompanyDropdownOpen ? 'rotate-180' : ''}`}
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {isCompanyDropdownOpen && (
+                            <div className="absolute z-50 w-full mt-2 bg-card border-2 border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                {/* Search Input */}
+                                <div className="p-3 border-b border-border bg-muted/30">
+                                    <div className="relative">
+                                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            value={companySearchTerm}
+                                            onChange={(e) => setCompanySearchTerm(e.target.value)}
+                                            placeholder="Search companies..."
+                                            className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Company List */}
+                                <div className="max-h-[300px] overflow-y-auto">
+                                    <button
+                                        onClick={() => {
+                                            handleCompanyChange(null);
+                                            setIsCompanyDropdownOpen(false);
+                                            setCompanySearchTerm('');
+                                        }}
+                                        className={`w-full p-3 text-left transition-all hover:bg-accent border-b border-border/50 ${!selectedCompanyId ? 'bg-primary/5' : ''}`}
+                                    >
+                                        <div className="font-semibold text-sm">All Companies</div>
+                                    </button>
+                                    {isLoadingCompanies ? (
+                                        <div className="p-6 text-center text-muted-foreground">
+                                            <p className="text-sm">Loading companies...</p>
+                                        </div>
+                                    ) : filteredCompanies.length === 0 ? (
+                                        <div className="p-6 text-center text-muted-foreground">
+                                            <p className="text-sm">No companies match your search</p>
+                                        </div>
+                                    ) : (
+                                        filteredCompanies.map((company) => (
+                                            <button
+                                                key={company.id}
+                                                onClick={() => {
+                                                    handleCompanyChange(company.id);
+                                                    setIsCompanyDropdownOpen(false);
+                                                    setCompanySearchTerm('');
+                                                }}
+                                                className={`w-full p-3 text-left transition-all hover:bg-accent border-b border-border/50 last:border-b-0 ${selectedCompanyId === company.id ? 'bg-primary/5' : ''}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm transition-all ${selectedCompanyId === company.id
+                                                        ? 'bg-primary text-primary-foreground shadow-md'
+                                                        : 'bg-gradient-to-br from-muted to-muted/50 text-muted-foreground'
+                                                        }`}>
+                                                        {company.project_name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-semibold text-sm text-foreground truncate">
+                                                            {company.project_name}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground truncate">
+                                                            @{company.username}
+                                                        </div>
+                                                    </div>
+                                                    {selectedCompanyId === company.id && (
+                                                        <svg className="w-5 h-5 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Filters */}
             <HistoryTransactionsFilters
                 filters={filters}
@@ -525,6 +742,7 @@ export function SuperAdminHistoryTransactions() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Username</TableHead>
+                                            <TableHead>Company</TableHead>
                                             <TableHead>Type</TableHead>
                                             <TableHead>Amount</TableHead>
                                             <TableHead>Status</TableHead>
@@ -539,6 +757,25 @@ export function SuperAdminHistoryTransactions() {
                                             return (
                                                 <TableRow key={transaction.id}>
                                                     <TableCell className="font-medium">{username}</TableCell>
+                                                    <TableCell>
+                                                        {selectedCompany ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center font-bold text-xs text-primary">
+                                                                    {selectedCompany.project_name.charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <div className="font-medium text-sm truncate">
+                                                                        {selectedCompany.project_name}
+                                                                    </div>
+                                                                    <div className="text-xs text-muted-foreground truncate">
+                                                                        @{selectedCompany.username}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">All Companies</span>
+                                                        )}
+                                                    </TableCell>
                                                     <TableCell>
                                                         <Badge variant="info" className="capitalize">
                                                             {transactionType}
@@ -601,6 +838,22 @@ export function SuperAdminHistoryTransactions() {
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                {selectedCompany && (
+                                                    <div className="flex items-center gap-2 pt-1 border-t">
+                                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center font-bold text-xs text-primary">
+                                                            {selectedCompany.project_name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="font-medium text-sm truncate">
+                                                                {selectedCompany.project_name}
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground truncate">
+                                                                @{selectedCompany.username}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 <div className="space-y-2 text-sm pt-2 border-t">
                                                     <div className="flex items-center justify-between">
