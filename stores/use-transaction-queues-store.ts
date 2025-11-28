@@ -84,12 +84,33 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
           // game_username: filter client-side if backend doesn't support it
           // All other filters including username and email: send to backend
           if (key !== 'game_username') {
-            cleanedAdvancedFilters[key] = value;
+            // Username and email: trim and send as-is for partial search (like transactions store)
+            if (key === 'username' || key === 'email') {
+              const trimmedValue = String(value).trim();
+              if (trimmedValue) {
+                cleanedAdvancedFilters[key] = trimmedValue;
+              }
+            } else {
+              cleanedAdvancedFilters[key] = value;
+            }
           }
         }
       });
 
       Object.assign(filters, cleanedAdvancedFilters);
+
+      // Log filters for debugging (especially username)
+      if (cleanedAdvancedFilters.username || cleanedAdvancedFilters.email) {
+        console.log('📊 Fetching transaction queues:', {
+          filter,
+          filters,
+          cleanedAdvancedFilters,
+          originalAdvancedFilters: advancedFilters,
+          username: filters.username,
+          email: filters.email,
+          allFilterKeys: Object.keys(filters),
+        });
+      }
 
       // Use new separate endpoints based on filter type
       let response: PaginatedResponse<TransactionQueue>;
@@ -98,6 +119,14 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         // Use transaction-queues-history endpoint - remove type since endpoint handles it
         const historyFilters = { ...filters };
         delete historyFilters.type;
+        
+        console.log('🌐 Final API filters for queuesHistory:', {
+          historyFilters,
+          username: historyFilters.username,
+          email: historyFilters.email,
+          allKeys: Object.keys(historyFilters),
+        });
+        
         response = await transactionsApi.queuesHistory(historyFilters);
       } else if (filter === 'processing') {
         // Use transaction-queues-processing endpoint - remove type since endpoint handles it
