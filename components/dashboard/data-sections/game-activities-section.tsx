@@ -217,12 +217,6 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
 
   // Single fetch effect - only when everything is ready
   useEffect(() => {
-    // Skip if unfiltered requests are blocked and we have no username
-    if (blockUnfilteredRequests && !advancedFilters.username) {
-      console.log('🚫 BLOCKED - Unfiltered requests not allowed');
-      return;
-    }
-
     // Skip if we expect a username but don't have it yet
     if (expectedUsername && !advancedFilters.username) {
       console.log('⏭️ WAITING - Expected username not yet applied:', expectedUsername);
@@ -235,6 +229,13 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
         expected: expectedUsername,
         actual: advancedFilters.username
       });
+      return;
+    }
+
+    // Block unfiltered requests ONLY when blockUnfilteredRequests is true AND we're expecting a username
+    // This allows normal history page loads without username filters
+    if (blockUnfilteredRequests && expectedUsername && !advancedFilters.username) {
+      console.log('🚫 BLOCKED - Unfiltered requests not allowed while username is being applied');
       return;
     }
 
@@ -252,7 +253,7 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
     });
 
     fetchQueues();
-  }, [queueFilter, advancedFilters.username, expectedUsername, blockUnfilteredRequests]);
+  }, [queueFilter, advancedFilters.username, expectedUsername, blockUnfilteredRequests, fetchQueues]);
 
   
   

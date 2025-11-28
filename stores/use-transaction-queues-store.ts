@@ -61,7 +61,7 @@ const initialState: TransactionQueuesState = {
   currentPage: 1,
   pageSize: 10,
   expectedUsername: null,
-  blockUnfilteredRequests: true, // Start with blocking enabled by default
+  blockUnfilteredRequests: false, // Only block when explicitly set (e.g., when username filter is being applied)
 };
 
 export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, get) => ({
@@ -85,24 +85,6 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
       return;
     }
 
-    // NUCLEAR OPTION: Block ALL requests unless we have a username for game activities
-    if (filter === 'history' && !advancedFilters.username) {
-      console.log('☢️ NUCLEAR BLOCK - No username for game activities, denying ALL requests');
-      return;
-    }
-
-    // ULTRA AGGRESSIVE: Block ALL requests when block is enabled and no username
-    if (currentState.blockUnfilteredRequests && !advancedFilters.username) {
-      console.log('🚫 BLOCKING unfiltered request - blockUnfilteredRequests is true, no username found');
-      return;
-    }
-
-    // NUCLEAR: NEVER allow game-activities requests without username (override all other logic)
-    if (filter === 'history' && !advancedFilters.username) {
-      console.log('☢️ NUCLEAR BLOCK - Game activities without username are NEVER allowed');
-      return;
-    }
-
     // CRITICAL: Skip fetch if we expect a username filter but don't have one
     // This prevents unfiltered requests when a username should be applied
     if (currentState.expectedUsername && !advancedFilters.username) {
@@ -121,6 +103,13 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         expectedUsername: currentState.expectedUsername,
         actualUsername: advancedFilters.username,
       });
+      return;
+    }
+
+    // Block unfiltered requests ONLY when blockUnfilteredRequests is true AND we're expecting a username
+    // This allows normal history page loads without username filters
+    if (currentState.blockUnfilteredRequests && currentState.expectedUsername && !advancedFilters.username) {
+      console.log('🚫 BLOCKING unfiltered request - blockUnfilteredRequests is true and username expected, but no username found');
       return;
     }
 
