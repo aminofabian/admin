@@ -128,7 +128,12 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
   };
 }
 
-export function TransactionsSection() {
+interface TransactionsSectionProps {
+  initialUsername?: string | null;
+  openFiltersOnMount?: boolean;
+}
+
+export function TransactionsSection({ initialUsername, openFiltersOnMount = false }: TransactionsSectionProps) {
   const transactions = useTransactionsStore((state) => state.transactions);
   const isLoading = useTransactionsStore((state) => state.isLoading);
   const error = useTransactionsStore((state) => state.error);
@@ -153,8 +158,15 @@ export function TransactionsSection() {
   const isFirstMountRef = useRef(true);
   const previousDepsRef = useRef<{ page: number; filter: string; filters: string } | null>(null);
 
-  const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
-  const [areFiltersOpen, setAreFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => {
+    const baseFilters = buildHistoryFilterState(advancedFilters);
+    // If initialUsername is provided, pre-fill it (but don't apply)
+    if (initialUsername && !baseFilters.username) {
+      return { ...baseFilters, username: initialUsername };
+    }
+    return baseFilters;
+  });
+  const [areFiltersOpen, setAreFiltersOpen] = useState(openFiltersOnMount || false);
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
   const [isAgentLoading, setIsAgentLoading] = useState(false);
@@ -206,6 +218,30 @@ export function TransactionsSection() {
   }, [currentPage, filter, advancedFiltersString]);
 
   // Removed toast notification for zero results - per requirements
+
+  // Handle initial username prop - pre-fill filter and automatically apply it
+  const hasInitializedUsernameRef = useRef(false);
+  useEffect(() => {
+    if (initialUsername && !hasInitializedUsernameRef.current) {
+      // Pre-fill the filter form
+      setFilters(prev => ({ ...prev, username: initialUsername }));
+      setAreFiltersOpen(true);
+      
+      // Automatically apply the filter
+      const filterUpdate: Record<string, string> = {
+        username: initialUsername,
+      };
+      setAdvancedFiltersWithoutFetch(filterUpdate);
+      
+      // Manually trigger fetch after setting filters to ensure it happens
+      // Use setTimeout to ensure state is updated first
+      setTimeout(() => {
+        fetchTransactionsRef.current();
+      }, 0);
+      
+      hasInitializedUsernameRef.current = true;
+    }
+  }, [initialUsername, setAdvancedFiltersWithoutFetch]);
 
   useEffect(() => {
     if (agentIdMap.size === 0) {

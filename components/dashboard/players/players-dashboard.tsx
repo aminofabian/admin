@@ -10,7 +10,6 @@ import {
   Button,
   Drawer,
   Pagination,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -20,12 +19,12 @@ import {
   useToast,
   Skeleton,
 } from '@/components/ui';
-import { useTheme } from '@/providers/theme-provider';
 import {
   EmptyState,
   ErrorState,
   PlayerForm,
 } from '@/components/features';
+import { PlayersFilters, type PlayersFiltersState } from './players-filters';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -35,70 +34,8 @@ import type {
   UpdateUserRequest,
 } from '@/types';
 
-// All 50 US States
-const US_STATES = [
-  { value: 'AL', label: 'Alabama' },
-  { value: 'AK', label: 'Alaska' },
-  { value: 'AZ', label: 'Arizona' },
-  { value: 'AR', label: 'Arkansas' },
-  { value: 'CA', label: 'California' },
-  { value: 'CO', label: 'Colorado' },
-  { value: 'CT', label: 'Connecticut' },
-  { value: 'DE', label: 'Delaware' },
-  { value: 'FL', label: 'Florida' },
-  { value: 'GA', label: 'Georgia' },
-  { value: 'HI', label: 'Hawaii' },
-  { value: 'ID', label: 'Idaho' },
-  { value: 'IL', label: 'Illinois' },
-  { value: 'IN', label: 'Indiana' },
-  { value: 'IA', label: 'Iowa' },
-  { value: 'KS', label: 'Kansas' },
-  { value: 'KY', label: 'Kentucky' },
-  { value: 'LA', label: 'Louisiana' },
-  { value: 'ME', label: 'Maine' },
-  { value: 'MD', label: 'Maryland' },
-  { value: 'MA', label: 'Massachusetts' },
-  { value: 'MI', label: 'Michigan' },
-  { value: 'MN', label: 'Minnesota' },
-  { value: 'MS', label: 'Mississippi' },
-  { value: 'MO', label: 'Missouri' },
-  { value: 'MT', label: 'Montana' },
-  { value: 'NE', label: 'Nebraska' },
-  { value: 'NV', label: 'Nevada' },
-  { value: 'NH', label: 'New Hampshire' },
-  { value: 'NJ', label: 'New Jersey' },
-  { value: 'NM', label: 'New Mexico' },
-  { value: 'NY', label: 'New York' },
-  { value: 'NC', label: 'North Carolina' },
-  { value: 'ND', label: 'North Dakota' },
-  { value: 'OH', label: 'Ohio' },
-  { value: 'OK', label: 'Oklahoma' },
-  { value: 'OR', label: 'Oregon' },
-  { value: 'PA', label: 'Pennsylvania' },
-  { value: 'RI', label: 'Rhode Island' },
-  { value: 'SC', label: 'South Carolina' },
-  { value: 'SD', label: 'South Dakota' },
-  { value: 'TN', label: 'Tennessee' },
-  { value: 'TX', label: 'Texas' },
-  { value: 'UT', label: 'Utah' },
-  { value: 'VT', label: 'Vermont' },
-  { value: 'VA', label: 'Virginia' },
-  { value: 'WA', label: 'Washington' },
-  { value: 'WV', label: 'West Virginia' },
-  { value: 'WI', label: 'Wisconsin' },
-  { value: 'WY', label: 'Wyoming' },
-];
+type FilterState = PlayersFiltersState;
 
-type FilterState = {
-  username: string;
-  full_name: string;
-  email: string;
-  agent: string;
-  date_from: string;
-  date_to: string;
-  status: string;
-  state: string;
-};
 
 type ModalState = {
   confirm: {
@@ -184,7 +121,7 @@ export default function PlayersDashboard(): ReactElement {
                   ))}
                 </div>
               </div>
-              
+
               {/* Table Rows Skeleton */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
@@ -226,17 +163,20 @@ export default function PlayersDashboard(): ReactElement {
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
-      <PlayersHeader 
+      <PlayersHeader
         onAddPlayer={modalState.openCreateModal}
         totalCount={dataState.data?.count ?? 0}
       />
-      <PlayersFilters
+      {modalState.state.successMessage && (
+        <div className="mb-4">
+          <SuccessBanner message={modalState.state.successMessage} onDismiss={modalState.clearSuccessMessage} />
+        </div>
+      )}
+      <PlayersFiltersWrapper
         filters={filters.values}
         onFilterChange={filters.setFilter}
-        onApplyFilters={filters.applyFilters}
-        onClearFilters={filters.clearFilters}
-        successMessage={modalState.state.successMessage}
-        onDismissSuccess={modalState.clearSuccessMessage}
+        onApply={filters.applyFilters}
+        onClear={filters.clearFilters}
         agentOptions={agentOptions}
         isAgentLoading={isAgentLoading}
         isLoading={dataState.isLoading}
@@ -269,17 +209,17 @@ function usePlayersPageContext(): PlayersPageContext {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const pagination = usePagination();
-  
+
   // Read agent username from URL params
   const agentFromUrl = searchParams.get('agent');
-  
+
   // Load agents for filter dropdown
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isAgentLoading, setIsAgentLoading] = useState(false);
 
   // Initialize filters with pagination and initial agent from URL (if present)
   const filters = usePlayerFilters(pagination.setPage, agentFromUrl || undefined);
-  
+
   // Clear all filters and set only agent filter when agent is in URL
   const hasInitializedAgentRef = useRef(false);
   useEffect(() => {
@@ -372,18 +312,18 @@ function usePlayersPageContext(): PlayersPageContext {
         const params = new URLSearchParams(window.location.search);
         params.delete('agent');
         const newSearch = params.toString();
-        const newUrl = newSearch 
+        const newUrl = newSearch
           ? `${pathname}?${newSearch}`
           : pathname;
         // Use window.history.replaceState to avoid triggering a navigation/reload
         window.history.replaceState({}, '', newUrl);
       }, 100); // Small delay to ensure filter state is initialized
-      
+
       return () => clearTimeout(timeoutId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentFromUrl, pathname]);
-  
+
   const dataState = usePlayersData({
     filters: filters.appliedFilters,
     pagination,
@@ -452,7 +392,7 @@ function usePlayersData({
       if (filters.email.trim()) {
         params.email = filters.email.trim();
       }
-      
+
       // Add agent (username) if provided from filter
       if (filters.agent.trim()) {
         params.agent = filters.agent.trim();
@@ -509,7 +449,7 @@ function usePlayersData({
 
       // Log the final params to verify date format
       console.log('🔍 Sending API request with params:', params);
-      
+
       const response = await playersApi.list(params);
       setState({ data: response, error: '', isLoading: false });
     } catch (error) {
@@ -796,10 +736,10 @@ function useSuccessMessageTimer(
 }
 
 
-function PlayersHeader({ 
+function PlayersHeader({
   onAddPlayer,
   totalCount,
-}: { 
+}: {
   onAddPlayer: () => void;
   totalCount: number;
 }): ReactElement {
@@ -813,7 +753,7 @@ function PlayersHeader({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
         </div>
-        
+
         {/* Title and Count */}
         <div className="flex flex-col shrink-0">
           <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
@@ -823,14 +763,14 @@ function PlayersHeader({
             {totalCount.toLocaleString()} {totalCount === 1 ? 'player' : 'players'}
           </p>
         </div>
-        
+
         {/* Spacer */}
         <div className="flex-1 min-w-0" />
-        
+
         {/* Add button - compact */}
-        <Button 
-          variant="primary" 
-          size="sm" 
+        <Button
+          variant="primary"
+          size="sm"
           onClick={onAddPlayer}
           className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
         >
@@ -844,240 +784,58 @@ function PlayersHeader({
   );
 }
 
-type PlayersFiltersProps = {
+type PlayersFiltersWrapperProps = {
   filters: FilterState;
-  onApplyFilters: () => void;
-  onClearFilters: () => void;
-  onDismissSuccess: () => void;
+  onApply: () => void;
+  onClear: () => void;
   onFilterChange: (key: keyof FilterState, value: string) => void;
-  successMessage: string;
   agentOptions: Array<{ value: string; label: string }>;
   isAgentLoading: boolean;
   isLoading: boolean;
 };
 
-const FILTER_ICON = (
-  <svg className="w-5 h-5 text-muted-foreground transition-colors dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <defs>
-      <linearGradient id="filterIconGradient" x1="0%" x2="100%" y1="0%" y2="100%">
-        <stop offset="0%" stopColor="currentColor" stopOpacity="0.4" />
-        <stop offset="100%" stopColor="currentColor" />
-      </linearGradient>
-    </defs>
-    <path stroke="url(#filterIconGradient)" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-  </svg>
-);
-
-function PlayersFilters({
+function PlayersFiltersWrapper({
   filters,
-  onApplyFilters,
-  onClearFilters,
-  onDismissSuccess,
+  onApply,
+  onClear,
   onFilterChange,
-  successMessage,
   agentOptions,
   isAgentLoading,
   isLoading,
-}: PlayersFiltersProps): ReactElement {
+}: PlayersFiltersWrapperProps): ReactElement {
   // Open filters automatically if agent filter is present (e.g., from URL navigation)
   // This ensures the filter dropdown is visible when navigating from agent section
   const [isOpen, setIsOpen] = useState(() => Boolean(filters.agent?.trim()));
-  const { theme } = useTheme();
-  
-  const inputClasses =
-    'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
-  const labelClasses =
-    'block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300';
+
+  // Keep filters open when there are active filters applied
+  useEffect(() => {
+    const hasActiveFilters =
+      filters.username.trim() !== '' ||
+      filters.full_name.trim() !== '' ||
+      filters.email.trim() !== '' ||
+      filters.agent.trim() !== '' ||
+      filters.date_from.trim() !== '' ||
+      filters.date_to.trim() !== '' ||
+      (filters.status.trim() !== '' && filters.status !== 'all') ||
+      (filters.state.trim() !== '' && filters.state !== 'all');
+
+    if (hasActiveFilters) {
+      setIsOpen(true);
+    }
+  }, [filters]);
 
   return (
-    <>
-      {successMessage && (
-        <div className="mb-4">
-          <SuccessBanner message={successMessage} onDismiss={onDismissSuccess} />
-        </div>
-      )}
-      
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-md shadow-black/5 backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-slate-900/40">
-        <div className="flex items-center justify-between text-foreground">
-          <h3 className="flex items-center gap-3 text-base font-semibold text-foreground transition-colors">
-            {FILTER_ICON}
-            Filters
-          </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsOpen(!isOpen)}
-            className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground dark:hover:bg-slate-800/70"
-          >
-            {isOpen ? (
-              <>
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                </svg>
-                Hide Filters
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-                Show Filters
-              </>
-            )}
-          </Button>
-        </div>
-
-        {isOpen && (
-          <div className="pt-5 text-foreground transition-colors">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
-              {/* Player Username */}
-              <div className="min-w-0">
-                <label className={labelClasses}>Player Username</label>
-                <input
-                  type="text"
-                  value={filters.username}
-                  onChange={(event) => onFilterChange('username', event.target.value)}
-                  placeholder="Enter username..."
-                  className={inputClasses}
-                />
-              </div>
-
-              {/* Full Name */}
-              <div className="min-w-0">
-                <label className={labelClasses}>Full Name</label>
-                <input
-                  type="text"
-                  value={filters.full_name}
-                  onChange={(event) => onFilterChange('full_name', event.target.value)}
-                  placeholder="Enter full name..."
-                  className={inputClasses}
-                />
-              </div>
-
-              {/* Email */}
-              <div className="min-w-0">
-                <label className={labelClasses}>Email</label>
-                <input
-                  type="email"
-                  value={filters.email}
-                  onChange={(event) => onFilterChange('email', event.target.value)}
-                  placeholder="Filter by email"
-                  className={inputClasses}
-                />
-              </div>
-
-              {/* Agent */}
-              <div className="min-w-0">
-                <label className={labelClasses}>Agent</label>
-                <Select
-                  value={filters.agent}
-                  onChange={(value: string) => onFilterChange('agent', value)}
-                  options={[
-                    { value: '', label: 'All Agents' },
-                    ...(agentOptions || []),
-                    ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
-                      ? [{ value: filters.agent, label: filters.agent }]
-                      : []),
-                  ]}
-                  placeholder="All Agents"
-                  isLoading={isAgentLoading}
-                  disabled={isAgentLoading}
-                />
-              </div>
-
-              {/* Status */}
-              <div className="min-w-0">
-                <label className={labelClasses}>Status</label>
-                <Select
-                  value={filters.status}
-                  onChange={(value: string) => onFilterChange('status', value)}
-                  options={[
-                    { value: 'all', label: 'All Statuses' },
-                    { value: 'active', label: 'Active' },
-                    { value: 'inactive', label: 'Inactive' },
-                  ]}
-                  placeholder="All Statuses"
-                />
-              </div>
-
-              {/* State */}
-              <div className="min-w-0">
-                <label className={labelClasses}>State</label>
-                <Select
-                  value={filters.state}
-                  onChange={(value: string) => onFilterChange('state', value)}
-                  options={[
-                    { value: 'all', label: 'All States' },
-                    ...US_STATES,
-                  ]}
-                  placeholder="All States"
-                />
-              </div>
-
-              {/* From Date */}
-              <div className="min-w-0">
-                <label className={labelClasses}>From Date</label>
-                <input
-                  type="date"
-                  value={filters.date_from}
-                  onChange={(event) => onFilterChange('date_from', event.target.value)}
-                  max={filters.date_to || undefined}
-                  className={inputClasses}
-                  style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
-                />
-              </div>
-
-              {/* To Date */}
-              <div className="min-w-0">
-                <label className={labelClasses}>To Date</label>
-                <input
-                  type="date"
-                  value={filters.date_to}
-                  onChange={(event) => onFilterChange('date_to', event.target.value)}
-                  min={filters.date_from || undefined}
-                  className={inputClasses}
-                  style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="col-span-full flex flex-wrap justify-end gap-2 mt-4 pt-4 border-t border-border">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={onClearFilters}
-                  type="button"
-                  disabled={isLoading}
-                  className="hover:bg-muted/80 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Clear Filters
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={onApplyFilters}
-                  type="button"
-                  isLoading={isLoading}
-                  disabled={isLoading}
-                  className="hover:opacity-90 active:scale-95 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <>
-                      <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                        <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                      </svg>
-                      Applying...
-                    </>
-                  ) : (
-                    'Apply Filters'
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
+    <PlayersFilters
+      filters={filters}
+      onFilterChange={onFilterChange}
+      onApply={onApply}
+      onClear={onClear}
+      isOpen={isOpen}
+      onToggle={() => setIsOpen(!isOpen)}
+      agentOptions={agentOptions}
+      isAgentLoading={isAgentLoading}
+      isLoading={isLoading}
+    />
   );
 }
 
@@ -1268,8 +1026,8 @@ function PlayerCard({
                   )}
                 </button>
               </div>
-              <Badge 
-                variant={player.is_active ? 'success' : 'danger'} 
+              <Badge
+                variant={player.is_active ? 'success' : 'danger'}
                 className="text-[10px] px-2 py-0.5 shrink-0"
               >
                 {player.is_active ? 'Active' : 'Inactive'}
@@ -1431,10 +1189,10 @@ function CreatePlayerDrawer({
   submitError,
 }: CreatePlayerDrawerProps): ReactElement {
   return (
-    <Drawer 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title="Create New Player" 
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Create New Player"
       size="lg"
       footer={
         <div className="flex items-center justify-end gap-3 w-full">

@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
@@ -112,6 +112,8 @@ function buildGameActivityFilterState(advanced: Record<string, string>): History
 
 interface GameActivitiesSectionProps {
   showTabs?: boolean;
+  initialUsername?: string | null;
+  openFiltersOnMount?: boolean;
 }
 
 interface HistoryPaginationState {
@@ -123,7 +125,7 @@ interface HistoryPaginationState {
   onPageChange: (page: number) => void;
 }
 
-export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectionProps) {
+export function GameActivitiesSection({ showTabs = false, initialUsername, openFiltersOnMount = false }: GameActivitiesSectionProps) {
   // Selective store subscriptions - only subscribe to what we need
   const queues = useTransactionQueuesStore((state) => state.queues);
   const isLoading = useTransactionQueuesStore((state) => state.isLoading);
@@ -132,7 +134,9 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const advancedFilters = useTransactionQueuesStore((state) => state.advancedFilters);
   const setFilter = useTransactionQueuesStore((state) => state.setFilter);
   const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
+  const setAdvancedFilters = useTransactionQueuesStore((state) => state.setAdvancedFilters);
   const setAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.setAdvancedFiltersWithoutFetch);
+  const clearAdvancedFilters = useTransactionQueuesStore((state) => state.clearAdvancedFilters);
   const totalCount = useTransactionQueuesStore((state) => state.count);
   const next = useTransactionQueuesStore((state) => state.next);
   const previous = useTransactionQueuesStore((state) => state.previous);
@@ -140,8 +144,15 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const pageSize = useTransactionQueuesStore((state) => state.pageSize);
   const setPage = useTransactionQueuesStore((state) => state.setPage);
 
-  const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(() => buildGameActivityFilterState(advancedFilters));
-  const [areFiltersOpen, setAreFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(() => {
+    const baseFilters = buildGameActivityFilterState(advancedFilters);
+    // If initialUsername is provided, pre-fill it (but don't apply)
+    if (initialUsername && !baseFilters.username) {
+      return { ...baseFilters, username: initialUsername };
+    }
+    return baseFilters;
+  });
+  const [areFiltersOpen, setAreFiltersOpen] = useState(openFiltersOnMount || false);
   const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isGameLoading, setIsGameLoading] = useState(false);
 
@@ -151,8 +162,55 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch queues when dependencies change
+  // Fetch queues when dependencies change (but skip if we're setting initial filter)
+  const isSettingInitialFilterRef = useRef(false);
   useEffect(() => {
+    if (isSettingInitialFilterRef.current) {
+      return;
+    }
+    fetchQueues();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueFilter, advancedFilters]);
+
+  // Handle initial username prop - pre-fill filter and automatically apply it
+  const previousInitialUsernameRef = useRef<string | null | undefined>(undefined);
+  
+  useEffect(() => {
+    // Only process if username changed and filter is history
+    if (initialUsername && queueFilter === 'history' && previousInitialUsernameRef.current !== initialUsername) {
+      previousInitialUsernameRef.current = initialUsername;
+      isSettingInitialFilterRef.current = true;
+      
+      // Pre-fill the filter form
+      setFilters(prev => ({ ...prev, username: initialUsername }));
+      setAreFiltersOpen(true);
+      
+      // Set the filter directly (don't clear first to avoid triggering fetch with empty filters)
+      const filterUpdate: Record<string, string> = {
+        username: initialUsername,
+      };
+      setAdvancedFiltersWithoutFetch(filterUpdate);
+      
+      // Manually fetch after a brief delay to ensure state is updated
+      setTimeout(() => {
+        isSettingInitialFilterRef.current = false;
+        fetchQueues();
+      }, 50);
+    } else if (!initialUsername && previousInitialUsernameRef.current !== undefined) {
+      // Clear filter if username was removed
+      previousInitialUsernameRef.current = null;
+      setAdvancedFiltersWithoutFetch({});
+      setTimeout(() => {
+        fetchQueues();
+      }, 50);
+    }
+  }, [initialUsername, queueFilter, setAdvancedFiltersWithoutFetch, fetchQueues]);
+
+  // Prevent the auto-fetch useEffect from running while we're setting initial filters
+  useEffect(() => {
+    if (isSettingInitialFilterRef.current) {
+      return;
+    }
     fetchQueues();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queueFilter, advancedFilters]);
