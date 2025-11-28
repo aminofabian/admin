@@ -132,17 +132,23 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
   const error = useTransactionQueuesStore((state) => state.error);
   const queueFilter = useTransactionQueuesStore((state) => state.filter);
   const advancedFilters = useTransactionQueuesStore((state) => state.advancedFilters);
+  const expectedUsername = useTransactionQueuesStore((state) => state.expectedUsername);
+  const blockUnfilteredRequests = useTransactionQueuesStore((state) => state.blockUnfilteredRequests);
   const setFilter = useTransactionQueuesStore((state) => state.setFilter);
+  const setFilterWithoutFetch = useTransactionQueuesStore((state) => state.setFilterWithoutFetch);
   const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
   const setAdvancedFilters = useTransactionQueuesStore((state) => state.setAdvancedFilters);
   const setAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.setAdvancedFiltersWithoutFetch);
   const clearAdvancedFilters = useTransactionQueuesStore((state) => state.clearAdvancedFilters);
+  const setExpectedUsername = useTransactionQueuesStore((state) => state.setExpectedUsername);
+  const setBlockUnfilteredRequests = useTransactionQueuesStore((state) => state.setBlockUnfilteredRequests);
   const totalCount = useTransactionQueuesStore((state) => state.count);
   const next = useTransactionQueuesStore((state) => state.next);
   const previous = useTransactionQueuesStore((state) => state.previous);
   const currentPage = useTransactionQueuesStore((state) => state.currentPage);
   const pageSize = useTransactionQueuesStore((state) => state.pageSize);
   const setPage = useTransactionQueuesStore((state) => state.setPage);
+  const getStoreState = useTransactionQueuesStore.getState;
 
   const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(() => {
     const baseFilters = buildGameActivityFilterState(advancedFilters);
@@ -156,82 +162,100 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
   const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isGameLoading, setIsGameLoading] = useState(false);
 
-  // Initialize filter once
+  // Track component mount and previous values to prevent duplicate calls during React's strict mode
+  const isFirstMountRef = useRef(true);
+  const previousDepsRef = useRef<{ filter: string; filters: string } | null>(null);
+  const isSettingInitialFilterRef = useRef(false);
+  const hasSetInitialUsernameRef = useRef(false);
+  const advancedFiltersString = useMemo(() => JSON.stringify(advancedFilters), [advancedFilters]);
+
+  // Single mount effect - prevents all duplicate calls
   useEffect(() => {
-    setFilter('history');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    console.log('🏗️ GameActivitiesSection INITIALIZING with username:', initialUsername);
+
+    if (initialUsername) {
+      const trimmedUsername = initialUsername.trim();
+      console.log('🚫 IMMEDIATE BLOCK: Setting up username filter:', trimmedUsername);
+
+      // Block ALL unfiltered requests immediately
+      setBlockUnfilteredRequests(true);
+      setExpectedUsername(trimmedUsername);
+
+      // Apply filter in one atomic operation
+      setFilterWithoutFetch('history');
+      setAdvancedFiltersWithoutFetch({ username: trimmedUsername });
+
+      // Unblock after state is settled
+      setTimeout(() => {
+        console.log('✅ UNBLOCKING - Username filter should be applied');
+        setBlockUnfilteredRequests(false);
+      }, 150);
+    } else {
+      console.log('🔓 No username - normal operation');
+      setBlockUnfilteredRequests(false);
+      setExpectedUsername(null);
+      setFilterWithoutFetch('history');
+      setAdvancedFiltersWithoutFetch({});
+    }
+
+    return () => {
+      console.log('🏗️ GameActivitiesSection UNMOUNTING');
+      setBlockUnfilteredRequests(false);
+    };
+  }, [initialUsername, setBlockUnfilteredRequests, setExpectedUsername, setFilterWithoutFetch, setAdvancedFiltersWithoutFetch]);
+
+  // TEMPORARY: Block ALL requests for first 500ms to prevent initial unfiltered calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      console.log('⏰ TEMPORARY BLOCK LIFTED');
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+    };
   }, []);
 
-  // Fetch queues when dependencies change (but skip if we're setting initial filter)
-  const isSettingInitialFilterRef = useRef(false);
+  // Single fetch effect - only when everything is ready
   useEffect(() => {
-    if (isSettingInitialFilterRef.current) {
+    // Skip if unfiltered requests are blocked and we have no username
+    if (blockUnfilteredRequests && !advancedFilters.username) {
+      console.log('🚫 BLOCKED - Unfiltered requests not allowed');
       return;
     }
-    fetchQueues();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queueFilter, advancedFilters]);
 
-  // Handle initial username prop - pre-fill filter and automatically apply it
-  const previousInitialUsernameRef = useRef<string | null | undefined>(undefined);
-  const getStoreState = useTransactionQueuesStore.getState;
+    // Skip if we expect a username but don't have it yet
+    if (expectedUsername && !advancedFilters.username) {
+      console.log('⏭️ WAITING - Expected username not yet applied:', expectedUsername);
+      return;
+    }
+
+    // Skip if we have a username mismatch
+    if (expectedUsername && advancedFilters.username && expectedUsername !== advancedFilters.username) {
+      console.log('⏭️ MISMATCH - Expected vs actual username:', {
+        expected: expectedUsername,
+        actual: advancedFilters.username
+      });
+      return;
+    }
+
+    // Only fetch if filter is history (prevent processing/history conflicts)
+    if (queueFilter !== 'history') {
+      console.log('⏭️ SKIP - Not history filter:', queueFilter);
+      return;
+    }
+
+    console.log('🚀 FETCHING with filters:', {
+      filter: queueFilter,
+      advancedFilters,
+      expectedUsername,
+      blockUnfilteredRequests
+    });
+
+    fetchQueues();
+  }, [queueFilter, advancedFilters.username, expectedUsername, blockUnfilteredRequests]);
+
   
-  useEffect(() => {
-    // Only process if username changed and filter is history
-    if (initialUsername && queueFilter === 'history' && previousInitialUsernameRef.current !== initialUsername) {
-      const trimmedUsername = initialUsername.trim();
-      previousInitialUsernameRef.current = trimmedUsername;
-      isSettingInitialFilterRef.current = true;
-      
-      // Pre-fill the filter form
-      setFilters(prev => ({ ...prev, username: trimmedUsername }));
-      setAreFiltersOpen(true);
-      
-      // Clear previous filters first, then set the new username filter
-      // This ensures we don't have stale data from previous user
-      setAdvancedFiltersWithoutFetch({});
-      
-      // Use setTimeout to ensure clear completes, then set new filter
-      setTimeout(() => {
-        const filterUpdate: Record<string, string> = {
-          username: trimmedUsername,
-        };
-        setAdvancedFiltersWithoutFetch(filterUpdate);
-        
-        // Then fetch after another brief delay
-        setTimeout(() => {
-          const currentState = getStoreState();
-          console.log('🔍 Game Activities - Verifying filter state before fetch:', {
-            advancedFilters: currentState.advancedFilters,
-            username: currentState.advancedFilters.username,
-            filter: currentState.filter,
-            expectedUsername: trimmedUsername,
-          });
-          
-          isSettingInitialFilterRef.current = false;
-          fetchQueues();
-        }, 50);
-      }, 50);
-    } else if (!initialUsername && previousInitialUsernameRef.current !== undefined && previousInitialUsernameRef.current !== null) {
-      // Clear filter if username was removed
-      previousInitialUsernameRef.current = null;
-      setAdvancedFiltersWithoutFetch({});
-      setTimeout(() => {
-        isSettingInitialFilterRef.current = false;
-        fetchQueues();
-      }, 50);
-    }
-  }, [initialUsername, queueFilter, setAdvancedFiltersWithoutFetch, fetchQueues, getStoreState]);
-
-  // Prevent the auto-fetch useEffect from running while we're setting initial filters
-  useEffect(() => {
-    if (isSettingInitialFilterRef.current) {
-      return;
-    }
-    fetchQueues();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queueFilter, advancedFilters]);
-
+  
   // Sync filters with advanced filters
   useEffect(() => {
     const filterState = buildGameActivityFilterState(advancedFilters);
@@ -264,23 +288,36 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
     }
   }, [advancedFilters]);
 
+  // Fetch games for dropdown with deduplication and caching
+  const gamesCacheRef = useRef<Array<{ value: string; label: string }> | null>(null);
+  const isGamesLoadingRef = useRef(false);
+
   // Fetch games for dropdown
   useEffect(() => {
-    let isMounted = true;
+    // Prevent concurrent requests
+    if (isGamesLoadingRef.current) {
+      console.log('⏭️ Games fetch already in progress, skipping');
+      return;
+    }
+
+    // Check cache first
+    if (gamesCacheRef.current) {
+      console.log('📋 Using cached games data');
+      const mappedOptions = gamesCacheRef.current;
+      setGameOptions(mappedOptions);
+      return;
+    }
+
+    isGamesLoadingRef.current = true;
+    setIsGameLoading(true);
 
     const loadGames = async () => {
-      setIsGameLoading(true);
-
       try {
         const data = await gamesApi.list();
 
-        if (!isMounted) {
-          return;
-        }
-
         // Handle paginated response with results array
-        const games = Array.isArray(data) 
-          ? data 
+        const games = Array.isArray(data)
+          ? data
           : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
             ? data.results
             : [];
@@ -297,20 +334,25 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
           .map(([value, label]) => ({ value, label }))
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
+        // Cache the result
+        gamesCacheRef.current = mappedOptions;
         setGameOptions(mappedOptions);
+
+        console.log('🎮 Games loaded and cached:', mappedOptions.length, 'games');
       } catch (error) {
         console.error('Failed to load games for game activity filters:', error);
       } finally {
-        if (isMounted) {
-          setIsGameLoading(false);
-        }
+        isGamesLoadingRef.current = false;
+        setIsGameLoading(false);
       }
     };
 
     loadGames();
 
     return () => {
-      isMounted = false;
+      console.log('🎮 Games component unmounting - clearing cache');
+      gamesCacheRef.current = null;
+      isGamesLoadingRef.current = false;
     };
   }, []);
 
@@ -354,17 +396,28 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
       }
     }
 
+    // Update expected username based on applied filters
+    if (sanitized.username) {
+      setExpectedUsername(sanitized.username);
+    } else {
+      setExpectedUsername(null);
+    }
+
     // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
     // The useEffect will handle fetching with the new filters
     setAdvancedFiltersWithoutFetch(sanitized);
-  }, [filters, setAdvancedFiltersWithoutFetch]);
+  }, [filters, setAdvancedFiltersWithoutFetch, setExpectedUsername]);
 
   const handleClearFilters = useCallback(() => {
     setFilters({ ...DEFAULT_GAME_ACTIVITY_FILTERS });
+
+    // Clear expected username when clearing filters
+    setExpectedUsername(null);
+
     // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
     // The useEffect will handle fetching with cleared filters
     setAdvancedFiltersWithoutFetch({});
-  }, [setAdvancedFiltersWithoutFetch]);
+  }, [setAdvancedFiltersWithoutFetch, setExpectedUsername]);
 
   const handleToggleFilters = useCallback(() => {
     setAreFiltersOpen((previous) => !previous);

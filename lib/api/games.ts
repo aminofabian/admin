@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import type { 
+import type {
   Game,
   UserGame,
   UpdateGameRequest,

@@ -27,6 +27,8 @@ interface TransactionQueuesState {
   previous: string | null;
   currentPage: number;
   pageSize: number;
+  expectedUsername: string | null;
+  blockUnfilteredRequests: boolean;
 }
 
 interface TransactionQueuesActions {
@@ -39,6 +41,8 @@ interface TransactionQueuesActions {
   clearAdvancedFilters: () => void;
   updateQueue: (updatedQueue: TransactionQueue) => void;
   setPage: (page: number) => Promise<void>;
+  setExpectedUsername: (username: string | null) => void;
+  setBlockUnfilteredRequests: (block: boolean) => void;
   reset: () => void;
 }
 
@@ -56,16 +60,81 @@ const initialState: TransactionQueuesState = {
   previous: null,
   currentPage: 1,
   pageSize: 10,
+  expectedUsername: null,
+  blockUnfilteredRequests: true, // Start with blocking enabled by default
 };
 
 export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, get) => ({
   ...initialState,
 
   fetchQueues: async () => {
+    const currentState = get();
+    const { filter, advancedFilters, currentPage, pageSize } = currentState;
+
+    console.log('🔍 fetchQueues called with state:', {
+      isLoading: currentState.isLoading,
+      blockUnfilteredRequests: currentState.blockUnfilteredRequests,
+      expectedUsername: currentState.expectedUsername,
+      actualUsername: advancedFilters.username,
+      filter: currentState.filter,
+    });
+
+    // Skip fetch if we're in an inconsistent state (during filter transitions)
+    if (currentState.isLoading) {
+      console.log('⏭️ Skipping fetch - already loading');
+      return;
+    }
+
+    // NUCLEAR OPTION: Block ALL requests unless we have a username for game activities
+    if (filter === 'history' && !advancedFilters.username) {
+      console.log('☢️ NUCLEAR BLOCK - No username for game activities, denying ALL requests');
+      return;
+    }
+
+    // ULTRA AGGRESSIVE: Block ALL requests when block is enabled and no username
+    if (currentState.blockUnfilteredRequests && !advancedFilters.username) {
+      console.log('🚫 BLOCKING unfiltered request - blockUnfilteredRequests is true, no username found');
+      return;
+    }
+
+    // NUCLEAR: NEVER allow game-activities requests without username (override all other logic)
+    if (filter === 'history' && !advancedFilters.username) {
+      console.log('☢️ NUCLEAR BLOCK - Game activities without username are NEVER allowed');
+      return;
+    }
+
+    // CRITICAL: Skip fetch if we expect a username filter but don't have one
+    // This prevents unfiltered requests when a username should be applied
+    if (currentState.expectedUsername && !advancedFilters.username) {
+      console.log('⏭️ Skipping fetch - expected username not yet applied:', {
+        expectedUsername: currentState.expectedUsername,
+        actualUsername: advancedFilters.username,
+      });
+      return;
+    }
+
+    // CRITICAL: Skip fetch if we have an expected username but it doesn't match
+    // This prevents fetching with wrong username during transitions
+    if (currentState.expectedUsername && advancedFilters.username &&
+        advancedFilters.username !== currentState.expectedUsername) {
+      console.log('⏭️ Skipping fetch - username mismatch:', {
+        expectedUsername: currentState.expectedUsername,
+        actualUsername: advancedFilters.username,
+      });
+      return;
+    }
+
     set({ isLoading: true, error: null });
 
     try {
-      const { filter, advancedFilters, currentPage, pageSize } = get();
+      // Always get fresh state to avoid stale data
+      const freshState = get();
+      const { filter, advancedFilters, currentPage, pageSize } = freshState;
+
+      // Log to verify we're using the correct username
+      if (advancedFilters.username) {
+        console.log('📡 fetchQueues called with username:', advancedFilters.username);
+      }
       
       const filters: QueueFilters = {
         type: filter,
@@ -412,6 +481,16 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
     const nextPage = Math.max(1, page);
     set({ currentPage: nextPage });
     await get().fetchQueues();
+  },
+
+  setExpectedUsername: (username: string | null) => {
+    console.log('🎯 Setting expected username:', username);
+    set({ expectedUsername: username });
+  },
+
+  setBlockUnfilteredRequests: (block: boolean) => {
+    console.log('🚫 Setting blockUnfilteredRequests:', block);
+    set({ blockUnfilteredRequests: block });
   },
 
   reset: () => {
