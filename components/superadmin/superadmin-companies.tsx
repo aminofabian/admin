@@ -16,12 +16,14 @@ import {
     SearchInput,
     Button,
     Drawer,
-    ConfirmModal
+    ConfirmModal,
+    PasswordResetModal
 } from '@/components/ui';
 import { useToast } from '@/components/ui/toast';
 import { LoadingState, ErrorState, EmptyState, CompanyForm } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
 import { useCompaniesStore } from '@/stores';
+import { companiesApi } from '@/lib/api';
 import type { Company, CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
 
 export function SuperAdminCompanies() {
@@ -46,6 +48,15 @@ export function SuperAdminCompanies() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
     const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        company: Company | null;
+        isLoading: boolean;
+    }>({
+        isOpen: false,
+        company: null,
+        isLoading: false,
+    });
+    const [passwordModal, setPasswordModal] = useState<{
         isOpen: boolean;
         company: Company | null;
         isLoading: boolean;
@@ -178,6 +189,71 @@ export function SuperAdminCompanies() {
         setConfirmModal({ isOpen: false, company: null, isLoading: false });
     };
 
+    const handleChangePasswordClick = (company: Company) => {
+        setPasswordModal({
+            isOpen: true,
+            company,
+            isLoading: false,
+        });
+    };
+
+    const handleCancelPasswordChange = () => {
+        setPasswordModal({ isOpen: false, company: null, isLoading: false });
+    };
+
+    const handleConfirmPasswordChange = async (password: string) => {
+        if (!passwordModal.company) return;
+
+        const company = passwordModal.company;
+        setPasswordModal(prev => ({ ...prev, isLoading: true }));
+
+        try {
+            // API requires both password and confirm_password
+            // Using PATCH endpoint to update password
+            await companiesApi.partialUpdate(company.id, {
+                password,
+                confirm_password: password,
+            } as UpdateCompanyRequest & { password: string; confirm_password: string });
+            
+            addToast({
+                type: 'success',
+                title: 'Password Updated',
+                description: `Password for "${company.project_name}" has been updated successfully.`,
+            });
+            setPasswordModal({ isOpen: false, company: null, isLoading: false });
+        } catch (err) {
+            let errorMessage = 'Failed to update password';
+            
+            if (err instanceof Error) {
+                errorMessage = err.message;
+            } else if (err && typeof err === 'object' && 'detail' in err) {
+                if (typeof err.detail === 'string') {
+                    errorMessage = err.detail;
+                } else if (err.detail && typeof err.detail === 'object') {
+                    const fieldErrors: string[] = [];
+                    Object.entries(err.detail).forEach(([field, messages]) => {
+                        if (Array.isArray(messages)) {
+                            fieldErrors.push(`${field}: ${messages.join(', ')}`);
+                        } else if (typeof messages === 'string') {
+                            fieldErrors.push(`${field}: ${messages}`);
+                        }
+                    });
+                    if (fieldErrors.length > 0) {
+                        errorMessage = fieldErrors.join('; ');
+                    }
+                }
+            }
+            
+            addToast({
+                type: 'error',
+                title: 'Failed to Update Password',
+                description: errorMessage,
+            });
+            setPasswordModal(prev => ({ ...prev, isLoading: false }));
+            throw err;
+        }
+    };
+
     const openEditModal = (company: Company) => {
         setSelectedCompany(company);
         setIsEditModalOpen(true);
@@ -295,6 +371,16 @@ export function SuperAdminCompanies() {
                                                         </Button>
                                                         <Button
                                                             size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => handleChangePasswordClick(company)}
+                                                            title="Change password"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                            </svg>
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
                                                             variant={company.is_active ? 'danger' : 'secondary'}
                                                             onClick={() => handleToggleStatusClick(company)}
                                                             title={company.is_active ? 'Deactivate' : 'Activate'}
@@ -365,6 +451,18 @@ export function SuperAdminCompanies() {
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
                                                     Edit
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => handleChangePasswordClick(company)}
+                                                    title="Change password"
+                                                    className="flex-1 h-11 text-sm font-medium active:scale-[0.98]"
+                                                >
+                                                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                    Password
                                                 </Button>
                                                 <Button
                                                     size="sm"
@@ -472,6 +570,19 @@ export function SuperAdminCompanies() {
                     cancelText="Cancel"
                     variant={confirmModal.company.is_active ? 'warning' : 'info'}
                     isLoading={confirmModal.isLoading}
+                />
+            )}
+
+            {/* Password Reset Modal */}
+            {passwordModal.company && (
+                <PasswordResetModal
+                    isOpen={passwordModal.isOpen}
+                    onClose={handleCancelPasswordChange}
+                    onConfirm={handleConfirmPasswordChange}
+                    title="Change Admin Password"
+                    description={`Enter a new password for "${passwordModal.company.project_name}" admin account. The admin will need to use this password to log in.`}
+                    username={passwordModal.company.username}
+                    isLoading={passwordModal.isLoading}
                 />
             )}
         </div>
