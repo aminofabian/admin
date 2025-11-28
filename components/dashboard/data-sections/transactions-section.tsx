@@ -144,6 +144,9 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
   const setPage = useTransactionsStore((state) => state.setPage);
   const fetchTransactionsStore = useTransactionsStore((state) => state.fetchTransactions);
   const setAdvancedFiltersWithoutFetch = useTransactionsStore((state) => state.setAdvancedFiltersWithoutFetch);
+  const clearAdvancedFilters = useTransactionsStore((state) => state.clearAdvancedFilters);
+  const setFilterWithoutFetch = useTransactionsStore((state) => state.setFilterWithoutFetch);
+  const resetStore = useTransactionsStore((state) => state.reset);
   const updateTransaction = useTransactionsStore((state) => state.updateTransaction);
   const getStoreState = useTransactionsStore.getState;
   const { addToast } = useToast();
@@ -193,6 +196,12 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
       return;
     }
 
+    // Skip fetch if we're updating username (prevent race condition)
+    if (isUpdatingUsernameRef.current) {
+      console.log('⏭️ Skipping transactions fetch - updating username');
+      return;
+    }
+
     const currentDeps = {
       page: currentPage,
       filter,
@@ -219,29 +228,83 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
 
   // Removed toast notification for zero results - per requirements
 
-  // Handle initial username prop - pre-fill filter and automatically apply it
-  const hasInitializedUsernameRef = useRef(false);
+  // Handle initial username prop - pre-fill filter and automatically apply it (like game-activities)
+  const lastProcessedUsernameRef = useRef<string | null>(null);
+  const isUpdatingUsernameRef = useRef(false);
+  
   useEffect(() => {
-    if (initialUsername && !hasInitializedUsernameRef.current) {
+    const trimmedUsername = initialUsername?.trim() || null;
+    
+    // Only process if username changed
+    if (trimmedUsername && trimmedUsername !== lastProcessedUsernameRef.current) {
+      console.log('🔄 Username changed in transactions section, resetting store and updating:', {
+        old: lastProcessedUsernameRef.current,
+        new: trimmedUsername,
+      });
+      
+      // Set flag to prevent fetch effect from running during update
+      isUpdatingUsernameRef.current = true;
+      
       // Pre-fill the filter form
-      setFilters(prev => ({ ...prev, username: initialUsername }));
+      setFilters(prev => ({ ...prev, username: trimmedUsername }));
       setAreFiltersOpen(true);
       
-      // Automatically apply the filter
-      const filterUpdate: Record<string, string> = {
-        username: initialUsername,
-      };
-      setAdvancedFiltersWithoutFetch(filterUpdate);
+      // CRITICAL: Completely reset store first to clear ALL stale data
+      resetStore();
       
-      // Manually trigger fetch after setting filters to ensure it happens
-      // Use setTimeout to ensure state is updated first
+      // Set filter to history after reset
       setTimeout(() => {
-        fetchTransactionsRef.current();
+        setFilterWithoutFetch('history');
+        
+        // Set the new username filter - this REPLACES ALL filters
+        const filterUpdate: Record<string, string> = {
+          username: trimmedUsername,
+        };
+        setAdvancedFiltersWithoutFetch(filterUpdate);
+        
+        // Verify and fetch - ensure store has correct username
+        const verifyAndFetch = () => {
+          // Always get fresh state directly from store
+          const freshState = getStoreState();
+          const currentUsername = freshState.advancedFilters.username?.trim();
+          
+          console.log('🔍 Verifying transactions store state:', {
+            expected: trimmedUsername,
+            actual: currentUsername,
+            transactions: freshState.transactions?.length || 0,
+            isLoading: freshState.isLoading,
+            filter: freshState.filter,
+          });
+          
+          if (currentUsername === trimmedUsername && !freshState.isLoading && freshState.filter === 'history') {
+            // Store has correct username, not loading, and filter is history
+            console.log('✅ Transactions store ready, fetching with username:', trimmedUsername);
+            lastProcessedUsernameRef.current = trimmedUsername;
+            isUpdatingUsernameRef.current = false; // Clear flag before fetching
+            
+            // Fetch with the correct username - store will use fresh state
+            fetchTransactionsRef.current();
+          } else {
+            // Store not ready yet, retry
+            console.warn('⚠️ Transactions store not ready, retrying:', {
+              expected: trimmedUsername,
+              actual: currentUsername,
+              isLoading: freshState.isLoading,
+              filter: freshState.filter,
+            });
+            setTimeout(verifyAndFetch, 50);
+          }
+        };
+        
+        // Start verification after a small delay
+        setTimeout(verifyAndFetch, 10);
       }, 0);
-      
-      hasInitializedUsernameRef.current = true;
+    } else if (!trimmedUsername && lastProcessedUsernameRef.current !== null) {
+      // Reset when username is cleared
+      lastProcessedUsernameRef.current = null;
+      clearAdvancedFilters();
     }
-  }, [initialUsername, setAdvancedFiltersWithoutFetch]);
+  }, [initialUsername, setAdvancedFiltersWithoutFetch, clearAdvancedFilters, getStoreState, resetStore, setFilterWithoutFetch]);
 
   useEffect(() => {
     if (agentIdMap.size === 0) {

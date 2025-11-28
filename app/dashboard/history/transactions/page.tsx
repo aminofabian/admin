@@ -14,34 +14,36 @@ export default function HistoryTransactionsPage() {
   const pathname = usePathname();
   const { setFilterWithoutFetch } = useTransactionsStore();
   const [initialUsername, setInitialUsername] = useState<string | null>(null);
-  const hasReadQueryParamRef = useRef(false);
+  const previousUsernameRef = useRef<string | null>(null);
 
   useEffect(() => {
     setFilterWithoutFetch('history');
   }, [setFilterWithoutFetch]);
 
-  // Read username from query param once and pass to section component
+  // Read username from query param and update when it changes
   useEffect(() => {
-    if (hasReadQueryParamRef.current) {
-      return;
-    }
-
     const usernameFromQuery = searchParams.get('username');
     const trimmedUsername = usernameFromQuery?.trim() || null;
 
-    if (trimmedUsername) {
-      setInitialUsername(trimmedUsername);
-      // Remove username from URL after reading it
-      const params = new URLSearchParams(window.location.search);
-      params.delete('username');
-      const newSearch = params.toString();
-      const newUrl = newSearch 
-        ? `${pathname}?${newSearch}`
-        : pathname;
-      window.history.replaceState({}, '', newUrl);
+    // Only update if username actually changed
+    if (trimmedUsername !== previousUsernameRef.current) {
+      if (trimmedUsername) {
+        setInitialUsername(trimmedUsername);
+        previousUsernameRef.current = trimmedUsername;
+        
+        // Remove username from URL after reading it
+        const params = new URLSearchParams(window.location.search);
+        params.delete('username');
+        const newSearch = params.toString();
+        const newUrl = newSearch 
+          ? `${pathname}?${newSearch}`
+          : pathname;
+        window.history.replaceState({}, '', newUrl);
+      } else {
+        setInitialUsername(null);
+        previousUsernameRef.current = null;
+      }
     }
-
-    hasReadQueryParamRef.current = true;
   }, [searchParams, pathname]);
 
   // If user is superadmin, render superadmin history view

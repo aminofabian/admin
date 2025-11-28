@@ -62,10 +62,28 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   ...initialState,
 
   fetchTransactions: async () => {
+    // Skip fetch if we're already loading (prevent concurrent requests)
+    const currentState = get();
+    if (currentState.isLoading) {
+      console.log('⏭️ Skipping transactions fetch - already loading');
+      return;
+    }
+
     set({ isLoading: true, error: null });
 
     try {
-      const { currentPage, pageSize, searchTerm, filter, advancedFilters } = get();
+      // ALWAYS get fresh state right before building filters to avoid stale data
+      const freshState = get();
+      const { currentPage, pageSize, searchTerm, filter, advancedFilters } = freshState;
+
+      // Log to verify we're using the correct username
+      console.log('📡 fetchTransactions - Fresh state:', {
+        filter,
+        username: advancedFilters.username,
+        allFilters: advancedFilters,
+        currentPage,
+        pageSize,
+      });
       
       const filters: TransactionFilters = {
         page: currentPage,
