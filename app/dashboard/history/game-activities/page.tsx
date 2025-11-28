@@ -12,7 +12,7 @@ function HistoryGameActivitiesContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { setFilterWithoutFetch, setAdvancedFiltersWithoutFetch, reset } = useTransactionQueuesStore();
+  const { setFilterWithoutFetch } = useTransactionQueuesStore();
   const [initialUsername, setInitialUsername] = useState<string | null>(null);
   const previousUsernameRef = useRef<string | null>(null);
 
@@ -20,56 +20,31 @@ function HistoryGameActivitiesContent() {
     setFilterWithoutFetch('history');
   }, [setFilterWithoutFetch]);
 
-  // Read username from query param and pass to section component
+  // Read username from query param and update when it changes
   useEffect(() => {
     const usernameFromQuery = searchParams.get('username');
     const trimmedUsername = usernameFromQuery?.trim() || null;
 
-    // Remove username from URL IMMEDIATELY (synchronously) to prevent it from showing in URL
-    if (usernameFromQuery) {
-      const params = new URLSearchParams(window.location.search);
-      params.delete('username');
-      const newSearch = params.toString();
-      const newUrl = newSearch 
-        ? `${pathname}?${newSearch}`
-        : pathname;
-      window.history.replaceState({}, '', newUrl);
+    // Only update if username actually changed
+    if (trimmedUsername !== previousUsernameRef.current) {
+      if (trimmedUsername) {
+        setInitialUsername(trimmedUsername);
+        previousUsernameRef.current = trimmedUsername;
+        
+        // Remove username from URL after reading it
+        const params = new URLSearchParams(window.location.search);
+        params.delete('username');
+        const newSearch = params.toString();
+        const newUrl = newSearch 
+          ? `${pathname}?${newSearch}`
+          : pathname;
+        window.history.replaceState({}, '', newUrl);
+      } else {
+        setInitialUsername(null);
+        previousUsernameRef.current = null;
+      }
     }
-
-    // If username changed, completely reset store to prevent stale requests
-    if (trimmedUsername && previousUsernameRef.current !== trimmedUsername) {
-      console.log('🧹 Resetting store for new username:', {
-        newUsername: trimmedUsername,
-        previousUsername: previousUsernameRef.current,
-      });
-      
-      // CRITICAL: Reset the entire store to clear all state including old username
-      // This ensures no stale data persists
-      reset();
-      
-      // Set filter to history after reset
-      setFilterWithoutFetch('history');
-      
-      // Set username in store immediately so fetch can use it
-      setAdvancedFiltersWithoutFetch({ username: trimmedUsername });
-      
-      // Set initialUsername immediately (no setTimeout delay)
-      setInitialUsername(trimmedUsername);
-      previousUsernameRef.current = trimmedUsername;
-    } else if (!trimmedUsername && previousUsernameRef.current !== null) {
-      // Clear filters if username was removed
-      console.log('🧹 Clearing filters - no username in query');
-      setAdvancedFiltersWithoutFetch({});
-      setInitialUsername(null);
-      previousUsernameRef.current = null;
-    } else if (trimmedUsername && previousUsernameRef.current === trimmedUsername) {
-      // Same username, just ensure it's set
-      setInitialUsername(trimmedUsername);
-    } else {
-      // No username
-      setInitialUsername(null);
-    }
-  }, [searchParams, pathname, setAdvancedFiltersWithoutFetch, setFilterWithoutFetch, reset]);
+  }, [searchParams, pathname]);
 
   return (
     <>

@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
@@ -142,6 +142,7 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
   const clearAdvancedFilters = useTransactionQueuesStore((state) => state.clearAdvancedFilters);
   const setExpectedUsername = useTransactionQueuesStore((state) => state.setExpectedUsername);
   const setBlockUnfilteredRequests = useTransactionQueuesStore((state) => state.setBlockUnfilteredRequests);
+  const resetStore = useTransactionQueuesStore((state) => state.reset);
   const totalCount = useTransactionQueuesStore((state) => state.count);
   const next = useTransactionQueuesStore((state) => state.next);
   const previous = useTransactionQueuesStore((state) => state.previous);
@@ -162,136 +163,144 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
   const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isGameLoading, setIsGameLoading] = useState(false);
 
-  // Track component mount and previous values to prevent duplicate calls during React's strict mode
-  const isFirstMountRef = useRef(true);
-  const previousDepsRef = useRef<{ filter: string; filters: string } | null>(null);
-  const isSettingInitialFilterRef = useRef(false);
-  const hasSetInitialUsernameRef = useRef(false);
-  const advancedFiltersString = useMemo(() => JSON.stringify(advancedFilters), [advancedFilters]);
+  // Track the last processed username to detect changes
+  const lastProcessedUsernameRef = useRef<string | null>(null);
+  
+  // Flag to prevent fetch effect from running during username update
+  const isUpdatingUsernameRef = useRef(false);
+  
+  const fetchQueuesRef = useRef(fetchQueues);
+  fetchQueuesRef.current = fetchQueues;
 
-  // Track if we've initialized with initialUsername to prevent duplicate calls
-  const hasInitializedUsernameRef = useRef(false);
-
-  // Single mount effect - prevents all duplicate calls
+  // Handle initial username prop - pre-fill filter and automatically apply it (like transactions section)
   useEffect(() => {
-    console.log('🏗️ GameActivitiesSection INITIALIZING with username:', initialUsername);
-
-    if (initialUsername) {
-      const trimmedUsername = initialUsername.trim();
-      console.log('✅ Setting up username filter:', trimmedUsername);
-
-      // Set expected username for validation
-      setExpectedUsername(trimmedUsername);
-
-      // Ensure filter is set to history
-      setFilterWithoutFetch('history');
+    const trimmedUsername = initialUsername?.trim() || null;
+    
+    // Only process if username changed
+    if (trimmedUsername && trimmedUsername !== lastProcessedUsernameRef.current) {
+      console.log('🔄 Username changed in section, resetting store and updating:', {
+        old: lastProcessedUsernameRef.current,
+        new: trimmedUsername,
+      });
       
-      // Only set username in filters if it's not already there (page component may have set it)
-      const currentFilters = getStoreState().advancedFilters;
-      if (currentFilters.username !== trimmedUsername) {
-        console.log('📝 Setting username in filters (not already set):', trimmedUsername);
-        setAdvancedFiltersWithoutFetch({ username: trimmedUsername });
-      } else {
-        console.log('✅ Username already in filters, skipping set');
-      }
-
-      // Don't block - allow fetch to proceed immediately since username is already set
-      setBlockUnfilteredRequests(false);
+      // Set flag to prevent fetch effect from running during update
+      isUpdatingUsernameRef.current = true;
       
-      hasInitializedUsernameRef.current = true;
-    } else {
-      console.log('🔓 No username - normal operation');
-      setBlockUnfilteredRequests(false);
-      setExpectedUsername(null);
-      setFilterWithoutFetch('history');
-      // Only clear if we don't have a username filter already (might be from previous navigation)
-      const currentFilters = getStoreState().advancedFilters;
-      if (currentFilters.username) {
-        console.log('🧹 Clearing username filter');
-        setAdvancedFiltersWithoutFetch({});
-      }
-      hasInitializedUsernameRef.current = false;
+      // Pre-fill the filter form
+      setFilters(prev => ({ ...prev, username: trimmedUsername }));
+      setAreFiltersOpen(true);
+      
+      // CRITICAL: Completely reset store first to clear ALL stale data
+      resetStore();
+      
+      // Set filter to history after reset
+      setTimeout(() => {
+        setFilterWithoutFetch('history');
+        
+        // Set the new username filter - this REPLACES ALL filters
+        const filterUpdate: Record<string, string> = {
+          username: trimmedUsername,
+        };
+        setAdvancedFiltersWithoutFetch(filterUpdate);
+        
+        // Verify and fetch - ensure store has correct username
+        const verifyAndFetch = () => {
+          // Always get fresh state directly from store
+          const freshState = getStoreState();
+          const currentUsername = freshState.advancedFilters.username?.trim();
+          
+          console.log('🔍 Verifying store state:', {
+            expected: trimmedUsername,
+            actual: currentUsername,
+            queues: freshState.queues?.length || 0,
+            isLoading: freshState.isLoading,
+            filter: freshState.filter,
+          });
+          
+          if (currentUsername === trimmedUsername && !freshState.isLoading && freshState.filter === 'history') {
+            // Store has correct username, not loading, and filter is history
+            console.log('✅ Store ready, fetching with username:', trimmedUsername);
+            lastProcessedUsernameRef.current = trimmedUsername;
+            isUpdatingUsernameRef.current = false; // Clear flag before fetching
+            
+            // Fetch with the correct username - store will use fresh state
+            fetchQueuesRef.current();
+          } else {
+            // Store not ready yet, retry
+            console.warn('⚠️ Store not ready, retrying:', {
+              expected: trimmedUsername,
+              actual: currentUsername,
+              isLoading: freshState.isLoading,
+              filter: freshState.filter,
+            });
+            setTimeout(verifyAndFetch, 50);
+          }
+        };
+        
+        // Start verification after a small delay
+        setTimeout(verifyAndFetch, 10);
+      }, 0);
+    } else if (!trimmedUsername && lastProcessedUsernameRef.current !== null) {
+      // Reset when username is cleared
+      lastProcessedUsernameRef.current = null;
+      clearAdvancedFilters();
     }
-
-    return () => {
-      console.log('🏗️ GameActivitiesSection UNMOUNTING');
-      setBlockUnfilteredRequests(false);
-    };
-  }, [initialUsername, setBlockUnfilteredRequests, setExpectedUsername, setFilterWithoutFetch, setAdvancedFiltersWithoutFetch, getStoreState]);
-
-  // Track the last fetch key to prevent duplicate calls
-  const lastFetchKeyRef = useRef<string | null>(null);
+  }, [initialUsername, setAdvancedFiltersWithoutFetch, clearAdvancedFilters, getStoreState, resetStore, setFilterWithoutFetch]);
 
   // Single fetch effect - only when everything is ready
   useEffect(() => {
     // Only fetch if filter is history (prevent processing/history conflicts)
     if (queueFilter !== 'history') {
-      console.log('⏭️ SKIP - Not history filter:', queueFilter);
       return;
     }
 
-    // CRITICAL: If we have an initialUsername, we MUST have a username in filters - block ALL unfiltered requests
-    if (initialUsername) {
-      const trimmedInitialUsername = initialUsername.trim();
-      if (!advancedFilters.username || advancedFilters.username !== trimmedInitialUsername) {
-        console.log('🚫 BLOCKED - initialUsername provided but username not yet in filters:', {
-          initialUsername: trimmedInitialUsername,
-          currentUsername: advancedFilters.username,
-          currentFilters: advancedFilters
-        });
-        lastFetchKeyRef.current = null; // Reset so we fetch once username is set
-        return;
-      }
-    }
-
-    // Skip if we expect a username but don't have it yet
-    if (expectedUsername && !advancedFilters.username) {
-      console.log('⏭️ WAITING - Expected username not yet applied:', expectedUsername);
+    // Skip if we're currently processing an initialUsername change
+    // This prevents fetching with stale data while we're updating the store
+    if (isUpdatingUsernameRef.current) {
+      console.log('⏭️ Skipping fetch - username update in progress');
       return;
     }
-
-    // Skip if we have a username mismatch
-    if (expectedUsername && advancedFilters.username && expectedUsername !== advancedFilters.username) {
-      console.log('⏭️ MISMATCH - Expected vs actual username:', {
-        expected: expectedUsername,
-        actual: advancedFilters.username
+    
+    if (initialUsername && initialUsername.trim() !== lastProcessedUsernameRef.current) {
+      console.log('⏭️ Skipping fetch - processing username change:', {
+        initialUsername: initialUsername.trim(),
+        lastProcessed: lastProcessedUsernameRef.current,
       });
       return;
     }
 
-    // Block unfiltered requests ONLY when blockUnfilteredRequests is true AND we're expecting a username
-    // This allows normal history page loads without username filters
-    if (blockUnfilteredRequests && expectedUsername && !advancedFilters.username) {
-      console.log('🚫 BLOCKED - Unfiltered requests not allowed while username is being applied');
-      return;
-    }
-
-    // Prevent duplicate fetches - only fetch once per filter/filter combination
-    const fetchKey = `${queueFilter}-${advancedFiltersString}`;
-    if (lastFetchKeyRef.current === fetchKey) {
-      console.log('⏭️ SKIP - Already fetched with these filters:', fetchKey);
-      return;
-    }
-
-    console.log('🚀 FETCHING with filters:', {
+    // Get fresh state from store to avoid stale subscription data
+    const currentState = getStoreState();
+    
+    console.log('🚀 Fetching with filters:', {
       filter: queueFilter,
-      advancedFilters,
-      expectedUsername,
-      blockUnfilteredRequests,
-      username: advancedFilters.username,
-      initialUsername,
-      fetchKey
+      username: currentState.advancedFilters.username,
+      allFilters: currentState.advancedFilters,
     });
 
-    lastFetchKeyRef.current = fetchKey;
+    // Always fetch - no cache to prevent stale data
     fetchQueues();
-  }, [queueFilter, advancedFiltersString, expectedUsername, blockUnfilteredRequests, fetchQueues, initialUsername]);
+  }, [queueFilter, advancedFilters, fetchQueues, initialUsername, getStoreState]);
 
   
   
   // Sync filters with advanced filters
   useEffect(() => {
     const filterState = buildGameActivityFilterState(advancedFilters);
+    
+    // Preserve username in input field: prioritize advancedFilters.username, fallback to initialUsername
+    // This ensures the username shows in the input field when navigating from Activities button
+    // Priority: advancedFilters.username > initialUsername
+    const usernameFromAdvanced = filterState.username?.trim();
+    const usernameFromInitial = initialUsername?.trim();
+    
+    if (usernameFromAdvanced) {
+      // Use username from advancedFilters if it exists
+      filterState.username = usernameFromAdvanced;
+    } else if (usernameFromInitial) {
+      // Fallback to initialUsername if advancedFilters doesn't have it
+      filterState.username = usernameFromInitial;
+    }
     
     // Ensure date values are properly formatted for HTML date inputs (YYYY-MM-DD)
     if (filterState.date_from) {
@@ -319,25 +328,15 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
     if (Object.keys(advancedFilters).length > 0) {
       setAreFiltersOpen(true);
     }
-  }, [advancedFilters]);
+  }, [advancedFilters, initialUsername]);
 
-  // Fetch games for dropdown with deduplication and caching
-  const gamesCacheRef = useRef<Array<{ value: string; label: string }> | null>(null);
+  // Fetch games for dropdown - NO CACHING
   const isGamesLoadingRef = useRef(false);
 
   // Fetch games for dropdown
   useEffect(() => {
     // Prevent concurrent requests
     if (isGamesLoadingRef.current) {
-      console.log('⏭️ Games fetch already in progress, skipping');
-      return;
-    }
-
-    // Check cache first
-    if (gamesCacheRef.current) {
-      console.log('📋 Using cached games data');
-      const mappedOptions = gamesCacheRef.current;
-      setGameOptions(mappedOptions);
       return;
     }
 
@@ -367,11 +366,10 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
           .map(([value, label]) => ({ value, label }))
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
-        // Cache the result
-        gamesCacheRef.current = mappedOptions;
+        // NO CACHING - always set fresh data
         setGameOptions(mappedOptions);
 
-        console.log('🎮 Games loaded and cached:', mappedOptions.length, 'games');
+        console.log('🎮 Games loaded (no cache):', mappedOptions.length, 'games');
       } catch (error) {
         console.error('Failed to load games for game activity filters:', error);
       } finally {
@@ -383,8 +381,6 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
     loadGames();
 
     return () => {
-      console.log('🎮 Games component unmounting - clearing cache');
-      gamesCacheRef.current = null;
       isGamesLoadingRef.current = false;
     };
   }, []);
@@ -464,11 +460,12 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
     void setPage(page);
   }, [setPage]);
 
-  const results = useMemo(() => queues ?? [], [queues]);
-  const isInitialLoading = useMemo(() => isLoading, [isLoading]);
-  const isEmpty = useMemo(() => !results.length && !isLoading, [results.length, isLoading]);
-  const hasNext = useMemo(() => Boolean(next), [next]);
-  const hasPrevious = useMemo(() => Boolean(previous), [previous]);
+  // No memoization - always use fresh values
+  const results = queues ?? [];
+  const isInitialLoading = isLoading;
+  const isEmpty = !results.length && !isLoading;
+  const hasNext = Boolean(next);
+  const hasPrevious = Boolean(previous);
 
   return (
     <DashboardSectionContainer
@@ -692,155 +689,85 @@ interface HistoryGameActivityRowProps {
   onView: (activity: TransactionQueue) => void;
 }
 
-const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProps) {
-  // Memoize expensive computations
-  const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
-  const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
-  const typeVariant = useMemo(() => mapTypeToVariant(activity.type), [activity.type]);
-  const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
-  const isRecharge = useMemo(() => activity.type === 'recharge_game', [activity.type]);
-  const isRedeem = useMemo(() => activity.type === 'redeem_game', [activity.type]);
-  const shouldShowDash = useMemo(() => {
-    const amountValue = parseFloat(activity.amount || '0');
-    const isZeroAmount = amountValue === 0 || isNaN(amountValue);
-    const typeStr = String(activity.type);
-    const isNonMonetaryType = typeStr === 'create_game' || 
-                              typeStr === 'reset_password' || 
-                              typeStr === 'change_password' ||
-                              typeStr === 'add_user_game';
-    return isZeroAmount && isNonMonetaryType;
-  }, [activity.amount, activity.type]);
+function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProps) {
+  // NO CACHING - all values computed fresh on every render
+  const statusVariant = mapStatusToVariant(activity.status);
+  const typeLabel = mapTypeToLabel(activity.type);
+  const typeVariant = mapTypeToVariant(activity.type);
+  const formattedAmount = formatCurrency(activity.amount);
+  const isRecharge = activity.type === 'recharge_game';
+  const isRedeem = activity.type === 'redeem_game';
   
-  const bonusAmount = useMemo(() => {
-    const bonus = activity.bonus_amount || activity.data?.bonus_amount;
-    if (!bonus) return null;
-    const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
-      ? parseFloat(String(bonus)) 
-      : 0;
-    return bonusValue > 0 ? bonus : null;
-  }, [activity.bonus_amount, activity.data?.bonus_amount]);
+  const amountValue = parseFloat(activity.amount || '0');
+  const isZeroAmount = amountValue === 0 || isNaN(amountValue);
+  const typeStr = String(activity.type);
+  const isNonMonetaryType = typeStr === 'create_game' || 
+                            typeStr === 'reset_password' || 
+                            typeStr === 'change_password' ||
+                            typeStr === 'add_user_game';
+  const shouldShowDash = isZeroAmount && isNonMonetaryType;
+  
+  const bonus = activity.bonus_amount || activity.data?.bonus_amount;
+  const bonusValue = bonus ? (typeof bonus === 'string' || typeof bonus === 'number' 
+    ? parseFloat(String(bonus)) 
+    : 0) : 0;
+  const bonusAmount = bonusValue > 0 ? bonus : null;
+  const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
 
-  const formattedBonus = useMemo(() => {
-    return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
-  }, [bonusAmount]);
+  const creditValue = activity.data?.credit;
+  const credit = creditValue !== undefined && creditValue !== null ? formatCurrency(String(creditValue)) : null;
 
-  const credit = useMemo(() => {
-    const creditValue = activity.data?.credit;
-    if (creditValue === undefined || creditValue === null) return null;
-    return formatCurrency(String(creditValue));
-  }, [activity.data?.credit]);
+  const winningsValue = activity.data?.winnings;
+  const winnings = winningsValue !== undefined && winningsValue !== null ? formatCurrency(String(winningsValue)) : null;
 
-  const winnings = useMemo(() => {
-    const winningsValue = activity.data?.winnings;
-    if (winningsValue === undefined || winningsValue === null) return null;
-    return formatCurrency(String(winningsValue));
-  }, [activity.data?.winnings]);
+  const credits = activity.data?.new_credits_balance;
+  const creditsValue = credits !== undefined && credits !== null
+    ? (typeof credits === 'string' || typeof credits === 'number' ? parseFloat(String(credits)) : null)
+    : null;
+  const newCreditsBalance = creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
 
-  // New balance from data object
-  const newCreditsBalance = useMemo(() => {
-    const credits = activity.data?.new_credits_balance;
-    if (credits === undefined || credits === null) return null;
-    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
-      ? parseFloat(String(credits))
-      : null;
-    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
-  }, [activity.data?.new_credits_balance]);
-
-  const newWinningBalance = useMemo(() => {
-    const winnings = activity.data?.new_winning_balance;
-    if (winnings === undefined || winnings === null) return null;
-    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
-      ? parseFloat(String(winnings))
-      : null;
-    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
-  }, [activity.data?.new_winning_balance]);
+  const winningsBal = activity.data?.new_winning_balance;
+  const winningsBalValue = winningsBal !== undefined && winningsBal !== null
+    ? (typeof winningsBal === 'string' || typeof winningsBal === 'number' ? parseFloat(String(winningsBal)) : null)
+    : null;
+  const newWinningBalance = winningsBalValue !== null && !isNaN(winningsBalValue) ? formatCurrency(String(winningsBalValue)) : null;
 
   const zeroCurrency = formatCurrency('0');
+  const shouldShowBlankBalance = typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
 
-  // Check if this is a reset or add user action - these should show hyphen for balance
-  const shouldShowBlankBalance = useMemo(() => {
-    const typeStr = String(activity.type);
-    return typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
-  }, [activity.type]);
+  const creditsDisplay = shouldShowBlankBalance ? '—' : (newCreditsBalance || credit || zeroCurrency);
+  const winningsDisplay = shouldShowBlankBalance ? '—' : (newWinningBalance || winnings || zeroCurrency);
 
-  const creditsDisplay = useMemo(() => {
-    if (shouldShowBlankBalance) return '—';
-    if (newCreditsBalance) return newCreditsBalance;
-    if (credit) return credit;
-    return zeroCurrency;
-  }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency]);
+  const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
+    ? activity.user_username.trim()
+    : null;
 
-  const winningsDisplay = useMemo(() => {
-    if (shouldShowBlankBalance) return '—';
-    if (newWinningBalance) return newWinningBalance;
-    if (winnings) return winnings;
-    return zeroCurrency;
-  }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency]);
+  const websiteEmail = typeof activity.user_email === 'string' && activity.user_email.trim()
+    ? activity.user_email.trim()
+    : null;
 
-  // Website user (actual user on the platform)
-  const websiteUsername = useMemo(() => {
-    if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
-      return activity.user_username.trim();
-    }
-    return null;
-  }, [activity.user_username]);
+  const gameUsername = typeof activity.game_username === 'string' && activity.game_username.trim()
+    ? activity.game_username.trim()
+    : (activity.data && typeof activity.data === 'object' && activity.data !== null && typeof activity.data.username === 'string' && activity.data.username.trim()
+      ? activity.data.username.trim()
+      : null);
 
-  const websiteEmail = useMemo(() => {
-    if (typeof activity.user_email === 'string' && activity.user_email.trim()) {
-      return activity.user_email.trim();
-    }
-    return null;
-  }, [activity.user_email]);
+  const isAddUserAction = typeStr === 'add_user_game' || typeStr === 'create_game';
 
-  // Game username (username used in the game)
-  const gameUsername = useMemo(() => {
-    // 1. Top-level game_username field
-    if (typeof activity.game_username === 'string' && activity.game_username.trim()) {
-      return activity.game_username.trim();
-    }
-    // 2. Username in data object (for completed transactions)
-    if (activity.data && typeof activity.data === 'object' && activity.data !== null) {
-      const dataUsername = activity.data.username;
-      if (typeof dataUsername === 'string' && dataUsername.trim()) {
-        return dataUsername.trim();
-      }
-    }
-    return null;
-  }, [activity.game_username, activity.data]);
+  const userInitial = websiteUsername
+    ? websiteUsername.charAt(0).toUpperCase()
+    : (activity.user_id ? String(activity.user_id).charAt(0) : '—');
 
-  // Check if this is an "Add user" action - should show hyphen for game username
-  const isAddUserAction = useMemo(() => {
-    const typeStr = String(activity.type);
-    return typeStr === 'add_user_game' || typeStr === 'create_game';
-  }, [activity.type]);
+  const formattedCreatedAt = formatDate(activity.created_at);
+  const formattedUpdatedAt = formatDate(activity.updated_at);
+  const showUpdatedAt = activity.updated_at !== activity.created_at;
 
-  const userInitial = useMemo(() => {
-    if (websiteUsername) {
-      return websiteUsername.charAt(0).toUpperCase();
-    }
-    // Fallback to user_id if no username available
-    return activity.user_id ? String(activity.user_id).charAt(0) : '—';
-  }, [websiteUsername, activity.user_id]);
-
-  const formattedCreatedAt = useMemo(() => formatDate(activity.created_at), [activity.created_at]);
-  const formattedUpdatedAt = useMemo(() => formatDate(activity.updated_at), [activity.updated_at]);
-  const showUpdatedAt = useMemo(() => activity.updated_at !== activity.created_at, [activity.updated_at, activity.created_at]);
-
-  const handleViewClick = useCallback(() => {
+  const handleViewClick = () => {
     onView(activity);
-  }, [activity, onView]);
+  };
 
-  const amountColorClass = useMemo(() => {
-    if (shouldShowDash) return '';
-    if (isRedeem) return 'text-red-600 dark:text-red-400';
-    if (isRecharge) return 'text-green-600 dark:text-green-400';
-    return 'text-foreground';
-  }, [isRedeem, isRecharge, shouldShowDash]);
-
-  const bonusColorClass = useMemo(() => {
-    if (shouldShowDash) return '';
-    return isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
-  }, [isRedeem, shouldShowDash]);
+  const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
+  const bonusColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400');
 
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
@@ -940,20 +867,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
       </TableCell>
     </TableRow>
   );
-}, (prevProps, nextProps) => {
-  // Custom comparison function for better performance
-  return (
-    prevProps.activity.id === nextProps.activity.id &&
-    prevProps.activity.status === nextProps.activity.status &&
-    prevProps.activity.type === nextProps.activity.type &&
-    prevProps.activity.amount === nextProps.activity.amount &&
-    prevProps.activity.bonus_amount === nextProps.activity.bonus_amount &&
-    prevProps.activity.operator === nextProps.activity.operator &&
-    prevProps.activity.user_email === nextProps.activity.user_email &&
-    prevProps.activity.updated_at === nextProps.activity.updated_at &&
-    prevProps.onView === nextProps.onView
-  );
-});
+}
 
 // Memoize pure functions
 const mapStatusToVariant = (status: string): 'success' | 'warning' | 'danger' | 'default' => {
@@ -983,146 +897,83 @@ interface GameActivityCardProps {
   onView: (activity: TransactionQueue) => void;
 }
 
-const GameActivityCard = memo(function GameActivityCard({ activity, onView }: GameActivityCardProps) {
-  const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
-  const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
-  const typeVariant = useMemo(() => mapTypeToVariant(activity.type), [activity.type]);
-  const formattedAmount = useMemo(() => formatCurrency(activity.amount), [activity.amount]);
-  const isRecharge = useMemo(() => activity.type === 'recharge_game', [activity.type]);
-  const isRedeem = useMemo(() => activity.type === 'redeem_game', [activity.type]);
-  const shouldShowDash = useMemo(() => {
-    const amountValue = parseFloat(activity.amount || '0');
-    const isZeroAmount = amountValue === 0 || isNaN(amountValue);
-    const typeStr = String(activity.type);
-    const isNonMonetaryType = typeStr === 'create_game' || 
-                              typeStr === 'reset_password' || 
-                              typeStr === 'change_password' ||
-                              typeStr === 'add_user_game';
-    return isZeroAmount && isNonMonetaryType;
-  }, [activity.amount, activity.type]);
+function GameActivityCard({ activity, onView }: GameActivityCardProps) {
+  // NO CACHING - all values computed fresh on every render
+  const statusVariant = mapStatusToVariant(activity.status);
+  const typeLabel = mapTypeToLabel(activity.type);
+  const typeVariant = mapTypeToVariant(activity.type);
+  const formattedAmount = formatCurrency(activity.amount);
+  const isRecharge = activity.type === 'recharge_game';
+  const isRedeem = activity.type === 'redeem_game';
   
-  const bonusAmount = useMemo(() => {
-    const bonus = activity.bonus_amount || activity.data?.bonus_amount;
-    if (!bonus) return null;
-    const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
-      ? parseFloat(String(bonus)) 
-      : 0;
-    return bonusValue > 0 ? bonus : null;
-  }, [activity.bonus_amount, activity.data?.bonus_amount]);
+  const amountValue = parseFloat(activity.amount || '0');
+  const isZeroAmount = amountValue === 0 || isNaN(amountValue);
+  const typeStr = String(activity.type);
+  const isNonMonetaryType = typeStr === 'create_game' || 
+                            typeStr === 'reset_password' || 
+                            typeStr === 'change_password' ||
+                            typeStr === 'add_user_game';
+  const shouldShowDash = isZeroAmount && isNonMonetaryType;
+  
+  const bonus = activity.bonus_amount || activity.data?.bonus_amount;
+  const bonusValue = bonus ? (typeof bonus === 'string' || typeof bonus === 'number' 
+    ? parseFloat(String(bonus)) 
+    : 0) : 0;
+  const bonusAmount = bonusValue > 0 ? bonus : null;
+  const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
 
-  const formattedBonus = useMemo(() => {
-    return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
-  }, [bonusAmount]);
+  const credits = activity.data?.new_credits_balance;
+  const creditsValue = credits !== undefined && credits !== null
+    ? (typeof credits === 'string' || typeof credits === 'number' ? parseFloat(String(credits)) : null)
+    : null;
+  const newCreditsBalance = creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
 
-  const newCreditsBalance = useMemo(() => {
-    const credits = activity.data?.new_credits_balance;
-    if (credits === undefined || credits === null) return null;
-    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
-      ? parseFloat(String(credits))
-      : null;
-    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
-  }, [activity.data?.new_credits_balance]);
+  const winningsBal = activity.data?.new_winning_balance;
+  const winningsBalValue = winningsBal !== undefined && winningsBal !== null
+    ? (typeof winningsBal === 'string' || typeof winningsBal === 'number' ? parseFloat(String(winningsBal)) : null)
+    : null;
+  const newWinningBalance = winningsBalValue !== null && !isNaN(winningsBalValue) ? formatCurrency(String(winningsBalValue)) : null;
 
-  const newWinningBalance = useMemo(() => {
-    const winnings = activity.data?.new_winning_balance;
-    if (winnings === undefined || winnings === null) return null;
-    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
-      ? parseFloat(String(winnings))
-      : null;
-    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
-  }, [activity.data?.new_winning_balance]);
+  const creditValue = activity.data?.credit;
+  const credit = creditValue !== undefined && creditValue !== null ? formatCurrency(String(creditValue)) : null;
 
-  const credit = useMemo(() => {
-    const creditValue = activity.data?.credit;
-    if (creditValue === undefined || creditValue === null) return null;
-    return formatCurrency(String(creditValue));
-  }, [activity.data?.credit]);
-
-  const winnings = useMemo(() => {
-    const winningsValue = activity.data?.winnings;
-    if (winningsValue === undefined || winningsValue === null) return null;
-    return formatCurrency(String(winningsValue));
-  }, [activity.data?.winnings]);
+  const winningsValue = activity.data?.winnings;
+  const winnings = winningsValue !== undefined && winningsValue !== null ? formatCurrency(String(winningsValue)) : null;
 
   const zeroCurrency = formatCurrency('0');
-  
-  // Check if this is a reset or add user action - these should show hyphen for balance
-  const shouldShowBlankBalance = useMemo(() => {
-    const typeStr = String(activity.type);
-    return typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
-  }, [activity.type]);
+  const shouldShowBlankBalance = typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
 
-  const creditsDisplay = useMemo(() => {
-    if (shouldShowBlankBalance) return '—';
-    if (newCreditsBalance) return newCreditsBalance;
-    if (credit) return credit;
-    return zeroCurrency;
-  }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency]);
+  const creditsDisplay = shouldShowBlankBalance ? '—' : (newCreditsBalance || credit || zeroCurrency);
+  const winningsDisplay = shouldShowBlankBalance ? '—' : (newWinningBalance || winnings || zeroCurrency);
 
-  const winningsDisplay = useMemo(() => {
-    if (shouldShowBlankBalance) return '—';
-    if (newWinningBalance) return newWinningBalance;
-    if (winnings) return winnings;
-    return zeroCurrency;
-  }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency]);
+  const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
+    ? activity.user_username.trim()
+    : null;
 
-  const websiteUsername = useMemo(() => {
-    if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
-      return activity.user_username.trim();
-    }
-    return null;
-  }, [activity.user_username]);
+  const websiteEmail = typeof activity.user_email === 'string' && activity.user_email.trim()
+    ? activity.user_email.trim()
+    : null;
 
-  const websiteEmail = useMemo(() => {
-    if (typeof activity.user_email === 'string' && activity.user_email.trim()) {
-      return activity.user_email.trim();
-    }
-    return null;
-  }, [activity.user_email]);
+  const gameUsername = typeof activity.game_username === 'string' && activity.game_username.trim()
+    ? activity.game_username.trim()
+    : (activity.data && typeof activity.data === 'object' && activity.data !== null && typeof activity.data.username === 'string' && activity.data.username.trim()
+      ? activity.data.username.trim()
+      : null);
 
-  const gameUsername = useMemo(() => {
-    if (typeof activity.game_username === 'string' && activity.game_username.trim()) {
-      return activity.game_username.trim();
-    }
-    if (activity.data && typeof activity.data === 'object' && activity.data !== null) {
-      const dataUsername = activity.data.username;
-      if (typeof dataUsername === 'string' && dataUsername.trim()) {
-        return dataUsername.trim();
-      }
-    }
-    return null;
-  }, [activity.game_username, activity.data]);
+  const isAddUserAction = typeStr === 'add_user_game' || typeStr === 'create_game';
 
-  // Check if this is an "Add user" action - should show hyphen for game username
-  const isAddUserAction = useMemo(() => {
-    const typeStr = String(activity.type);
-    return typeStr === 'add_user_game' || typeStr === 'create_game';
-  }, [activity.type]);
+  const userInitial = websiteUsername
+    ? websiteUsername.charAt(0).toUpperCase()
+    : (activity.user_id ? String(activity.user_id).charAt(0) : '—');
 
-  const userInitial = useMemo(() => {
-    if (websiteUsername) {
-      return websiteUsername.charAt(0).toUpperCase();
-    }
-    return activity.user_id ? String(activity.user_id).charAt(0) : '—';
-  }, [websiteUsername, activity.user_id]);
+  const formattedCreatedAt = formatDate(activity.created_at);
 
-  const formattedCreatedAt = useMemo(() => formatDate(activity.created_at), [activity.created_at]);
+  const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
+  const bonusColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400');
 
-  const amountColorClass = useMemo(() => {
-    if (shouldShowDash) return '';
-    if (isRedeem) return 'text-red-600 dark:text-red-400';
-    if (isRecharge) return 'text-green-600 dark:text-green-400';
-    return 'text-foreground';
-  }, [isRedeem, isRecharge, shouldShowDash]);
-
-  const bonusColorClass = useMemo(() => {
-    if (shouldShowDash) return '';
-    return isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
-  }, [isRedeem, shouldShowDash]);
-
-  const handleViewClick = useCallback(() => {
+  const handleViewClick = () => {
     onView(activity);
-  }, [activity, onView]);
+  };
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
@@ -1250,13 +1101,4 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView }: Ga
       </div>
     </div>
   );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.activity.id === nextProps.activity.id &&
-    prevProps.activity.status === nextProps.activity.status &&
-    prevProps.activity.type === nextProps.activity.type &&
-    prevProps.activity.amount === nextProps.activity.amount &&
-    prevProps.activity.bonus_amount === nextProps.activity.bonus_amount &&
-    prevProps.onView === nextProps.onView
-  );
-});
+}

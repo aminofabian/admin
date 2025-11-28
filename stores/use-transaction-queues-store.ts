@@ -68,62 +68,28 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
   ...initialState,
 
   fetchQueues: async () => {
+    // Skip fetch if we're already loading (prevent concurrent requests)
     const currentState = get();
-    const { filter, advancedFilters, currentPage, pageSize } = currentState;
-
-    console.log('🔍 fetchQueues called with state:', {
-      isLoading: currentState.isLoading,
-      blockUnfilteredRequests: currentState.blockUnfilteredRequests,
-      expectedUsername: currentState.expectedUsername,
-      actualUsername: advancedFilters.username,
-      filter: currentState.filter,
-    });
-
-    // Skip fetch if we're in an inconsistent state (during filter transitions)
     if (currentState.isLoading) {
       console.log('⏭️ Skipping fetch - already loading');
-      return;
-    }
-
-    // CRITICAL: Skip fetch if we expect a username filter but don't have one
-    // This prevents unfiltered requests when a username should be applied
-    if (currentState.expectedUsername && !advancedFilters.username) {
-      console.log('⏭️ Skipping fetch - expected username not yet applied:', {
-        expectedUsername: currentState.expectedUsername,
-        actualUsername: advancedFilters.username,
-      });
-      return;
-    }
-
-    // CRITICAL: Skip fetch if we have an expected username but it doesn't match
-    // This prevents fetching with wrong username during transitions
-    if (currentState.expectedUsername && advancedFilters.username &&
-        advancedFilters.username !== currentState.expectedUsername) {
-      console.log('⏭️ Skipping fetch - username mismatch:', {
-        expectedUsername: currentState.expectedUsername,
-        actualUsername: advancedFilters.username,
-      });
-      return;
-    }
-
-    // Block unfiltered requests ONLY when blockUnfilteredRequests is true AND we're expecting a username
-    // This allows normal history page loads without username filters
-    if (currentState.blockUnfilteredRequests && currentState.expectedUsername && !advancedFilters.username) {
-      console.log('🚫 BLOCKING unfiltered request - blockUnfilteredRequests is true and username expected, but no username found');
       return;
     }
 
     set({ isLoading: true, error: null });
 
     try {
-      // Always get fresh state to avoid stale data
+      // ALWAYS get fresh state right before building filters to avoid stale data
       const freshState = get();
       const { filter, advancedFilters, currentPage, pageSize } = freshState;
 
       // Log to verify we're using the correct username
-      if (advancedFilters.username) {
-        console.log('📡 fetchQueues called with username:', advancedFilters.username);
-      }
+      console.log('📡 fetchQueues - Fresh state:', {
+        filter,
+        username: advancedFilters.username,
+        allFilters: advancedFilters,
+        currentPage,
+        pageSize,
+      });
       
       const filters: QueueFilters = {
         type: filter,
