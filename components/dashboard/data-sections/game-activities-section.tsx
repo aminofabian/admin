@@ -173,37 +173,53 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
   }, [queueFilter, advancedFilters]);
 
   // Handle initial username prop - pre-fill filter and automatically apply it
-  const hasInitializedUsernameRef = useRef(false);
+  const previousInitialUsernameRef = useRef<string | null | undefined>(undefined);
   const getStoreState = useTransactionQueuesStore.getState;
   
   useEffect(() => {
-    if (initialUsername && !hasInitializedUsernameRef.current && queueFilter === 'history') {
-      hasInitializedUsernameRef.current = true;
+    // Only process if username changed and filter is history
+    if (initialUsername && queueFilter === 'history' && previousInitialUsernameRef.current !== initialUsername) {
+      const trimmedUsername = initialUsername.trim();
+      previousInitialUsernameRef.current = trimmedUsername;
       isSettingInitialFilterRef.current = true;
       
       // Pre-fill the filter form
-      setFilters(prev => ({ ...prev, username: initialUsername }));
+      setFilters(prev => ({ ...prev, username: trimmedUsername }));
       setAreFiltersOpen(true);
       
-      // Automatically apply the filter (trim username like transactions store does)
-      const filterUpdate: Record<string, string> = {
-        username: initialUsername.trim(),
-      };
-      setAdvancedFiltersWithoutFetch(filterUpdate);
+      // Clear previous filters first, then set the new username filter
+      // This ensures we don't have stale data from previous user
+      setAdvancedFiltersWithoutFetch({});
       
-      // Manually trigger fetch after setting filters to ensure it happens
-      // Use setTimeout to ensure state is updated first, then verify state before fetching
+      // Use setTimeout to ensure clear completes, then set new filter
       setTimeout(() => {
-        const currentState = getStoreState();
-        console.log('🔍 Game Activities - Verifying filter state before fetch:', {
-          advancedFilters: currentState.advancedFilters,
-          username: currentState.advancedFilters.username,
-          filter: currentState.filter,
-        });
+        const filterUpdate: Record<string, string> = {
+          username: trimmedUsername,
+        };
+        setAdvancedFiltersWithoutFetch(filterUpdate);
         
+        // Then fetch after another brief delay
+        setTimeout(() => {
+          const currentState = getStoreState();
+          console.log('🔍 Game Activities - Verifying filter state before fetch:', {
+            advancedFilters: currentState.advancedFilters,
+            username: currentState.advancedFilters.username,
+            filter: currentState.filter,
+            expectedUsername: trimmedUsername,
+          });
+          
+          isSettingInitialFilterRef.current = false;
+          fetchQueues();
+        }, 50);
+      }, 50);
+    } else if (!initialUsername && previousInitialUsernameRef.current !== undefined && previousInitialUsernameRef.current !== null) {
+      // Clear filter if username was removed
+      previousInitialUsernameRef.current = null;
+      setAdvancedFiltersWithoutFetch({});
+      setTimeout(() => {
         isSettingInitialFilterRef.current = false;
         fetchQueues();
-      }, 100); // Increased delay to ensure state is committed
+      }, 50);
     }
   }, [initialUsername, queueFilter, setAdvancedFiltersWithoutFetch, fetchQueues, getStoreState]);
 
