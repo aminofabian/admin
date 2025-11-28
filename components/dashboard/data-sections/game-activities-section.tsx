@@ -169,54 +169,81 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
   const hasSetInitialUsernameRef = useRef(false);
   const advancedFiltersString = useMemo(() => JSON.stringify(advancedFilters), [advancedFilters]);
 
+  // Track if we've initialized with initialUsername to prevent duplicate calls
+  const hasInitializedUsernameRef = useRef(false);
+
   // Single mount effect - prevents all duplicate calls
   useEffect(() => {
     console.log('🏗️ GameActivitiesSection INITIALIZING with username:', initialUsername);
 
     if (initialUsername) {
       const trimmedUsername = initialUsername.trim();
-      console.log('🚫 IMMEDIATE BLOCK: Setting up username filter:', trimmedUsername);
+      console.log('✅ Setting up username filter:', trimmedUsername);
 
-      // Block ALL unfiltered requests immediately
-      setBlockUnfilteredRequests(true);
+      // Set expected username for validation
       setExpectedUsername(trimmedUsername);
 
-      // Apply filter in one atomic operation
+      // Ensure filter is set to history
       setFilterWithoutFetch('history');
-      setAdvancedFiltersWithoutFetch({ username: trimmedUsername });
+      
+      // Only set username in filters if it's not already there (page component may have set it)
+      const currentFilters = getStoreState().advancedFilters;
+      if (currentFilters.username !== trimmedUsername) {
+        console.log('📝 Setting username in filters (not already set):', trimmedUsername);
+        setAdvancedFiltersWithoutFetch({ username: trimmedUsername });
+      } else {
+        console.log('✅ Username already in filters, skipping set');
+      }
 
-      // Unblock after state is settled
-      setTimeout(() => {
-        console.log('✅ UNBLOCKING - Username filter should be applied');
-        setBlockUnfilteredRequests(false);
-      }, 150);
+      // Don't block - allow fetch to proceed immediately since username is already set
+      setBlockUnfilteredRequests(false);
+      
+      hasInitializedUsernameRef.current = true;
     } else {
       console.log('🔓 No username - normal operation');
       setBlockUnfilteredRequests(false);
       setExpectedUsername(null);
       setFilterWithoutFetch('history');
-      setAdvancedFiltersWithoutFetch({});
+      // Only clear if we don't have a username filter already (might be from previous navigation)
+      const currentFilters = getStoreState().advancedFilters;
+      if (currentFilters.username) {
+        console.log('🧹 Clearing username filter');
+        setAdvancedFiltersWithoutFetch({});
+      }
+      hasInitializedUsernameRef.current = false;
     }
 
     return () => {
       console.log('🏗️ GameActivitiesSection UNMOUNTING');
       setBlockUnfilteredRequests(false);
     };
-  }, [initialUsername, setBlockUnfilteredRequests, setExpectedUsername, setFilterWithoutFetch, setAdvancedFiltersWithoutFetch]);
+  }, [initialUsername, setBlockUnfilteredRequests, setExpectedUsername, setFilterWithoutFetch, setAdvancedFiltersWithoutFetch, getStoreState]);
 
-  // TEMPORARY: Block ALL requests for first 500ms to prevent initial unfiltered calls
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      console.log('⏰ TEMPORARY BLOCK LIFTED');
-    }, 500);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
+  // Track the last fetch key to prevent duplicate calls
+  const lastFetchKeyRef = useRef<string | null>(null);
 
   // Single fetch effect - only when everything is ready
   useEffect(() => {
+    // Only fetch if filter is history (prevent processing/history conflicts)
+    if (queueFilter !== 'history') {
+      console.log('⏭️ SKIP - Not history filter:', queueFilter);
+      return;
+    }
+
+    // CRITICAL: If we have an initialUsername, we MUST have a username in filters - block ALL unfiltered requests
+    if (initialUsername) {
+      const trimmedInitialUsername = initialUsername.trim();
+      if (!advancedFilters.username || advancedFilters.username !== trimmedInitialUsername) {
+        console.log('🚫 BLOCKED - initialUsername provided but username not yet in filters:', {
+          initialUsername: trimmedInitialUsername,
+          currentUsername: advancedFilters.username,
+          currentFilters: advancedFilters
+        });
+        lastFetchKeyRef.current = null; // Reset so we fetch once username is set
+        return;
+      }
+    }
+
     // Skip if we expect a username but don't have it yet
     if (expectedUsername && !advancedFilters.username) {
       console.log('⏭️ WAITING - Expected username not yet applied:', expectedUsername);
@@ -239,9 +266,10 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
       return;
     }
 
-    // Only fetch if filter is history (prevent processing/history conflicts)
-    if (queueFilter !== 'history') {
-      console.log('⏭️ SKIP - Not history filter:', queueFilter);
+    // Prevent duplicate fetches - only fetch once per filter/filter combination
+    const fetchKey = `${queueFilter}-${advancedFiltersString}`;
+    if (lastFetchKeyRef.current === fetchKey) {
+      console.log('⏭️ SKIP - Already fetched with these filters:', fetchKey);
       return;
     }
 
@@ -249,11 +277,15 @@ export function GameActivitiesSection({ showTabs = false, initialUsername, openF
       filter: queueFilter,
       advancedFilters,
       expectedUsername,
-      blockUnfilteredRequests
+      blockUnfilteredRequests,
+      username: advancedFilters.username,
+      initialUsername,
+      fetchKey
     });
 
+    lastFetchKeyRef.current = fetchKey;
     fetchQueues();
-  }, [queueFilter, advancedFilters.username, expectedUsername, blockUnfilteredRequests, fetchQueues]);
+  }, [queueFilter, advancedFiltersString, expectedUsername, blockUnfilteredRequests, fetchQueues, initialUsername]);
 
   
   

@@ -50,14 +50,12 @@ function HistoryGameActivitiesContent() {
       // Set filter to history after reset
       setFilterWithoutFetch('history');
       
-      // Clear all filters explicitly (redundant but safe)
-      setAdvancedFiltersWithoutFetch({});
+      // Set username in store immediately so fetch can use it
+      setAdvancedFiltersWithoutFetch({ username: trimmedUsername });
       
-      // Wait a moment for reset to complete, then set new username
-      setTimeout(() => {
-        setInitialUsername(trimmedUsername);
-        previousUsernameRef.current = trimmedUsername;
-      }, 0);
+      // Set initialUsername immediately (no setTimeout delay)
+      setInitialUsername(trimmedUsername);
+      previousUsernameRef.current = trimmedUsername;
     } else if (!trimmedUsername && previousUsernameRef.current !== null) {
       // Clear filters if username was removed
       console.log('🧹 Clearing filters - no username in query');
