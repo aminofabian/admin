@@ -659,13 +659,11 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
       </TableCell>
       <TableCell>
         <div className="space-y-1">
-          <div className="text-sm">
-            <span className="text-gray-500 dark:text-gray-400 text-xs">C:</span>{' '}
-            <span className="font-medium">{creditsDisplay}</span>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            C: {creditsDisplay}
           </div>
-          <div className="text-sm">
-            <span className="text-gray-500 dark:text-gray-400 text-xs">W:</span>{' '}
-            <span className="font-medium">{winningsDisplay}</span>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            W: {winningsDisplay}
           </div>
         </div>
       </TableCell>
