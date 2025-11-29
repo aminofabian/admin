@@ -73,7 +73,7 @@ export function SuperAdminDashboard() {
     <div className="min-h-screen flex items-center justify-center pb-24">
       {/* Mobile App-style Button Grid - Centered in the middle of the page */}
       <div className="w-full max-w-5xl px-4">
-        <div className="grid grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-4">
           {sections.map((section, index) => (
             <Link
               key={index}
