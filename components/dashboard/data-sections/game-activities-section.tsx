@@ -8,6 +8,7 @@ import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
 import { gamesApi, staffsApi, managersApi } from '@/lib/api';
+import { storage } from '@/lib/utils/storage';
 import type { TransactionQueue, Game, Staff, Manager } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
 
@@ -268,6 +269,20 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       setIsOperatorLoading(true);
 
       try {
+        // Get company name from localStorage (username is the company name)
+        let companyName = 'Company';
+        const userData = storage.get('user');
+        if (userData) {
+          try {
+            const user = JSON.parse(userData);
+            if (user?.username) {
+              companyName = user.username;
+            }
+          } catch (error) {
+            console.warn('Failed to parse user data from localStorage:', error);
+          }
+        }
+
         // Fetch active staff
         const staffResponse = await staffsApi.list({ page_size: 100 });
         const activeStaff = (staffResponse?.results || []).filter((staff: Staff) => staff.is_active);
@@ -281,6 +296,12 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
         }
 
         const operatorMap = new Map<string, string>();
+
+        // Add "Bot" operator
+        operatorMap.set('Bot', 'Bot');
+
+        // Add "Company" with username as the company name
+        operatorMap.set('Company', companyName);
 
         // Add active staff
         activeStaff.forEach((staff: Staff) => {
@@ -296,9 +317,16 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
           }
         });
 
-        const mappedOptions = Array.from(operatorMap.entries())
-          .map(([value, label]) => ({ value, label }))
-          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+        // Sort: Bot first, Company second, then alphabetically
+        const sortedEntries = Array.from(operatorMap.entries()).sort((a, b) => {
+          if (a[0] === 'Bot') return -1;
+          if (b[0] === 'Bot') return 1;
+          if (a[0] === 'Company') return -1;
+          if (b[0] === 'Company') return 1;
+          return a[1].localeCompare(b[1], undefined, { sensitivity: 'base' });
+        });
+
+        const mappedOptions = sortedEntries.map(([value, label]) => ({ value, label }));
 
         if (isMounted && !isCancelled) {
           setOperatorOptions(mappedOptions);
