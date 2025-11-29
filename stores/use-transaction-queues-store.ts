@@ -91,37 +91,35 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         pageSize,
       });
       
-      const filters: QueueFilters = {
-        type: filter,
+      // Build base filters without type (filter type is handled separately per endpoint)
+      const baseFilters: QueueFilters = {
         page: currentPage,
         page_size: pageSize,
       };
 
       const cleanedAdvancedFilters: Record<string, string> = {};
       
-      // Pass username and email as query params to backend for server-side filtering
-      // game_username can still be filtered client-side if backend doesn't support it
-      const gameUsernameFilter = advancedFilters.game_username;
-      
+      // Pass all filters including game_username and type (activity type) to backend for server-side filtering
       Object.entries(advancedFilters).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
-          // game_username: filter client-side if backend doesn't support it
-          // All other filters including username and email: send to backend
-          if (key !== 'game_username') {
-            // Username and email: trim and send as-is for partial search (like transactions store)
-            if (key === 'username' || key === 'email') {
-              const trimmedValue = String(value).trim();
-              if (trimmedValue) {
-                cleanedAdvancedFilters[key] = trimmedValue;
-              }
-            } else {
-              cleanedAdvancedFilters[key] = value;
+          // Username and email: trim and send as-is for partial search (like transactions store)
+          if (key === 'username' || key === 'email') {
+            const trimmedValue = String(value).trim();
+            if (trimmedValue) {
+              cleanedAdvancedFilters[key] = trimmedValue;
             }
+          } else {
+            // Include all other filters: game_username, type (activity type), game, operator, etc.
+            cleanedAdvancedFilters[key] = value;
           }
         }
       });
 
-      Object.assign(filters, cleanedAdvancedFilters);
+      // Merge base filters with advanced filters
+      const filters: QueueFilters = {
+        ...baseFilters,
+        ...cleanedAdvancedFilters,
+      };
 
       // Log filters for debugging (especially username)
       if (cleanedAdvancedFilters.username || cleanedAdvancedFilters.email) {
@@ -140,27 +138,30 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
       let response: PaginatedResponse<TransactionQueue>;
       
       if (filter === 'history') {
-        // Use transaction-queues-history endpoint - remove type since endpoint handles it
-        const historyFilters = { ...filters };
-        delete historyFilters.type;
-        
+        // Use transaction-queues-history endpoint
+        // Filters already include activity type from advancedFilters if provided
         console.log('🌐 Final API filters for queuesHistory:', {
-          historyFilters,
-          username: historyFilters.username,
-          email: historyFilters.email,
-          allKeys: Object.keys(historyFilters),
+          filters,
+          username: filters.username,
+          email: filters.email,
+          game_username: filters.game_username,
+          type: filters.type, // Activity type (e.g., 'recharge_game', 'redeem_game')
+          allKeys: Object.keys(filters),
         });
         
-        response = await transactionsApi.queuesHistory(historyFilters);
+        response = await transactionsApi.queuesHistory(filters);
       } else if (filter === 'processing') {
-        // Use transaction-queues-processing endpoint - remove type since endpoint handles it
-        const processingFilters = { ...filters };
-        delete processingFilters.type;
-        response = await transactionsApi.queuesProcessing(processingFilters);
+        // Use transaction-queues-processing endpoint
+        // Filters already include activity type from advancedFilters if provided
+        response = await transactionsApi.queuesProcessing(filters);
       } else {
         // Use legacy endpoint for specific queue types (recharge_game, redeem_game, etc.)
-        // These still need the type parameter
-        response = await transactionsApi.queues(filters);
+        // Set the filter type as the activity type
+        const legacyFilters = {
+          ...filters,
+          type: filter, // This is the activity type (recharge_game, redeem_game, etc.)
+        };
+        response = await transactionsApi.queues(legacyFilters);
       }
       
       // Normalize API response to match the structure we expect (same as WebSocket transformation)
@@ -191,38 +192,9 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         return queue;
       });
       
-      // Apply client-side filtering only for game_username if backend doesn't support it
-      // Username and email are now handled by the backend
-      let filteredQueues = normalizedQueues;
-      
-      if (gameUsernameFilter) {
-        const gameUsernameStr = typeof gameUsernameFilter === 'string' ? gameUsernameFilter : String(gameUsernameFilter || '');
-        const gameUsernameLower = gameUsernameStr.toLowerCase().trim();
-        
-        filteredQueues = filteredQueues.filter((queue: TransactionQueue) => {
-          if (gameUsernameLower) {
-            // Check both top-level game_username and data.username
-            const queueGameUsername = (queue.game_username || '').toLowerCase();
-            let dataUsername = '';
-            if (queue.data && typeof queue.data === 'object' && queue.data !== null) {
-              const data = queue.data as any;
-              dataUsername = (data.username || data.game_username || '').toLowerCase();
-            }
-            
-            if (!queueGameUsername.includes(gameUsernameLower) && !dataUsername.includes(gameUsernameLower)) {
-              return false;
-            }
-          }
-          
-          return true;
-        });
-
-        console.log('🔍 Client-side game_username filter applied:', {
-          gameUsernameFilter,
-          originalCount: normalizedQueues.length,
-          filteredCount: filteredQueues.length,
-        });
-      }
+      // All filtering is now handled by the backend (including game_username and type)
+      // No client-side filtering needed
+      const filteredQueues = normalizedQueues;
       
       // Filter out completed activities when in processing view
       const finalFilteredQueues = filter === 'processing' 

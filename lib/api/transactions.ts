@@ -113,7 +113,7 @@ export const transactionsApi = {
     return normalizePaginatedResponse(response);
   },
 
-  queuesHistory: async (filters?: Omit<QueueFilters, 'type'>) => {
+  queuesHistory: async (filters?: QueueFilters) => {
     const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
       API_ENDPOINTS.TRANSACTIONS.QUEUES_HISTORY, 
       { params: filters }
@@ -121,7 +121,7 @@ export const transactionsApi = {
     return normalizePaginatedResponse(response);
   },
 
-  queuesProcessing: async (filters?: Omit<QueueFilters, 'type'>) => {
+  queuesProcessing: async (filters?: QueueFilters) => {
     const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
       API_ENDPOINTS.TRANSACTIONS.QUEUES_PROCESSING, 
       { params: filters }
