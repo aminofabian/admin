@@ -5,8 +5,8 @@ import { Badge, Button, Card, CardContent, Pagination, Table, TableBody, TableCe
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
-import { gamesApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
-import type { TransactionQueue, Game, Company, Staff, Manager } from '@/types';
+import { gamesApi, paymentMethodsApi, staffsApi, managersApi, agentsApi } from '@/lib/api';
+import type { TransactionQueue, Game, Company, Staff, Manager, Agent, PaymentMethod } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
 
 const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
@@ -59,6 +59,11 @@ export function SuperAdminHistoryGameActivities() {
     const [isGameLoading, setIsGameLoading] = useState(false);
     const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
     const [isOperatorLoading, setIsOperatorLoading] = useState(false);
+    const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
+    const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
+    const [isAgentLoading, setIsAgentLoading] = useState(false);
+    const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
+    const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
 
     // Company filter state
     const [companySearchTerm, setCompanySearchTerm] = useState('');
@@ -194,13 +199,121 @@ export function SuperAdminHistoryGameActivities() {
         };
     }, []);
 
-    // Fetch operators (companies, staffs, managers) for dropdown
+    // Fetch agents for dropdown
     useEffect(() => {
-        // Only load operators after companies are loaded
-        if (isLoadingCompanies) {
-            return;
-        }
+        let isMounted = true;
 
+        const loadAgents = async () => {
+            setIsAgentLoading(true);
+
+            try {
+                const aggregated: Agent[] = [];
+                const pageSize = 100;
+                let page = 1;
+                let hasNext = true;
+
+                while (hasNext) {
+                    const response = await agentsApi.list({ page, page_size: pageSize });
+
+                    if (!response?.results) {
+                        break;
+                    }
+
+                    aggregated.push(...response.results);
+
+                    if (!response.next) {
+                        hasNext = false;
+                    } else {
+                        page += 1;
+                    }
+                }
+
+                if (!isMounted) {
+                    return;
+                }
+
+                const uniqueAgents = new Map<string, string>();
+                const idMap = new Map<string, number>();
+
+                aggregated.forEach((agent) => {
+                    if (agent?.username) {
+                        uniqueAgents.set(agent.username, agent.username);
+                        idMap.set(agent.username, agent.id);
+                    }
+                });
+
+                const mappedOptions = Array.from(uniqueAgents.entries())
+                    .map(([value, label]) => ({ value, label }))
+                    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+                setAgentOptions(mappedOptions);
+                setAgentIdMap(idMap);
+            } catch (error) {
+                console.error('Failed to load agents for game activity filters:', error);
+            } finally {
+                if (isMounted) {
+                    setIsAgentLoading(false);
+                }
+            }
+        };
+
+        loadAgents();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // Fetch payment methods for dropdown
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadPaymentMethods = async () => {
+            setIsPaymentMethodLoading(true);
+
+            try {
+                const data = await paymentMethodsApi.list();
+                const methods = Array.isArray(data)
+                    ? data
+                    : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
+                        ? data.results
+                        : [];
+
+                if (!isMounted) {
+                    return;
+                }
+
+                const uniqueMethods = new Map<string, string>();
+
+                methods.forEach((method: PaymentMethod) => {
+                    if (method?.payment_method) {
+                        uniqueMethods.set(method.payment_method, method.payment_method_display || method.payment_method);
+                    }
+                });
+
+                const mappedOptions = Array.from(uniqueMethods.entries())
+                    .map(([value, label]) => ({ value, label }))
+                    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+                setPaymentMethodOptions(mappedOptions);
+            } catch (error) {
+                console.error('Failed to load payment methods for game activity filters:', error);
+            } finally {
+                if (isMounted) {
+                    setIsPaymentMethodLoading(false);
+                }
+            }
+        };
+
+        loadPaymentMethods();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    // Fetch operators (staffs, managers) for dropdown
+    useEffect(() => {
         let isMounted = true;
 
         const loadOperators = async () => {
@@ -230,27 +343,23 @@ export function SuperAdminHistoryGameActivities() {
 
                 const operatorMap = new Map<string, string>();
 
-                // Add companies as operators (using project_name)
-                companies.forEach((company: Company) => {
-                    if (company?.project_name) {
-                        // Use 'admin' as value for company operators, or company id if needed
-                        operatorMap.set(`admin_${company.id}`, company.project_name);
-                    }
-                });
-
                 // Add active staff
-                staffs.forEach((staff: Staff) => {
-                    if (staff?.username) {
-                        operatorMap.set(staff.username, staff.username);
-                    }
-                });
+                staffs
+                    .filter((staff: Staff) => staff.is_active)
+                    .forEach((staff: Staff) => {
+                        if (staff?.username) {
+                            operatorMap.set(staff.username, staff.username);
+                        }
+                    });
 
                 // Add active managers
-                managers.forEach((manager: Manager) => {
-                    if (manager?.username) {
-                        operatorMap.set(manager.username, manager.username);
-                    }
-                });
+                managers
+                    .filter((manager: Manager) => manager.is_active)
+                    .forEach((manager: Manager) => {
+                        if (manager?.username) {
+                            operatorMap.set(manager.username, manager.username);
+                        }
+                    });
 
                 const mappedOptions = Array.from(operatorMap.entries())
                     .map(([value, label]) => ({ value, label }))
@@ -273,7 +382,7 @@ export function SuperAdminHistoryGameActivities() {
         return () => {
             isMounted = false;
         };
-    }, [companies, isLoadingCompanies]);
+    }, []);
 
     const fetchCompanies = async () => {
         setIsLoadingCompanies(true);

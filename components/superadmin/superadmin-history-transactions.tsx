@@ -209,6 +209,7 @@ export function SuperAdminHistoryTransactions() {
                     .map(([value, label]) => ({ value, label }))
                     .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
+                console.log('Loaded agents:', mappedOptions.length, mappedOptions);
                 setAgentOptions(mappedOptions);
                 setAgentIdMap(idMap);
             } catch (error) {
@@ -258,6 +259,7 @@ export function SuperAdminHistoryTransactions() {
                     .map(([value, label]) => ({ value, label }))
                     .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
+                console.log('Loaded payment methods:', mappedOptions.length, mappedOptions);
                 setPaymentMethodOptions(mappedOptions);
             } catch (error) {
                 console.error('Failed to load payment methods for transaction filters:', error);
@@ -275,7 +277,7 @@ export function SuperAdminHistoryTransactions() {
         };
     }, []);
 
-    // Fetch operators (staffs + managers) for dropdown
+    // Fetch operators (staffs, managers) for dropdown
     useEffect(() => {
         let isMounted = true;
 
@@ -304,19 +306,34 @@ export function SuperAdminHistoryTransactions() {
                         ? managersData.results
                         : [];
 
-                const uniqueOperators = new Map<string, string>();
+                const operatorMap = new Map<string, string>();
 
-                [...staffs, ...managers].forEach((operator: Staff | Manager) => {
-                    if (operator?.username) {
-                        uniqueOperators.set(operator.username, operator.username);
-                    }
-                });
+                // Add active staff
+                staffs
+                    .filter((staff: Staff) => staff.is_active)
+                    .forEach((staff: Staff) => {
+                        if (staff?.username) {
+                            operatorMap.set(staff.username, staff.username);
+                        }
+                    });
 
-                const mappedOptions = Array.from(uniqueOperators.entries())
+                // Add active managers
+                managers
+                    .filter((manager: Manager) => manager.is_active)
+                    .forEach((manager: Manager) => {
+                        if (manager?.username) {
+                            operatorMap.set(manager.username, manager.username);
+                        }
+                    });
+
+                const mappedOptions = Array.from(operatorMap.entries())
                     .map(([value, label]) => ({ value, label }))
                     .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
-                setOperatorOptions(mappedOptions);
+                console.log('Loaded operators:', mappedOptions.length, mappedOptions);
+                if (isMounted) {
+                    setOperatorOptions(mappedOptions);
+                }
             } catch (error) {
                 console.error('Failed to load operators for transaction filters:', error);
             } finally {
