@@ -239,13 +239,18 @@ export function TransactionsSection() {
 
   // Lazy load agents when filters are opened
   useEffect(() => {
-    if (!areFiltersOpen || agentOptions.length > 0 || isAgentLoading) {
+    if (!areFiltersOpen || agentOptions.length > 0) {
       return;
     }
 
     let isMounted = true;
+    let isCancelled = false;
 
     const loadAgents = async () => {
+      if (isCancelled || !isMounted) {
+        return;
+      }
+
       setIsAgentLoading(true);
 
       try {
@@ -254,7 +259,7 @@ export function TransactionsSection() {
         let page = 1;
         let hasNext = true;
 
-        while (hasNext) {
+        while (hasNext && isMounted && !isCancelled) {
           const response = await agentsApi.list({ page, page_size: pageSize });
 
           if (!response?.results) {
@@ -274,7 +279,7 @@ export function TransactionsSection() {
           }
         }
 
-        if (!isMounted) {
+        if (!isMounted || isCancelled) {
           return;
         }
 
@@ -295,7 +300,7 @@ export function TransactionsSection() {
         setAgentOptions(mappedOptions);
         setAgentIdMap(idMap);
 
-        if (isMounted && idMap.size > 0) {
+        if (isMounted && !isCancelled && idMap.size > 0) {
           const currentFilters = getStoreState().advancedFilters;
           if (currentFilters.agent && !currentFilters.agent_id) {
             let agentId = idMap.get(currentFilters.agent);
@@ -332,7 +337,7 @@ export function TransactionsSection() {
       } catch (error) {
         console.error('Failed to load agents for transaction filters:', error);
       } finally {
-        if (isMounted) {
+        if (isMounted && !isCancelled) {
           setIsAgentLoading(false);
         }
       }
@@ -341,26 +346,32 @@ export function TransactionsSection() {
     loadAgents();
 
     return () => {
+      isCancelled = true;
       isMounted = false;
     };
-  }, [areFiltersOpen, agentOptions.length, isAgentLoading, setAdvancedFiltersWithoutFetch]);
+  }, [areFiltersOpen, agentOptions.length, setAdvancedFiltersWithoutFetch]);
 
 
   // Lazy load payment methods when filters are opened
   useEffect(() => {
-    if (!areFiltersOpen || paymentMethodOptions.length > 0 || isPaymentMethodLoading) {
+    if (!areFiltersOpen || paymentMethodOptions.length > 0) {
       return;
     }
 
     let isMounted = true;
+    let isCancelled = false;
 
     const loadPaymentMethods = async () => {
+      if (isCancelled || !isMounted) {
+        return;
+      }
+
       setIsPaymentMethodLoading(true);
 
       try {
         const response = await paymentMethodsApi.list();
 
-        if (!isMounted) {
+        if (!isMounted || isCancelled) {
           return;
         }
 
@@ -393,7 +404,7 @@ export function TransactionsSection() {
       } catch (error) {
         console.error('Failed to load payment methods for transaction filters:', error);
       } finally {
-        if (isMounted) {
+        if (isMounted && !isCancelled) {
           setIsPaymentMethodLoading(false);
         }
       }
@@ -402,19 +413,25 @@ export function TransactionsSection() {
     loadPaymentMethods();
 
     return () => {
+      isCancelled = true;
       isMounted = false;
     };
-  }, [areFiltersOpen, paymentMethodOptions.length, isPaymentMethodLoading]);
+  }, [areFiltersOpen, paymentMethodOptions.length]);
 
   // Lazy load operators when filters are opened
   useEffect(() => {
-    if (!areFiltersOpen || operatorOptions.length > 0 || isOperatorLoading) {
+    if (!areFiltersOpen || operatorOptions.length > 0) {
       return;
     }
 
     let isMounted = true;
+    let isCancelled = false;
 
     const loadOperators = async () => {
+      if (isCancelled || !isMounted) {
+        return;
+      }
+
       setIsOperatorLoading(true);
 
       try {
@@ -426,7 +443,7 @@ export function TransactionsSection() {
         const managersResponse = await managersApi.list({ page_size: 100 });
         const activeManagers = (managersResponse?.results || []).filter((manager: Manager) => manager.is_active);
 
-        if (!isMounted) {
+        if (!isMounted || isCancelled) {
           return;
         }
 
@@ -467,7 +484,7 @@ export function TransactionsSection() {
       } catch (error) {
         console.error('Failed to load operators for transaction filters:', error);
       } finally {
-        if (isMounted) {
+        if (isMounted && !isCancelled) {
           setIsOperatorLoading(false);
         }
       }
@@ -476,9 +493,10 @@ export function TransactionsSection() {
     loadOperators();
 
     return () => {
+      isCancelled = true;
       isMounted = false;
     };
-  }, [areFiltersOpen, operatorOptions.length, isOperatorLoading]);
+  }, [areFiltersOpen, operatorOptions.length]);
 
   const handleAdvancedFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
     setFilters((previous) => {
