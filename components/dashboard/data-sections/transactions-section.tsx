@@ -127,6 +127,7 @@ export function TransactionsSection() {
   const fetchTransactionsStore = useTransactionsStore((state) => state.fetchTransactions);
   const setAdvancedFiltersWithoutFetch = useTransactionsStore((state) => state.setAdvancedFiltersWithoutFetch);
   const clearAdvancedFilters = useTransactionsStore((state) => state.clearAdvancedFilters);
+  const clearAdvancedFiltersWithoutFetch = useTransactionsStore((state) => state.clearAdvancedFiltersWithoutFetch);
   const setFilterWithoutFetch = useTransactionsStore((state) => state.setFilterWithoutFetch);
 
   const updateTransaction = useTransactionsStore((state) => state.updateTransaction);
@@ -166,16 +167,14 @@ export function TransactionsSection() {
     };
   }, []);
 
-  // Initialize - set filter to history on mount
+  // Initialize - set filter to history on mount and ALWAYS clear filters
   useEffect(() => {
+    // Always clear filters when revisiting this section
+    clearAdvancedFiltersWithoutFetch();
     setFilterWithoutFetch('history');
-
-    // If no filters in store, clear local filter state (page reload scenario)
-    if (Object.keys(advancedFilters).length === 0) {
-      setFilters(DEFAULT_HISTORY_FILTERS);
-      setAreFiltersOpen(false);
-    }
-  }, []);
+    setFilters(DEFAULT_HISTORY_FILTERS);
+    setAreFiltersOpen(false);
+  }, [clearAdvancedFiltersWithoutFetch, setFilterWithoutFetch]);
 
   // Fetch on mount and when filter/advancedFilters change
   useEffect(() => {

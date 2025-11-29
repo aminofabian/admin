@@ -135,6 +135,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
   const setAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.setAdvancedFiltersWithoutFetch);
   const clearAdvancedFilters = useTransactionQueuesStore((state) => state.clearAdvancedFilters);
+  const clearAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.clearAdvancedFiltersWithoutFetch);
   const totalCount = useTransactionQueuesStore((state) => state.count);
   const next = useTransactionQueuesStore((state) => state.next);
   const previous = useTransactionQueuesStore((state) => state.previous);
@@ -147,16 +148,14 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isGameLoading, setIsGameLoading] = useState(false);
 
-  // Initialize - set filter to history on mount
+  // Initialize - set filter to history on mount and ALWAYS clear filters
   useEffect(() => {
+    // Always clear filters when revisiting this section
+    clearAdvancedFiltersWithoutFetch();
     setFilterWithoutFetch('history');
-
-    // If no filters in store, clear local filter state (page reload scenario)
-    if (Object.keys(advancedFilters).length === 0) {
-      setFilters(DEFAULT_GAME_ACTIVITY_FILTERS);
-      setAreFiltersOpen(false);
-    }
-  }, []);
+    setFilters(DEFAULT_GAME_ACTIVITY_FILTERS);
+    setAreFiltersOpen(false);
+  }, [clearAdvancedFiltersWithoutFetch, setFilterWithoutFetch]);
 
   // Fetch on mount and when filter/advancedFilters change
   useEffect(() => {
