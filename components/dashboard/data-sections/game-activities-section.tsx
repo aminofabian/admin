@@ -930,12 +930,19 @@ function mapStatusToVariant(status: string): 'default' | 'success' | 'warning' |
 
 function mapTypeToLabel(type: string): string {
   if (!type) return '—';
+  if (type === 'recharge_game') return 'Recharge';
+  if (type === 'redeem_game') return 'Redeem';
+  if (type === 'add_user_game' || type === 'create_game') return 'Add User';
+  if (type === 'change_password' || type === 'reset_password') return 'Reset';
   return type.replace(/_/g, ' ');
 }
 
 function mapTypeToVariant(type: string): 'default' | 'success' | 'danger' | 'info' {
   if (!type) return 'default';
   const typeLower = type.toLowerCase();
+  if (typeLower === 'recharge_game') return 'success';
+  if (typeLower === 'redeem_game') return 'danger';
+  if (typeLower === 'add_user_game' || typeLower === 'create_game' || typeLower === 'change_password' || typeLower === 'reset_password') return 'info';
   if (typeLower.includes('recharge') || typeLower.includes('purchase')) return 'success';
   if (typeLower.includes('redeem') || typeLower.includes('cashout')) return 'danger';
   if (typeLower.includes('transfer')) return 'info';

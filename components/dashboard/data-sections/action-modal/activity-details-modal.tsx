@@ -206,7 +206,8 @@ const mapStatusToVariant = (status: string): 'success' | 'warning' | 'danger' | 
 const mapTypeToLabel = (type: string): string => {
   if (type === 'recharge_game') return 'Recharge';
   if (type === 'redeem_game') return 'Redeem';
-  if (type === 'add_user_game') return 'Add User';
+  if (type === 'add_user_game' || type === 'create_game') return 'Add User';
+  if (type === 'change_password' || type === 'reset_password') return 'Reset';
   return type;
 };
 
