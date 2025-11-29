@@ -129,11 +129,10 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
 }
 
 interface TransactionsSectionProps {
-  initialUsername?: string | null;
-  openFiltersOnMount?: boolean;
+  // Props removed - component now manages state via store only
 }
 
-export function TransactionsSection({ initialUsername, openFiltersOnMount = false }: TransactionsSectionProps) {
+export function TransactionsSection({ }: TransactionsSectionProps) {
   const transactions = useTransactionsStore((state) => state.transactions);
   const isLoading = useTransactionsStore((state) => state.isLoading);
   const error = useTransactionsStore((state) => state.error);
@@ -146,7 +145,7 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
   const setAdvancedFiltersWithoutFetch = useTransactionsStore((state) => state.setAdvancedFiltersWithoutFetch);
   const clearAdvancedFilters = useTransactionsStore((state) => state.clearAdvancedFilters);
   const setFilterWithoutFetch = useTransactionsStore((state) => state.setFilterWithoutFetch);
-  const resetStore = useTransactionsStore((state) => state.reset);
+
   const updateTransaction = useTransactionsStore((state) => state.updateTransaction);
   const getStoreState = useTransactionsStore.getState;
   const { addToast } = useToast();
@@ -161,15 +160,8 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
   const isFirstMountRef = useRef(true);
   const previousDepsRef = useRef<{ page: number; filter: string; filters: string } | null>(null);
 
-  const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => {
-    const baseFilters = buildHistoryFilterState(advancedFilters);
-    // If initialUsername is provided, pre-fill it (but don't apply)
-    if (initialUsername && !baseFilters.username) {
-      return { ...baseFilters, username: initialUsername };
-    }
-    return baseFilters;
-  });
-  const [areFiltersOpen, setAreFiltersOpen] = useState(openFiltersOnMount || false);
+  const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(DEFAULT_HISTORY_FILTERS);
+  const [areFiltersOpen, setAreFiltersOpen] = useState(false);
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
   const [isAgentLoading, setIsAgentLoading] = useState(false);
@@ -191,155 +183,50 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
     };
   }, []);
 
+  // Initialize - set filter to history on mount
   useEffect(() => {
-    if (filter === 'all') {
-      return;
+    setFilterWithoutFetch('history');
+
+    // If no filters in store, clear local filter state (page reload scenario)
+    if (Object.keys(advancedFilters).length === 0) {
+      setFilters(DEFAULT_HISTORY_FILTERS);
+      setAreFiltersOpen(false);
     }
+  }, []);
 
-    // Skip fetch if we're updating username (prevent race condition)
-    if (isUpdatingUsernameRef.current) {
-      console.log('⏭️ Skipping transactions fetch - updating username');
-      return;
+  // Fetch on mount and when filter/advancedFilters change
+  useEffect(() => {
+    if (filter === 'history') {
+      fetchTransactionsRef.current();
     }
-
-    const currentDeps = {
-      page: currentPage,
-      filter,
-      filters: advancedFiltersString,
-    };
-
-    // Check if this is a duplicate render with the same values (React strict mode)
-    if (previousDepsRef.current &&
-      previousDepsRef.current.page === currentDeps.page &&
-      previousDepsRef.current.filter === currentDeps.filter &&
-      previousDepsRef.current.filters === currentDeps.filters) {
-      // Same values - likely React strict mode duplicate render, skip
-      console.log('⏭️ Skipping duplicate fetch due to React strict mode (same deps)');
-      return;
-    }
-
-    // Track that we've done at least one fetch
-    isFirstMountRef.current = false;
-    previousDepsRef.current = currentDeps;
-
-    // Fetch transactions
-    fetchTransactionsRef.current();
   }, [currentPage, filter, advancedFiltersString]);
 
-  // Removed toast notification for zero results - per requirements
 
-  // Handle initial username prop - pre-fill filter and automatically apply it (like game-activities)
-  const lastProcessedUsernameRef = useRef<string | null>(null);
-  const isUpdatingUsernameRef = useRef(false);
 
+  // Sync filters from store
   useEffect(() => {
-    const trimmedUsername = initialUsername?.trim() || null;
-
-    // Only process if username changed
-    if (trimmedUsername && trimmedUsername !== lastProcessedUsernameRef.current) {
-      console.log('🔄 Username changed in transactions section, resetting store and updating:', {
-        old: lastProcessedUsernameRef.current,
-        new: trimmedUsername,
-      });
-
-      // Set flag to prevent fetch effect from running during update
-      isUpdatingUsernameRef.current = true;
-
-      // Pre-fill the filter form
-      setFilters(prev => ({ ...prev, username: trimmedUsername }));
-      setAreFiltersOpen(true);
-
-      // CRITICAL: Completely reset store first to clear ALL stale data
-      resetStore();
-
-      // Set filter to history after reset
-      setTimeout(() => {
-        setFilterWithoutFetch('history');
-
-        // Set the new username filter - this REPLACES ALL filters
-        const filterUpdate: Record<string, string> = {
-          username: trimmedUsername,
-        };
-        setAdvancedFiltersWithoutFetch(filterUpdate);
-
-        // Verify and fetch - ensure store has correct username
-        const verifyAndFetch = () => {
-          // Always get fresh state directly from store
-          const freshState = getStoreState();
-          const currentUsername = freshState.advancedFilters.username?.trim();
-
-          console.log('🔍 Verifying transactions store state:', {
-            expected: trimmedUsername,
-            actual: currentUsername,
-            transactions: freshState.transactions?.results?.length || 0,
-            isLoading: freshState.isLoading,
-            filter: freshState.filter,
-          });
-
-          if (currentUsername === trimmedUsername && !freshState.isLoading && freshState.filter === 'history') {
-            // Store has correct username, not loading, and filter is history
-            console.log('✅ Transactions store ready, fetching with username:', trimmedUsername);
-            lastProcessedUsernameRef.current = trimmedUsername;
-            isUpdatingUsernameRef.current = false; // Clear flag before fetching
-
-            // Fetch with the correct username - store will use fresh state
-            fetchTransactionsRef.current();
-          } else {
-            // Store not ready yet, retry
-            console.warn('⚠️ Transactions store not ready, retrying:', {
-              expected: trimmedUsername,
-              actual: currentUsername,
-              isLoading: freshState.isLoading,
-              filter: freshState.filter,
-            });
-            setTimeout(verifyAndFetch, 50);
-          }
-        };
-
-        // Start verification after a small delay
-        setTimeout(verifyAndFetch, 10);
-      }, 0);
-    } else if (!trimmedUsername && lastProcessedUsernameRef.current !== null) {
-      // Reset when username is cleared
-      lastProcessedUsernameRef.current = null;
-      clearAdvancedFilters();
-    }
-  }, [initialUsername, setAdvancedFiltersWithoutFetch, clearAdvancedFilters, getStoreState, resetStore, setFilterWithoutFetch]);
-
-  useEffect(() => {
-    if (agentIdMap.size === 0) {
-      return;
-    }
-
     const filterState = buildHistoryFilterState(advancedFilters);
-    let needsUpdate = false;
-    const updatedFilters = { ...advancedFilters };
 
-    if (filterState.agent_id && !filterState.agent && agentIdMap.size > 0) {
-      const agentUsername = Array.from(agentIdMap.entries()).find(
-        ([, id]) => String(id) === filterState.agent_id
-      )?.[0];
+    // Sync agent name and ID
+    if (agentIdMap.size > 0) {
+      if (filterState.agent_id && !filterState.agent) {
+        const agentUsername = Array.from(agentIdMap.entries()).find(
+          ([, id]) => String(id) === filterState.agent_id
+        )?.[0];
+        if (agentUsername) {
+          filterState.agent = agentUsername;
+        }
+      }
 
-      if (agentUsername && advancedFilters.agent !== agentUsername) {
-        filterState.agent = agentUsername;
-        updatedFilters.agent = agentUsername;
-        needsUpdate = true;
+      if (filterState.agent && !filterState.agent_id) {
+        const agentId = agentIdMap.get(filterState.agent);
+        if (agentId) {
+          filterState.agent_id = String(agentId);
+        }
       }
     }
 
-    if (filterState.agent && !filterState.agent_id && agentIdMap.size > 0) {
-      const agentId = agentIdMap.get(filterState.agent);
-      if (agentId && advancedFilters.agent_id !== String(agentId)) {
-        filterState.agent_id = String(agentId);
-        updatedFilters.agent_id = String(agentId);
-        needsUpdate = true;
-      }
-    }
-
-    if (needsUpdate) {
-      setAdvancedFiltersWithoutFetch(updatedFilters);
-    }
-
+    // Format dates for HTML inputs
     if (filterState.date_from) {
       const dateFromValue = filterState.date_from.trim();
       if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
@@ -360,27 +247,22 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
       }
     }
 
-    console.log('🔄 Syncing filters:', {
-      advancedFilters,
-      filterState,
-      dateFrom: filterState.date_from,
-      dateTo: filterState.date_to,
-    });
-
     setFilters(filterState);
 
     if (Object.keys(advancedFilters).length > 0) {
       setAreFiltersOpen(true);
     }
-  }, [advancedFilters, agentIdMap, setAdvancedFiltersWithoutFetch]);
+  }, [advancedFilters, agentIdMap]);
 
+  // Lazy load agents when filters are opened
   useEffect(() => {
-    console.log('🚀 Agents useEffect triggered - mount at:', new Date().toISOString());
+    if (!areFiltersOpen || agentOptions.length > 0 || isAgentLoading) {
+      return;
+    }
 
     let isMounted = true;
 
     const loadAgents = async () => {
-      console.log('📥 Loading agents API at:', new Date().toISOString());
       setIsAgentLoading(true);
 
       try {
@@ -476,19 +358,20 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
     loadAgents();
 
     return () => {
-      console.log('🧹 Agents useEffect cleanup - unmount');
       isMounted = false;
     };
-  }, []);
+  }, [areFiltersOpen, agentOptions.length, isAgentLoading, setAdvancedFiltersWithoutFetch]);
 
 
+  // Lazy load payment methods when filters are opened
   useEffect(() => {
-    console.log('🚀 Payment Methods useEffect triggered - mount at:', new Date().toISOString());
+    if (!areFiltersOpen || paymentMethodOptions.length > 0 || isPaymentMethodLoading) {
+      return;
+    }
 
     let isMounted = true;
 
     const loadPaymentMethods = async () => {
-      console.log('📥 Loading payment-methods API at:', new Date().toISOString());
       setIsPaymentMethodLoading(true);
 
       try {
@@ -536,18 +419,19 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
     loadPaymentMethods();
 
     return () => {
-      console.log('🧹 Payment Methods useEffect cleanup - unmount');
       isMounted = false;
     };
-  }, []);
+  }, [areFiltersOpen, paymentMethodOptions.length, isPaymentMethodLoading]);
 
+  // Lazy load operators when filters are opened
   useEffect(() => {
-    console.log('🚀 Operators useEffect triggered - mount at:', new Date().toISOString());
+    if (!areFiltersOpen || operatorOptions.length > 0 || isOperatorLoading) {
+      return;
+    }
 
     let isMounted = true;
 
     const loadOperators = async () => {
-      console.log('📥 Loading operators API at:', new Date().toISOString());
       setIsOperatorLoading(true);
 
       try {
@@ -609,10 +493,9 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
     loadOperators();
 
     return () => {
-      console.log('🧹 Operators useEffect cleanup - unmount');
       isMounted = false;
     };
-  }, []);
+  }, [areFiltersOpen, operatorOptions.length, isOperatorLoading]);
 
   const handleAdvancedFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
     setFilters((previous) => {

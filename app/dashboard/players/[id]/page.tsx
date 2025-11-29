@@ -16,6 +16,8 @@ import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals';
 
+import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
+
 interface EditableFields {
   email: string;
   full_name: string;
@@ -32,7 +34,7 @@ export default function PlayerDetailPage() {
   const params = useParams();
   const { addToast } = useToast();
   const playerId = params?.id ? parseInt(params.id as string, 10) : null;
-  
+
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
@@ -178,7 +180,7 @@ export default function PlayerDetailPage() {
     const now = Date.now();
     const timeSinceAssignment = now - lastAgentAssignmentTimeRef.current;
     const shouldSkip = justAssignedAgentRef.current || timeSinceAssignment < 5000;
-    
+
     if (shouldSkip) {
       console.log('⏭️ Skipping player data load - agent just assigned', {
         justAssigned: justAssignedAgentRef.current,
@@ -304,11 +306,11 @@ export default function PlayerDetailPage() {
         state: editableFields.state.trim() || undefined,
         is_active: editableFields.is_active,
         // Only include password if it's not empty
-        ...(editableFields.password.trim() 
-          ? { 
-              password: editableFields.password.trim(),
-              confirm_password: editableFields.confirm_password.trim(),
-            } 
+        ...(editableFields.password.trim()
+          ? {
+            password: editableFields.password.trim(),
+            confirm_password: editableFields.confirm_password.trim(),
+          }
           : {}
         ),
       };
@@ -382,7 +384,7 @@ export default function PlayerDetailPage() {
       lastAgentAssignmentTimeRef.current = assignmentTime;
       // Mark that we just assigned an agent to prevent unnecessary syncing and reloads
       justAssignedAgentRef.current = true;
-      
+
       // Clear the flag after 5 seconds to allow normal operations to resume
       // This prevents the player data loading useEffect from running for 5 seconds
       setTimeout(() => {
@@ -519,12 +521,26 @@ export default function PlayerDetailPage() {
 
   const handleViewTransactions = useCallback(() => {
     if (!selectedPlayer) return;
-    router.push(`/dashboard/history/transactions?username=${encodeURIComponent(selectedPlayer.username)}`);
+
+    // Set filter in transactions store
+    const transactionsStore = useTransactionsStore.getState();
+    transactionsStore.setFilterWithoutFetch('history');
+    transactionsStore.setAdvancedFiltersWithoutFetch({ username: selectedPlayer.username });
+
+    // Navigate without query params - store handles filtering
+    router.push('/dashboard/history/transactions');
   }, [selectedPlayer, router]);
 
   const handleViewGameActivities = useCallback(() => {
     if (!selectedPlayer) return;
-    router.push(`/dashboard/history/game-activities?username=${encodeURIComponent(selectedPlayer.username)}`);
+
+    // Set filter in transaction queues store
+    const queuesStore = useTransactionQueuesStore.getState();
+    queuesStore.setFilterWithoutFetch('history');
+    queuesStore.setAdvancedFiltersWithoutFetch({ username: selectedPlayer.username });
+
+    // Navigate without query params - store handles filtering
+    router.push('/dashboard/history/game-activities');
   }, [selectedPlayer, router]);
 
   const handleBack = useCallback(() => {
@@ -540,7 +556,7 @@ export default function PlayerDetailPage() {
 
   // Load player games - MUST be called before any conditional returns (Rules of Hooks)
   const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(playerId);
-  
+
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
   const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
@@ -584,9 +600,9 @@ export default function PlayerDetailPage() {
       // Toggle the game status
       // API requires username, so we send the current username along with status
       const newStatus = gameToChange.status === 'active' ? 'inactive' : 'active';
-      await playersApi.updateGame(gameToChange.id, { 
+      await playersApi.updateGame(gameToChange.id, {
         username: gameToChange.username,
-        status: newStatus 
+        status: newStatus
       });
       await refreshGames();
       addToast({
@@ -626,7 +642,7 @@ export default function PlayerDetailPage() {
         title: 'Game added successfully',
         description: `${result.game_name} account created for ${result.username}`,
       });
-      
+
       setIsAddGameDrawerOpen(false);
       await refreshGames();
     } catch (error) {
@@ -652,13 +668,13 @@ export default function PlayerDetailPage() {
         username: data.username,
         password: data.password,
       });
-      
+
       addToast({
         type: 'success',
         title: 'Game updated',
         description: `"${gameToEdit.game__title}" credentials have been updated successfully.`,
       });
-      
+
       setIsEditGameDrawerOpen(false);
       setGameToEdit(null);
       await refreshGames();
@@ -760,9 +776,9 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
             </div>
-            <Button 
-              variant="secondary" 
-              size="sm" 
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setIsEditDrawerOpen(true)}
               className="flex items-center gap-1 sm:gap-1.5 shrink-0 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
             >
@@ -836,10 +852,10 @@ export default function PlayerDetailPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Agent</p>
                   <p className="mt-0.5 text-[10px] sm:text-xs md:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {selectedPlayer.agent_username || 
-                     (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent 
-                       ? selectedPlayer.agent.username 
-                       : 'Not assigned')}
+                    {selectedPlayer.agent_username ||
+                      (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent
+                        ? selectedPlayer.agent.username
+                        : 'Not assigned')}
                   </p>
                 </div>
               </div>
@@ -1200,9 +1216,9 @@ export default function PlayerDetailPage() {
                             setBalanceError(null);
                             setBalanceData(null);
                             setIsBalanceModalOpen(true);
-                            
+
                             if (!selectedPlayer) return;
-                            
+
                             try {
                               setIsCheckingBalance(true);
                               const response = await playersApi.checkGameBalance({
@@ -1350,7 +1366,7 @@ export default function PlayerDetailPage() {
           playerId={selectedPlayer.id}
           playerUsername={selectedPlayer.username}
           playerGames={games}
-          onGameAdded={() => {}}
+          onGameAdded={() => { }}
           onSubmit={handleAddGame}
           isSubmitting={isAddingGame}
         />
@@ -1360,13 +1376,13 @@ export default function PlayerDetailPage() {
       {gameToEdit && (
         <div className={`fixed inset-0 z-[60] overflow-hidden transition-opacity duration-300 ${isEditGameDrawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           {/* Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => !isEditingGame && setIsEditGameDrawerOpen(false)}
           />
-          
+
           {/* Drawer Panel */}
-          <div 
+          <div
             className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isEditGameDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
           >
             <EditGameDrawerContent
@@ -1418,7 +1434,7 @@ function EditGameDrawerContent({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.username || !formData.password) {
       return;
     }

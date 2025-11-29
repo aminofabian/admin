@@ -58,11 +58,7 @@ function HistoryGameActivitiesContent() {
   return (
     <>
       <HistoryTabs />
-      <GameActivitiesSection
-        showTabs={false}
-        initialUsername={initialUsername}
-        openFiltersOnMount={!!initialUsername}
-      />
+      <GameActivitiesSection showTabs={false} />
     </>
   );
 }

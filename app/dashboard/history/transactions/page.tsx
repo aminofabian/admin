@@ -58,10 +58,7 @@ function HistoryTransactionsContent() {
   return (
     <>
       <HistoryTabs />
-      <TransactionsSection
-        initialUsername={initialUsername}
-        openFiltersOnMount={!!initialUsername}
-      />
+      <TransactionsSection />
     </>
   );
 }
