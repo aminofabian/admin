@@ -225,17 +225,17 @@ export default function DashboardPage() {
             <Link
               key={index}
               href={section.href}
-              className="group flex flex-col items-center justify-center aspect-square bg-gradient-to-br from-card via-card/95 to-card/90 border border-border/50 rounded-2xl hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 active:scale-95 transition-all duration-200 p-3"
+              className="group flex flex-col items-center justify-center bg-card border border-border/50 rounded-lg hover:border-primary/50 hover:shadow-md active:scale-95 transition-all duration-200 p-4 sm:p-3"
             >
               {/* Icon Container - Mobile App Style */}
-              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-primary/10 rounded-2xl group-hover:bg-primary/20 transition-colors mb-2 flex-shrink-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors mb-2 flex-shrink-0">
                 <div className="text-primary">
                   {section.icon}
                 </div>
               </div>
               
               {/* Label - Mobile App Style */}
-              <span className="text-[10px] sm:text-xs font-medium text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors px-1">
+              <span className="text-xs sm:text-xs font-medium text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors px-1">
                 {section.label}
               </span>
             </Link>
