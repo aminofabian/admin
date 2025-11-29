@@ -681,7 +681,6 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
 
   const formattedCreatedAt = formatDate(activity.created_at);
   const formattedUpdatedAt = formatDate(activity.updated_at);
-  const showUpdatedAt = activity.updated_at !== activity.created_at;
 
   const handleViewClick = () => {
     onView(activity);
@@ -752,26 +751,27 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="space-y-1">
-          <div className="text-xs text-gray-600 dark:text-gray-400">
-            {formattedCreatedAt}
-          </div>
-          {showUpdatedAt && (
-            <div className="text-xs text-gray-500 dark:text-gray-500">
-              Updated: {formattedUpdatedAt}
-            </div>
-          )}
+        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+          <div>{formattedCreatedAt}</div>
+          <div>{formattedUpdatedAt}</div>
         </div>
       </TableCell>
       <TableCell className="text-right">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleViewClick}
-          className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
-        >
-          View
-        </Button>
+        <div className="flex items-center justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleViewClick}
+            title="View activity"
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            View
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );
