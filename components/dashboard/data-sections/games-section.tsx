@@ -186,30 +186,30 @@ export function GamesSection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {stats.map(stat => (
           <div
             key={stat.title}
-            className={`rounded-xl border border-border bg-card p-3 shadow-sm shadow-black/5 transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/30 ${
+            className={`rounded-lg border border-border bg-card p-3 sm:p-4 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 ${
               stat.onClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-900' : ''
             }`}
             onClick={stat.onClick}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-muted-foreground">{stat.title}</div>
-                <div className="mt-1 text-xl font-semibold text-foreground">{stat.value}</div>
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
+            <div className="flex flex-col items-center text-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
                 {stat.icon}
+              </div>
+              <div className="w-full">
+                <div className="text-xs text-muted-foreground">{stat.title}</div>
+                <div className="mt-0.5 text-base sm:text-lg font-semibold text-foreground">{stat.value}</div>
               </div>
             </div>
             {stat.onClick && (
-              <div className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
+              <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-1">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                Click to edit
+                <span className="hidden sm:inline">Edit</span>
               </div>
             )}
           </div>
@@ -504,84 +504,175 @@ interface GamesTableProps {
 
 function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
   return (
-    <div className="hidden lg:block overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Game</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Dashboard URL</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {games.map(game => (
-            <TableRow
-              key={game.id}
-              className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
-            >
-              <TableCell>
-                <div className="font-medium text-gray-900 dark:text-gray-100">{game.title}</div>
-              </TableCell>
-              <TableCell>
-                <Badge variant={game.game_status ? 'success' : 'danger'}>
-                  {game.game_status ? 'Active' : 'Inactive'}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {(() => {
-                  const dashboardUrl = getGameDashboardUrl(game);
-                  return dashboardUrl ? (
+    <>
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+        {games.map(game => (
+          <GameCard
+            key={game.id}
+            game={game}
+            onEditGame={onEditGame}
+            onCheckBalance={onCheckBalance}
+          />
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Game</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Dashboard URL</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {games.map(game => (
+              <TableRow
+                key={game.id}
+                className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              >
+                <TableCell>
+                  <div className="font-medium text-gray-900 dark:text-gray-100">{game.title}</div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={game.game_status ? 'success' : 'danger'}>
+                    {game.game_status ? 'Active' : 'Inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const dashboardUrl = getGameDashboardUrl(game);
+                    return dashboardUrl ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(dashboardUrl, '_blank', 'noopener,noreferrer')}
+                        title="View dashboard"
+                        className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View
+                      </Button>
+                    ) : (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
+                    );
+                  })()}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => window.open(dashboardUrl, '_blank', 'noopener,noreferrer')}
-                      title="View dashboard"
+                      onClick={() => onCheckBalance(game)}
+                      title="Check store balance"
                       className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      View
+                      Balance
                     </Button>
-                  ) : (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
-                  );
-                })()}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onCheckBalance(game)}
-                    title="Check store balance"
-                    className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Balance
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEditGame(game)}
-                    title="Edit game"
-                    className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Edit
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEditGame(game)}
+                      title="Edit game"
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
+  );
+}
+
+interface GameCardProps {
+  game: Game;
+  onEditGame: (game: Game) => void;
+  onCheckBalance: (game: Game) => Promise<void>;
+}
+
+function GameCard({ game, onEditGame, onCheckBalance }: GameCardProps) {
+  const dashboardUrl = getGameDashboardUrl(game);
+
+  return (
+    <div className="border rounded-lg p-4 space-y-3 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="font-semibold text-gray-900 dark:text-gray-100">
+            {game.title}
+          </div>
+        </div>
+        <Badge variant={game.game_status ? 'success' : 'danger'}>
+          {game.game_status ? 'Active' : 'Inactive'}
+        </Badge>
+      </div>
+
+      {dashboardUrl && (
+        <div className="text-sm">
+          <span className="text-gray-500 dark:text-gray-400">Dashboard URL:</span>{' '}
+          <span className="font-medium text-gray-900 dark:text-gray-100 break-all">
+            {dashboardUrl}
+          </span>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+        {dashboardUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open(dashboardUrl, '_blank', 'noopener,noreferrer')}
+            title="View dashboard"
+            className="flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            View
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onCheckBalance(game)}
+          title="Check store balance"
+          className={`flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 ${dashboardUrl ? '' : 'flex-1'}`}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Balance
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onEditGame(game)}
+          title="Edit game"
+          className="flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Edit
+        </Button>
+      </div>
     </div>
   );
 }
