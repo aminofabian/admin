@@ -199,6 +199,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
 
   // Lazy load games when filters are opened
   useEffect(() => {
+    // Only load if filters are open, games haven't been loaded, and not currently loading
     if (!areFiltersOpen || gameOptions.length > 0 || isGameLoading) {
       return;
     }
@@ -230,7 +231,9 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
           .map(([value, label]) => ({ value, label }))
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
-        setGameOptions(mappedOptions);
+        if (isMounted) {
+          setGameOptions(mappedOptions);
+        }
       } catch (error) {
         console.error('Failed to load games:', error);
       } finally {
@@ -245,7 +248,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     return () => {
       isMounted = false;
     };
-  }, [areFiltersOpen, gameOptions.length, isGameLoading]);
+  }, [areFiltersOpen, gameOptions.length]);
 
   const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
     setFilters((previous) => ({ ...previous, [key]: value }));
