@@ -5,8 +5,8 @@ import { Badge, Button, Card, CardContent, Pagination, Table, TableBody, TableCe
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
-import { gamesApi, paymentMethodsApi } from '@/lib/api';
-import type { TransactionQueue, Game, Company } from '@/types';
+import { gamesApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
+import type { TransactionQueue, Game, Company, Staff, Manager } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
 
 const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
@@ -57,6 +57,8 @@ export function SuperAdminHistoryGameActivities() {
     const [areFiltersOpen, setAreFiltersOpen] = useState(false);
     const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
     const [isGameLoading, setIsGameLoading] = useState(false);
+    const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
+    const [isOperatorLoading, setIsOperatorLoading] = useState(false);
 
     // Company filter state
     const [companySearchTerm, setCompanySearchTerm] = useState('');
@@ -191,6 +193,87 @@ export function SuperAdminHistoryGameActivities() {
             isMounted = false;
         };
     }, []);
+
+    // Fetch operators (companies, staffs, managers) for dropdown
+    useEffect(() => {
+        // Only load operators after companies are loaded
+        if (isLoadingCompanies) {
+            return;
+        }
+
+        let isMounted = true;
+
+        const loadOperators = async () => {
+            setIsOperatorLoading(true);
+
+            try {
+                const [staffsData, managersData] = await Promise.all([
+                    staffsApi.list(),
+                    managersApi.list(),
+                ]);
+
+                if (!isMounted) {
+                    return;
+                }
+
+                const staffs = Array.isArray(staffsData)
+                    ? staffsData
+                    : (staffsData && typeof staffsData === 'object' && 'results' in staffsData && Array.isArray(staffsData.results))
+                        ? staffsData.results
+                        : [];
+
+                const managers = Array.isArray(managersData)
+                    ? managersData
+                    : (managersData && typeof managersData === 'object' && 'results' in managersData && Array.isArray(managersData.results))
+                        ? managersData.results
+                        : [];
+
+                const operatorMap = new Map<string, string>();
+
+                // Add companies as operators (using project_name)
+                companies.forEach((company: Company) => {
+                    if (company?.project_name) {
+                        // Use 'admin' as value for company operators, or company id if needed
+                        operatorMap.set(`admin_${company.id}`, company.project_name);
+                    }
+                });
+
+                // Add active staff
+                staffs.forEach((staff: Staff) => {
+                    if (staff?.username) {
+                        operatorMap.set(staff.username, staff.username);
+                    }
+                });
+
+                // Add active managers
+                managers.forEach((manager: Manager) => {
+                    if (manager?.username) {
+                        operatorMap.set(manager.username, manager.username);
+                    }
+                });
+
+                const mappedOptions = Array.from(operatorMap.entries())
+                    .map(([value, label]) => ({ value, label }))
+                    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+                if (isMounted) {
+                    setOperatorOptions(mappedOptions);
+                }
+            } catch (error) {
+                console.error('Failed to load operators for game activity filters:', error);
+            } finally {
+                if (isMounted) {
+                    setIsOperatorLoading(false);
+                }
+            }
+        };
+
+        loadOperators();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [companies, isLoadingCompanies]);
 
     const fetchCompanies = async () => {
         setIsLoadingCompanies(true);
@@ -508,6 +591,8 @@ export function SuperAdminHistoryGameActivities() {
                 onToggle={handleToggleFilters}
                 gameOptions={gameOptions}
                 isGameLoading={isGameLoading}
+                operatorOptions={operatorOptions}
+                isOperatorLoading={isOperatorLoading}
                 isLoading={isLoading}
             />
 
