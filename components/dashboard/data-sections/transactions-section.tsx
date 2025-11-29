@@ -60,7 +60,7 @@ const TRANSACTIONS_SKELETON = (
               ))}
             </div>
           </div>
-          
+
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="grid grid-cols-9 gap-4 px-4 py-4">
@@ -209,10 +209,10 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
     };
 
     // Check if this is a duplicate render with the same values (React strict mode)
-    if (previousDepsRef.current && 
-        previousDepsRef.current.page === currentDeps.page &&
-        previousDepsRef.current.filter === currentDeps.filter &&
-        previousDepsRef.current.filters === currentDeps.filters) {
+    if (previousDepsRef.current &&
+      previousDepsRef.current.page === currentDeps.page &&
+      previousDepsRef.current.filter === currentDeps.filter &&
+      previousDepsRef.current.filters === currentDeps.filters) {
       // Same values - likely React strict mode duplicate render, skip
       console.log('⏭️ Skipping duplicate fetch due to React strict mode (same deps)');
       return;
@@ -231,57 +231,57 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
   // Handle initial username prop - pre-fill filter and automatically apply it (like game-activities)
   const lastProcessedUsernameRef = useRef<string | null>(null);
   const isUpdatingUsernameRef = useRef(false);
-  
+
   useEffect(() => {
     const trimmedUsername = initialUsername?.trim() || null;
-    
+
     // Only process if username changed
     if (trimmedUsername && trimmedUsername !== lastProcessedUsernameRef.current) {
       console.log('🔄 Username changed in transactions section, resetting store and updating:', {
         old: lastProcessedUsernameRef.current,
         new: trimmedUsername,
       });
-      
+
       // Set flag to prevent fetch effect from running during update
       isUpdatingUsernameRef.current = true;
-      
+
       // Pre-fill the filter form
       setFilters(prev => ({ ...prev, username: trimmedUsername }));
       setAreFiltersOpen(true);
-      
+
       // CRITICAL: Completely reset store first to clear ALL stale data
       resetStore();
-      
+
       // Set filter to history after reset
       setTimeout(() => {
         setFilterWithoutFetch('history');
-        
+
         // Set the new username filter - this REPLACES ALL filters
         const filterUpdate: Record<string, string> = {
           username: trimmedUsername,
         };
         setAdvancedFiltersWithoutFetch(filterUpdate);
-        
+
         // Verify and fetch - ensure store has correct username
         const verifyAndFetch = () => {
           // Always get fresh state directly from store
           const freshState = getStoreState();
           const currentUsername = freshState.advancedFilters.username?.trim();
-          
+
           console.log('🔍 Verifying transactions store state:', {
             expected: trimmedUsername,
             actual: currentUsername,
-            transactions: freshState.transactions?.length || 0,
+            transactions: freshState.transactions?.results?.length || 0,
             isLoading: freshState.isLoading,
             filter: freshState.filter,
           });
-          
+
           if (currentUsername === trimmedUsername && !freshState.isLoading && freshState.filter === 'history') {
             // Store has correct username, not loading, and filter is history
             console.log('✅ Transactions store ready, fetching with username:', trimmedUsername);
             lastProcessedUsernameRef.current = trimmedUsername;
             isUpdatingUsernameRef.current = false; // Clear flag before fetching
-            
+
             // Fetch with the correct username - store will use fresh state
             fetchTransactionsRef.current();
           } else {
@@ -295,7 +295,7 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
             setTimeout(verifyAndFetch, 50);
           }
         };
-        
+
         // Start verification after a small delay
         setTimeout(verifyAndFetch, 10);
       }, 0);
@@ -314,19 +314,19 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
     const filterState = buildHistoryFilterState(advancedFilters);
     let needsUpdate = false;
     const updatedFilters = { ...advancedFilters };
-    
+
     if (filterState.agent_id && !filterState.agent && agentIdMap.size > 0) {
       const agentUsername = Array.from(agentIdMap.entries()).find(
         ([, id]) => String(id) === filterState.agent_id
       )?.[0];
-      
+
       if (agentUsername && advancedFilters.agent !== agentUsername) {
         filterState.agent = agentUsername;
         updatedFilters.agent = agentUsername;
         needsUpdate = true;
       }
     }
-    
+
     if (filterState.agent && !filterState.agent_id && agentIdMap.size > 0) {
       const agentId = agentIdMap.get(filterState.agent);
       if (agentId && advancedFilters.agent_id !== String(agentId)) {
@@ -335,11 +335,11 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
         needsUpdate = true;
       }
     }
-    
+
     if (needsUpdate) {
       setAdvancedFiltersWithoutFetch(updatedFilters);
     }
-    
+
     if (filterState.date_from) {
       const dateFromValue = filterState.date_from.trim();
       if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
@@ -349,7 +349,7 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
         }
       }
     }
-    
+
     if (filterState.date_to) {
       const dateToValue = filterState.date_to.trim();
       if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
@@ -359,14 +359,14 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
         }
       }
     }
-    
+
     console.log('🔄 Syncing filters:', {
       advancedFilters,
       filterState,
       dateFrom: filterState.date_from,
       dateTo: filterState.date_to,
     });
-    
+
     setFilters(filterState);
 
     if (Object.keys(advancedFilters).length > 0) {
@@ -429,12 +429,12 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
 
         setAgentOptions(mappedOptions);
         setAgentIdMap(idMap);
-        
+
         if (isMounted && idMap.size > 0) {
           const currentFilters = getStoreState().advancedFilters;
           if (currentFilters.agent && !currentFilters.agent_id) {
             let agentId = idMap.get(currentFilters.agent);
-            
+
             if (!agentId) {
               const agentKey = Array.from(idMap.keys()).find(
                 (key) => key.toLowerCase() === currentFilters.agent.toLowerCase()
@@ -444,7 +444,7 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
                 console.log('🔍 Found agent with case-insensitive match:', currentFilters.agent, '→', agentKey);
               }
             }
-            
+
             if (agentId) {
               console.log('🔍 Resolved agent_id for agent:', currentFilters.agent, '→', agentId);
               const updatedFilters: Record<string, string> = {
@@ -617,7 +617,7 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
   const handleAdvancedFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
     setFilters((previous) => {
       const updated = { ...previous, [key]: value };
-      
+
       if (key === 'agent') {
         const agentId = agentIdMap.get(value);
         if (agentId) {
@@ -626,7 +626,7 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
           updated.agent_id = '';
         }
       }
-      
+
       if (key === 'agent_id') {
         if (value) {
           const agentUsername = Array.from(agentIdMap.entries()).find(([, id]) => String(id) === value)?.[0];
@@ -637,7 +637,7 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
           updated.agent = '';
         }
       }
-      
+
       return updated;
     });
   }, [agentIdMap]);
@@ -715,7 +715,7 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
         sanitized.agent_id = String(agentId);
       }
     }
-    
+
     // Log username/email specifically for debugging partial search
     if (sanitized.username || sanitized.email) {
       console.log('🔍 Username/Email in sanitized filters:', {
@@ -757,14 +757,14 @@ export function TransactionsSection({ initialUsername, openFiltersOnMount = fals
     }
     return transactions?.results ?? [];
   }, [transactions?.results, isLoading]);
-  
+
   const totalCount = useMemo(() => {
     if (isLoading) {
       return 0;
     }
     return transactions?.count ?? 0;
   }, [transactions?.count, isLoading]);
-  
+
   const isInitialLoading = useMemo(() => isLoading, [isLoading]);
   const isEmpty = useMemo(() => !results.length && !isLoading, [results.length, isLoading]);
 
@@ -857,17 +857,17 @@ function TransactionsLayout({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5h6m-6 4h6m-6 4h6m-9 4h12" />
             </svg>
           </div>
-          
+
           <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
             {headingTitle}
           </h2>
-          
+
           {shouldShowFilterBadge && (
             <Badge variant="info" className="uppercase tracking-wide text-[10px] sm:text-xs shrink-0">
               {formatFilterLabel(filter)}
             </Badge>
           )}
-          
+
           <div className="flex-1 min-w-0" />
         </div>
       </div>
@@ -941,49 +941,49 @@ function TransactionsTable({
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {!transactionResults.length ? (
           <div className="py-12">
-            <EmptyState 
-              title="No Transactions found" 
+            <EmptyState
+              title="No Transactions found"
               description="Try adjusting your filters or search criteria"
             />
           </div>
         ) : (
           <>
-        <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
-          {transactionResults.map((transaction) => (
-            <TransactionCard
-              key={transaction.id}
-              transaction={transaction}
-              onView={handleViewTransaction}
-            />
-          ))}
-        </div>
-
-        <div className="hidden lg:block overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Transaction</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Previous Balance</TableHead>
-                <TableHead>New Balance</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+            <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
               {transactionResults.map((transaction) => (
-                <TransactionsRow 
-                  key={transaction.id} 
+                <TransactionCard
+                  key={transaction.id}
                   transaction={transaction}
                   onView={handleViewTransaction}
                 />
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+
+            <div className="hidden lg:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Transaction</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Previous Balance</TableHead>
+                    <TableHead>New Balance</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Dates</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactionResults.map((transaction) => (
+                    <TransactionsRow
+                      key={transaction.id}
+                      transaction={transaction}
+                      onView={handleViewTransaction}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
             {totalCount > pageSize && (
               <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
@@ -1023,7 +1023,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
   const amountColorClass = useMemo(() => (isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase]);
   const bonusColorClass = useMemo(() => (isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase]);
-  
+
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
     return bonus > 0 ? bonus : null;
@@ -1157,7 +1157,7 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
   const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
   const amountColorClass = useMemo(() => (isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase]);
-  
+
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
     return bonus > 0 ? bonus : null;
