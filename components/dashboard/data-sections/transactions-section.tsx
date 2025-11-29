@@ -12,19 +12,6 @@ import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api'
 import type { Agent, PaymentMethod, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 
-const HEADER_ICON = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5h6m-6 4h6m-6 4h6m-9 4h12" />
-  </svg>
-);
-
-const EMPTY_STATE = (
-  <EmptyState
-    title="No transactions found"
-    description="Try adjusting your filters or search criteria"
-  />
-);
-
 const TRANSACTIONS_SKELETON = (
   <div className="space-y-6">
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
@@ -128,11 +115,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
   };
 }
 
-interface TransactionsSectionProps {
-  // Props removed - component now manages state via store only
-}
-
-export function TransactionsSection({ }: TransactionsSectionProps) {
+export function TransactionsSection() {
   const transactions = useTransactionsStore((state) => state.transactions);
   const isLoading = useTransactionsStore((state) => state.isLoading);
   const error = useTransactionsStore((state) => state.error);
