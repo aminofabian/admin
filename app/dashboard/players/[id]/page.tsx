@@ -9,7 +9,7 @@ import { playersApi, agentsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
 import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
-import type { UpdateUserRequest } from '@/types';
+import type { UpdateUserRequest, ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { usePlayerGames } from '@/hooks/use-player-games';
@@ -17,6 +17,151 @@ import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals';
 
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
+
+/**
+ * Extracts and formats error messages from API errors
+ * Handles both field-specific validation errors and general error messages
+ * Supports errors in both the 'errors' field and parsed from 'detail' field
+ */
+function extractErrorMessage(error: unknown): { title: string; message: string } {
+  let errorMessage = 'An error occurred';
+  let errorTitle = 'Error';
+  
+  // Log the error structure for debugging
+  console.error('🔍 Error extraction - raw error:', error);
+  console.error('🔍 Error type:', typeof error);
+  console.error('🔍 Error instanceof Error:', error instanceof Error);
+  if (error && typeof error === 'object') {
+    console.error('🔍 Error keys:', Object.keys(error));
+    console.error('🔍 Error stringified:', JSON.stringify(error, null, 2));
+  }
+  
+  if (error && typeof error === 'object') {
+    const errorObj = error as Record<string, unknown>;
+    
+    // Check if the error object itself is a field error map like {"password": ["error"]}
+    // This handles cases where the backend returns the error directly without wrapping
+    // We check if it has field-like keys (not standard error fields) and array/string values
+    const standardErrorFields = ['status', 'message', 'detail', 'error', 'code', 'errors'];
+    const hasStandardFields = standardErrorFields.some(field => field in errorObj);
+    const hasFieldErrors = Object.keys(errorObj).some(key => {
+      const value = errorObj[key];
+      return (Array.isArray(value) && value.length > 0) || (typeof value === 'string' && value);
+    });
+    
+    // If it has field errors but no standard error fields, treat it as a direct field error object
+    if (hasFieldErrors && !hasStandardFields) {
+      console.log('🔍 Detected direct field error object');
+      const errorMessages: string[] = [];
+      Object.entries(errorObj).forEach(([field, messages]) => {
+        if (Array.isArray(messages) && messages.length > 0) {
+          const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+        } else if (typeof messages === 'string' && messages) {
+          const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          errorMessages.push(`${fieldName}: ${messages}`);
+        }
+      });
+      
+      if (errorMessages.length > 0) {
+        errorMessage = errorMessages.join('; ');
+        errorTitle = 'Validation failed';
+        console.log('🔍 Extracted field errors:', errorMessage);
+        return { title: errorTitle, message: errorMessage };
+      }
+    }
+    
+    // Try as ApiError structure
+    const apiError = error as ApiError;
+    
+    // First, check for field-specific errors in the 'errors' field
+    const fieldErrors = apiError.errors;
+    if (fieldErrors && typeof fieldErrors === 'object') {
+      const errorMessages: string[] = [];
+      Object.entries(fieldErrors).forEach(([field, messages]) => {
+        if (Array.isArray(messages) && messages.length > 0) {
+          // Capitalize field name and join messages
+          const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+        }
+      });
+      
+      if (errorMessages.length > 0) {
+        errorMessage = errorMessages.join('; ');
+        errorTitle = 'Validation failed';
+        return { title: errorTitle, message: errorMessage };
+      }
+    }
+    
+    // Check if 'detail' contains a JSON object with field errors
+    if (apiError.detail) {
+      if (typeof apiError.detail === 'string') {
+        try {
+          const parsedDetail = JSON.parse(apiError.detail);
+          if (parsedDetail && typeof parsedDetail === 'object' && !Array.isArray(parsedDetail)) {
+            // Check if it's a field error object like {"password": ["error message"]}
+            const errorMessages: string[] = [];
+            Object.entries(parsedDetail).forEach(([field, messages]) => {
+              if (Array.isArray(messages) && messages.length > 0) {
+                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+              } else if (typeof messages === 'string') {
+                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                errorMessages.push(`${fieldName}: ${messages}`);
+              }
+            });
+            
+            if (errorMessages.length > 0) {
+              errorMessage = errorMessages.join('; ');
+              errorTitle = 'Validation failed';
+              return { title: errorTitle, message: errorMessage };
+            }
+          }
+        } catch {
+          // detail is not JSON, treat it as a plain string message
+          if (apiError.detail) {
+            errorMessage = apiError.detail;
+          }
+        }
+      } else if (typeof apiError.detail === 'object' && !Array.isArray(apiError.detail)) {
+        // detail might be an object directly
+        const errorMessages: string[] = [];
+        Object.entries(apiError.detail as Record<string, unknown>).forEach(([field, messages]) => {
+          if (Array.isArray(messages) && messages.length > 0) {
+            const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+          } else if (typeof messages === 'string') {
+            const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            errorMessages.push(`${fieldName}: ${messages}`);
+          }
+        });
+        
+        if (errorMessages.length > 0) {
+          errorMessage = errorMessages.join('; ');
+          errorTitle = 'Validation failed';
+          return { title: errorTitle, message: errorMessage };
+        }
+      }
+    }
+    
+    // Fall back to message or detail fields
+    if (apiError.message) {
+      errorMessage = apiError.message;
+    } else if (apiError.detail && typeof apiError.detail === 'string') {
+      errorMessage = apiError.detail;
+    } else if (apiError.error) {
+      errorMessage = apiError.error;
+    }
+  } else if (error instanceof Error) {
+    errorMessage = error.message;
+  } else if (typeof error === 'string') {
+    errorMessage = error;
+  }
+  
+  console.error('🔍 Extracted error:', { title: errorTitle, message: errorMessage });
+  
+  return { title: errorTitle, message: errorMessage };
+}
 
 interface EditableFields {
   email: string;
@@ -339,11 +484,12 @@ export default function PlayerDetailPage() {
       // Reset password fields after save
       setEditableFields(prev => ({ ...prev, password: '', confirm_password: '' }));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update player';
+      const { title, message } = extractErrorMessage(error);
       addToast({
         type: 'error',
-        title: 'Update failed',
-        description: message,
+        title: title || 'Update failed',
+        description: message || 'Failed to update player',
+        duration: 8000, // Show longer for validation errors
       });
     } finally {
       setIsSaving(false);
@@ -430,11 +576,12 @@ export default function PlayerDetailPage() {
       });
     } catch (error) {
       console.error('❌ Agent assignment failed:', error);
-      const message = error instanceof Error ? error.message : 'Failed to assign agent';
+      const { title, message } = extractErrorMessage(error);
       addToast({
         type: 'error',
-        title: 'Assignment failed',
-        description: message,
+        title: title || 'Assignment failed',
+        description: message || 'Failed to assign agent',
+        duration: 8000,
       });
     } finally {
       setIsAssigningAgent(false);
@@ -475,11 +622,12 @@ export default function PlayerDetailPage() {
 
       setShowRemoveAgentModal(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to remove agent';
+      const { title, message } = extractErrorMessage(error);
       addToast({
         type: 'error',
-        title: 'Remove failed',
-        description: message,
+        title: title || 'Remove failed',
+        description: message || 'Failed to remove agent',
+        duration: 8000,
       });
     } finally {
       setIsRemovingAgent(false);
@@ -508,11 +656,12 @@ export default function PlayerDetailPage() {
 
       setShowDeactivateModal(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update player status';
+      const { title, message } = extractErrorMessage(error);
       addToast({
         type: 'error',
-        title: 'Update failed',
-        description: message,
+        title: title || 'Update failed',
+        description: message || 'Failed to update player status',
+        duration: 8000,
       });
     } finally {
       setIsDeactivating(false);
