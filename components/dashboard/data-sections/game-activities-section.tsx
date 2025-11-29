@@ -97,12 +97,15 @@ const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
 };
 
 function buildGameActivityFilterState(advanced: Record<string, string>): HistoryGameActivitiesFiltersState {
+  // Map change_password back to reset_password for UI display
+  const type = advanced.type === 'change_password' ? 'reset_password' : (advanced.type ?? '');
+  
   return {
     username: advanced.username ?? '',
     email: advanced.email ?? '',
     transaction_id: advanced.transaction_id ?? '',
     operator: advanced.operator ?? '',
-    type: advanced.type ?? '',
+    type,
     game: advanced.game ?? '',
     game_username: advanced.game_username ?? '',
     status: advanced.status ?? '',
@@ -361,6 +364,11 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
         return Boolean(value);
       })
     ) as Record<string, string>;
+
+    // Map reset_password to change_password for query params
+    if (sanitized.type === 'reset_password') {
+      sanitized.type = 'change_password';
+    }
 
     // Format dates
     if (sanitized.date_from) {
