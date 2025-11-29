@@ -10,31 +10,31 @@ import type { TransactionQueue, Game, Company } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
 
 const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
-  username: '',
-  email: '',
-  transaction_id: '',
-  operator: '',
-  type: '',
-  game: '',
-  game_username: '',
-  status: '',
-  date_from: '',
-  date_to: '',
+    username: '',
+    email: '',
+    transaction_id: '',
+    operator: '',
+    type: '',
+    game: '',
+    game_username: '',
+    status: '',
+    date_from: '',
+    date_to: '',
 };
 
 function buildGameActivityFilterState(advanced: Record<string, string>): HistoryGameActivitiesFiltersState {
-  return {
-    username: advanced.username ?? '',
-    email: advanced.email ?? '',
-    transaction_id: advanced.transaction_id ?? '',
-    operator: advanced.operator ?? '',
-    type: advanced.type ?? '',
-    game: advanced.game ?? '',
-    game_username: advanced.game_username ?? '',
-    status: advanced.status ?? '',
-    date_from: advanced.date_from ?? '',
-    date_to: advanced.date_to ?? '',
-  };
+    return {
+        username: advanced.username ?? '',
+        email: advanced.email ?? '',
+        transaction_id: advanced.transaction_id ?? '',
+        operator: advanced.operator ?? '',
+        type: advanced.type ?? '',
+        game: advanced.game ?? '',
+        game_username: advanced.game_username ?? '',
+        status: advanced.status ?? '',
+        date_from: advanced.date_from ?? '',
+        date_to: advanced.date_to ?? '',
+    };
 }
 
 export function SuperAdminHistoryGameActivities() {
@@ -57,7 +57,7 @@ export function SuperAdminHistoryGameActivities() {
     const [areFiltersOpen, setAreFiltersOpen] = useState(false);
     const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
     const [isGameLoading, setIsGameLoading] = useState(false);
-    
+
     // Company filter state
     const [companySearchTerm, setCompanySearchTerm] = useState('');
     const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
@@ -65,8 +65,10 @@ export function SuperAdminHistoryGameActivities() {
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
-    // Initialize filter once
+    // Initialize filter once and clear any previous filters
     useEffect(() => {
+        // Clear filters on mount (page reload scenario)
+        setAdvancedFiltersWithoutFetch({});
         setFilter('history');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -85,7 +87,7 @@ export function SuperAdminHistoryGameActivities() {
     // Sync filters with advanced filters
     useEffect(() => {
         const filterState = buildGameActivityFilterState(advancedFilters);
-        
+
         // Ensure date values are properly formatted for HTML date inputs (YYYY-MM-DD)
         if (filterState.date_from) {
             const dateFromValue = filterState.date_from.trim();
@@ -96,7 +98,7 @@ export function SuperAdminHistoryGameActivities() {
                 }
             }
         }
-        
+
         if (filterState.date_to) {
             const dateToValue = filterState.date_to.trim();
             if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
@@ -106,7 +108,7 @@ export function SuperAdminHistoryGameActivities() {
                 }
             }
         }
-        
+
         setFilters(filterState);
 
         // Sync selected company from filters
@@ -155,8 +157,8 @@ export function SuperAdminHistoryGameActivities() {
                 }
 
                 // Handle paginated response with results array
-                const games = Array.isArray(data) 
-                    ? data 
+                const games = Array.isArray(data)
+                    ? data
                     : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
                         ? data.results
                         : [];
@@ -356,12 +358,12 @@ export function SuperAdminHistoryGameActivities() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z" />
                         </svg>
                     </div>
-                    
+
                     {/* Title */}
                     <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
                         Game Activity History
                     </h2>
-                    
+
                     {/* Spacer */}
                     <div className="flex-1 min-w-0" />
                 </div>
@@ -509,8 +511,8 @@ export function SuperAdminHistoryGameActivities() {
                 isLoading={isLoading}
             />
 
-            <HistoryGameActivitiesTable 
-                queues={results} 
+            <HistoryGameActivitiesTable
+                queues={results}
                 pagination={{
                     totalCount,
                     pageSize,
@@ -544,10 +546,10 @@ interface HistoryGameActivitiesTableProps {
     selectedCompany: Company | undefined;
 }
 
-function HistoryGameActivitiesTable({ 
-    queues, 
-    pagination, 
-    totalPages, 
+function HistoryGameActivitiesTable({
+    queues,
+    pagination,
+    totalPages,
     shouldShowPagination,
     selectedCompany
 }: HistoryGameActivitiesTableProps) {
@@ -569,8 +571,8 @@ function HistoryGameActivitiesTable({
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 {!queues.length ? (
                     <div className="py-12">
-                        <EmptyState 
-                            title="No game activity history" 
+                        <EmptyState
+                            title="No game activity history"
                             description="No completed or cancelled game activities matched your filters"
                         />
                     </div>
@@ -607,9 +609,9 @@ function HistoryGameActivitiesTable({
                                 </TableHeader>
                                 <TableBody>
                                     {queues.map((activity) => (
-                                        <HistoryGameActivityRow 
-                                            key={activity.id} 
-                                            activity={activity} 
+                                        <HistoryGameActivityRow
+                                            key={activity.id}
+                                            activity={activity}
                                             onView={handleViewActivity}
                                             company={selectedCompany}
                                         />
@@ -661,18 +663,18 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         const amountValue = parseFloat(activity.amount || '0');
         const isZeroAmount = amountValue === 0 || isNaN(amountValue);
         const typeStr = String(activity.type);
-        const isNonMonetaryType = typeStr === 'create_game' || 
-                                  typeStr === 'reset_password' || 
-                                  typeStr === 'change_password' ||
-                                  typeStr === 'add_user_game';
+        const isNonMonetaryType = typeStr === 'create_game' ||
+            typeStr === 'reset_password' ||
+            typeStr === 'change_password' ||
+            typeStr === 'add_user_game';
         return isZeroAmount && isNonMonetaryType;
     }, [activity.amount, activity.type]);
-    
+
     const bonusAmount = useMemo(() => {
         const bonus = activity.bonus_amount || activity.data?.bonus_amount;
         if (!bonus) return null;
-        const bonusValue = typeof bonus === 'string' || typeof bonus === 'number' 
-            ? parseFloat(String(bonus)) 
+        const bonusValue = typeof bonus === 'string' || typeof bonus === 'number'
+            ? parseFloat(String(bonus))
             : 0;
         return bonusValue > 0 ? bonus : null;
     }, [activity.bonus_amount, activity.data?.bonus_amount]);

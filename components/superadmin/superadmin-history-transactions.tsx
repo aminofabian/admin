@@ -10,47 +10,47 @@ import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api'
 import type { Agent, PaymentMethod, Staff, Manager, Company } from '@/types';
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
-  agent: '',
-  agent_id: '',
-  username: '',
-  email: '',
-  transaction_id: '',
-  operator: '',
-  type: '',
-  payment_method: '',
-  status: '',
-  game: '',
-  date_from: '',
-  date_to: '',
-  amount_min: '',
-  amount_max: '',
+    agent: '',
+    agent_id: '',
+    username: '',
+    email: '',
+    transaction_id: '',
+    operator: '',
+    type: '',
+    payment_method: '',
+    status: '',
+    game: '',
+    date_from: '',
+    date_to: '',
+    amount_min: '',
+    amount_max: '',
 };
 
 function buildHistoryFilterState(advanced: Record<string, string>): HistoryTransactionsFiltersState {
-  const txn = advanced.txn ?? '';
-  const derivedType =
-    txn === 'purchases'
-      ? 'purchase'
-      : txn === 'cashouts'
-        ? 'cashout'
-        : advanced.type ?? '';
+    const txn = advanced.txn ?? '';
+    const derivedType =
+        txn === 'purchases'
+            ? 'purchase'
+            : txn === 'cashouts'
+                ? 'cashout'
+                : advanced.type ?? '';
 
-  return {
-    agent: advanced.agent ?? '',
-    agent_id: advanced.agent_id ?? '',
-    username: advanced.username ?? '',
-    email: advanced.email ?? '',
-    transaction_id: advanced.transaction_id ?? '',
-    operator: advanced.operator ?? '',
-    type: derivedType,
-    payment_method: advanced.payment_method ?? '',
-    status: advanced.status ?? '',
-    game: advanced.game ?? '',
-    date_from: advanced.date_from ?? '',
-    date_to: advanced.date_to ?? '',
-    amount_min: advanced.amount_min ?? '',
-    amount_max: advanced.amount_max ?? '',
-  };
+    return {
+        agent: advanced.agent ?? '',
+        agent_id: advanced.agent_id ?? '',
+        username: advanced.username ?? '',
+        email: advanced.email ?? '',
+        transaction_id: advanced.transaction_id ?? '',
+        operator: advanced.operator ?? '',
+        type: derivedType,
+        payment_method: advanced.payment_method ?? '',
+        status: advanced.status ?? '',
+        game: advanced.game ?? '',
+        date_from: advanced.date_from ?? '',
+        date_to: advanced.date_to ?? '',
+        amount_min: advanced.amount_min ?? '',
+        amount_max: advanced.amount_max ?? '',
+    };
 }
 
 export function SuperAdminHistoryTransactions() {
@@ -83,8 +83,10 @@ export function SuperAdminHistoryTransactions() {
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
-    // Initialize filter once
+    // Initialize filter once and clear any previous filters
     useEffect(() => {
+        // Clear filters on mount (page reload scenario)
+        setAdvancedFiltersWithoutFetch({});
         setFilter('history');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -105,7 +107,7 @@ export function SuperAdminHistoryTransactions() {
     // Sync filters with advanced filters
     useEffect(() => {
         const filterState = buildHistoryFilterState(advancedFilters);
-        
+
         // Ensure date values are properly formatted for HTML date inputs (YYYY-MM-DD)
         if (filterState.date_from) {
             const dateFromValue = filterState.date_from.trim();
@@ -116,7 +118,7 @@ export function SuperAdminHistoryTransactions() {
                 }
             }
         }
-        
+
         if (filterState.date_to) {
             const dateToValue = filterState.date_to.trim();
             if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
@@ -126,7 +128,7 @@ export function SuperAdminHistoryTransactions() {
                 }
             }
         }
-        
+
         setFilters(filterState);
 
         // Sync selected company from filters
@@ -234,8 +236,8 @@ export function SuperAdminHistoryTransactions() {
 
             try {
                 const data = await paymentMethodsApi.list();
-                const methods = Array.isArray(data) 
-                    ? data 
+                const methods = Array.isArray(data)
+                    ? data
                     : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
                         ? data.results
                         : [];
@@ -290,14 +292,14 @@ export function SuperAdminHistoryTransactions() {
                     return;
                 }
 
-                const staffs = Array.isArray(staffsData) 
-                    ? staffsData 
+                const staffs = Array.isArray(staffsData)
+                    ? staffsData
                     : (staffsData && typeof staffsData === 'object' && 'results' in staffsData && Array.isArray(staffsData.results))
                         ? staffsData.results
                         : [];
 
-                const managers = Array.isArray(managersData) 
-                    ? managersData 
+                const managers = Array.isArray(managersData)
+                    ? managersData
                     : (managersData && typeof managersData === 'object' && 'results' in managersData && Array.isArray(managersData.results))
                         ? managersData.results
                         : [];
@@ -438,7 +440,7 @@ export function SuperAdminHistoryTransactions() {
     // Calculate stats from actual data
     const stats = useMemo(() => {
         const results = transactions?.results || [];
-        
+
         const totalTransactions = results.length;
         const completed = results.filter(t => t.status === 'completed').length;
         const pending = results.filter(t => t.status === 'pending').length;
@@ -729,8 +731,8 @@ export function SuperAdminHistoryTransactions() {
                 <CardContent className="p-0">
                     {transactionList.length === 0 ? (
                         <div className="py-12">
-                            <EmptyState 
-                                title="No transactions found" 
+                            <EmptyState
+                                title="No transactions found"
                                 description="No completed or cancelled transactions found"
                             />
                         </div>
@@ -753,7 +755,7 @@ export function SuperAdminHistoryTransactions() {
                                         {transactionList.map((transaction) => {
                                             const username = transaction.user_username || `User ${transaction.id}`;
                                             const transactionType = transaction.type || '—';
-                                            
+
                                             return (
                                                 <TableRow key={transaction.id}>
                                                     <TableCell className="font-medium">{username}</TableCell>
@@ -788,8 +790,8 @@ export function SuperAdminHistoryTransactions() {
                                                         <Badge
                                                             variant={
                                                                 transaction.status === 'completed' ? 'success' :
-                                                                transaction.status === 'pending' ? 'warning' :
-                                                                transaction.status === 'failed' ? 'danger' : 'default'
+                                                                    transaction.status === 'pending' ? 'warning' :
+                                                                        transaction.status === 'failed' ? 'danger' : 'default'
                                                             }
                                                             className="capitalize"
                                                         >
@@ -811,10 +813,10 @@ export function SuperAdminHistoryTransactions() {
                                 {transactionList.map((transaction) => {
                                     const username = transaction.user_username || `User ${transaction.id}`;
                                     const transactionType = transaction.type || '—';
-                                    
+
                                     return (
-                                        <Card 
-                                            key={transaction.id} 
+                                        <Card
+                                            key={transaction.id}
                                             className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
                                         >
                                             <CardContent className="p-3 space-y-2">
@@ -822,11 +824,11 @@ export function SuperAdminHistoryTransactions() {
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className="font-semibold text-base leading-tight mb-1">{username}</h3>
                                                         <div className="flex flex-wrap items-center gap-2">
-                                                            <Badge 
+                                                            <Badge
                                                                 variant={
                                                                     transaction.status === 'completed' ? 'success' :
-                                                                    transaction.status === 'pending' ? 'warning' :
-                                                                    transaction.status === 'failed' ? 'danger' : 'default'
+                                                                        transaction.status === 'pending' ? 'warning' :
+                                                                            transaction.status === 'failed' ? 'danger' : 'default'
                                                                 }
                                                                 className="text-xs px-2 py-0.5 capitalize"
                                                             >
