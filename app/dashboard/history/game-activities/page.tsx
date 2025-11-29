@@ -16,9 +16,12 @@ function HistoryGameActivitiesContent() {
   const [initialUsername, setInitialUsername] = useState<string | null>(null);
   const previousUsernameRef = useRef<string | null>(null);
 
+  // Set filter to 'history' for regular users
   useEffect(() => {
-    setFilterWithoutFetch('history');
-  }, [setFilterWithoutFetch]);
+    if (user?.role !== 'superadmin') {
+      setFilterWithoutFetch('history');
+    }
+  }, [setFilterWithoutFetch, user?.role]);
 
   // Read username from query param and update when it changes
   useEffect(() => {
@@ -30,12 +33,12 @@ function HistoryGameActivitiesContent() {
       if (trimmedUsername) {
         setInitialUsername(trimmedUsername);
         previousUsernameRef.current = trimmedUsername;
-        
+
         // Remove username from URL after reading it
         const params = new URLSearchParams(window.location.search);
         params.delete('username');
         const newSearch = params.toString();
-        const newUrl = newSearch 
+        const newUrl = newSearch
           ? `${pathname}?${newSearch}`
           : pathname;
         window.history.replaceState({}, '', newUrl);
@@ -46,11 +49,17 @@ function HistoryGameActivitiesContent() {
     }
   }, [searchParams, pathname]);
 
+  // If user is superadmin, render superadmin history view
+  if (user?.role === 'superadmin') {
+    return <SuperAdminHistoryGameActivities />;
+  }
+
+  // For regular users, show standard game activities section
   return (
     <>
       <HistoryTabs />
-      <GameActivitiesSection 
-        showTabs={false} 
+      <GameActivitiesSection
+        showTabs={false}
         initialUsername={initialUsername}
         openFiltersOnMount={!!initialUsername}
       />
@@ -59,13 +68,6 @@ function HistoryGameActivitiesContent() {
 }
 
 export default function HistoryGameActivitiesPage() {
-  const { user } = useAuth();
-
-  // If user is superadmin, render superadmin history view
-  if (user?.role === 'superadmin') {
-    return <SuperAdminHistoryGameActivities />;
-  }
-
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[400px]">
