@@ -63,6 +63,8 @@ interface HistoryGameActivitiesFiltersProps {
   onToggle: () => void;
   gameOptions?: Array<{ value: string; label: string }>;
   isGameLoading?: boolean;
+  operatorOptions?: Array<{ value: string; label: string }>;
+  isOperatorLoading?: boolean;
   isLoading?: boolean;
 }
 
@@ -77,6 +79,8 @@ export function HistoryGameActivitiesFilters({
   onToggle,
   gameOptions,
   isGameLoading = false,
+  operatorOptions,
+  isOperatorLoading = false,
   isLoading = false,
 }: HistoryGameActivitiesFiltersProps) {
   const { theme } = useTheme();
@@ -210,11 +214,15 @@ export function HistoryGameActivitiesFilters({
                 value={filters.operator}
                 onChange={(value: string) => onFilterChange('operator', value)}
                 options={[
-                  { value: '', label: 'All Types' },
-                  { value: 'bot', label: 'Bot' },
-                  { value: 'admin', label: 'Admin' },
+                  { value: '', label: 'All Operators' },
+                  ...(operatorOptions || []),
+                  ...(filters.operator && operatorOptions && !operatorOptions.some((option) => option.value === filters.operator)
+                    ? [{ value: filters.operator, label: filters.operator }]
+                    : []),
                 ]}
-                placeholder="All Types"
+                placeholder="All Operators"
+                isLoading={isOperatorLoading}
+                disabled={isOperatorLoading}
               />
             </div>
 

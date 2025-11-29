@@ -7,8 +7,8 @@ import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, Tabl
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
-import { gamesApi } from '@/lib/api';
-import type { TransactionQueue, Game } from '@/types';
+import { gamesApi, staffsApi, managersApi } from '@/lib/api';
+import type { TransactionQueue, Game, Staff, Manager } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
 
 const HISTORY_EMPTY_STATE = (
@@ -147,6 +147,8 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
   const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isGameLoading, setIsGameLoading] = useState(false);
+  const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [isOperatorLoading, setIsOperatorLoading] = useState(false);
 
   // Initialize - set filter to history on mount and ALWAYS clear filters
   useEffect(() => {
@@ -249,6 +251,75 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     };
   }, [areFiltersOpen, gameOptions.length]);
 
+  // Lazy load operators and company name when filters are opened
+  useEffect(() => {
+    if (!areFiltersOpen || operatorOptions.length > 0 || isOperatorLoading) {
+      return;
+    }
+
+    let isMounted = true;
+    let isCancelled = false;
+
+    const loadOperators = async () => {
+      if (isCancelled || !isMounted) {
+        return;
+      }
+
+      setIsOperatorLoading(true);
+
+      try {
+        // Fetch active staff
+        const staffResponse = await staffsApi.list({ page_size: 100 });
+        const activeStaff = (staffResponse?.results || []).filter((staff: Staff) => staff.is_active);
+
+        // Fetch active managers
+        const managersResponse = await managersApi.list({ page_size: 100 });
+        const activeManagers = (managersResponse?.results || []).filter((manager: Manager) => manager.is_active);
+
+        if (!isMounted || isCancelled) {
+          return;
+        }
+
+        const operatorMap = new Map<string, string>();
+
+        // Add active staff
+        activeStaff.forEach((staff: Staff) => {
+          if (staff?.username) {
+            operatorMap.set(staff.username, staff.username);
+          }
+        });
+
+        // Add active managers
+        activeManagers.forEach((manager: Manager) => {
+          if (manager?.username) {
+            operatorMap.set(manager.username, manager.username);
+          }
+        });
+
+        const mappedOptions = Array.from(operatorMap.entries())
+          .map(([value, label]) => ({ value, label }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+        if (isMounted && !isCancelled) {
+          setOperatorOptions(mappedOptions);
+        }
+      } catch (error) {
+        console.error('Failed to load operators for game activity filters:', error);
+      } finally {
+        if (isMounted && !isCancelled) {
+          setIsOperatorLoading(false);
+        }
+      }
+    };
+
+    loadOperators();
+
+    return () => {
+      isCancelled = true;
+      isMounted = false;
+    };
+  }, [areFiltersOpen, operatorOptions.length]);
+
   const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
     setFilters((previous) => ({ ...previous, [key]: value }));
   }, []);
@@ -340,6 +411,8 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
         }}
         gameOptions={gameOptions}
         isGameLoading={isGameLoading}
+        operatorOptions={operatorOptions}
+        isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}
       />
     </DashboardSectionContainer>
@@ -359,6 +432,8 @@ interface HistoryGameActivitiesLayoutProps {
   pagination: HistoryPaginationState;
   gameOptions: Array<{ value: string; label: string }>;
   isGameLoading: boolean;
+  operatorOptions: Array<{ value: string; label: string }>;
+  isOperatorLoading: boolean;
   isLoading: boolean;
 }
 
@@ -375,6 +450,8 @@ function HistoryGameActivitiesLayout({
   pagination,
   gameOptions,
   isGameLoading,
+  operatorOptions,
+  isOperatorLoading,
   isLoading,
 }: HistoryGameActivitiesLayoutProps) {
   const totalPages = pagination.pageSize > 0
@@ -387,7 +464,7 @@ function HistoryGameActivitiesLayout({
     <>
       {/* Compact Header */}
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sFm:p-3 md:p-4 lg:p-6">
           {/* Icon */}
           <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
             <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -415,6 +492,8 @@ function HistoryGameActivitiesLayout({
         onToggle={onToggleFilters}
         gameOptions={gameOptions}
         isGameLoading={isGameLoading}
+        operatorOptions={operatorOptions}
+        isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}
       />
       <HistoryGameActivitiesTable

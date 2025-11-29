@@ -448,12 +448,6 @@ export function TransactionsSection() {
 
         const operatorMap = new Map<string, string>();
 
-        // Add Company (Admin)
-        operatorMap.set('admin', 'Admin');
-
-        // Add Bot
-        operatorMap.set('bot', 'Bot');
-
         // Add active staff
         activeStaff.forEach((staff: Staff) => {
           if (staff?.username) {
@@ -470,14 +464,7 @@ export function TransactionsSection() {
 
         const mappedOptions = Array.from(operatorMap.entries())
           .map(([value, label]) => ({ value, label }))
-          .sort((a, b) => {
-            // Sort: Admin first, Bot second, then alphabetically
-            if (a.value === 'admin') return -1;
-            if (b.value === 'admin') return 1;
-            if (a.value === 'bot') return -1;
-            if (b.value === 'bot') return 1;
-            return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
-          });
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
         setOperatorOptions(mappedOptions);
       } catch (error) {
