@@ -340,38 +340,42 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
           return;
         }
 
-        const operatorMap = new Map<string, string>();
+        const operatorMap = new Map<string, { value: string; label: string }>();
 
-        // Add "Bot" operator
-        operatorMap.set('Bot', 'Bot');
+        // Add "Bot" operator - use 'bot' as value, 'Bot' as label
+        operatorMap.set('bot', { value: 'bot', label: 'Bot' });
 
-        // Add "Company" with username as the company name
-        operatorMap.set('Company', companyName);
+        // Add "Company" - use username as both value and label
+        operatorMap.set(companyName, { value: companyName, label: companyName });
 
         // Add active staff
         activeStaff.forEach((staff: Staff) => {
           if (staff?.username) {
-            operatorMap.set(staff.username, staff.username);
+            operatorMap.set(staff.username, { value: staff.username, label: staff.username });
           }
         });
 
         // Add active managers
         activeManagers.forEach((manager: Manager) => {
           if (manager?.username) {
-            operatorMap.set(manager.username, manager.username);
+            operatorMap.set(manager.username, { value: manager.username, label: manager.username });
           }
         });
 
         // Sort: Bot first, Company second, then alphabetically
         const sortedEntries = Array.from(operatorMap.entries()).sort((a, b) => {
-          if (a[0] === 'Bot') return -1;
-          if (b[0] === 'Bot') return 1;
-          if (a[0] === 'Company') return -1;
-          if (b[0] === 'Company') return 1;
-          return a[1].localeCompare(b[1], undefined, { sensitivity: 'base' });
+          const aValue = a[1].value;
+          const bValue = b[1].value;
+          const aLabel = a[1].label;
+          const bLabel = b[1].label;
+          if (aValue === 'bot') return -1;
+          if (bValue === 'bot') return 1;
+          if (aValue === companyName) return -1;
+          if (bValue === companyName) return 1;
+          return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
         });
 
-        const mappedOptions = sortedEntries.map(([value, label]) => ({ value, label }));
+        const mappedOptions = sortedEntries.map(([, option]) => option);
 
         if (isMounted && !isCancelled) {
           setOperatorOptions(mappedOptions);
