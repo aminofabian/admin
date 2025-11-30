@@ -864,6 +864,14 @@ export function ChatComponent() {
       fullPlayer: player,
     });
 
+    // Clear URL params when manually selecting a player from the chat list
+    // This prevents the query param useEffect from re-selecting the original player
+    const currentPlayerId = searchParams.get('playerId');
+    const currentUsername = searchParams.get('username');
+    if (currentPlayerId || currentUsername) {
+      router.replace('/dashboard/chat', { scroll: false });
+    }
+
     if (shouldMarkAsRead) {
       markChatAsReadDebounced({
         chatId: player.id,
@@ -891,7 +899,7 @@ export function ChatComponent() {
       // Reset query param scroll tracking when player changes
       hasScrolledForQueryParamsRef.current = null;
     }
-  }, [markChatAsRead, activeTab]);
+  }, [markChatAsRead, activeTab, searchParams, router]);
 
   const handleNavigateToPlayer = useCallback(() => {
     if (selectedPlayer?.user_id) {
