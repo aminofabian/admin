@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { SuperAdminDashboard } from '@/components/superadmin';
+import { ManagerDashboard } from '@/components/manager';
+import { StaffDashboard } from '@/components/staff';
 import type { ReactNode } from 'react';
 
 interface SectionItem {
@@ -19,6 +21,16 @@ export default function DashboardPage() {
   // If user is superadmin, render superadmin dashboard
   if (user?.role === USER_ROLES.SUPERADMIN) {
     return <SuperAdminDashboard />;
+  }
+
+  // If user is manager, render manager dashboard
+  if (user?.role === USER_ROLES.MANAGER) {
+    return <ManagerDashboard />;
+  }
+
+  // If user is staff, render staff dashboard
+  if (user?.role === USER_ROLES.STAFF) {
+    return <StaffDashboard />;
   }
 
   // Type guard: check if user role includes superadmin

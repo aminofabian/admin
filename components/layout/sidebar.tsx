@@ -13,6 +13,7 @@ interface SubMenuItem {
   href?: string;
   icon: React.ReactNode;
   submenu?: SubMenuItem[];
+  roles?: string[];
 }
 
 interface MenuCategory {
@@ -238,13 +239,12 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'User Management',
     icon: <UsersIcon />,
-    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT],
+    roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT],
     submenu: [
       { name: 'Players', href: '/dashboard/players', icon: <PlayerIcon /> },
       { name: 'Agents', href: '/dashboard/agents', icon: <AgentIcon /> },
-      { name: 'Staffs', href: '/dashboard/staffs', icon: <StaffIcon /> },
-      { name: 'Managers', href: '/dashboard/managers', icon: <ManagerIcon /> },
-
+      { name: 'Staffs', href: '/dashboard/staffs', icon: <StaffIcon />, roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT] },
+      { name: 'Managers', href: '/dashboard/managers', icon: <ManagerIcon />, roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT] },
     ],
   },
   {
@@ -297,7 +297,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Affiliates',
     icon: <AffiliateIcon />,
-    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER],
+    roles: [USER_ROLES.COMPANY],
     submenu: [
       { name: 'Agents', href: '/dashboard/agents', icon: <AffiliatesAgentIcon /> },
       { name: 'Affiliates', href: '/dashboard/affiliates', icon: <AffiliateIcon /> },
@@ -411,16 +411,25 @@ function MenuItem({
   pathname,
   onClose,
   isCollapsed,
-  processingCounts
+  processingCounts,
+  userRole
 }: {
   category: MenuCategory;
   pathname: string;
   onClose?: () => void;
   isCollapsed?: boolean;
   processingCounts?: { purchase_count?: number; cashout_count?: number; game_activities_count?: number };
+  userRole?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const hasSubmenu = category.submenu && category.submenu.length > 0;
+  
+  // Filter submenu items based on user role
+  const filteredSubmenu = category.submenu?.filter((item) => {
+    if (!item.roles) return true; // If no roles specified, show for all
+    return userRole && item.roles.includes(userRole);
+  });
+  
+  const hasSubmenu = filteredSubmenu && filteredSubmenu.length > 0;
   const isActive = category.href && pathname === category.href;
 
   // Get count for a specific submenu item
@@ -454,8 +463,8 @@ function MenuItem({
   }
 
   // For collapsed state with submenu - show first item with href
-  if (isCollapsed && hasSubmenu && category.submenu) {
-    const firstItem = category.submenu.find(item => item.href);
+  if (isCollapsed && hasSubmenu && filteredSubmenu) {
+    const firstItem = filteredSubmenu.find(item => item.href);
     if (firstItem && firstItem.href) {
       return (
         <Link
@@ -500,9 +509,9 @@ function MenuItem({
         </svg>
       </button>
 
-      {isExpanded && category.submenu && (
+      {isExpanded && filteredSubmenu && filteredSubmenu.length > 0 && (
         <div className="ml-4 space-y-1 pt-1 animate-in fade-in-0 slide-in-from-top-1 duration-200">
-          {category.submenu.map((item) => (
+          {filteredSubmenu.map((item) => (
             <SubMenuItemComponent
               key={item.href || item.name}
               item={item}
@@ -581,6 +590,7 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
             onClose={onClose}
             isCollapsed={isCollapsed}
             processingCounts={processingCounts}
+            userRole={user?.role}
           />
         ))}
       </nav>
