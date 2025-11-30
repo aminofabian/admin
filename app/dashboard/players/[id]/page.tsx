@@ -676,8 +676,8 @@ export default function PlayerDetailPage() {
     transactionsStore.setFilterWithoutFetch('history');
     transactionsStore.setAdvancedFiltersWithoutFetch({ username: selectedPlayer.username });
 
-    // Navigate without query params - store handles filtering
-    router.push('/dashboard/history/transactions');
+    // Navigate with preserveFilters flag to indicate filters should be preserved
+    router.push('/dashboard/history/transactions?preserveFilters=true');
   }, [selectedPlayer, router]);
 
   const handleViewGameActivities = useCallback(() => {
@@ -688,8 +688,8 @@ export default function PlayerDetailPage() {
     queuesStore.setFilterWithoutFetch('history');
     queuesStore.setAdvancedFiltersWithoutFetch({ username: selectedPlayer.username });
 
-    // Navigate without query params - store handles filtering
-    router.push('/dashboard/history/game-activities');
+    // Navigate with preserveFilters flag to indicate filters should be preserved
+    router.push('/dashboard/history/game-activities?preserveFilters=true');
   }, [selectedPlayer, router]);
 
   const handleBack = useCallback(() => {

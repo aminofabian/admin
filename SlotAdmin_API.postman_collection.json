@@ -1,0 +1,3629 @@
+{
+	"info": {
+		"_postman_id": "slotadmin-api-collection",
+		"name": "SlotAdmin",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Check if login was successful",
+									"if (pm.response.code === 200) {",
+									"    try {",
+									"        var jsonData = pm.response.json();",
+									"        ",
+									"        // Extract tokens from response",
+									"        if (jsonData.auth_token && jsonData.auth_token.access) {",
+									"            // Save to collection variables (works across all environments)",
+									"            pm.collectionVariables.set(\"access_token\", jsonData.auth_token.access);",
+									"            pm.collectionVariables.set(\"refresh_token\", jsonData.auth_token.refresh);",
+									"            ",
+									"            // Also save to environment variables if environment is active",
+									"            if (pm.environment.name) {",
+									"                pm.environment.set(\"access_token\", jsonData.auth_token.access);",
+									"                pm.environment.set(\"refresh_token\", jsonData.auth_token.refresh);",
+									"            }",
+									"            ",
+									"            console.log(\"✅ Tokens saved successfully\");",
+									"            console.log(\"Access token:\", jsonData.auth_token.access.substring(0, 20) + \"...\");",
+									"            console.log(\"Refresh token:\", jsonData.auth_token.refresh.substring(0, 20) + \"...\");",
+									"        } else {",
+									"            console.error(\"❌ No auth_token found in response\");",
+									"            console.log(\"Response data:\", jsonData);",
+									"        }",
+									"    } catch (error) {",
+									"        console.error(\"❌ Error parsing response:\", error);",
+									"        console.log(\"Response body:\", pm.response.text());",
+									"    }",
+									"} else {",
+									"    console.error(\"❌ Login failed with status:\", pm.response.code);",
+									"    try {",
+									"        var errorData = pm.response.json();",
+									"        console.log(\"Error details:\", errorData);",
+									"    } catch (e) {",
+									"        console.log(\"Error response:\", pm.response.text());",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"slotthing\",\n    \"password\": \"Test@123\",\n    \"whitelabel_admin_uuid\": \"{{whitelabel_admin_uuid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/login/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"login",
+								""
+							]
+						},
+						"description": "Authenticates users and returns JWT tokens. Supports both email and username for login. Requires whitelabel_admin_uuid for multi-tenant support (not needed for superadmin login)."
+					}
+				},
+				{
+					"name": "Dashboard Games",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/dashboard-games/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"dashboard-games",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Companies",
+			"item": [
+				{
+					"name": "List Companies",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/companies/?search=&page=1&page_size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"companies",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Searches username, email, project_name"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Lists all companies with their project information. Superadmin only."
+					}
+				},
+				{
+					"name": "Create Company",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"project_name\": \"My Gaming Platform 1\",\n    \"project_domain\": \"https://mygaming.com\",\n    \"admin_project_domain\": \"https://admin.mygaming.com\",\n    \"username\": \"companyadmin\",\n    \"password\": \"SecurePass123!\",\n    \"email\": \"admin@mygaming.com\",\n    \"service_email\": \"support@mygaming.com\",\n    \"service_name\": \"My Gaming Support\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/companies/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"companies",
+								""
+							]
+						},
+						"description": "Creates a new company with associated WhiteLabelAdmin project. Automatically generates initial data for the company."
+					}
+				},
+				{
+					"name": "Update Company (PUT)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"project_name\": \"Updated Gaming Platform\",\n    \"project_domain\": \"https://updated-gaming.com\",\n    \"admin_project_domain\": \"https://admin.updated-gaming.com\",\n    \"username\": \"updatedadmin\",\n    \"email\": \"updated@example.com\",\n    \"service_email\": \"support@updated-gaming.com\",\n    \"service_name\": \"Updated Gaming Support\",\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/companies/{{company_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"companies",
+								"{{company_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Company (PATCH)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"project_name\": \"Partially Updated Platform\",\n    \"is_active\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/companies/{{company_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"companies",
+								"{{company_id}}",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Managers",
+					"item": [
+						{
+							"name": "List Managers",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/managers/?search=&page=1&page_size=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"managers",
+										""
+									],
+									"query": [
+										{
+											"key": "search",
+											"value": "",
+											"description": "Search by username or email"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Manager",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"manager11\",\n    \"email\": \"manager11@example.com\",\n    \"password\": \"SecurePass123!\",\n    \"role\": \"manager\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/managers/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"managers",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Manager",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"is_active\": false\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/managers/{{manager_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"managers",
+										"{{manager_id}}",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Agents",
+					"item": [
+						{
+							"name": "List Agents",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/agents/?search=&page=1&page_size=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"agents",
+										""
+									],
+									"query": [
+										{
+											"key": "search",
+											"value": ""
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Agent",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"agent1\",\n    \"email\": \"a@example.com\",\n    \"password\": \"StrongPass123!\",\n    \"is_active\": true,\n    \"role\": \"agent\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/agents/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"agents",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Agent",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"is_active\": false\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/agents/{{agent_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"agents",
+										"{{agent_id}}",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Staffs",
+					"item": [
+						{
+							"name": "List Staffs",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/staffs/?search=&page=1&page_size=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"staffs",
+										""
+									],
+									"query": [
+										{
+											"key": "search",
+											"value": ""
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Staff",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"staff1\",\n    \"email\": \"staff1@example.com\",\n    \"password\": \"SecurePass123!\",\n    \"role\": \"staff\",\n    \"mobile_number\": \"+1234567890\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/staffs/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"staffs",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Staff",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"is_active\": false,\n    \"mobile_number\": \"+9876543210\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/staffs/{{staff_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"staffs",
+										"{{staff_id}}",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Players",
+					"item": [
+						{
+							"name": "List Players",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/players/?search=&page=1&page_size=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"players",
+										""
+									],
+									"query": [
+										{
+											"key": "search",
+											"value": ""
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Player",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"username\": \"player1\",\n    \"full_name\": \"John Player\",\n    \"dob\": \"1990-01-15\",\n    \"email\": \"player1@example.com\",\n    \"mobile_number\": \"+1234567890\",\n    \"password\": \"SecurePass123!\",\n    \"role\": \"player\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/players/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"players",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Player",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"full_name\": \"John Updated Player\",\n    \"mobile_number\": \"+9876543210\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/players/{{player_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"players",
+										"{{player_id}}",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Check Player Game Balance",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user_id\": 1,\n    \"game_id\": 5\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/check-player-game-balance",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"check-player-game-balance"
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Games",
+			"item": [
+				{
+					"name": "List Games",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/games/?search=slot&page=1&page_size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"games",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "slot",
+									"description": "Search by title, code, or game_category"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Lists all games. Games are manually created and cannot be created via API."
+					}
+				},
+				{
+					"name": "Update Game",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Cool Slots\",\n    \"game_status\": true,\n    \"dashboard_url\": \"https://...\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/games/{{game_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"games",
+								"{{game_id}}",
+								""
+							]
+						},
+						"description": "Updates game details. Admins-only."
+					}
+				},
+				{
+					"name": "Enable Game",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"game_status\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/games/{{game_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"games",
+								"{{game_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Disable Game",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"game_status\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/games/{{game_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"games",
+								"{{game_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Get User Games",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/user-games/?user_id={{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user-games",
+								""
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Check Store Balance",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"game_id\": 5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/check-store-balance/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"check-store-balance",
+								""
+							]
+						},
+						"description": "Checks the total balance across all user games for a specific game."
+					}
+				}
+			]
+		},
+		{
+			"name": "Game Operations",
+			"item": [
+				{
+					"name": "Add User Game",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"game_id\": 1,\n    \"whitelabel_admin_uuid\": \"{{whitelabel_admin_uuid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/games/add_user_game",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"add_user_game"
+							]
+						},
+						"description": "Queues creation of a game account and creates UserGames only when credentials succeed."
+					}
+				},
+				{
+					"name": "Recharge Game",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 100,\n    \"game_id\": 1,\n    \"whitelabel_admin_uuid\": \"{{whitelabel_admin_uuid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/games/recharge",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"recharge"
+							]
+						},
+						"description": "Deducts main balance, enqueues game top-up with bonus logic."
+					}
+				},
+				{
+					"name": "Redeem Game",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 50,\n    \"game_id\": 1,\n    \"whitelabel_admin_uuid\": \"{{whitelabel_admin_uuid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/games/redeem",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"redeem"
+							]
+						},
+						"description": "Returns game balance to main winning balance (with minimum thresholds if configured)."
+					}
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"game_id\": 1,\n    \"whitelabel_admin_uuid\": \"{{whitelabel_admin_uuid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/games/reset_password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"reset_password"
+							]
+						},
+						"description": "Rotates game password via provider and updates local record."
+					}
+				},
+				{
+					"name": "Check Balance",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"game_id\": 1,\n    \"whitelabel_admin_uuid\": \"{{whitelabel_admin_uuid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/games/check_balance",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"check_balance"
+							]
+						},
+						"description": "Fetches game balance for a user."
+					}
+				},
+				{
+					"name": "Check Balance Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": 1,\n    \"game_id\": 1,\n    \"whitelabel_admin_uuid\": \"{{whitelabel_admin_uuid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/games/check_balance_admin",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"check_balance_admin"
+							]
+						},
+						"description": "Admin variant supports checking others' game balance."
+					}
+				},
+				{
+					"name": "Check Store Balance (Game Ops)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"game_id\": 1,\n    \"whitelabel_admin_uuid\": \"{{whitelabel_admin_uuid}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/games/check_store_balance",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"games",
+								"check_store_balance"
+							]
+						},
+						"description": "Store-level balance for a given game/provider."
+					}
+				}
+			]
+		},
+		{
+			"name": "Transactions",
+			"item": [
+				{
+					"name": "List Transactions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transactions/?search=&page=1&page_size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transactions",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search by user__username, status, or type"
+								},
+								{
+									"key": "type",
+									"value": "",
+									"description": "processing (pending/failed) or history (completed/cancelled)"
+								},
+								{
+									"key": "txn",
+									"value": "",
+									"description": "purchases or cashouts (takes priority over type)"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Lists transactions. Use type=processing for pending/failed, type=history for completed/cancelled, txn=purchases for pending purchases, txn=cashouts for pending cashouts."
+					}
+				},
+				{
+					"name": "Processing Transactions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transactions/?type=processing",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transactions",
+								""
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "processing",
+									"description": "Shows transactions with status pending or failed"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "History Transactions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transactions/?type=history",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transactions",
+								""
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "history",
+									"description": "Shows transactions with status completed or cancelled"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Pending Purchases",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transactions/?txn=purchases",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transactions",
+								""
+							],
+							"query": [
+								{
+									"key": "txn",
+									"value": "purchases",
+									"description": "Shows pending purchase transactions only (excludes game transactions)"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Pending Cashouts",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transactions/?txn=cashouts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transactions",
+								""
+							],
+							"query": [
+								{
+									"key": "txn",
+									"value": "cashouts",
+									"description": "Shows pending cashout transactions only (excludes game transactions)"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Transaction Action",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "txn_id",
+									"value": "123",
+									"type": "text"
+								},
+								{
+									"key": "type",
+									"value": "cancel",
+									"description": "cancel or complete",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/transaction-action",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transaction-action"
+							]
+						},
+						"description": "Cancel or complete a transaction. Form fields: txn_id, type in {cancel, complete}"
+					}
+				}
+			]
+		},
+		{
+			"name": "Transaction Queues",
+			"item": [
+				{
+					"name": "List Transaction Queues",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transaction-queues/?type=&status=&user_id=&page=1&page_size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transaction-queues",
+								""
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "",
+									"description": "processing, history, recharge_game, redeem_game, add_user_game"
+								},
+								{
+									"key": "status",
+									"value": ""
+								},
+								{
+									"key": "user_id",
+									"value": ""
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Lists transaction queues (game activities). Use type=processing for pending/failed, type=history for completed/cancelled."
+					}
+				},
+				{
+					"name": "Processing Game Activities",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transaction-queues/?type=processing",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transaction-queues",
+								""
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "processing",
+									"description": "Shows transaction queues with status pending or failed"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "History Game Activities",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transaction-queues/?type=history",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transaction-queues",
+								""
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "history",
+									"description": "Shows transaction queues with status completed or cancelled"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Recharge Game Queue",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transaction-queues/?type=recharge_game&status=pending",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transaction-queues",
+								""
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "recharge_game"
+								},
+								{
+									"key": "status",
+									"value": "pending"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Handle Game Action",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "txn_id",
+									"value": "123",
+									"type": "text"
+								},
+								{
+									"key": "type",
+									"value": "retry",
+									"description": "retry, cancel, or complete",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/game-action/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"game-action",
+								""
+							]
+						},
+						"description": "Manual actions for game operations. retry re-queues the same Celery task; cancel marks cancelled and performs refunds/state rollbacks; complete marks success, optionally overrides new_password or new_balance."
+					}
+				}
+			]
+		},
+		{
+			"name": "Bonuses",
+			"item": [
+				{
+					"name": "Purchase Bonuses",
+					"item": [
+						{
+							"name": "List Purchase Bonuses",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/purchase-bonuses/?page=1&page_size=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"purchase-bonuses",
+										""
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Create Purchase Bonus",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"user\": 3,\n    \"topup_method\": \"bitcoin\",\n    \"bonus_type\": \"percentage\",\n    \"bonus\": 10\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/purchase-bonuses/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"purchase-bonuses",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Purchase Bonus",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"bonus\": 15\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/purchase-bonuses/{{bonus_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"purchase-bonuses",
+										"{{bonus_id}}",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Purchase Bonus",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/purchase-bonuses/{{bonus_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"purchase-bonuses",
+										"{{bonus_id}}",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Recharge Bonuses",
+					"item": [
+						{
+							"name": "List Recharge Bonuses",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/recharge-bonuses/?page=1&page_size=10",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"recharge-bonuses",
+										""
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Entries are pre-created for all games during initialization, so only updates are supported."
+							}
+						},
+						{
+							"name": "Update Recharge Bonus",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"bonus_type\": \"percentage\",\n    \"bonus\": 15,\n    \"is_enabled\": true,\n    \"on_min_deposit\": false,\n    \"min_deposit_amount\": null\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/recharge-bonuses/{{bonus_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"recharge-bonuses",
+										"{{bonus_id}}",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Transfer Bonuses",
+					"item": [
+						{
+							"name": "Get Transfer Bonus",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/transfer-bonuses/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-bonuses",
+										""
+									]
+								},
+								"description": "Only one transfer bonus entry per admin, so only updates are supported."
+							}
+						},
+						{
+							"name": "Update Transfer Bonus",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"bonus_type\": \"percentage\",\n    \"bonus\": 5,\n    \"is_enabled\": true,\n    \"on_min_deposit\": false,\n    \"min_deposit_amount\": null\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/transfer-bonuses/{{bonus_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"transfer-bonuses",
+										"{{bonus_id}}",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Signup Bonuses",
+					"item": [
+						{
+							"name": "Get Signup Bonus",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/signup-bonuses/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"signup-bonuses",
+										""
+									]
+								},
+								"description": "Only one signup bonus entry per admin, so only updates are supported."
+							}
+						},
+						{
+							"name": "Update Signup Bonus",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"bonus_type\": \"fixed\",\n    \"bonus\": 50,\n    \"is_enabled\": true,\n    \"on_min_deposit\": false,\n    \"min_deposit_amount\": null\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/signup-bonuses/{{bonus_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"signup-bonuses",
+										"{{bonus_id}}",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Affiliate Defaults",
+					"item": [
+						{
+							"name": "Get Affiliate Defaults",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/affiliate-defaults/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"affiliate-defaults",
+										""
+									]
+								},
+								"description": "Only one entry per admin, so only updates are supported."
+							}
+						},
+						{
+							"name": "Update Affiliate Defaults",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"default_affiliation_percentage\": 10.0,\n    \"default_fee_percentage\": 2.0,\n    \"default_payment_method_fee_percentage\": 5.0\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/affiliate-defaults/{{affiliate_default_id}}/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"affiliate-defaults",
+										"{{affiliate_default_id}}",
+										""
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Banners",
+			"item": [
+				{
+					"name": "List Admin Banners",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin-banners/?search=&page=1&page_size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin-banners",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search by title, banner_type, or banner_category"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Admin Banner",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Welcome Banner",
+									"type": "text"
+								},
+								{
+									"key": "banner_type",
+									"value": "HOMEPAGE",
+									"type": "text",
+									"description": "HOMEPAGE or PROMOTIONAL"
+								},
+								{
+									"key": "banner_category",
+									"value": "DESKTOP",
+									"type": "text",
+									"description": "DESKTOP, MOBILE_RESPONSIVE, or MOBILE_APP"
+								},
+								{
+									"key": "redirect_url",
+									"value": "https://example.com/promotion",
+									"type": "text"
+								},
+								{
+									"key": "is_active",
+									"value": "true",
+									"type": "text"
+								},
+								{
+									"key": "web_banner",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "mobile_banner",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin-banners/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin-banners",
+								""
+							]
+						},
+						"description": "Creates a new admin banner with separate images for web and mobile platforms. At least one banner image (web_banner, mobile_banner, or banner_thumbnail) must be provided."
+					}
+				},
+				{
+					"name": "Get Admin Banner",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin-banners/{{banner_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin-banners",
+								"{{banner_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Admin Banner (PUT)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Banner\",\n    \"banner_type\": \"PROMOTIONAL\",\n    \"is_active\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin-banners/{{banner_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin-banners",
+								"{{banner_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Admin Banner (PATCH)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"is_active\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin-banners/{{banner_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin-banners",
+								"{{banner_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Admin Banner",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin-banners/{{banner_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin-banners",
+								"{{banner_id}}",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Affiliates",
+			"item": [
+				{
+					"name": "List Affiliates",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/affiliates/?search=&page=1&page_size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"affiliates",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search by agent username or email"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Lists all affiliate agents with their commission settings and financial statistics."
+					}
+				},
+				{
+					"name": "Get Affiliate",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/affiliates/{{affiliate_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"affiliates",
+								"{{affiliate_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Affiliate Commission",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"affiliation_percentage\": 12.5,\n    \"affiliation_fee_percentage\": 2.5,\n    \"payment_method_fee_percentage\": 6.0\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/affiliates/{{affiliate_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"affiliates",
+								"{{affiliate_id}}",
+								""
+							]
+						},
+						"description": "Updates commission settings for a specific affiliate agent. All percentage fields must be between 0 and 100."
+					}
+				},
+				{
+					"name": "Add Manual Affiliate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"agent_id\": 12,\n    \"player_id\": 25\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/add-manual-affiliate/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"add-manual-affiliate",
+								""
+							]
+						},
+						"description": "Manually adds a player as an affiliate to an agent."
+					}
+				}
+			]
+		},
+		{
+			"name": "Payment Methods",
+			"item": [
+				{
+					"name": "List Payment Methods",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payment-methods/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payment-methods",
+								""
+							]
+						},
+						"description": "Lists all payment methods available for the authenticated user's project."
+					}
+				},
+				{
+					"name": "Get Payment Method",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payment-methods/{{payment_method_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payment-methods",
+								"{{payment_method_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Payment Method",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"is_enabled\": true,\n    \"min_amount\": 10.00,\n    \"max_amount\": 1000.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payment-methods/{{payment_method_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payment-methods",
+								"{{payment_method_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Payment Methods Management (Superadmin)",
+					"item": [
+						{
+							"name": "Get Management Companies",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/payment-methods-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payment-methods-management",
+										""
+									]
+								},
+								"description": "Superadmin only. Lists all companies for payment method management."
+							}
+						},
+						{
+							"name": "Get Company Payment Methods",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/payment-methods-management/?company_id={{company_id}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payment-methods-management",
+										""
+									],
+									"query": [
+										{
+											"key": "company_id",
+											"value": "{{company_id}}"
+										}
+									]
+								},
+								"description": "Superadmin only. Gets payment methods for a specific company."
+							}
+						},
+						{
+							"name": "Toggle Cashout",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"type\": \"toggle_cashout_by_superadmin\",\n    \"payment_method_id\": 1\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/payment-methods-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payment-methods-management",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Toggle Purchase",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"type\": \"toggle_purchase_by_superadmin\",\n    \"payment_method_id\": 1\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/payment-methods-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payment-methods-management",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Enable All Purchase",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"type\": \"enable_all_purchase\",\n    \"company_id\": {{company_id}}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/payment-methods-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payment-methods-management",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Enable All Cashout",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"type\": \"enable_all_cashout\",\n    \"company_id\": {{company_id}}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/payment-methods-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payment-methods-management",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Disable All Purchase",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"type\": \"disable_all_purchase\",\n    \"company_id\": {{company_id}}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/payment-methods-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payment-methods-management",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Disable All Cashout",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"type\": \"disable_all_cashout\",\n    \"company_id\": {{company_id}}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/payment-methods-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"payment-methods-management",
+										""
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Chat",
+			"item": [
+				{
+					"name": "Get Recent Messages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/chat/?chatroom_id={{chatroom_id}}&request_type=recent_messages&page=1&per_page=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"chat",
+								""
+							],
+							"query": [
+								{
+									"key": "chatroom_id",
+									"value": "{{chatroom_id}}",
+									"description": "Chatroom ID (or use user_id instead)"
+								},
+								{
+									"key": "request_type",
+									"value": "recent_messages"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "10"
+								}
+							],
+							"description": "Get recent chat messages. Use chatroom_id OR user_id."
+						}
+					}
+				},
+				{
+					"name": "Get Recent Messages (by user_id)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/chat/?user_id={{player_id}}&request_type=recent_messages&page=1&per_page=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"chat",
+								""
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{player_id}}",
+									"description": "Player user ID (alternative to chatroom_id)"
+								},
+								{
+									"key": "request_type",
+									"value": "recent_messages"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Purchase History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/chat/?chatroom_id={{chatroom_id}}&request_type=purchases_list",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"chat",
+								""
+							],
+							"query": [
+								{
+									"key": "chatroom_id",
+									"value": "{{chatroom_id}}",
+									"description": "Chatroom ID (or use user_id instead)"
+								},
+								{
+									"key": "request_type",
+									"value": "purchases_list"
+								}
+							],
+							"description": "Get purchase history for a chatroom. Use chatroom_id OR user_id."
+						}
+					}
+				},
+				{
+					"name": "Get Online Players",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/chat/?request_type=online_players",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"chat",
+								""
+							],
+							"query": [
+								{
+									"key": "request_type",
+									"value": "online_players"
+								}
+							],
+							"description": "Get list of online players in chat."
+						}
+					}
+				},
+				{
+					"name": "Get All Players",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/chat/?request_type=all_players&page=1&page_size=100",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"chat",
+								""
+							],
+							"query": [
+								{
+									"key": "request_type",
+									"value": "all_players"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "100"
+								}
+							],
+							"description": "Get all players (paginated)."
+						}
+					}
+				},
+				{
+					"name": "Pin Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message_id\": 123\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/chat/?request_type=pin_message",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"chat",
+								""
+							],
+							"query": [
+								{
+									"key": "request_type",
+									"value": "pin_message"
+								}
+							],
+							"description": "Pin a chat message."
+						}
+					}
+				},
+				{
+					"name": "Unpin Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message_id\": 123\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/chat/?request_type=unpin_message",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"chat",
+								""
+							],
+							"query": [
+								{
+									"key": "request_type",
+									"value": "unpin_message"
+								}
+							],
+							"description": "Unpin a chat message."
+						}
+					}
+				},
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"chatroom_id\": {{chatroom_id}},\n    \"message\": \"Hello, how can I help you?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/chat/send/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chat",
+								"send",
+								""
+							],
+							"description": "Send a chat message."
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Player Management",
+			"item": [
+				{
+					"name": "View Player Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/view-player/{{player_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"view-player",
+								"{{player_id}}",
+								""
+							],
+							"description": "Get detailed player information including game activities and transactions."
+						}
+					}
+				},
+				{
+					"name": "Check Player Game Balance (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/players/check-balance-admin/?game_id={{game_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"players",
+								"check-balance-admin",
+								""
+							],
+							"query": [
+								{
+									"key": "game_id",
+									"value": "{{game_id}}",
+									"description": "Optional game ID to filter by specific game"
+								}
+							],
+							"description": "Admin endpoint to check player game balances. Supports checking other users' balances."
+						}
+					}
+				},
+				{
+					"name": "Save Player Notes",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"player_id\": {{player_id}},\n    \"notes\": \"Player notes here\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/save-notes/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"save-notes",
+								""
+							],
+							"description": "Save or update notes for a player."
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Game Settings",
+			"item": [
+				{
+					"name": "Update Minimum Redeem Multiplier",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"minimum_redeem_multiplier\": 2.5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/games/update-minimum-redeem-multiplier/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"games",
+								"update-minimum-redeem-multiplier",
+								""
+							],
+							"description": "Update the minimum redeem multiplier for game redemptions."
+						}
+					}
+				},
+				{
+					"name": "Offmarket Games Management (Superadmin)",
+					"item": [
+						{
+							"name": "Get Management Companies",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/offmarket-games-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"offmarket-games-management",
+										""
+									],
+									"description": "Superadmin only. Lists all companies for offmarket game management."
+								}
+							}
+						},
+						{
+							"name": "Get Company Games",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/offmarket-games-management/?company_id={{company_id}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"offmarket-games-management",
+										""
+									],
+									"query": [
+										{
+											"key": "company_id",
+											"value": "{{company_id}}"
+										}
+									],
+									"description": "Superadmin only. Gets offmarket games for a specific company."
+								}
+							}
+						},
+						{
+							"name": "Toggle Game Status",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"type\": \"toggle_enabled_by_superadmin\",\n    \"game_id\": {{game_id}}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/offmarket-games-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"offmarket-games-management",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Enable All Games",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"type\": \"enable_all_games\",\n    \"company_id\": {{company_id}}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/offmarket-games-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"offmarket-games-management",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "Disable All Games",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"type\": \"disable_all_games\",\n    \"company_id\": {{company_id}}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/offmarket-games-management/",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"offmarket-games-management",
+										""
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Bonuses - First Purchase",
+			"item": [
+				{
+					"name": "List First Purchase Bonuses",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/first-purchase-bonuses/?page=1&page_size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"first-purchase-bonuses",
+								""
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							],
+							"description": "Lists first purchase bonuses."
+						}
+					}
+				},
+				{
+					"name": "Create First Purchase Bonus",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user\": 3,\n    \"topup_method\": \"bitcoin\",\n    \"bonus_type\": \"percentage\",\n    \"bonus\": 10\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/first-purchase-bonuses/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"first-purchase-bonuses",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Update First Purchase Bonus",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"bonus\": 15\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/first-purchase-bonuses/{{bonus_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"first-purchase-bonuses",
+								"{{bonus_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete First Purchase Bonus",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/first-purchase-bonuses/{{bonus_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"first-purchase-bonuses",
+								"{{bonus_id}}",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Transactions - Additional",
+			"item": [
+				{
+					"name": "Get Transaction Invoice",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transactions/{{transaction_id}}/invoice/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"transactions",
+								"{{transaction_id}}",
+								"invoice",
+								""
+							],
+							"description": "Get invoice PDF or details for a transaction."
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "WebSocket Endpoints",
+			"item": [
+				{
+					"name": "Processing Notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/ws/notifications/{{username}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"ws",
+								"notifications",
+								"{{username}}",
+								""
+							],
+							"description": "WebSocket endpoint for real-time processing notifications. Connect using WebSocket client (wss:// for HTTPS, ws:// for HTTP).\n\nExample connection URL:\n- HTTPS: wss://admin.serverhub.biz/ws/notifications/{username}/\n- HTTP: ws://admin.serverhub.biz/ws/notifications/{username}/\n\nRequires JWT authentication via query parameter or header."
+						}
+					}
+				},
+				{
+					"name": "Chat WebSocket",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/ws/cschat/P{{player_id}}Chat/?user_id={{admin_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"ws",
+								"cschat",
+								"P{{player_id}}Chat",
+								""
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{admin_id}}",
+									"description": "Admin user ID"
+								}
+							],
+							"description": "WebSocket endpoint for real-time chat messages. Room name format: P{player_id}Chat\n\nExample connection URL:\n- HTTPS: wss://admin.serverhub.biz/ws/cschat/P123Chat/?user_id=1\n- HTTP: ws://admin.serverhub.biz/ws/cschat/P123Chat/?user_id=1\n\nRequires authentication."
+						}
+					}
+				},
+				{
+					"name": "Chat List WebSocket",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/ws/chatlist/?user_id={{admin_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"ws",
+								"chatlist",
+								""
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{admin_id}}",
+									"description": "Admin user ID"
+								}
+							],
+							"description": "WebSocket endpoint for real-time chat list updates (unread counts).\n\nExample connection URL:\n- HTTPS: wss://admin.serverhub.biz/ws/chatlist/?user_id=1\n- HTTP: ws://admin.serverhub.biz/ws/chatlist/?user_id=1\n\nRequires authentication.\n\nNote: Postman doesn't support WebSocket connections directly. Use a WebSocket client like:\n- Browser DevTools Console\n- wscat (npm install -g wscat)\n- Postman WebSocket support (if available)\n- Custom WebSocket client"
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://admin.serverhub.biz",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY0NDY0MDA2LCJpYXQiOjE3NjQ0MzUyMDYsImp0aSI6IjIyZWFjYzU0MTI4ZTQ0NDdhNjQyZWU1NjA0ZGRkYzdiIiwidXNlcl9pZCI6Mn0.enudyCoYiHiAb2haltF67krDj5xuvYn1gMfSLYDI_Co",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc2NDUyMTYwNiwiaWF0IjoxNzY0NDM1MjA2LCJqdGkiOiJhMTAyOGI3YzkwODM0Mzc5YTM3ZjdkODFkNmFhMDFlMSIsInVzZXJfaWQiOjJ9.xPGXaDOH9TpkLaGc4QJK1lLVEvrs2R3oTaolRtdhGic",
+			"type": "string"
+		},
+		{
+			"key": "whitelabel_admin_uuid",
+			"value": "c0945d59-d796-402d-8bb5-d1b2029b9eea",
+			"type": "string"
+		},
+		{
+			"key": "company_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "manager_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "agent_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "staff_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "player_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "chatroom_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "image_url",
+			"value": "/media/banners/admin/web/banner.jpg",
+			"type": "string"
+		},
+		{
+			"key": "game_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "transaction_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "bonus_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "banner_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "affiliate_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "affiliate_default_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "payment_method_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "admin_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "username",
+			"value": "admin",
+			"type": "string"
+		}
+	]
+}
+

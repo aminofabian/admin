@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams, usePathname } from 'next/navigation';
 import {
   DashboardSectionContainer,
 } from '@/components/dashboard/layout';
@@ -117,6 +118,8 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
 }
 
 export function TransactionsSection() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const transactions = useTransactionsStore((state) => state.transactions);
   const isLoading = useTransactionsStore((state) => state.isLoading);
   const error = useTransactionsStore((state) => state.error);
@@ -144,6 +147,7 @@ export function TransactionsSection() {
   // Track component mount and previous values to prevent duplicate calls during React's strict mode
   const isFirstMountRef = useRef(true);
   const previousDepsRef = useRef<{ page: number; filter: string; filters: string } | null>(null);
+  const hasInitializedRef = useRef(false);
 
   const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(DEFAULT_HISTORY_FILTERS);
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
@@ -165,17 +169,55 @@ export function TransactionsSection() {
       // Reset on unmount so next mount is treated as first
       isFirstMountRef.current = true;
       previousDepsRef.current = null;
+      hasInitializedRef.current = false;
     };
   }, []);
 
-  // Initialize - set filter to history on mount and ALWAYS clear filters
+  // Remove preserveFilters query parameter after reading it
   useEffect(() => {
-    // Always clear filters when revisiting this section
-    clearAdvancedFiltersWithoutFetch();
-    setFilterWithoutFetch('history');
-    setFilters(DEFAULT_HISTORY_FILTERS);
-    setAreFiltersOpen(false);
-  }, [clearAdvancedFiltersWithoutFetch, setFilterWithoutFetch]);
+    const preserveFilters = searchParams.get('preserveFilters');
+    if (preserveFilters === 'true') {
+      // Remove the parameter from URL after reading
+      const params = new URLSearchParams(window.location.search);
+      params.delete('preserveFilters');
+      const newSearch = params.toString();
+      const newUrl = newSearch
+        ? `${pathname}?${newSearch}`
+        : pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [searchParams, pathname]);
+
+  // Initialize - set filter to history on mount
+  // Clear filters unless preserveFilters query param is present (from player details)
+  useEffect(() => {
+    // Only initialize once on mount
+    if (hasInitializedRef.current) {
+      return;
+    }
+    
+    hasInitializedRef.current = true;
+    
+    // Check if we should preserve filters (from player details page)
+    const shouldPreserveFilters = searchParams.get('preserveFilters') === 'true';
+    
+    // Read current values from store to ensure we have the latest state
+    const storeState = getStoreState();
+    const currentAdvancedFilters = storeState.advancedFilters;
+    const currentFilter = storeState.filter;
+    
+    // Clear filters unless they should be preserved (from player details navigation)
+    if (!shouldPreserveFilters) {
+      clearAdvancedFiltersWithoutFetch();
+      setFilters(DEFAULT_HISTORY_FILTERS);
+      setAreFiltersOpen(false);
+    }
+    
+    // Always ensure filter is set to history
+    if (currentFilter !== 'history') {
+      setFilterWithoutFetch('history');
+    }
+  }, [clearAdvancedFiltersWithoutFetch, setFilterWithoutFetch, getStoreState, searchParams]);
 
   // Fetch on mount and when filter/advancedFilters change
   useEffect(() => {
