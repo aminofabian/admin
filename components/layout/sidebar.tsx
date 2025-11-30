@@ -250,7 +250,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Games',
     icon: <GameIcon />,
-    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT, USER_ROLES.STAFF, USER_ROLES.PLAYER],
+    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT, USER_ROLES.PLAYER],
     href: '/dashboard/games',
   },
   {
