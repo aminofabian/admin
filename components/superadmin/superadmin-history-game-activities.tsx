@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { DashboardSectionContainer } from '@/components/dashboard/layout';
 import { Badge, Button, Card, CardContent, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
@@ -512,51 +513,88 @@ export function SuperAdminHistoryGameActivities() {
 
     const shouldShowPagination = totalCount > pageSize || hasNext || hasPrevious;
 
-    if (isInitialLoading && !results.length) {
-        return (
-            <div className="space-y-6">
-                {/* Header Skeleton */}
-                <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-                    <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-                        <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
-                        <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-48 shrink-0" />
-                        <div className="flex-1 min-w-0" />
-                    </div>
-                </div>
-                <Skeleton className="h-64 w-full" />
-            </div>
-        );
-    }
-
-    if (error && !results.length) {
-        return (
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                <div className="text-center text-red-600 dark:text-red-400">
-                    <p className="font-semibold">Error loading game activities</p>
-                    <p className="text-sm mt-2">{error}</p>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <>
-            {/* Compact Header */}
+    const GAME_ACTIVITIES_SKELETON = (
+        <div className="space-y-6">
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
                 <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-                    {/* Icon */}
+                    <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+                    <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-48 shrink-0" />
+                    <div className="flex-1 min-w-0" />
+                </div>
+            </div>
+            <Skeleton className="h-32 w-full" />
+            <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+                <div className="space-y-4">
+                    <div className="flex gap-2">
+                        <Skeleton className="h-10 w-32 rounded-md" />
+                        <Skeleton className="h-10 w-32 rounded-md" />
+                        <Skeleton className="h-10 w-24 rounded-md" />
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {[...Array(8)].map((_, i) => (
+                            <Skeleton key={i} className="h-10 w-full" />
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <div className="min-w-full">
+                        <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                            <div className="grid grid-cols-10 gap-4 px-4 py-3">
+                                {[...Array(10)].map((_, i) => (
+                                    <Skeleton key={i} className="h-4 w-24" />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="grid grid-cols-10 gap-4 px-4 py-4">
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-5 w-32" />
+                                    <Skeleton className="h-5 w-20" />
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-6 w-16 rounded-full" />
+                                    <Skeleton className="h-5 w-32" />
+                                    <div className="flex justify-end">
+                                        <Skeleton className="h-8 w-20 rounded-full" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const handleFetchQueues = useCallback(() => {
+        fetchQueues();
+    }, [fetchQueues]);
+
+    return (
+        <DashboardSectionContainer
+            isLoading={isInitialLoading && !results.length}
+            error={error ?? ''}
+            onRetry={handleFetchQueues}
+            isEmpty={false}
+            emptyState={null}
+            loadingState={GAME_ACTIVITIES_SKELETON}
+        >
+            {/* Header */}
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+                <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
                     <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
                         <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z" />
                         </svg>
                     </div>
-
-                    {/* Title */}
                     <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
                         Game Activity History
                     </h2>
-
-                    {/* Spacer */}
                     <div className="flex-1 min-w-0" />
                 </div>
             </div>
@@ -719,7 +757,7 @@ export function SuperAdminHistoryGameActivities() {
                 shouldShowPagination={shouldShowPagination}
                 selectedCompany={selectedCompany}
             />
-        </>
+        </DashboardSectionContainer>
     );
 }
 
@@ -762,7 +800,7 @@ function HistoryGameActivitiesTable({
 
     return (
         <>
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 {!queues.length ? (
                     <div className="py-12">
                         <EmptyState

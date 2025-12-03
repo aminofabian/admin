@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination, Button } from '@/components/ui';
+import { DashboardSectionContainer } from '@/components/dashboard/layout';
+import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination, Button } from '@/components/ui';
 import { useTransactionsStore } from '@/stores';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
@@ -428,41 +429,90 @@ export function SuperAdminHistoryTransactions() {
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
-    if (isLoading && !transactionList.length) {
-        return (
-            <div className="md:pb-0 pb-6 -mx-4 md:mx-0 px-2 md:px-0">
-                <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-2 md:px-0 py-3 md:py-0">
-                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Transaction History</h1>
+    const TRANSACTIONS_SKELETON = (
+        <div className="space-y-6">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+                <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+                    <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
+                    <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-48 shrink-0" />
+                    <div className="flex-1 min-w-0" />
                 </div>
+            </div>
+            <Skeleton className="h-32 w-full" />
+            <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
                 <div className="space-y-4">
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-64 w-full" />
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="md:pb-0 pb-6 -mx-4 md:mx-0 px-2 md:px-0">
-                <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-2 md:px-0 py-3 md:py-0">
-                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Transaction History</h1>
-                </div>
-                <Card className="p-6">
-                    <div className="text-center text-red-600 dark:text-red-400">
-                        <p className="font-semibold">Error loading transactions</p>
-                        <p className="text-sm mt-2">{error}</p>
+                    <div className="flex gap-2">
+                        <Skeleton className="h-10 w-32 rounded-md" />
+                        <Skeleton className="h-10 w-32 rounded-md" />
+                        <Skeleton className="h-10 w-24 rounded-md" />
                     </div>
-                </Card>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {[...Array(10)].map((_, i) => (
+                            <Skeleton key={i} className="h-10 w-full" />
+                        ))}
+                    </div>
+                </div>
             </div>
-        );
-    }
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <div className="min-w-full">
+                        <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                            <div className="grid grid-cols-10 gap-4 px-4 py-3">
+                                {[...Array(10)].map((_, i) => (
+                                    <Skeleton key={i} className="h-4 w-24" />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="grid grid-cols-10 gap-4 px-4 py-4">
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-5 w-32" />
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-5 w-24" />
+                                    <Skeleton className="h-6 w-16 rounded-full" />
+                                    <Skeleton className="h-5 w-20" />
+                                    <Skeleton className="h-5 w-32" />
+                                    <div className="flex justify-end">
+                                        <Skeleton className="h-8 w-20 rounded-full" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const handleFetchTransactions = useCallback(() => {
+        fetchTransactions();
+    }, [fetchTransactions]);
 
     return (
-        <div className="md:pb-0 pb-6 -mx-4 md:mx-0 px-2 md:px-0">
-            {/* Sticky Mobile Header */}
-            <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-2 md:px-0 py-3 md:py-0">
-                <h1 className="text-2xl md:text-3xl font-bold text-foreground">Transaction History</h1>
+        <DashboardSectionContainer
+            isLoading={isLoading && !transactionList.length}
+            error={error ?? ''}
+            onRetry={handleFetchTransactions}
+            isEmpty={false}
+            emptyState={null}
+            loadingState={TRANSACTIONS_SKELETON}
+        >
+            {/* Header */}
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+                <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+                    <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5h6m-6 4h6m-6 4h6m-9 4h12" />
+                        </svg>
+                    </div>
+                    <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+                        Transaction History
+                    </h2>
+                    <div className="flex-1 min-w-0" />
+                </div>
             </div>
 
             {/* Company Filter */}
@@ -611,11 +661,7 @@ export function SuperAdminHistoryTransactions() {
             />
 
             {/* Transactions Table */}
-            <Card className="mt-4 md:mt-6 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                <CardHeader className="pb-3 md:pb-6 px-2 md:px-6 pt-3 md:pt-6 border-b md:border-b-0">
-                    <h2 className="text-base md:text-lg font-semibold">Recent Transactions</h2>
-                </CardHeader>
-                <CardContent className="p-0">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                     {transactionList.length === 0 ? (
                         <div className="py-12">
                             <EmptyState
@@ -948,8 +994,7 @@ export function SuperAdminHistoryTransactions() {
                             })()}
                         </>
                     )}
-                </CardContent>
-            </Card>
+            </div>
 
             {/* Transaction Details Modal */}
             {selectedTransaction && (
@@ -959,6 +1004,6 @@ export function SuperAdminHistoryTransactions() {
                     onClose={handleCloseModal}
                 />
             )}
-        </div>
+        </DashboardSectionContainer>
     );
 }
