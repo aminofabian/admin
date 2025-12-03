@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination } from '@/components/ui';
+import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination, Button } from '@/components/ui';
 import { useTransactionsStore } from '@/stores';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
-import { EmptyState } from '@/components/features';
+import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
-import type { Agent, PaymentMethod, Company } from '@/types';
+import type { Agent, PaymentMethod, Company, Transaction } from '@/types';
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
     agent: '',
@@ -83,6 +83,8 @@ export function SuperAdminHistoryTransactions() {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
     // Initialize filter once and clear any previous filters (unless preserveFilters is set)
     useEffect(() => {
@@ -400,6 +402,16 @@ export function SuperAdminHistoryTransactions() {
         setPage(page);
     }, [setPage]);
 
+    const handleViewTransaction = useCallback((transaction: Transaction) => {
+        setSelectedTransaction(transaction);
+        setIsViewModalOpen(true);
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setIsViewModalOpen(false);
+        setSelectedTransaction(null);
+    }, []);
+
     const transactionList = transactions?.results || [];
 
     // Filter companies based on search term
@@ -614,26 +626,54 @@ export function SuperAdminHistoryTransactions() {
                     ) : (
                         <>
                             {/* Desktop Table */}
-                            <div className="hidden md:block overflow-x-auto">
+                            <div className="hidden lg:block overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Username</TableHead>
+                                            <TableHead>User</TableHead>
                                             <TableHead>Company</TableHead>
-                                            <TableHead>Type</TableHead>
+                                            <TableHead>Transaction</TableHead>
                                             <TableHead>Amount</TableHead>
+                                            <TableHead>Previous Balance</TableHead>
+                                            <TableHead>New Balance</TableHead>
                                             <TableHead>Status</TableHead>
-                                            <TableHead>Date</TableHead>
+                                            <TableHead>Payment</TableHead>
+                                            <TableHead>Dates</TableHead>
+                                            <TableHead className="text-right">Action</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {transactionList.map((transaction) => {
                                             const username = transaction.user_username || `User ${transaction.id}`;
                                             const transactionType = transaction.type || '—';
+                                            const isPurchase = transactionType === 'purchase';
+                                            const typeVariant = isPurchase ? 'success' : 'danger';
+                                            const amountColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                                            
+                                            const bonusAmount = parseFloat(transaction.bonus_amount || '0');
+                                            const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;
+                                            
+                                            const userInitial = username.charAt(0).toUpperCase();
+                                            const formattedCreatedAt = formatDate(transaction.created_at || transaction.created);
+                                            const formattedUpdatedAt = formatDate(transaction.updated_at || transaction.updated);
 
                                             return (
-                                                <TableRow key={transaction.id}>
-                                                    <TableCell className="font-medium">{username}</TableCell>
+                                                <TableRow key={transaction.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                                                                {userInitial}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-medium text-gray-900 dark:text-gray-100">
+                                                                    {username}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                    {transaction.user_email || '—'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
                                                     <TableCell>
                                                         {selectedCompany ? (
                                                             <div className="flex items-center gap-2">
@@ -654,27 +694,83 @@ export function SuperAdminHistoryTransactions() {
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge variant="info" className="capitalize">
+                                                        <Badge variant={typeVariant} className="text-xs uppercase">
                                                             {transactionType}
                                                         </Badge>
                                                     </TableCell>
-                                                    <TableCell className="font-semibold">
-                                                        {formatCurrency(transaction.amount || '0')}
+                                                    <TableCell>
+                                                        <div className={`text-sm font-bold ${amountColorClass}`}>
+                                                            {formatCurrency(transaction.amount || '0')}
+                                                        </div>
+                                                        {formattedBonus && (
+                                                            <div className={`text-xs font-semibold mt-0.5 ${amountColorClass}`}>
+                                                                +{formattedBonus} bonus
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="space-y-1">
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                C: {formatCurrency(transaction.previous_balance || '0')}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+                                                                    ? formatCurrency(transaction.previous_winning_balance)
+                                                                    : formatCurrency('0')}
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="space-y-1">
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                C: {formatCurrency(transaction.new_balance || '0')}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+                                                                    ? formatCurrency(transaction.new_winning_balance)
+                                                                    : formatCurrency('0')}
+                                                            </div>
+                                                        </div>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge
                                                             variant={
                                                                 transaction.status === 'completed' ? 'success' :
                                                                     transaction.status === 'pending' ? 'warning' :
-                                                                        transaction.status === 'failed' ? 'danger' : 'default'
+                                                                        transaction.status === 'failed' || transaction.status === 'cancelled' ? 'danger' : 'default'
                                                             }
                                                             className="capitalize"
                                                         >
                                                             {transaction.status}
                                                         </Badge>
                                                     </TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground">
-                                                        {formatDate(transaction.created_at || transaction.created)}
+                                                    <TableCell>
+                                                        <Badge variant="info" className="text-xs">
+                                                            {transaction.payment_method || '—'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                                                            <div>{formattedCreatedAt}</div>
+                                                            <div>{formattedUpdatedAt}</div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <div className="flex items-center justify-end">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleViewTransaction(transaction)}
+                                                                title="View transaction"
+                                                                className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                                                            >
+                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                </svg>
+                                                                View
+                                                            </Button>
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             );
@@ -684,40 +780,66 @@ export function SuperAdminHistoryTransactions() {
                             </div>
 
                             {/* Mobile Cards */}
-                            <div className="md:hidden space-y-2 px-2 pb-3">
+                            <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
                                 {transactionList.map((transaction) => {
                                     const username = transaction.user_username || `User ${transaction.id}`;
                                     const transactionType = transaction.type || '—';
+                                    const isPurchase = transactionType === 'purchase';
+                                    const typeVariant = isPurchase ? 'success' : 'danger';
+                                    const amountColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                                    
+                                    const bonusAmount = parseFloat(transaction.bonus_amount || '0');
+                                    const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;
+                                    
+                                    const userInitial = username.charAt(0).toUpperCase();
+                                    const formattedCreatedAt = formatDate(transaction.created_at || transaction.created);
 
                                     return (
-                                        <Card
+                                        <div
                                             key={transaction.id}
-                                            className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
+                                            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden"
                                         >
-                                            <CardContent className="p-3 space-y-2">
-                                                <div className="flex items-start justify-between">
+                                            <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
+                                                        {userInitial}
+                                                    </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className="font-semibold text-base leading-tight mb-1">{username}</h3>
-                                                        <div className="flex flex-wrap items-center gap-2">
+                                                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                                                            <div className="flex-1 min-w-0">
+                                                                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                                                                    {username}
+                                                                </h3>
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                                                                    {transaction.user_email || '—'}
+                                                                </p>
+                                                            </div>
+                                                            <Badge variant={typeVariant} className="text-[10px] px-2 py-0.5 uppercase shrink-0">
+                                                                {transactionType}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
                                                             <Badge
                                                                 variant={
                                                                     transaction.status === 'completed' ? 'success' :
                                                                         transaction.status === 'pending' ? 'warning' :
-                                                                            transaction.status === 'failed' ? 'danger' : 'default'
+                                                                            transaction.status === 'failed' || transaction.status === 'cancelled' ? 'danger' : 'default'
                                                                 }
-                                                                className="text-xs px-2 py-0.5 capitalize"
+                                                                className="text-[10px] px-2 py-0.5 capitalize"
                                                             >
                                                                 {transaction.status}
                                                             </Badge>
-                                                            <Badge variant="info" className="text-xs px-2 py-0.5 capitalize">
-                                                                {transactionType}
+                                                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
+                                                                {transaction.payment_method || '—'}
                                                             </Badge>
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </div>
 
-                                                {selectedCompany && (
-                                                    <div className="flex items-center gap-2 pt-1 border-t">
+                                            {selectedCompany && (
+                                                <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                                                    <div className="flex items-center gap-2">
                                                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center font-bold text-xs text-primary">
                                                             {selectedCompany.project_name.charAt(0).toUpperCase()}
                                                         </div>
@@ -730,20 +852,75 @@ export function SuperAdminHistoryTransactions() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                )}
+                                                </div>
+                                            )}
 
-                                                <div className="space-y-2 text-sm pt-2 border-t">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="font-medium text-muted-foreground">Amount:</span>
-                                                        <span className="font-semibold">{formatCurrency(transaction.amount || '0')}</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="font-medium text-muted-foreground">Date:</span>
-                                                        <span className="text-xs text-muted-foreground">{formatDate(transaction.created_at || transaction.created)}</span>
+                                            <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
+                                                    <div className="text-right">
+                                                        <div className={`text-base font-bold ${amountColorClass}`}>
+                                                            {formatCurrency(transaction.amount || '0')}
+                                                        </div>
+                                                        {formattedBonus && (
+                                                            <div className={`text-xs font-semibold mt-0.5 ${amountColorClass}`}>
+                                                                +{formattedBonus} bonus
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            </CardContent>
-                                        </Card>
+                                            </div>
+
+                                            <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
+                                                        <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">Previous Credit</div>
+                                                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                                            {formatCurrency(transaction.previous_balance || '0')}
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
+                                                        <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">Previous Winning</div>
+                                                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                                                            {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+                                                                ? formatCurrency(transaction.previous_winning_balance)
+                                                                : formatCurrency('0')}
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
+                                                        <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">New Credit</div>
+                                                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                                            {formatCurrency(transaction.new_balance || '0')}
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
+                                                        <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">New Winning</div>
+                                                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                                                            {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+                                                                ? formatCurrency(transaction.new_winning_balance)
+                                                                : formatCurrency('0')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-3 flex items-center justify-between">
+                                                <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+                                                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                    <span>{formattedCreatedAt}</span>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    variant="primary"
+                                                    onClick={() => handleViewTransaction(transaction)}
+                                                    className="px-3 py-1.5 text-xs touch-manipulation shrink-0"
+                                                >
+                                                    View
+                                                </Button>
+                                            </div>
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -773,6 +950,15 @@ export function SuperAdminHistoryTransactions() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Transaction Details Modal */}
+            {selectedTransaction && (
+                <TransactionDetailsModal
+                    transaction={selectedTransaction}
+                    isOpen={isViewModalOpen}
+                    onClose={handleCloseModal}
+                />
+            )}
         </div>
     );
 }
