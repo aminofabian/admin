@@ -200,7 +200,7 @@ export function HistoryGameActivitiesFilters({
                   { value: '', label: 'All Types' },
                   { value: 'recharge_game', label: 'Recharge' },
                   { value: 'redeem_game', label: 'Redeem' },
-                  { value: 'add_user_game', label: 'Add User' },
+                  { value: 'create_game', label: 'Add User' },
                   { value: 'reset_password', label: 'Reset Password' },
                 ]}
                 placeholder="All Types"

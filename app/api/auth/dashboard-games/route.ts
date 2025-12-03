@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const DASHBOARD_GAMES_URL = 'https://serverhub.biz/users/dashboard-games/';
+const DASHBOARD_GAMES_URL = 'https://admin.serverhub.biz/users/dashboard-games/';
 const PROJECT_DOMAIN = process.env.NEXT_PUBLIC_PROJECT_DOMAIN || 'https://serverhub.biz';
 
 export async function POST(request: NextRequest) {
@@ -38,10 +38,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('❌ Dashboard games proxy error:', error);
-    
+
     return NextResponse.json(
-      { 
-        status: 'error', 
+      {
+        status: 'error',
         message: error instanceof Error ? error.message : 'Failed to fetch project configuration',
       },
       { status: 500 }
