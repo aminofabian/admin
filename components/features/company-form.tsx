@@ -25,7 +25,6 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     service_name: '',
     game_api_url: '',
     game_api_key: '',
-    service_creds: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -245,17 +244,6 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
             placeholder="API Key"
             disabled={isLoading}
           />
-
-          <div className="md:col-span-2">
-            <Input
-              label="Service Credentials"
-              type="text"
-              value={formData.service_creds}
-              onChange={(e) => handleChange('service_creds', e.target.value)}
-              placeholder="Service credentials (if required)"
-              disabled={isLoading}
-            />
-          </div>
         </div>
       </div>
 
