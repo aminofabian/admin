@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { Card, CardHeader, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination } from '@/components/ui';
 import { useTransactionsStore } from '@/stores';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { EmptyState } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
-import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
-import type { Agent, PaymentMethod, Staff, Manager, Company } from '@/types';
+import { agentsApi, paymentMethodsApi } from '@/lib/api';
+import type { Agent, PaymentMethod, Company } from '@/types';
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
     agent: '',
@@ -41,7 +42,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
         username: advanced.username ?? '',
         email: advanced.email ?? '',
         transaction_id: advanced.transaction_id ?? '',
-        operator: advanced.operator ?? '',
+        operator: '', // Operator filter removed for superadmin
         type: derivedType,
         payment_method: advanced.payment_method ?? '',
         status: advanced.status ?? '',
@@ -54,6 +55,8 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
 }
 
 export function SuperAdminHistoryTransactions() {
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const transactions = useTransactionsStore((state) => state.transactions);
     const isLoading = useTransactionsStore((state) => state.isLoading);
     const error = useTransactionsStore((state) => state.error);
@@ -73,8 +76,6 @@ export function SuperAdminHistoryTransactions() {
     const [isAgentLoading, setIsAgentLoading] = useState(false);
     const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
     const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
-    const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
-    const [isOperatorLoading, setIsOperatorLoading] = useState(false);
 
     // Company filter state
     const [companySearchTerm, setCompanySearchTerm] = useState('');
@@ -83,10 +84,26 @@ export function SuperAdminHistoryTransactions() {
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
-    // Initialize filter once and clear any previous filters
+    // Initialize filter once and clear any previous filters (unless preserveFilters is set)
     useEffect(() => {
-        // Clear filters on mount (page reload scenario)
-        setAdvancedFiltersWithoutFetch({});
+        const preserveFilters = searchParams.get('preserveFilters');
+        const shouldPreserveFilters = preserveFilters === 'true';
+
+        // Remove preserveFilters query parameter after reading it
+        if (shouldPreserveFilters) {
+            const params = new URLSearchParams(window.location.search);
+            params.delete('preserveFilters');
+            const newSearch = params.toString();
+            const newUrl = newSearch
+                ? `${pathname}?${newSearch}`
+                : pathname;
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        // Only clear filters if preserveFilters is not set
+        if (!shouldPreserveFilters) {
+            setAdvancedFiltersWithoutFetch({});
+        }
         setFilter('history');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -277,78 +294,6 @@ export function SuperAdminHistoryTransactions() {
         };
     }, []);
 
-    // Fetch operators (staffs, managers) for dropdown
-    useEffect(() => {
-        let isMounted = true;
-
-        const loadOperators = async () => {
-            setIsOperatorLoading(true);
-
-            try {
-                const [staffsData, managersData] = await Promise.all([
-                    staffsApi.list(),
-                    managersApi.list(),
-                ]);
-
-                if (!isMounted) {
-                    return;
-                }
-
-                const staffs = Array.isArray(staffsData)
-                    ? staffsData
-                    : (staffsData && typeof staffsData === 'object' && 'results' in staffsData && Array.isArray(staffsData.results))
-                        ? staffsData.results
-                        : [];
-
-                const managers = Array.isArray(managersData)
-                    ? managersData
-                    : (managersData && typeof managersData === 'object' && 'results' in managersData && Array.isArray(managersData.results))
-                        ? managersData.results
-                        : [];
-
-                const operatorMap = new Map<string, string>();
-
-                // Add active staff
-                staffs
-                    .filter((staff: Staff) => staff.is_active)
-                    .forEach((staff: Staff) => {
-                        if (staff?.username) {
-                            operatorMap.set(staff.username, staff.username);
-                        }
-                    });
-
-                // Add active managers
-                managers
-                    .filter((manager: Manager) => manager.is_active)
-                    .forEach((manager: Manager) => {
-                        if (manager?.username) {
-                            operatorMap.set(manager.username, manager.username);
-                        }
-                    });
-
-                const mappedOptions = Array.from(operatorMap.entries())
-                    .map(([value, label]) => ({ value, label }))
-                    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
-
-                console.log('Loaded operators:', mappedOptions.length, mappedOptions);
-                if (isMounted) {
-                    setOperatorOptions(mappedOptions);
-                }
-            } catch (error) {
-                console.error('Failed to load operators for transaction filters:', error);
-            } finally {
-                if (isMounted) {
-                    setIsOperatorLoading(false);
-                }
-            }
-        };
-
-        loadOperators();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
 
     const fetchCompanies = async () => {
         setIsLoadingCompanies(true);
@@ -388,6 +333,7 @@ export function SuperAdminHistoryTransactions() {
         const sanitized = Object.fromEntries(
             Object.entries(filters).filter(([key, value]) => {
                 if (key === 'game') return false; // Remove game filter as it's not used for transactions
+                if (key === 'operator') return false; // Remove operator filter for superadmin
                 if (typeof value === 'string') {
                     return value.trim() !== '';
                 }
@@ -649,8 +595,6 @@ export function SuperAdminHistoryTransactions() {
                 isAgentLoading={isAgentLoading}
                 paymentMethodOptions={paymentMethodOptions}
                 isPaymentMethodLoading={isPaymentMethodLoading}
-                operatorOptions={operatorOptions}
-                isOperatorLoading={isOperatorLoading}
                 isLoading={isLoading}
             />
 

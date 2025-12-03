@@ -227,6 +227,12 @@ const MENU_CATEGORIES: MenuCategory[] = [
     href: '/dashboard/settings/payment',
   },
   {
+    name: 'Players',
+    icon: <PlayerIcon />,
+    roles: [USER_ROLES.SUPERADMIN],
+    href: '/dashboard/players',
+  },
+  {
     name: 'History',
     icon: <HistoryIcon />,
     roles: [USER_ROLES.SUPERADMIN],

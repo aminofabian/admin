@@ -218,24 +218,26 @@ export function HistoryTransactionsFilters({
             </div>
           ))}
 
-          {/* 7. Operator */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Operator</label>
-            <Select
-              value={filters.operator}
-              onChange={(value: string) => onFilterChange('operator', value)}
-              options={[
-                { value: '', label: 'All Operators' },
-                ...(operatorOptions || []),
-                ...(filters.operator && operatorOptions && !operatorOptions.some((option) => option.value === filters.operator)
-                  ? [{ value: filters.operator, label: filters.operator }]
-                  : []),
-              ]}
-              placeholder="All Operators"
-              isLoading={isOperatorLoading}
-              disabled={isOperatorLoading}
-            />
-          </div>
+          {/* 7. Operator - Only show if operatorOptions is provided */}
+          {operatorOptions !== undefined && (
+            <div className="min-w-0">
+              <label className={labelClasses}>Operator</label>
+              <Select
+                value={filters.operator}
+                onChange={(value: string) => onFilterChange('operator', value)}
+                options={[
+                  { value: '', label: 'All Operators' },
+                  ...(operatorOptions || []),
+                  ...(filters.operator && operatorOptions && !operatorOptions.some((option) => option.value === filters.operator)
+                    ? [{ value: filters.operator, label: filters.operator }]
+                    : []),
+                ]}
+                placeholder="All Operators"
+                isLoading={isOperatorLoading}
+                disabled={isOperatorLoading}
+              />
+            </div>
+          )}
 
           {/* 8. Status */}
           <div className="min-w-0">
