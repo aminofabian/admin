@@ -48,13 +48,25 @@ export function PaymentSettingsSection() {
       methods.map((method) => ({
         ...method,
         action,
-        isEnabled: action === 'cashout' ? method.is_enabled_for_cashout : method.is_enabled_for_purchase,
+        isEnabled: action === 'cashout' 
+          ? Boolean(method.enabled_for_cashout_by_superadmin)
+          : Boolean(method.enabled_for_purchase_by_superadmin),
         loadingKey: `${action}-${method.id}`,
       }));
 
+    // Filter cashout methods to only show those with enabled_for_cashout_by_superadmin
+    const cashoutMethods = paymentMethods?.cashout?.filter(
+      (method) => method.enabled_for_cashout_by_superadmin !== undefined && method.enabled_for_cashout_by_superadmin !== null
+    ) ?? [];
+
+    // Filter purchase methods to only show those with enabled_for_purchase_by_superadmin
+    const purchaseMethods = paymentMethods?.purchase?.filter(
+      (method) => method.enabled_for_purchase_by_superadmin !== undefined && method.enabled_for_purchase_by_superadmin !== null
+    ) ?? [];
+
     return {
-      cashout: buildRows('cashout', paymentMethods?.cashout),
-      purchase: buildRows('purchase', paymentMethods?.purchase),
+      cashout: buildRows('cashout', cashoutMethods),
+      purchase: buildRows('purchase', purchaseMethods),
     } as Record<PaymentMethodAction, PaymentMethodRow[]>;
   }, [paymentMethods]);
 
