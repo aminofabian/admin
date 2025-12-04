@@ -826,6 +826,7 @@ function TransactionsLayout({
           { value: '', label: 'All Statuses' },
           { value: 'completed', label: 'Completed' },
           { value: 'cancelled', label: 'Cancelled' },
+          { value: 'failed', label: 'Failed' },
         ]}
         agentOptions={agentOptions}
         isAgentLoading={isAgentLoadingAgents}
