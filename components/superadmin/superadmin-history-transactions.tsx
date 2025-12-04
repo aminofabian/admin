@@ -182,11 +182,20 @@ export function SuperAdminHistoryTransactions() {
         }
     }, [isCompanyDropdownOpen]);
 
-    // Fetch agents for dropdown
+    // Lazy load agents when filters are opened
     useEffect(() => {
+        if (!areFiltersOpen || agentOptions.length > 0) {
+            return;
+        }
+
         let isMounted = true;
+        let isCancelled = false;
 
         const loadAgents = async () => {
+            if (isCancelled || !isMounted) {
+                return;
+            }
+
             setIsAgentLoading(true);
 
             try {
@@ -195,7 +204,7 @@ export function SuperAdminHistoryTransactions() {
                 let page = 1;
                 let hasNext = true;
 
-                while (hasNext) {
+                while (hasNext && isMounted && !isCancelled) {
                     const response = await agentsApi.list({ page, page_size: pageSize });
 
                     if (!response?.results) {
@@ -209,9 +218,13 @@ export function SuperAdminHistoryTransactions() {
                     } else {
                         page += 1;
                     }
+
+                    if (!hasNext) {
+                        break;
+                    }
                 }
 
-                if (!isMounted) {
+                if (!isMounted || isCancelled) {
                     return;
                 }
 
@@ -229,13 +242,12 @@ export function SuperAdminHistoryTransactions() {
                     .map(([value, label]) => ({ value, label }))
                     .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
-                console.log('Loaded agents:', mappedOptions.length, mappedOptions);
                 setAgentOptions(mappedOptions);
                 setAgentIdMap(idMap);
             } catch (error) {
                 console.error('Failed to load agents for transaction filters:', error);
             } finally {
-                if (isMounted) {
+                if (isMounted && !isCancelled) {
                     setIsAgentLoading(false);
                 }
             }
@@ -244,47 +256,64 @@ export function SuperAdminHistoryTransactions() {
         loadAgents();
 
         return () => {
+            isCancelled = true;
             isMounted = false;
         };
-    }, []);
+    }, [areFiltersOpen, agentOptions.length]);
 
-    // Fetch payment methods for dropdown
+    // Lazy load payment methods when filters are opened
     useEffect(() => {
+        if (!areFiltersOpen || paymentMethodOptions.length > 0) {
+            return;
+        }
+
         let isMounted = true;
+        let isCancelled = false;
 
         const loadPaymentMethods = async () => {
+            if (isCancelled || !isMounted) {
+                return;
+            }
+
             setIsPaymentMethodLoading(true);
 
             try {
-                const data = await paymentMethodsApi.list();
-                const methods = Array.isArray(data)
-                    ? data
-                    : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
-                        ? data.results
-                        : [];
+                const response = await paymentMethodsApi.list();
 
-                if (!isMounted) {
+                if (!isMounted || isCancelled) {
                     return;
                 }
 
+                const collection = [
+                    ...(response?.cashout ?? []),
+                    ...(response?.purchase ?? []),
+                ];
+
                 const uniqueMethods = new Map<string, string>();
 
-                methods.forEach((method: PaymentMethod) => {
-                    if (method?.payment_method) {
-                        uniqueMethods.set(method.payment_method, method.payment_method_display || method.payment_method);
+                collection.forEach((method: PaymentMethod) => {
+                    if (!method) {
+                        return;
                     }
+
+                    const value = method.payment_method?.trim();
+                    if (!value) {
+                        return;
+                    }
+
+                    const label = method.payment_method_display?.trim() || value;
+                    uniqueMethods.set(value, label);
                 });
 
                 const mappedOptions = Array.from(uniqueMethods.entries())
                     .map(([value, label]) => ({ value, label }))
                     .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
-                console.log('Loaded payment methods:', mappedOptions.length, mappedOptions);
                 setPaymentMethodOptions(mappedOptions);
             } catch (error) {
                 console.error('Failed to load payment methods for transaction filters:', error);
             } finally {
-                if (isMounted) {
+                if (isMounted && !isCancelled) {
                     setIsPaymentMethodLoading(false);
                 }
             }
@@ -293,9 +322,10 @@ export function SuperAdminHistoryTransactions() {
         loadPaymentMethods();
 
         return () => {
+            isCancelled = true;
             isMounted = false;
         };
-    }, []);
+    }, [areFiltersOpen, paymentMethodOptions.length]);
 
 
     const fetchCompanies = async () => {
