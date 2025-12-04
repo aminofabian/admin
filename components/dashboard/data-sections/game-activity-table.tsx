@@ -501,6 +501,12 @@ const GameActivityCard = memo(function GameActivityCard({
     onViewDetails?.(activity);
   }, [activity, onViewDetails]);
 
+  const handleOpenChat = useCallback(() => {
+    const username = websiteUsername || `User ${activity.user_id}`;
+    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}&username=${encodeURIComponent(username)}`;
+    router.push(chatUrl);
+  }, [router, activity.user_id, websiteUsername]);
+
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
       {/* Top Section: User, Activity Type & Status */}
