@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams, usePathname } from 'next/navigation';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
@@ -694,6 +694,7 @@ interface HistoryGameActivityRowProps {
 }
 
 function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProps) {
+  const router = useRouter();
   const statusVariant = mapStatusToVariant(activity.status);
   const typeLabel = mapTypeToLabel(activity.type);
   const typeVariant = mapTypeToVariant(activity.type);
@@ -768,6 +769,12 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
     onView(activity);
   };
 
+  const handleOpenChat = useCallback(() => {
+    const username = websiteUsername || `User ${activity.user_id}`;
+    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}&username=${encodeURIComponent(username)}`;
+    router.push(chatUrl);
+  }, [router, activity.user_id, websiteUsername]);
+
   const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
   const bonusColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400');
 
@@ -775,13 +782,27 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
-            {userInitial}
-          </div>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-gray-100">
-              {websiteUsername || `User ${activity.user_id}`}
+          <button
+            type="button"
+            onClick={handleOpenChat}
+            className="flex-shrink-0 touch-manipulation"
+            title="Open chat with this player"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
+              {userInitial}
             </div>
+          </button>
+          <div>
+            <button
+              type="button"
+              onClick={handleOpenChat}
+              className="text-left touch-manipulation"
+              title="Open chat with this player"
+            >
+              <div className="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                {websiteUsername || `User ${activity.user_id}`}
+              </div>
+            </button>
             {websiteEmail && (
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 {websiteEmail}
@@ -865,6 +886,7 @@ interface GameActivityCardProps {
 }
 
 function GameActivityCard({ activity, onView }: GameActivityCardProps) {
+  const router = useRouter();
   const statusVariant = mapStatusToVariant(activity.status);
   const typeLabel = mapTypeToLabel(activity.type);
   const typeVariant = mapTypeToVariant(activity.type);
@@ -910,18 +932,31 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
     onView(activity);
   };
 
+  const handleOpenChat = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const username = websiteUsername || `User ${activity.user_id}`;
+    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}&username=${encodeURIComponent(username)}`;
+    router.push(chatUrl);
+  }, [router, activity.user_id, websiteUsername]);
+
   const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
 
   return (
     <div
-      className="border rounded-lg p-4 space-y-3 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-      onClick={handleViewClick}
+      className="border rounded-lg p-4 space-y-3 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="font-semibold text-gray-900 dark:text-gray-100">
-            {websiteUsername || `User ${activity.user_id}`}
-          </div>
+          <button
+            type="button"
+            onClick={handleOpenChat}
+            className="text-left w-full touch-manipulation"
+            title="Open chat with this player"
+          >
+            <div className="font-semibold text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              {websiteUsername || `User ${activity.user_id}`}
+            </div>
+          </button>
           {websiteEmail && (
             <div className="text-xs text-gray-500 dark:text-gray-400">{websiteEmail}</div>
           )}

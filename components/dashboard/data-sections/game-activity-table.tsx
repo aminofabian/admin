@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, memo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Table,
   TableHeader,
@@ -59,6 +60,7 @@ function GameActivityRow({
   showActions = true,
   actionLoading = false 
 }: GameActivityRowProps) {
+  const router = useRouter();
   const statusVariant = getStatusVariant(activity.status);
   const typeLabel = mapTypeToLabel(activity.type);
   const typeVariant = mapTypeToVariant(activity.type);
@@ -158,17 +160,37 @@ function GameActivityRow({
     onViewDetails?.(activity);
   }, [activity, onViewDetails]);
 
+  const handleOpenChat = useCallback(() => {
+    const username = websiteUsername || `User ${activity.user_id}`;
+    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}&username=${encodeURIComponent(username)}`;
+    router.push(chatUrl);
+  }, [router, activity.user_id, websiteUsername]);
+
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
-            {userInitial}
-          </div>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-gray-100">
-              {websiteUsername || `User ${activity.user_id}`}
+          <button
+            type="button"
+            onClick={handleOpenChat}
+            className="flex-shrink-0 touch-manipulation"
+            title="Open chat with this player"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
+              {userInitial}
             </div>
+          </button>
+          <div>
+            <button
+              type="button"
+              onClick={handleOpenChat}
+              className="text-left touch-manipulation"
+              title="Open chat with this player"
+            >
+              <div className="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                {websiteUsername || `User ${activity.user_id}`}
+              </div>
+            </button>
             {websiteEmail && (
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 {websiteEmail}
@@ -339,6 +361,7 @@ const GameActivityCard = memo(function GameActivityCard({
   showActions = true,
   actionLoading = false,
 }: GameActivityCardProps) {
+  const router = useRouter();
   const statusVariant = getStatusVariant(activity.status);
   const typeLabel = mapTypeToLabel(activity.type);
   const typeVariant = mapTypeToVariant(activity.type);
@@ -483,15 +506,29 @@ const GameActivityCard = memo(function GameActivityCard({
       {/* Top Section: User, Activity Type & Status */}
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
-            {userInitial}
-          </div>
+          <button
+            type="button"
+            onClick={handleOpenChat}
+            className="flex-shrink-0 touch-manipulation"
+            title="Open chat with this player"
+          >
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md cursor-pointer hover:opacity-80 transition-opacity">
+              {userInitial}
+            </div>
+          </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-1.5">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                  {websiteUsername || `User ${activity.user_id}`}
-                </h3>
+                <button
+                  type="button"
+                  onClick={handleOpenChat}
+                  className="text-left w-full touch-manipulation"
+                  title="Open chat with this player"
+                >
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                    {websiteUsername || `User ${activity.user_id}`}
+                  </h3>
+                </button>
                 {websiteEmail && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                     {websiteEmail}

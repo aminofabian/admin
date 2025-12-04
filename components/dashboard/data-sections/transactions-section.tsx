@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams, usePathname } from 'next/navigation';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import {
   DashboardSectionContainer,
 } from '@/components/dashboard/layout';
@@ -962,6 +962,7 @@ interface TransactionsRowProps {
 }
 
 const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: TransactionsRowProps) {
+  const router = useRouter();
   const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
   const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
@@ -989,17 +990,36 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     onView(transaction);
   }, [transaction, onView]);
 
+  const handleOpenChat = useCallback(() => {
+    const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`;
+    router.push(chatUrl);
+  }, [router, transaction.user_username]);
+
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
-            {userInitial}
-          </div>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-gray-100">
-              {transaction.user_username}
+          <button
+            type="button"
+            onClick={handleOpenChat}
+            className="flex-shrink-0 touch-manipulation"
+            title="Open chat with this player"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
+              {userInitial}
             </div>
+          </button>
+          <div>
+            <button
+              type="button"
+              onClick={handleOpenChat}
+              className="text-left touch-manipulation"
+              title="Open chat with this player"
+            >
+              <div className="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                {transaction.user_username}
+              </div>
+            </button>
             <div className="text-xs text-gray-500 dark:text-gray-400">
               {transaction.user_email}
             </div>
@@ -1097,6 +1117,7 @@ interface TransactionCardProps {
 }
 
 const TransactionCard = memo(function TransactionCard({ transaction, onView }: TransactionCardProps) {
+  const router = useRouter();
   const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
   const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
@@ -1122,19 +1143,38 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
     onView(transaction);
   }, [transaction, onView]);
 
+  const handleOpenChat = useCallback(() => {
+    const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`;
+    router.push(chatUrl);
+  }, [router, transaction.user_username]);
+
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
-            {userInitial}
-          </div>
+          <button
+            type="button"
+            onClick={handleOpenChat}
+            className="flex-shrink-0 touch-manipulation"
+            title="Open chat with this player"
+          >
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md cursor-pointer hover:opacity-80 transition-opacity">
+              {userInitial}
+            </div>
+          </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-1.5">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                  {transaction.user_username}
-                </h3>
+                <button
+                  type="button"
+                  onClick={handleOpenChat}
+                  className="text-left w-full touch-manipulation"
+                  title="Open chat with this player"
+                >
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                    {transaction.user_username}
+                  </h3>
+                </button>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                   {transaction.user_email}
                 </p>
