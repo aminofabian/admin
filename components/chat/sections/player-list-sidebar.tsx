@@ -115,7 +115,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
               } ${
                 isNewMessage ? 'text-primary font-bold' : ''
               }`}>
-                {player.fullName || player.username}
+                {player.username}
               </p>
               {player.lastMessageTime && (
                 <span className={`text-[10px] shrink-0 transition-colors duration-200 ${
