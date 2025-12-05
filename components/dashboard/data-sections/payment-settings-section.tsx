@@ -49,20 +49,14 @@ export function PaymentSettingsSection() {
         ...method,
         action,
         isEnabled: action === 'cashout' 
-          ? Boolean(method.enabled_for_cashout_by_superadmin)
-          : Boolean(method.enabled_for_purchase_by_superadmin),
+          ? Boolean(method.is_enabled_for_cashout)
+          : Boolean(method.is_enabled_for_purchase),
         loadingKey: `${action}-${method.id}`,
       }));
 
-    // Filter cashout methods to only show those with enabled_for_cashout_by_superadmin
-    const cashoutMethods = paymentMethods?.cashout?.filter(
-      (method) => method.enabled_for_cashout_by_superadmin !== undefined && method.enabled_for_cashout_by_superadmin !== null
-    ) ?? [];
-
-    // Filter purchase methods to only show those with enabled_for_purchase_by_superadmin
-    const purchaseMethods = paymentMethods?.purchase?.filter(
-      (method) => method.enabled_for_purchase_by_superadmin !== undefined && method.enabled_for_purchase_by_superadmin !== null
-    ) ?? [];
+    // Use all methods from the response - no filtering needed
+    const cashoutMethods = paymentMethods?.cashout ?? [];
+    const purchaseMethods = paymentMethods?.purchase ?? [];
 
     return {
       cashout: buildRows('cashout', cashoutMethods),

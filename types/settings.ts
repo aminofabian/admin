@@ -85,8 +85,8 @@ export interface PaymentMethod {
   payment_method: string;
   payment_method_display: string;
   method_type: string;
-  is_enabled_for_cashout: boolean;
-  is_enabled_for_purchase: boolean;
+  is_enabled_for_cashout?: boolean;
+  is_enabled_for_purchase?: boolean;
   enabled_for_cashout_by_superadmin?: boolean;
   enabled_for_purchase_by_superadmin?: boolean;
   created: string;
