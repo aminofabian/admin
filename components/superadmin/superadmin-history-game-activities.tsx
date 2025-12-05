@@ -501,6 +501,17 @@ export function SuperAdminHistoryGameActivities() {
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
+    // Create a map of companies by username for quick lookup
+    const companyMapByUsername = useMemo(() => {
+        const map = new Map<string, Company>();
+        companies.forEach(company => {
+            if (company.username) {
+                map.set(company.username, company);
+            }
+        });
+        return map;
+    }, [companies]);
+
     const results = useMemo(() => queues ?? [], [queues]);
     const isInitialLoading = useMemo(() => isLoading, [isLoading]);
     const isEmpty = useMemo(() => !results.length && !isLoading, [results.length, isLoading]);
@@ -755,7 +766,7 @@ export function SuperAdminHistoryGameActivities() {
                 }}
                 totalPages={totalPages}
                 shouldShowPagination={shouldShowPagination}
-                selectedCompany={selectedCompany}
+                companyMapByUsername={companyMapByUsername}
             />
         </DashboardSectionContainer>
     );
@@ -775,7 +786,7 @@ interface HistoryGameActivitiesTableProps {
     pagination: HistoryPaginationState;
     totalPages: number;
     shouldShowPagination: boolean;
-    selectedCompany: Company | undefined;
+    companyMapByUsername: Map<string, Company>;
 }
 
 function HistoryGameActivitiesTable({
@@ -783,7 +794,7 @@ function HistoryGameActivitiesTable({
     pagination,
     totalPages,
     shouldShowPagination,
-    selectedCompany
+    companyMapByUsername
 }: HistoryGameActivitiesTableProps) {
     const [selectedActivity, setSelectedActivity] = useState<TransactionQueue | null>(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -817,7 +828,7 @@ function HistoryGameActivitiesTable({
                                     key={activity.id}
                                     activity={activity}
                                     onView={handleViewActivity}
-                                    company={selectedCompany}
+                                    companyMapByUsername={companyMapByUsername}
                                 />
                             ))}
                         </div>
@@ -845,7 +856,7 @@ function HistoryGameActivitiesTable({
                                             key={activity.id}
                                             activity={activity}
                                             onView={handleViewActivity}
-                                            company={selectedCompany}
+                                            companyMapByUsername={companyMapByUsername}
                                         />
                                     ))}
                                 </TableBody>
@@ -881,10 +892,10 @@ function HistoryGameActivitiesTable({
 interface HistoryGameActivityRowProps {
     activity: TransactionQueue;
     onView: (activity: TransactionQueue) => void;
-    company: Company | undefined;
+    companyMapByUsername: Map<string, Company>;
 }
 
-const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, onView, company }: HistoryGameActivityRowProps) {
+const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, onView, companyMapByUsername }: HistoryGameActivityRowProps) {
     const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
     const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
     const typeVariant = useMemo(() => mapTypeToVariant(activity.type), [activity.type]);
@@ -1045,13 +1056,30 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
                 </div>
             </TableCell>
             <TableCell>
-                {company ? (
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                        {company.project_name}
-                    </div>
-                ) : (
-                    <div className="text-gray-500 dark:text-gray-400">—</div>
-                )}
+                {(() => {
+                    const activityCompany = activity.company_username 
+                        ? companyMapByUsername.get(activity.company_username)
+                        : null;
+                    
+                    if (activityCompany) {
+                        return (
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center font-bold text-xs text-primary">
+                                    {activityCompany.project_name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="font-medium text-sm truncate">
+                                        {activityCompany.project_name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground truncate">
+                                        @{activityCompany.username}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+                    return <div className="text-gray-500 dark:text-gray-400">—</div>;
+                })()}
             </TableCell>
             <TableCell>
                 <Badge variant={typeVariant} className="capitalize">
@@ -1142,7 +1170,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         prevProps.activity.operator === nextProps.activity.operator &&
         prevProps.activity.user_email === nextProps.activity.user_email &&
         prevProps.activity.updated_at === nextProps.activity.updated_at &&
-        prevProps.company?.id === nextProps.company?.id &&
+        prevProps.activity.company_username === nextProps.activity.company_username &&
         prevProps.onView === nextProps.onView
     );
 });
@@ -1171,10 +1199,10 @@ const mapTypeToVariant = (type: string): 'success' | 'danger' | 'info' | 'defaul
 interface GameActivityCardProps {
     activity: TransactionQueue;
     onView: (activity: TransactionQueue) => void;
-    company: Company | undefined;
+    companyMapByUsername: Map<string, Company>;
 }
 
-const GameActivityCard = memo(function GameActivityCard({ activity, onView, company }: GameActivityCardProps) {
+const GameActivityCard = memo(function GameActivityCard({ activity, onView, companyMapByUsername }: GameActivityCardProps) {
     const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
     const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
     const typeVariant = useMemo(() => mapTypeToVariant(activity.type), [activity.type]);
@@ -1246,11 +1274,20 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
                                     {websiteEmail}
                                 </div>
                             )}
-                            {company && (
-                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                    {company.project_name}
-                                </div>
-                            )}
+                            {(() => {
+                                const activityCompany = activity.company_username 
+                                    ? companyMapByUsername.get(activity.company_username)
+                                    : null;
+                                
+                                if (activityCompany) {
+                                    return (
+                                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                            {activityCompany.project_name}
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
                     </div>
                     <Badge variant={statusVariant} className="capitalize shrink-0">
@@ -1311,7 +1348,7 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
     return (
         prevProps.activity.id === nextProps.activity.id &&
         prevProps.activity.status === nextProps.activity.status &&
-        prevProps.company?.id === nextProps.company?.id &&
+        prevProps.activity.company_username === nextProps.activity.company_username &&
         prevProps.onView === nextProps.onView
     );
 });

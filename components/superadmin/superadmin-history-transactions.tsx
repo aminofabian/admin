@@ -459,6 +459,17 @@ export function SuperAdminHistoryTransactions() {
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
+    // Create a map of companies by username for quick lookup
+    const companyMapByUsername = useMemo(() => {
+        const map = new Map<string, Company>();
+        companies.forEach(company => {
+            if (company.username) {
+                map.set(company.username, company);
+            }
+        });
+        return map;
+    }, [companies]);
+
     const TRANSACTIONS_SKELETON = (
         <div className="space-y-6">
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
@@ -751,23 +762,30 @@ export function SuperAdminHistoryTransactions() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        {selectedCompany ? (
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center font-bold text-xs text-primary">
-                                                                    {selectedCompany.project_name.charAt(0).toUpperCase()}
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <div className="font-medium text-sm truncate">
-                                                                        {selectedCompany.project_name}
+                                                        {(() => {
+                                                            const transactionCompany = transaction.company_username 
+                                                                ? companyMapByUsername.get(transaction.company_username)
+                                                                : null;
+                                                            
+                                                            if (transactionCompany) {
+                                                                return (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center font-bold text-xs text-primary">
+                                                                            {transactionCompany.project_name.charAt(0).toUpperCase()}
+                                                                        </div>
+                                                                        <div className="min-w-0">
+                                                                            <div className="font-medium text-sm truncate">
+                                                                                {transactionCompany.project_name}
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground truncate">
+                                                                                @{transactionCompany.username}
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="text-xs text-muted-foreground truncate">
-                                                                        @{selectedCompany.username}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-muted-foreground">All Companies</span>
-                                                        )}
+                                                                );
+                                                            }
+                                                            return <span className="text-muted-foreground">—</span>;
+                                                        })()}
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge variant={typeVariant} className="text-xs uppercase">
@@ -913,23 +931,32 @@ export function SuperAdminHistoryTransactions() {
                                                 </div>
                                             </div>
 
-                                            {selectedCompany && (
-                                                <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center font-bold text-xs text-primary">
-                                                            {selectedCompany.project_name.charAt(0).toUpperCase()}
-                                                        </div>
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="font-medium text-sm truncate">
-                                                                {selectedCompany.project_name}
+                                            {(() => {
+                                                const transactionCompany = transaction.company_username 
+                                                    ? companyMapByUsername.get(transaction.company_username)
+                                                    : null;
+                                                
+                                                if (transactionCompany) {
+                                                    return (
+                                                        <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center font-bold text-xs text-primary">
+                                                                    {transactionCompany.project_name.charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-medium text-sm truncate">
+                                                                        {transactionCompany.project_name}
+                                                                    </div>
+                                                                    <div className="text-xs text-muted-foreground truncate">
+                                                                        @{transactionCompany.username}
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <div className="text-xs text-muted-foreground truncate">
-                                                                @{selectedCompany.username}
-                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            )}
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
 
                                             <div className="p-3 border-b border-gray-100 dark:border-gray-800">
                                                 <div className="flex items-center justify-between">

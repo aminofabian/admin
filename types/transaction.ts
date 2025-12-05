@@ -31,6 +31,8 @@ export interface Transaction {
   updated_at: string;
   payment_url?: string | null;
   invoice_url?: string;
+  company_id?: number;
+  company_username?: string;
 }
 
 export interface TransactionQueue {
@@ -51,6 +53,8 @@ export interface TransactionQueue {
   data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+  company_id?: number;
+  company_username?: string;
 }
 
 export interface TransactionFilters {
