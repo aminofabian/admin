@@ -256,16 +256,28 @@ export function SuperAdminPaymentSettings() {
     }, [companies, companySearchTerm]);
 
     const filteredPaymentMethods = useMemo(() => {
-        if (!searchTerm.trim()) return paymentMethods;
+        let methods = paymentMethods;
 
-        const search = searchTerm.toLowerCase();
-        return paymentMethods.filter(
-            (method) =>
-                method.payment_method_display.toLowerCase().includes(search) ||
-                method.payment_method.toLowerCase().includes(search) ||
-                (method.method_type && method.method_type.toLowerCase().includes(search))
-        );
-    }, [paymentMethods, searchTerm]);
+        // Filter by view mode: in cashout mode, only show methods with enabled_for_cashout_by_superadmin key
+        if (viewMode === 'cashout') {
+            methods = methods.filter(
+                (method) => 'enabled_for_cashout_by_superadmin' in method
+            );
+        }
+
+        // Filter by search term
+        if (searchTerm.trim()) {
+            const search = searchTerm.toLowerCase();
+            methods = methods.filter(
+                (method) =>
+                    method.payment_method_display.toLowerCase().includes(search) ||
+                    method.payment_method.toLowerCase().includes(search) ||
+                    (method.method_type && method.method_type.toLowerCase().includes(search))
+            );
+        }
+
+        return methods;
+    }, [paymentMethods, searchTerm, viewMode]);
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
