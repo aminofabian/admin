@@ -68,6 +68,7 @@ export function SuperAdminHistoryTransactions() {
     const setFilter = useTransactionsStore((state) => state.setFilter);
     const setPage = useTransactionsStore((state) => state.setPage);
     const fetchTransactions = useTransactionsStore((state) => state.fetchTransactions);
+    const setAdvancedFilters = useTransactionsStore((state) => state.setAdvancedFilters);
     const setAdvancedFiltersWithoutFetch = useTransactionsStore((state) => state.setAdvancedFiltersWithoutFetch);
 
     const [filters, setFilters] = useState<HistoryTransactionsFiltersState>(() => buildHistoryFilterState(advancedFilters));
@@ -151,11 +152,26 @@ export function SuperAdminHistoryTransactions() {
 
         setFilters(filterState);
 
-        // Sync selected company from filters
-        if (advancedFilters.company_id) {
+        // Sync selected company from filters (check both company_username and company_id for backwards compatibility)
+        if (advancedFilters.company_username) {
+            const company = companies.find(c => c.username === advancedFilters.company_username);
+            if (company) {
+                setSelectedCompanyId(company.id);
+            } else {
+                setSelectedCompanyId(null);
+            }
+        } else if (advancedFilters.company_id) {
+            // Backwards compatibility: if company_id exists, try to find the company
             const companyId = parseInt(advancedFilters.company_id, 10);
             if (!isNaN(companyId)) {
-                setSelectedCompanyId(companyId);
+                const company = companies.find(c => c.id === companyId);
+                if (company) {
+                    setSelectedCompanyId(companyId);
+                } else {
+                    setSelectedCompanyId(null);
+                }
+            } else {
+                setSelectedCompanyId(null);
             }
         } else {
             setSelectedCompanyId(null);
@@ -356,15 +372,22 @@ export function SuperAdminHistoryTransactions() {
 
     const handleCompanyChange = useCallback((companyId: number | null) => {
         setSelectedCompanyId(companyId);
-        // Update advanced filters with company_id
+        // Update advanced filters with company_username instead of company_id
         const updatedFilters = { ...advancedFilters };
         if (companyId) {
-            updatedFilters.company_id = String(companyId);
+            const selectedCompany = companies.find(c => c.id === companyId);
+            if (selectedCompany?.username) {
+                updatedFilters.company_username = selectedCompany.username;
+            }
+            // Remove company_id if it exists
+            delete updatedFilters.company_id;
         } else {
+            delete updatedFilters.company_username;
             delete updatedFilters.company_id;
         }
+        // Use setAdvancedFiltersWithoutFetch - the useEffect will trigger fetch when advancedFilters changes
         setAdvancedFiltersWithoutFetch(updatedFilters);
-    }, [advancedFilters, setAdvancedFiltersWithoutFetch]);
+    }, [advancedFilters, setAdvancedFiltersWithoutFetch, companies]);
 
     const handleApplyFilters = useCallback(() => {
         // Sanitize filters - keep only non-empty values
@@ -387,9 +410,18 @@ export function SuperAdminHistoryTransactions() {
             }
         }
 
-        // Add company_id if selected
+        // Add company_username if selected
         if (selectedCompanyId) {
-            sanitized.company_id = String(selectedCompanyId);
+            const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+            if (selectedCompany?.username) {
+                sanitized.company_username = selectedCompany.username;
+            }
+            // Remove company_id if it exists
+            delete sanitized.company_id;
+        } else {
+            // Remove both if no company selected
+            delete sanitized.company_username;
+            delete sanitized.company_id;
         }
 
         // Ensure date values are properly formatted (YYYY-MM-DD) before applying
@@ -417,10 +449,10 @@ export function SuperAdminHistoryTransactions() {
             }
         }
 
-        // Use setAdvancedFiltersWithoutFetch to prevent duplicate API calls
-        // The useEffect will handle fetching with the new filters
-        setAdvancedFiltersWithoutFetch(sanitized);
-    }, [filters, selectedCompanyId, setAdvancedFiltersWithoutFetch, agentIdMap]);
+        // Use setAdvancedFilters to trigger fetch immediately when Apply is clicked
+        // This ensures the fetch happens right away
+        setAdvancedFilters(sanitized);
+    }, [filters, selectedCompanyId, setAdvancedFilters, agentIdMap, companies]);
 
     const handleClearFilters = useCallback(() => {
         setFilters({ ...DEFAULT_HISTORY_FILTERS });

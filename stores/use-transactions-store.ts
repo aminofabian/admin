@@ -97,12 +97,27 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       Object.entries(advancedFilters).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
           // Convert agent_id to number if it's a valid number
+          // company_username is passed as a string, company_id is converted to number for backwards compatibility
           if (key === 'agent_id') {
-            const agentIdNum = Number(value);
-            if (!isNaN(agentIdNum)) {
-              cleanedAdvancedFilters[key] = agentIdNum;
+            const idNum = Number(value);
+            if (!isNaN(idNum)) {
+              cleanedAdvancedFilters[key] = idNum;
             } else {
               cleanedAdvancedFilters[key] = value;
+            }
+          } else if (key === 'company_id') {
+            // Backwards compatibility: convert company_id to number if it exists
+            const idNum = Number(value);
+            if (!isNaN(idNum)) {
+              cleanedAdvancedFilters[key] = idNum;
+            } else {
+              cleanedAdvancedFilters[key] = value;
+            }
+          } else if (key === 'company_username') {
+            // company_username is passed as a string
+            const trimmedValue = String(value).trim();
+            if (trimmedValue) {
+              cleanedAdvancedFilters[key] = trimmedValue;
             }
           } else if (key === 'username' || key === 'email') {
             // Username and email: trim and send as-is for partial search (like player section)
@@ -341,6 +356,10 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         hasType: 'type' in apiFilters,
         hasTxnType: 'txn_type' in apiFilters,
         status__ne: apiFilters.status__ne,
+        company_id: apiFilters.company_id,
+        company_id_type: typeof apiFilters.company_id,
+        company_username: apiFilters.company_username,
+        company_username_type: typeof apiFilters.company_username,
         allKeys: Object.keys(apiFilters),
         filterKeysWithValues: Object.entries(apiFilters)
           .filter(([_key, value]) => value !== undefined && value !== '')
