@@ -308,7 +308,7 @@ export function SuperAdminPaymentSettings() {
                         </div>
                         {selectedCompany && (
                             <Badge variant="info" className="hidden md:inline-flex">
-                                {paymentMethods.length} methods
+                                {filteredPaymentMethods.length} methods
                             </Badge>
                         )}
                     </div>
