@@ -333,8 +333,13 @@ export function SuperAdminHistoryTransactions() {
         try {
             const response = await paymentMethodsApi.getManagementCompanies();
             if (response.companies) {
+                console.log('🏢 Companies loaded:', {
+                    count: response.companies.length,
+                    companies: response.companies.map(c => ({ id: c.id, username: c.username, project_name: c.project_name })),
+                });
                 setCompanies(response.companies);
             } else {
+                console.warn('⚠️ No companies in response:', response);
                 setCompanies([]);
             }
         } catch (err: unknown) {
@@ -467,6 +472,17 @@ export function SuperAdminHistoryTransactions() {
                 map.set(company.username, company);
             }
         });
+        
+        // Debug logging in development
+        if (process.env.NODE_ENV === 'development' && companies.length > 0) {
+            console.log('🏢 Company map created:', {
+                companiesCount: companies.length,
+                mapSize: map.size,
+                mapKeys: Array.from(map.keys()),
+                sampleCompany: companies[0],
+            });
+        }
+        
         return map;
     }, [companies]);
 
@@ -763,6 +779,19 @@ export function SuperAdminHistoryTransactions() {
                                                     </TableCell>
                                                     <TableCell>
                                                         {(() => {
+                                                            // Debug logging to help troubleshoot
+                                                            if (process.env.NODE_ENV === 'development' && transaction.company_username) {
+                                                                const found = companyMapByUsername.get(transaction.company_username);
+                                                                if (!found) {
+                                                                    console.log('🔍 Transaction company lookup failed:', {
+                                                                        company_username: transaction.company_username,
+                                                                        company_id: transaction.company_id,
+                                                                        mapSize: companyMapByUsername.size,
+                                                                        mapKeys: Array.from(companyMapByUsername.keys()),
+                                                                    });
+                                                                }
+                                                            }
+                                                            
                                                             const transactionCompany = transaction.company_username 
                                                                 ? companyMapByUsername.get(transaction.company_username)
                                                                 : null;
@@ -775,15 +804,29 @@ export function SuperAdminHistoryTransactions() {
                                                                         </div>
                                                                         <div className="min-w-0">
                                                                             <div className="font-medium text-sm truncate">
-                                                                                {transactionCompany.project_name}
-                                                                            </div>
-                                                                            <div className="text-xs text-muted-foreground truncate">
-                                                                                @{transactionCompany.username}
+                                                                                {transactionCompany.username}
                                                                             </div>
                                                                         </div>
                                                                     </div>
                                                                 );
                                                             }
+                                                            
+                                                            // Fallback: show company_username if available, even if not in map
+                                                            if (transaction.company_username) {
+                                                                return (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center font-bold text-xs text-muted-foreground">
+                                                                            {transaction.company_username.charAt(0).toUpperCase()}
+                                                                        </div>
+                                                                        <div className="min-w-0">
+                                                                            <div className="font-medium text-sm truncate text-muted-foreground">
+                                                                                {transaction.company_username}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            
                                                             return <span className="text-muted-foreground">—</span>;
                                                         })()}
                                                     </TableCell>
@@ -945,16 +988,32 @@ export function SuperAdminHistoryTransactions() {
                                                                 </div>
                                                                 <div className="min-w-0 flex-1">
                                                                     <div className="font-medium text-sm truncate">
-                                                                        {transactionCompany.project_name}
-                                                                    </div>
-                                                                    <div className="text-xs text-muted-foreground truncate">
-                                                                        @{transactionCompany.username}
+                                                                        {transactionCompany.username}
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     );
                                                 }
+                                                
+                                                // Fallback: show company_username if available
+                                                if (transaction.company_username) {
+                                                    return (
+                                                        <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center font-bold text-xs text-muted-foreground">
+                                                                    {transaction.company_username.charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-medium text-sm truncate text-muted-foreground">
+                                                                        {transaction.company_username}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+                                                
                                                 return null;
                                             })()}
 

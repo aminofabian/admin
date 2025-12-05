@@ -188,9 +188,17 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
             game: queue.game || data.game_title || data.game || '',
             game_username: queue.game_username || data.get_usergame_username || data.username || data.game_username,
             amount: normalizedAmount,
+            // Explicitly preserve company fields from API response
+            company_id: queue.company_id,
+            company_username: queue.company_username,
           };
         }
-        return queue;
+        // Even when there's no data object, ensure company fields are preserved
+        return {
+          ...queue,
+          company_id: queue.company_id,
+          company_username: queue.company_username,
+        };
       });
       
       // All filtering is now handled by the backend (including game_username and type)

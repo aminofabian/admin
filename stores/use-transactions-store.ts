@@ -391,10 +391,18 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
               ...transaction,
               user_username: transaction.user_username || anyTxn.user.username || anyTxn.user.user_username || '',
               user_email: transaction.user_email || anyTxn.user.email || anyTxn.user.user_email || '',
+              // Explicitly preserve company fields from API response
+              company_id: transaction.company_id,
+              company_username: transaction.company_username,
             };
           }
         }
-        return transaction;
+        // Ensure company fields are preserved even when there's no nested user object
+        return {
+          ...transaction,
+          company_id: transaction.company_id,
+          company_username: transaction.company_username,
+        };
       });
 
       // Client-side filtering for type and status in history view
