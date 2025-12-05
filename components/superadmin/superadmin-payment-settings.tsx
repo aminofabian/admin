@@ -603,12 +603,12 @@ export function SuperAdminPaymentSettings() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge variant={viewMode === 'purchase' 
-                                                            ? (method.is_enabled_for_purchase ? 'success' : 'default')
-                                                            : (method.is_enabled_for_cashout ? 'success' : 'default')
+                                                            ? (method.enabled_for_purchase_by_superadmin ?? false ? 'success' : 'default')
+                                                            : (method.enabled_for_cashout_by_superadmin ?? false ? 'success' : 'default')
                                                         }>
                                                             {viewMode === 'purchase' 
-                                                                ? (method.is_enabled_for_purchase ? 'Enabled' : 'Disabled')
-                                                                : (method.is_enabled_for_cashout ? 'Enabled' : 'Disabled')
+                                                                ? (method.enabled_for_purchase_by_superadmin ?? false ? 'Enabled' : 'Disabled')
+                                                                : (method.enabled_for_cashout_by_superadmin ?? false ? 'Enabled' : 'Disabled')
                                                             }
                                                         </Badge>
                                                     </TableCell>
@@ -617,15 +617,15 @@ export function SuperAdminPaymentSettings() {
                                                             {viewMode === 'purchase' ? (
                                                                 <Button
                                                                     size="sm"
-                                                                    variant={method.is_enabled_for_purchase ? 'ghost' : 'secondary'}
+                                                                    variant={method.enabled_for_purchase_by_superadmin ?? false ? 'ghost' : 'secondary'}
                                                                     onClick={() => handleTogglePurchase(method.id)}
                                                                     disabled={confirmModal.isLoading}
-                                                                    className={`${method.is_enabled_for_purchase
+                                                                    className={`${method.enabled_for_purchase_by_superadmin ?? false
                                                                             ? 'border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-800 dark:hover:text-red-200'
                                                                             : 'border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/30 hover:text-green-800 dark:hover:text-green-200'
                                                                         }`}
                                                                 >
-                                                                    {method.is_enabled_for_purchase ? (
+                                                                    {method.enabled_for_purchase_by_superadmin ?? false ? (
                                                                         <>
                                                                             <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -644,15 +644,15 @@ export function SuperAdminPaymentSettings() {
                                                             ) : (
                                                                 <Button
                                                                     size="sm"
-                                                                    variant={method.is_enabled_for_cashout ? 'ghost' : 'secondary'}
+                                                                    variant={method.enabled_for_cashout_by_superadmin ?? false ? 'ghost' : 'secondary'}
                                                                     onClick={() => handleToggleCashout(method.id)}
                                                                     disabled={confirmModal.isLoading}
-                                                                    className={`${method.is_enabled_for_cashout
+                                                                    className={`${method.enabled_for_cashout_by_superadmin ?? false
                                                                             ? 'border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-800 dark:hover:text-red-200'
                                                                             : 'border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/30 hover:text-green-800 dark:hover:text-green-200'
                                                                         }`}
                                                                 >
-                                                                    {method.is_enabled_for_cashout ? (
+                                                                    {method.enabled_for_cashout_by_superadmin ?? false ? (
                                                                         <>
                                                                             <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -698,14 +698,14 @@ export function SuperAdminPaymentSettings() {
                                                             <Badge variant="info" className="text-xs px-2 py-0.5">{method.method_type || 'N/A'}</Badge>
                                                             <Badge
                                                                 variant={viewMode === 'purchase' 
-                                                                    ? (method.is_enabled_for_purchase ? 'success' : 'default')
-                                                                    : (method.is_enabled_for_cashout ? 'success' : 'default')
+                                                                    ? (method.enabled_for_purchase_by_superadmin ?? false ? 'success' : 'default')
+                                                                    : (method.enabled_for_cashout_by_superadmin ?? false ? 'success' : 'default')
                                                                 }
                                                                 className="text-xs px-2 py-0.5"
                                                             >
                                                                 {viewMode === 'purchase' ? 'Purchase' : 'Cashout'}: {viewMode === 'purchase' 
-                                                                    ? (method.is_enabled_for_purchase ? 'Enabled' : 'Disabled')
-                                                                    : (method.is_enabled_for_cashout ? 'Enabled' : 'Disabled')
+                                                                    ? (method.enabled_for_purchase_by_superadmin ?? false ? 'Enabled' : 'Disabled')
+                                                                    : (method.enabled_for_cashout_by_superadmin ?? false ? 'Enabled' : 'Disabled')
                                                                 }
                                                             </Badge>
                                                         </div>
@@ -716,28 +716,28 @@ export function SuperAdminPaymentSettings() {
                                                     {viewMode === 'purchase' ? (
                                                         <Button
                                                             size="sm"
-                                                            variant={method.is_enabled_for_purchase ? 'ghost' : 'secondary'}
+                                                            variant={method.enabled_for_purchase_by_superadmin ?? false ? 'ghost' : 'secondary'}
                                                             onClick={() => handleTogglePurchase(method.id)}
                                                             disabled={confirmModal.isLoading}
-                                                            className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.is_enabled_for_purchase
+                                                            className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.enabled_for_purchase_by_superadmin ?? false
                                                                 ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                                                                 : ''
                                                                 }`}
                                                         >
-                                                            {method.is_enabled_for_purchase ? 'Disable Purchase' : 'Enable Purchase'}
+                                                            {method.enabled_for_purchase_by_superadmin ?? false ? 'Disable Purchase' : 'Enable Purchase'}
                                                         </Button>
                                                     ) : (
                                                         <Button
                                                             size="sm"
-                                                            variant={method.is_enabled_for_cashout ? 'ghost' : 'secondary'}
+                                                            variant={method.enabled_for_cashout_by_superadmin ?? false ? 'ghost' : 'secondary'}
                                                             onClick={() => handleToggleCashout(method.id)}
                                                             disabled={confirmModal.isLoading}
-                                                            className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.is_enabled_for_cashout
+                                                            className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.enabled_for_cashout_by_superadmin ?? false
                                                                 ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                                                                 : ''
                                                                 }`}
                                                         >
-                                                            {method.is_enabled_for_cashout ? 'Disable Cashout' : 'Enable Cashout'}
+                                                            {method.enabled_for_cashout_by_superadmin ?? false ? 'Disable Cashout' : 'Enable Cashout'}
                                                         </Button>
                                                     )}
                                                 </div>
