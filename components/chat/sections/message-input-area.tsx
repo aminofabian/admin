@@ -1,6 +1,7 @@
 'use client';
 
 import { memo } from 'react';
+import Image from 'next/image';
 
 interface MessageInputAreaProps {
   messageInput: string;
@@ -57,10 +58,13 @@ export const MessageInputArea = memo(function MessageInputArea({
         <div className="mb-3 p-3 bg-muted/30 rounded-xl border-2 border-primary/20">
           <div className="flex items-start gap-3">
             <div className="relative group">
-              <img
+              <Image
                 src={imagePreviewUrl}
                 alt="Preview"
+                width={80}
+                height={80}
                 className="w-20 h-20 object-cover rounded-lg"
+                unoptimized
               />
               <button
                 onClick={onClearImage}

@@ -1,6 +1,7 @@
 'use client';
 
 import { memo } from 'react';
+import Image from 'next/image';
 import type { ChatMessage, ChatUser } from '@/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { 
@@ -130,12 +131,14 @@ export const MessagesContainer = memo(function MessagesContainer({
                                 onClick={() => setExpandedImage(fileUrl)}
                                 title="Click to expand"
                               >
-                                <img 
+                                <Image 
                                   src={fileUrl} 
                                   alt="Uploaded image"
+                                  width={800}
+                                  height={600}
                                   className="max-w-full h-auto max-h-96 rounded-lg object-contain w-full"
                                   loading="lazy"
-                                  decoding="async"
+                                  unoptimized
                                   onError={(e) => {
                                     // Fallback if image fails to load
                                     e.currentTarget.style.display = 'none';

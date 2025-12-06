@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useBannersStore } from '@/stores';
 import {
   Table,
@@ -123,10 +124,13 @@ function BannersTableRow({
       <TableCell>
         {thumbnailUrl ? (
           <div className="relative h-16 w-24 overflow-hidden rounded-md border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-            <img
+            <Image
               src={thumbnailUrl}
               alt={banner.title}
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
+              sizes="96px"
+              unoptimized
               onError={(e) => {
                 // Hide image on error
                 e.currentTarget.style.display = 'none';

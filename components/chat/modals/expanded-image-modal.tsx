@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Image from 'next/image';
 
 interface ExpandedImageModalProps {
   imageUrl: string | null;
@@ -59,10 +60,13 @@ export function ExpandedImageModal({
       </a>
 
       {/* Expanded image */}
-      <img
+      <Image
         src={imageUrl}
         alt="Expanded view"
+        width={1200}
+        height={800}
         className="max-w-full max-h-full object-contain"
+        unoptimized
         onClick={(e) => e.stopPropagation()}
       />
     </div>

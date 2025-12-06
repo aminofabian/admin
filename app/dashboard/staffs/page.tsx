@@ -137,6 +137,7 @@ export default function StaffsPage() {
     isLoading: false,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleConfirmPasswordReset = async (password: string, _confirmPassword: string) => {
     if (!passwordResetModal.staff) return;
 

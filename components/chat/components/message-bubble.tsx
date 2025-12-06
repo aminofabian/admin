@@ -1,6 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
+import Image from 'next/image';
 import type { ChatMessage, ChatUser } from '@/types';
 import {
   isImageUrl,
@@ -166,12 +167,14 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
           onClick={() => onExpandImage(fileUrl)}
           title="Click to expand"
         >
-          <img 
+          <Image 
             src={fileUrl} 
             alt="Uploaded image"
+            width={800}
+            height={600}
             className="max-w-full h-auto max-h-96 rounded-lg object-contain w-full"
             loading="lazy"
-            decoding="async"
+            unoptimized
             onError={(e) => {
               e.currentTarget.style.display = 'none';
               const parent = e.currentTarget.parentElement;
