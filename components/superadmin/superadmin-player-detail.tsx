@@ -14,7 +14,6 @@ import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/f
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
-import { AddGameDrawer } from '@/components/chat/modals';
 
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 
@@ -295,8 +294,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
   const [isDeletingGame, setIsDeletingGame] = useState(false);
   const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
   const [isChangingGame, setIsChangingGame] = useState(false);
-  const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
-  const [isAddingGame, setIsAddingGame] = useState(false);
   const [gameToEdit, setGameToEdit] = useState<PlayerGame | null>(null);
   const [isEditingGame, setIsEditingGame] = useState(false);
   const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
@@ -353,33 +350,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
     }
   }, [gameToChange, refreshGames, addToast]);
 
-  const handleOpenAddGame = useCallback(() => {
-    setIsAddGameDrawerOpen(true);
-  }, []);
-
-  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
-    if (!selectedPlayer || isAddingGame) return;
-    setIsAddingGame(true);
-    try {
-      const result = await playersApi.createGame(data);
-      addToast({
-        type: 'success',
-        title: 'Game added successfully',
-        description: `${result.game_name} account created for ${result.username}`,
-      });
-      setIsAddGameDrawerOpen(false);
-      await refreshGames();
-    } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to add game',
-        description,
-      });
-    } finally {
-      setIsAddingGame(false);
-    }
-  }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
 
   const handleEditGame = useCallback(async (data: { username: string; password: string }) => {
     if (!gameToEdit || isEditingGame) return;
@@ -703,32 +673,19 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
           <div className="space-y-3 sm:space-y-4 md:space-y-6">
             {/* Player Games Card */}
             <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-              <div className="mb-4 sm:mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Player Games</h2>
-                    {games.length > 0 && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{games.length} {games.length === 1 ? 'game' : 'games'}</p>
-                    )}
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={handleOpenAddGame}
-                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-95"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              <div className="mb-4 sm:mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Add Game
-                </Button>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Player Games</h2>
+                  {games.length > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{games.length} {games.length === 1 ? 'game' : 'games'}</p>
+                  )}
+                </div>
               </div>
 
               {isLoadingGames ? (
@@ -746,7 +703,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                     </svg>
                   </div>
                   <p className="mt-4 text-sm font-medium text-gray-500 dark:text-gray-400">No games assigned</p>
-                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Click &quot;Add Game&quot; to get started</p>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
@@ -913,19 +869,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         variant="info"
         isLoading={isChangingGame}
       />
-
-      {selectedPlayer && (
-        <AddGameDrawer
-          isOpen={isAddGameDrawerOpen}
-          onClose={() => setIsAddGameDrawerOpen(false)}
-          playerId={selectedPlayer.id}
-          playerUsername={selectedPlayer.username}
-          playerGames={games}
-          onGameAdded={() => { }}
-          onSubmit={handleAddGame}
-          isSubmitting={isAddingGame}
-        />
-      )}
 
       {/* Edit Game Drawer */}
       {gameToEdit && (
