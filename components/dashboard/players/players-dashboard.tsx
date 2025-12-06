@@ -817,6 +817,7 @@ type PlayersFiltersWrapperProps = {
   agentOptions: Array<{ value: string; label: string }>;
   isAgentLoading: boolean;
   isLoading: boolean;
+  showAgentFilter?: boolean;
 };
 
 function PlayersFiltersWrapper({
