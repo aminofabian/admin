@@ -208,6 +208,15 @@ export default function BannersPage() {
     );
   }
 
+  // If user is manager, render read-only banners view
+  if (user?.role === USER_ROLES.MANAGER) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <ManagerBannersSection />
+      </div>
+    );
+  }
+
   const {
     banners,
     isLoading,
