@@ -26,7 +26,6 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
   const unreadCount = player.unreadCount ?? 0;
   const prevUnreadCountRef = useRef(unreadCount);
   const [isNewMessage, setIsNewMessage] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const itemRef = useRef<HTMLButtonElement>(null);
   const animationTimerRef = useRef<NodeJS.Timeout | null>(null);
 

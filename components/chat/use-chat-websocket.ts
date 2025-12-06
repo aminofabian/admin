@@ -356,7 +356,7 @@ export function useChatReset({
         }
 
         if (historyRequestRef.current !== requestId) {
-          !IS_PROD && console.log('⚠️ Ignoring stale message history response');
+          if (!IS_PROD) console.log('⚠️ Ignoring stale message history response');
           return 0;
         }
 
@@ -424,7 +424,7 @@ export function useChatReset({
 
     try {
       setIsPurchaseHistoryLoading(true);
-      !IS_PROD && console.log(`💰 Fetching purchase history...`, { chatId, userId });
+      if (!IS_PROD) console.log(`💰 Fetching purchase history...`, { chatId, userId });
       
       const token = storage.get(TOKEN_KEY);
       
@@ -497,9 +497,9 @@ export function useChatReset({
           };
         });
 
-        !IS_PROD && console.log(` Loaded ${purchases.length} purchase records (total: ${data.total_count || purchases.length})`);
+        if (!IS_PROD) console.log(` Loaded ${purchases.length} purchase records (total: ${data.total_count || purchases.length})`);
         if (purchaseRequestRef.current !== requestId) {
-          !IS_PROD && console.log('⚠️ Ignoring stale purchase history response');
+          if (!IS_PROD) console.log('⚠️ Ignoring stale purchase history response');
           return;
         }
 
@@ -524,19 +524,19 @@ export function useChatReset({
       const roomName = `P${userId}Chat`;
       const wsUrl = `${wsBaseUrl}/ws/cschat/${roomName}/?user_id=${adminId}`;
 
-      !IS_PROD && console.log('🔌 Connecting to chat WebSocket:', wsUrl);
+      if (!IS_PROD) console.log('🔌 Connecting to chat WebSocket:', wsUrl);
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
         if (activeConnectionKeyRef.current !== connectionKey) {
-          !IS_PROD && console.log('⚠️ Stale WebSocket open event ignored');
+          if (!IS_PROD) console.log('⚠️ Stale WebSocket open event ignored');
           ws.close();
           return;
         }
 
-        !IS_PROD && console.log(' Chat WebSocket connected');
+        if (!IS_PROD) console.log(' Chat WebSocket connected');
         setIsConnected(true);
         setConnectionError(null);
         reconnectAttemptsRef.current = 0;
@@ -547,17 +547,20 @@ export function useChatReset({
 
       ws.onmessage = (event) => {
         if (activeConnectionKeyRef.current !== connectionKey) {
-          !IS_PROD && console.log('⚠️ Ignoring message from stale WebSocket connection');
+          if (!IS_PROD) console.log('⚠️ Ignoring message from stale WebSocket connection');
           return;
         }
 
         try {
           const rawData = JSON.parse(event.data);
-          !IS_PROD && console.log('📨 Received WebSocket message:', {
-            type: rawData.type,
-            message: rawData.message?.substring(0, 50),
-            sender: rawData.is_player_sender ? 'player' : 'admin',
-            timestamp: rawData.sent_time,
+          if (!IS_PROD) {
+            console.log('📨 Received WebSocket message:', {
+              type: rawData.type,
+              message: rawData.message?.substring(0, 50),
+              sender: rawData.is_player_sender ? 'player' : 'admin',
+              timestamp: rawData.sent_time,
+            });
+          }
             userBalance: rawData.user_balance,
           });
 
@@ -593,26 +596,28 @@ export function useChatReset({
               isPinned: rawData.is_pinned ?? false,
             };
 
-            !IS_PROD && console.log(' Parsed message and adding to state:', {
-              id: newMessage.id,
-              text: newMessage.text.substring(0, 50),
-              sender: newMessage.sender,
-              time: newMessage.time,
-              isFile: newMessage.isFile,
-              userBalance: rawData.user_balance,
-            });
+            if (!IS_PROD) {
+              console.log(' Parsed message and adding to state:', {
+                id: newMessage.id,
+                text: newMessage.text.substring(0, 50),
+                sender: newMessage.sender,
+                time: newMessage.time,
+                isFile: newMessage.isFile,
+                userBalance: rawData.user_balance,
+              });
+            }
             
             //  Check for duplicate messages before adding
             setMessages((prev) => {
               // Prevent duplicate messages by checking if message with same ID exists
               const isDuplicate = prev.some(msg => msg.id === newMessage.id);
               if (isDuplicate) {
-                !IS_PROD && console.log('⚠️ Duplicate message detected, skipping:', newMessage.id);
+                if (!IS_PROD) console.log('⚠️ Duplicate message detected, skipping:', newMessage.id);
                 return prev;
               }
               
               const updated = [...prev, newMessage];
-              !IS_PROD && console.log(`📝 Messages state updated: ${prev.length} -> ${updated.length} messages`);
+              if (!IS_PROD) console.log(`📝 Messages state updated: ${prev.length} -> ${updated.length} messages`);
               return updated;
             });
             

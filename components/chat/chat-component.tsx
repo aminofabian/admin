@@ -575,7 +575,7 @@ export function ChatComponent() {
       return;
     }
 
-    !IS_PROD && console.log('🔄 Loading players for tab:', activeTab);
+    if (!IS_PROD) console.log('🔄 Loading players for tab:', activeTab);
     fetchAllPlayers();
   }, [activeTab, allPlayers.length, fetchAllPlayers]);
 

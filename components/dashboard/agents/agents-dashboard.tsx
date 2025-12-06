@@ -914,14 +914,6 @@ export default function AgentsDashboard() {
     isLoading: false,
   });
 
-  const handleResetPassword = useCallback((agent: Agent) => {
-    setPasswordResetState({
-      isOpen: true,
-      agent,
-      isLoading: false,
-    });
-  }, []);
-
   const handleConfirmPasswordReset = useCallback(async (password: string, confirmPassword: string) => {
     if (!passwordResetState.agent) return;
 
