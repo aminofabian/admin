@@ -255,11 +255,13 @@ export function ChatComponent() {
             winningBalance: newWinningBalance,
           };
           
-          !IS_PROD && console.log('✅ [Chat Component] Updated selected player balance:', {
-            before: { balance: prev.balance, winningBalance: prev.winningBalance },
-            after: { balance: updated.balance, winningBalance: updated.winningBalance },
-            objectReferenceChanged: prev !== updated,
-          });
+          if (!IS_PROD) {
+            console.log('✅ [Chat Component] Updated selected player balance:', {
+              before: { balance: prev.balance, winningBalance: prev.winningBalance },
+              after: { balance: updated.balance, winningBalance: updated.winningBalance },
+              objectReferenceChanged: prev !== updated,
+            });
+          }
           
           return updated;
         });
@@ -319,7 +321,7 @@ export function ChatComponent() {
       const seenUserIds = new Map<number, Player>();
 
       // DEBUG: Log initial data states
-      !IS_PROD && console.log(`🔍 [Online Tab] Data sources - API: ${apiOnlinePlayers.length}, WebSocket: ${activeChatsUsers.length}`);
+      if (!IS_PROD) console.log(`🔍 [Online Tab] Data sources - API: ${apiOnlinePlayers.length}, WebSocket: ${activeChatsUsers.length}`);
 
       // DEBUG: Log sample data from both sources
       if (!IS_PROD && apiOnlinePlayers.length > 0) {
@@ -355,12 +357,14 @@ export function ChatComponent() {
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
             //  DEBUG: Log timestamp merge behavior
-            !IS_PROD && console.log(`🔄 [Online Tab Merge] Merging timestamps for ${player.username}:`, {
-              existingTime: existing.lastMessageTime,
+            if (!IS_PROD) {
+              console.log(`🔄 [Online Tab Merge] Merging timestamps for ${player.username}:`, {
+                existingTime: existing.lastMessageTime,
               playerTime: player.lastMessageTime,
               validPlayerTime: isValidTimestamp(player.lastMessageTime),
               chosenTime: isValidTimestamp(player.lastMessageTime) ? player.lastMessageTime : existing.lastMessageTime,
-            });
+              });
+            }
 
             //  FIXED: Prioritize WebSocket data (real-time) over REST API data
             seenUserIds.set(player.user_id, {
@@ -464,12 +468,14 @@ export function ChatComponent() {
           const existing = seenUserIds.get(player.user_id);
           if (existing) {
             //  DEBUG: Log timestamp merge behavior for all-chats
-            !IS_PROD && console.log(`🔄 [All-Chats Tab Merge] Merging timestamps for ${player.username}:`, {
-              existingTime: existing.lastMessageTime,
+            if (!IS_PROD) {
+              console.log(`🔄 [All-Chats Tab Merge] Merging timestamps for ${player.username}:`, {
+                existingTime: existing.lastMessageTime,
               playerTime: player.lastMessageTime,
               validExistingTime: isValidTimestamp(existing.lastMessageTime),
               chosenTime: isValidTimestamp(existing.lastMessageTime) ? existing.lastMessageTime : player.lastMessageTime,
-            });
+              });
+            }
 
             //  FIXED: Prioritize WebSocket data (real-time) over REST API data (stale)
             // Start with WebSocket data, only add missing fields from REST API
@@ -547,12 +553,14 @@ export function ChatComponent() {
     // For "all-chats" tab, we need both activeChatsUsers and allPlayers
     // Show loading if either is loading (but prioritize activeChatsUsers loading)
     const isLoading = isLoadingUsers || (allPlayers.length === 0 && isLoadingAllPlayers);
-    !IS_PROD && console.log('🔍 All Chats tab loading state:', {
-      isLoadingUsers,
-      isLoadingAllPlayers,
-      allPlayersLength: allPlayers.length,
-      computed: isLoading,
-    });
+    if (!IS_PROD) {
+      console.log('🔍 All Chats tab loading state:', {
+        isLoadingUsers,
+        isLoadingAllPlayers,
+        allPlayersLength: allPlayers.length,
+        computed: isLoading,
+      });
+    }
     return isLoading;
   }, [activeTab, isLoadingApiOnlinePlayers, isLoadingUsers, isLoadingAllPlayers, allPlayers.length]);
 
@@ -606,12 +614,12 @@ export function ChatComponent() {
         }
         
         const result = await response.json();
-        !IS_PROD && console.log(' Image uploaded successfully:', result);
+        if (!IS_PROD) console.log(' Image uploaded successfully:', result);
         
         // The backend should return the file URL in the format:
         // https://serverhub.biz/media/csr/chats/filename.jpeg
         const imageUrl = result.file_url || result.url || result.file;
-        !IS_PROD && console.log('📷 Image URL:', imageUrl);
+        if (!IS_PROD) console.log('📷 Image URL:', imageUrl);
         
         // If there's also a text message, send it via WebSocket with the image URL
         if (imageUrl) {
@@ -686,7 +694,8 @@ export function ChatComponent() {
     scrollToBottom(true);
 
     // No need to refresh - websocket will send the message back with real ID
-  }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast, refreshMessages, scrollToBottom]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast, scrollToBottom]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -752,8 +761,9 @@ export function ChatComponent() {
     const isPlayerChange = previousPlayerIdRef.current !== player.user_id;
 
     // Debug: Log player selection to verify IDs and notes
-    !IS_PROD && console.log('👤 [Player Select]', {
-      username: player.username,
+    if (!IS_PROD) {
+      console.log('👤 [Player Select]', {
+        username: player.username,
       chatId: player.id,
       userId: player.user_id,
       tab: activeTab,
@@ -761,7 +771,8 @@ export function ChatComponent() {
       hasNotes: !!player.notes,
       isPlayerChange,
       fullPlayer: player,
-    });
+      });
+    }
 
     // Clear URL params when manually selecting a player from the chat list
     // This prevents the query param useEffect from re-selecting the original player
@@ -1168,7 +1179,7 @@ export function ChatComponent() {
   // Mark all messages as read when WebSocket connects and chat is opened
   useEffect(() => {
     if (isConnected && selectedPlayer) {
-      !IS_PROD && console.log('📬 WebSocket connected, marking all messages as read for player:', selectedPlayer.username);
+      if (!IS_PROD) console.log('📬 WebSocket connected, marking all messages as read for player:', selectedPlayer.username);
       // Use a small delay to ensure the WebSocket is fully ready
       const timeoutId = setTimeout(() => {
         markAllAsRead();
@@ -1265,11 +1276,13 @@ export function ChatComponent() {
       // Mark that we've scrolled for this query param combination
       hasScrolledForQueryParamsRef.current = queryKey;
       
-      !IS_PROD && console.log('📍 Scrolling to bottom for query param navigation:', {
-        playerId: queryPlayerId,
+      if (!IS_PROD) {
+        console.log('📍 Scrolling to bottom for query param navigation:', {
+          playerId: queryPlayerId,
         username: queryUsername,
         messagesCount: wsMessages.length,
-      });
+        });
+      }
 
       // Use multiple timeouts to ensure scroll happens after DOM updates
       const scrollTimeout1 = setTimeout(() => {
@@ -1340,19 +1353,21 @@ export function ChatComponent() {
 
     const hasNewLatest = latestMessageIdRef.current !== lastMessage.id;
 
-    !IS_PROD && console.log('📝 wsMessages effect:', {
-      hasNewLatest,
-      hasScrolledToInitial: hasScrolledToInitialLoadRef.current,
-      messagesLength: wsMessages.length,
-      isHistoryLoading: isHistoryLoadingMessages,
-      lastMessageId: lastMessage.id,
-      isRefreshing: isRefreshingMessagesRef.current,
-    });
+    if (!IS_PROD) {
+      console.log('📝 wsMessages effect:', {
+        hasNewLatest,
+        hasScrolledToInitial: hasScrolledToInitialLoadRef.current,
+        messagesLength: wsMessages.length,
+        isHistoryLoading: isHistoryLoadingMessages,
+        lastMessageId: lastMessage.id,
+        isRefreshing: isRefreshingMessagesRef.current,
+      });
+    }
 
     //  FIX: If we're refreshing, just update the ref without scrolling
     // The ID changed from temporary to real, but it's not a "new" message
     if (isRefreshingMessagesRef.current) {
-      !IS_PROD && console.log('⏭️ Refreshing in progress, updating ID ref without scroll');
+      if (!IS_PROD) console.log('⏭️ Refreshing in progress, updating ID ref without scroll');
       latestMessageIdRef.current = lastMessage.id;
       return;
     }
