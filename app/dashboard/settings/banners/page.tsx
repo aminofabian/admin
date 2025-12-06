@@ -198,25 +198,8 @@ function BannersTableRow({
 
 export default function BannersPage() {
   const { user } = useAuth();
-
-  // If user is staff, render read-only banners view
-  if (user?.role === USER_ROLES.STAFF) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <StaffBannersSection />
-      </div>
-    );
-  }
-
-  // If user is manager, render read-only banners view
-  if (user?.role === USER_ROLES.MANAGER) {
-    return (
-      <div className="container mx-auto px-4 py-6">
-        <ManagerBannersSection />
-      </div>
-    );
-  }
-
+  
+  // All hooks must be called at the top level, before any conditional returns
   const {
     banners,
     isLoading,
@@ -236,8 +219,29 @@ export default function BannersPage() {
   const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
 
   useEffect(() => {
-    fetchBanners();
-  }, [fetchBanners]);
+    // Only fetch if user is not staff or manager (admin only)
+    if (user?.role !== USER_ROLES.STAFF && user?.role !== USER_ROLES.MANAGER) {
+      fetchBanners();
+    }
+  }, [fetchBanners, user?.role]);
+
+  // If user is staff, render read-only banners view
+  if (user?.role === USER_ROLES.STAFF) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <StaffBannersSection />
+      </div>
+    );
+  }
+
+  // If user is manager, render read-only banners view
+  if (user?.role === USER_ROLES.MANAGER) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <ManagerBannersSection />
+      </div>
+    );
+  }
 
   const handleSubmit = async (formData: CreateBannerRequest | UpdateBannerRequest) => {
     try {

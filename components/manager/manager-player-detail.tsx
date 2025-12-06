@@ -9,36 +9,10 @@ import { playersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
 import { Badge, Button } from '@/components/ui';
-import type { ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 
-/**
- * Extracts and formats error messages from API errors
- */
-function extractErrorMessage(error: unknown): { title: string; message: string } {
-  let errorMessage = 'An error occurred';
-  let errorTitle = 'Error';
-  
-  if (error && typeof error === 'object') {
-    const apiError = error as ApiError;
-    
-    if (apiError.message) {
-      errorMessage = apiError.message;
-    } else if (apiError.detail && typeof apiError.detail === 'string') {
-      errorMessage = apiError.detail;
-    } else if (apiError.error) {
-      errorMessage = apiError.error;
-    }
-  } else if (error instanceof Error) {
-    errorMessage = error.message;
-  } else if (typeof error === 'string') {
-    errorMessage = error;
-  }
-  
-  return { title: errorTitle, message: errorMessage };
-}
 
 interface ManagerPlayerDetailProps {
   playerId: number;
@@ -67,15 +41,6 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
   const [balanceData, setBalanceData] = useState<CheckPlayerGameBalanceResponse | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
-  const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
-  const [isDeletingGame, setIsDeletingGame] = useState(false);
-  const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
-  const [isChangingGame, setIsChangingGame] = useState(false);
-  const [gameToEdit, setGameToEdit] = useState<PlayerGame | null>(null);
-  const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
-  const [isEditingGame, setIsEditingGame] = useState(false);
-  const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
-  const [isAddingGame, setIsAddingGame] = useState(false);
 
   // Load player data
   useEffect(() => {
@@ -166,123 +131,6 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
     }
   }, [selectedPlayer]);
 
-  const handleDeleteGame = useCallback(async () => {
-    if (!gameToDelete || !selectedPlayer || isDeletingGame) return;
-
-    setIsDeletingGame(true);
-    try {
-      await playersApi.deleteGame(gameToDelete.id);
-      addToast({
-        type: 'success',
-        title: 'Game removed',
-        description: `"${gameToDelete.game__title}" has been removed from player "${selectedPlayer.username}".`,
-      });
-      setGameToDelete(null);
-      await refreshGames();
-    } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to remove game',
-        description,
-      });
-    } finally {
-      setIsDeletingGame(false);
-    }
-  }, [gameToDelete, selectedPlayer, isDeletingGame, addToast, refreshGames]);
-
-  const handleChangeGame = useCallback(async () => {
-    if (!gameToChange || !selectedPlayer || isChangingGame) return;
-
-    setIsChangingGame(true);
-    try {
-      // Toggle the game status using updateGame
-      const newStatus = gameToChange.status === 'active' ? 'inactive' : 'active';
-      await playersApi.updateGame(gameToChange.id, {
-        username: gameToChange.username,
-        status: newStatus
-      });
-      addToast({
-        type: 'success',
-        title: 'Game updated',
-        description: `"${gameToChange.game__title}" status has been changed to ${newStatus} for player "${selectedPlayer.username}".`,
-      });
-      setGameToChange(null);
-      await refreshGames();
-    } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to change game',
-        description,
-      });
-    } finally {
-      setIsChangingGame(false);
-    }
-  }, [gameToChange, selectedPlayer, isChangingGame, addToast, refreshGames]);
-
-  const handleEditGame = useCallback(async (data: { username: string; password: string }) => {
-    if (!gameToEdit || isEditingGame) return;
-
-    setIsEditingGame(true);
-    try {
-      await playersApi.updateGame(gameToEdit.id, {
-        username: data.username,
-        password: data.password,
-      });
-
-      addToast({
-        type: 'success',
-        title: 'Game updated',
-        description: `"${gameToEdit.game__title}" credentials have been updated successfully.`,
-      });
-
-      setIsEditGameDrawerOpen(false);
-      setGameToEdit(null);
-      await refreshGames();
-    } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to update game',
-        description,
-      });
-    } finally {
-      setIsEditingGame(false);
-    }
-  }, [gameToEdit, isEditingGame, addToast, refreshGames]);
-
-  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
-    if (!selectedPlayer || isAddingGame) return;
-
-    setIsAddingGame(true);
-    try {
-      await playersApi.createGame({
-        username: data.username,
-        password: data.password,
-        code: data.code,
-        user_id: selectedPlayer.id,
-      });
-
-      addToast({
-        type: 'success',
-        title: 'Game added',
-        description: 'Game has been added to player successfully.',
-      });
-
-      setIsAddGameDrawerOpen(false);
-      await refreshGames();
-    } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to add game',
-        description,
-      });
-    } finally {
-      setIsAddingGame(false);
-    }
-  }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
 
   if (isLoadingPlayer) {
     return <LoadingState />;
