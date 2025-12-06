@@ -235,12 +235,7 @@ export default function PlayerDetailPage() {
   // Track if we just assigned an agent to prevent unnecessary syncing
   const justAssignedAgentRef = useRef<boolean>(false);
 
-  // If user is superadmin, render superadmin player detail
-  // This must come AFTER all hooks are declared
-  if (user?.role === USER_ROLES.SUPERADMIN && playerId) {
-    return <SuperAdminPlayerDetail playerId={playerId} />;
-  }
-
+  // ALL EFFECTS AND CALLBACKS MUST BE DECLARED BEFORE CONDITIONAL RETURNS
   // Update document title when player is loaded
   useEffect(() => {
     console.log('📝 Title useEffect fired:', selectedPlayer?.username);
@@ -850,6 +845,12 @@ export default function PlayerDetailPage() {
       setIsEditingGame(false);
     }
   }, [gameToEdit, isEditingGame, addToast, refreshGames]);
+
+  // If user is superadmin, render superadmin player detail
+  // This must come AFTER all hooks are declared (Rules of Hooks)
+  if (user?.role === USER_ROLES.SUPERADMIN && playerId) {
+    return <SuperAdminPlayerDetail playerId={playerId} />;
+  }
 
   if (isLoadingPlayer) {
     return <LoadingState />;
