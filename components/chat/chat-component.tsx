@@ -167,11 +167,11 @@ export function ChatComponent() {
   ];
 
   // Fetch chat users list
-  const { 
+  const {
     users: activeChatsUsers, // Users with active chats (from WebSocket)
     allPlayers, // All players (from REST API)
-    onlineUsers: onlinePlayers, 
-    isLoading: isLoadingUsers, 
+    onlineUsers: onlinePlayers,
+    isLoading: isLoadingUsers,
     isLoadingAllPlayers,
     isLoadingMore,
     error: usersError,
@@ -236,27 +236,27 @@ export function ChatComponent() {
       if (selectedPlayer && selectedPlayer.user_id === data.playerId) {
         setSelectedPlayer(prev => {
           if (!prev) return null;
-          
+
           // Parse balance values - handle both string and number formats
-          const newBalance = data.balance && data.balance !== '0' && data.balance !== 'undefined' 
-            ? String(data.balance) 
+          const newBalance = data.balance && data.balance !== '0' && data.balance !== 'undefined'
+            ? String(data.balance)
             : prev.balance;
           const newWinningBalance = data.winningBalance && data.winningBalance !== '0' && data.winningBalance !== 'undefined'
             ? String(data.winningBalance)
             : prev.winningBalance;
-          
+
           // Only update if values actually changed to avoid unnecessary re-renders
           if (newBalance === prev.balance && newWinningBalance === prev.winningBalance) {
             if (!IS_PROD) console.log('⏭️ [Chat Component] Balance values unchanged, skipping update');
             return prev;
           }
-          
+
           const updated = {
             ...prev,
             balance: newBalance,
             winningBalance: newWinningBalance,
           };
-          
+
           if (!IS_PROD) {
             console.log('✅ [Chat Component] Updated selected player balance:', {
               before: { balance: prev.balance, winningBalance: prev.winningBalance },
@@ -264,7 +264,7 @@ export function ChatComponent() {
               objectReferenceChanged: prev !== updated,
             });
           }
-          
+
           return updated;
         });
       }
@@ -314,9 +314,9 @@ export function ChatComponent() {
         allPlayersCount: allPlayers.length,
       });
     }
-    
+
     let players: Player[];
-    
+
     if (activeTab === 'online') {
       // ✨ OPTIMIZED: Use hybrid REST + WebSocket online players
       // apiOnlinePlayers already combines REST API data with real-time WebSocket updates
@@ -352,7 +352,7 @@ export function ChatComponent() {
           seenUserIds.set(player.user_id, player);
         }
       });
-      
+
       // Then, merge with active chat data for real-time message updates
       activeChatsUsers.forEach((player: Player) => {
         if (player.user_id && player.isOnline) {
@@ -362,9 +362,9 @@ export function ChatComponent() {
             if (!IS_PROD) {
               console.log(`🔄 [Online Tab Merge] Merging timestamps for ${player.username}:`, {
                 existingTime: existing.lastMessageTime,
-              playerTime: player.lastMessageTime,
-              validPlayerTime: isValidTimestamp(player.lastMessageTime),
-              chosenTime: isValidTimestamp(player.lastMessageTime) ? player.lastMessageTime : existing.lastMessageTime,
+                playerTime: player.lastMessageTime,
+                validPlayerTime: isValidTimestamp(player.lastMessageTime),
+                chosenTime: isValidTimestamp(player.lastMessageTime) ? player.lastMessageTime : existing.lastMessageTime,
               });
             }
 
@@ -387,7 +387,7 @@ export function ChatComponent() {
           }
         }
       });
-      
+
       players = Array.from(seenUserIds.values());
 
       // DEBUG: Log final result after merge
@@ -463,7 +463,7 @@ export function ChatComponent() {
           seenUserIds.set(player.user_id, player);
         }
       });
-      
+
       // Then, add/merge players from allPlayers (from REST API)
       allPlayers.forEach((player: Player) => {
         if (player.user_id) {
@@ -473,9 +473,9 @@ export function ChatComponent() {
             if (!IS_PROD) {
               console.log(`🔄 [All-Chats Tab Merge] Merging timestamps for ${player.username}:`, {
                 existingTime: existing.lastMessageTime,
-              playerTime: player.lastMessageTime,
-              validExistingTime: isValidTimestamp(existing.lastMessageTime),
-              chosenTime: isValidTimestamp(existing.lastMessageTime) ? existing.lastMessageTime : player.lastMessageTime,
+                playerTime: player.lastMessageTime,
+                validExistingTime: isValidTimestamp(existing.lastMessageTime),
+                chosenTime: isValidTimestamp(existing.lastMessageTime) ? existing.lastMessageTime : player.lastMessageTime,
               });
             }
 
@@ -506,7 +506,7 @@ export function ChatComponent() {
           }
         }
       });
-      
+
       // Always include the player selected via query params, even if they're not in loaded data
       // This ensures they stay visible even if they're on a later page of pagination
       if (queryParamPlayerRef.current && queryParamPlayerRef.current.user_id) {
@@ -530,9 +530,9 @@ export function ChatComponent() {
           });
         }
       }
-      
+
       players = Array.from(seenUserIds.values());
-      
+
       // Log players with notes for debugging
       if (!IS_PROD) {
         const playersWithNotes = players.filter(p => p.notes);
@@ -541,7 +541,7 @@ export function ChatComponent() {
             playersWithNotes.map(p => ({ username: p.username, notes: p.notes?.substring(0, 30) }))
           );
         }
-        
+
         // Log unread counts for debugging
         const playersWithUnread = players.filter(p => (p.unreadCount ?? 0) > 0);
         if (playersWithUnread.length > 0) {
@@ -551,7 +551,7 @@ export function ChatComponent() {
         }
       }
     }
-    
+
     if (!searchQuery.trim()) {
       return players;
     }
@@ -568,7 +568,7 @@ export function ChatComponent() {
     if (queryParamPlayerRef.current && queryParamPlayerRef.current.user_id) {
       const queryPlayerId = queryParamPlayerRef.current.user_id;
       const queryPlayerInFiltered = filtered.find(p => p.user_id === queryPlayerId);
-      
+
       // If the query param player is not in filtered results, add them at the top
       if (!queryPlayerInFiltered) {
         // Find the player in the full list or use the ref
@@ -625,7 +625,7 @@ export function ChatComponent() {
 
   const handleSendMessage = useCallback(async () => {
     if ((!messageInput.trim() && !selectedImage) || !selectedPlayer) return;
-    
+
     // If there's an image to upload
     if (selectedImage) {
       setIsUploadingImage(true);
@@ -635,14 +635,14 @@ export function ChatComponent() {
         formData.append('chat_type', 'csr');
         formData.append('sender_id', String(adminUserId));
         formData.append('receiver_id', String(selectedPlayer.user_id));
-        
+
         // Add text message if there is one
         if (messageInput.trim()) {
           formData.append('message', messageInput.trim());
         }
-        
+
         const token = storage.get(TOKEN_KEY);
-        
+
         // Upload to local Next.js API endpoint
         const response = await fetch('/api/chat-upload', {
           method: 'POST',
@@ -651,48 +651,48 @@ export function ChatComponent() {
           },
           body: formData,
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.message || 'Failed to upload image');
         }
-        
+
         const result = await response.json();
         if (!IS_PROD) console.log(' Image uploaded successfully:', result);
-        
+
         // The backend should return the file URL in the format:
         // https://serverhub.biz/media/csr/chats/filename.jpeg
         const imageUrl = result.file_url || result.url || result.file;
         if (!IS_PROD) console.log('📷 Image URL:', imageUrl);
-        
+
         // If there's also a text message, send it via WebSocket with the image URL
         if (imageUrl) {
-          const messageWithImage = messageInput.trim() 
-            ? `${messageInput.trim()}\n${imageUrl}` 
+          const messageWithImage = messageInput.trim()
+            ? `${messageInput.trim()}\n${imageUrl}`
             : imageUrl;
-          
+
           // Send message with image URL via WebSocket
           wsSendMessage(messageWithImage);
         }
-        
+
         // Clear image preview and input
         setSelectedImage(null);
         setImagePreviewUrl(null);
         setMessageInput('');
-        
+
         // Update the chat list with the sent message
         const currentTime = new Date().toLocaleTimeString('en-US', {
           hour: '2-digit',
           minute: '2-digit',
         });
-        
+
         updateChatLastMessage(
           selectedPlayer.user_id,
           selectedPlayer.id,
           messageInput.trim() || '📷 Image',
           currentTime
         );
-        
+
         addToast({
           type: 'success',
           title: 'Image sent successfully',
@@ -714,24 +714,24 @@ export function ChatComponent() {
       }
       return;
     }
-    
+
     // Send text message via WebSocket
     const messageText = messageInput.trim();
     wsSendMessage(messageText);
-    
+
     // Update the chat list with the sent message
     const currentTime = new Date().toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
     });
-    
+
     updateChatLastMessage(
       selectedPlayer.user_id,
       selectedPlayer.id,
       messageText,
       currentTime
     );
-    
+
     setMessageInput('');
 
     // Rule 2: User sends a message → Force scroll to bottom (bypasses cooldown)
@@ -750,7 +750,7 @@ export function ChatComponent() {
   const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
       addToast({
@@ -760,7 +760,7 @@ export function ChatComponent() {
       });
       return;
     }
-    
+
     // Validate file size (max 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
@@ -771,16 +771,16 @@ export function ChatComponent() {
       });
       return;
     }
-    
+
     setSelectedImage(file);
-    
+
     // Create preview URL
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreviewUrl(reader.result as string);
     };
     reader.readAsDataURL(file);
-    
+
     // Clear file input
     if (e.target) {
       e.target.value = '';
@@ -807,13 +807,13 @@ export function ChatComponent() {
     if (!IS_PROD) {
       console.log('👤 [Player Select]', {
         username: player.username,
-      chatId: player.id,
-      userId: player.user_id,
-      tab: activeTab,
-      notes: player.notes,
-      hasNotes: !!player.notes,
-      isPlayerChange,
-      fullPlayer: player,
+        chatId: player.id,
+        userId: player.user_id,
+        tab: activeTab,
+        notes: player.notes,
+        hasNotes: !!player.notes,
+        isPlayerChange,
+        fullPlayer: player,
       });
     }
 
@@ -835,7 +835,7 @@ export function ChatComponent() {
     setSelectedPlayer(player);
     setPendingPinMessageId(null);
     setMobileView('chat');
-    
+
     // Only set scroll states when actually changing players
     // Otherwise, preserve current scroll position and state
     if (isPlayerChange) {
@@ -968,17 +968,17 @@ export function ChatComponent() {
         const errorMessage =
           (result && (result.message || result.detail)) ||
           `Unable to ${action} this message right now.`;
-        
+
         //  FIX: If message not found, it's likely a temporary WebSocket ID
         // Refresh messages to get real IDs and retry automatically
         if (errorMessage.includes('Message not found') || errorMessage.includes('message not found')) {
           if (!IS_PROD) console.log('🔄 Message not found, refreshing to get real IDs...');
-          
+
           try {
             // Wait a bit for websocket to update message IDs, then retry
             await new Promise(resolve => setTimeout(resolve, 500));
             if (!IS_PROD) console.log(' Retrying pin after brief delay...');
-            
+
             // Retry the pin operation
             const retryResponse = await fetch('/api/chat-message-pin', {
               method: 'POST',
@@ -992,25 +992,25 @@ export function ChatComponent() {
                 action,
               }),
             });
-            
+
             const retryResult = await retryResponse.json().catch(() => null);
-            
+
             if (!retryResponse.ok) {
               throw new Error(
                 (retryResult && (retryResult.message || retryResult.detail)) ||
                 `Unable to ${action} this message after refresh.`
               );
             }
-            
+
             // Success on retry!
             const pinnedState = Boolean(retryResult?.is_pinned ?? action === 'pin');
             updateMessagePinnedState(messageId, pinnedState);
-            
+
             addToast({
               type: 'success',
               title: retryResult?.message ?? (pinnedState ? 'Message pinned' : 'Message unpinned'),
             });
-            
+
             return; // Exit successfully
           } catch (retryError) {
             const retryDescription = retryError instanceof Error ? retryError.message : 'Unknown error';
@@ -1022,7 +1022,7 @@ export function ChatComponent() {
             return;
           }
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -1051,7 +1051,7 @@ export function ChatComponent() {
 
   const handleOpenEditProfile = useCallback(() => {
     if (!selectedPlayer) return;
-    
+
     setProfileFormData({
       username: selectedPlayer.username || '',
       full_name: selectedPlayer.fullName || '',
@@ -1127,9 +1127,9 @@ export function ChatComponent() {
         type: 'success',
         title: 'Profile updated successfully',
       });
-      
+
       setIsEditProfileModalOpen(false);
-      
+
       // Update the selected player with new data
       setSelectedPlayer(prev => prev ? {
         ...prev,
@@ -1171,7 +1171,7 @@ export function ChatComponent() {
     setIsUpdatingBalance(true);
     try {
       const { playersApi } = await import('@/lib/api/users');
-      
+
       const response = await playersApi.manualPayment({
         player_id: selectedPlayer.user_id,
         value: balanceValue,
@@ -1186,10 +1186,10 @@ export function ChatComponent() {
           balanceType === 'main' ? response.player_bal : response.player_winning_bal
         )}`,
       });
-      
+
       setIsEditBalanceModalOpen(false);
       setBalanceValue(0);
-      
+
       // Update the selected player balance
       setSelectedPlayer(prev => prev ? {
         ...prev,
@@ -1265,13 +1265,14 @@ export function ChatComponent() {
     if (allPlayers.length === 0 && !isLoadingAllPlayers) {
       void fetchAllPlayers();
     }
-    
+
     // Switch to "all-chats" tab when query params are present
     setActiveTab('all-chats');
   }, [queryPlayerId, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers]);
 
   // Separate effect to find and select player when data is available
   // Uses refs to prevent re-render loops when allPlayers/activeChatsUsers arrays change
+  // FIX: Now also fetches player from API when not found in loaded data
   useEffect(() => {
     if (!queryPlayerId) {
       return;
@@ -1299,10 +1300,95 @@ export function ChatComponent() {
       candidate = queryParamPlayerRef.current;
     }
 
+    // FIX: If player not found anywhere, fetch from API directly
+    // This prevents the "No players found" message while allPlayers is loading
+    if (!candidate) {
+      const fetchPlayerById = async () => {
+        try {
+          if (!IS_PROD) console.log(`🔍 [Query Param] Player ${targetUserId} not found in loaded data, fetching from API...`);
+
+          const token = storage.get(TOKEN_KEY);
+          // Use the players detail endpoint to get the full player data (username, email, etc.)
+          const response = await fetch(`/api/player-details/${targetUserId}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+          });
+
+          if (!response.ok) {
+            if (!IS_PROD) console.error(`❌ [Query Param] Failed to fetch player ${targetUserId}:`, response.status);
+            return;
+          }
+
+          const data = await response.json();
+          if (!IS_PROD) console.log(`✅ [Query Param] Fetched player data:`, data);
+
+          // Transform the player data to ChatUser format
+          const player = data.player || data;
+          if (player && (player.id || player.user_id)) {
+            const chatUser: Player = {
+              id: String(player.chatroom_id || player.id || ''),
+              user_id: Number(player.id || player.user_id || 0),
+              username: player.username || player.full_name || 'Unknown',
+              fullName: player.full_name || player.name || undefined,
+              email: player.email || '',
+              avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
+              isOnline: player.is_online || false,
+              lastMessage: player.last_message || undefined,
+              lastMessageTime: player.last_message_timestamp || undefined,
+              balance: player.balance !== undefined ? String(player.balance) : undefined,
+              winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
+              gamesPlayed: player.games_played || player.gems || undefined,
+              winRate: player.win_rate || undefined,
+              phone: player.phone_number || player.mobile_number || undefined,
+              unreadCount: player.unread_messages_count || 0,
+              notes: player.notes || undefined,
+            };
+
+            // Store in ref immediately so displayedPlayers includes them
+            queryParamPlayerRef.current = chatUser;
+            processedQueryPlayerIdRef.current = targetUserId;
+
+            // Set search query
+            if (chatUser.username && lastSetSearchQueryRef.current !== chatUser.username) {
+              lastSetSearchQueryRef.current = chatUser.username;
+              setSearchQuery(chatUser.username);
+            }
+
+            // Select the player
+            setActiveTab('all-chats');
+            setSelectedPlayer(chatUser);
+            setPendingPinMessageId(null);
+            setMobileView('chat');
+
+            // Mark as read if has chatId
+            if (chatUser.id) {
+              markChatAsReadDebounced({
+                chatId: chatUser.id,
+                userId: chatUser.user_id,
+              });
+            }
+
+            // Clear URL params after a short delay
+            setTimeout(() => {
+              router.replace('/dashboard/chat', { scroll: false });
+            }, 100);
+          }
+        } catch (error) {
+          console.error('❌ [Query Param] Error fetching player:', error);
+        }
+      };
+
+      // Fetch player from API
+      void fetchPlayerById();
+      return; // Exit early, the fetch will handle everything
+    }
+
     if (candidate) {
       // Mark this playerId as processed to prevent re-running
       processedQueryPlayerIdRef.current = targetUserId;
-      
+
       // Store the player in ref to ensure they always appear in the list
       // This prevents them from disappearing if they're not in the first page of allPlayers
       queryParamPlayerRef.current = candidate;
@@ -1321,13 +1407,13 @@ export function ChatComponent() {
         setSelectedPlayer(candidate);
         setPendingPinMessageId(null);
         setMobileView('chat');
-        
+
         // Mark as read
         markChatAsReadDebounced({
           chatId: candidate.id,
           userId: candidate.user_id,
         });
-        
+
         // Clear URL params after a short delay to ensure state is set
         setTimeout(() => {
           router.replace('/dashboard/chat', { scroll: false });
@@ -1343,7 +1429,7 @@ export function ChatComponent() {
         setSelectedPlayer(player);
         setPendingPinMessageId(null);
         setMobileView('chat');
-        
+
         // Mark as read if player has chatId
         if (player.id) {
           markChatAsReadDebounced({
@@ -1351,7 +1437,7 @@ export function ChatComponent() {
             userId: player.user_id,
           });
         }
-        
+
         // Clear URL params after a short delay to ensure state is set
         setTimeout(() => {
           router.replace('/dashboard/chat', { scroll: false });
@@ -1383,7 +1469,7 @@ export function ChatComponent() {
       setSelectedPlayer(player);
       setPendingPinMessageId(null);
       setMobileView('chat');
-      
+
       // Mark as read if player has chatId
       if (player.id) {
         markChatAsReadDebounced({
@@ -1391,7 +1477,7 @@ export function ChatComponent() {
           userId: player.user_id,
         });
       }
-      
+
       // Clear URL params after a short delay to ensure state is set
       setTimeout(() => {
         router.replace('/dashboard/chat', { scroll: false });
@@ -1414,14 +1500,14 @@ export function ChatComponent() {
     // Verify this is the player from query params
     const rawUserId = Number(queryPlayerId);
     const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
-    
+
     if (!targetUserId || selectedPlayer.user_id !== targetUserId) {
       return;
     }
 
     // Create a unique key for this query param navigation
     const queryKey = `${queryPlayerId}`;
-    
+
     // Skip if we've already scrolled for this query param
     if (hasScrolledForQueryParamsRef.current === queryKey) {
       return;
@@ -1431,7 +1517,7 @@ export function ChatComponent() {
     if (wsMessages.length > 0 && !isHistoryLoadingMessages) {
       // Mark that we've scrolled for this query param combination
       hasScrolledForQueryParamsRef.current = queryKey;
-      
+
       if (!IS_PROD) {
         console.log('📍 Scrolling to bottom for query param navigation:', {
           playerId: queryPlayerId,
@@ -1700,7 +1786,7 @@ export function ChatComponent() {
               onScroll={handleScroll}
             >
               {/*  SCROLLBAR RESET: Content wrapper for transform during scrollbar reset */}
-              <div 
+              <div
                 className="px-4 py-4 md:px-6 md:py-6 space-y-6"
                 style={{
                   // This wrapper allows us to apply transform during scrollbar reset
@@ -1708,254 +1794,253 @@ export function ChatComponent() {
                 }}
               >
 
-              {/* Loading indicator for message history */}
-              {isHistoryLoadingMessages && <MessageHistorySkeleton />}
-              {/* Empty state when no messages - only show after WebSocket has connected and loading is complete */}
-              {!isHistoryLoadingMessages && wsMessages.length === 0 && isConnected && (
-                <div className="flex items-center justify-center h-full min-h-[200px]">
-                  <div className="text-center space-y-2">
-                    <p className="text-muted-foreground text-sm md:text-base">
-                      No chat history available
-                    </p>
-                  </div>
-                </div>
-              )}
-              {Object.entries(groupedMessages).map(([date, dateMessages]) => (
-                <div key={date} className="space-y-3">
-                  {/* Date Separator */}
-                  <div className="flex items-center justify-center my-8 first:mt-0">
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                        <div className="w-full border-t border-border/50" />
-                      </div>
-                      <div className="relative flex justify-center">
-                        <span className="px-4 py-1.5 bg-muted/80 backdrop-blur-sm text-xs font-medium text-muted-foreground rounded-full border border-border/50 shadow-sm">
-                          {formatMessageDate(date)}
-                        </span>
-                      </div>
+                {/* Loading indicator for message history */}
+                {isHistoryLoadingMessages && <MessageHistorySkeleton />}
+                {/* Empty state when no messages - only show after WebSocket has connected and loading is complete */}
+                {!isHistoryLoadingMessages && wsMessages.length === 0 && isConnected && (
+                  <div className="flex items-center justify-center h-full min-h-[200px]">
+                    <div className="text-center space-y-2">
+                      <p className="text-muted-foreground text-sm md:text-base">
+                        No chat history available
+                      </p>
                     </div>
                   </div>
+                )}
+                {Object.entries(groupedMessages).map(([date, dateMessages]) => (
+                  <div key={date} className="space-y-3">
+                    {/* Date Separator */}
+                    <div className="flex items-center justify-center my-8 first:mt-0">
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                          <div className="w-full border-t border-border/50" />
+                        </div>
+                        <div className="relative flex justify-center">
+                          <span className="px-4 py-1.5 bg-muted/80 backdrop-blur-sm text-xs font-medium text-muted-foreground rounded-full border border-border/50 shadow-sm">
+                            {formatMessageDate(date)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-          {/* Messages for this date */}
-          {dateMessages.map((message, idx) => {
-            const prevMessage = idx > 0 ? dateMessages[idx - 1] : null;
-            const isAuto = isAutoMessage(message);
-            const isPurchase = isPurchaseNotification(message);
-            const isSystemMessage = isAuto || isPurchase;
-            const showAvatar = !isSystemMessage && message.sender === 'player' && (
-              !prevMessage || prevMessage.sender !== message.sender || 
-              (prevMessage.time && message.time && 
-               Math.abs(new Date(`2000-01-01 ${prevMessage.time}`).getTime() - 
-                        new Date(`2000-01-01 ${message.time || ''}`).getTime()) > 5 * 60 * 1000)
-            );
-            const isConsecutive = !isSystemMessage && prevMessage && !isAutoMessage(prevMessage) && !isPurchaseNotification(prevMessage) && prevMessage.sender === message.sender;
-            const isAdmin = !isSystemMessage && message.sender === 'admin';
-            const isPinning = pendingPinMessageId === message.id;
-            
-            //  ANIMATION: Check if this is a new message (not seen before)
-            const isNewMessage = !displayedMessageIdsRef.current.has(message.id);
-            if (isNewMessage) {
-              displayedMessageIdsRef.current.add(message.id);
-            }
+                    {/* Messages for this date */}
+                    {dateMessages.map((message, idx) => {
+                      const prevMessage = idx > 0 ? dateMessages[idx - 1] : null;
+                      const isAuto = isAutoMessage(message);
+                      const isPurchase = isPurchaseNotification(message);
+                      const isSystemMessage = isAuto || isPurchase;
+                      const showAvatar = !isSystemMessage && message.sender === 'player' && (
+                        !prevMessage || prevMessage.sender !== message.sender ||
+                        (prevMessage.time && message.time &&
+                          Math.abs(new Date(`2000-01-01 ${prevMessage.time}`).getTime() -
+                            new Date(`2000-01-01 ${message.time || ''}`).getTime()) > 5 * 60 * 1000)
+                      );
+                      const isConsecutive = !isSystemMessage && prevMessage && !isAutoMessage(prevMessage) && !isPurchaseNotification(prevMessage) && prevMessage.sender === message.sender;
+                      const isAdmin = !isSystemMessage && message.sender === 'admin';
+                      const isPinning = pendingPinMessageId === message.id;
 
-            return (
-              <div
-                key={message.id}
-                className={`${isNewMessage && hasScrolledToInitialLoadRef.current ?
-                  'animate-slide-in-from-bottom-2 message-animation-optimized' :
-                  'message-animation-optimized'
-                }`}
-                style={{
-                  //  SMOOTH SCROLL: Enhanced hardware acceleration for ultra-smooth animations
-                  willChange: isNewMessage && hasScrolledToInitialLoadRef.current ? 'transform, opacity' : 'auto',
-                  backfaceVisibility: 'hidden',
-                }}
-              >
-                <MessageBubble
-                  message={message}
-                  selectedPlayer={selectedPlayer}
-                  isAdmin={isAdmin}
-                  showAvatar={Boolean(showAvatar)}
-                  isConsecutive={Boolean(isConsecutive)}
-                  isPinning={isPinning}
-                  onExpandImage={setExpandedImage}
-                  onTogglePin={handleTogglePin}
-                />
-              </div>
-            );
-          })}
-        </div>
-      ))}
+                      //  ANIMATION: Check if this is a new message (not seen before)
+                      const isNewMessage = !displayedMessageIdsRef.current.has(message.id);
+                      if (isNewMessage) {
+                        displayedMessageIdsRef.current.add(message.id);
+                      }
+
+                      return (
+                        <div
+                          key={message.id}
+                          className={`${isNewMessage && hasScrolledToInitialLoadRef.current ?
+                            'animate-slide-in-from-bottom-2 message-animation-optimized' :
+                            'message-animation-optimized'
+                            }`}
+                          style={{
+                            //  SMOOTH SCROLL: Enhanced hardware acceleration for ultra-smooth animations
+                            willChange: isNewMessage && hasScrolledToInitialLoadRef.current ? 'transform, opacity' : 'auto',
+                            backfaceVisibility: 'hidden',
+                          }}
+                        >
+                          <MessageBubble
+                            message={message}
+                            selectedPlayer={selectedPlayer}
+                            isAdmin={isAdmin}
+                            showAvatar={Boolean(showAvatar)}
+                            isConsecutive={Boolean(isConsecutive)}
+                            isPinning={isPinning}
+                            onExpandImage={setExpandedImage}
+                            onTogglePin={handleTogglePin}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
               {/* End content wrapper */}
 
-      {/* Rule 10 & 11: Scroll-to-bottom button - show when away from bottom, hide when at bottom */}
-      {!isUserAtBottom && (
-        <div className="pointer-events-none sticky bottom-12 sm:bottom-16 z-20 flex justify-end pr-0">
-          <div className="pointer-events-auto mr-2 sm:mr-4 animate-bounce-in-smooth">
-            <button
-              type="button"
-              onClick={() => {
-                scrollToBottom(true); // Rule 6: Force scroll (bypasses cooldown)
-                setHasNewMessagesWhileScrolled(false); // Clear indicator
-              }}
-              aria-label="Jump to latest messages"
-              className={`group relative flex w-12 flex-col items-center gap-1.5 px-0 py-1.5 text-xs font-semibold transition-all duration-200 hover:-translate-x-0.5 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 animate-scroll-indicator ${
-                hasNewMessagesWhileScrolled
-                  ? 'text-primary animate-new-message-pulse'
-                  : 'text-slate-700 dark:text-slate-100'
-              }`}
-            >
-              <span className="absolute right-full mr-3 hidden translate-x-2 items-center gap-2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-lg opacity-0 transition-all duration-200 group-hover:flex group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:flex group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-                Jump to latest
-              </span>
-                    <span className="relative inline-flex h-20 w-14 items-center justify-center translate-x-12">
-              <span 
-                className="absolute inset-0 rounded-full bg-gradient-to-b from-primary/15 via-primary/5 to-transparent blur-xl opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:blur-2xl"
-                aria-hidden="true"
-              />
+              {/* Rule 10 & 11: Scroll-to-bottom button - show when away from bottom, hide when at bottom */}
+              {!isUserAtBottom && (
+                <div className="pointer-events-none sticky bottom-12 sm:bottom-16 z-20 flex justify-end pr-0">
+                  <div className="pointer-events-auto mr-2 sm:mr-4 animate-bounce-in-smooth">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        scrollToBottom(true); // Rule 6: Force scroll (bypasses cooldown)
+                        setHasNewMessagesWhileScrolled(false); // Clear indicator
+                      }}
+                      aria-label="Jump to latest messages"
+                      className={`group relative flex w-12 flex-col items-center gap-1.5 px-0 py-1.5 text-xs font-semibold transition-all duration-200 hover:-translate-x-0.5 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 animate-scroll-indicator ${hasNewMessagesWhileScrolled
+                        ? 'text-primary animate-new-message-pulse'
+                        : 'text-slate-700 dark:text-slate-100'
+                        }`}
+                    >
+                      <span className="absolute right-full mr-3 hidden translate-x-2 items-center gap-2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-lg opacity-0 transition-all duration-200 group-hover:flex group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:flex group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Jump to latest
+                      </span>
+                      <span className="relative inline-flex h-20 w-14 items-center justify-center translate-x-12">
+                        <span
+                          className="absolute inset-0 rounded-full bg-gradient-to-b from-primary/15 via-primary/5 to-transparent blur-xl opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:blur-2xl"
+                          aria-hidden="true"
+                        />
 
-              {/* Pulsing ring */}
-              <span 
-                className="absolute inset-0 rounded-full border-2 border-primary/30 opacity-0 transition-all duration-500 group-hover:opacity-100 animate-ping"
-                aria-hidden="true"
-              />
+                        {/* Pulsing ring */}
+                        <span
+                          className="absolute inset-0 rounded-full border-2 border-primary/30 opacity-0 transition-all duration-500 group-hover:opacity-100 animate-ping"
+                          aria-hidden="true"
+                        />
 
-              {/* Main content container */}
-              {/* <span 
+                        {/* Main content container */}
+                        {/* <span 
                 className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary border-r-secondary opacity-0 group-hover:opacity-100 group-hover:animate-spin transition-opacity"
                 style={{ animationDuration: '3s' }}
                 aria-hidden="true"
               /> */}
 
-              {/* Main circle */}
-              <span className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-background via-card to-muted/40 border border-border/80 group-hover:border-primary/50 transition-colors">
-                {/* Stacked chevrons */}
-                <span className="flex flex-col -space-y-2 -translate-x-4">
-               
-                  <ArrowDownNarrowWide
-                    className="h-4 w-4 text-slate-50 opacity-80 transition-all group-hover:translate-y-0.5"
-                    strokeWidth={2.5}
-                  />
-                </span>
-              </span>
-            </span>
-        
-        {/* Label appears below on hover */}
-       
+                        {/* Main circle */}
+                        <span className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-background via-card to-muted/40 border border-border/80 group-hover:border-primary/50 transition-colors">
+                          {/* Stacked chevrons */}
+                          <span className="flex flex-col -space-y-2 -translate-x-4">
+
+                            <ArrowDownNarrowWide
+                              className="h-4 w-4 text-slate-50 opacity-80 transition-all group-hover:translate-y-0.5"
+                              strokeWidth={2.5}
+                            />
+                          </span>
+                        </span>
+                      </span>
+
+                      {/* Label appears below on hover */}
 
 
 
 
-            </button>
-          </div>
-        </div>
+
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Typing Indicator */}
+              {remoteTyping && (
+                <div
+                  className="flex justify-start animate-fade-in-smooth message-animation-optimized"
+                  style={{ willChange: 'transform, opacity' }}
+                >
+                  <div className="flex items-end gap-2 max-w-[85%] md:max-w-[75%]">
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-md ring-2 ring-blue-500/20 message-animation-optimized">
+                      {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl rounded-bl-sm px-4 py-3 shadow-md shadow-blue-500/25 message-animation-optimized">
+                      <div className="flex gap-1.5">
+                        <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
+                        <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
+                        <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Message Input */}
+            <MessageInputArea
+              messageInput={messageInput}
+              setMessageInput={setMessageInput}
+              selectedImage={selectedImage}
+              imagePreviewUrl={imagePreviewUrl}
+              isUploadingImage={isUploadingImage}
+              showEmojiPicker={showEmojiPicker}
+              setShowEmojiPicker={setShowEmojiPicker}
+              commonEmojis={commonEmojis}
+              emojiPickerRef={emojiPickerRef}
+              fileInputRef={fileInputRef}
+              onSendMessage={handleSendMessage}
+              onKeyPress={handleKeyPress}
+              onImageSelect={handleImageSelect}
+              onClearImage={handleClearImage}
+              onAttachClick={handleAttachClick}
+              onEmojiSelect={handleEmojiSelect}
+              toggleEmojiPicker={toggleEmojiPicker}
+            />
+          </>
+        ) : (
+          <EmptyState onlinePlayersCount={displayedPlayers.filter(p => p.isOnline).length} />
+        )}
+      </div>
+
+      {/* Right Column - Player Info */}
+      {selectedPlayer && (
+        <PlayerInfoSidebar
+          selectedPlayer={selectedPlayer}
+          isConnected={isConnected}
+          mobileView={mobileView}
+          setMobileView={setMobileView}
+          notes={notes}
+          onNavigateToPlayer={handleNavigateToPlayer}
+          onOpenEditBalance={handleOpenEditBalance}
+          onOpenEditProfile={handleOpenEditProfile}
+          onOpenNotesDrawer={() => setIsNotesDrawerOpen(true)}
+        />
       )}
 
-      {/* Typing Indicator */}
-      {remoteTyping && (
-        <div
-          className="flex justify-start animate-fade-in-smooth message-animation-optimized"
-          style={{ willChange: 'transform, opacity' }}
-        >
-          <div className="flex items-end gap-2 max-w-[85%] md:max-w-[75%]">
-            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-md ring-2 ring-blue-500/20 message-animation-optimized">
-              {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
-            </div>
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl rounded-bl-sm px-4 py-3 shadow-md shadow-blue-500/25 message-animation-optimized">
-              <div className="flex gap-1.5">
-                <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
-                <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
-                <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Modals */}
+      <EditProfileDrawer
+        isOpen={isEditProfileModalOpen}
+        onClose={() => setIsEditProfileModalOpen(false)}
+        profileFormData={profileFormData}
+        setProfileFormData={setProfileFormData}
+        isUpdating={isUpdatingProfile}
+        onUpdate={handleUpdateProfile}
+      />
+
+      <EditBalanceDrawer
+        isOpen={isEditBalanceModalOpen}
+        onClose={() => setIsEditBalanceModalOpen(false)}
+        balanceValue={balanceValue}
+        setBalanceValue={setBalanceValue}
+        balanceType={balanceType}
+        setBalanceType={setBalanceType}
+        isUpdating={isUpdatingBalance}
+        onUpdate={handleUpdateBalance}
+      />
+
+      <NotesDrawer
+        isOpen={isNotesDrawerOpen}
+        onClose={() => setIsNotesDrawerOpen(false)}
+        selectedPlayer={selectedPlayer as ChatUser}
+        notes={notes}
+        onNotesSaved={handleNotesSaved}
+      />
+
+      {/* Expanded Image Modal */}
+      {expandedImage && (
+        <ExpandedImageModal
+          imageUrl={expandedImage}
+          onClose={() => setExpandedImage(null)}
+        />
       )}
     </div>
-
-    {/* Message Input */}
-    <MessageInputArea
-      messageInput={messageInput}
-      setMessageInput={setMessageInput}
-      selectedImage={selectedImage}
-      imagePreviewUrl={imagePreviewUrl}
-      isUploadingImage={isUploadingImage}
-      showEmojiPicker={showEmojiPicker}
-      setShowEmojiPicker={setShowEmojiPicker}
-      commonEmojis={commonEmojis}
-      emojiPickerRef={emojiPickerRef}
-      fileInputRef={fileInputRef}
-      onSendMessage={handleSendMessage}
-      onKeyPress={handleKeyPress}
-      onImageSelect={handleImageSelect}
-      onClearImage={handleClearImage}
-      onAttachClick={handleAttachClick}
-      onEmojiSelect={handleEmojiSelect}
-      toggleEmojiPicker={toggleEmojiPicker}
-    />
-  </>
-) : (
-  <EmptyState onlinePlayersCount={displayedPlayers.filter(p => p.isOnline).length} />
-)}
-</div>
-
-{/* Right Column - Player Info */}
-{selectedPlayer && (
-            <PlayerInfoSidebar
-              selectedPlayer={selectedPlayer}
-              isConnected={isConnected}
-              mobileView={mobileView}
-              setMobileView={setMobileView}
-              notes={notes}
-              onNavigateToPlayer={handleNavigateToPlayer}
-              onOpenEditBalance={handleOpenEditBalance}
-              onOpenEditProfile={handleOpenEditProfile}
-              onOpenNotesDrawer={() => setIsNotesDrawerOpen(true)}
-            />
-)}
-
-{/* Modals */}
-<EditProfileDrawer
-  isOpen={isEditProfileModalOpen}
-  onClose={() => setIsEditProfileModalOpen(false)}
-  profileFormData={profileFormData}
-  setProfileFormData={setProfileFormData}
-  isUpdating={isUpdatingProfile}
-  onUpdate={handleUpdateProfile}
-/>
-
-<EditBalanceDrawer
-  isOpen={isEditBalanceModalOpen}
-  onClose={() => setIsEditBalanceModalOpen(false)}
-  balanceValue={balanceValue}
-  setBalanceValue={setBalanceValue}
-  balanceType={balanceType}
-  setBalanceType={setBalanceType}
-  isUpdating={isUpdatingBalance}
-  onUpdate={handleUpdateBalance}
-/>
-
-<NotesDrawer
-  isOpen={isNotesDrawerOpen}
-  onClose={() => setIsNotesDrawerOpen(false)}
-  selectedPlayer={selectedPlayer as ChatUser}
-  notes={notes}
-  onNotesSaved={handleNotesSaved}
-/>
-
-{/* Expanded Image Modal */}
-{expandedImage && (
-  <ExpandedImageModal
-    imageUrl={expandedImage}
-    onClose={() => setExpandedImage(null)}
-  />
-)}
-</div>
-);
+  );
 };
 
 export default ChatComponent;
