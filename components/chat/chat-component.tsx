@@ -219,13 +219,15 @@ export function ChatComponent() {
       // Only update chat list if needed for unread counts (handled by chat list websocket)
     }, []),
     onBalanceUpdated: useCallback((data: { playerId: number; balance: string; winningBalance: string }) => {
-      !IS_PROD && console.log('💰 [Chat Component] Balance updated via WebSocket callback:', {
-        playerId: data.playerId,
-        balance: data.balance,
-        winningBalance: data.winningBalance,
-        selectedPlayerId: selectedPlayer?.user_id,
-        matchesSelectedPlayer: selectedPlayer?.user_id === data.playerId,
-      });
+      if (!IS_PROD) {
+        console.log('💰 [Chat Component] Balance updated via WebSocket callback:', {
+          playerId: data.playerId,
+          balance: data.balance,
+          winningBalance: data.winningBalance,
+          selectedPlayerId: selectedPlayer?.user_id,
+          matchesSelectedPlayer: selectedPlayer?.user_id === data.playerId,
+        });
+      }
 
       // Update selected player's balance if this is the current player
       // Always create a new object to ensure React detects the change
@@ -243,7 +245,7 @@ export function ChatComponent() {
           
           // Only update if values actually changed to avoid unnecessary re-renders
           if (newBalance === prev.balance && newWinningBalance === prev.winningBalance) {
-            !IS_PROD && console.log('⏭️ [Chat Component] Balance values unchanged, skipping update');
+            if (!IS_PROD) console.log('⏭️ [Chat Component] Balance values unchanged, skipping update');
             return prev;
           }
           
