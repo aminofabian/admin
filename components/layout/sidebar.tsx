@@ -316,7 +316,10 @@ const MENU_CATEGORIES: MenuCategory[] = [
     name: 'Settings',
     icon: <SettingsIcon />,
     roles: [USER_ROLES.STAFF, USER_ROLES.MANAGER],
-    href: '/dashboard/settings',
+    submenu: [
+      { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
+      { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
+    ],
   },
   {
     name: 'Affiliates',

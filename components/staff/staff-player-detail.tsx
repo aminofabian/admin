@@ -9,9 +9,8 @@ import { playersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
 import { Badge, Button } from '@/components/ui';
-import type { UpdateUserRequest, ApiError } from '@/types';
+import type { ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
-import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 
@@ -41,17 +40,6 @@ function extractErrorMessage(error: unknown): { title: string; message: string }
   return { title: errorTitle, message: errorMessage };
 }
 
-interface EditableFields {
-  email: string;
-  full_name: string;
-  dob: string;
-  state: string;
-  mobile_number: string;
-  password: string;
-  confirm_password: string;
-  is_active: boolean;
-}
-
 interface StaffPlayerDetailProps {
   playerId: number;
 }
@@ -60,7 +48,7 @@ interface StaffPlayerDetailProps {
  * Staff Player Detail Component
  * - Read-only view of player details
  * - No agent assignment functionality
- * - No player creation/editing (except basic profile info via edit drawer)
+ * - No player creation/editing functionality
  */
 export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const router = useRouter();
@@ -73,8 +61,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [selectedGameForBalance, setSelectedGameForBalance] = useState<PlayerGame | null>(null);
@@ -90,17 +76,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const [isEditingGame, setIsEditingGame] = useState(false);
   const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
   const [isAddingGame, setIsAddingGame] = useState(false);
-
-  const [editableFields, setEditableFields] = useState<EditableFields>({
-    email: '',
-    full_name: '',
-    dob: '',
-    state: '',
-    mobile_number: '',
-    password: '',
-    confirm_password: '',
-    is_active: true,
-  });
 
   // Load player data
   useEffect(() => {
@@ -118,16 +93,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         const player = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(playerId));
 
         setSelectedPlayer(player);
-        setEditableFields({
-          email: player.email || '',
-          full_name: player.full_name || '',
-          dob: player.dob || '',
-          state: player.state || '',
-          mobile_number: player.mobile_number || '',
-          password: '',
-          confirm_password: '',
-          is_active: player.is_active ?? true,
-        });
 
         // Load transaction details
         setIsLoadingDetails(true);
@@ -167,59 +132,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     const chatUrl = `/dashboard/chat?playerId=${selectedPlayer.id}&username=${encodeURIComponent(selectedPlayer.username)}`;
     router.push(chatUrl);
   }, [selectedPlayer, router]);
-
-  const handleSave = useCallback(async () => {
-    if (!selectedPlayer) return;
-
-    setIsSaving(true);
-    try {
-      const updateData: UpdateUserRequest = {
-        email: editableFields.email.trim(),
-        full_name: editableFields.full_name.trim() || undefined,
-        dob: editableFields.dob.trim() || undefined,
-        state: editableFields.state.trim() || undefined,
-        mobile_number: editableFields.mobile_number.trim() || undefined,
-        is_active: editableFields.is_active,
-      };
-
-      if (editableFields.password.trim()) {
-        if (editableFields.password !== editableFields.confirm_password) {
-          addToast({
-            type: 'error',
-            title: 'Password mismatch',
-            description: 'Password and confirm password do not match.',
-          });
-          setIsSaving(false);
-          return;
-        }
-        updateData.password = editableFields.password.trim();
-      }
-
-      await playersApi.update(selectedPlayer.id, updateData);
-
-      const updatedPlayer = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(selectedPlayer.id));
-      setSelectedPlayer(updatedPlayer);
-      setEditableFields((prev) => ({ ...prev, password: '', confirm_password: '' }));
-
-      addToast({
-        type: 'success',
-        title: 'Player updated',
-        description: 'Player details have been updated successfully.',
-      });
-
-      setIsEditDrawerOpen(false);
-    } catch (error) {
-      const { title, message } = extractErrorMessage(error);
-      addToast({
-        type: 'error',
-        title: title || 'Update failed',
-        description: message || 'Failed to update player',
-        duration: 8000,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [selectedPlayer, editableFields, addToast]);
 
   const handleViewTransactions = useCallback(() => {
     if (!selectedPlayer) return;
@@ -458,17 +370,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                 </div>
               </div>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setIsEditDrawerOpen(true)}
-              className="flex items-center gap-1 sm:gap-1.5 shrink-0 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-            >
-              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
-            </Button>
           </div>
         </div>
       </div>
@@ -745,19 +646,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           </div>
         </div>
       </div>
-
-      {/* Edit Player Drawer */}
-      <EditPlayerDetailsDrawer
-        isOpen={isEditDrawerOpen}
-        onClose={() => {
-          setIsEditDrawerOpen(false);
-          setEditableFields((prev) => ({ ...prev, password: '', confirm_password: '' }));
-        }}
-        editableFields={editableFields}
-        setEditableFields={setEditableFields}
-        isSaving={isSaving}
-        onSave={handleSave}
-      />
 
       {/* Player Game Balance Modal */}
       <PlayerGameBalanceModal
