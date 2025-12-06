@@ -210,7 +210,6 @@ export function SuperAdminHistoryGameActivities() {
     useEffect(() => {
         let isMounted = true;
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const loadAgents = async () => {
             setIsAgentLoading(true);
             try {

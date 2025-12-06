@@ -47,6 +47,7 @@ export function SuperAdminPaymentSettings() {
 
     useEffect(() => {
         fetchCompanies();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -55,6 +56,7 @@ export function SuperAdminPaymentSettings() {
         } else {
             setPaymentMethods([]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedCompanyId]);
 
     // Close dropdown when clicking outside
