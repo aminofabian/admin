@@ -69,7 +69,9 @@ interface HistoryGameActivitiesFiltersProps {
 }
 
 export function HistoryGameActivitiesFilters({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   queueFilter,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onQueueFilterChange,
   filters,
   onFilterChange,

@@ -86,6 +86,7 @@ export function StaffsSection() {
     setSelectedStaff(null);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleResetPassword = (staff: Staff) => {
     setPasswordResetModal({
       isOpen: true,

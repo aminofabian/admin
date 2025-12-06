@@ -26,6 +26,7 @@ interface PurchaseBonusManagerProps {
 
 export function PurchaseBonusManager({ 
   showHeader = true, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   showStats = true,
 }: PurchaseBonusManagerProps) {
   const { 
@@ -34,6 +35,7 @@ export function PurchaseBonusManager({
     error,
     operationLoading,
     fetchPurchaseBonuses,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     createPurchaseBonus,
     updatePurchaseBonus,
   } = useBonusesStore();
@@ -51,6 +53,7 @@ export function PurchaseBonusManager({
 
   const handleSubmitBonus = async (data: CreatePurchaseBonusRequest & { is_enabled?: boolean }) => {
     const isEditMode = !!editingBonus;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const bonusType = editingBonus?.bonus_type || data.bonus_type;
     
     try {
