@@ -137,14 +137,6 @@ export default function StaffsPage() {
     isLoading: false,
   });
 
-  const handleResetPassword = (staff: Staff) => {
-    setPasswordResetModal({
-      isOpen: true,
-      staff,
-      isLoading: false,
-    });
-  };
-
   const handleConfirmPasswordReset = async (password: string, _confirmPassword: string) => {
     if (!passwordResetModal.staff) return;
 
@@ -177,14 +169,6 @@ export default function StaffsPage() {
 
   const handleCancelPasswordReset = () => {
     setPasswordResetModal({ isOpen: false, staff: null, isLoading: false });
-  };
-
-  const handleToggleStatus = (staff: Staff) => {
-    setConfirmModal({
-      isOpen: true,
-      staff,
-      isLoading: false,
-    });
   };
 
   const handleConfirmToggle = async () => {

@@ -21,7 +21,6 @@ import { formatDate } from '@/lib/utils/formatters';
 import type { Banner, CreateBannerRequest, UpdateBannerRequest } from '@/types';
 
 const SECTION_TITLE = 'Banners';
-const SECTION_SUBTITLE = 'Manage promotional banners and advertisements';
 const ADD_BUTTON_LABEL = 'Add Banner';
 const SEARCH_PLACEHOLDER = 'Search banners by title...';
 const EMPTY_ROW_TEXT = 'No banners found';

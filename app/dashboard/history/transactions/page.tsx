@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
@@ -13,7 +13,6 @@ function HistoryTransactionsContent() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { setFilterWithoutFetch } = useTransactionsStore();
-  const [initialUsername, setInitialUsername] = useState<string | null>(null);
   const previousUsernameRef = useRef<string | null>(null);
 
   // Set filter to 'history' for regular users
@@ -31,7 +30,6 @@ function HistoryTransactionsContent() {
     // Only update if username actually changed
     if (trimmedUsername !== previousUsernameRef.current) {
       if (trimmedUsername) {
-        setInitialUsername(trimmedUsername);
         previousUsernameRef.current = trimmedUsername;
 
         // Remove username from URL after reading it
@@ -43,7 +41,6 @@ function HistoryTransactionsContent() {
           : pathname;
         window.history.replaceState({}, '', newUrl);
       } else {
-        setInitialUsername(null);
         previousUsernameRef.current = null;
       }
     }

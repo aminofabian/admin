@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest, context: RouteContextParams) {
 
     try {
       data = text ? JSON.parse(text) : null;
-    } catch (error) {
+    } catch {
       data = { raw: text || null };
     }
 

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { ArrowBigDown, ArrowDown, ArrowDownFromLine, ArrowDownNarrowWide, ArrowDownToLine, ChevronDown } from 'lucide-react';
+import { ArrowDownNarrowWide } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Button, Input, useToast } from '@/components/ui';
+import { useToast } from '@/components/ui';
 import { formatCurrency, isValidTimestamp } from '@/lib/utils/formatters';
 import { useChatUsers } from '@/hooks/use-chat-users';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
@@ -17,7 +17,6 @@ import { MessageBubble } from './components/message-bubble';
 import { isAutoMessage, isPurchaseNotification } from './utils/message-helpers';
 import { MessageHistorySkeleton } from './skeletons';
 import { useScrollManagement } from './hooks/use-scroll-management';
-import { useViewportMessages } from './hooks/use-viewport-messages';
 
 type Player = ChatUser;
 type Message = ChatMessage;
