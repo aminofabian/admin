@@ -181,7 +181,7 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
 
   const handleNavigateToChat = useCallback(() => {
     if (selectedPlayer) {
-      const chatUrl = `/dashboard/chat?playerId=${selectedPlayer.id}&username=${encodeURIComponent(selectedPlayer.username)}`;
+      const chatUrl = `/dashboard/chat?playerId=${selectedPlayer.id}`;
       router.push(chatUrl);
     }
   }, [selectedPlayer, router]);

@@ -245,9 +245,11 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   const statusVariant = getStatusVariant(transaction.status);
 
   const handleOpenChat = useCallback(() => {
-    const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username || '')}`;
+    // Note: Transactions don't have user_id, so we can't navigate directly
+    // The chat component will need to handle username-based lookup if needed
+    const chatUrl = `/dashboard/chat`;
     router.push(chatUrl);
-  }, [router, transaction.user_username]);
+  }, [router]);
 
   const userCell = (
     <TableCell>
@@ -1038,7 +1040,9 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
               const userInitial = transaction.user_username?.charAt(0).toUpperCase() ?? '?';
 
               const handleOpenChat = () => {
-                const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username || '')}`;
+                // Note: Transactions don't have user_id, so we can't navigate directly
+                // The chat component will need to handle username-based lookup if needed
+                const chatUrl = `/dashboard/chat`;
                 router.push(chatUrl);
               };
 

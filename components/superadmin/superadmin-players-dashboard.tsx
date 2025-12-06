@@ -166,7 +166,7 @@ export default function SuperAdminPlayersDashboard(): ReactElement {
         data={dataState.data}
         hasActiveFilters={filters.hasActiveFilters}
         onOpenChat={(player) => {
-          const chatUrl = `/dashboard/chat?playerId=${player.id}&username=${encodeURIComponent(player.username)}`;
+          const chatUrl = `/dashboard/chat?playerId=${player.id}`;
           router.push(chatUrl);
         }}
         onPageChange={pagination.setPage}

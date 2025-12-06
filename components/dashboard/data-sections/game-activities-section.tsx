@@ -763,10 +763,9 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
   };
 
   const handleOpenChat = useCallback(() => {
-    const username = websiteUsername || `User ${activity.user_id}`;
-    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}&username=${encodeURIComponent(username)}`;
+    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}`;
     router.push(chatUrl);
-  }, [router, activity.user_id, websiteUsername]);
+  }, [router, activity.user_id]);
 
   const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
   const bonusColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400');
@@ -928,10 +927,9 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
 
   const handleOpenChat = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    const username = websiteUsername || `User ${activity.user_id}`;
-    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}&username=${encodeURIComponent(username)}`;
+    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}`;
     router.push(chatUrl);
-  }, [router, activity.user_id, websiteUsername]);
+  }, [router, activity.user_id]);
 
   const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
 

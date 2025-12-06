@@ -92,7 +92,7 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
 
   const handleNavigateToChat = useCallback(() => {
     if (!selectedPlayer) return;
-    const chatUrl = `/dashboard/chat?playerId=${selectedPlayer.id}&username=${encodeURIComponent(selectedPlayer.username)}`;
+    const chatUrl = `/dashboard/chat?playerId=${selectedPlayer.id}`;
     router.push(chatUrl);
   }, [selectedPlayer, router]);
 

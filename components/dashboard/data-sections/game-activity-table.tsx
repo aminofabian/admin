@@ -161,10 +161,9 @@ function GameActivityRow({
   }, [activity, onViewDetails]);
 
   const handleOpenChat = useCallback(() => {
-    const username = websiteUsername || `User ${activity.user_id}`;
-    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}&username=${encodeURIComponent(username)}`;
+    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}`;
     router.push(chatUrl);
-  }, [router, activity.user_id, websiteUsername]);
+  }, [router, activity.user_id]);
 
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
@@ -503,10 +502,9 @@ const GameActivityCard = memo(function GameActivityCard({
   }, [activity, onViewDetails]);
 
   const handleOpenChat = useCallback(() => {
-    const username = websiteUsername || `User ${activity.user_id}`;
-    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}&username=${encodeURIComponent(username)}`;
+    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}`;
     router.push(chatUrl);
-  }, [router, activity.user_id, websiteUsername]);
+  }, [router, activity.user_id]);
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
