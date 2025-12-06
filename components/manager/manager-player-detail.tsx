@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
-import { useToast } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
@@ -26,10 +25,9 @@ interface ManagerPlayerDetailProps {
  */
 export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
   const router = useRouter();
-  const { addToast } = useToast();
 
   // Load player games
-  const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(playerId);
+  const { games, isLoading: isLoadingGames } = usePlayerGames(playerId);
 
   // State
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
