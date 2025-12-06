@@ -602,7 +602,10 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                 )}
               </div>
             </section>
+          </div>
 
+          {/* Column 2: Transaction Summary & Player Games */}
+          <div className="space-y-3 sm:space-y-4 md:space-y-6">
             {/* Transaction Summary Card */}
             <section className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 border border-purple-200 dark:border-purple-800/50 shadow-sm">
               <div className="mb-3 sm:mb-4 md:mb-5 flex items-center justify-between">
@@ -667,10 +670,7 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                 </div>
               </div>
             </section>
-          </div>
 
-          {/* Column 2: Player Games */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6">
             {/* Player Games Card */}
             <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
               <div className="mb-4 sm:mb-5 flex items-center gap-3">
