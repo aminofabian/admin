@@ -5,6 +5,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
+import { ManagerPlayerDetail } from '@/components/manager';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
@@ -250,7 +251,7 @@ export default function PlayerDetailPage() {
   // Load agents for dropdown - Skip for staff users
   useEffect(() => {
     // Skip loading agents for staff users (they can't assign agents)
-    if (user?.role === USER_ROLES.STAFF) {
+    if (user?.role === USER_ROLES.STAFF || user?.role === USER_ROLES.MANAGER) {
       setIsLoadingAgents(false);
       return;
     }
@@ -865,6 +866,10 @@ export default function PlayerDetailPage() {
     return <StaffPlayerDetail playerId={playerId} />;
   }
 
+  if (user?.role === USER_ROLES.MANAGER && playerId) {
+    return <ManagerPlayerDetail playerId={playerId} />;
+  }
+
   if (isLoadingPlayer) {
     return <LoadingState />;
   }
@@ -1079,65 +1084,65 @@ export default function PlayerDetailPage() {
 
             {/* Agent Assignment Card - Show below Quick Actions on mobile - Hidden for staff */}
             {user?.role !== USER_ROLES.STAFF && (
-              <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg lg:hidden">
-                <div className="mb-3 sm:mb-4 md:mb-5 flex items-center gap-2 sm:gap-3">
-                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                    <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                  </div>
-                  <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
+            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg lg:hidden">
+              <div className="mb-3 sm:mb-4 md:mb-5 flex items-center gap-2 sm:gap-3">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
                 </div>
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="flex-1">
-                      <Select
-                        value={selectedAgentId}
-                        onChange={(value: string) => setSelectedAgentId(value)}
-                        options={agentOptions}
-                        placeholder={selectedPlayer.agent_username || 'Select an agent'}
-                        isLoading={isLoadingAgents}
-                        disabled={isLoadingAgents}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="flex gap-2">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
+              </div>
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex-1">
+                    <Select
+                      value={selectedAgentId}
+                      onChange={(value: string) => setSelectedAgentId(value)}
+                      options={agentOptions}
+                      placeholder={selectedPlayer.agent_username || 'Select an agent'}
+                      isLoading={isLoadingAgents}
+                      disabled={isLoadingAgents}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAssignAgent();
+                      }}
+                      isLoading={isAssigningAgent}
+                      disabled={!selectedAgentId || isLoadingAgents}
+                      variant="primary"
+                      className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 touch-manipulation"
+                    >
+                      <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Assign
+                    </Button>
+                    {selectedPlayer.agent_username && (
                       <Button
                         type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleAssignAgent();
-                        }}
-                        isLoading={isAssigningAgent}
-                        disabled={!selectedAgentId || isLoadingAgents}
-                        variant="primary"
+                        onClick={() => setShowRemoveAgentModal(true)}
+                        isLoading={isRemovingAgent}
+                        disabled={isRemovingAgent}
+                        variant="danger"
                         className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 touch-manipulation"
                       >
                         <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        Assign
+                        Remove
                       </Button>
-                      {selectedPlayer.agent_username && (
-                        <Button
-                          type="button"
-                          onClick={() => setShowRemoveAgentModal(true)}
-                          isLoading={isRemovingAgent}
-                          disabled={isRemovingAgent}
-                          variant="danger"
-                          className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 touch-manipulation"
-                        >
-                          <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Remove
-                        </Button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-              </section>
+              </div>
+            </section>
             )}
 
             {/* Personal Information Card */}
@@ -1179,65 +1184,65 @@ export default function PlayerDetailPage() {
           <div className="space-y-3 sm:space-y-4 md:space-y-6 order-2 lg:order-2">
             {/* Agent Assignment Card - Desktop only - Hidden for staff */}
             {user?.role !== USER_ROLES.STAFF && (
-              <section className="hidden lg:block border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-                <div className="mb-5 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                  </div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
+            <section className="hidden lg:block border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="flex-1">
-                      <Select
-                        value={selectedAgentId}
-                        onChange={(value: string) => setSelectedAgentId(value)}
-                        options={agentOptions}
-                        placeholder={selectedPlayer.agent_username || 'Select an agent'}
-                        isLoading={isLoadingAgents}
-                        disabled={isLoadingAgents}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="flex gap-2">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex-1">
+                    <Select
+                      value={selectedAgentId}
+                      onChange={(value: string) => setSelectedAgentId(value)}
+                      options={agentOptions}
+                      placeholder={selectedPlayer.agent_username || 'Select an agent'}
+                      isLoading={isLoadingAgents}
+                      disabled={isLoadingAgents}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAssignAgent();
+                      }}
+                      isLoading={isAssigningAgent}
+                      disabled={!selectedAgentId || isLoadingAgents}
+                      variant="primary"
+                      className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+                    >
+                      <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Assign
+                    </Button>
+                    {selectedPlayer.agent_username && (
                       <Button
                         type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleAssignAgent();
-                        }}
-                        isLoading={isAssigningAgent}
-                        disabled={!selectedAgentId || isLoadingAgents}
-                        variant="primary"
+                        onClick={() => setShowRemoveAgentModal(true)}
+                        isLoading={isRemovingAgent}
+                        disabled={isRemovingAgent}
+                        variant="danger"
                         className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
                       >
                         <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        Assign
+                        Remove
                       </Button>
-                      {selectedPlayer.agent_username && (
-                        <Button
-                          type="button"
-                          onClick={() => setShowRemoveAgentModal(true)}
-                          isLoading={isRemovingAgent}
-                          disabled={isRemovingAgent}
-                          variant="danger"
-                          className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
-                        >
-                          <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Remove
-                        </Button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-              </section>
+              </div>
+            </section>
             )}
 
             {/* Transaction Summary Card */}

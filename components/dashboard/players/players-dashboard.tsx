@@ -200,13 +200,13 @@ export default function PlayersDashboard(): ReactElement {
         pageSize={pagination.pageSize}
       />
       {canAccessAgents && (
-        <CreatePlayerDrawer
-          isOpen={modalState.state.isCreateOpen}
-          isSubmitting={modalState.state.isSubmitting}
-          onClose={modalState.closeCreateModal}
-          onSubmit={creationHandlers.handleSubmit}
-          submitError={modalState.state.submitError}
-        />
+      <CreatePlayerDrawer
+        isOpen={modalState.state.isCreateOpen}
+        isSubmitting={modalState.state.isSubmitting}
+        onClose={modalState.closeCreateModal}
+        onSubmit={creationHandlers.handleSubmit}
+        submitError={modalState.state.submitError}
+      />
       )}
     </div>
   );
@@ -792,17 +792,17 @@ function PlayersHeader({
 
         {/* Add button - compact - Only show if allowed */}
         {showAddButton && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onAddPlayer}
-            className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
-          >
-            <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden md:inline ml-1.5">Add Player</span>
-          </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={onAddPlayer}
+          className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
+        >
+          <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="hidden md:inline ml-1.5">Add Player</span>
+        </Button>
         )}
       </div>
     </div>

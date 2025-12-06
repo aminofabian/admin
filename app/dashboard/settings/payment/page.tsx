@@ -5,6 +5,7 @@ import { USER_ROLES } from '@/lib/constants/roles';
 import { PaymentSettingsSection } from '@/components/dashboard/data-sections';
 import { SuperAdminPaymentSettings } from '@/components/superadmin';
 import { StaffPaymentSettingsSection } from '@/components/staff';
+import { ManagerPaymentSettingsSection } from '@/components/manager';
 
 export default function PaymentSettingsPage() {
   const { user } = useAuth();
@@ -19,6 +20,15 @@ export default function PaymentSettingsPage() {
     return (
       <div className="container mx-auto px-4 py-6">
         <StaffPaymentSettingsSection />
+      </div>
+    );
+  }
+
+  // If user is manager, render read-only payment settings view
+  if (user?.role === USER_ROLES.MANAGER) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <ManagerPaymentSettingsSection />
       </div>
     );
   }

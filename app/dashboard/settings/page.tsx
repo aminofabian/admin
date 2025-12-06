@@ -1,9 +1,11 @@
 'use client';
 
 import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { StaffSettingsSection } from '@/components/staff';
+import { ManagerSettingsSection } from '@/components/manager';
 
 const settingsCategories = [
   {
@@ -61,8 +63,13 @@ export default function SettingsPage() {
   const pathname = usePathname();
 
   // If user is staff, render read-only settings view
-  if (user?.role === 'staff') {
+  if (user?.role === USER_ROLES.STAFF) {
     return <StaffSettingsSection />;
+  }
+
+  // If user is manager, render read-only settings view
+  if (user?.role === USER_ROLES.MANAGER) {
+    return <ManagerSettingsSection />;
   }
 
   return (

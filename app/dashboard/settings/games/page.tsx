@@ -96,7 +96,7 @@ export default function GameSettingsPage() {
   useEffect(() => {
     // Only fetch if not staff
     if (user?.role !== USER_ROLES.STAFF) {
-      fetchGames();
+    fetchGames();
     }
   }, [fetchGames, user?.role]);
 

@@ -149,7 +149,7 @@ export default function AffiliateSettingsPage() {
   useEffect(() => {
     // Only fetch if not staff
     if (user?.role !== USER_ROLES.STAFF) {
-      fetchAffiliateDefaults();
+    fetchAffiliateDefaults();
     }
   }, [fetchAffiliateDefaults, user?.role]);
 
