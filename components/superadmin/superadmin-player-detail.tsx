@@ -8,10 +8,9 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
-import type { UpdateUserRequest, ApiError } from '@/types';
+import { Badge, Button, ConfirmModal, DropdownMenu, DropdownMenuItem } from '@/components/ui';
+import type { ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
-import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 
@@ -57,17 +56,6 @@ function extractErrorMessage(error: unknown): { title: string; message: string }
   return { title: errorTitle, message: errorMessage };
 }
 
-interface EditableFields {
-  email: string;
-  full_name: string;
-  dob: string;
-  state: string;
-  mobile_number: string;
-  password: string;
-  confirm_password: string;
-  is_active: boolean;
-}
-
 interface SuperAdminPlayerDetailProps {
   playerId: number;
 }
@@ -79,8 +67,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,16 +75,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
   const [balanceData, setBalanceData] = useState<CheckPlayerGameBalanceResponse | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
-  const [editableFields, setEditableFields] = useState<EditableFields>({
-    email: '',
-    full_name: '',
-    dob: '',
-    state: '',
-    mobile_number: '',
-    password: '',
-    confirm_password: '',
-    is_active: true,
-  });
 
   // Load player data
   useEffect(() => {
@@ -110,16 +86,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         const player = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(playerId));
 
         setSelectedPlayer(player);
-        setEditableFields({
-          email: player.email || '',
-          full_name: player.full_name || '',
-          dob: player.dob || '',
-          state: player.state || '',
-          mobile_number: player.mobile_number || '',
-          password: '',
-          confirm_password: '',
-          is_active: player.is_active ?? true,
-        });
 
         // Load transaction details
         setIsLoadingDetails(true);
@@ -158,72 +124,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
 
     void loadPlayer();
   }, [playerId, addToast]);
-
-  const handleSave = useCallback(async () => {
-    if (!selectedPlayer) return;
-
-    if (editableFields.password.trim()) {
-      if (editableFields.password !== editableFields.confirm_password) {
-        addToast({
-          type: 'error',
-          title: 'Validation error',
-          description: 'Passwords do not match. Please check and try again.',
-        });
-        return;
-      }
-    }
-
-    setIsSaving(true);
-    try {
-      const updateData: UpdateUserRequest = {
-        email: editableFields.email.trim() || undefined,
-        full_name: editableFields.full_name.trim() || undefined,
-        mobile_number: editableFields.mobile_number.trim() || undefined,
-        dob: editableFields.dob.trim() || undefined,
-        state: editableFields.state.trim() || undefined,
-        is_active: editableFields.is_active,
-        ...(editableFields.password.trim()
-          ? {
-            password: editableFields.password.trim(),
-            confirm_password: editableFields.confirm_password.trim(),
-          }
-          : {}
-        ),
-      };
-
-      await playersApi.update(selectedPlayer.id, updateData);
-
-      const updatedPlayer = {
-        ...selectedPlayer,
-        email: editableFields.email.trim() || selectedPlayer.email,
-        full_name: editableFields.full_name.trim() || selectedPlayer.full_name,
-        mobile_number: editableFields.mobile_number.trim() || selectedPlayer.mobile_number,
-        dob: editableFields.dob.trim() || selectedPlayer.dob,
-        state: editableFields.state.trim() || selectedPlayer.state,
-        is_active: editableFields.is_active,
-      };
-      setSelectedPlayer(updatedPlayer);
-
-      addToast({
-        type: 'success',
-        title: 'Player updated',
-        description: 'Player details have been updated successfully.',
-      });
-
-      setIsEditDrawerOpen(false);
-      setEditableFields(prev => ({ ...prev, password: '', confirm_password: '' }));
-    } catch (error) {
-      const { title, message } = extractErrorMessage(error);
-      addToast({
-        type: 'error',
-        title: title || 'Update failed',
-        description: message || 'Failed to update player',
-        duration: 8000,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [selectedPlayer, editableFields, addToast]);
 
   const handleDeactivate = useCallback(async () => {
     if (!selectedPlayer) return;
@@ -293,9 +193,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
   const [isDeletingGame, setIsDeletingGame] = useState(false);
   const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
   const [isChangingGame, setIsChangingGame] = useState(false);
-  const [gameToEdit, setGameToEdit] = useState<PlayerGame | null>(null);
-  const [isEditingGame, setIsEditingGame] = useState(false);
-  const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
 
   const handleDeleteGame = useCallback(async () => {
     if (!gameToDelete || !selectedPlayer) return;
@@ -349,34 +246,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
     }
   }, [gameToChange, refreshGames, addToast]);
 
-
-  const handleEditGame = useCallback(async (data: { username: string; password: string }) => {
-    if (!gameToEdit || isEditingGame) return;
-    setIsEditingGame(true);
-    try {
-      await playersApi.updateGame(gameToEdit.id, {
-        username: data.username,
-        password: data.password,
-      });
-      addToast({
-        type: 'success',
-        title: 'Game updated',
-        description: `"${gameToEdit.game__title}" credentials have been updated successfully.`,
-      });
-      setIsEditGameDrawerOpen(false);
-      setGameToEdit(null);
-      await refreshGames();
-    } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to update game',
-        description,
-      });
-    } finally {
-      setIsEditingGame(false);
-    }
-  }, [gameToEdit, isEditingGame, addToast, refreshGames]);
 
   if (isLoadingPlayer) {
     return <LoadingState />;
@@ -454,17 +323,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                 </div>
               </div>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setIsEditDrawerOpen(true)}
-              className="flex items-center gap-1 sm:gap-1.5 shrink-0 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-            >
-              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
-            </Button>
           </div>
         </div>
       </div>
@@ -780,18 +638,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                             align="right"
                           >
                             <DropdownMenuItem
-                              onClick={() => {
-                                setGameToEdit(game);
-                                setIsEditGameDrawerOpen(true);
-                              }}
-                              className="flex items-center gap-2"
-                            >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              Edit Game
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
                               onClick={() => setGameToDelete(game)}
                               className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                             >
@@ -811,15 +657,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
           </div>
         </div>
       </div>
-
-      <EditPlayerDetailsDrawer
-        isOpen={isEditDrawerOpen}
-        onClose={() => setIsEditDrawerOpen(false)}
-        editableFields={editableFields}
-        setEditableFields={setEditableFields}
-        isSaving={isSaving}
-        onSave={handleSave}
-      />
 
       <ConfirmModal
         isOpen={showDeactivateModal}
@@ -868,163 +705,6 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         variant="info"
         isLoading={isChangingGame}
       />
-
-      {/* Edit Game Drawer */}
-      {gameToEdit && (
-        <div className={`fixed inset-0 z-[60] overflow-hidden transition-opacity duration-300 ${isEditGameDrawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => !isEditingGame && setIsEditGameDrawerOpen(false)}
-          />
-          <div
-            className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isEditGameDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
-          >
-            <EditGameDrawerContent
-              game={gameToEdit}
-              isOpen={isEditGameDrawerOpen}
-              onClose={() => {
-                setIsEditGameDrawerOpen(false);
-                setGameToEdit(null);
-              }}
-              onSubmit={handleEditGame}
-              isSubmitting={isEditingGame}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Edit Game Drawer Component
-interface EditGameDrawerContentProps {
-  game: PlayerGame;
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: { username: string; password: string }) => Promise<void>;
-  isSubmitting: boolean;
-}
-
-function EditGameDrawerContent({
-  game,
-  isOpen,
-  onClose,
-  onSubmit,
-  isSubmitting,
-}: EditGameDrawerContentProps) {
-  const [formData, setFormData] = useState({
-    username: game.username || '',
-    password: '',
-  });
-
-  useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        username: game.username || '',
-        password: '',
-      });
-    }
-  }, [isOpen, game.username]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.username || !formData.password) return;
-    await onSubmit({
-      username: formData.username,
-      password: formData.password,
-    });
-  };
-
-  return (
-    <div className="flex h-full flex-col">
-      <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground">Edit Game</h2>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-muted rounded-lg transition-colors"
-          disabled={isSubmitting}
-        >
-          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24 md:pb-6">
-        <form id="edit-game-form" onSubmit={handleSubmit} className="space-y-4">
-          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-            <div className="flex items-start gap-2">
-              <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <p className="text-sm font-medium text-foreground mb-1">Game Information</p>
-                <p className="text-xs text-muted-foreground">
-                  Game: <span className="font-medium text-foreground">{game.game__title}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Game Username <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={formData.username}
-              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-              placeholder="Enter username for the game"
-              className="w-full"
-              disabled={isSubmitting}
-              required
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              The username for accessing the game account
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Game Password <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-              placeholder="Enter new password for the game"
-              className="w-full"
-              disabled={isSubmitting}
-              required
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Enter a new password for the game account
-            </p>
-          </div>
-        </form>
-      </div>
-
-      <div className="sticky bottom-0 z-10 bg-card border-t border-border px-6 py-4 shadow-lg">
-        <Button
-          type="submit"
-          form="edit-game-form"
-          variant="primary"
-          className="w-full"
-          disabled={isSubmitting || !formData.username || !formData.password}
-          isLoading={isSubmitting}
-        >
-          {isSubmitting ? (
-            'Updating Game...'
-          ) : (
-            <>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Update Game
-            </>
-          )}
-        </Button>
-      </div>
     </div>
   );
 }
