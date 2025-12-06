@@ -260,8 +260,12 @@ export function SuperAdminPaymentSettings() {
     const filteredPaymentMethods = useMemo(() => {
         let methods = paymentMethods;
 
-        // Filter by view mode: in cashout mode, only show methods with enabled_for_cashout_by_superadmin key
-        if (viewMode === 'cashout') {
+        // Filter by view mode: only show methods that have the corresponding key
+        if (viewMode === 'purchase') {
+            methods = methods.filter(
+                (method) => 'enabled_for_purchase_by_superadmin' in method
+            );
+        } else if (viewMode === 'cashout') {
             methods = methods.filter(
                 (method) => 'enabled_for_cashout_by_superadmin' in method
             );
