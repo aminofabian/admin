@@ -28,10 +28,13 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   isConnected,
   mobileView,
   setMobileView,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   notes: _notes,
   onNavigateToPlayer,
   onOpenEditBalance,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onOpenEditProfile: _onOpenEditProfile,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onOpenNotesDrawer: _onOpenNotesDrawer,
 }: PlayerInfoSidebarProps) {
   const router = useRouter();

@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useRef, useEffect, useCallback, useState, useMemo } from 'react';
+import { memo, useRef, useEffect, useState, useMemo } from 'react';
 import { Input } from '@/components/ui';
 import { PlayerListSkeleton } from '../skeletons';
 import { formatChatTimestamp } from '@/lib/utils/formatters';

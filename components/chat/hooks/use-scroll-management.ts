@@ -117,6 +117,7 @@ export function useScrollManagement({
     const distanceFromBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight;
     return distanceFromBottom <= SCROLL_BOTTOM_THRESHOLD;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Evaluate scroll position and update state
@@ -153,6 +154,7 @@ export function useScrollManagement({
         startCooldown();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkIfAtBottom, clearCooldown, startCooldown]);
 
   //  SMOOTH SCROLL: Smooth animation to target position
@@ -305,8 +307,8 @@ export function useScrollManagement({
     const isNearTop = effectiveScrollTop <= LOAD_THRESHOLD;
     
     // Need more content if: near top AND not enough content above
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     return isNearTop && contentAbove < minContentAbove;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   //  INCREMENTAL LOADING: Load a single batch and check if more is needed
