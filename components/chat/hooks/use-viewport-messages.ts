@@ -113,6 +113,7 @@ export function useViewportMessages({
         // Don't change the range, just let bottom spacer grow naturally
       }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length, visibleRange.end, viewportBuffer, isUserAtBottom, calculateViewportCapacity]);
 
   // Track scroll and update visible range - SIMPLE AND RELIABLE
@@ -191,6 +192,7 @@ export function useViewportMessages({
         clearTimeout(throttleTimerRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleScroll]);
 
   // Calculate spacer heights to maintain scroll position

@@ -1528,7 +1528,6 @@ export default function PlayerDetailPage() {
           playerId={selectedPlayer.id}
           playerUsername={selectedPlayer.username}
           playerGames={games}
-          onGameAdded={() => { }}
           onSubmit={handleAddGame}
           isSubmitting={isAddingGame}
         />

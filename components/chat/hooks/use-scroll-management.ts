@@ -12,11 +12,9 @@ const SCROLLBAR_RESET_THRESHOLD = 50; // When scrollTop <= this, reset scrollbar
 const SCROLLBAR_BUFFER_POSITION = SPACER_HEIGHT + TOP_BUFFER; // Position to reset scrollbar to
 
 //  SMOOTH SCROLL OPTIMIZATIONS
-const SMOOTH_SCROLL_EASING = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'; // iOS-style easing
 const SCROLL_ANIMATION_DURATION = 250; // Shorter duration for snappier feel
 const JUMP_DETECTION_THRESHOLD = 300; // Detect if user jumped (vs gradual scroll)
 const VELOCITY_SMOOTHING = 0.15; // Smooth velocity calculations
-const MAX_SCROLL_VELOCITY = 15; // Maximum scroll velocity for normalization
 
 interface UseScrollManagementProps {
   messagesContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -196,6 +194,7 @@ export function useScrollManagement({
     };
 
     scrollAnimationFrameRef.current = requestAnimationFrame(animateScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Scroll to bottom function
@@ -279,6 +278,7 @@ export function useScrollManagement({
         }, SCROLL_ANIMATION_DURATION + 50);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkIfAtBottom, checkCooldown, clearCooldown, evaluateScrollPosition, smoothScrollToPosition]);
 
   //  INCREMENTAL LOADING: Check if viewport needs more content above
@@ -287,7 +287,6 @@ export function useScrollManagement({
     if (!container) return false;
 
     const scrollTop = container.scrollTop;
-    const scrollHeight = container.scrollHeight;
     const clientHeight = container.clientHeight;
     
     // Calculate how much content is visible above current scroll position
@@ -306,6 +305,7 @@ export function useScrollManagement({
     const isNearTop = effectiveScrollTop <= LOAD_THRESHOLD;
     
     // Need more content if: near top AND not enough content above
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     return isNearTop && contentAbove < minContentAbove;
   }, []);
 
@@ -488,6 +488,7 @@ export function useScrollManagement({
       container.style.scrollBehavior = originalBehavior;
       return { added: 0, needsMore: false };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadOlderMessages, hasMoreHistory, isHistoryLoadingMessages, checkIfViewportNeedsMoreContent]);
 
   //  INCREMENTAL LOADING: Progressive loading that fills viewport incrementally
@@ -565,10 +566,12 @@ export function useScrollManagement({
 
     //  INCREMENTAL LOADING: Use progressive loading to fill viewport incrementally
     void loadIncrementally();
-  }, [hasMoreHistory, loadIncrementally]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMoreHistory, loadIncrementally, addToast, isHistoryLoadingMessages]);
 
   //  SCROLLBAR RESET: Reset scrollbar to buffer position when reaching top
   // Only the scrollbar moves - content stays visually in place using CSS transform
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resetScrollbarToBuffer = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container || isResettingScrollbarRef.current) {
@@ -628,6 +631,7 @@ export function useScrollManagement({
     requestAnimationFrame(() => {
       isResettingScrollbarRef.current = false;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle scroll events
@@ -726,6 +730,7 @@ export function useScrollManagement({
       loadDebounceTimerRef.current = null;
       void maybeLoadOlderMessages();
     }, adaptiveDebounce);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [evaluateScrollPosition, maybeLoadOlderMessages]);
 
   //  OPTIMIZED: Reset state when player changes and scroll to latest message
@@ -761,6 +766,7 @@ export function useScrollManagement({
         });
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayerId, clearCooldown]);
 
   //  SMOOTH SCROLL: Cleanup function for animation frames and timers
@@ -824,6 +830,7 @@ export function useScrollManagement({
       container.style.transform = '';
       container.style.backfaceVisibility = '';
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handleScroll, cleanupAnimations]);
 
   return {

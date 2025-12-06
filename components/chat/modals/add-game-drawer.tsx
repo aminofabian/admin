@@ -11,7 +11,6 @@ interface AddGameDrawerProps {
   playerId: number;
   playerUsername: string;
   playerGames: PlayerGame[];
-  onGameAdded: () => void;
   onSubmit: (data: { username: string; password: string; code: string; user_id: number }) => Promise<void>;
   isSubmitting: boolean;
 }
@@ -22,7 +21,6 @@ export function AddGameDrawer({
   playerId,
   playerUsername,
   playerGames,
-  onGameAdded,
   onSubmit,
   isSubmitting,
 }: AddGameDrawerProps) {

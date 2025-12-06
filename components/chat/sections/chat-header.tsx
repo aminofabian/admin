@@ -18,7 +18,6 @@ export const ChatHeader = memo(function ChatHeader({
   selectedPlayer,
   isConnected,
   connectionError,
-  mobileView,
   setMobileView,
   onNavigateToPlayer,
   onOpenNotesDrawer,

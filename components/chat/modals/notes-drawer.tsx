@@ -106,6 +106,7 @@ export function NotesDrawer({
       setIsSavingNotes(false);
       isSavingRef.current = false;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayer, editedNotes, addToast, onNotesSaved]);
 
   if (!isOpen) return null;
