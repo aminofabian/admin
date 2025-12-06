@@ -1237,9 +1237,12 @@ export function ChatComponent() {
   // Effect to handle query param player selection - runs only when queryPlayerId changes
   useEffect(() => {
     if (!queryPlayerId) {
+      // Only clear processing refs, but KEEP queryParamPlayerRef if player is already selected
+      // This prevents the player from disappearing from the list when URL is cleared
       processedQueryPlayerIdRef.current = null;
       lastSetSearchQueryRef.current = '';
-      queryParamPlayerRef.current = null; // Clear ref when no query param
+      // NOTE: We intentionally do NOT clear queryParamPlayerRef here
+      // The player should remain visible in the list even after URL params are cleared
       return;
     }
 
@@ -1282,11 +1285,13 @@ export function ChatComponent() {
     const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
 
     if (!targetUserId) {
+      if (!IS_PROD) console.log(`⚠️ [Query Param] Invalid targetUserId from queryPlayerId=${queryPlayerId}`);
       return;
     }
 
     // Skip if we've already processed this playerId
     if (processedQueryPlayerIdRef.current === targetUserId) {
+      if (!IS_PROD) console.log(`⏭️ [Query Param] Already processed player ${targetUserId}, skipping`);
       return;
     }
 
