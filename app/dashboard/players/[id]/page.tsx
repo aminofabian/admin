@@ -182,15 +182,14 @@ export default function PlayerDetailPage() {
   const params = useParams();
   const { user } = useAuth();
   const playerId = params?.id ? parseInt(params.id as string, 10) : null;
-
-  // If user is superadmin, render superadmin player detail
-  if (user?.role === USER_ROLES.SUPERADMIN && playerId) {
-    return <SuperAdminPlayerDetail playerId={playerId} />;
-  }
-
   const router = useRouter();
   const { addToast } = useToast();
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS (Rules of Hooks)
+  // Load player games - MUST be called unconditionally
+  const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(playerId);
+
+  // All state hooks must be declared before any conditional returns
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
@@ -210,6 +209,15 @@ export default function PlayerDetailPage() {
   const [balanceData, setBalanceData] = useState<CheckPlayerGameBalanceResponse | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
+  const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
+  const [isDeletingGame, setIsDeletingGame] = useState(false);
+  const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
+  const [isChangingGame, setIsChangingGame] = useState(false);
+  const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
+  const [isAddingGame, setIsAddingGame] = useState(false);
+  const [gameToEdit, setGameToEdit] = useState<PlayerGame | null>(null);
+  const [isEditingGame, setIsEditingGame] = useState(false);
+  const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
   const [editableFields, setEditableFields] = useState<EditableFields>({
     email: '',
     full_name: '',
@@ -226,6 +234,12 @@ export default function PlayerDetailPage() {
   const lastAgentAssignmentTimeRef = useRef<number>(0);
   // Track if we just assigned an agent to prevent unnecessary syncing
   const justAssignedAgentRef = useRef<boolean>(false);
+
+  // If user is superadmin, render superadmin player detail
+  // This must come AFTER all hooks are declared
+  if (user?.role === USER_ROLES.SUPERADMIN && playerId) {
+    return <SuperAdminPlayerDetail playerId={playerId} />;
+  }
 
   // Update document title when player is loaded
   useEffect(() => {
@@ -713,19 +727,6 @@ export default function PlayerDetailPage() {
       router.push(chatUrl);
     }
   }, [selectedPlayer, router]);
-
-  // Load player games - MUST be called before any conditional returns (Rules of Hooks)
-  const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(playerId);
-
-  const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
-  const [isDeletingGame, setIsDeletingGame] = useState(false);
-  const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
-  const [isChangingGame, setIsChangingGame] = useState(false);
-  const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
-  const [isAddingGame, setIsAddingGame] = useState(false);
-  const [gameToEdit, setGameToEdit] = useState<PlayerGame | null>(null);
-  const [isEditingGame, setIsEditingGame] = useState(false);
-  const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
 
   const handleDeleteGame = useCallback(async () => {
     if (!gameToDelete || !selectedPlayer) return;
