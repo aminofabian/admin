@@ -1,18 +1,14 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES } from '@/lib/constants/roles';
-import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
-import { playersApi, agentsApi } from '@/lib/api';
+import { playersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
+import { Badge, Button, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
 import type { UpdateUserRequest, ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
@@ -24,67 +20,19 @@ import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 
 /**
  * Extracts and formats error messages from API errors
- * Handles both field-specific validation errors and general error messages
- * Supports errors in both the 'errors' field and parsed from 'detail' field
  */
 function extractErrorMessage(error: unknown): { title: string; message: string } {
   let errorMessage = 'An error occurred';
   let errorTitle = 'Error';
   
-  // Log the error structure for debugging
-  console.error('🔍 Error extraction - raw error:', error);
-  console.error('🔍 Error type:', typeof error);
-  console.error('🔍 Error instanceof Error:', error instanceof Error);
-  if (error && typeof error === 'object') {
-    console.error('🔍 Error keys:', Object.keys(error));
-    console.error('🔍 Error stringified:', JSON.stringify(error, null, 2));
-  }
-  
   if (error && typeof error === 'object') {
     const errorObj = error as Record<string, unknown>;
-    
-    // Check if the error object itself is a field error map like {"password": ["error"]}
-    // This handles cases where the backend returns the error directly without wrapping
-    // We check if it has field-like keys (not standard error fields) and array/string values
-    const standardErrorFields = ['status', 'message', 'detail', 'error', 'code', 'errors'];
-    const hasStandardFields = standardErrorFields.some(field => field in errorObj);
-    const hasFieldErrors = Object.keys(errorObj).some(key => {
-      const value = errorObj[key];
-      return (Array.isArray(value) && value.length > 0) || (typeof value === 'string' && value);
-    });
-    
-    // If it has field errors but no standard error fields, treat it as a direct field error object
-    if (hasFieldErrors && !hasStandardFields) {
-      console.log('🔍 Detected direct field error object');
-      const errorMessages: string[] = [];
-      Object.entries(errorObj).forEach(([field, messages]) => {
-        if (Array.isArray(messages) && messages.length > 0) {
-          const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
-        } else if (typeof messages === 'string' && messages) {
-          const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          errorMessages.push(`${fieldName}: ${messages}`);
-        }
-      });
-      
-      if (errorMessages.length > 0) {
-        errorMessage = errorMessages.join('; ');
-        errorTitle = 'Validation failed';
-        console.log('🔍 Extracted field errors:', errorMessage);
-        return { title: errorTitle, message: errorMessage };
-      }
-    }
-    
-    // Try as ApiError structure
     const apiError = error as ApiError;
     
-    // First, check for field-specific errors in the 'errors' field
-    const fieldErrors = apiError.errors;
-    if (fieldErrors && typeof fieldErrors === 'object') {
+    if (apiError.errors && typeof apiError.errors === 'object') {
       const errorMessages: string[] = [];
-      Object.entries(fieldErrors).forEach(([field, messages]) => {
+      Object.entries(apiError.errors).forEach(([field, messages]) => {
         if (Array.isArray(messages) && messages.length > 0) {
-          // Capitalize field name and join messages
           const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
         }
@@ -97,72 +45,16 @@ function extractErrorMessage(error: unknown): { title: string; message: string }
       }
     }
     
-    // Check if 'detail' contains a JSON object with field errors
-    if (apiError.detail) {
-      if (typeof apiError.detail === 'string') {
-        try {
-          const parsedDetail = JSON.parse(apiError.detail);
-          if (parsedDetail && typeof parsedDetail === 'object' && !Array.isArray(parsedDetail)) {
-            // Check if it's a field error object like {"password": ["error message"]}
-            const errorMessages: string[] = [];
-            Object.entries(parsedDetail).forEach(([field, messages]) => {
-              if (Array.isArray(messages) && messages.length > 0) {
-                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
-              } else if (typeof messages === 'string') {
-                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                errorMessages.push(`${fieldName}: ${messages}`);
-              }
-            });
-            
-            if (errorMessages.length > 0) {
-              errorMessage = errorMessages.join('; ');
-              errorTitle = 'Validation failed';
-              return { title: errorTitle, message: errorMessage };
-            }
-          }
-        } catch {
-          // detail is not JSON, treat it as a plain string message
-          if (apiError.detail) {
-            errorMessage = apiError.detail;
-          }
-        }
-      } else if (typeof apiError.detail === 'object' && !Array.isArray(apiError.detail)) {
-        // detail might be an object directly
-        const errorMessages: string[] = [];
-        Object.entries(apiError.detail as Record<string, unknown>).forEach(([field, messages]) => {
-          if (Array.isArray(messages) && messages.length > 0) {
-            const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
-          } else if (typeof messages === 'string') {
-            const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            errorMessages.push(`${fieldName}: ${messages}`);
-          }
-        });
-        
-        if (errorMessages.length > 0) {
-          errorMessage = errorMessages.join('; ');
-          errorTitle = 'Validation failed';
-          return { title: errorTitle, message: errorMessage };
-        }
-      }
-    }
-    
-    // Fall back to message or detail fields
-    if (apiError.message) {
-      errorMessage = apiError.message;
-    } else if (apiError.detail && typeof apiError.detail === 'string') {
+    if (apiError.detail && typeof apiError.detail === 'string') {
       errorMessage = apiError.detail;
-    } else if (apiError.error) {
-      errorMessage = apiError.error;
+    } else if (apiError.message) {
+      errorMessage = apiError.message;
     }
   } else if (error instanceof Error) {
     errorMessage = error.message;
   } else if (typeof error === 'string') {
     errorMessage = error;
   }
-  
-  console.error('🔍 Extracted error:', { title: errorTitle, message: errorMessage });
   
   return { title: errorTitle, message: errorMessage };
 }
@@ -178,30 +70,19 @@ interface EditableFields {
   is_active: boolean;
 }
 
-export default function PlayerDetailPage() {
-  const params = useParams();
-  const { user } = useAuth();
-  const playerId = params?.id ? parseInt(params.id as string, 10) : null;
+interface SuperAdminPlayerDetailProps {
+  playerId: number;
+}
 
-  // If user is superadmin, render superadmin player detail
-  if (user?.role === USER_ROLES.SUPERADMIN && playerId) {
-    return <SuperAdminPlayerDetail playerId={playerId} />;
-  }
-
+export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps) {
   const router = useRouter();
   const { addToast } = useToast();
-
+  
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isAssigningAgent, setIsAssigningAgent] = useState(false);
-  const [isRemovingAgent, setIsRemovingAgent] = useState(false);
-  const [showRemoveAgentModal, setShowRemoveAgentModal] = useState(false);
-  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
-  const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
-  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -221,167 +102,16 @@ export default function PlayerDetailPage() {
     is_active: true,
   });
 
-  // Track last agent assignment time to prevent immediate data overwrite
-  // Use ref instead of state to avoid triggering re-renders
-  const lastAgentAssignmentTimeRef = useRef<number>(0);
-  // Track if we just assigned an agent to prevent unnecessary syncing
-  const justAssignedAgentRef = useRef<boolean>(false);
-
-  // Update document title when player is loaded
-  useEffect(() => {
-    console.log('📝 Title useEffect fired:', selectedPlayer?.username);
-    if (selectedPlayer) {
-      document.title = `${selectedPlayer.username} - Player Details`;
-    } else {
-      document.title = 'Player Details';
-    }
-  }, [selectedPlayer]);
-
-  // Load agents for dropdown
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadAgents = async () => {
-      setIsLoadingAgents(true);
-      try {
-        const aggregated: Array<{ id: number; username: string }> = [];
-        const pageSize = 100;
-        let page = 1;
-        let hasNext = true;
-
-        while (hasNext) {
-          const response = await agentsApi.list({ page, page_size: pageSize });
-
-          if (!response?.results) {
-            break;
-          }
-
-          aggregated.push(...response.results);
-
-          if (!response.next) {
-            hasNext = false;
-          } else {
-            page += 1;
-          }
-
-          if (!hasNext) {
-            break;
-          }
-        }
-
-        if (!isMounted) {
-          return;
-        }
-
-        const mappedOptions = aggregated
-          .filter((agent) => agent?.username)
-          .map((agent) => ({
-            value: String(agent.id),
-            label: agent.username,
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
-
-        setAgentOptions(mappedOptions);
-      } catch (error) {
-        console.error('Failed to load agents:', error);
-      } finally {
-        if (isMounted) {
-          setIsLoadingAgents(false);
-        }
-      }
-    };
-
-    loadAgents();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Set selected agent when player or agents list changes
-  // Skip sync if we just assigned an agent (to prevent unnecessary updates)
-  useEffect(() => {
-    // If we just assigned an agent, skip this sync (flag will be cleared by timeout)
-    if (justAssignedAgentRef.current) {
-      return;
-    }
-
-    console.log('🔄 useEffect for selectedAgentId fired', {
-      agentId: selectedPlayer?.agent_id,
-      agentOptionsLength: agentOptions.length,
-      currentSelectedAgentId: selectedAgentId
-    });
-
-    if (selectedPlayer?.agent_id && agentOptions.length > 0) {
-      const agentExists = agentOptions.some((opt) => opt.value === String(selectedPlayer.agent_id));
-      if (agentExists && selectedAgentId !== String(selectedPlayer.agent_id)) {
-        console.log('🎯 Updating selectedAgentId to:', selectedPlayer.agent_id);
-        setSelectedAgentId(String(selectedPlayer.agent_id));
-      }
-    }
-  }, [selectedPlayer?.agent_id, agentOptions, selectedAgentId]);
-
   // Load player data
   useEffect(() => {
-    console.log('🔄 Player data useEffect called', { playerId });
-
-    if (!playerId || isNaN(playerId)) {
-      setError('Invalid player ID');
-      setIsLoadingPlayer(false);
-      return;
-    }
-
-    // Skip loading if we just assigned an agent (to prevent reload)
-    // Check both the flag and the time since assignment
-    const now = Date.now();
-    const timeSinceAssignment = now - lastAgentAssignmentTimeRef.current;
-    const shouldSkip = justAssignedAgentRef.current || timeSinceAssignment < 5000;
-
-    if (shouldSkip) {
-      console.log('⏭️ Skipping player data load - agent just assigned', {
-        justAssigned: justAssignedAgentRef.current,
-        timeSinceAssignment,
-      });
-      return;
-    }
-
     const loadPlayer = async () => {
       try {
         setIsLoadingPlayer(true);
         setError(null);
 
-        // Fetch player using the detail endpoint
         const player = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(playerId));
 
-        // Only update player data if we don't have newer local agent assignment data
-        setSelectedPlayer((prev) => {
-          const now = Date.now();
-          const timeSinceAssignment = now - lastAgentAssignmentTimeRef.current;
-
-          // If we had a recent agent assignment (within 5 seconds), preserve local data
-          if (timeSinceAssignment < 5000 && prev?.agent_id && !player.agent_id) {
-            console.log('⚠️ Preserving local agent assignment data (recent assignment)');
-            return {
-              ...player,
-              agent_id: prev.agent_id,
-              agent: prev.agent,
-              agent_username: prev.agent_username,
-            };
-          }
-
-          // If we have existing player data with agent assignment and API doesn't have it, preserve local data
-          if (prev?.agent_id && !player.agent_id) {
-            console.log('⚠️ Preserving local agent assignment data');
-            return {
-              ...player,
-              agent_id: prev.agent_id,
-              agent: prev.agent,
-              agent_username: prev.agent_username,
-            };
-          }
-
-          return player;
-        });
+        setSelectedPlayer(player);
         setEditableFields({
           email: player.email || '',
           full_name: player.full_name || '',
@@ -397,17 +127,13 @@ export default function PlayerDetailPage() {
         setIsLoadingDetails(true);
         try {
           const details = await playersApi.viewDetails(player.id);
-          setSelectedPlayer((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              total_purchases: details.total_purchases,
-              total_cashouts: details.total_cashouts,
-              total_transfers: details.total_transfers,
-            };
-          });
+          setSelectedPlayer((prev) => ({
+            ...prev!,
+            total_purchases: details.total_purchases,
+            total_cashouts: details.total_cashouts,
+            total_transfers: details.total_transfers,
+          }));
         } catch (error) {
-          console.error('Failed to load player details:', error);
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           if (!errorMessage.includes('timeout')) {
             addToast({
@@ -433,14 +159,11 @@ export default function PlayerDetailPage() {
     };
 
     void loadPlayer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerId]); // addToast is stable from context, no need to include in deps
-
+  }, [playerId, addToast]);
 
   const handleSave = useCallback(async () => {
     if (!selectedPlayer) return;
 
-    // Validate password if provided
     if (editableFields.password.trim()) {
       if (editableFields.password !== editableFields.confirm_password) {
         addToast({
@@ -461,7 +184,6 @@ export default function PlayerDetailPage() {
         dob: editableFields.dob.trim() || undefined,
         state: editableFields.state.trim() || undefined,
         is_active: editableFields.is_active,
-        // Only include password if it's not empty
         ...(editableFields.password.trim()
           ? {
             password: editableFields.password.trim(),
@@ -473,7 +195,6 @@ export default function PlayerDetailPage() {
 
       await playersApi.update(selectedPlayer.id, updateData);
 
-      // Refresh player data
       const updatedPlayer = {
         ...selectedPlayer,
         email: editableFields.email.trim() || selectedPlayer.email,
@@ -492,7 +213,6 @@ export default function PlayerDetailPage() {
       });
 
       setIsEditDrawerOpen(false);
-      // Reset password fields after save
       setEditableFields(prev => ({ ...prev, password: '', confirm_password: '' }));
     } catch (error) {
       const { title, message } = extractErrorMessage(error);
@@ -500,150 +220,12 @@ export default function PlayerDetailPage() {
         type: 'error',
         title: title || 'Update failed',
         description: message || 'Failed to update player',
-        duration: 8000, // Show longer for validation errors
+        duration: 8000,
       });
     } finally {
       setIsSaving(false);
     }
   }, [selectedPlayer, editableFields, addToast]);
-
-  const handleAssignAgent = useCallback(async () => {
-    console.log('🎯 handleAssignAgent called');
-    if (!selectedPlayer || !selectedAgentId) {
-      addToast({
-        type: 'error',
-        title: 'Invalid input',
-        description: 'Please select an agent.',
-      });
-      return;
-    }
-
-    setIsAssigningAgent(true);
-    try {
-      // Find the agent in options to get username
-      const selectedAgent = agentOptions.find((opt) => opt.value === selectedAgentId);
-
-      if (!selectedAgent) {
-        throw new Error('Selected agent not found');
-      }
-
-      console.log('📤 Calling assign-player-to-agent API');
-      // Use the new assign-player-to-agent endpoint
-      const response = await playersApi.assignToAgent({
-        player_id: selectedPlayer.id,
-        agent_username: selectedAgent.label,
-      });
-
-      console.log('📦 API response received:', response);
-
-      // Record the time of agent assignment (using ref to avoid triggering re-renders)
-      const assignmentTime = Date.now();
-      lastAgentAssignmentTimeRef.current = assignmentTime;
-      // Mark that we just assigned an agent to prevent unnecessary syncing and reloads
-      justAssignedAgentRef.current = true;
-
-      // Clear the flag after 5 seconds to allow normal operations to resume
-      // This prevents the player data loading useEffect from running for 5 seconds
-      setTimeout(() => {
-        justAssignedAgentRef.current = false;
-      }, 5000);
-
-      // Update local state with response data (minimal update to avoid unnecessary re-renders)
-      console.log('🔄 Updating selectedPlayer state');
-      const agent_id = response.data.agent_id;
-      const agent_username = response.data.agent_username;
-
-      setSelectedPlayer((prev) => {
-        if (!prev) return prev;
-
-        // Only update if values actually changed
-        if (prev.agent_id === agent_id && prev.agent_username === agent_username) {
-          console.log('⚠️ No changes needed to selectedPlayer');
-          return prev;
-        }
-
-        console.log('✅ Updating selectedPlayer with new agent data');
-        return {
-          ...prev,
-          agent_id,
-          agent: {
-            id: agent_id,
-            username: agent_username,
-          },
-          agent_username,
-        };
-      });
-
-      // Ensure selectedAgentId stays in sync with what we just assigned
-      // This prevents the useEffect from trying to sync it later
-      if (selectedAgentId !== String(agent_id)) {
-        setSelectedAgentId(String(agent_id));
-      }
-
-      addToast({
-        type: 'success',
-        title: 'Agent assigned',
-        description: response.message || `Player "${response.data.player_username}" has been assigned to agent "${response.data.agent_username}".`,
-      });
-    } catch (error) {
-      console.error('❌ Agent assignment failed:', error);
-      const { title, message } = extractErrorMessage(error);
-      addToast({
-        type: 'error',
-        title: title || 'Assignment failed',
-        description: message || 'Failed to assign agent',
-        duration: 8000,
-      });
-    } finally {
-      setIsAssigningAgent(false);
-      console.log('✅ handleAssignAgent completed');
-    }
-  }, [selectedPlayer, selectedAgentId, agentOptions, addToast]);
-
-  const handleRemoveAgent = useCallback(async () => {
-    if (!selectedPlayer) return;
-
-    setIsRemovingAgent(true);
-    try {
-      // Remove agent by setting agent_id to null
-      // TypeScript doesn't allow null for optional number, but API accepts it
-      await playersApi.update(selectedPlayer.id, {
-        agent_id: null as unknown as number | undefined,
-      });
-
-      // Update local state to remove agent information
-      setSelectedPlayer((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          agent_id: undefined,
-          agent: undefined,
-          agent_username: undefined,
-        };
-      });
-
-      // Clear the selected agent ID
-      setSelectedAgentId('');
-
-      addToast({
-        type: 'success',
-        title: 'Agent removed',
-        description: `Player "${selectedPlayer.username}" has been moved to company and is no longer assigned to an agent.`,
-      });
-
-      setShowRemoveAgentModal(false);
-    } catch (error) {
-      const { title, message } = extractErrorMessage(error);
-      addToast({
-        type: 'error',
-        title: title || 'Remove failed',
-        description: message || 'Failed to remove agent',
-        duration: 8000,
-      });
-    } finally {
-      setIsRemovingAgent(false);
-    }
-  }, [selectedPlayer, addToast]);
 
   const handleDeactivate = useCallback(async () => {
     if (!selectedPlayer) return;
@@ -681,25 +263,17 @@ export default function PlayerDetailPage() {
 
   const handleViewTransactions = useCallback(() => {
     if (!selectedPlayer) return;
-
-    // Set filter in transactions store
     const transactionsStore = useTransactionsStore.getState();
     transactionsStore.setFilterWithoutFetch('history');
     transactionsStore.setAdvancedFiltersWithoutFetch({ username: selectedPlayer.username });
-
-    // Navigate with preserveFilters flag to indicate filters should be preserved
     router.push('/dashboard/history/transactions?preserveFilters=true');
   }, [selectedPlayer, router]);
 
   const handleViewGameActivities = useCallback(() => {
     if (!selectedPlayer) return;
-
-    // Set filter in transaction queues store
     const queuesStore = useTransactionQueuesStore.getState();
     queuesStore.setFilterWithoutFetch('history');
     queuesStore.setAdvancedFiltersWithoutFetch({ username: selectedPlayer.username });
-
-    // Navigate with preserveFilters flag to indicate filters should be preserved
     router.push('/dashboard/history/game-activities?preserveFilters=true');
   }, [selectedPlayer, router]);
 
@@ -714,7 +288,7 @@ export default function PlayerDetailPage() {
     }
   }, [selectedPlayer, router]);
 
-  // Load player games - MUST be called before any conditional returns (Rules of Hooks)
+  // Load player games
   const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(playerId);
 
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
@@ -729,7 +303,6 @@ export default function PlayerDetailPage() {
 
   const handleDeleteGame = useCallback(async () => {
     if (!gameToDelete || !selectedPlayer) return;
-
     setIsDeletingGame(true);
     try {
       await playersApi.deleteGame(gameToDelete.id);
@@ -754,11 +327,8 @@ export default function PlayerDetailPage() {
 
   const handleChangeGame = useCallback(async () => {
     if (!gameToChange) return;
-
     setIsChangingGame(true);
     try {
-      // Toggle the game status
-      // API requires username, so we send the current username along with status
       const newStatus = gameToChange.status === 'active' ? 'inactive' : 'active';
       await playersApi.updateGame(gameToChange.id, {
         username: gameToChange.username,
@@ -783,26 +353,20 @@ export default function PlayerDetailPage() {
     }
   }, [gameToChange, refreshGames, addToast]);
 
-
   const handleOpenAddGame = useCallback(() => {
     setIsAddGameDrawerOpen(true);
   }, []);
 
   const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
-    if (!selectedPlayer || isAddingGame) {
-      return;
-    }
-
+    if (!selectedPlayer || isAddingGame) return;
     setIsAddingGame(true);
     try {
       const result = await playersApi.createGame(data);
-
       addToast({
         type: 'success',
         title: 'Game added successfully',
         description: `${result.game_name} account created for ${result.username}`,
       });
-
       setIsAddGameDrawerOpen(false);
       await refreshGames();
     } catch (error) {
@@ -818,23 +382,18 @@ export default function PlayerDetailPage() {
   }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
 
   const handleEditGame = useCallback(async (data: { username: string; password: string }) => {
-    if (!gameToEdit || isEditingGame) {
-      return;
-    }
-
+    if (!gameToEdit || isEditingGame) return;
     setIsEditingGame(true);
     try {
       await playersApi.updateGame(gameToEdit.id, {
         username: data.username,
         password: data.password,
       });
-
       addToast({
         type: 'success',
         title: 'Game updated',
         description: `"${gameToEdit.game__title}" credentials have been updated successfully.`,
       });
-
       setIsEditGameDrawerOpen(false);
       setGameToEdit(null);
       await refreshGames();
@@ -875,7 +434,7 @@ export default function PlayerDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header - Ultra Compact Mobile App Style */}
+      {/* Header */}
       <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm dark:border-gray-800 dark:bg-gray-900/95 safe-area-top">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex items-center gap-2 py-2 sm:py-2.5 md:py-3 lg:py-4">
@@ -884,18 +443,8 @@ export default function PlayerDetailPage() {
               className="p-1.5 -ml-1.5 sm:p-2 sm:-ml-2 text-gray-500 transition-colors active:bg-gray-100 active:text-gray-700 dark:text-gray-400 dark:active:bg-gray-800 dark:active:text-gray-200 rounded-lg touch-manipulation"
               aria-label="Back"
             >
-              <svg
-                className="h-5 w-5 sm:h-6 sm:w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
+              <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 flex-1 min-w-0">
@@ -951,11 +500,11 @@ export default function PlayerDetailPage() {
         </div>
       </div>
 
-      {/* Full Width Content - Mobile App Style */}
+      {/* Content */}
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6 pb-safe">
-        {/* Hero Stats Banner - Ultra Compact on mobile */}
+        {/* Hero Stats Banner */}
         <div className="mb-3 sm:mb-4 md:mb-6 bg-gray-100 dark:bg-gray-900 p-2 sm:p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:grid-cols-3">
             <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
                 <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
@@ -1002,32 +551,14 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Agent</p>
-                  <p className="mt-0.5 text-[10px] sm:text-xs md:text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                    {selectedPlayer.agent_username ||
-                      (selectedPlayer.agent && typeof selectedPlayer.agent === 'object' && 'username' in selectedPlayer.agent
-                        ? selectedPlayer.agent.username
-                        : 'Not assigned')}
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Three Column Grid Layout - Mobile First */}
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-3">
-          {/* Column 1: Quick Actions, Personal Information & Account Details - Show first on mobile */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-1 lg:order-1">
-            {/* Quick Actions Card - Mobile App Style */}
+        {/* Two Column Grid Layout */}
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-2">
+          {/* Column 1: Quick Actions & Personal Information */}
+          <div className="space-y-3 sm:space-y-4 md:space-y-6">
+            {/* Quick Actions Card */}
             <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
               <div className="mb-3 sm:mb-4 flex items-center gap-2">
                 <div className="flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md rounded">
@@ -1062,67 +593,6 @@ export default function PlayerDetailPage() {
               </div>
             </section>
 
-            {/* Agent Assignment Card - Show below Quick Actions on mobile */}
-            <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg lg:hidden">
-              <div className="mb-3 sm:mb-4 md:mb-5 flex items-center gap-2 sm:gap-3">
-                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                </div>
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
-              </div>
-              <div className="space-y-3 sm:space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="flex-1">
-                    <Select
-                      value={selectedAgentId}
-                      onChange={(value: string) => setSelectedAgentId(value)}
-                      options={agentOptions}
-                      placeholder={selectedPlayer.agent_username || 'Select an agent'}
-                      isLoading={isLoadingAgents}
-                      disabled={isLoadingAgents}
-                      className="w-full"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleAssignAgent();
-                      }}
-                      isLoading={isAssigningAgent}
-                      disabled={!selectedAgentId || isLoadingAgents}
-                      variant="primary"
-                      className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 touch-manipulation"
-                    >
-                      <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Assign
-                    </Button>
-                    {selectedPlayer.agent_username && (
-                      <Button
-                        type="button"
-                        onClick={() => setShowRemoveAgentModal(true)}
-                        isLoading={isRemovingAgent}
-                        disabled={isRemovingAgent}
-                        variant="danger"
-                        className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 touch-manipulation"
-                      >
-                        <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
-
             {/* Personal Information Card */}
             <section className="border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
               <div className="mb-2 sm:mb-3 flex items-center gap-2">
@@ -1154,70 +624,12 @@ export default function PlayerDetailPage() {
                   <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Phone</p>
                   <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.mobile_number || '—'}</p>
                 </div>
-              </div>
-            </section>
-          </div>
-
-          {/* Column 2: Agent Assignment & Transaction Summary - Show second on mobile */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-2 lg:order-2">
-            {/* Agent Assignment Card - Desktop only */}
-            <section className="hidden lg:block border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Agent Assignment</h2>
-              </div>
-              <div className="space-y-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="flex-1">
-                    <Select
-                      value={selectedAgentId}
-                      onChange={(value: string) => setSelectedAgentId(value)}
-                      options={agentOptions}
-                      placeholder={selectedPlayer.agent_username || 'Select an agent'}
-                      isLoading={isLoadingAgents}
-                      disabled={isLoadingAgents}
-                      className="w-full"
-                    />
+                {selectedPlayer.company_username && (
+                  <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
+                    <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Company</p>
+                    <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.company_username}</p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleAssignAgent();
-                      }}
-                      isLoading={isAssigningAgent}
-                      disabled={!selectedAgentId || isLoadingAgents}
-                      variant="primary"
-                      className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
-                    >
-                      <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Assign
-                    </Button>
-                    {selectedPlayer.agent_username && (
-                      <Button
-                        type="button"
-                        onClick={() => setShowRemoveAgentModal(true)}
-                        isLoading={isRemovingAgent}
-                        disabled={isRemovingAgent}
-                        variant="danger"
-                        className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50"
-                      >
-                        <svg className="h-3.5 w-3.5 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
             </section>
 
@@ -1287,8 +699,8 @@ export default function PlayerDetailPage() {
             </section>
           </div>
 
-          {/* Column 3: Player Games - Show third on mobile */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-3 lg:order-3">
+          {/* Column 2: Player Games */}
+          <div className="space-y-3 sm:space-y-4 md:space-y-6">
             {/* Player Games Card */}
             <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
               <div className="mb-4 sm:mb-5 flex items-center justify-between">
@@ -1343,7 +755,6 @@ export default function PlayerDetailPage() {
                       key={game.id}
                       className="group border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm transition-all hover:shadow-md hover:border-gray-300 dark:border-gray-700 dark:from-gray-800 dark:to-gray-900 dark:hover:border-gray-600"
                     >
-                      {/* Top Section: Title, Username, and Status */}
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <h3 className="mb-1 truncate text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -1362,12 +773,9 @@ export default function PlayerDetailPage() {
                         </div>
                       </div>
 
-                      {/* Divider */}
                       <div className="my-3 border-t border-gray-200 dark:border-gray-700" />
 
-                      {/* Bottom Section: Balance and Actions */}
                       <div className="flex items-center justify-between gap-3">
-                        {/* Balance Button */}
                         <Button
                           size="sm"
                           variant="primary"
@@ -1401,7 +809,6 @@ export default function PlayerDetailPage() {
                           Balance
                         </Button>
 
-                        {/* Three-dot Menu */}
                         <div className="shrink-0 ml-auto">
                           <DropdownMenu
                             trigger={
@@ -1470,17 +877,6 @@ export default function PlayerDetailPage() {
         isLoading={isDeactivating}
       />
 
-      <ConfirmModal
-        isOpen={showRemoveAgentModal}
-        onClose={() => setShowRemoveAgentModal(false)}
-        onConfirm={handleRemoveAgent}
-        title="Remove Agent"
-        description={`Are you sure you want to remove agent "${selectedPlayer.agent_username}" from player "${selectedPlayer.username}"? This will move the player under the company and they will no longer be assigned to an agent.`}
-        confirmText="Remove Agent"
-        variant="warning"
-        isLoading={isRemovingAgent}
-      />
-
       <PlayerGameBalanceModal
         isOpen={isBalanceModalOpen}
         onClose={() => {
@@ -1518,7 +914,6 @@ export default function PlayerDetailPage() {
         isLoading={isChangingGame}
       />
 
-
       {selectedPlayer && (
         <AddGameDrawer
           isOpen={isAddGameDrawerOpen}
@@ -1535,13 +930,10 @@ export default function PlayerDetailPage() {
       {/* Edit Game Drawer */}
       {gameToEdit && (
         <div className={`fixed inset-0 z-[60] overflow-hidden transition-opacity duration-300 ${isEditGameDrawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => !isEditingGame && setIsEditGameDrawerOpen(false)}
           />
-
-          {/* Drawer Panel */}
           <div
             className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-md bg-card border-l border-border shadow-2xl transition-transform duration-300 ease-in-out transform ${isEditGameDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
           >
@@ -1594,11 +986,7 @@ function EditGameDrawerContent({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.username || !formData.password) {
-      return;
-    }
-
+    if (!formData.username || !formData.password) return;
     await onSubmit({
       username: formData.username,
       password: formData.password,
@@ -1607,7 +995,6 @@ function EditGameDrawerContent({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Drawer Header */}
       <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">Edit Game</h2>
         <button
@@ -1621,10 +1008,8 @@ function EditGameDrawerContent({
         </button>
       </div>
 
-      {/* Drawer Body */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24 md:pb-6">
         <form id="edit-game-form" onSubmit={handleSubmit} className="space-y-4">
-          {/* Game Info */}
           <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <div className="flex items-start gap-2">
               <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1639,7 +1024,6 @@ function EditGameDrawerContent({
             </div>
           </div>
 
-          {/* Username */}
           <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
               Game Username <span className="text-red-500">*</span>
@@ -1658,7 +1042,6 @@ function EditGameDrawerContent({
             </p>
           </div>
 
-          {/* Password */}
           <div>
             <label className="block text-sm font-semibold text-foreground mb-2">
               Game Password <span className="text-red-500">*</span>
@@ -1679,7 +1062,6 @@ function EditGameDrawerContent({
         </form>
       </div>
 
-      {/* Sticky Footer with Submit Button */}
       <div className="sticky bottom-0 z-10 bg-card border-t border-border px-6 py-4 shadow-lg">
         <Button
           type="submit"

@@ -5,3 +5,4 @@ export { SuperAdminPaymentSettings } from './superadmin-payment-settings';
 export { SuperAdminHistoryTransactions } from './superadmin-history-transactions';
 export { SuperAdminHistoryGameActivities } from './superadmin-history-game-activities';
 export { SuperAdminPlayersSection } from './superadmin-players-section';
+export { SuperAdminPlayerDetail } from './superadmin-player-detail';
