@@ -25,15 +25,6 @@ export interface HistoryGameActivitiesFiltersState {
 
 type HistoryGameActivitiesFilterKey = keyof HistoryGameActivitiesFiltersState;
 
-
-const QUEUE_TYPE_OPTIONS: Array<{ value: QueueFilterOption; label: string }> = [
-  { value: 'history', label: 'History' },
-  { value: 'processing', label: 'Processing' },
-  { value: 'recharge_game', label: 'Recharge' },
-  { value: 'redeem_game', label: 'Redeem' },
-  { value: 'add_user_game', label: 'Add User' },
-];
-
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: '', label: 'All Statuses' },
   { value: 'completed', label: 'Completed' },

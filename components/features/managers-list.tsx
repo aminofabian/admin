@@ -200,6 +200,7 @@ export function ManagersList() {
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleResetPassword = (manager: Manager) => {
     setPasswordResetModal({
       isOpen: true,
@@ -242,6 +243,7 @@ export function ManagersList() {
     setPasswordResetModal({ isOpen: false, manager: null, isLoading: false });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleToggleStatus = (manager: Manager) => {
     setConfirmModal({
       isOpen: true,

@@ -321,7 +321,6 @@ function usePlayersPageContext(): PlayersPageContext {
 
       return () => clearTimeout(timeoutId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentFromUrl, pathname]);
 
   const dataState = usePlayersData({
@@ -578,6 +577,7 @@ function usePlayerFilters(
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function usePlayerModals(refresh: () => Promise<void>): {
   cancelConfirm: () => void;
   clearSuccessMessage: () => void;
@@ -590,6 +590,7 @@ function usePlayerModals(refresh: () => Promise<void>): {
   setSuccessMessage: (message: string) => void;
   state: ModalState;
 } {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const toast = useToast();
   const initialState: ModalState = useMemo(
     () => ({
@@ -1110,6 +1111,7 @@ type PlayersTableRowProps = {
 };
 
 function PlayersTableRow({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onOpenChat,
   onViewPlayer,
   player,

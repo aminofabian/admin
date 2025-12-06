@@ -37,7 +37,6 @@ export function FirstPurchaseBonusForm({
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isBonusFocused, setIsBonusFocused] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -177,8 +176,6 @@ export function FirstPurchaseBonusForm({
                 id="bonus"
                 value={bonusDisplay}
                 onChange={(e) => handleInputChange('bonus', e.target.value)}
-                onFocus={() => setIsBonusFocused(true)}
-                onBlur={() => setIsBonusFocused(false)}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-800 dark:border-gray-600 dark:text-white transition-colors ${
                   errors.bonus ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
                 }`}

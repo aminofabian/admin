@@ -21,6 +21,7 @@ export function LivePlayersWidget({ stats, statsLoading }: LivePlayersWidgetProp
   const {
     activeGamesCount,
     totalGamesCount,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     recentActivity,
     isLoading: gamesLoading,
     error: gamesError

@@ -594,7 +594,8 @@ export function TransactionsSection() {
 
   const handleApplyAdvancedFilters = useCallback(() => {
     const sanitized = Object.fromEntries(
-      Object.entries(filters).filter(([/* eslint-disable-next-line @typescript-eslint/no-unused-vars */, value]) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      Object.entries(filters).filter(([, value]) => {
         if (typeof value === 'string') {
           return value.trim() !== '';
         }
