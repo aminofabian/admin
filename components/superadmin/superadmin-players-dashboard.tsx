@@ -8,7 +8,6 @@ import { usePagination } from '@/lib/hooks';
 import {
   Badge,
   Button,
-  Drawer,
   Pagination,
   Table,
   TableBody,
@@ -16,40 +15,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  useToast,
   Skeleton,
   Select,
 } from '@/components/ui';
 import {
   EmptyState,
   ErrorState,
-  PlayerForm,
 } from '@/components/features';
 import { PlayersFilters, type PlayersFiltersState } from '@/components/dashboard/players/players-filters';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
   Company,
-  CreatePlayerRequest,
   PaginatedResponse,
   Player,
-  UpdateUserRequest,
 } from '@/types';
 
 type SuperAdminFilterState = PlayersFiltersState & {
   company: string;
-};
-
-type ModalState = {
-  confirm: {
-    isLoading: boolean;
-    isOpen: boolean;
-    player: Player | null;
-  };
-  isCreateOpen: boolean;
-  isSubmitting: boolean;
-  submitError: string;
-  successMessage: string;
 };
 
 type PlayersDataState = {
@@ -59,10 +42,8 @@ type PlayersDataState = {
 };
 
 type SuperAdminPlayersPageContext = {
-  creationHandlers: ReturnType<typeof usePlayerCreation>;
   dataState: ReturnType<typeof useSuperAdminPlayersData>;
   filters: ReturnType<typeof useSuperAdminPlayerFilters>;
-  modalState: ReturnType<typeof usePlayerModals>;
   pagination: ReturnType<typeof usePagination>;
   router: ReturnType<typeof useRouter>;
   agentOptions: Array<{ value: string; label: string }>;
@@ -73,10 +54,8 @@ type SuperAdminPlayersPageContext = {
 
 export default function SuperAdminPlayersDashboard(): ReactElement {
   const {
-    creationHandlers,
     dataState,
     filters,
-    modalState,
     pagination,
     router,
     agentOptions,
@@ -97,7 +76,6 @@ export default function SuperAdminPlayersDashboard(): ReactElement {
               <Skeleton className="h-4 w-24" />
             </div>
             <div className="flex-1 min-w-0" />
-            <Skeleton className="h-9 w-24 sm:w-32 rounded-md shrink-0" />
           </div>
         </div>
 
@@ -171,14 +149,8 @@ export default function SuperAdminPlayersDashboard(): ReactElement {
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
       <PlayersHeader
-        onAddPlayer={modalState.openCreateModal}
         totalCount={dataState.data?.count ?? 0}
       />
-      {modalState.state.successMessage && (
-        <div className="mb-4">
-          <SuccessBanner message={modalState.state.successMessage} onDismiss={modalState.clearSuccessMessage} />
-        </div>
-      )}
       <SuperAdminPlayersFiltersWrapper
         filters={filters.values}
         onFilterChange={filters.setFilter}
@@ -201,13 +173,6 @@ export default function SuperAdminPlayersDashboard(): ReactElement {
         onViewPlayer={(player) => router.push(`/dashboard/players/${player.id}`)}
         page={pagination.page}
         pageSize={pagination.pageSize}
-      />
-      <CreatePlayerDrawer
-        isOpen={modalState.state.isCreateOpen}
-        isSubmitting={modalState.state.isSubmitting}
-        onClose={modalState.closeCreateModal}
-        onSubmit={creationHandlers.handleSubmit}
-        submitError={modalState.state.submitError}
       />
     </div>
   );
@@ -368,25 +333,10 @@ function useSuperAdminPlayersPageContext(): SuperAdminPlayersPageContext {
     filters: filters.appliedFilters,
     pagination,
   });
-  const modalState = usePlayerModals(dataState.refresh);
-  const creationHandlers = usePlayerCreation({
-    closeCreateModal: modalState.closeCreateModal,
-    refresh: dataState.refresh,
-    setSubmitting: modalState.setSubmitting,
-    setSubmitError: modalState.setSubmitError,
-    setSuccessMessage: modalState.setSuccessMessage,
-  });
-
-  useSuccessMessageTimer(
-    modalState.state.successMessage,
-    modalState.clearSuccessMessage,
-  );
 
   return {
-    creationHandlers,
     dataState,
     filters,
-    modalState,
     pagination,
     router,
     agentOptions,
@@ -620,168 +570,10 @@ function useSuperAdminPlayerFilters(
   };
 }
 
-function usePlayerModals(refresh: () => Promise<void>): {
-  cancelConfirm: () => void;
-  clearSuccessMessage: () => void;
-  closeCreateModal: () => void;
-  openConfirm: (player: Player) => void;
-  openCreateModal: () => void;
-  setConfirmLoading: (isLoading: boolean) => void;
-  setSubmitting: (isSubmitting: boolean) => void;
-  setSubmitError: (message: string) => void;
-  setSuccessMessage: (message: string) => void;
-  state: ModalState;
-} {
-  const toast = useToast();
-  const initialState: ModalState = useMemo(
-    () => ({
-      confirm: {
-        isLoading: false,
-        isOpen: false,
-        player: null,
-      },
-      isCreateOpen: false,
-      isSubmitting: false,
-      submitError: '',
-      successMessage: '',
-    }),
-    [],
-  );
-
-  const [state, setState] = useState<ModalState>(initialState);
-
-  const openCreateModal = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      isCreateOpen: true,
-      submitError: '',
-    }));
-  }, []);
-
-  const closeCreateModal = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      isCreateOpen: false,
-      submitError: '',
-    }));
-  }, []);
-
-  const openConfirm = useCallback((player: Player) => {
-    setState((prev) => ({
-      ...prev,
-      confirm: { isLoading: false, isOpen: true, player },
-    }));
-  }, []);
-
-  const cancelConfirm = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      confirm: { ...prev.confirm, isOpen: false, player: null, isLoading: false },
-    }));
-  }, []);
-
-  const setConfirmLoading = useCallback((isLoading: boolean) => {
-    setState((prev) => ({
-      ...prev,
-      confirm: { ...prev.confirm, isLoading },
-    }));
-  }, []);
-
-  const setSubmitting = useCallback((isSubmitting: boolean) => {
-    setState((prev) => ({ ...prev, isSubmitting }));
-  }, []);
-
-  const setSubmitError = useCallback((message: string) => {
-    setState((prev) => ({ ...prev, submitError: message }));
-  }, []);
-
-  const setSuccessMessage = useCallback((message: string) => {
-    setState((prev) => ({ ...prev, successMessage: message }));
-  }, []);
-
-  const clearSuccessMessage = useCallback(() => {
-    setState((prev) => ({ ...prev, successMessage: '' }));
-  }, []);
-
-  return {
-    cancelConfirm,
-    clearSuccessMessage,
-    closeCreateModal,
-    openConfirm,
-    openCreateModal,
-    setConfirmLoading,
-    setSubmitting,
-    setSubmitError,
-    setSuccessMessage,
-    state,
-  };
-}
-
-function usePlayerCreation({
-  closeCreateModal,
-  refresh,
-  setSubmitting,
-  setSubmitError,
-  setSuccessMessage,
-}: {
-  closeCreateModal: () => void;
-  refresh: () => Promise<void>;
-  setSubmitting: (isSubmitting: boolean) => void;
-  setSubmitError: (message: string) => void;
-  setSuccessMessage: (message: string) => void;
-}): {
-  handleSubmit: (
-    data: CreatePlayerRequest | UpdateUserRequest,
-  ) => Promise<void>;
-} {
-  const handleSubmit = useCallback(
-    async (formData: CreatePlayerRequest | UpdateUserRequest) => {
-      try {
-        setSubmitting(true);
-        setSubmitError('');
-
-        await playersApi.create(formData as CreatePlayerRequest);
-
-        setSuccessMessage('Player created successfully!');
-        closeCreateModal();
-        await refresh();
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'Failed to create player';
-        setSubmitError(message);
-        throw error;
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [closeCreateModal, refresh, setSubmitting, setSubmitError, setSuccessMessage],
-  );
-
-  return { handleSubmit };
-}
-
-function useSuccessMessageTimer(
-  successMessage: string,
-  clear: () => void,
-): void {
-  useEffect(() => {
-    if (!successMessage) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      clear();
-    }, 5000);
-
-    return () => window.clearTimeout(timer);
-  }, [clear, successMessage]);
-}
 
 function PlayersHeader({
-  onAddPlayer,
   totalCount,
 }: {
-  onAddPlayer: () => void;
   totalCount: number;
 }): ReactElement {
   return (
@@ -801,17 +593,6 @@ function PlayersHeader({
           </p>
         </div>
         <div className="flex-1 min-w-0" />
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onAddPlayer}
-          className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
-        >
-          <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span className="hidden md:inline ml-1.5">Add Player</span>
-        </Button>
       </div>
     </div>
   );
@@ -1124,34 +905,6 @@ function SuperAdminPlayersFiltersWrapper({
   );
 }
 
-function SuccessBanner({
-  message,
-  onDismiss,
-}: {
-  message: string;
-  onDismiss: () => void;
-}): ReactElement {
-  return (
-    <div className="rounded-lg border border-green-200 bg-green-50 px-3 sm:px-4 py-2 sm:py-3 text-green-800 dark:border-green-800/50 dark:bg-green-950/30 dark:text-green-300 sm:flex sm:items-center sm:justify-between">
-      <div className="flex items-center gap-2">
-        <svg className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fillRule="evenodd"
-            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-            clipRule="evenodd"
-          />
-        </svg>
-        <span className="text-xs sm:text-sm">{message}</span>
-      </div>
-      <button
-        onClick={onDismiss}
-        className="mt-2 sm:mt-0 inline-flex items-center text-xs sm:text-sm font-medium text-green-600 transition-colors hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 touch-manipulation"
-      >
-        Dismiss
-      </button>
-    </div>
-  );
-}
 
 type SuperAdminPlayersTableSectionProps = {
   data: PaginatedResponse<Player> | null;
@@ -1469,87 +1222,4 @@ function SuperAdminPlayersTableRow({
   );
 }
 
-type CreatePlayerDrawerProps = {
-  isOpen: boolean;
-  isSubmitting: boolean;
-  onClose: () => void;
-  onSubmit: (data: CreatePlayerRequest | UpdateUserRequest) => Promise<void>;
-  submitError: string;
-};
-
-function CreatePlayerDrawer({
-  isOpen,
-  isSubmitting,
-  onClose,
-  onSubmit,
-  submitError,
-}: CreatePlayerDrawerProps): ReactElement {
-  return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Create New Player"
-      size="lg"
-      footer={
-        <div className="flex items-center justify-end gap-3 w-full">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="create-player-form"
-            isLoading={isSubmitting}
-            disabled={isSubmitting}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Create Player
-          </Button>
-        </div>
-      }
-    >
-      <div className="space-y-6">
-        {submitError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-300 flex items-start gap-3">
-            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="font-medium">Error creating player</p>
-              <p className="text-sm mt-0.5">{submitError}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800/50 dark:bg-blue-950/30">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                Player Account Information
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                All fields marked with * are required. The player will be able to log in immediately after creation.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <PlayerForm
-          onSubmit={onSubmit}
-          onCancel={onClose}
-          isLoading={isSubmitting}
-        />
-      </div>
-    </Drawer>
-  );
-}
 
