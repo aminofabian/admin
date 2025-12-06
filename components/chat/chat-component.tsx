@@ -207,7 +207,6 @@ export function ChatComponent() {
     isHistoryLoading: isHistoryLoadingMessages,
     updateMessagePinnedState,
     markAllAsRead,
-    refreshMessages,
     notes,
   } = useChatWebSocket({
     userId: selectedPlayer?.user_id ?? null,
@@ -432,7 +431,7 @@ export function ChatComponent() {
       const seenUserIds = new Map<number, Player>();
 
       // DEBUG: Log initial data states for all-chats tab
-      !IS_PROD && console.log(`🔍 [All-Chats Tab] Data sources - WebSocket: ${activeChatsUsers.length}, API: ${allPlayers.length}`);
+      if (!IS_PROD) console.log(`🔍 [All-Chats Tab] Data sources - WebSocket: ${activeChatsUsers.length}, API: ${allPlayers.length}`);
 
       // DEBUG: Log sample data from both sources
       if (!IS_PROD && activeChatsUsers.length > 0) {
@@ -543,10 +542,12 @@ export function ChatComponent() {
     if (activeTab === 'online') {
       // ✨ OPTIMIZED: Use the new hook's loading state
       const isLoading = isLoadingApiOnlinePlayers;
-      !IS_PROD && console.log('🔍 Online tab loading state:', {
-        isLoadingApiOnlinePlayers,
-        computed: isLoading,
-      });
+      if (!IS_PROD) {
+        console.log('🔍 Online tab loading state:', {
+          isLoadingApiOnlinePlayers,
+          computed: isLoading,
+        });
+      }
       return isLoading;
     }
 
@@ -694,7 +695,6 @@ export function ChatComponent() {
     scrollToBottom(true);
 
     // No need to refresh - websocket will send the message back with real ID
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messageInput, selectedImage, selectedPlayer, wsSendMessage, updateChatLastMessage, adminUserId, addToast, scrollToBottom]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
@@ -809,6 +809,7 @@ export function ChatComponent() {
       // Reset query param scroll tracking when player changes
       hasScrolledForQueryParamsRef.current = null;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markChatAsRead, activeTab, searchParams, router]);
 
   const handleNavigateToPlayer = useCallback(() => {
@@ -928,12 +929,12 @@ export function ChatComponent() {
         //  FIX: If message not found, it's likely a temporary WebSocket ID
         // Refresh messages to get real IDs and retry automatically
         if (errorMessage.includes('Message not found') || errorMessage.includes('message not found')) {
-          !IS_PROD && console.log('🔄 Message not found, refreshing to get real IDs...');
+          if (!IS_PROD) console.log('🔄 Message not found, refreshing to get real IDs...');
           
           try {
             // Wait a bit for websocket to update message IDs, then retry
             await new Promise(resolve => setTimeout(resolve, 500));
-            !IS_PROD && console.log(' Retrying pin after brief delay...');
+            if (!IS_PROD) console.log(' Retrying pin after brief delay...');
             
             // Retry the pin operation
             const retryResponse = await fetch('/api/chat-message-pin', {
@@ -1317,31 +1318,35 @@ export function ChatComponent() {
     // If it's the same player (e.g., remounting after navigation), preserve scroll position
     const isActualPlayerChange = previousPlayerIdRef.current !== selectedPlayer.user_id;
 
-    !IS_PROD && console.log('👤 Player change effect fired:', {
-      currentPlayerId: selectedPlayer.user_id,
-      previousPlayerId: previousPlayerIdRef.current,
-      isActualPlayerChange,
-    });
+    if (!IS_PROD) {
+      console.log('👤 Player change effect fired:', {
+        currentPlayerId: selectedPlayer.user_id,
+        previousPlayerId: previousPlayerIdRef.current,
+        isActualPlayerChange,
+      });
+    }
 
     previousPlayerIdRef.current = selectedPlayer.user_id;
 
     if (!isActualPlayerChange) {
-      !IS_PROD && console.log('⏭️  Same player detected, preserving scroll position');
+      if (!IS_PROD) console.log('⏭️  Same player detected, preserving scroll position');
       return;
     }
 
-    !IS_PROD && console.log('🔄 Player changed - resetting scroll state');
+    if (!IS_PROD) console.log('🔄 Player changed - resetting scroll state');
 
     //  CLEAN RESET: Reset scroll-related state for new player
     latestMessageIdRef.current = null;
     wasHistoryLoadingRef.current = false; // Reset to allow initial history load
     hasScrolledToInitialLoadRef.current = false; // Reset for new player
 
-    !IS_PROD && console.log('🔄 Scroll state reset complete:', {
-      hasScrolledToInitial: hasScrolledToInitialLoadRef.current,
-      latestMessageId: latestMessageIdRef.current,
-      currentMessagesCount: wsMessages.length,
-    });
+    if (!IS_PROD) {
+      console.log('🔄 Scroll state reset complete:', {
+        hasScrolledToInitial: hasScrolledToInitialLoadRef.current,
+        latestMessageId: latestMessageIdRef.current,
+        currentMessagesCount: wsMessages.length,
+      });
+    }
   }, [selectedPlayer, wsMessages.length]);
 
   useEffect(() => {
@@ -1381,7 +1386,7 @@ export function ChatComponent() {
     //  TARGETED LATEST MESSAGE: Enhanced initial load logic
     // Only use aggressive approach for initial load, preserve natural behavior otherwise
     if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
-      !IS_PROD && console.log('📍 Initial load condition met - scrolling to latest message');
+      if (!IS_PROD) console.log('📍 Initial load condition met - scrolling to latest message');
       hasScrolledToInitialLoadRef.current = true;
 
       //  CLEAN INITIAL SCROLL: Single force + instant scroll for initial load only
@@ -1412,10 +1417,12 @@ export function ChatComponent() {
       );
 
     if (shouldAutoScroll) {
-      !IS_PROD && console.log(' Auto-scrolling to new message (enhanced detection)', {
-        isUserAtBottom,
-        messagesLength: wsMessages.length,
-      });
+      if (!IS_PROD) {
+        console.log(' Auto-scrolling to new message (enhanced detection)', {
+          isUserAtBottom,
+          messagesLength: wsMessages.length,
+        });
+      }
 
       // Clear new message indicator since we're scrolling to bottom
       setHasNewMessagesWhileScrolled(false);
@@ -1447,7 +1454,7 @@ export function ChatComponent() {
     //  TARGETED LATEST: History load completion → Only scroll to latest if we haven't scrolled yet
     // This preserves natural behavior while ensuring latest message for initial scenarios
     if (wasLoading && !isHistoryLoadingMessages && !hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
-      !IS_PROD && console.log('📍 History loading complete - scrolling to latest message');
+      if (!IS_PROD) console.log('📍 History loading complete - scrolling to latest message');
 
       // Only scroll to latest if we haven't already scrolled for this conversation
       hasScrolledToInitialLoadRef.current = true;
