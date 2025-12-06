@@ -38,6 +38,8 @@ export interface Player extends BaseUser {
   agent_id?: number;
   agent?: Agent | { id: number; username: string };
   agent_username?: string;
+  company_id?: number;
+  company_username?: string;
 }
 
 export type User = Agent | Manager | Staff | Player;
