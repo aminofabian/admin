@@ -92,6 +92,7 @@ interface PlayersFiltersProps {
     agentOptions?: Array<{ value: string; label: string }>;
     isAgentLoading?: boolean;
     isLoading?: boolean;
+    showAgentFilter?: boolean;
 }
 
 export function PlayersFilters({
@@ -104,6 +105,7 @@ export function PlayersFilters({
     agentOptions,
     isAgentLoading = false,
     isLoading = false,
+    showAgentFilter = true,
 }: PlayersFiltersProps) {
     const { theme } = useTheme();
     const inputClasses =
@@ -181,24 +183,26 @@ export function PlayersFilters({
                             />
                         </div>
 
-                        {/* Agent */}
-                        <div className="min-w-0">
-                            <label className={labelClasses}>Agent</label>
-                            <Select
-                                value={filters.agent}
-                                onChange={(value: string) => onFilterChange('agent', value)}
-                                options={[
-                                    { value: '', label: 'All Agents' },
-                                    ...(agentOptions || []),
-                                    ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
-                                        ? [{ value: filters.agent, label: filters.agent }]
-                                        : []),
-                                ]}
-                                placeholder="All Agents"
-                                isLoading={isAgentLoading}
-                                disabled={isAgentLoading}
-                            />
-                        </div>
+                        {/* Agent - Only show if user has access to agents */}
+                        {showAgentFilter && (
+                            <div className="min-w-0">
+                                <label className={labelClasses}>Agent</label>
+                                <Select
+                                    value={filters.agent}
+                                    onChange={(value: string) => onFilterChange('agent', value)}
+                                    options={[
+                                        { value: '', label: 'All Agents' },
+                                        ...(agentOptions || []),
+                                        ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
+                                            ? [{ value: filters.agent, label: filters.agent }]
+                                            : []),
+                                    ]}
+                                    placeholder="All Agents"
+                                    isLoading={isAgentLoading}
+                                    disabled={isAgentLoading}
+                                />
+                            </div>
+                        )}
 
                         {/* Status */}
                         <div className="min-w-0">

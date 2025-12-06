@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { playersApi, agentsApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
 import {
   Badge,
   Button,
@@ -64,6 +66,7 @@ type PlayersPageContext = {
   router: ReturnType<typeof useRouter>;
   agentOptions: Array<{ value: string; label: string }>;
   isAgentLoading: boolean;
+  canAccessAgents: boolean;
 };
 
 export default function PlayersDashboard(): ReactElement {
@@ -76,6 +79,7 @@ export default function PlayersDashboard(): ReactElement {
     router,
     agentOptions,
     isAgentLoading,
+    canAccessAgents,
   } = usePlayersPageContext();
 
   if (dataState.shouldShowLoading) {
@@ -177,9 +181,10 @@ export default function PlayersDashboard(): ReactElement {
         onFilterChange={filters.setFilter}
         onApply={filters.applyFilters}
         onClear={filters.clearFilters}
-        agentOptions={agentOptions}
-        isAgentLoading={isAgentLoading}
+        agentOptions={canAccessAgents ? agentOptions : []}
+        isAgentLoading={canAccessAgents ? isAgentLoading : false}
         isLoading={dataState.isLoading}
+        showAgentFilter={canAccessAgents}
       />
       <PlayersTableSection
         data={dataState.data}
@@ -209,11 +214,15 @@ function usePlayersPageContext(): PlayersPageContext {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const pagination = usePagination();
+  const { user } = useAuth();
 
   // Read agent username from URL params
   const agentFromUrl = searchParams.get('agent');
 
-  // Load agents for filter dropdown
+  // Check if user can access agents (staff cannot)
+  const canAccessAgents = user?.role !== USER_ROLES.STAFF;
+
+  // Load agents for filter dropdown (skip for staff users)
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isAgentLoading, setIsAgentLoading] = useState(false);
 
@@ -239,6 +248,12 @@ function usePlayersPageContext(): PlayersPageContext {
   }, [agentFromUrl]); // Only run when agentFromUrl changes
 
   useEffect(() => {
+    // Skip loading agents for staff users since they can't assign agents
+    if (!canAccessAgents) {
+      setIsAgentLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     const loadAgents = async () => {
@@ -289,6 +304,7 @@ function usePlayersPageContext(): PlayersPageContext {
         setAgentOptions(mappedOptions);
       } catch (error) {
         console.error('Failed to load agents for player filters:', error);
+        // Don't log out on error - just log it and continue
       } finally {
         if (isMounted) {
           setIsAgentLoading(false);
@@ -301,7 +317,7 @@ function usePlayersPageContext(): PlayersPageContext {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [canAccessAgents]);
 
   // Remove URL parameter after component has mounted (if agent was in URL)
   // This prevents it from overriding filter changes
@@ -350,6 +366,7 @@ function usePlayersPageContext(): PlayersPageContext {
     router,
     agentOptions,
     isAgentLoading,
+    canAccessAgents,
   };
 }
 
@@ -803,6 +820,7 @@ function PlayersFiltersWrapper({
   agentOptions,
   isAgentLoading,
   isLoading,
+  showAgentFilter = true,
 }: PlayersFiltersWrapperProps): ReactElement {
   // Open filters automatically if agent filter is present (e.g., from URL navigation)
   // This ensures the filter dropdown is visible when navigating from agent section
@@ -836,6 +854,7 @@ function PlayersFiltersWrapper({
       agentOptions={agentOptions}
       isAgentLoading={isAgentLoading}
       isLoading={isLoading}
+      showAgentFilter={showAgentFilter}
     />
   );
 }
