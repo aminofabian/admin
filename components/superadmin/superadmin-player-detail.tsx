@@ -25,7 +25,6 @@ function extractErrorMessage(error: unknown): { title: string; message: string }
   let errorTitle = 'Error';
   
   if (error && typeof error === 'object') {
-    const errorObj = error as Record<string, unknown>;
     const apiError = error as ApiError;
     
     if (apiError.errors && typeof apiError.errors === 'object') {

@@ -22,7 +22,7 @@ import {
   EmptyState,
   ErrorState,
 } from '@/components/features';
-import { PlayersFilters, type PlayersFiltersState } from '@/components/dashboard/players/players-filters';
+import type { PlayersFiltersState } from '@/components/dashboard/players/players-filters';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -326,7 +326,6 @@ function useSuperAdminPlayersPageContext(): SuperAdminPlayersPageContext {
 
       return () => clearTimeout(timeoutId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentFromUrl, pathname]);
 
   const dataState = useSuperAdminPlayersData({
@@ -1010,7 +1009,6 @@ function SuperAdminPlayersTable({
               <SuperAdminPlayersTableRow
                 key={player.id}
                 player={player}
-                onOpenChat={onOpenChat}
                 onViewPlayer={onViewPlayer}
               />
             ))}
@@ -1148,13 +1146,11 @@ function SuperAdminPlayerCard({
 }
 
 type SuperAdminPlayersTableRowProps = {
-  onOpenChat: (player: Player) => void;
   onViewPlayer: (player: Player) => void;
   player: Player;
 };
 
 function SuperAdminPlayersTableRow({
-  onOpenChat,
   onViewPlayer,
   player,
 }: SuperAdminPlayersTableRowProps): ReactElement {
