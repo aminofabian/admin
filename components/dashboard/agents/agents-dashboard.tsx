@@ -657,8 +657,6 @@ type AgentsDashboardViewProps = {
   onViewTransactions: (agent: Agent) => Promise<void>;
   onViewPlayers: (agent: Agent) => void;
   onOpenEditProfile: (agent: Agent) => void;
-  onResetPassword: (agent: Agent) => void;
-  onToggleStatus: (agent: Agent) => void;
   onConfirmPasswordReset: (password: string, confirmPassword: string) => Promise<void>;
   onCancelPasswordReset: () => void;
   onUpdateProfile: () => Promise<void>;
@@ -694,8 +692,6 @@ function AgentsDashboardView({
   onViewTransactions,
   onViewPlayers,
   onOpenEditProfile,
-  onResetPassword,
-  onToggleStatus,
   onConfirmPasswordReset,
   onCancelPasswordReset,
   onUpdateProfile,
@@ -1060,8 +1056,6 @@ export default function AgentsDashboard() {
       onViewTransactions={viewTransactions}
       onViewPlayers={viewPlayers}
       onOpenEditProfile={handleOpenEditProfile}
-      onResetPassword={handleResetPassword}
-      onToggleStatus={dashboard.prepareToggle}
       onConfirmPasswordReset={handleConfirmPasswordReset}
       onCancelPasswordReset={handleCancelPasswordReset}
       onUpdateProfile={handleUpdateProfile}

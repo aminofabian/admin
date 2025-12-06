@@ -98,27 +98,6 @@ const formatMessageDate = (date: string) => {
 
 const DEFAULT_MARK_AS_READ = true;
 
-const MESSAGE_HTML_CONTENT_CLASS = {
-  admin: [
-    'text-[13px] md:text-sm leading-relaxed break-words whitespace-pre-wrap',
-    'text-foreground',
-    '[&_b]:text-primary [&_b]:font-semibold [&_b]:bg-primary/5 [&_b]:px-1.5 [&_b]:py-0.5 [&_b]:rounded [&_b]:inline-flex [&_b]:items-center',
-    '[&_strong]:text-primary [&_strong]:font-semibold',
-    '[&_em]:text-muted-foreground',
-    '[&_br]:block [&_br]:h-2',
-    '[&_a]:text-primary [&_a]:underline [&_a]:cursor-pointer hover:[&_a]:text-primary/80',
-  ].join(' '),
-  player: [
-    'text-[13px] md:text-sm leading-relaxed break-words whitespace-pre-wrap',
-    'text-white',
-    '[&_b]:text-white [&_b]:font-semibold [&_b]:bg-white/10 [&_b]:px-1.5 [&_b]:py-0.5 [&_b]:rounded [&_b]:inline-flex [&_b]:items-center',
-    '[&_strong]:text-white [&_strong]:font-semibold',
-    '[&_em]:text-white/80',
-    '[&_br]:block [&_br]:h-2',
-    '[&_a]:text-blue-300 [&_a]:underline [&_a]:cursor-pointer hover:[&_a]:text-blue-200',
-  ].join(' '),
-};
-
 export function ChatComponent() {
   const searchParams = useSearchParams();
   const router = useRouter();

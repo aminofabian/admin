@@ -618,20 +618,20 @@ export function useChatReset({
             
             //  Update user balance if provided in the message
             if (rawData.user_balance !== undefined) {
-              !IS_PROD && console.log('💰 User balance update:', rawData.user_balance);
+              if (!IS_PROD) console.log('💰 User balance update:', rawData.user_balance);
               // You can emit this to a balance update callback if needed
             }
             
             // Notify parent component to update chat list (ONLY for actual messages, not typing)
-            !IS_PROD && console.log('🔔 Calling onMessageReceived callback...');
+            if (!IS_PROD) console.log('🔔 Calling onMessageReceived callback...');
             if (onMessageReceivedRef.current) {
               onMessageReceivedRef.current(newMessage);
-              !IS_PROD && console.log(' onMessageReceived callback executed');
+              if (!IS_PROD) console.log(' onMessageReceived callback executed');
             } else {
-              !IS_PROD && console.warn('⚠️ onMessageReceived callback is not defined');
+              if (!IS_PROD) console.warn('⚠️ onMessageReceived callback is not defined');
             }
           } else if (messageType === 'typing') {
-            !IS_PROD && console.log('⌨️ User is typing...');
+            if (!IS_PROD) console.log('⌨️ User is typing...');
             setIsTyping(true);
             //  Clear typing indicator after 3 seconds
             setTimeout(() => setIsTyping(false), 3000);
@@ -645,7 +645,7 @@ export function useChatReset({
             
             if (messageId) {
               // Mark specific message as read
-              !IS_PROD && console.log(' Message marked as read:', messageId);
+              if (!IS_PROD) console.log(' Message marked as read:', messageId);
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === messageId ? { ...msg, isRead: true } : msg
@@ -656,7 +656,7 @@ export function useChatReset({
               // If admin (is_player_sender: false) read, mark all player messages as read
               // If player (is_player_sender: true) read, mark all admin messages as read
               const targetSender: 'player' | 'admin' = isPlayerSender ? 'admin' : 'player';
-              !IS_PROD && console.log(` Marking all ${targetSender} messages as read (read by ${isPlayerSender ? 'player' : 'admin'} with sender_id: ${senderId})`);
+              if (!IS_PROD) console.log(` Marking all ${targetSender} messages as read (read by ${isPlayerSender ? 'player' : 'admin'} with sender_id: ${senderId})`);
               setMessages((prev) =>
                 prev.map((msg) => {
                   // Mark messages from the opposite sender as read
@@ -671,7 +671,7 @@ export function useChatReset({
             const isActive = rawData.is_active ?? false;
             const playerId = rawData.player_id;
             
-            !IS_PROD && console.log(`🟢 Live status: ${rawData.username || `Player ${playerId}`} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
+            if (!IS_PROD) console.log(`🟢 Live status: ${rawData.username || `Player ${playerId}`} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
             
             // Update online status if this is the player we're chatting with
             if (String(playerId) === String(userId)) {
@@ -681,7 +681,7 @@ export function useChatReset({
             console.error('❌ WebSocket error message:', rawData.error || rawData.message);
             setConnectionError(rawData.error || rawData.message || 'Unknown error');
           } else {
-            !IS_PROD && console.log('ℹ️ Unhandled message type:', messageType);
+            if (!IS_PROD) console.log('ℹ️ Unhandled message type:', messageType);
           }
         } catch (error) {
           console.error('❌ Failed to parse WebSocket message:', error);
@@ -698,27 +698,27 @@ export function useChatReset({
           return;
         }
 
-        !IS_PROD && console.log('🔌 Chat WebSocket closed:', event.code, event.reason);
+        if (!IS_PROD) console.log('🔌 Chat WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         wsRef.current = null;
 
         // Don't attempt reconnection if backend returned 404 or similar
         if (event.code === 1006 || event.code === 1001) {
-          !IS_PROD && console.log('⚠️ Backend WebSocket not available, using REST API fallback');
+          if (!IS_PROD) console.log('⚠️ Backend WebSocket not available, using REST API fallback');
           return;
         }
 
         //  PERFORMANCE: Exponential backoff reconnection with max attempts
         if (enabled && reconnectAttemptsRef.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          !IS_PROD && console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
+          if (!IS_PROD) console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttemptsRef.current += 1;
             connect();
           }, delay);
         } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-          !IS_PROD && console.log('⚠️ Max reconnection attempts reached, using REST API fallback');
+          if (!IS_PROD) console.log('⚠️ Max reconnection attempts reached, using REST API fallback');
         }
       };
     } catch (error) {
@@ -733,7 +733,7 @@ export function useChatReset({
     }
 
     if (wsRef.current) {
-      !IS_PROD && console.log('🔌 Disconnecting chat WebSocket');
+      if (!IS_PROD) console.log('🔌 Disconnecting chat WebSocket');
       wsRef.current.close();
       wsRef.current = null;
     }
@@ -756,7 +756,7 @@ export function useChatReset({
         };
 
         wsRef.current.send(JSON.stringify(message));
-        !IS_PROD && console.log('📤 Sent message via WebSocket - waiting for confirmation');
+        if (!IS_PROD) console.log('📤 Sent message via WebSocket - waiting for confirmation');
         return;
       } catch (error) {
         console.error('❌ Failed to send via WebSocket, trying REST API:', error);
@@ -764,7 +764,7 @@ export function useChatReset({
     }
 
     // Fallback to REST API if WebSocket is not available
-    !IS_PROD && console.log('📤 WebSocket not available, sending via REST API...');
+    if (!IS_PROD) console.log('📤 WebSocket not available, sending via REST API...');
     
     fetch(`${API_BASE_URL}/api/v1/chat/send/`, {
       method: 'POST',
@@ -791,7 +791,7 @@ export function useChatReset({
           }
           throw new Error(`Failed to send message: ${response.status}`);
         }
-        !IS_PROD && console.log(' Message sent successfully via REST API');
+        if (!IS_PROD) console.log(' Message sent successfully via REST API');
         
         // Add the message to local state for instant feedback
         const messageDate = new Date();
@@ -836,7 +836,7 @@ export function useChatReset({
       };
 
       wsRef.current.send(JSON.stringify(message));
-      !IS_PROD && console.log(' Marked message as read:', messageId);
+      if (!IS_PROD) console.log(' Marked message as read:', messageId);
     } catch (error) {
       console.error('❌ Failed to mark message as read:', error);
     }
@@ -844,7 +844,7 @@ export function useChatReset({
 
   const markAllAsRead = useCallback(() => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      !IS_PROD && console.log('⚠️ Cannot mark all as read: WebSocket not connected');
+      if (!IS_PROD) console.log('⚠️ Cannot mark all as read: WebSocket not connected');
       return;
     }
 
@@ -857,7 +857,7 @@ export function useChatReset({
       };
 
       wsRef.current.send(JSON.stringify(message));
-      !IS_PROD && console.log(' Sent mark all as read message to backend');
+      if (!IS_PROD) console.log(' Sent mark all as read message to backend');
     } catch (error) {
       console.error('❌ Failed to mark all messages as read:', error);
     }
@@ -877,7 +877,7 @@ export function useChatReset({
       return;
     }
 
-    !IS_PROD && console.log('🔄 Refreshing messages to get real IDs...');
+    if (!IS_PROD) console.log('🔄 Refreshing messages to get real IDs...');
     // Fetch page 1 (latest messages) and merge with existing, replacing temporary IDs
     await fetchMessageHistory(1, 'replace');
   }, [chatId, userId, fetchMessageHistory]);
