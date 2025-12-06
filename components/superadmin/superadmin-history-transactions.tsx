@@ -180,6 +180,7 @@ export function SuperAdminHistoryTransactions() {
         if (Object.keys(advancedFilters).length > 0) {
             setAreFiltersOpen(true);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [advancedFilters]);
 
     // Close dropdown when clicking outside

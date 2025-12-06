@@ -45,7 +45,6 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
     if (currentCount > prevCount && prevCount >= 0) {
       // New message arrived! Trigger anticipation animation
       setIsNewMessage(true);
-      setIsAnimating(true);
 
       // Clear any existing timer
       if (animationTimerRef.current) {
@@ -56,7 +55,6 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
       // Reset animation state after animation completes
       animationTimerRef.current = setTimeout(() => {
         setIsNewMessage(false);
-        setIsAnimating(false);
         animationTimerRef.current = null;
       }, 1500);
     }

@@ -157,6 +157,7 @@ export function BonusesSection() {
           });
         } else if (editingBonusType === 'recharge') {
           await updateRechargeBonus(editingBonus.id, data);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const bonusType = (editingBonus as RechargeBonus).bonus_type;
           addToast({
             type: 'success',

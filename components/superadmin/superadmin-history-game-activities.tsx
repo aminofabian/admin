@@ -60,10 +60,15 @@ export function SuperAdminHistoryGameActivities() {
     const [isGameLoading, setIsGameLoading] = useState(false);
     const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
     const [isOperatorLoading, setIsOperatorLoading] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isAgentLoading, setIsAgentLoading] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
 
     // Company filter state
@@ -71,6 +76,7 @@ export function SuperAdminHistoryGameActivities() {
     const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
     const [companies, setCompanies] = useState<Company[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
     // Initialize filter once and clear any previous filters
@@ -204,9 +210,9 @@ export function SuperAdminHistoryGameActivities() {
     useEffect(() => {
         let isMounted = true;
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const loadAgents = async () => {
             setIsAgentLoading(true);
-
             try {
                 const aggregated: Agent[] = [];
                 const pageSize = 100;
@@ -530,7 +536,6 @@ export function SuperAdminHistoryGameActivities() {
 
     const results = useMemo(() => queues ?? [], [queues]);
     const isInitialLoading = useMemo(() => isLoading, [isLoading]);
-    const isEmpty = useMemo(() => !results.length && !isLoading, [results.length, isLoading]);
     const hasNext = useMemo(() => Boolean(next), [next]);
     const hasPrevious = useMemo(() => Boolean(previous), [previous]);
 

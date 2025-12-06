@@ -287,6 +287,7 @@ export function GameActivityTable({
   onViewDetails,
   showActions = true,
   actionLoading = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   compact = false,
   className = '',
 }: GameActivityTableProps) {

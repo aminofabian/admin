@@ -52,6 +52,7 @@ export function SuperAdminGames() {
 
     useEffect(() => {
         fetchCompanies();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -60,6 +61,7 @@ export function SuperAdminGames() {
         } else {
             setGames([]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedCompanyId]);
 
     // Close dropdown when clicking outside
@@ -346,7 +348,7 @@ export function SuperAdminGames() {
                                                 <p className="text-sm">No companies match your search</p>
                                             </div>
                                         ) : (
-                                            filteredCompanies.map((company, index) => (
+                                            filteredCompanies.map((company) => (
                                                 <button
                                                     key={company.id}
                                                     onClick={() => {

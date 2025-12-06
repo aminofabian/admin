@@ -287,6 +287,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areFiltersOpen, gameOptions.length]);
 
   // Lazy load operators and company name when filters are opened
@@ -387,6 +388,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       isCancelled = true;
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areFiltersOpen, operatorOptions.length]);
 
   const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
@@ -919,6 +921,7 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
 
   const formattedCreatedAt = formatDate(activity.created_at);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleViewClick = () => {
     onView(activity);
   };

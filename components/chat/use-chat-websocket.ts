@@ -561,8 +561,6 @@ export function useChatReset({
               timestamp: rawData.sent_time,
             });
           }
-            userBalance: rawData.user_balance,
-          });
 
           // Handle different message types from backend
           const messageType = rawData.type;

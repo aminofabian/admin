@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { JSX } from 'react';
 import { ErrorState, EmptyState } from '@/components/features';
 import { usePaymentMethodsStore } from '@/stores';
 import { useToast } from '@/components/ui/toast';
