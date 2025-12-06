@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
@@ -14,9 +14,6 @@ import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/f
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
-import { AddGameDrawer } from '@/components/chat/modals';
-
-import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 
 /**
  * Extracts and formats error messages from API errors
@@ -750,13 +747,10 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           setIsEditDrawerOpen(false);
           setEditableFields((prev) => ({ ...prev, password: '', confirm_password: '' }));
         }}
-        player={selectedPlayer}
         editableFields={editableFields}
-        onFieldChange={(field, value) => {
-          setEditableFields((prev) => ({ ...prev, [field]: value }));
-        }}
-        onSave={handleSave}
+        setEditableFields={setEditableFields}
         isSaving={isSaving}
+        onSave={handleSave}
       />
 
       {/* Player Game Balance Modal */}

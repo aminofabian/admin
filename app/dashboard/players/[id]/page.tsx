@@ -247,8 +247,14 @@ export default function PlayerDetailPage() {
     }
   }, [selectedPlayer]);
 
-  // Load agents for dropdown
+  // Load agents for dropdown - Skip for staff users
   useEffect(() => {
+    // Skip loading agents for staff users (they can't assign agents)
+    if (user?.role === USER_ROLES.STAFF) {
+      setIsLoadingAgents(false);
+      return;
+    }
+
     let isMounted = true;
 
     const loadAgents = async () => {
@@ -294,6 +300,7 @@ export default function PlayerDetailPage() {
         setAgentOptions(mappedOptions);
       } catch (error) {
         console.error('Failed to load agents:', error);
+        // Don't log out on error - just log it and continue
       } finally {
         if (isMounted) {
           setIsLoadingAgents(false);
@@ -306,7 +313,7 @@ export default function PlayerDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.role]);
 
   // Set selected agent when player or agents list changes
   // Skip sync if we just assigned an agent (to prevent unnecessary updates)
