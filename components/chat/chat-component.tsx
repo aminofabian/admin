@@ -1206,7 +1206,13 @@ export function ChatComponent() {
     // Switch to "all-chats" tab when query params are present
     // This ensures the selected player is visible in the first column
     setActiveTab('all-chats');
-  }, [queryPlayerId, queryUsername, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers]);
+    
+    // Set search query to username to trigger search and filter players
+    // This ensures the player is found even if they're not in the currently loaded page
+    if (queryUsername && searchQuery !== queryUsername) {
+      setSearchQuery(queryUsername);
+    }
+  }, [queryPlayerId, queryUsername, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers, searchQuery]);
 
   useEffect(() => {
     if (!queryPlayerId && !queryUsername) {
@@ -1217,9 +1223,10 @@ export function ChatComponent() {
     const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
     const normalizedUsername = queryUsername?.trim().toLowerCase();
 
-    //  FIXED: Use displayedPlayers which has notes properly merged
-    // Search allPlayers first (has notes), then activeChatsUsers as fallback
-    const candidate = [...allPlayers, ...activeChatsUsers].find((player) => {
+    // Search in displayedPlayers which is already filtered by searchQuery
+    // This ensures we find the player even if they're not in the currently loaded page
+    // displayedPlayers includes allPlayers and activeChatsUsers merged and filtered by search
+    const candidate = displayedPlayers.find((player) => {
       const matchesId = targetUserId !== null && player.user_id === targetUserId;
       const matchesUsername = normalizedUsername ? player.username.toLowerCase() === normalizedUsername : false;
       return matchesId || matchesUsername;
@@ -1234,8 +1241,7 @@ export function ChatComponent() {
   }, [
     queryPlayerId,
     queryUsername,
-    activeChatsUsers,
-    allPlayers,
+    displayedPlayers,
     selectedPlayer,
     handlePlayerSelect,
   ]);
