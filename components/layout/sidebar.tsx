@@ -256,13 +256,13 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Players',
     icon: <PlayerIcon />,
-    roles: [USER_ROLES.STAFF],
+    roles: [USER_ROLES.STAFF, USER_ROLES.MANAGER],
     href: '/dashboard/players',
   },
   {
     name: 'Games',
     icon: <GameIcon />,
-    roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT, USER_ROLES.PLAYER, USER_ROLES.STAFF],
+    roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT, USER_ROLES.PLAYER, USER_ROLES.STAFF, USER_ROLES.MANAGER],
     href: '/dashboard/games',
   },
   {
@@ -299,7 +299,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Bonuses',
     icon: <BonusIcon />,
-    roles: [USER_ROLES.STAFF],
+    roles: [USER_ROLES.STAFF, USER_ROLES.MANAGER],
     href: '/dashboard/bonuses',
   },
   {
@@ -315,7 +315,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Settings',
     icon: <SettingsIcon />,
-    roles: [USER_ROLES.STAFF],
+    roles: [USER_ROLES.STAFF, USER_ROLES.MANAGER],
     href: '/dashboard/settings',
   },
   {

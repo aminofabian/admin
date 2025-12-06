@@ -222,8 +222,8 @@ function usePlayersPageContext(): PlayersPageContext {
   // Read agent username from URL params
   const agentFromUrl = searchParams.get('agent');
 
-  // Check if user can access agents (staff cannot)
-  const canAccessAgents = user?.role !== USER_ROLES.STAFF;
+  // Check if user can access agents (staff and managers cannot)
+  const canAccessAgents = user?.role !== USER_ROLES.STAFF && user?.role !== USER_ROLES.MANAGER;
 
   // Load agents for filter dropdown (skip for staff users)
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
