@@ -12,7 +12,7 @@ import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Paginati
 import { useBonusesStore } from '@/stores/use-bonuses-store';
 import { PurchaseBonusManager } from './purchase-bonus-manager';
 import { formatCurrency } from '@/lib/utils/formatters';
-import type { UpdateBonusRequest, TransferBonus, SignupBonus, RechargeBonus, PurchaseBonus, FirstPurchaseBonus } from '@/types';
+import type { UpdateBonusRequest, TransferBonus, SignupBonus, RechargeBonus, FirstPurchaseBonus } from '@/types';
 
 type BonusItem = PurchaseBonusSettings | RechargeBonusSettings | TransferBonusSettings | SignupBonusSettings;
 type AllItems = BonusItem | FirstPurchaseBonus;
@@ -41,7 +41,6 @@ export function BonusesSection() {
     updateRechargeBonus,
     updateTransferBonus,
     updateSignupBonus,
-    updatePurchaseBonus,
     updateFirstPurchaseBonus,
     setPage,
     setSearchTerm,

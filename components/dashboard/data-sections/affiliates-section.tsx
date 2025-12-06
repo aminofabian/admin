@@ -9,7 +9,6 @@ import { ErrorState, EmptyState, AffiliateForm, AddManualAffiliateForm } from '@
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, SearchInput, Button, Drawer, Badge, Skeleton } from '@/components/ui';
 
 const SECTION_TITLE = 'Managers';
-const SECTION_SUBTITLE = 'Manage all manager accounts and permissions';
 const ADD_BUTTON_LABEL = 'Add Manager';
 const SEARCH_PLACEHOLDER = 'Search by username or email...';
 const EMPTY_HEADING = 'No managers found';

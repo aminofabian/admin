@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
@@ -13,12 +13,6 @@ import { storage } from '@/lib/utils/storage';
 import type { TransactionQueue, Game, Staff, Manager } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
 
-const HISTORY_EMPTY_STATE = (
-  <EmptyState
-    title="No game activity history"
-    description="No completed or cancelled game activities matched your filters"
-  />
-);
 
 const GAME_ACTIVITIES_SKELETON = (
   <div className="space-y-6">
@@ -141,7 +135,6 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const setFilterWithoutFetch = useTransactionQueuesStore((state) => state.setFilterWithoutFetch);
   const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
   const setAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.setAdvancedFiltersWithoutFetch);
-  const clearAdvancedFilters = useTransactionQueuesStore((state) => state.clearAdvancedFilters);
   const clearAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.clearAdvancedFiltersWithoutFetch);
   const totalCount = useTransactionQueuesStore((state) => state.count);
   const next = useTransactionQueuesStore((state) => state.next);
@@ -189,7 +182,6 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     
     // Read current values from store to ensure we have the latest state
     const storeState = getStoreState();
-    const currentAdvancedFilters = storeState.advancedFilters;
     const currentFilter = storeState.filter;
     
     // Clear filters unless they should be preserved (from player details navigation)
@@ -459,7 +451,6 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
 
   const results = queues ?? [];
   const isInitialLoading = isLoading;
-  const isEmpty = !results.length && !isLoading;
   const hasNext = Boolean(next);
   const hasPrevious = Boolean(previous);
 

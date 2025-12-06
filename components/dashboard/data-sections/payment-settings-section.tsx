@@ -8,12 +8,6 @@ import { useToast } from '@/components/ui/toast';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Skeleton } from '@/components/ui';
 import type { PaymentMethod, PaymentMethodAction } from '@/types';
 
-const PAYMENT_ICON: JSX.Element = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-  </svg>
-);
-
 // Get payment method initials
 const getPaymentMethodInitials = (paymentMethodDisplay: string): string => {
   const words = paymentMethodDisplay.trim().split(/\s+/);

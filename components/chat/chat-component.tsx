@@ -50,17 +50,17 @@ const getAdminUserId = (): number => {
       const candidateId = asPositiveNumber(userData.id ?? userData.user_id);
 
       if (candidateId > NO_ADMIN_USER_ID) {
-        !IS_PROD && console.log('📍 Admin User ID:', candidateId);
+        if (!IS_PROD) console.log('📍 Admin User ID:', candidateId);
         return candidateId;
       }
 
-      !IS_PROD && console.warn('⚠️ Stored user data is missing a valid admin ID.');
+      if (!IS_PROD) console.warn('⚠️ Stored user data is missing a valid admin ID.');
     }
   } catch (error) {
     console.error('❌ Failed to parse user data from localStorage:', error);
   }
 
-  !IS_PROD && console.warn('⚠️ Admin user ID unavailable. Chat endpoints remain disabled until authentication completes.');
+  if (!IS_PROD) console.warn('⚠️ Admin user ID unavailable. Chat endpoints remain disabled until authentication completes.');
   return NO_ADMIN_USER_ID;
 };
 
@@ -96,65 +96,7 @@ const formatMessageDate = (date: string) => {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-// Strip HTML tags and decode HTML entities for preview text
-const stripHtml = (html: string): string => {
-  const tmp = document.createElement('DIV');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
-};
-
-const MAX_UNREAD_BADGE_COUNT = 99;
 const DEFAULT_MARK_AS_READ = true;
-
-const HTML_TAG_REGEX = /<\/?[a-z][^>]*>/i;
-
-const hasHtmlContent = (value: string | null | undefined): boolean => {
-  if (!value) {
-    return false;
-  }
-  return HTML_TAG_REGEX.test(value);
-};
-
-// Check if a URL points to an image
-const isImageUrl = (url: string): boolean => {
-  if (!url) return false;
-  const imageExtensions = /\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff|ico|heic|heif)(\?.*)?$/i;
-  return imageExtensions.test(url);
-};
-
-// Convert plain text URLs to clickable links
-const linkifyText = (text: string): string => {
-  if (!text) return text;
-  
-  // Regex to match URLs (http, https, or www)
-  const urlRegex = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/gi;
-  
-  return text.replace(urlRegex, (url) => {
-    // Ensure URL has protocol
-    const href = url.startsWith('http') ? url : `https://${url}`;
-    // Open in new tab for security
-    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-  });
-};
-
-// Extract image URLs from text
-const extractImageUrls = (text: string): string[] => {
-  if (!text) return [];
-  // Updated regex to handle URLs with spaces and query parameters
-  // Matches URLs until the image extension, including any query params after it
-  const urlRegex = /(https?:\/\/\S+?\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff|ico|heic|heif)(?:\?[^\s<>"]*)?)/gi;
-  const matches = text.match(urlRegex);
-  if (!matches) return [];
-  
-  // Also try to extract URLs that might have spaces (edge case for malformed URLs)
-  // This catches URLs like "https://example.com/Screenshot 2025-11-10 at 12.11.34 PM.png"
-  const spaceUrlRegex = /(https?:\/\/[^\s<>"]*(?:\s+[^\s<>"]+)*\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff|ico|heic|heif)(?:[^\s<>"]*)?)/gi;
-  const spaceMatches = text.match(spaceUrlRegex) || [];
-  
-  // Combine both matches and deduplicate
-  const allMatches = [...new Set([...matches, ...spaceMatches])];
-  return allMatches;
-};
 
 const MESSAGE_HTML_CONTENT_CLASS = {
   admin: [
@@ -176,23 +118,6 @@ const MESSAGE_HTML_CONTENT_CLASS = {
     '[&_a]:text-blue-300 [&_a]:underline [&_a]:cursor-pointer hover:[&_a]:text-blue-200',
   ].join(' '),
 };
-
-const PURCHASE_HTML_CONTENT_CLASS = [
-  'prose prose-sm dark:prose-invert max-w-none',
-  'prose-headings:text-foreground prose-headings:font-semibold',
-  'prose-p:text-foreground prose-p:leading-relaxed prose-p:my-1',
-  'prose-strong:text-primary prose-strong:font-semibold',
-  'prose-em:text-muted-foreground',
-  'prose-a:text-primary prose-a:no-underline hover:prose-a:underline',
-  'prose-ul:my-1 prose-ul:list-disc prose-ul:pl-4',
-  'prose-ol:my-1 prose-ol:list-decimal prose-ol:pl-4',
-  'prose-li:text-foreground prose-li:my-0.5',
-  'prose-code:text-primary prose-code:bg-primary/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded',
-  '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
-  'text-sm leading-6 text-foreground',
-  '[&_b]:text-primary [&_b]:font-semibold [&_b]:bg-primary/5 [&_b]:px-1.5 [&_b]:py-0.5 [&_b]:rounded [&_b]:inline-flex [&_b]:items-center',
-  '[&_br]:block [&_br]:h-3',
-].join(' ');
 
 export function ChatComponent() {
   const searchParams = useSearchParams();
@@ -271,7 +196,6 @@ export function ChatComponent() {
     fetchAllPlayers,
     loadMorePlayers,
     hasMorePlayers,
-    refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
     markChatAsReadDebounced,
@@ -297,26 +221,21 @@ export function ChatComponent() {
     messages: wsMessages,
     isConnected,
     isTyping: remoteTyping,
-    isUserOnline,
     sendMessage: wsSendMessage,
     connectionError,
-    purchaseHistory,
-    fetchPurchaseHistory,
-    isPurchaseHistoryLoading,
     loadOlderMessages,
     hasMoreHistory,
     isHistoryLoading: isHistoryLoadingMessages,
     updateMessagePinnedState,
     markAllAsRead,
     refreshMessages,
-    updateMessagesBalance,
     notes,
   } = useChatWebSocket({
     userId: selectedPlayer?.user_id ?? null,
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
     adminId: adminUserId,
     enabled: !!selectedPlayer && hasValidAdminUser,
-    onMessageReceived: useCallback(async (message: Message) => {
+    onMessageReceived: useCallback(async () => {
       // No need to refresh chat list - websocket updates handle this in real-time
       // Only update chat list if needed for unread counts (handled by chat list websocket)
     }, []),
@@ -398,18 +317,18 @@ export function ChatComponent() {
 
   //  TEMPORARY: Show all messages without viewport optimization
   const visibleMessages = wsMessages;
-  const topSpacerHeight = 0;
-  const bottomSpacerHeight = 0;
 
   const groupedMessages = useMemo(() => groupMessagesByDate(visibleMessages), [visibleMessages]);
 
   const displayedPlayers = useMemo(() => {
-    !IS_PROD && console.log('🔄 [displayedPlayers] Memo recalculating...', {
-      activeTab,
-      apiOnlinePlayersCount: apiOnlinePlayers.length,
-      activeChatsUsersCount: activeChatsUsers.length,
-      allPlayersCount: allPlayers.length,
-    });
+    if (!IS_PROD) {
+      console.log('🔄 [displayedPlayers] Memo recalculating...', {
+        activeTab,
+        apiOnlinePlayersCount: apiOnlinePlayers.length,
+        activeChatsUsersCount: activeChatsUsers.length,
+        allPlayersCount: allPlayers.length,
+      });
+    }
     
     let players: Player[];
     
