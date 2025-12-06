@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
+import { StaffPlayerDetail } from '@/components/staff';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
@@ -847,9 +848,14 @@ export default function PlayerDetailPage() {
   }, [gameToEdit, isEditingGame, addToast, refreshGames]);
 
   // If user is superadmin, render superadmin player detail
+  // If user is staff, render staff player detail (no agent assignment)
   // This must come AFTER all hooks are declared (Rules of Hooks)
   if (user?.role === USER_ROLES.SUPERADMIN && playerId) {
     return <SuperAdminPlayerDetail playerId={playerId} />;
+  }
+
+  if (user?.role === USER_ROLES.STAFF && playerId) {
+    return <StaffPlayerDetail playerId={playerId} />;
   }
 
   if (isLoadingPlayer) {

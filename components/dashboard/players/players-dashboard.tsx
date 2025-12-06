@@ -170,6 +170,7 @@ export default function PlayersDashboard(): ReactElement {
       <PlayersHeader
         onAddPlayer={modalState.openCreateModal}
         totalCount={dataState.data?.count ?? 0}
+        showAddButton={canAccessAgents}
       />
       {modalState.state.successMessage && (
         <div className="mb-4">
@@ -198,13 +199,15 @@ export default function PlayersDashboard(): ReactElement {
         page={pagination.page}
         pageSize={pagination.pageSize}
       />
-      <CreatePlayerDrawer
-        isOpen={modalState.state.isCreateOpen}
-        isSubmitting={modalState.state.isSubmitting}
-        onClose={modalState.closeCreateModal}
-        onSubmit={creationHandlers.handleSubmit}
-        submitError={modalState.state.submitError}
-      />
+      {canAccessAgents && (
+        <CreatePlayerDrawer
+          isOpen={modalState.state.isCreateOpen}
+          isSubmitting={modalState.state.isSubmitting}
+          onClose={modalState.closeCreateModal}
+          onSubmit={creationHandlers.handleSubmit}
+          submitError={modalState.state.submitError}
+        />
+      )}
     </div>
   );
 }
@@ -757,9 +760,11 @@ function useSuccessMessageTimer(
 function PlayersHeader({
   onAddPlayer,
   totalCount,
+  showAddButton = true,
 }: {
   onAddPlayer: () => void;
   totalCount: number;
+  showAddButton?: boolean;
 }): ReactElement {
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
@@ -785,18 +790,20 @@ function PlayersHeader({
         {/* Spacer */}
         <div className="flex-1 min-w-0" />
 
-        {/* Add button - compact */}
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onAddPlayer}
-          className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
-        >
-          <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span className="hidden md:inline ml-1.5">Add Player</span>
-        </Button>
+        {/* Add button - compact - Only show if allowed */}
+        {showAddButton && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={onAddPlayer}
+            className="shadow-md transition-all hover:shadow-lg touch-manipulation px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 shrink-0"
+          >
+            <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="hidden md:inline ml-1.5">Add Player</span>
+          </Button>
+        )}
       </div>
     </div>
   );
