@@ -254,9 +254,15 @@ const MENU_CATEGORIES: MenuCategory[] = [
     ],
   },
   {
+    name: 'Players',
+    icon: <PlayerIcon />,
+    roles: [USER_ROLES.STAFF],
+    href: '/dashboard/players',
+  },
+  {
     name: 'Games',
     icon: <GameIcon />,
-    roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT, USER_ROLES.PLAYER],
+    roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT, USER_ROLES.PLAYER, USER_ROLES.STAFF],
     href: '/dashboard/games',
   },
   {
@@ -291,6 +297,12 @@ const MENU_CATEGORIES: MenuCategory[] = [
     ],
   },
   {
+    name: 'Bonuses',
+    icon: <BonusIcon />,
+    roles: [USER_ROLES.STAFF],
+    href: '/dashboard/bonuses',
+  },
+  {
     name: 'Settings',
     icon: <SettingsIcon />,
     roles: [USER_ROLES.COMPANY],
@@ -299,6 +311,12 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
+  },
+  {
+    name: 'Settings',
+    icon: <SettingsIcon />,
+    roles: [USER_ROLES.STAFF],
+    href: '/dashboard/settings',
   },
   {
     name: 'Affiliates',
