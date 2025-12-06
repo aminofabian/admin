@@ -113,7 +113,20 @@ class ApiClient {
       }
       
       // Check for the specific error structure the user mentioned
-      const isInvalidToken = 
+      // Distinguish between token errors (should redirect) and permission errors (should not redirect)
+      // For 403 errors, only redirect if it's clearly a token error, otherwise treat as permission error
+      const isPermissionError = 
+        errorMessage.toLowerCase().includes('permission') ||
+        errorMessage.toLowerCase().includes('forbidden') ||
+        errorMessage.toLowerCase().includes('not allowed') ||
+        errorMessage.toLowerCase().includes('access denied') ||
+        errorMessage.toLowerCase().includes('you do not have permission') ||
+        errorCode === 'permission_denied' ||
+        detailCode === 'permission_denied' ||
+        (parsedDetail && typeof parsedDetail.code === 'string' && parsedDetail.code === 'permission_denied');
+
+      // Check if it's a clear token error
+      const isClearTokenError = 
         errorMessage.includes('Given token not valid for any token type') ||
         errorMessage.includes('token_not_valid') ||
         errorMessage.includes('Token is invalid') ||
@@ -122,9 +135,13 @@ class ApiClient {
         errorMessage.includes('Invalid token') ||
         errorCode === 'token_not_valid' ||
         detailCode === 'token_not_valid' ||
-        (parsedDetail && typeof parsedDetail.code === 'string' && parsedDetail.code === 'token_not_valid') ||
-        response.status === 401 ||
-        response.status === 403;
+        (parsedDetail && typeof parsedDetail.code === 'string' && parsedDetail.code === 'token_not_valid');
+
+      // Only redirect on 401 (always token error) or 403 if it's a clear token error
+      // For 403 without clear token error, treat as permission error (don't redirect)
+      const isInvalidToken = 
+        response.status === 401 || // 401 is always a token error
+        (response.status === 403 && isClearTokenError && !isPermissionError); // 403 only if clear token error
 
       if (isInvalidToken) {
         console.warn('🚨 Invalid token detected - redirecting to login page');

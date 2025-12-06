@@ -118,6 +118,17 @@ function SettingRow({ field, value, error, isSubmitting, onChange }: SettingRowP
 }
 
 export default function AffiliateSettingsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+
+  // Staff users don't have permission to access affiliate settings
+  // Redirect them back to settings page
+  useEffect(() => {
+    if (user?.role === USER_ROLES.STAFF) {
+      router.push('/dashboard/settings');
+    }
+  }, [user?.role, router]);
+
   const [formData, setFormData] = useState({
     default_affiliation_percentage: 0,
     default_fee_percentage: 0,
@@ -136,8 +147,11 @@ export default function AffiliateSettingsPage() {
   } = useAffiliateSettingsStore();
 
   useEffect(() => {
-    fetchAffiliateDefaults();
-  }, [fetchAffiliateDefaults]);
+    // Only fetch if not staff
+    if (user?.role !== USER_ROLES.STAFF) {
+      fetchAffiliateDefaults();
+    }
+  }, [fetchAffiliateDefaults, user?.role]);
 
   useEffect(() => {
     if (affiliateDefaults) {

@@ -284,11 +284,16 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
 
     setIsChangingGame(true);
     try {
-      await playersApi.changeGame(gameToChange.id);
+      // Toggle the game status using updateGame
+      const newStatus = gameToChange.status === 'active' ? 'inactive' : 'active';
+      await playersApi.updateGame(gameToChange.id, {
+        username: gameToChange.username,
+        status: newStatus
+      });
       addToast({
         type: 'success',
-        title: 'Game changed',
-        description: `"${gameToChange.game__title}" has been changed for player "${selectedPlayer.username}".`,
+        title: 'Game updated',
+        description: `"${gameToChange.game__title}" status has been changed to ${newStatus} for player "${selectedPlayer.username}".`,
       });
       setGameToChange(null);
       await refreshGames();
@@ -335,15 +340,16 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     }
   }, [gameToEdit, isEditingGame, addToast, refreshGames]);
 
-  const handleAddGame = useCallback(async (data: { game_id: number; username: string; password: string }) => {
+  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
     if (!selectedPlayer || isAddingGame) return;
 
     setIsAddingGame(true);
     try {
-      await playersApi.addGame(selectedPlayer.id, {
-        game_id: data.game_id,
+      await playersApi.createGame({
         username: data.username,
         password: data.password,
+        code: data.code,
+        user_id: selectedPlayer.id,
       });
 
       addToast({

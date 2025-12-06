@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
 import { useGamesStore, useGameSettingsStore } from '@/stores';
 import {
   Table,
@@ -59,6 +62,17 @@ function getGameDashboardUrl(game: Game): string | undefined {
 }
 
 export default function GameSettingsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+
+  // Staff users should see read-only games view
+  // Redirect to games page instead of settings page
+  useEffect(() => {
+    if (user?.role === USER_ROLES.STAFF) {
+      router.push('/dashboard/games');
+    }
+  }, [user?.role, router]);
+
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -80,8 +94,11 @@ export default function GameSettingsPage() {
   } = useGameSettingsStore();
 
   useEffect(() => {
-    fetchGames();
-  }, [fetchGames]);
+    // Only fetch if not staff
+    if (user?.role !== USER_ROLES.STAFF) {
+      fetchGames();
+    }
+  }, [fetchGames, user?.role]);
 
   const handleEdit = (game: Game) => {
     setEditingGame(game);

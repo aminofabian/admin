@@ -40,7 +40,11 @@ export function StaffBonusesSection() {
     firstPurchaseBonuses: storeFirstPurchaseBonuses,
     isLoading,
     error,
-    fetchAllBonuses,
+    fetchPurchaseBonuses,
+    fetchRechargeBonuses,
+    fetchTransferBonuses,
+    fetchSignupBonuses,
+    fetchFirstPurchaseBonuses,
     clearErrors,
   } = useBonusesStore();
 
@@ -48,9 +52,32 @@ export function StaffBonusesSection() {
 
   const firstPurchaseBonuses = storeFirstPurchaseBonuses?.results || [];
 
+  // Staff users don't have permission to access affiliate defaults
+  // So we fetch bonuses without affiliate defaults
+  // Use Promise.allSettled to prevent one failure from causing logout
   useEffect(() => {
-    fetchAllBonuses();
-  }, [fetchAllBonuses]);
+    const fetchBonusesForStaff = async () => {
+      // Use allSettled so that if one API call fails, others can still succeed
+      const results = await Promise.allSettled([
+        fetchPurchaseBonuses(),
+        fetchRechargeBonuses(),
+        fetchTransferBonuses(),
+        fetchSignupBonuses(),
+        fetchFirstPurchaseBonuses(),
+        // Skip fetchAffiliateDefaults() - staff doesn't have permission
+      ]);
+
+      // Log any failures but don't throw to prevent logout
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const apiNames = ['Purchase', 'Recharge', 'Transfer', 'Signup', 'First Purchase'];
+          console.warn(`Failed to load ${apiNames[index]} bonuses:`, result.reason);
+        }
+      });
+    };
+    
+    fetchBonusesForStaff();
+  }, [fetchPurchaseBonuses, fetchRechargeBonuses, fetchTransferBonuses, fetchSignupBonuses, fetchFirstPurchaseBonuses]);
 
   useEffect(() => {
     return () => {
@@ -85,7 +112,24 @@ export function StaffBonusesSection() {
     return (
       <ErrorState
         message={error}
-        onRetry={() => fetchAllBonuses()}
+        onRetry={async () => {
+          // Use allSettled to prevent one failure from causing logout
+          const results = await Promise.allSettled([
+            fetchPurchaseBonuses(),
+            fetchRechargeBonuses(),
+            fetchTransferBonuses(),
+            fetchSignupBonuses(),
+            fetchFirstPurchaseBonuses(),
+          ]);
+
+          // Log any failures but don't throw
+          results.forEach((result, index) => {
+            if (result.status === 'rejected') {
+              const apiNames = ['Purchase', 'Recharge', 'Transfer', 'Signup', 'First Purchase'];
+              console.warn(`Failed to retry loading ${apiNames[index]} bonuses:`, result.reason);
+            }
+          });
+        }}
       />
     );
   }
@@ -194,7 +238,7 @@ export function StaffBonusesSection() {
                         <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">{activeTab}</span>
                       </TableCell>
                       <TableCell>
-                        {amount !== null ? (
+                        {amount !== null && amount !== undefined ? (
                           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                             {formatCurrency(amount)}
                           </span>
