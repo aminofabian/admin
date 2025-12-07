@@ -744,27 +744,7 @@ function SuperAdminPlayersFiltersWrapper({
               />
             </div>
 
-            {/* Agent */}
-            <div className="min-w-0">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">
-                Agent
-              </label>
-              <Select
-                value={filters.agent}
-                onChange={(value: string) => onFilterChange('agent', value)}
-                options={[
-                  { value: '', label: 'All Agents' },
-                  ...agentOptions,
-                  ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
-                    ? [{ value: filters.agent, label: filters.agent }]
-                    : []),
-                ]}
-                placeholder="All Agents"
-                isLoading={isAgentLoading}
-                disabled={isAgentLoading}
-              />
-            </div>
-
+            {/* Agent - Hidden in superadmin */}
             {/* Status */}
             <div className="min-w-0">
               <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">

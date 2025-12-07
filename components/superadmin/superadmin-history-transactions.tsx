@@ -743,8 +743,8 @@ export function SuperAdminHistoryTransactions() {
                 onClear={handleClearFilters}
                 isOpen={areFiltersOpen}
                 onToggle={handleToggleFilters}
-                agentOptions={agentOptions}
-                isAgentLoading={isAgentLoading}
+                agentOptions={[]}
+                isAgentLoading={false}
                 paymentMethodOptions={paymentMethodOptions}
                 isPaymentMethodLoading={isPaymentMethodLoading}
                 isLoading={isLoading}

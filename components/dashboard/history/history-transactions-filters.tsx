@@ -168,24 +168,26 @@ export function HistoryTransactionsFilters({
             />
           </div>
 
-          {/* 4. Agent */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Agent</label>
-            <Select
-              value={filters.agent}
-              onChange={(value: string) => onFilterChange('agent', value)}
-              options={[
-                { value: '', label: 'All Agents' },
-                ...(agentOptions || []),
-                ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
-                  ? [{ value: filters.agent, label: filters.agent }]
-                  : []),
-              ]}
-              placeholder="All Agents"
-              isLoading={isAgentLoading}
-              disabled={isAgentLoading}
-            />
-          </div>
+          {/* 4. Agent - Hide if agentOptions is explicitly an empty array (superadmin) */}
+          {!(Array.isArray(agentOptions) && agentOptions.length === 0) && (
+            <div className="min-w-0">
+              <label className={labelClasses}>Agent</label>
+              <Select
+                value={filters.agent}
+                onChange={(value: string) => onFilterChange('agent', value)}
+                options={[
+                  { value: '', label: 'All Agents' },
+                  ...(agentOptions || []),
+                  ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
+                    ? [{ value: filters.agent, label: filters.agent }]
+                    : []),
+                ]}
+                placeholder="All Agents"
+                isLoading={isAgentLoading}
+                disabled={isAgentLoading}
+              />
+            </div>
+          )}
 
           {/* 5. Payment Method */}
           <div className="min-w-0">

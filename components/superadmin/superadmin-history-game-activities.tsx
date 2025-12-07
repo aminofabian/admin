@@ -771,8 +771,8 @@ export function SuperAdminHistoryGameActivities() {
                 onToggle={handleToggleFilters}
                 gameOptions={gameOptions}
                 isGameLoading={isGameLoading}
-                operatorOptions={operatorOptions}
-                isOperatorLoading={isOperatorLoading}
+                operatorOptions={[]}
+                isOperatorLoading={false}
                 isLoading={isLoading}
             />
 
