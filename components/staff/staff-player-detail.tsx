@@ -7,10 +7,12 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button } from '@/components/ui';
+import { Badge, Button, useToast } from '@/components/ui';
 import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
+import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
+import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 
 
 interface StaffPlayerDetailProps {
@@ -25,9 +27,10 @@ interface StaffPlayerDetailProps {
  */
 export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const router = useRouter();
+  const { addToast } = useToast();
 
   // Load player games
-  const { games, isLoading: isLoadingGames } = usePlayerGames(playerId);
+  const { games, isLoading: isLoadingGames, refreshGames } = usePlayerGames(playerId);
 
   // State
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -39,6 +42,8 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const [balanceData, setBalanceData] = useState<CheckPlayerGameBalanceResponse | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
+  const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
+  const [isAddingGame, setIsAddingGame] = useState(false);
 
   // Load player data
   useEffect(() => {
@@ -97,13 +102,25 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   }, [selectedPlayer, router]);
 
   const handleViewTransactions = useCallback(() => {
-    if (!selectedPlayer) return;
-    router.push(`/dashboard/history/transactions?username=${encodeURIComponent(selectedPlayer.username)}`);
+    if (!selectedPlayer?.username) {
+      console.error('Cannot navigate: selectedPlayer or username is missing');
+      return;
+    }
+    const transactionsStore = useTransactionsStore.getState();
+    transactionsStore.setFilterWithoutFetch('history');
+    transactionsStore.setAdvancedFiltersWithoutFetch({ username: selectedPlayer.username });
+    router.push('/dashboard/history/transactions?preserveFilters=true');
   }, [selectedPlayer, router]);
 
   const handleViewGameActivities = useCallback(() => {
-    if (!selectedPlayer) return;
-    router.push(`/dashboard/history/game-activities?username=${encodeURIComponent(selectedPlayer.username)}`);
+    if (!selectedPlayer?.username) {
+      console.error('Cannot navigate: selectedPlayer or username is missing');
+      return;
+    }
+    const queuesStore = useTransactionQueuesStore.getState();
+    queuesStore.setFilterWithoutFetch('history');
+    queuesStore.setAdvancedFiltersWithoutFetch({ username: selectedPlayer.username });
+    router.push('/dashboard/history/game-activities?preserveFilters=true');
   }, [selectedPlayer, router]);
 
   const handleCheckBalance = useCallback(async (game: PlayerGame) => {
@@ -128,6 +145,39 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
       setIsCheckingBalance(false);
     }
   }, [selectedPlayer]);
+
+  const handleOpenAddGame = useCallback(() => {
+    setIsAddGameDrawerOpen(true);
+  }, []);
+
+  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
+    if (!selectedPlayer || isAddingGame) {
+      return;
+    }
+
+    setIsAddingGame(true);
+    try {
+      const result = await playersApi.createGame(data);
+
+      addToast({
+        type: 'success',
+        title: 'Game added successfully',
+        description: `${result.game_name} account created for ${result.username}`,
+      });
+
+      setIsAddGameDrawerOpen(false);
+      await refreshGames();
+    } catch (error) {
+      const description = error instanceof Error ? error.message : 'Unknown error';
+      addToast({
+        type: 'error',
+        title: 'Failed to add game',
+        description,
+      });
+    } finally {
+      setIsAddingGame(false);
+    }
+  }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
 
 
   if (isLoadingPlayer) {
@@ -447,6 +497,18 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                   </div>
                   <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Player Games</h2>
                 </div>
+                <Button
+                  onClick={handleOpenAddGame}
+                  variant="primary"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="hidden sm:inline">Add Game</span>
+                  <span className="sm:hidden">Add</span>
+                </Button>
               </div>
 
               {isLoadingGames ? (
@@ -508,6 +570,19 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         isLoading={isCheckingBalance}
         error={balanceError}
       />
+
+      {/* Add Game Drawer */}
+      {selectedPlayer && (
+        <AddGameDrawer
+          isOpen={isAddGameDrawerOpen}
+          onClose={() => setIsAddGameDrawerOpen(false)}
+          playerId={selectedPlayer.id}
+          playerUsername={selectedPlayer.username}
+          playerGames={games}
+          onSubmit={handleAddGame}
+          isSubmitting={isAddingGame}
+        />
+      )}
     </div>
   );
 }
