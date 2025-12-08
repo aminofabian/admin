@@ -19,9 +19,17 @@ interface UpdatePaymentMethodParams {
   value: boolean;
 }
 
+interface UpdatePaymentMethodAmountsParams {
+  id: number;
+  action: PaymentMethodAction;
+  minAmount: number | null;
+  maxAmount: number | null;
+}
+
 interface PaymentMethodsActions {
   fetchPaymentMethods: () => Promise<void>;
   updatePaymentMethod: (params: UpdatePaymentMethodParams) => Promise<void>;
+  updatePaymentMethodAmounts: (params: UpdatePaymentMethodAmountsParams) => Promise<void>;
   reset: () => void;
 }
 
@@ -110,6 +118,69 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
       }
     } catch (err: unknown) {
       let errorMessage = 'Failed to update payment method';
+
+      if (err && typeof err === 'object' && 'detail' in err) {
+        errorMessage = String(err.detail);
+
+        if (errorMessage.toLowerCase().includes('permission')) {
+          errorMessage = 'Access Denied: You need proper privileges to update payment methods.';
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      set({ error: errorMessage });
+      throw new Error(errorMessage);
+    }
+  },
+
+  updatePaymentMethodAmounts: async ({ id, action, minAmount, maxAmount }: UpdatePaymentMethodAmountsParams) => {
+    try {
+      const payload: UpdatePaymentMethodRequest =
+        action === 'cashout'
+          ? {
+              min_amount_cashout: minAmount,
+              max_amount_cashout: maxAmount,
+            }
+          : {
+              min_amount_purchase: minAmount,
+              max_amount_purchase: maxAmount,
+            };
+
+      await paymentMethodsApi.patch(id, payload);
+
+      const currentPaymentMethods = get().paymentMethods;
+      if (currentPaymentMethods) {
+        const updateList = (methods: PaymentMethod[]) =>
+          methods.map((method) => {
+            if (method.id !== id) {
+              return method;
+            }
+
+            if (action === 'cashout') {
+              return {
+                ...method,
+                min_amount_cashout: minAmount !== null ? String(minAmount) : null,
+                max_amount_cashout: maxAmount !== null ? String(maxAmount) : null,
+              };
+            }
+
+            return {
+              ...method,
+              min_amount_purchase: minAmount !== null ? String(minAmount) : null,
+              max_amount_purchase: maxAmount !== null ? String(maxAmount) : null,
+            };
+          });
+
+        set({
+          paymentMethods: {
+            cashout: updateList(currentPaymentMethods.cashout),
+            purchase: updateList(currentPaymentMethods.purchase),
+          },
+        });
+      }
+    } catch (err: unknown) {
+      let errorMessage = 'Failed to update payment method amounts';
 
       if (err && typeof err === 'object' && 'detail' in err) {
         errorMessage = String(err.detail);

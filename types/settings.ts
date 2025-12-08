@@ -89,6 +89,10 @@ export interface PaymentMethod {
   is_enabled_for_purchase?: boolean;
   enabled_for_cashout_by_superadmin?: boolean;
   enabled_for_purchase_by_superadmin?: boolean;
+  min_amount_cashout?: string | null;
+  max_amount_cashout?: string | null;
+  min_amount_purchase?: string | null;
+  max_amount_purchase?: string | null;
   created: string;
   modified: string;
 }
@@ -99,6 +103,10 @@ export interface UpdatePaymentMethodRequest {
   method_type?: string;
   is_enabled_for_cashout?: boolean;
   is_enabled_for_purchase?: boolean;
+  min_amount_cashout?: number | null;
+  max_amount_cashout?: number | null;
+  min_amount_purchase?: number | null;
+  max_amount_purchase?: number | null;
 }
 
 export interface PaymentMethodsListResponse {

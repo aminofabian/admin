@@ -5,6 +5,7 @@ import { ErrorState, EmptyState } from '@/components/features';
 import { usePaymentMethodsStore } from '@/stores';
 import { useToast } from '@/components/ui/toast';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Skeleton } from '@/components/ui';
+import { PaymentAmountModal } from './payment-amount-modal';
 import type { PaymentMethod, PaymentMethodAction } from '@/types';
 
 // Get payment method initials
@@ -27,8 +28,12 @@ export function PaymentSettingsSection() {
   const error = usePaymentMethodsStore((state) => state.error);
   const fetchPaymentMethods = usePaymentMethodsStore((state) => state.fetchPaymentMethods);
   const { addToast } = useToast();
+  const updatePaymentMethodAmounts = usePaymentMethodsStore((state) => state.updatePaymentMethodAmounts);
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
   const [filterAction, setFilterAction] = useState<PaymentMethodAction>('cashout');
+  const [amountModalOpen, setAmountModalOpen] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodRow | null>(null);
+  const [isUpdatingAmounts, setIsUpdatingAmounts] = useState(false);
 
   type PaymentMethodRow = PaymentMethod & {
     action: PaymentMethodAction;
@@ -70,6 +75,50 @@ export function PaymentSettingsSection() {
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);
 
+  const handleEditAmounts = (method: PaymentMethodRow) => {
+    setSelectedPaymentMethod(method);
+    setAmountModalOpen(true);
+  };
+
+  const handleSaveAmounts = async (minAmount: number | null, maxAmount: number | null) => {
+    if (!selectedPaymentMethod) return;
+
+    setIsUpdatingAmounts(true);
+    try {
+      await updatePaymentMethodAmounts({
+        id: selectedPaymentMethod.id,
+        action: selectedPaymentMethod.action,
+        minAmount,
+        maxAmount,
+      });
+
+      addToast({
+        type: 'success',
+        title: 'Amounts updated',
+        description: `Amount limits for ${selectedPaymentMethod.payment_method_display} have been updated successfully.`,
+      });
+
+      setAmountModalOpen(false);
+      setSelectedPaymentMethod(null);
+    } catch (error) {
+      console.error('Failed to update payment method amounts:', error);
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: `Failed to update amount limits for ${selectedPaymentMethod.payment_method_display}.`,
+      });
+    } finally {
+      setIsUpdatingAmounts(false);
+    }
+  };
+
+  const formatAmount = (amount: string | null | undefined): string => {
+    if (!amount) return 'No limit';
+    const num = parseFloat(amount);
+    if (isNaN(num)) return 'No limit';
+    return `$${num.toFixed(2)}`;
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -105,8 +154,8 @@ export function PaymentSettingsSection() {
             <div className="min-w-full">
               {/* Table Header Skeleton */}
               <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-5 gap-4 px-4 py-3">
-                  {[...Array(5)].map((_, i) => (
+                <div className="grid grid-cols-6 gap-4 px-4 py-3">
+                  {[...Array(6)].map((_, i) => (
                     <Skeleton key={i} className="h-4 w-24" />
                   ))}
                 </div>
@@ -115,13 +164,14 @@ export function PaymentSettingsSection() {
               {/* Table Rows Skeleton */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-5 gap-4 px-4 py-4">
+                  <div key={i} className="grid grid-cols-6 gap-4 px-4 py-4">
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-lg" />
                       <div className="flex-1">
                         <Skeleton className="h-4 w-32 mb-2" />
                       </div>
                     </div>
+                    <Skeleton className="h-6 w-20 rounded-md" />
                     <Skeleton className="h-6 w-20 rounded-md" />
                     <Skeleton className="h-6 w-20 rounded-md" />
                     <div className="flex justify-center">
@@ -239,8 +289,9 @@ export function PaymentSettingsSection() {
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Usage</TableHead>
+                    <TableHead>Amount Limits</TableHead>
                     <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -268,6 +319,20 @@ export function PaymentSettingsSection() {
                         {method.action}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                          Min: <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {formatAmount(method.action === 'cashout' ? method.min_amount_cashout : method.min_amount_purchase)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                          Max: <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {formatAmount(method.action === 'cashout' ? method.max_amount_cashout : method.max_amount_purchase)}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-center">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${method.isEnabled ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${method.isEnabled ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -275,7 +340,14 @@ export function PaymentSettingsSection() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEditAmounts(method)}
+                          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0"
+                          title="Edit amount limits"
+                        >
+                          Edit Amounts
+                        </button>
                         <button
                           onClick={async () => {
                             const isCurrentlyLoading = loadingIds.has(method.loadingKey);
@@ -422,6 +494,33 @@ export function PaymentSettingsSection() {
                     </button>
                   </div>
 
+                  {/* Mobile Amount Limits */}
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Amount Limits</span>
+                      <button
+                        onClick={() => handleEditAmounts(method)}
+                        className="px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">Min:</span>{' '}
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {formatAmount(method.action === 'cashout' ? method.min_amount_cashout : method.min_amount_purchase)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">Max:</span>{' '}
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {formatAmount(method.action === 'cashout' ? method.max_amount_cashout : method.max_amount_purchase)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Mobile badges */}
                   <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <span className="inline-flex items-center px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 text-xs font-medium capitalize">
@@ -442,11 +541,20 @@ export function PaymentSettingsSection() {
           </div>
         </>
       )}
+      </div>
+
+      {/* Amount Modal */}
+      <PaymentAmountModal
+        isOpen={amountModalOpen}
+        onClose={() => {
+          setAmountModalOpen(false);
+          setSelectedPaymentMethod(null);
+        }}
+        paymentMethod={selectedPaymentMethod as PaymentMethod | null}
+        action={filterAction}
+        onSave={handleSaveAmounts}
+        isLoading={isUpdatingAmounts}
+      />
     </div>
-  
-
-
-</div>)}
-      
-  
-
+  );
+}
