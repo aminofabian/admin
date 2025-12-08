@@ -630,8 +630,7 @@ export function SuperAdminHistoryGameActivities() {
                 </div>
             </div>
 
-            {/* Company Filter - Hidden for now */}
-            {false && (
+            {/* Company Filter */}
             <Card className="mt-4 mb-4 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-visible">
                 <CardContent className="px-4 md:px-6 py-4 md:py-6">
                     <div className="relative" data-company-dropdown>
@@ -758,7 +757,6 @@ export function SuperAdminHistoryGameActivities() {
                     </div>
                 </CardContent>
             </Card>
-            )}
 
             <HistoryGameActivitiesFilters
                 queueFilter={queueFilter as QueueFilterOption}
