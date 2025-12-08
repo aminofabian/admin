@@ -83,11 +83,33 @@ class ApiClient {
         };
       }
 
+      // Safely extract endpoint from URL
+      let endpoint = '';
+      try {
+        if (response.url) {
+          if (this.baseUrl && response.url.startsWith(this.baseUrl)) {
+            endpoint = response.url.replace(this.baseUrl, '');
+          } else if (response.url.startsWith('/')) {
+            endpoint = response.url;
+          } else {
+            // Try to extract path from full URL
+            try {
+              const urlObj = new URL(response.url);
+              endpoint = urlObj.pathname + urlObj.search;
+            } catch {
+              endpoint = response.url;
+            }
+          }
+        }
+      } catch {
+        endpoint = 'unknown';
+      }
+
       console.error('🚨 API Error Details:', {
         status: response.status,
         statusText: response.statusText,
-        url: response.url,
-        endpoint: response.url.replace(this.baseUrl, ''),
+        url: response.url || 'unknown',
+        endpoint,
         errorMessage: errorData.message,
         errorDetail: errorData.detail,
         rawError: errorData,

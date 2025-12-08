@@ -12,8 +12,9 @@ function HistoryGameActivitiesContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { setFilterWithoutFetch } = useTransactionQueuesStore();
+  const { setFilterWithoutFetch, setAdvancedFilters } = useTransactionQueuesStore();
   const previousUsernameRef = useRef<string | null>(null);
+  const previousOperatorRef = useRef<string | null>(null);
 
   // Set filter to 'history' for regular users
   useEffect(() => {
@@ -45,6 +46,33 @@ function HistoryGameActivitiesContent() {
       }
     }
   }, [searchParams, pathname]);
+
+  // Read operator from query param and apply filter
+  useEffect(() => {
+    const operatorFromQuery = searchParams.get('operator');
+    const trimmedOperator = operatorFromQuery?.trim() || null;
+
+    // Only update if operator actually changed
+    if (trimmedOperator !== previousOperatorRef.current) {
+      if (trimmedOperator) {
+        previousOperatorRef.current = trimmedOperator;
+        
+        // Apply operator filter (this will trigger a fetch)
+        setAdvancedFilters({ operator: trimmedOperator });
+
+        // Remove operator from URL after reading it
+        const params = new URLSearchParams(window.location.search);
+        params.delete('operator');
+        const newSearch = params.toString();
+        const newUrl = newSearch
+          ? `${pathname}?${newSearch}`
+          : pathname;
+        window.history.replaceState({}, '', newUrl);
+      } else {
+        previousOperatorRef.current = null;
+      }
+    }
+  }, [searchParams, pathname, setAdvancedFilters]);
 
   // If user is superadmin, render superadmin history view
   if (user?.role === 'superadmin') {

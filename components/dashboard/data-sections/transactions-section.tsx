@@ -466,9 +466,9 @@ export function TransactionsSection() {
     };
   }, [areFiltersOpen, paymentMethodOptions.length]);
 
-  // Lazy load operators when filters are opened
+  // Load operators on mount (always load for staff portal)
   useEffect(() => {
-    if (!areFiltersOpen || operatorOptions.length > 0) {
+    if (operatorOptions.length > 0) {
       return;
     }
 
@@ -497,18 +497,6 @@ export function TransactionsSection() {
           }
         }
 
-        // Fetch active staff
-        const staffResponse = await staffsApi.list({ page_size: 100 });
-        const activeStaff = (staffResponse?.results || []).filter((staff: Staff) => staff.is_active);
-
-        // Fetch active managers
-        const managersResponse = await managersApi.list({ page_size: 100 });
-        const activeManagers = (managersResponse?.results || []).filter((manager: Manager) => manager.is_active);
-
-        if (!isMounted || isCancelled) {
-          return;
-        }
-
         const operatorMap = new Map<string, { value: string; label: string }>();
 
         // Add "Bot" operator - use 'bot' as value, 'Bot' as label
@@ -517,19 +505,37 @@ export function TransactionsSection() {
         // Add "Company" - use username as both value and label
         operatorMap.set(companyName, { value: companyName, label: companyName });
 
-        // Add active staff
-        activeStaff.forEach((staff: Staff) => {
-          if (staff?.username) {
-            operatorMap.set(staff.username, { value: staff.username, label: staff.username });
-          }
-        });
+        // Try to fetch active staff (may fail for staff users due to permissions)
+        try {
+          const staffResponse = await staffsApi.list({ page_size: 100 });
+          const activeStaff = (staffResponse?.results || []).filter((staff: Staff) => staff.is_active);
+          activeStaff.forEach((staff: Staff) => {
+            if (staff?.username) {
+              operatorMap.set(staff.username, { value: staff.username, label: staff.username });
+            }
+          });
+        } catch (error) {
+          // Permission denied is expected for staff users - silently skip
+          console.debug('Cannot load staff list (permission denied - expected for staff users)');
+        }
 
-        // Add active managers
-        activeManagers.forEach((manager: Manager) => {
-          if (manager?.username) {
-            operatorMap.set(manager.username, { value: manager.username, label: manager.username });
-          }
-        });
+        // Try to fetch active managers (may fail for staff users due to permissions)
+        try {
+          const managersResponse = await managersApi.list({ page_size: 100 });
+          const activeManagers = (managersResponse?.results || []).filter((manager: Manager) => manager.is_active);
+          activeManagers.forEach((manager: Manager) => {
+            if (manager?.username) {
+              operatorMap.set(manager.username, { value: manager.username, label: manager.username });
+            }
+          });
+        } catch (error) {
+          // Permission denied is expected for staff users - silently skip
+          console.debug('Cannot load managers list (permission denied - expected for staff users)');
+        }
+
+        if (!isMounted || isCancelled) {
+          return;
+        }
 
         // Sort: Bot first, Company second, then alphabetically
         const sortedEntries = Array.from(operatorMap.entries()).sort((a, b) => {
@@ -546,7 +552,9 @@ export function TransactionsSection() {
 
         const mappedOptions = sortedEntries.map(([, option]) => option);
 
-        setOperatorOptions(mappedOptions);
+        if (isMounted && !isCancelled) {
+          setOperatorOptions(mappedOptions);
+        }
       } catch (error) {
         console.error('Failed to load operators for transaction filters:', error);
       } finally {
@@ -562,7 +570,7 @@ export function TransactionsSection() {
       isCancelled = true;
       isMounted = false;
     };
-  }, [areFiltersOpen, operatorOptions.length]);
+  }, [operatorOptions.length]);
 
   const handleAdvancedFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
     setFilters((previous) => {

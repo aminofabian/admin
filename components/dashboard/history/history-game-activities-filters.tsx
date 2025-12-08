@@ -200,26 +200,24 @@ export function HistoryGameActivitiesFilters({
               />
             </div>
 
-            {/* 7. Operator - Hide if operatorOptions is explicitly an empty array (superadmin) */}
-            {!(Array.isArray(operatorOptions) && operatorOptions.length === 0) && (
-              <div className="min-w-0">
-                <label className={labelClasses}>Operator</label>
-                <Select
-                  value={filters.operator}
-                  onChange={(value: string) => onFilterChange('operator', value)}
-                  options={[
-                    { value: '', label: 'All Operators' },
-                    ...(operatorOptions || []),
-                    ...(filters.operator && operatorOptions && !operatorOptions.some((option) => option.value === filters.operator)
-                      ? [{ value: filters.operator, label: filters.operator }]
-                      : []),
-                  ]}
-                  placeholder="All Operators"
-                  isLoading={isOperatorLoading}
-                  disabled={isOperatorLoading}
-                />
-              </div>
-            )}
+            {/* 7. Operator - Always show for staff portal */}
+            <div className="min-w-0">
+              <label className={labelClasses}>Operator</label>
+              <Select
+                value={filters.operator}
+                onChange={(value: string) => onFilterChange('operator', value)}
+                options={[
+                  { value: '', label: 'All Operators' },
+                  ...(operatorOptions || []),
+                  ...(filters.operator && operatorOptions && !operatorOptions.some((option) => option.value === filters.operator)
+                    ? [{ value: filters.operator, label: filters.operator }]
+                    : []),
+                ]}
+                placeholder="All Operators"
+                isLoading={isOperatorLoading}
+                disabled={isOperatorLoading}
+              />
+            </div>
 
             {/* 8. Status */}
             <div className="min-w-0">

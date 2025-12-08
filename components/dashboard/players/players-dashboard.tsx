@@ -66,7 +66,9 @@ type PlayersPageContext = {
   router: ReturnType<typeof useRouter>;
   agentOptions: Array<{ value: string; label: string }>;
   isAgentLoading: boolean;
-  canAccessAgents: boolean;
+  canAccessAgents: boolean; // Deprecated: use canFilterByAgents for filtering, canAssignAgents for assignment
+  canAssignAgents: boolean;
+  canFilterByAgents: boolean;
 };
 
 export default function PlayersDashboard(): ReactElement {
@@ -80,6 +82,8 @@ export default function PlayersDashboard(): ReactElement {
     agentOptions,
     isAgentLoading,
     canAccessAgents,
+    canAssignAgents,
+    canFilterByAgents,
   } = usePlayersPageContext();
 
   if (dataState.shouldShowLoading) {
@@ -170,7 +174,7 @@ export default function PlayersDashboard(): ReactElement {
       <PlayersHeader
         onAddPlayer={modalState.openCreateModal}
         totalCount={dataState.data?.count ?? 0}
-        showAddButton={canAccessAgents}
+        showAddButton={canAssignAgents}
       />
       {modalState.state.successMessage && (
         <div className="mb-4">
@@ -182,10 +186,10 @@ export default function PlayersDashboard(): ReactElement {
         onFilterChange={filters.setFilter}
         onApply={filters.applyFilters}
         onClear={filters.clearFilters}
-        agentOptions={canAccessAgents ? agentOptions : []}
-        isAgentLoading={canAccessAgents ? isAgentLoading : false}
+        agentOptions={canFilterByAgents ? agentOptions : []}
+        isAgentLoading={canFilterByAgents ? isAgentLoading : false}
         isLoading={dataState.isLoading}
-        showAgentFilter={canAccessAgents}
+        showAgentFilter={canFilterByAgents}
       />
       <PlayersTableSection
         data={dataState.data}
@@ -199,7 +203,7 @@ export default function PlayersDashboard(): ReactElement {
         page={pagination.page}
         pageSize={pagination.pageSize}
       />
-      {canAccessAgents && (
+      {canAssignAgents && (
       <CreatePlayerDrawer
         isOpen={modalState.state.isCreateOpen}
         isSubmitting={modalState.state.isSubmitting}
@@ -222,10 +226,12 @@ function usePlayersPageContext(): PlayersPageContext {
   // Read agent username from URL params
   const agentFromUrl = searchParams.get('agent');
 
-  // Check if user can access agents (staff and managers cannot)
-  const canAccessAgents = user?.role !== USER_ROLES.STAFF && user?.role !== USER_ROLES.MANAGER;
+  // Check if user can assign agents to players (staff and managers cannot)
+  const canAssignAgents = user?.role !== USER_ROLES.STAFF && user?.role !== USER_ROLES.MANAGER;
+  // All users (including staff) can filter by agents
+  const canFilterByAgents = true;
 
-  // Load agents for filter dropdown (skip for staff users)
+  // Load agents for filter dropdown (all users can filter by agents)
   const [agentOptions, setAgentOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isAgentLoading, setIsAgentLoading] = useState(false);
 
@@ -251,12 +257,7 @@ function usePlayersPageContext(): PlayersPageContext {
   }, [agentFromUrl]); // Only run when agentFromUrl changes
 
   useEffect(() => {
-    // Skip loading agents for staff users since they can't assign agents
-    if (!canAccessAgents) {
-      setIsAgentLoading(false);
-      return;
-    }
-
+    // Load agents for all users (including staff) for filtering purposes
     let isMounted = true;
 
     const loadAgents = async () => {
@@ -320,7 +321,7 @@ function usePlayersPageContext(): PlayersPageContext {
     return () => {
       isMounted = false;
     };
-  }, [canAccessAgents]);
+  }, []); // Load agents for all users
 
   // Remove URL parameter after component has mounted (if agent was in URL)
   // This prevents it from overriding filter changes
@@ -369,7 +370,9 @@ function usePlayersPageContext(): PlayersPageContext {
     router,
     agentOptions,
     isAgentLoading,
-    canAccessAgents,
+    canAccessAgents: canAssignAgents, // Keep for backward compatibility
+    canAssignAgents,
+    canFilterByAgents,
   };
 }
 
