@@ -346,7 +346,7 @@ export function PaymentSettingsSection() {
                           className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0"
                           title="Edit amount limits"
                         >
-                          Edit Amounts
+                          Edit Min/Max
                         </button>
                         <button
                           onClick={async () => {
