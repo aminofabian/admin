@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Player } from '@/types';
+import type { Player, UpdateUserRequest } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
@@ -13,17 +13,28 @@ import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
+import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 
 
 interface StaffPlayerDetailProps {
   playerId: number;
 }
 
+interface EditableFields {
+  email: string;
+  full_name: string;
+  dob: string;
+  state: string;
+  mobile_number: string;
+  password: string;
+  confirm_password: string;
+  is_active: boolean;
+}
+
 /**
  * Staff Player Detail Component
- * - Read-only view of player details
+ * - View and edit player details
  * - No agent assignment functionality
- * - No player creation/editing functionality
  */
 export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const router = useRouter();
@@ -44,6 +55,18 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
   const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
   const [isAddingGame, setIsAddingGame] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editableFields, setEditableFields] = useState<EditableFields>({
+    email: '',
+    full_name: '',
+    dob: '',
+    state: '',
+    mobile_number: '',
+    password: '',
+    confirm_password: '',
+    is_active: true,
+  });
 
   // Load player data
   useEffect(() => {
@@ -61,6 +84,16 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         const player = await apiClient.get<Player>(API_ENDPOINTS.PLAYERS.DETAIL(playerId));
 
         setSelectedPlayer(player);
+        setEditableFields({
+          email: player.email || '',
+          full_name: player.full_name || '',
+          dob: player.dob || '',
+          state: player.state || '',
+          mobile_number: player.mobile_number || '',
+          password: '',
+          confirm_password: '',
+          is_active: player.is_active ?? true,
+        });
 
         // Load transaction details
         setIsLoadingDetails(true);
@@ -179,6 +212,75 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     }
   }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
 
+  const handleSave = useCallback(async () => {
+    if (!selectedPlayer) return;
+
+    // Validate password if provided
+    if (editableFields.password.trim()) {
+      if (editableFields.password !== editableFields.confirm_password) {
+        addToast({
+          type: 'error',
+          title: 'Validation error',
+          description: 'Passwords do not match. Please check and try again.',
+        });
+        return;
+      }
+    }
+
+    setIsSaving(true);
+    try {
+      const updateData: UpdateUserRequest = {
+        email: editableFields.email.trim() || undefined,
+        full_name: editableFields.full_name.trim() || undefined,
+        mobile_number: editableFields.mobile_number.trim() || undefined,
+        dob: editableFields.dob.trim() || undefined,
+        state: editableFields.state.trim() || undefined,
+        is_active: editableFields.is_active,
+        // Only include password if it's not empty
+        ...(editableFields.password.trim()
+          ? {
+            password: editableFields.password.trim(),
+            confirm_password: editableFields.confirm_password.trim(),
+          }
+          : {}
+        ),
+      };
+
+      await playersApi.update(selectedPlayer.id, updateData);
+
+      // Refresh player data
+      const updatedPlayer = {
+        ...selectedPlayer,
+        email: editableFields.email.trim() || selectedPlayer.email,
+        full_name: editableFields.full_name.trim() || selectedPlayer.full_name,
+        mobile_number: editableFields.mobile_number.trim() || selectedPlayer.mobile_number,
+        dob: editableFields.dob.trim() || selectedPlayer.dob,
+        state: editableFields.state.trim() || selectedPlayer.state,
+        is_active: editableFields.is_active,
+      };
+      setSelectedPlayer(updatedPlayer);
+
+      addToast({
+        type: 'success',
+        title: 'Player updated',
+        description: 'Player details have been updated successfully.',
+      });
+
+      setIsEditDrawerOpen(false);
+      // Reset password fields after save
+      setEditableFields(prev => ({ ...prev, password: '', confirm_password: '' }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update player';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: message,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [selectedPlayer, editableFields, addToast]);
+
 
   if (isLoadingPlayer) {
     return <LoadingState />;
@@ -266,6 +368,17 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                 </div>
               </div>
             </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsEditDrawerOpen(true)}
+              className="flex items-center gap-1 sm:gap-1.5 shrink-0 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+            >
+              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -583,6 +696,16 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           isSubmitting={isAddingGame}
         />
       )}
+
+      {/* Edit Player Details Drawer */}
+      <EditPlayerDetailsDrawer
+        isOpen={isEditDrawerOpen}
+        onClose={() => setIsEditDrawerOpen(false)}
+        editableFields={editableFields}
+        setEditableFields={setEditableFields}
+        isSaving={isSaving}
+        onSave={handleSave}
+      />
     </div>
   );
 }
