@@ -300,7 +300,13 @@ const MENU_CATEGORIES: MenuCategory[] = [
     name: 'Bonuses',
     icon: <BonusIcon />,
     roles: [USER_ROLES.STAFF, USER_ROLES.MANAGER],
-    href: '/dashboard/bonuses',
+    submenu: [
+      { name: 'Purchase Bonus', href: '/dashboard/bonuses/purchase', icon: <PurchaseBonusIcon /> },
+      { name: 'Recharge Bonus', href: '/dashboard/bonuses/recharge', icon: <RechargeBonusIcon /> },
+      { name: 'Transfer Bonus', href: '/dashboard/bonuses/transfer', icon: <TransferBonusIcon /> },
+      { name: 'Sign Up Bonus', href: '/dashboard/bonuses/signup', icon: <SignUpBonusIcon /> },
+      { name: 'First Purchase', href: '/dashboard/bonuses/first-page', icon: <FirstPageBonusIcon /> },
+    ],
   },
   {
     name: 'Settings',
