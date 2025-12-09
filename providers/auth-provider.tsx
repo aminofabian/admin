@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
-import { TOKEN_KEY, REFRESH_TOKEN_KEY, PROJECT_UUID_KEY, PROJECT_DOMAIN } from '@/lib/constants/api';
+import { TOKEN_KEY, REFRESH_TOKEN_KEY, PROJECT_UUID_KEY } from '@/lib/constants/api';
 import type { AuthUser, LoginRequest } from '@/types';
 
 interface AuthContextValue {

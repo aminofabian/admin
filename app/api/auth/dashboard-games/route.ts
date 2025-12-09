@@ -1,12 +1,25 @@
 import { NextResponse } from 'next/server';
 
 const DASHBOARD_GAMES_URL = 'https://admin.serverhub.biz/users/dashboard-games/';
-const PROJECT_DOMAIN = process.env.NEXT_PUBLIC_PROJECT_DOMAIN || 'https://serverhub.biz';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    // Parse request body to get project_domain
+    const body = await request.json();
+    const projectDomain = body.project_domain;
+
+    if (!projectDomain || typeof projectDomain !== 'string') {
+      return NextResponse.json(
+        {
+          status: 'error',
+          message: 'project_domain is required and must be a string',
+        },
+        { status: 400 }
+      );
+    }
+
     console.log('🔷 Proxying dashboard-games to:', DASHBOARD_GAMES_URL);
-    console.log('📤 Project domain:', PROJECT_DOMAIN);
+    console.log('📤 Project domain:', projectDomain);
 
     // Forward the request to the external server
     const response = await fetch(DASHBOARD_GAMES_URL, {
@@ -15,7 +28,7 @@ export async function POST() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        project_domain: PROJECT_DOMAIN
+        project_domain: projectDomain,
       }),
     });
 
