@@ -34,7 +34,7 @@ export function extractDomainFromUrl(url: string): string {
 /**
  * Gets the current domain from window.location
  * Returns the full URL with https:// prefix
- * For localhost, returns 'https://serverhub.biz' as fallback
+ * For localhost or bruii.com, returns 'https://serverhub.biz' as fallback
  * For production, returns 'https://<domain>' (e.g., 'https://spincash.cc')
  */
 export function getCurrentDomain(): string {
@@ -49,8 +49,15 @@ export function getCurrentDomain(): string {
     return 'https://serverhub.biz';
   }
   
-  // For production, extract domain and return with https:// prefix
+  // Extract domain from URL
   const domain = extractDomainFromUrl(window.location.href);
+  
+  // Special exception: bruii.com should use serverhub.biz
+  if (domain === 'bruii.com') {
+    return 'https://serverhub.biz';
+  }
+  
+  // For production, return with https:// prefix
   return `https://${domain}`;
 }
 
