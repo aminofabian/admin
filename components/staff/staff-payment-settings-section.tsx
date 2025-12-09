@@ -19,6 +19,14 @@ const getPaymentMethodInitials = (paymentMethodDisplay: string): string => {
   return 'PM';
 };
 
+// Format amount for display
+const formatAmount = (amount: string | null | undefined): string => {
+  if (!amount) return 'No limit';
+  const num = parseFloat(amount);
+  if (isNaN(num)) return 'No limit';
+  return `$${num.toFixed(2)}`;
+};
+
 /**
  * Staff Payment Settings Section - Read-only
  * Shows payment methods but does not allow editing
@@ -105,8 +113,8 @@ export function StaffPaymentSettingsSection() {
             <div className="min-w-full">
               {/* Table Header Skeleton */}
               <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-4 gap-4 px-4 py-3">
-                  {[...Array(4)].map((_, i) => (
+                <div className="grid grid-cols-5 gap-4 px-4 py-3">
+                  {[...Array(5)].map((_, i) => (
                     <Skeleton key={i} className="h-4 w-24" />
                   ))}
                 </div>
@@ -115,13 +123,14 @@ export function StaffPaymentSettingsSection() {
               {/* Table Rows Skeleton */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-4 gap-4 px-4 py-4">
+                  <div key={i} className="grid grid-cols-5 gap-4 px-4 py-4">
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-lg" />
                       <div className="flex-1">
                         <Skeleton className="h-4 w-32 mb-2" />
                       </div>
                     </div>
+                    <Skeleton className="h-6 w-20 rounded-md" />
                     <Skeleton className="h-6 w-20 rounded-md" />
                     <Skeleton className="h-6 w-20 rounded-md" />
                     <div className="flex justify-center">
@@ -241,6 +250,7 @@ export function StaffPaymentSettingsSection() {
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Usage</TableHead>
+                    <TableHead>Amount Limits</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -268,6 +278,20 @@ export function StaffPaymentSettingsSection() {
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 capitalize">
                           {method.action}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Min: <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {formatAmount(method.action === 'cashout' ? method.min_amount_cashout : method.min_amount_purchase)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Max: <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {formatAmount(method.action === 'cashout' ? method.max_amount_cashout : method.max_amount_purchase)}
+                            </span>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${method.isEnabled ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
@@ -299,6 +323,27 @@ export function StaffPaymentSettingsSection() {
                           <h3 className="font-medium text-gray-900 dark:text-gray-100 leading-tight truncate">
                             {method.payment_method_display}
                           </h3>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mobile Amount Limits */}
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="mb-2">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Amount Limits</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400">Min:</span>{' '}
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {formatAmount(method.action === 'cashout' ? method.min_amount_cashout : method.min_amount_purchase)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400">Max:</span>{' '}
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {formatAmount(method.action === 'cashout' ? method.max_amount_cashout : method.max_amount_purchase)}
+                          </span>
                         </div>
                       </div>
                     </div>
