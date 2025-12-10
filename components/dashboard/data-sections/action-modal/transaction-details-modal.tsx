@@ -130,7 +130,7 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   return (
     <DetailsModalWrapper isOpen={isOpen} onClose={onClose} title="Transaction Details">
       <DetailsCard id={transaction.id}>
-        <div className="space-y-2">
+        <div className="space-y-4">
           {/* Header with Type and Status */}
           <DetailsHeader
             icon={
@@ -147,78 +147,102 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
             statusColor={statusColor}
           />
 
-          {/* User and Email */}
-          <DetailsRow>
-            <DetailsField label="User" value={transaction.user_username} />
-            <DetailsField label="Email" value={transaction.user_email} />
-          </DetailsRow>
+          {/* User Information */}
+          <div className="space-y-3">
+            <DetailsRow>
+              <DetailsField label="User" value={transaction.user_username} />
+              <DetailsField label="Email" value={transaction.user_email} />
+            </DetailsRow>
+            <DetailsRow>
+              <DetailsField label="Operator" value={transaction.operator || '—'} />
+            </DetailsRow>
+          </div>
 
-          {/* Payment Method and Operator */}
-          <DetailsRow>
-            <DetailsField label="Payment Method" value={paymentMethod} />
-            <DetailsField label="Operator" value={transaction.operator || '—'} />
-          </DetailsRow>
-
-          {/* Balance Information */}
-          <DetailsRow>
-            <DetailsHighlightBox
-              label="Previous Balance"
-              value={formatCurrency(previousBalanceValue)}
-              variant="blue"
-            />
-            <DetailsHighlightBox
-              label="New Balance"
-              value={formatCurrency(newBalanceValue)}
-              variant="green"
-            />
-          </DetailsRow>
-
-          {/* Winning Balance Information */}
-          <DetailsRow>
-            <DetailsHighlightBox
-              label="Prev Winning"
-              value={formatCurrency(previousWinningValue)}
-              variant="purple"
-            />
-            <DetailsHighlightBox
-              label="New Winning"
-              value={formatCurrency(newWinningValue)}
-              variant="green"
-            />
-          </DetailsRow>
-
-          {/* Amount */}
-          <DetailsAmountBox
-            amount={formattedAmount}
-            bonus={formattedBonus ? `+${formattedBonus}` : undefined}
-            variant={amountVariant}
-          />
-
-          {/* Dates */}
-          <DetailsRow>
-            <DetailsField label="Created" value={formattedCreatedAt} />
-            <DetailsField label="Updated" value={formattedUpdatedAt} />
-          </DetailsRow>
-
-          {/* View Invoice Button for Crypto Payments - Only for Purchases */}
-          {isPurchase && isCryptoPayment && invoiceUrl && (
-            <div className="pt-2 border-t border-border">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="font-medium w-full text-xs h-7"
-                onClick={handleOpenInvoice}
-              >
-                View Invoice
-              </Button>
+          {/* Payment Details */}
+          {transaction.payment_details && typeof transaction.payment_details === 'object' && Object.keys(transaction.payment_details).length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Payment Details</div>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-md p-3 space-y-2">
+                {Object.entries(transaction.payment_details).map(([key, value]) => (
+                  <div key={key} className="flex items-start justify-between gap-3">
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300 capitalize min-w-0 flex-shrink-0">
+                      {key.replace(/_/g, ' ')}:
+                    </span>
+                    <span className="text-xs text-gray-900 dark:text-gray-100 text-right break-all min-w-0">
+                      {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Remarks/Description */}
-          {transaction.description && <DetailsRemarks remarks={transaction.description} />}
+          {/* Financial Information */}
+          <div className="space-y-3">
+            {/* Amount */}
+            <DetailsAmountBox
+              amount={formattedAmount}
+              bonus={formattedBonus ? `+${formattedBonus}` : undefined}
+              variant={amountVariant}
+            />
 
+            {/* Balance Information */}
+            <DetailsRow>
+              <DetailsHighlightBox
+                label="Previous Balance"
+                value={formatCurrency(previousBalanceValue)}
+                variant="blue"
+              />
+              <DetailsHighlightBox
+                label="New Balance"
+                value={formatCurrency(newBalanceValue)}
+                variant="green"
+              />
+            </DetailsRow>
+
+            {/* Winning Balance Information */}
+            <DetailsRow>
+              <DetailsHighlightBox
+                label="Prev Winning"
+                value={formatCurrency(previousWinningValue)}
+                variant="purple"
+              />
+              <DetailsHighlightBox
+                label="New Winning"
+                value={formatCurrency(newWinningValue)}
+                variant="green"
+              />
+            </DetailsRow>
+          </div>
+
+          {/* Metadata */}
+          <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <DetailsRow>
+              <DetailsField label="Created" value={formattedCreatedAt} />
+              <DetailsField label="Updated" value={formattedUpdatedAt} />
+            </DetailsRow>
+
+            {/* Remarks/Description */}
+            {transaction.description && <DetailsRemarks remarks={transaction.description} />}
+
+            {/* View Invoice Button for Crypto Payments - Only for Purchases */}
+            {isPurchase && isCryptoPayment && invoiceUrl && (
+              <div className="pt-1">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="font-medium w-full text-xs h-7"
+                  onClick={handleOpenInvoice}
+                >
+                  View Invoice
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
           {showActions && (
-            <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2 sm:flex-row">
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex flex-col gap-2 sm:flex-row">
               {hasComplete && (
                 <Button
                   variant="primary"

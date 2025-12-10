@@ -347,9 +347,23 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
 
   const paymentCell = (
     <TableCell>
-      <Badge variant="info" className="text-xs">
-        {paymentMethod}
-      </Badge>
+      <div className="space-y-1">
+        <Badge variant="info" className="text-xs">
+          {paymentMethod}
+        </Badge>
+        {transaction.payment_details && typeof transaction.payment_details === 'object' && Object.keys(transaction.payment_details).length > 0 && (
+          <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
+            {Object.entries(transaction.payment_details).map(([key, value]) => (
+              <div key={key} className="truncate" title={`${key.replace(/_/g, ' ')}: ${typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}`}>
+                <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                <span className="text-gray-700 dark:text-gray-300">
+                  {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </TableCell>
   );
 
@@ -1093,6 +1107,19 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                             {transaction.payment_method ?? '—'}
                           </Badge>
                         </div>
+                        {transaction.payment_details && typeof transaction.payment_details === 'object' && Object.keys(transaction.payment_details).length > 0 && (
+                          <div className="mt-2 bg-gray-50 dark:bg-gray-800/50 rounded-md p-2 space-y-1">
+                            <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Payment Details</div>
+                            {Object.entries(transaction.payment_details).map(([key, value]) => (
+                              <div key={key} className="text-[10px] text-gray-700 dark:text-gray-300">
+                                <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                                <span className="break-all">
+                                  {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

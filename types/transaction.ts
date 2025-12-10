@@ -31,6 +31,7 @@ export interface Transaction {
   updated_at: string;
   payment_url?: string | null;
   invoice_url?: string;
+  payment_details?: Record<string, unknown> | null;
   company_id?: number;
   company_username?: string;
 }
