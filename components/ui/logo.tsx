@@ -1,3 +1,5 @@
+import { getBrandName } from '@/lib/utils/domain';
+
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
@@ -5,6 +7,7 @@ interface LogoProps {
 }
 
 export function Logo({ size = 'md', showText = false, className = '' }: LogoProps) {
+  const brandName = getBrandName();
   const sizeClasses = {
     sm: 'w-10 h-10',
     md: 'w-14 h-14',
@@ -69,7 +72,7 @@ export function Logo({ size = 'md', showText = false, className = '' }: LogoProp
       {showText && (
         <div className="flex flex-col uppercase">
           <span className={`${textSizeClasses[size]} font-bold text-gray-900 dark:text-white leading-tight tracking-tight`}>
-            SLOTTHING
+            {brandName}
           </span>
           <span className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium leading-none mt-0.5">
             Admin Panel

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { useTheme } from '@/providers/theme-provider';
 import { Input, Logo, useToast } from '@/components/ui';
-import { isSuperadminDomain } from '@/lib/utils/domain';
+import { isSuperadminDomain, getBrandName } from '@/lib/utils/domain';
 import type { LoginRequest } from '@/types';
 
 export default function LoginPage() {
@@ -121,7 +121,7 @@ export default function LoginPage() {
           <div className="relative text-center mb-10">
             <div className="relative inline-block">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-wide">
-                Slotthing Admin Panel
+                {getBrandName()} Admin Panel
               </h1>
               {/* Subtle glow effect behind title */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 blur-sm -z-10 opacity-70 dark:opacity-100" />

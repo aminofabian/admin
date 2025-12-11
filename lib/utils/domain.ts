@@ -77,3 +77,45 @@ export function isSuperadminDomain(): boolean {
   return isPermittedSuperadminDomain(hostname);
 }
 
+/**
+ * Extracts the brand name from the current URL
+ * Examples:
+ * - "https://admin.spincash.cc/login" -> "spincash"
+ * - "https://admin.example.com" -> "example"
+ * - "localhost" -> "SLOTTHING" (fallback)
+ * 
+ * Returns the brand name in uppercase, or "SLOTTHING" for localhost
+ */
+export function getBrandName(): string {
+  if (typeof window === 'undefined') {
+    return 'SLOTTHING';
+  }
+  
+  const hostname = window.location.hostname;
+  
+  // For localhost, return SLOTTHING
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('localhost:') || hostname.startsWith('127.0.0.1:')) {
+    return 'SLOTTHING';
+  }
+  
+  try {
+    // Split hostname by dots
+    const parts = hostname.split('.');
+    
+    // For subdomains like "admin.spincash.cc", get "spincash" (second-to-last part)
+    // For domains like "spincash.cc", get "spincash" (first part)
+    if (parts.length >= 2) {
+      // If we have subdomain.domain.tld, get the domain part
+      // If we have domain.tld, get the domain part
+      const brandPart = parts.length > 2 ? parts[parts.length - 2] : parts[0];
+      return brandPart.toUpperCase();
+    }
+    
+    // Fallback to first part if structure is unexpected
+    return parts[0]?.toUpperCase() || 'SLOTTHING';
+  } catch (error) {
+    console.error('Failed to extract brand name from hostname:', hostname, error);
+    return 'SLOTTHING';
+  }
+}
+
