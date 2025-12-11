@@ -61,3 +61,18 @@ export function getCurrentDomain(): string {
   return `https://${domain}`;
 }
 
+/**
+ * Checks if the current domain is the superadmin domain (sa.bruii.com)
+ * Superadmin login does not require project UUID configuration
+ */
+export function isSuperadminDomain(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  
+  const hostname = window.location.hostname;
+  
+  // Check if it's sa.bruii.com (excluding localhost)
+  return hostname === 'sa.bruii.com';
+}
+

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY, REFRESH_TOKEN_KEY, PROJECT_UUID_KEY } from '@/lib/constants/api';
+import { isSuperadminDomain } from '@/lib/utils/domain';
 import type { AuthUser, LoginRequest } from '@/types';
 
 interface AuthContextValue {
@@ -28,6 +29,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const fetchAndStoreProjectUuid = useCallback(async (forceRefresh = false) => {
+    // Skip UUID fetching for superadmin domain
+    if (isSuperadminDomain()) {
+      console.log('🔐 Superadmin domain detected - skipping UUID fetch');
+      return undefined;
+    }
+
     try {
       const existingUuid = storage.get(PROJECT_UUID_KEY);
       if (existingUuid && !forceRefresh) {
@@ -83,10 +90,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Fetch UUID in background (non-blocking)
-    fetchAndStoreProjectUuid().catch(err => {
-      console.log('UUID fetch failed silently:', err);
-    });
+    // Skip UUID fetching for superadmin domain
+    if (!isSuperadminDomain()) {
+      // Fetch UUID in background (non-blocking)
+      fetchAndStoreProjectUuid().catch(err => {
+        console.log('UUID fetch failed silently:', err);
+      });
+    }
     
     // Load user immediately
     loadUser();
@@ -94,19 +104,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: LoginRequest) => {
     try {
-      // Try to fetch UUID one more time before login if not cached
-      const storedUuid = storage.get(PROJECT_UUID_KEY);
-      if (!storedUuid && !credentials.whitelabel_admin_uuid) {
-        console.log('🔄 No UUID found, attempting to fetch before login...');
-        await fetchAndStoreProjectUuid();
-      }
+      // Skip UUID fetching for superadmin domain
+      const isSuperadmin = isSuperadminDomain();
       
-      const finalStoredUuid = storage.get(PROJECT_UUID_KEY);
+      let finalStoredUuid: string | undefined;
+      if (!isSuperadmin) {
+        // Try to fetch UUID one more time before login if not cached
+        const storedUuid = storage.get(PROJECT_UUID_KEY);
+        if (!storedUuid && !credentials.whitelabel_admin_uuid) {
+          console.log('🔄 No UUID found, attempting to fetch before login...');
+          await fetchAndStoreProjectUuid();
+        }
+        finalStoredUuid = storage.get(PROJECT_UUID_KEY);
+      }
       
       const loginData: LoginRequest = {
         username: credentials.username,
         password: credentials.password,
-        whitelabel_admin_uuid: credentials.whitelabel_admin_uuid || finalStoredUuid || undefined,
+        whitelabel_admin_uuid: isSuperadmin ? undefined : (credentials.whitelabel_admin_uuid || finalStoredUuid || undefined),
       };
 
       console.log('🔐 Attempting login with:', { 

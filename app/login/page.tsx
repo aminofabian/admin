@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { useTheme } from '@/providers/theme-provider';
 import { Input, Logo } from '@/components/ui';
+import { isSuperadminDomain } from '@/lib/utils/domain';
 import type { LoginRequest } from '@/types';
 
 export default function LoginPage() {
   const { login, isFetchingUuid, uuidFetchError, refetchUuid } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const isSuperadmin = isSuperadminDomain();
   const [formData, setFormData] = useState<LoginRequest>({
     username: '',
     password: '',
@@ -115,8 +117,8 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* UUID Loading State */}
-          {isFetchingUuid && (
+          {/* UUID Loading State - Hidden for superadmin */}
+          {!isSuperadmin && isFetchingUuid && (
             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
               <div className="flex items-center gap-2">
                 <svg className="animate-spin h-4 w-4 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -130,8 +132,8 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* UUID Error State */}
-          {uuidFetchError && (
+          {/* UUID Error State - Hidden for superadmin */}
+          {!isSuperadmin && uuidFetchError && (
             <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
               <div className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -178,31 +180,35 @@ export default function LoginPage() {
                 className="transition-all duration-200 focus:scale-[1.01]"
               />
 
-              {/* Manual UUID Entry - Hidden by default */}
-              {!showManualUuid ? (
-                <div className="text-right">
-                  <button
-                    type="button"
-                    onClick={() => setShowManualUuid(true)}
-                    className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition-colors duration-200"
-                  >
-                    Need to enter project UUID manually?
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Input
-                    label="Project UUID (Optional)"
-                    type="text"
-                    value={formData.whitelabel_admin_uuid}
-                    onChange={(e) => setFormData({ ...formData, whitelabel_admin_uuid: e.target.value })}
-                    placeholder="Enter your project UUID"
-                    className="transition-all duration-200 focus:scale-[1.01]"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Only required if automatic configuration fails
-                  </p>
-                </div>
+              {/* Manual UUID Entry - Hidden for superadmin */}
+              {!isSuperadmin && (
+                <>
+                  {!showManualUuid ? (
+                    <div className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => setShowManualUuid(true)}
+                        className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition-colors duration-200"
+                      >
+                        Need to enter project UUID manually?
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Input
+                        label="Project UUID (Optional)"
+                        type="text"
+                        value={formData.whitelabel_admin_uuid}
+                        onChange={(e) => setFormData({ ...formData, whitelabel_admin_uuid: e.target.value })}
+                        placeholder="Enter your project UUID"
+                        className="transition-all duration-200 focus:scale-[1.01]"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Only required if automatic configuration fails
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -230,7 +236,7 @@ export default function LoginPage() {
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold py-6 px-6 text-base shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 cursor-pointer transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              disabled={isLoading || isFetchingUuid}
+              disabled={isLoading || (!isSuperadmin && isFetchingUuid)}
             >
               {isLoading || isFetchingUuid ? (
                 <div className="flex items-center justify-center">
