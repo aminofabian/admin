@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const DASHBOARD_GAMES_URL = 'https://admin.serverhub.biz/users/dashboard-games/';
+const DASHBOARD_GAMES_URL = 'https://api.bruii.com/users/dashboard-games/';
 
 export async function POST(request: Request) {
   try {

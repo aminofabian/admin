@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
     const endpoint = `${backendUrl}/api/v1/admin/chat/?request_type=${ACTION_TO_REQUEST_TYPE[action]}`;
 
     const backendResponse = await fetch(endpoint, {

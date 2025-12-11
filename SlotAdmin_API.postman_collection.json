@@ -3521,7 +3521,7 @@
 	"variable": [
 		{
 			"key": "base_url",
-			"value": "https://admin.serverhub.biz",
+			"value": "https://api.bruii.com",
 			"type": "string"
 		},
 		{

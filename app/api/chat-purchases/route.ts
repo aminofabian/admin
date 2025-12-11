@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
     //  Using new JWT-authenticated endpoint
     // Use chatroom_id if available, otherwise use user_id
     const identifierParam = chatroomId 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
 
 export async function POST(request: NextRequest) {
   try {

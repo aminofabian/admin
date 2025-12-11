@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
     const apiUrl = `${backendUrl}/api/v1/admin/chat/?request_type=online_players`;
 
     const authHeader = request.headers.get('Authorization');

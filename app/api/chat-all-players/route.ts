@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const pageSize = searchParams.get('page_size') || '50';
 
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://admin.serverhub.biz';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
     // Use the admin chat API endpoint for all players
     const apiUrl = `${backendUrl}/api/v1/admin/chat/?request_type=all_players&page=${page}&page_size=${pageSize}`;
 
