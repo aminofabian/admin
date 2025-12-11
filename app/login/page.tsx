@@ -40,7 +40,7 @@ export default function LoginPage() {
           description: 'Access restricted. Superadmin login is only allowed from authorized domains.',
           duration: 7000,
         });
-        setError('Access restricted: Superadmin login is only allowed from authorized domains.');
+        setError('Access restricted');
       } else {
         setError(errorMessage);
       }
