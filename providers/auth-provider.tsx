@@ -115,7 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('🔄 No UUID found, attempting to fetch before login...');
           await fetchAndStoreProjectUuid();
         }
-        finalStoredUuid = storage.get(PROJECT_UUID_KEY);
+        const fetchedUuid = storage.get(PROJECT_UUID_KEY);
+        finalStoredUuid = fetchedUuid || undefined;
       }
       
       const loginData: LoginRequest = {
