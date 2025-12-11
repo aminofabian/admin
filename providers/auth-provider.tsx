@@ -80,7 +80,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     if (token && userData) {
       try {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        
+        // Check if superadmin is on wrong domain
+        if (parsedUser.role === 'superadmin' && !isSuperadminDomain()) {
+          console.warn('🚫 Superadmin detected on wrong domain - clearing session');
+          storage.clear();
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+        
+        setUser(parsedUser);
       } catch {
         storage.clear();
       }
@@ -141,6 +152,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         username: response.username, 
         role: response.role 
       });
+      
+      // Check if superadmin is trying to login from wrong domain
+      if (response.role === 'superadmin' && !isSuperadminDomain()) {
+        // Clear any stored data
+        storage.clear();
+        setUser(null);
+        throw new Error('SUPERADMIN_DOMAIN_RESTRICTION: Access restricted. Superadmin login is only allowed from authorized domains.');
+      }
       
       storage.set(TOKEN_KEY, response.auth_token.access);
       storage.set(REFRESH_TOKEN_KEY, response.auth_token.refresh);

@@ -11,12 +11,29 @@ import { ChatDrawerProvider } from '@/contexts/chat-drawer-context';
 import { ProcessingWebSocketProvider } from '@/contexts/processing-websocket-context';
 import { ChatDrawer } from '@/components/chat/chat-drawer';
 import { GlobalTransactionNotifications } from '@/components/dashboard/global-transaction-notifications';
+import { isSuperadminDomain } from '@/lib/utils/domain';
+import { useToast } from '@/components/ui';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
   const router = useRouter();
+  const { addToast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isSuperAdmin = user?.role === 'superadmin';
+
+  // Check if superadmin is on wrong domain
+  useEffect(() => {
+    if (user?.role === 'superadmin' && !isSuperadminDomain()) {
+      addToast({
+        type: 'error',
+        title: 'Access Restricted',
+        description: 'Access restricted. Superadmin login is only allowed from authorized domains.',
+        duration: 7000,
+      });
+      logout();
+      router.push('/login');
+    }
+  }, [user, logout, router, addToast]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {

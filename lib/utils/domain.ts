@@ -61,8 +61,10 @@ export function getCurrentDomain(): string {
   return `https://${domain}`;
 }
 
+import { isPermittedSuperadminDomain } from '@/lib/constants/domains';
+
 /**
- * Checks if the current domain is the superadmin domain (sa.bruii.com)
+ * Checks if the current domain is a permitted superadmin domain
  * Superadmin login does not require project UUID configuration
  */
 export function isSuperadminDomain(): boolean {
@@ -72,7 +74,6 @@ export function isSuperadminDomain(): boolean {
   
   const hostname = window.location.hostname;
   
-  // Check if it's sa.bruii.com (excluding localhost)
-  return hostname === 'sa.bruii.com';
+  return isPermittedSuperadminDomain(hostname);
 }
 

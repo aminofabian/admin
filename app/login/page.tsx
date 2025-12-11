@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { useTheme } from '@/providers/theme-provider';
-import { Input, Logo } from '@/components/ui';
+import { Input, Logo, useToast } from '@/components/ui';
 import { isSuperadminDomain } from '@/lib/utils/domain';
 import type { LoginRequest } from '@/types';
 
 export default function LoginPage() {
   const { login, isFetchingUuid, uuidFetchError, refetchUuid } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { addToast } = useToast();
   const isSuperadmin = isSuperadminDomain();
   const [formData, setFormData] = useState<LoginRequest>({
     username: '',
@@ -29,7 +30,20 @@ export default function LoginPage() {
       await login(formData);
     } catch (err: unknown) {
       console.error('Login error:', err);
-      setError((err as Error)?.message || 'Login failed. Please check your credentials and try again.');
+      const errorMessage = (err as Error)?.message || 'Login failed. Please check your credentials and try again.';
+      
+      // Check if it's a superadmin domain restriction error
+      if (errorMessage.includes('SUPERADMIN_DOMAIN_RESTRICTION')) {
+        addToast({
+          type: 'error',
+          title: 'Access Restricted',
+          description: 'Access restricted. Superadmin login is only allowed from authorized domains.',
+          duration: 7000,
+        });
+        setError('Access restricted: Superadmin login is only allowed from authorized domains.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
