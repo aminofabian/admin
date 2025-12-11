@@ -8,12 +8,14 @@ export const PERMITTED_SUPERADMIN_DOMAINS = [
   '127.0.0.1',
 ] as const;
 
+type PermittedDomain = typeof PERMITTED_SUPERADMIN_DOMAINS[number];
+
 /**
  * Check if a hostname is a permitted superadmin domain
  */
 export function isPermittedSuperadminDomain(hostname: string): boolean {
   // Check exact match
-  if (PERMITTED_SUPERADMIN_DOMAINS.includes(hostname as any)) {
+  if ((PERMITTED_SUPERADMIN_DOMAINS as readonly string[]).includes(hostname)) {
     return true;
   }
   
