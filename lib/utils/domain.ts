@@ -53,9 +53,9 @@ export function getCurrentDomain(): string {
   const domain = extractDomainFromUrl(window.location.href);
   
   // Special exception: bruii.com should use serverhub.biz
-  if (domain === 'bruii.com') {
-    return 'https://serverhub.biz';
-  }
+  // if (domain === 'bruii.com') {
+  //   return 'https://serverhub.biz';
+  // }
   
   // For production, return with https:// prefix
   return `https://${domain}`;
