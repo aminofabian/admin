@@ -78,24 +78,18 @@ export function isSuperadminDomain(): boolean {
 }
 
 /**
- * Extracts the brand name from the current URL
+ * Extracts the brand name from a hostname (server-side compatible)
  * Examples:
- * - "https://admin.spincash.cc/login" -> "SPINCASH"
- * - "https://bitslot.bruii.com" -> "BITSLOT"
- * - "https://spincash.bruii.com" -> "SPINCASH"
- * - "https://sa.bruii.com" -> "BRUII" (special exception)
- * - "https://admin.example.com" -> "EXAMPLE"
+ * - "admin.spincash.cc" -> "SPINCASH"
+ * - "bitslot.bruii.com" -> "BITSLOT"
+ * - "spincash.bruii.com" -> "SPINCASH"
+ * - "sa.bruii.com" -> "BRUII" (special exception)
+ * - "admin.example.com" -> "EXAMPLE"
  * - "localhost" -> "SLOTTHING" (fallback)
  * 
  * Returns the brand name in uppercase, or "SLOTTHING" for localhost
  */
-export function getBrandName(): string {
-  if (typeof window === 'undefined') {
-    return 'SLOTTHING';
-  }
-  
-  const hostname = window.location.hostname;
-  
+export function extractBrandNameFromHostname(hostname: string): string {
   // For localhost, return SLOTTHING
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('localhost:') || hostname.startsWith('127.0.0.1:')) {
     return 'SLOTTHING';
@@ -141,5 +135,25 @@ export function getBrandName(): string {
     console.error('Failed to extract brand name from hostname:', hostname, error);
     return 'SLOTTHING';
   }
+}
+
+/**
+ * Extracts the brand name from the current URL (client-side)
+ * Examples:
+ * - "https://admin.spincash.cc/login" -> "SPINCASH"
+ * - "https://bitslot.bruii.com" -> "BITSLOT"
+ * - "https://spincash.bruii.com" -> "SPINCASH"
+ * - "https://sa.bruii.com" -> "BRUII" (special exception)
+ * - "https://admin.example.com" -> "EXAMPLE"
+ * - "localhost" -> "SLOTTHING" (fallback)
+ * 
+ * Returns the brand name in uppercase, or "SLOTTHING" for localhost
+ */
+export function getBrandName(): string {
+  if (typeof window === 'undefined') {
+    return 'SLOTTHING';
+  }
+  
+  return extractBrandNameFromHostname(window.location.hostname);
 }
 
