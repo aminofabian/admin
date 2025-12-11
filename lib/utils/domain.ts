@@ -46,16 +46,16 @@ export function getCurrentDomain(): string {
   
   // If running on localhost, use https://serverhub.biz as fallback
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('localhost:') || hostname.startsWith('127.0.0.1:')) {
-    return 'https://serverhub.biz';
+    return 'https://bruii.com';
   }
   
   // Extract domain from URL
   const domain = extractDomainFromUrl(window.location.href);
   
   // Special exception: bruii.com should use serverhub.biz
-  // if (domain === 'bruii.com') {
-  //   return 'https://serverhub.biz';
-  // }
+  if (domain === 'sa.bruii.com') {
+    return 'https://bruii.com';
+  }
   
   // For production, return with https:// prefix
   return `https://${domain}`;
