@@ -80,8 +80,11 @@ export function isSuperadminDomain(): boolean {
 /**
  * Extracts the brand name from the current URL
  * Examples:
- * - "https://admin.spincash.cc/login" -> "spincash"
- * - "https://admin.example.com" -> "example"
+ * - "https://admin.spincash.cc/login" -> "SPINCASH"
+ * - "https://bitslot.bruii.com" -> "BITSLOT"
+ * - "https://spincash.bruii.com" -> "SPINCASH"
+ * - "https://sa.bruii.com" -> "BRUII" (special exception)
+ * - "https://admin.example.com" -> "EXAMPLE"
  * - "localhost" -> "SLOTTHING" (fallback)
  * 
  * Returns the brand name in uppercase, or "SLOTTHING" for localhost
@@ -99,7 +102,28 @@ export function getBrandName(): string {
   }
   
   try {
-    // Split hostname by dots
+    // Special handling for .bruii.com domains
+    if (hostname.endsWith('.bruii.com') || hostname === 'bruii.com') {
+      const parts = hostname.split('.');
+      
+      // For sa.bruii.com, return BRUII
+      if (parts[0] === 'sa') {
+        return 'BRUII';
+      }
+      
+      // For other .bruii.com subdomains (e.g., bitslot.bruii.com, spincash.bruii.com)
+      // Return the subdomain as the brand name
+      if (parts.length >= 3 && parts[parts.length - 2] === 'bruii' && parts[parts.length - 1] === 'com') {
+        return parts[0].toUpperCase();
+      }
+      
+      // Fallback for bruii.com (no subdomain)
+      if (hostname === 'bruii.com') {
+        return 'BRUII';
+      }
+    }
+    
+    // For other domains, split hostname by dots
     const parts = hostname.split('.');
     
     // For subdomains like "admin.spincash.cc", get "spincash" (second-to-last part)
