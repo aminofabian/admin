@@ -108,60 +108,65 @@ export function PasswordResetModal({
               {description || defaultDescription}
             </p>
             
-            <div className="space-y-4 mb-6">
-              <div>
-                <Input
-                  type="password"
-                  label="New Password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) {
-                      setErrors((prev) => ({ ...prev, password: undefined }));
-                    }
-                  }}
-                  placeholder="Enter new password (min 5 characters)"
-                  error={errors.password}
-                  disabled={isLoading}
-                  className="w-full"
-                />
+            <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+              <div className="space-y-4 mb-6">
+                <div>
+                  <Input
+                    type="password"
+                    label="New Password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (errors.password) {
+                        setErrors((prev) => ({ ...prev, password: undefined }));
+                      }
+                    }}
+                    placeholder="Enter new password (min 5 characters)"
+                    error={errors.password}
+                    disabled={isLoading}
+                    className="w-full"
+                    autoComplete="new-password"
+                  />
+                </div>
+                
+                <div>
+                  <Input
+                    type="password"
+                    label="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (errors.confirmPassword) {
+                        setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                      }
+                    }}
+                    placeholder="Confirm new password"
+                    error={errors.confirmPassword}
+                    disabled={isLoading}
+                    className="w-full"
+                    autoComplete="new-password"
+                  />
+                </div>
               </div>
               
-              <div>
-                <Input
-                  type="password"
-                  label="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    if (errors.confirmPassword) {
-                      setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-                    }
-                  }}
-                  placeholder="Confirm new password"
-                  error={errors.confirmPassword}
+              <div className="flex gap-3 justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleClose}
                   disabled={isLoading}
-                  className="w-full"
-                />
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isLoading ? 'Resetting...' : 'Reset Password'}
+                </Button>
               </div>
-            </div>
-            
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="ghost"
-                onClick={handleClose}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {isLoading ? 'Resetting...' : 'Reset Password'}
-              </Button>
-            </div>
+            </form>
           </div>
         </div>
       </div>
