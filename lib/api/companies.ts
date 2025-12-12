@@ -19,6 +19,9 @@ type CleanableFields = {
   game_api_url?: string;
   game_api_key?: string;
   service_creds?: string;
+  btcpay_api_key?: string;
+  btcpay_store_id?: string;
+  btcpay_webhook_secret?: string;
 };
 
 const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>(
@@ -29,7 +32,14 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
   
   // Remove empty strings from optional fields
   // These fields may exist on CreateCompanyRequest but not UpdateCompanyRequest
-  const optionalFields: (keyof CleanableFields)[] = ['game_api_url', 'game_api_key', 'service_creds'];
+  const optionalFields: (keyof CleanableFields)[] = [
+    'game_api_url', 
+    'game_api_key', 
+    'service_creds',
+    'btcpay_api_key',
+    'btcpay_store_id',
+    'btcpay_webhook_secret',
+  ];
   optionalFields.forEach(field => {
     if (field in cleaned && cleaned[field] === '') {
       delete cleaned[field];

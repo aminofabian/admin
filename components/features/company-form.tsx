@@ -25,6 +25,9 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     service_name: '',
     game_api_url: '',
     game_api_key: '',
+    btcpay_api_key: company?.btcpay_api_key ?? '',
+    btcpay_store_id: company?.btcpay_store_id ?? '',
+    btcpay_webhook_secret: company?.btcpay_webhook_secret ?? '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -110,6 +113,15 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
         }
         if (formData.service_name) {
           updateData.service_name = formData.service_name;
+        }
+        if (formData.btcpay_api_key !== undefined) {
+          updateData.btcpay_api_key = formData.btcpay_api_key || undefined;
+        }
+        if (formData.btcpay_store_id !== undefined) {
+          updateData.btcpay_store_id = formData.btcpay_store_id || undefined;
+        }
+        if (formData.btcpay_webhook_secret !== undefined) {
+          updateData.btcpay_webhook_secret = formData.btcpay_webhook_secret || undefined;
         }
         
         await onSubmit(updateData as CreateCompanyRequest | UpdateCompanyRequest);
@@ -243,6 +255,40 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
             onChange={(e) => handleChange('game_api_key', e.target.value)}
             placeholder="API Key"
             disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      {/* BTC Pay Configuration */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">BTC Pay Configuration</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="BTC Pay API Key"
+            type="text"
+            value={formData.btcpay_api_key}
+            onChange={(e) => handleChange('btcpay_api_key', e.target.value)}
+            placeholder="BTC Pay API Key"
+            disabled={isLoading}
+          />
+
+          <Input
+            label="BTC Pay Store ID"
+            type="text"
+            value={formData.btcpay_store_id}
+            onChange={(e) => handleChange('btcpay_store_id', e.target.value)}
+            placeholder="BTC Pay Store ID"
+            disabled={isLoading}
+          />
+
+          <Input
+            label="BTC Pay Webhook Secret"
+            type="text"
+            value={formData.btcpay_webhook_secret}
+            onChange={(e) => handleChange('btcpay_webhook_secret', e.target.value)}
+            placeholder="BTC Pay Webhook Secret"
+            disabled={isLoading}
+            className="md:col-span-2"
           />
         </div>
       </div>

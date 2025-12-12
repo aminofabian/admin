@@ -10,6 +10,9 @@ export interface CompanySettings {
   project_domain: string;
   admin_project_domain: string;
   is_active: boolean;
+  btcpay_api_key?: string | null;
+  btcpay_store_id?: string | null;
+  btcpay_webhook_secret?: string | null;
   created: string;
   modified: string;
 }

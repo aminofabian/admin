@@ -69,6 +69,18 @@ export const companySettingsApi = {
       formData.append('service_creds', data.service_creds);
     }
     
+    if (data.btcpay_api_key) {
+      formData.append('btcpay_api_key', data.btcpay_api_key);
+    }
+    
+    if (data.btcpay_store_id) {
+      formData.append('btcpay_store_id', data.btcpay_store_id);
+    }
+    
+    if (data.btcpay_webhook_secret) {
+      formData.append('btcpay_webhook_secret', data.btcpay_webhook_secret);
+    }
+    
     if (data.logo) {
       formData.append('logo', data.logo);
     }
