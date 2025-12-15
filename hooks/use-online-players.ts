@@ -314,12 +314,14 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         },
         onMessage: (data) => {
           try {
-            const messageType = data.type || data.message?.type;
+            // Type assertion for WebSocket message data (consistent with other hooks)
+            const messageData = data as any;
+            const messageType = messageData.type || messageData.message?.type;
 
             //  PERFORMANCE: Only process live_status messages for online players
             if (messageType === 'live_status') {
-              const playerId = Number(data.player_id || data.message?.player_id);
-              const isActive = Boolean(data.is_active ?? data.message?.is_active);
+              const playerId = Number(messageData.player_id || messageData.message?.player_id);
+              const isActive = Boolean(messageData.is_active ?? messageData.message?.is_active);
 
               !IS_PROD && console.log(`🟢 [Online Players] Status update: Player ${playerId} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
 
@@ -344,11 +346,11 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
               });
             }
             // Also handle full chat list updates if available
-            else if (data.message?.type === 'add_new_chats' && Array.isArray(data.message.chats)) {
+            else if (messageData.message?.type === 'add_new_chats' && Array.isArray(messageData.message.chats)) {
               !IS_PROD && console.log('🔄 [Online Players] Received full chat list update');
 
               // Extract online players from chat list
-              const onlineFromChats = data.message.chats
+              const onlineFromChats = messageData.message.chats
                 .filter((chat: any) => chat.player?.is_online)
                 .map((chat: any) => {
                   // Merge chat data with player data to preserve timestamps
