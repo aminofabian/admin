@@ -374,10 +374,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
             </div>
             <p className="text-sm font-medium text-foreground mb-1">Chat Not Available</p>
             <p className="text-xs text-muted-foreground max-w-xs">
-              {usersError.includes('Backend') || usersError.includes('404') 
-                ? 'Backend chat service is not ready yet. This feature will be available once the backend is deployed.'
-                : usersError
-              }
+              {usersError}
             </p>
           </div>
         ) : displayedPlayers.length === 0 ? (
