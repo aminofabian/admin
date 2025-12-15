@@ -13,7 +13,7 @@ export interface WebSocketConfig {
 
 export interface WebSocketListeners {
   onOpen?: () => void;
-  onMessage?: (data: any) => void;
+  onMessage?: (data: unknown) => void;
   onError?: (error: Event) => void;
   onClose?: (event: CloseEvent) => void;
 }
@@ -95,7 +95,7 @@ class WebSocketManager {
   /**
    * Send message through WebSocket
    */
-  send(url: string, data: any): boolean {
+  send(url: string, data: unknown): boolean {
     const managed = this.connections.get(url);
     if (!managed || managed.ws.readyState !== WebSocket.OPEN) {
       return false;
@@ -312,7 +312,7 @@ export function createWebSocketUrl(base: string, path: string, params: Record<st
 }
 
 // Debounce utility for rapid updates
-export function debounce<T extends (...args: any[]) => void>(
+export function debounce<T extends (...args: unknown[]) => void>(
   func: T,
   delay: number
 ): (...args: Parameters<T>) => void {
