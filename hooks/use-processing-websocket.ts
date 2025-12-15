@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
+import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { TransactionQueue, Transaction } from '@/types';
 
 export interface ProcessingCounts {
@@ -157,10 +158,10 @@ export function useProcessingWebSocket({
   maxReconnectAttempts = 10,
 }: UseProcessingWebSocketOptions = {}): UseProcessingWebSocketReturn {
   const { user, isAuthenticated } = useAuth();
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
+
+  // WebSocket management refs
+  const wsUrlRef = useRef<string>('');
+  const listenersRef = useRef<Set<WebSocketListeners>>(new Set());
   const shouldReconnectRef = useRef(true);
 
   const [isConnected, setIsConnected] = useState(false);
@@ -174,8 +175,10 @@ export function useProcessingWebSocket({
       return null;
     }
 
-    const wsUrl = `${WEBSOCKET_BASE_URL}/ws/notifications/${user.username}/`;
-    
+    // Fix security issue: encode username to prevent injection
+    const encodedUsername = encodeURIComponent(user.username);
+    const wsUrl = createWebSocketUrl(WEBSOCKET_BASE_URL, `/ws/notifications/${encodedUsername}/`);
+
     console.log('🔌 WebSocket URL:', wsUrl);
     return wsUrl;
   }, [user?.username]);
@@ -183,83 +186,22 @@ export function useProcessingWebSocket({
   const disconnect = useCallback(() => {
     console.log('🔌 Disconnecting WebSocket...');
     shouldReconnectRef.current = false;
-    
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    
-    if (connectionTimeoutRef.current) {
-      clearTimeout(connectionTimeoutRef.current);
-      connectionTimeoutRef.current = null;
-    }
 
-    if (wsRef.current) {
-      const ws = wsRef.current;
-      const currentState = ws.readyState;
-      
-      ws.onopen = null;
-      ws.onclose = null;
-      ws.onerror = null;
-      ws.onmessage = null;
-      
-      if (currentState === WebSocket.OPEN || currentState === WebSocket.CONNECTING) {
-        try {
-          ws.close(1000, 'Client disconnecting');
-        } catch (err) {
-          console.warn('⚠️ Error closing WebSocket:', err);
-        }
-      }
-      
-      wsRef.current = null;
+    if (wsUrlRef.current) {
+      // Disconnect all listeners for this URL
+      listenersRef.current.forEach(listeners => {
+        websocketManager.disconnect(wsUrlRef.current, listeners);
+      });
+      listenersRef.current.clear();
     }
 
     setIsConnected(false);
     setIsConnecting(false);
+    setError(null);
   }, []);
 
-  const handleReconnect = useCallback(() => {
-    if (!shouldReconnectRef.current) {
-      return;
-    }
-
-    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-      console.error('❌ Max reconnection attempts reached');
-      setError(`Failed to connect after ${maxReconnectAttempts} attempts`);
-      setIsConnecting(false);
-      return;
-    }
-
-    reconnectAttemptsRef.current += 1;
-    setReconnectAttempts(reconnectAttemptsRef.current);
-    
-    const delay = Math.min(reconnectInterval * reconnectAttemptsRef.current, 30000);
-    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      if (shouldReconnectRef.current && !wsRef.current) {
-        connect();
-      }
-    }, delay);
-  }, [reconnectInterval, maxReconnectAttempts]);
-
+  
   const connect = useCallback(() => {
-    if (wsRef.current) {
-      const state = wsRef.current.readyState;
-      if (state === WebSocket.OPEN) {
-        console.log('⚠️ WebSocket already connected');
-        return;
-      }
-      if (state === WebSocket.CONNECTING) {
-        console.log('⚠️ WebSocket already connecting, please wait...');
-        return;
-      }
-      if (state === WebSocket.CLOSING || state === WebSocket.CLOSED) {
-        console.log('🔄 Cleaning up previous WebSocket instance...');
-        wsRef.current = null;
-      }
-    }
-
     if (!enabled || !isAuthenticated) {
       console.log('⚠️ WebSocket connection not enabled or user not authenticated');
       return;
@@ -273,271 +215,199 @@ export function useProcessingWebSocket({
     }
 
     try {
-      console.log('🔌 Connecting to WebSocket:', wsUrl);
+      console.log('🔌 Connecting to managed WebSocket:', wsUrl);
       setIsConnecting(true);
       setError(null);
-      
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
+      wsUrlRef.current = wsUrl;
 
-      connectionTimeoutRef.current = setTimeout(() => {
-        if (ws.readyState === WebSocket.CONNECTING) {
-          console.error('❌ WebSocket connection timeout');
-          setError('Connection timeout');
+      // Create listeners for processing WebSocket
+      const listeners: WebSocketListeners = {
+        onOpen: () => {
+          console.log('✅ Processing WebSocket connected');
+          setIsConnected(true);
           setIsConnecting(false);
-          
+          setError(null);
+          setReconnectAttempts(0);
+          onConnect?.();
+        },
+        onMessage: (data) => {
           try {
-            ws.close();
-          } catch (err) {
-            console.warn('⚠️ Error closing timed-out WebSocket:', err);
-          }
-          
-          wsRef.current = null;
-          
-          if (shouldReconnectRef.current) {
-            handleReconnect();
-          }
-        }
-      }, 10000);
+            const message: WebSocketMessage = data;
+            console.log('📨 Processing WebSocket message received:', message.type);
 
-      ws.onopen = () => {
-        console.log('✅ WebSocket connected');
-        
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-          connectionTimeoutRef.current = null;
-        }
-        
-        setIsConnected(true);
-        setIsConnecting(false);
-        setError(null);
-        reconnectAttemptsRef.current = 0;
-        setReconnectAttempts(0);
-        
-        onConnect?.();
-      };
+            onMessage?.(message);
 
-      ws.onclose = (event) => {
-        console.log('🔌 WebSocket disconnected:', {
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
-        });
-        
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-          connectionTimeoutRef.current = null;
-        }
-        
-        setIsConnected(false);
-        setIsConnecting(false);
-        wsRef.current = null;
-        
-        onDisconnect?.();
+            if (message.type === 'all_activities') {
+              const counts: ProcessingCounts = message.counts || {
+                purchase_count: message.purchase_data?.length || 0,
+                cashout_count: message.cashout_data?.length || 0,
+                game_activities_count: message.game_activities_data?.length || 0,
+              };
 
-        if (!event.wasClean && shouldReconnectRef.current) {
-          handleReconnect();
-        }
-      };
+              console.log('📦 All activities message received:', counts);
+              onCountsUpdate?.(counts);
 
-      ws.onerror = (event) => {
-        console.error('❌ WebSocket error:', event);
-        
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-          connectionTimeoutRef.current = null;
-        }
-        
-        setError('WebSocket connection error');
-        setIsConnecting(false);
-        
-        onError?.(event);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          console.log('📨 WebSocket message received:', message.type);
-
-          onMessage?.(message);
-
-          if (message.type === 'all_activities') {
-            // Use counts from message if available, otherwise calculate from data arrays
-            const counts: ProcessingCounts = message.counts || {
-              purchase_count: message.purchase_data?.length || 0,
-              cashout_count: message.cashout_data?.length || 0,
-              game_activities_count: message.game_activities_data?.length || 0,
-            };
-
-            console.log('📦 All activities message received:', counts);
-
-            // Notify about counts update
-            onCountsUpdate?.(counts);
-
-            if (message.purchase_data && Array.isArray(message.purchase_data)) {
-              message.purchase_data.forEach((rawPurchase) => {
-                const transaction = transformPurchaseToTransaction(rawPurchase);
-                onTransactionUpdate?.(transaction, true);
-              });
-            }
-
-            if (message.cashout_data && Array.isArray(message.cashout_data)) {
-              message.cashout_data.forEach((rawCashout) => {
-                const transaction = transformCashoutToTransaction(rawCashout);
-                onTransactionUpdate?.(transaction, true);
-              });
-            }
-
-            if (message.game_activities_data && Array.isArray(message.game_activities_data)) {
-              message.game_activities_data.forEach((rawActivity) => {
-                const queue = transformActivityToQueue(rawActivity);
-                onQueueUpdate?.(queue, true);
-              });
-            }
-          } 
-          else if (message.type === 'send_notification') {
-            console.log('📨 Notification received:', {
-              activity_type: message.activity_type,
-              hasData: !!message.data,
-              dataKeys: message.data ? Object.keys(message.data) : [],
-              fullMessage: message,
-            });
-            
-            // Update counts if provided in the message
-            if (message.counts) {
-              console.log('📊 Counts update received in notification:', message.counts);
-              onCountsUpdate?.(message.counts);
-            }
-            
-            if (message.purchase_data && typeof message.purchase_data === 'object' && !Array.isArray(message.purchase_data)) {
-              const transaction = transformPurchaseToTransaction(message.purchase_data);
-              onTransactionUpdate?.(transaction);
-              return;
-            }
-            
-            if (message.cashout_data && typeof message.cashout_data === 'object' && !Array.isArray(message.cashout_data)) {
-              const transaction = transformCashoutToTransaction(message.cashout_data);
-              onTransactionUpdate?.(transaction);
-              return;
-            }
-            
-            const activityType = String(message.activity_type || '').toLowerCase().trim();
-            if (activityType === 'game_activity' || activityType === 'gameactivity') {
-              const msg = message as any;
-              let gameActivityData = msg.game_activities_data || message.data;
-              
-              if (!gameActivityData) {
-                if (msg.operation_type || msg.game_title || msg.game || msg.game_code || msg.id) {
-                  gameActivityData = msg;
-                  console.log('📦 Using message itself as game activity data (no game_activities_data or data)');
-                } else {
-                  console.warn('⚠️ Game activity detected but no data found:', {
-                    activity_type: message.activity_type,
-                    messageKeys: Object.keys(message),
-                    hasGameActivitiesData: !!msg.game_activities_data,
-                    hasData: !!message.data,
-                  });
-                  return;
-                }
-              }
-              
-              console.log('🎮 Game activity notification detected (activity_type=game_activity):', {
-                hasGameActivitiesData: !!msg.game_activities_data,
-                hasMessageData: !!message.data,
-                usingMessageAsData: gameActivityData === message,
-                dataKeys: gameActivityData ? Object.keys(gameActivityData) : [],
-                queueId: gameActivityData?.id || gameActivityData?.transaction_id,
-                status: gameActivityData?.status,
-              });
-              
-              const queue = transformActivityToQueue(gameActivityData);
-              
-              if (!queue.id) {
-                console.error('❌ Transformed queue has no ID!', {
-                  rawData: gameActivityData,
-                  transformedQueue: queue,
+              if (message.purchase_data && Array.isArray(message.purchase_data)) {
+                message.purchase_data.forEach((rawPurchase) => {
+                  const transaction = transformPurchaseToTransaction(rawPurchase);
+                  onTransactionUpdate?.(transaction, true);
                 });
-                return;
               }
-              
-              console.log('✅ Transformed game activity queue - ID:', queue.id, 'Status:', queue.status, 'Type:', queue.type);
-              
-              if (!onQueueUpdate) {
-                console.error('❌ onQueueUpdate callback is not defined!');
-                return;
+
+              if (message.cashout_data && Array.isArray(message.cashout_data)) {
+                message.cashout_data.forEach((rawCashout) => {
+                  const transaction = transformCashoutToTransaction(rawCashout);
+                  onTransactionUpdate?.(transaction, true);
+                });
               }
-              
-              console.log('📞 Calling onQueueUpdate with queue:', queue.id);
-              onQueueUpdate(queue);
-              console.log('✅ onQueueUpdate called for game activity:', queue.id);
-              return;
+
+              if (message.game_activities_data && Array.isArray(message.game_activities_data)) {
+                message.game_activities_data.forEach((rawActivity) => {
+                  const queue = transformActivityToQueue(rawActivity);
+                  onQueueUpdate?.(queue, true);
+                });
+              }
             }
-            
-            const hasGameActivityData = message.data && (
-              message.data.operation_type || 
-              message.data.type === 'recharge_game' || 
-              message.data.type === 'redeem_game' || 
-              message.data.type === 'add_user_game' ||
-              message.data.type === 'create_game' ||
-              message.data.game_title ||
-              message.data.game ||
-              message.data.game_code
-            );
-            
-            if (!message.activity_type && hasGameActivityData) {
-              console.log('🎮 Game activity detected by data structure (no activity_type):', {
+            else if (message.type === 'send_notification') {
+              console.log('📨 Notification received:', {
+                activity_type: message.activity_type,
+                hasData: !!message.data,
                 dataKeys: message.data ? Object.keys(message.data) : [],
               });
-              const queue = transformActivityToQueue(message.data);
-              console.log('✅ Transformed game activity queue - ID:', queue.id, 'Status:', queue.status);
-              onQueueUpdate?.(queue);
-              return;
-            }
-            
-            if (message.activity_type === 'purchase' && message.data) {
-              const transaction = transformPurchaseToTransaction(message.data);
-              onTransactionUpdate?.(transaction);
-            } else if (message.activity_type === 'cashout' && message.data) {
-              const transaction = transformCashoutToTransaction(message.data);
-              onTransactionUpdate?.(transaction);
-            } else if (message.data && !message.activity_type) {
-              const data = message.data;
-              if (data.game_title || data.game || data.game_code || data.operation_type || 
-                  data.type === 'recharge_game' || data.type === 'redeem_game' || 
-                  data.type === 'add_user_game' || data.type === 'create_game') {
-                console.log('🎮 Fallback: Detected game activity from data structure');
-                const queue = transformActivityToQueue(data);
-                onQueueUpdate?.(queue);
-              } else if (data.type === 'purchase' || data.type === 'cashout') {
-                if (data.type === 'purchase') {
-                  const transaction = transformPurchaseToTransaction(data);
-                  onTransactionUpdate?.(transaction);
-                } else if (data.type === 'cashout') {
-                  const transaction = transformCashoutToTransaction(data);
-                  onTransactionUpdate?.(transaction);
+
+              if (message.counts) {
+                console.log('📊 Counts update received in notification:', message.counts);
+                onCountsUpdate?.(message.counts);
+              }
+
+              if (message.purchase_data && typeof message.purchase_data === 'object' && !Array.isArray(message.purchase_data)) {
+                const transaction = transformPurchaseToTransaction(message.purchase_data);
+                onTransactionUpdate?.(transaction);
+                return;
+              }
+
+              if (message.cashout_data && typeof message.cashout_data === 'object' && !Array.isArray(message.cashout_data)) {
+                const transaction = transformCashoutToTransaction(message.cashout_data);
+                onTransactionUpdate?.(transaction);
+                return;
+              }
+
+              const activityType = String(message.activity_type || '').toLowerCase().trim();
+              if (activityType === 'game_activity' || activityType === 'gameactivity') {
+                const msg = message as any;
+                let gameActivityData = msg.game_activities_data || message.data;
+
+                if (!gameActivityData) {
+                  if (msg.operation_type || msg.game_title || msg.game || msg.game_code || msg.id) {
+                    gameActivityData = msg;
+                    console.log('📦 Using message itself as game activity data');
+                  } else {
+                    console.warn('⚠️ Game activity detected but no data found');
+                    return;
+                  }
                 }
-              } else {
-                console.warn('⚠️ Unrecognized send_notification format:', {
-                  activity_type: message.activity_type,
-                  hasData: !!message.data,
-                  dataKeys: message.data ? Object.keys(message.data) : [],
-                  message: message.message,
-                });
+
+                const queue = transformActivityToQueue(gameActivityData);
+
+                if (!queue.id) {
+                  console.error('❌ Transformed queue has no ID!');
+                  return;
+                }
+
+                if (!onQueueUpdate) {
+                  console.error('❌ onQueueUpdate callback is not defined!');
+                  return;
+                }
+
+                onQueueUpdate(queue);
+                return;
+              }
+
+              const hasGameActivityData = message.data && (
+                message.data.operation_type ||
+                message.data.type === 'recharge_game' ||
+                message.data.type === 'redeem_game' ||
+                message.data.type === 'add_user_game' ||
+                message.data.type === 'create_game' ||
+                message.data.game_title ||
+                message.data.game ||
+                message.data.game_code
+              );
+
+              if (!message.activity_type && hasGameActivityData) {
+                const queue = transformActivityToQueue(message.data);
+                onQueueUpdate?.(queue);
+                return;
+              }
+
+              if (message.activity_type === 'purchase' && message.data) {
+                const transaction = transformPurchaseToTransaction(message.data);
+                onTransactionUpdate?.(transaction);
+              } else if (message.activity_type === 'cashout' && message.data) {
+                const transaction = transformCashoutToTransaction(message.data);
+                onTransactionUpdate?.(transaction);
+              } else if (message.data && !message.activity_type) {
+                const data = message.data;
+                if (data.game_title || data.game || data.game_code || data.operation_type ||
+                    data.type === 'recharge_game' || data.type === 'redeem_game' ||
+                    data.type === 'add_user_game' || data.type === 'create_game') {
+                  const queue = transformActivityToQueue(data);
+                  onQueueUpdate?.(queue);
+                } else if (data.type === 'purchase' || data.type === 'cashout') {
+                  if (data.type === 'purchase') {
+                    const transaction = transformPurchaseToTransaction(data);
+                    onTransactionUpdate?.(transaction);
+                  } else if (data.type === 'cashout') {
+                    const transaction = transformCashoutToTransaction(data);
+                    onTransactionUpdate?.(transaction);
+                  }
+                } else {
+                  console.warn('⚠️ Unrecognized send_notification format:', {
+                    activity_type: message.activity_type,
+                    hasData: !!message.data,
+                    dataKeys: message.data ? Object.keys(message.data) : [],
+                    message: message.message,
+                  });
+                }
               }
             }
+          } catch (err) {
+            console.error('❌ Failed to parse WebSocket message:', err);
           }
-        } catch (err) {
-          console.error('❌ Failed to parse WebSocket message:', err, event.data);
-        }
+        },
+        onError: (error) => {
+          console.error('❌ Processing WebSocket error:', error);
+          setError('WebSocket connection error');
+          setIsConnecting(false);
+          onError?.(error);
+        },
+        onClose: (event) => {
+          console.log('🔌 Processing WebSocket closed:', {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean,
+          });
+          setIsConnected(false);
+          setIsConnecting(false);
+          onDisconnect?.();
+        },
       };
+
+      listenersRef.current.add(listeners);
+
+      // Connect through manager with standardized configuration
+      websocketManager.connect({
+        url: wsUrl,
+        maxReconnectAttempts: maxReconnectAttempts,
+        baseDelay: reconnectInterval,
+        maxDelay: 30000,
+        connectionTimeout: 10000,
+      }, listeners);
+
     } catch (err) {
       console.error('❌ Failed to create WebSocket:', err);
       setError('Failed to create WebSocket connection');
       setIsConnecting(false);
-      
-      if (shouldReconnectRef.current) {
-        handleReconnect();
-      }
     }
   }, [
     enabled,
@@ -550,21 +420,21 @@ export function useProcessingWebSocket({
     onConnect,
     onDisconnect,
     onError,
-    handleReconnect,
+    reconnectInterval,
+    maxReconnectAttempts,
   ]);
 
   const sendMessage = useCallback((message: unknown) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.warn('⚠️ Cannot send message: WebSocket not connected');
+    if (!wsUrlRef.current) {
+      console.warn('⚠️ Cannot send message: WebSocket URL not available');
       return;
     }
 
-    try {
-      const payload = JSON.stringify(message);
-      wsRef.current.send(payload);
-      console.log('📤 Message sent:', message);
-    } catch (err) {
-      console.error('❌ Failed to send message:', err);
+    const success = websocketManager.send(wsUrlRef.current, message);
+    if (success) {
+      console.log('📤 Message sent via manager:', message);
+    } else {
+      console.warn('⚠️ Cannot send message: WebSocket not connected');
     }
   }, []);
 
@@ -579,7 +449,7 @@ export function useProcessingWebSocket({
       console.log('🔌 Cleaning up WebSocket connection...');
       disconnect();
     };
-  }, [enabled, isAuthenticated]);
+  }, [enabled, isAuthenticated, disconnect]);
 
   return {
     isConnected,

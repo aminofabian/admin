@@ -3,6 +3,7 @@ import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import { isValidTimestamp } from '@/lib/utils/formatters';
+import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
 
 // Production mode check
@@ -128,10 +129,10 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // WebSocket management refs
+  const wsUrlRef = useRef<string>('');
+  const listenersRef = useRef<Set<WebSocketListeners>>(new Set());
   const cacheRef = useRef<{ data: ChatUser[]; timestamp: number } | null>(null);
   const isMountedRef = useRef(true);
   
@@ -295,139 +296,131 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
    *  PERFORMANCE: Only updates player status, doesn't re-fetch entire list
    */
   const connectWebSocket = useCallback(() => {
-    if (!enabled || !adminId || wsRef.current) return;
+    if (!enabled || !adminId) return;
 
     try {
-      const wsUrl = `${WEBSOCKET_BASE_URL}/ws/chatlist/?user_id=${adminId}`;
+      // Use the same URL as useChatUsers to share connection
+      const wsUrl = createWebSocketUrl(WEBSOCKET_BASE_URL, '/ws/chatlist/', { user_id: adminId });
+      wsUrlRef.current = wsUrl;
 
-      !IS_PROD && console.log('🔌 [Online Players] Connecting to WebSocket:', wsUrl);
+      !IS_PROD && console.log('🔌 [Online Players] Connecting to managed WebSocket:', wsUrl);
 
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
+      // Create listeners for online players specific functionality
+      const listeners: WebSocketListeners = {
+        onOpen: () => {
+          !IS_PROD && console.log('✅ [Online Players] WebSocket connected');
+          setIsConnected(true);
+          setError(null);
+        },
+        onMessage: (data) => {
+          try {
+            const messageType = data.type || data.message?.type;
 
-      ws.onopen = () => {
-        !IS_PROD && console.log(' [Online Players] WebSocket connected');
-        setIsConnected(true);
-        setError(null);
-      };
+            //  PERFORMANCE: Only process live_status messages for online players
+            if (messageType === 'live_status') {
+              const playerId = Number(data.player_id || data.message?.player_id);
+              const isActive = Boolean(data.is_active ?? data.message?.is_active);
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          const messageType = data.type || data.message?.type;
-          
-          //  PERFORMANCE: Only process live_status messages for online players
-          if (messageType === 'live_status') {
-            const playerId = Number(data.player_id || data.message?.player_id);
-            const isActive = Boolean(data.is_active ?? data.message?.is_active);
-            
-            !IS_PROD && console.log(`🟢 [Online Players] Status update: Player ${playerId} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
-            
-            setOnlinePlayers((prev) => {
-              if (isActive) {
-                // Player came online - add if not already present
-                const exists = prev.some(p => p.user_id === playerId);
-                if (!exists) {
-                  !IS_PROD && console.log(`➕ [Online Players] Adding player ${playerId} to online list`);
-                  // We might not have full player data, so we need to fetch it
-                  // For now, we'll trigger a background refresh
-                  return prev;
-                }
-                return prev;
-              } else {
-                // Player went offline - remove from list
-                const filtered = prev.filter(p => p.user_id !== playerId);
-                if (filtered.length !== prev.length) {
-                  !IS_PROD && console.log(`➖ [Online Players] Removed player ${playerId} from online list`);
-                }
-                return filtered;
-              }
-            });
-          }
-          // Also handle full chat list updates if available
-          else if (data.message?.type === 'add_new_chats' && Array.isArray(data.message.chats)) {
-            !IS_PROD && console.log('🔄 [Online Players] Received full chat list update');
-            !IS_PROD && console.log('📥 [Online Players] WebSocket chat data sample:', {
-              chatCount: data.message.chats.length,
-              sampleChat: data.message.chats[0] ? {
-                id: data.message.chats[0].id,
-                last_message: data.message.chats[0].last_message?.substring(0, 30),
-                last_message_timestamp: data.message.chats[0].last_message_timestamp,
-                player_id: data.message.chats[0].player?.id,
-                player_username: data.message.chats[0].player?.username,
-              } : 'No chats',
-            });
+              !IS_PROD && console.log(`🟢 [Online Players] Status update: Player ${playerId} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
 
-            // Extract online players from chat list
-            const onlineFromChats = data.message.chats
-              .filter((chat: any) => chat.player?.is_online)
-              .map((chat: any) => {
-                //  FIXED: Merge chat data with player data to preserve timestamps
-                const mergedChat = {
-                  ...chat,
-                  // Move timestamp data from chat level to player level for transformPlayerToUser
-                  last_message: chat.last_message,
-                  last_message_timestamp: chat.last_message_timestamp,
-                };
-                return transformPlayerToUser(mergedChat);
-              });
-
-            if (onlineFromChats.length > 0) {
               setOnlinePlayers((prev) => {
-                //  FIXED: Preserve existing timestamps when merging
-                const merged = new Map<number, ChatUser>();
-
-                // First, add existing players (preserve their data)
-                prev.forEach(p => merged.set(p.user_id, p));
-
-                // Then, merge new data but preserve existing timestamps if new ones are invalid
-                onlineFromChats.forEach((newPlayer: ChatUser) => {
-                  const existingPlayer = merged.get(newPlayer.user_id);
-                  if (existingPlayer) {
-                    // Merge but preserve existing timestamp if new one is invalid
-                    merged.set(newPlayer.user_id, {
-                      ...existingPlayer,
-                      ...newPlayer,
-                      // Preserve existing timestamp if new one is not valid
-                      lastMessageTime: isValidTimestamp(newPlayer.lastMessageTime)
-                        ? newPlayer.lastMessageTime
-                        : existingPlayer.lastMessageTime,
-                    });
-                  } else {
-                    // New player, add as is
-                    merged.set(newPlayer.user_id, newPlayer);
+                if (isActive) {
+                  // Player came online - add if not already present
+                  const exists = prev.some(p => p.user_id === playerId);
+                  if (!exists) {
+                    !IS_PROD && console.log(`➕ [Online Players] Adding player ${playerId} to online list`);
+                    // We might not have full player data, so trigger a background refresh
+                    return prev;
                   }
-                });
-
-                return Array.from(merged.values());
+                  return prev;
+                } else {
+                  // Player went offline - remove from list
+                  const filtered = prev.filter(p => p.user_id !== playerId);
+                  if (filtered.length !== prev.length) {
+                    !IS_PROD && console.log(`➖ [Online Players] Removed player ${playerId} from online list`);
+                  }
+                  return filtered;
+                }
               });
             }
+            // Also handle full chat list updates if available
+            else if (data.message?.type === 'add_new_chats' && Array.isArray(data.message.chats)) {
+              !IS_PROD && console.log('🔄 [Online Players] Received full chat list update');
+
+              // Extract online players from chat list
+              const onlineFromChats = data.message.chats
+                .filter((chat: any) => chat.player?.is_online)
+                .map((chat: any) => {
+                  // Merge chat data with player data to preserve timestamps
+                  const mergedChat = {
+                    ...chat,
+                    // Move timestamp data from chat level to player level for transformPlayerToUser
+                    last_message: chat.last_message,
+                    last_message_timestamp: chat.last_message_timestamp,
+                  };
+                  return transformPlayerToUser(mergedChat);
+                });
+
+              if (onlineFromChats.length > 0) {
+                setOnlinePlayers((prev) => {
+                  // Preserve existing timestamps when merging
+                  const merged = new Map<number, ChatUser>();
+
+                  // First, add existing players (preserve their data)
+                  prev.forEach(p => merged.set(p.user_id, p));
+
+                  // Then, merge new data but preserve existing timestamps if new ones are invalid
+                  onlineFromChats.forEach((newPlayer: ChatUser) => {
+                    const existingPlayer = merged.get(newPlayer.user_id);
+                    if (existingPlayer) {
+                      // Merge but preserve existing timestamp if new one is invalid
+                      merged.set(newPlayer.user_id, {
+                        ...existingPlayer,
+                        ...newPlayer,
+                        // Preserve existing timestamp if new one is not valid
+                        lastMessageTime: isValidTimestamp(newPlayer.lastMessageTime)
+                          ? newPlayer.lastMessageTime
+                          : existingPlayer.lastMessageTime,
+                      });
+                    } else {
+                      // New player, add as is
+                      merged.set(newPlayer.user_id, newPlayer);
+                    }
+                  });
+
+                  return Array.from(merged.values());
+                });
+              }
+            }
+          } catch (err) {
+            console.error('❌ [Online Players] WebSocket message parse error:', err);
           }
-        } catch (err) {
-          console.error('❌ [Online Players] WebSocket message parse error:', err);
-        }
+        },
+        onError: (error) => {
+          console.error('❌ [Online Players] WebSocket error:', error);
+          setError('WebSocket connection error');
+          setIsConnected(false);
+        },
+        onClose: (event) => {
+          !IS_PROD && console.log('🔌 [Online Players] WebSocket closed:', event.code);
+          setIsConnected(false);
+        },
       };
 
-      ws.onerror = (error) => {
-        console.error('❌ [Online Players] WebSocket error:', error);
-      };
+      listenersRef.current.add(listeners);
 
-      ws.onclose = (event) => {
-        !IS_PROD && console.log('🔌 [Online Players] WebSocket closed:', event.code);
-        setIsConnected(false);
-        wsRef.current = null;
+      // Connect through manager (shares connection with useChatUsers)
+      websocketManager.connect({
+        url: wsUrl,
+        maxReconnectAttempts: 5,
+        baseDelay: 1000,
+        maxDelay: 30000,
+        connectionTimeout: 10000,
+      }, listeners);
 
-        // Reconnect if still enabled
-        if (enabled && isMountedRef.current && !reconnectTimeoutRef.current) {
-          !IS_PROD && console.log(`🔄 [Online Players] Reconnecting in ${WS_RECONNECT_DELAY}ms...`);
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectTimeoutRef.current = null;
-            connectWebSocket();
-          }, WS_RECONNECT_DELAY);
-        }
-      };
     } catch (err) {
       console.error('❌ [Online Players] Failed to create WebSocket:', err);
+      setError('Failed to connect to WebSocket');
     }
   }, [adminId, enabled]);
 
@@ -435,18 +428,16 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
    * Disconnect WebSocket
    */
   const disconnectWebSocket = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    if (wsRef.current) {
-      !IS_PROD && console.log('🔌 [Online Players] Disconnecting WebSocket');
-      wsRef.current.close();
-      wsRef.current = null;
+    if (wsUrlRef.current) {
+      // Disconnect all listeners for this URL
+      listenersRef.current.forEach(listeners => {
+        websocketManager.disconnect(wsUrlRef.current, listeners);
+      });
+      listenersRef.current.clear();
     }
 
     setIsConnected(false);
+    setError(null);
   }, []);
 
   /**
@@ -505,10 +496,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     // Removed auto-refresh interval to prevent unnecessary API calls
 
     return () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
-      }
+      disconnectWebSocket();
     };
   }, [enabled, adminId, fetchFromApi]);
 

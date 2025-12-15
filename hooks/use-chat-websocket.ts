@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { API_BASE_URL, WEBSOCKET_BASE_URL, TOKEN_KEY } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
+import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatMessage, WebSocketMessage } from '@/types';
 
 // Production mode check
@@ -135,13 +136,16 @@ export function useChatWebSocket({
   const [historyPagination, setHistoryPagination] = useState({ page: 0, totalPages: 0 });
   const [notes, setNotes] = useState<string>('');
   
+  // WebSocket management refs
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 5;
+  const wsUrlRef = useRef<string>('');
+  const listenersRef = useRef<Set<WebSocketListeners>>(new Set());
   const historyRequestRef = useRef(0);
   const purchaseRequestRef = useRef(0);
   const activeConnectionKeyRef = useRef('');
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
   
   // Use ref to avoid reconnecting WebSocket when callback changes
   const onMessageReceivedRef = useRef(onMessageReceived);
