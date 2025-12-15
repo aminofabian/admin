@@ -21,10 +21,10 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     username: company?.username || '',
     password: '',
     email: company?.email || '',
-    service_email: '',
-    service_name: '',
-    game_api_url: '',
-    game_api_key: '',
+    service_email: company?.service_email || '',
+    service_name: company?.service_name || '',
+    game_api_url: company?.game_api_url || '',
+    game_api_key: company?.game_api_key || '',
     btcpay_api_key: company?.btcpay_api_key ?? '',
     btcpay_store_id: company?.btcpay_store_id ?? '',
     btcpay_webhook_secret: company?.btcpay_webhook_secret ?? '',
@@ -99,30 +99,21 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
 
     try {
       if (isEditMode) {
-        // For edit, only send changed fields
+        // For edit, include all fields that can be updated
         const updateData: UpdateCompanyRequest = {
           project_name: formData.project_name,
           project_domain: formData.project_domain,
           admin_project_domain: formData.admin_project_domain,
           username: formData.username,
           email: formData.email,
+          service_email: formData.service_email || undefined,
+          service_name: formData.service_name || undefined,
+          game_api_url: formData.game_api_url || undefined,
+          game_api_key: formData.game_api_key || undefined,
+          btcpay_api_key: formData.btcpay_api_key || undefined,
+          btcpay_store_id: formData.btcpay_store_id || undefined,
+          btcpay_webhook_secret: formData.btcpay_webhook_secret || undefined,
         };
-        
-        if (formData.service_email) {
-          updateData.service_email = formData.service_email;
-        }
-        if (formData.service_name) {
-          updateData.service_name = formData.service_name;
-        }
-        if (formData.btcpay_api_key !== undefined) {
-          updateData.btcpay_api_key = formData.btcpay_api_key || undefined;
-        }
-        if (formData.btcpay_store_id !== undefined) {
-          updateData.btcpay_store_id = formData.btcpay_store_id || undefined;
-        }
-        if (formData.btcpay_webhook_secret !== undefined) {
-          updateData.btcpay_webhook_secret = formData.btcpay_webhook_secret || undefined;
-        }
         
         await onSubmit(updateData as CreateCompanyRequest | UpdateCompanyRequest);
       } else {
