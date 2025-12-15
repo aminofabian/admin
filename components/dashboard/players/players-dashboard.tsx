@@ -728,8 +728,83 @@ function usePlayerCreation({
         closeCreateModal();
         await refresh();
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'Failed to create player';
+        let message = 'Failed to create player';
+        
+        // Handle ApiError format from backend
+        if (error && typeof error === 'object' && 'status' in error) {
+          const apiError = error as { 
+            errors?: Record<string, string[]>; 
+            detail?: string | Record<string, string[]>; 
+            message?: string;
+            error?: string;
+          };
+          
+          // Check for field-specific errors (e.g., {"password": ["error message"]})
+          if (apiError.errors && typeof apiError.errors === 'object') {
+            const errorMessages: string[] = [];
+            Object.entries(apiError.errors).forEach(([field, messages]) => {
+              if (Array.isArray(messages) && messages.length > 0) {
+                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+              }
+            });
+            if (errorMessages.length > 0) {
+              message = errorMessages.join('; ');
+            }
+          } 
+          // Check if detail is a validation error object
+          else if (apiError.detail) {
+            if (typeof apiError.detail === 'string') {
+              try {
+                const parsedDetail = JSON.parse(apiError.detail);
+                if (parsedDetail && typeof parsedDetail === 'object' && !Array.isArray(parsedDetail)) {
+                  const errorMessages: string[] = [];
+                  Object.entries(parsedDetail).forEach(([field, messages]) => {
+                    if (Array.isArray(messages) && messages.length > 0) {
+                      const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+                    }
+                  });
+                  if (errorMessages.length > 0) {
+                    message = errorMessages.join('; ');
+                  } else {
+                    message = apiError.detail;
+                  }
+                } else {
+                  message = apiError.detail;
+                }
+              } catch {
+                message = apiError.detail;
+              }
+            } else if (typeof apiError.detail === 'object' && !Array.isArray(apiError.detail)) {
+              const errorMessages: string[] = [];
+              Object.entries(apiError.detail as Record<string, unknown>).forEach(([field, messages]) => {
+                if (Array.isArray(messages) && messages.length > 0) {
+                  const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                  errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+                }
+              });
+              if (errorMessages.length > 0) {
+                message = errorMessages.join('; ');
+              }
+            }
+          }
+          // Fall back to message or error fields
+          else if (apiError.message) {
+            message = apiError.message;
+          } else if (apiError.error) {
+            message = apiError.error;
+          }
+        } 
+        // Handle Error instances
+        else if (error instanceof Error) {
+          message = error.message;
+        } 
+        // Handle string errors
+        else if (typeof error === 'string') {
+          message = error;
+        }
+        
         setSubmitError(message);
         throw error;
       } finally {
