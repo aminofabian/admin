@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
+import { API_BASE_URL, WEBSOCKET_BASE_URL, TOKEN_KEY } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
-import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatMessage, WebSocketMessage } from '@/types';
 
 // Production mode check
