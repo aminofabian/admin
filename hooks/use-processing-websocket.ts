@@ -232,7 +232,8 @@ export function useProcessingWebSocket({
         },
         onMessage: (data) => {
           try {
-            const message: WebSocketMessage = data;
+            // Type assertion for WebSocket message data
+            const message = data as WebSocketMessage;
             console.log('📨 Processing WebSocket message received:', message.type);
 
             onMessage?.(message);
