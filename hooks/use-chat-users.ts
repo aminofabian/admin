@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { API_BASE_URL } from '@/lib/constants/api';
+import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import { isValidTimestamp } from '@/lib/utils/formatters';
@@ -186,8 +186,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
     try {
       // Build WebSocket URL for chat list (as specified by Bimal)
-      const wsBaseUrl = API_BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
-      const wsUrl = `${wsBaseUrl}/ws/chatlist/?user_id=${adminId}`;
+      const wsUrl = `${WEBSOCKET_BASE_URL}/ws/chatlist/?user_id=${adminId}`;
 
       !IS_PROD && console.log('🔌 Connecting to chat list WebSocket:', wsUrl);
       setIsLoading(true);

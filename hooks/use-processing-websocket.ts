@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
-import { API_BASE_URL } from '@/lib/constants/api';
+import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
 import type { TransactionQueue, Transaction } from '@/types';
 
 export interface ProcessingCounts {
@@ -174,8 +174,7 @@ export function useProcessingWebSocket({
       return null;
     }
 
-    const baseUrl = API_BASE_URL.replace(/^http/, 'ws');
-    const wsUrl = `${baseUrl}/ws/notifications/${user.username}/`;
+    const wsUrl = `${WEBSOCKET_BASE_URL}/ws/notifications/${user.username}/`;
     
     console.log('🔌 WebSocket URL:', wsUrl);
     return wsUrl;

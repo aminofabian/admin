@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { API_BASE_URL } from '@/lib/constants/api';
+import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import { isValidTimestamp } from '@/lib/utils/formatters';
@@ -298,8 +298,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     if (!enabled || !adminId || wsRef.current) return;
 
     try {
-      const wsBaseUrl = API_BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
-      const wsUrl = `${wsBaseUrl}/ws/chatlist/?user_id=${adminId}`;
+      const wsUrl = `${WEBSOCKET_BASE_URL}/ws/chatlist/?user_id=${adminId}`;
 
       !IS_PROD && console.log('🔌 [Online Players] Connecting to WebSocket:', wsUrl);
 

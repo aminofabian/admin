@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { API_BASE_URL } from '@/lib/constants/api';
+import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatMessage, WebSocketMessage } from '@/types';
@@ -429,9 +429,8 @@ export function useChatWebSocket({
       activeConnectionKeyRef.current = connectionKey;
 
       // Build WebSocket URL
-      const wsBaseUrl = API_BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
       const roomName = `P${userId}Chat`;
-      const wsUrl = `${wsBaseUrl}/ws/cschat/${roomName}/?user_id=${adminId}`;
+      const wsUrl = `${WEBSOCKET_BASE_URL}/ws/cschat/${roomName}/?user_id=${adminId}`;
 
       !IS_PROD && console.log('🔌 Connecting to chat WebSocket:', wsUrl);
 
