@@ -21,6 +21,9 @@ import { EmptyState, LoadingState, ErrorState } from '@/components/features';
 import { paymentMethodsApi } from '@/lib/api';
 import type { Company, PaymentMethod } from '@/types';
 
+type SortField = 'name' | 'type' | 'status';
+type SortDirection = 'asc' | 'desc';
+
 export function SuperAdminPaymentSettings() {
     const [searchTerm, setSearchTerm] = useState('');
     const [companySearchTerm, setCompanySearchTerm] = useState('');
@@ -32,6 +35,8 @@ export function SuperAdminPaymentSettings() {
     const [isLoadingMethods, setIsLoadingMethods] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'purchase' | 'cashout'>('purchase');
+    const [sortField, setSortField] = useState<SortField>('name');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         action: 'toggleCashout' | 'togglePurchase' | 'enableAllPurchase' | 'enableAllCashout' | 'disableAllPurchase' | 'disableAllCashout';
@@ -257,6 +262,15 @@ export function SuperAdminPaymentSettings() {
         );
     }, [companies, companySearchTerm]);
 
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDirection('asc');
+        }
+    };
+
     const filteredPaymentMethods = useMemo(() => {
         let methods = paymentMethods;
 
@@ -282,8 +296,35 @@ export function SuperAdminPaymentSettings() {
             );
         }
 
-        return methods;
-    }, [paymentMethods, searchTerm, viewMode]);
+        // Apply sorting
+        const sorted = [...methods].sort((a, b) => {
+            let comparison = 0;
+
+            switch (sortField) {
+                case 'name':
+                    comparison = a.payment_method_display.localeCompare(b.payment_method_display);
+                    break;
+                case 'type':
+                    const aType = a.method_type || '';
+                    const bType = b.method_type || '';
+                    comparison = aType.localeCompare(bType);
+                    break;
+                case 'status':
+                    const aStatus = viewMode === 'purchase'
+                        ? (a.enabled_for_purchase_by_superadmin ?? false ? 1 : 0)
+                        : (a.enabled_for_cashout_by_superadmin ?? false ? 1 : 0);
+                    const bStatus = viewMode === 'purchase'
+                        ? (b.enabled_for_purchase_by_superadmin ?? false ? 1 : 0)
+                        : (b.enabled_for_cashout_by_superadmin ?? false ? 1 : 0);
+                    comparison = aStatus - bStatus;
+                    break;
+            }
+
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+
+        return sorted;
+    }, [paymentMethods, searchTerm, viewMode, sortField, sortDirection]);
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
@@ -594,9 +635,78 @@ export function SuperAdminPaymentSettings() {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead>Payment Method</TableHead>
-                                                <TableHead>Type</TableHead>
-                                                <TableHead>{viewMode === 'purchase' ? 'Purchase' : 'Cashout'}</TableHead>
+                                                <TableHead>
+                                                    <button
+                                                        onClick={() => handleSort('name')}
+                                                        className="flex items-center gap-2 hover:text-primary transition-colors"
+                                                    >
+                                                        Payment Method
+                                                        <div className="flex flex-col">
+                                                            <svg
+                                                                className={`w-3 h-3 ${sortField === 'name' && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                            <svg
+                                                                className={`w-3 h-3 -mt-1 ${sortField === 'name' && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    </button>
+                                                </TableHead>
+                                                <TableHead>
+                                                    <button
+                                                        onClick={() => handleSort('type')}
+                                                        className="flex items-center gap-2 hover:text-primary transition-colors"
+                                                    >
+                                                        Type
+                                                        <div className="flex flex-col">
+                                                            <svg
+                                                                className={`w-3 h-3 ${sortField === 'type' && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                            <svg
+                                                                className={`w-3 h-3 -mt-1 ${sortField === 'type' && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    </button>
+                                                </TableHead>
+                                                <TableHead>
+                                                    <button
+                                                        onClick={() => handleSort('status')}
+                                                        className="flex items-center gap-2 hover:text-primary transition-colors"
+                                                    >
+                                                        {viewMode === 'purchase' ? 'Purchase' : 'Cashout'}
+                                                        <div className="flex flex-col">
+                                                            <svg
+                                                                className={`w-3 h-3 ${sortField === 'status' && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                            <svg
+                                                                className={`w-3 h-3 -mt-1 ${sortField === 'status' && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    </button>
+                                                </TableHead>
                                                 <TableHead className="text-right">Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>

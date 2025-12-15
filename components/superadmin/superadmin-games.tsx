@@ -27,6 +27,9 @@ interface OffmarketGame extends Game {
     company_name?: string;
 }
 
+type SortField = 'title' | 'code' | 'status';
+type SortDirection = 'asc' | 'desc';
+
 export function SuperAdminGames() {
     const [searchTerm, setSearchTerm] = useState('');
     const [companySearchTerm, setCompanySearchTerm] = useState('');
@@ -37,6 +40,8 @@ export function SuperAdminGames() {
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
     const [isLoadingGames, setIsLoadingGames] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [sortField, setSortField] = useState<SortField>('title');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         action: 'toggle' | 'enableAll' | 'disableAll';
@@ -217,16 +222,51 @@ export function SuperAdminGames() {
         );
     }, [companies, companySearchTerm]);
 
-    const filteredGames = useMemo(() => {
-        if (!searchTerm.trim()) return games;
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDirection('asc');
+        }
+    };
 
-        const search = searchTerm.toLowerCase();
-        return games.filter(
-            (game) =>
-                game.title.toLowerCase().includes(search) ||
-                game.code.toLowerCase().includes(search)
-        );
-    }, [games, searchTerm]);
+    const filteredGames = useMemo(() => {
+        let filtered = games;
+
+        // Apply search filter
+        if (searchTerm.trim()) {
+            const search = searchTerm.toLowerCase();
+            filtered = filtered.filter(
+                (game) =>
+                    game.title.toLowerCase().includes(search) ||
+                    game.code.toLowerCase().includes(search)
+            );
+        }
+
+        // Apply sorting
+        const sorted = [...filtered].sort((a, b) => {
+            let comparison = 0;
+
+            switch (sortField) {
+                case 'title':
+                    comparison = a.title.localeCompare(b.title);
+                    break;
+                case 'code':
+                    comparison = a.code.localeCompare(b.code);
+                    break;
+                case 'status':
+                    const aStatus = a.enabled_by_superadmin ? 1 : 0;
+                    const bStatus = b.enabled_by_superadmin ? 1 : 0;
+                    comparison = aStatus - bStatus;
+                    break;
+            }
+
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+
+        return sorted;
+    }, [games, searchTerm, sortField, sortDirection]);
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
 
@@ -493,9 +533,78 @@ export function SuperAdminGames() {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead>Game Name</TableHead>
-                                                <TableHead>Code</TableHead>
-                                                <TableHead>Status</TableHead>
+                                                <TableHead>
+                                                    <button
+                                                        onClick={() => handleSort('title')}
+                                                        className="flex items-center gap-2 hover:text-primary transition-colors"
+                                                    >
+                                                        Game Name
+                                                        <div className="flex flex-col">
+                                                            <svg
+                                                                className={`w-3 h-3 ${sortField === 'title' && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                            <svg
+                                                                className={`w-3 h-3 -mt-1 ${sortField === 'title' && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    </button>
+                                                </TableHead>
+                                                <TableHead>
+                                                    <button
+                                                        onClick={() => handleSort('code')}
+                                                        className="flex items-center gap-2 hover:text-primary transition-colors"
+                                                    >
+                                                        Code
+                                                        <div className="flex flex-col">
+                                                            <svg
+                                                                className={`w-3 h-3 ${sortField === 'code' && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                            <svg
+                                                                className={`w-3 h-3 -mt-1 ${sortField === 'code' && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    </button>
+                                                </TableHead>
+                                                <TableHead>
+                                                    <button
+                                                        onClick={() => handleSort('status')}
+                                                        className="flex items-center gap-2 hover:text-primary transition-colors"
+                                                    >
+                                                        Status
+                                                        <div className="flex flex-col">
+                                                            <svg
+                                                                className={`w-3 h-3 ${sortField === 'status' && sortDirection === 'asc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                            <svg
+                                                                className={`w-3 h-3 -mt-1 ${sortField === 'status' && sortDirection === 'desc' ? 'text-primary' : 'text-muted-foreground/30'}`}
+                                                                fill="currentColor"
+                                                                viewBox="0 0 20 20"
+                                                            >
+                                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </div>
+                                                    </button>
+                                                </TableHead>
                                                 <TableHead className="text-right">Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
