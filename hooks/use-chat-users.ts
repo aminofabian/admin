@@ -187,13 +187,15 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           setIsConnected(true);
         },
         onMessage: (data) => {
+          // Type assertion for WebSocket message data (consistent with handleWebSocketMessage)
+          const messageData = data as any;
           !IS_PROD && console.log('📨 [Chat Users] Received message:', {
-            type: data.type || data.message?.type,
-            hasChats: !!data.chats || !!data.message?.chats,
-            chatId: data.chat_id || data.message?.chat_id,
+            type: messageData.type || messageData.message?.type,
+            hasChats: !!messageData.chats || !!messageData.message?.chats,
+            chatId: messageData.chat_id || messageData.message?.chat_id,
           });
 
-          handleWebSocketMessage(data, refreshActiveChats);
+          handleWebSocketMessage(messageData, refreshActiveChats);
         },
         onError: (error) => {
           console.error('❌ [Chat Users] WebSocket error:', error);
@@ -836,9 +838,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
    * Debounced version of markChatAsRead to prevent rapid calls
    */
   const markChatAsReadDebounced = useMemo(
-    () => debounce(({ chatId, userId }: { chatId?: string; userId?: number }) => {
-      markChatAsRead({ chatId, userId });
-    }, 300),
+    () => {
+      const debouncedFn = debounce((...args: unknown[]) => {
+        const params = args[0] as { chatId?: string; userId?: number };
+        markChatAsRead(params);
+      }, 300);
+      return debouncedFn as (params: { chatId?: string; userId?: number }) => void;
+    },
     [markChatAsRead]
   );
 
