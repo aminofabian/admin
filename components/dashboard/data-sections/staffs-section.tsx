@@ -4,8 +4,16 @@ import { useEffect, useState } from 'react';
 import type { CreateUserRequest, UpdateUserRequest, Staff } from '@/types';
 import { LoadingState, ErrorState, EmptyState, StaffForm } from '@/components/features';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Pagination, Badge, Button, Drawer, PasswordResetDrawer, useToast } from '@/components/ui';
-import { formatDate } from '@/lib/utils/formatters';
+import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { useStaffsStore } from '@/stores/use-staffs-store';
+
+// Format amount for display (read-only)
+const formatAmount = (amount: string | number | null | undefined): string => {
+  if (!amount) return '—';
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(num)) return '—';
+  return formatCurrency(String(num));
+};
 
 export function StaffsSection() {
   const {
@@ -208,6 +216,8 @@ export function StaffsSection() {
                     <TableHead>Contact</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Min</TableHead>
+                    <TableHead>Max</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -246,6 +256,20 @@ export function StaffsSection() {
                           <Badge variant="info" className="capitalize">
                             {staff.role}
                           </Badge>
+                        </TableCell>
+
+                        {/* Min Amount (Read-only) */}
+                        <TableCell>
+                          <div className="text-sm text-gray-900 dark:text-gray-100">
+                            {formatAmount(staff.min_amount)}
+                          </div>
+                        </TableCell>
+
+                        {/* Max Amount (Read-only) */}
+                        <TableCell>
+                          <div className="text-sm text-gray-900 dark:text-gray-100">
+                            {formatAmount(staff.max_amount)}
+                          </div>
                         </TableCell>
 
                         {/* Timestamps */}

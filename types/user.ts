@@ -22,6 +22,8 @@ export interface Manager extends BaseUser {
 export interface Staff extends BaseUser {
   role: 'staff';
   mobile_number?: string;
+  min_amount?: string | number | null;
+  max_amount?: string | number | null;
 }
 
 export interface Player extends BaseUser {

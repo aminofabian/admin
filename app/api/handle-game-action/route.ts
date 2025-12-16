@@ -51,12 +51,15 @@ export async function POST(request: NextRequest) {
       const text = await response.text();
       console.log('📥 Backend returned non-JSON:', text.substring(0, 1000));
       console.log('📥 Full response text:', text);
+      console.log('📥 Attempted URL:', backendUrl);
       
       return NextResponse.json(
         { 
           status: 'error', 
           message: 'Backend returned invalid response',
-          details: text.substring(0, 1000)
+          details: text.substring(0, 1000),
+          attemptedUrl: backendUrl,
+          backendUrl: BACKEND_URL
         },
         { status: response.status }
       );
