@@ -124,6 +124,30 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
     ...(nestedData || {}),
   };
   
+  // Normalize amount to string (handle both string and number types)
+  let normalizedAmount: string;
+  if (typeof rawActivity.amount === 'number') {
+    normalizedAmount = String(rawActivity.amount);
+  } else if (rawActivity.amount != null && rawActivity.amount !== '') {
+    normalizedAmount = String(rawActivity.amount);
+  } else if (rawActivity.get_total_amount != null) {
+    normalizedAmount = String(rawActivity.get_total_amount);
+  } else {
+    normalizedAmount = '0';
+  }
+  
+  // Normalize bonus_amount to string if it exists (handle both string and number types)
+  // Check both bonus_amount and bonus fields for compatibility
+  let normalizedBonusAmount: string | undefined;
+  const bonusValue = rawActivity.bonus_amount ?? rawActivity.bonus;
+  if (bonusValue != null) {
+    if (typeof bonusValue === 'number') {
+      normalizedBonusAmount = String(bonusValue);
+    } else if (bonusValue !== '') {
+      normalizedBonusAmount = String(bonusValue);
+    }
+  }
+  
   return {
     id: rawActivity.id || rawActivity.transaction_id || '',
     type: rawActivity.operation_type || rawActivity.type || 'recharge_game',
@@ -135,8 +159,8 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
     game_username: rawActivity.get_usergame_username || rawActivity.game_username || rawActivity.data?.username || '',
     game: rawActivity.game_title || rawActivity.game || '',
     game_code: rawActivity.game_code || '',
-    amount: String(rawActivity.amount || rawActivity.get_total_amount || 0),
-    bonus_amount: rawActivity.bonus ? String(rawActivity.bonus) : undefined,
+    amount: normalizedAmount,
+    bonus_amount: normalizedBonusAmount,
     new_game_balance: rawActivity.new_game_balance,
     remarks: rawActivity.remarks || '',
     data: mergedData,

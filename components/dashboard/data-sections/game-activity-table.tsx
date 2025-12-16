@@ -114,20 +114,39 @@ function GameActivityRow({
   const zeroCurrency = formatCurrency('0');
   
   // Check if this is a reset or add user action - these should show hyphen for balance
+  // For create_game, show balances if they exist in data, otherwise show dash
   const shouldShowBlankBalance = useMemo(() => {
     const typeStr = String(activity.type);
-    return typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
-  }, [activity.type]);
+    // For create_game, check if balance data exists
+    if (typeStr === 'create_game') {
+      const hasCredits = activity.data?.new_credits_balance != null;
+      const hasWinnings = activity.data?.new_winning_balance != null;
+      // Only show blank if neither balance exists
+      return !hasCredits && !hasWinnings;
+    }
+    // For other types, use original logic
+    return typeStr === 'change_password' || typeStr === 'add_user_game';
+  }, [activity.type, activity.data?.new_credits_balance, activity.data?.new_winning_balance]);
 
   const creditsDisplay = useMemo(() => {
+    // For create_game, show the actual balance if it exists, otherwise show dash
+    if (activity.type === 'create_game') {
+      return newCreditsBalance ?? '—';
+    }
+    // For other types that should show blank, return dash
     if (shouldShowBlankBalance) return '—';
     return newCreditsBalance ?? zeroCurrency;
-  }, [shouldShowBlankBalance, newCreditsBalance, zeroCurrency]);
+  }, [shouldShowBlankBalance, newCreditsBalance, zeroCurrency, activity.type]);
   
   const winningsDisplay = useMemo(() => {
+    // For create_game, show the actual balance if it exists, otherwise show dash
+    if (activity.type === 'create_game') {
+      return newWinningBalance ?? '—';
+    }
+    // For other types that should show blank, return dash
     if (shouldShowBlankBalance) return '—';
     return newWinningBalance ?? zeroCurrency;
-  }, [shouldShowBlankBalance, newWinningBalance, zeroCurrency]);
+  }, [shouldShowBlankBalance, newWinningBalance, zeroCurrency, activity.type]);
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
@@ -415,24 +434,47 @@ const GameActivityCard = memo(function GameActivityCard({
   const zeroCurrency = formatCurrency('0');
   
   // Check if this is a reset or add user action - these should show hyphen for balance
+  // For create_game, show balances if they exist in data, otherwise show dash
   const shouldShowBlankBalance = useMemo(() => {
     const typeStr = String(activity.type);
-    return typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
-  }, [activity.type]);
+    // For create_game, check if balance data exists
+    if (typeStr === 'create_game') {
+      const hasCredits = activity.data?.new_credits_balance != null;
+      const hasWinnings = activity.data?.new_winning_balance != null;
+      // Only show blank if neither balance exists
+      return !hasCredits && !hasWinnings;
+    }
+    // For other types, use original logic
+    return typeStr === 'change_password' || typeStr === 'add_user_game';
+  }, [activity.type, activity.data?.new_credits_balance, activity.data?.new_winning_balance]);
 
   const creditsDisplay = useMemo(() => {
+    // For create_game, show the actual balance if it exists, otherwise show dash
+    if (activity.type === 'create_game') {
+      if (newCreditsBalance) return newCreditsBalance;
+      if (credit) return credit;
+      return '—';
+    }
+    // For other types that should show blank, return dash
     if (shouldShowBlankBalance) return '—';
     if (newCreditsBalance) return newCreditsBalance;
     if (credit) return credit;
     return zeroCurrency;
-  }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency]);
+  }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency, activity.type]);
 
   const winningsDisplay = useMemo(() => {
+    // For create_game, show the actual balance if it exists, otherwise show dash
+    if (activity.type === 'create_game') {
+      if (newWinningBalance) return newWinningBalance;
+      if (winnings) return winnings;
+      return '—';
+    }
+    // For other types that should show blank, return dash
     if (shouldShowBlankBalance) return '—';
     if (newWinningBalance) return newWinningBalance;
     if (winnings) return winnings;
     return zeroCurrency;
-  }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency]);
+  }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency, activity.type]);
 
   const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {

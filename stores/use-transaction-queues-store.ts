@@ -166,36 +166,58 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
       }
       
       // Normalize API response to match the structure we expect (same as WebSocket transformation)
-      const normalizedQueues: TransactionQueue[] = response.results.map((queue: TransactionQueue) => {
+      const normalizedQueues: TransactionQueue[] = response.results.map((queue: any) => {
+        // Normalize amount to string (handle both string and number types)
+        let normalizedAmount: string;
+        if (typeof queue.amount === 'number') {
+          normalizedAmount = String(queue.amount);
+        } else if (queue.amount != null && queue.amount !== '') {
+          normalizedAmount = String(queue.amount);
+        } else if (queue.data && typeof queue.data === 'object') {
+          const data = queue.data as any;
+          if (data.amount != null) {
+            normalizedAmount = String(data.amount);
+          } else if (data.get_total_amount != null) {
+            normalizedAmount = String(data.get_total_amount);
+          } else {
+            normalizedAmount = '0';
+          }
+        } else {
+          normalizedAmount = '0';
+        }
+        
+        // Normalize bonus_amount to string if it exists (handle both string and number types)
+        let normalizedBonusAmount: string | undefined;
+        if (queue.bonus_amount != null) {
+          if (typeof queue.bonus_amount === 'number') {
+            normalizedBonusAmount = String(queue.bonus_amount);
+          } else if (queue.bonus_amount !== '') {
+            normalizedBonusAmount = String(queue.bonus_amount);
+          }
+        }
+        
         // If data has nested fields, promote them to top level for consistency
         if (queue.data && typeof queue.data === 'object') {
           const data = queue.data as any;
-          
-          // Ensure amount is always a string
-          let normalizedAmount = queue.amount;
-          if (!normalizedAmount) {
-            if (data.amount != null) {
-              normalizedAmount = String(data.amount);
-            } else if (data.get_total_amount != null) {
-              normalizedAmount = String(data.get_total_amount);
-            } else {
-              normalizedAmount = '0';
-            }
-          }
           
           return {
             ...queue,
             game: queue.game || data.game_title || data.game || '',
             game_username: queue.game_username || data.get_usergame_username || data.username || data.game_username,
             amount: normalizedAmount,
+            bonus_amount: normalizedBonusAmount,
             // Explicitly preserve company fields from API response
             company_id: queue.company_id,
             company_username: queue.company_username,
+            // Ensure data object is preserved with all nested fields
+            data: queue.data,
           };
         }
         // Even when there's no data object, ensure company fields are preserved
         return {
           ...queue,
+          amount: normalizedAmount,
+          bonus_amount: normalizedBonusAmount,
           company_id: queue.company_id,
           company_username: queue.company_username,
         };
