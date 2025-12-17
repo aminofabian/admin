@@ -6,6 +6,7 @@ import { USER_ROLES } from '@/lib/constants/roles';
 import { SuperAdminDashboard } from '@/components/superadmin';
 import { ManagerDashboard } from '@/components/manager';
 import { StaffDashboard } from '@/components/staff';
+import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import type { ReactNode } from 'react';
 
 interface SectionItem {
@@ -13,10 +14,12 @@ interface SectionItem {
   href: string;
   icon: ReactNode;
   showForSuperAdmin?: boolean;
+  count?: number;
 }
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { counts: processingCounts } = useProcessingWebSocketContext();
 
   // If user is superadmin, render superadmin dashboard
   if (user?.role === USER_ROLES.SUPERADMIN) {
@@ -123,6 +126,7 @@ export default function DashboardPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 11H6L5 9z" />
         </svg>
       ),
+      count: processingCounts.purchase_count,
     },
     {
       label: 'Cashout Processing',
@@ -132,6 +136,7 @@ export default function DashboardPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v8m4-4H8m-6 0a10 10 0 1020 0 10 10 0 00-20 0z" />
         </svg>
       ),
+      count: processingCounts.cashout_count,
     },
     {
       label: 'Game Activities Processing',
@@ -141,6 +146,7 @@ export default function DashboardPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z" />
         </svg>
       ),
+      count: processingCounts.game_activities_count,
     },
     // Bonuses
     {
@@ -237,10 +243,17 @@ export default function DashboardPage() {
             <Link
               key={index}
               href={section.href}
-              className="group flex flex-col items-center justify-center bg-card border border-border/50 rounded-lg hover:border-primary/50 hover:shadow-md active:scale-95 transition-all duration-200 p-4 sm:p-3"
+              className="group relative flex flex-col items-center justify-center bg-card border border-border/50 rounded-lg hover:border-primary/50 hover:shadow-md active:scale-95 transition-all duration-200 p-4 sm:p-3"
             >
+              {/* Count Badge - Prominent on card */}
+              {section.count !== undefined && section.count > 0 && (
+                <span className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center h-6 min-w-[1.5rem] px-2 text-xs font-bold rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white border-2 border-white dark:border-background shadow-lg animate-pulse">
+                  {section.count > 99 ? '99+' : section.count}
+                </span>
+              )}
+              
               {/* Icon Container - Mobile App Style */}
-              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors mb-2 flex-shrink-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors mb-2 flex-shrink-0 relative">
                 <div className="text-primary">
                   {section.icon}
                 </div>
