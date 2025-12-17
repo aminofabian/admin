@@ -44,7 +44,7 @@ export function AddGameDrawer({
     if (isOpen) {
       // Reset form when drawer opens
       setFormData({
-        username: playerUsername || '',
+        username: '',
         password: '',
         code: '',
       });
@@ -70,24 +70,32 @@ export function AddGameDrawer({
 
       fetchGames();
     }
-  }, [isOpen, playerUsername]);
+  }, [isOpen]);
+
+  const selectedGame = availableGames.find(game => game.code === formData.code);
+  const isVegasSweeps = selectedGame?.title?.toLowerCase().includes('vegas sweeps') || 
+                        selectedGame?.code?.toLowerCase().includes('vegas') ||
+                        false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.code || !formData.username || !formData.password) {
+    if (!formData.code || !formData.username) {
+      return;
+    }
+
+    // For Vegas Sweeps, password is not required
+    if (!isVegasSweeps && !formData.password) {
       return;
     }
 
     await onSubmit({
       username: formData.username,
-      password: formData.password,
+      password: isVegasSweeps ? '' : formData.password,
       code: formData.code,
       user_id: playerId,
     });
   };
-
-  const selectedGame = availableGames.find(game => game.code === formData.code);
 
   if (!isOpen) return null;
 
@@ -132,7 +140,7 @@ export function AddGameDrawer({
 
           {/* Drawer Body */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24 md:pb-6">
-          <form id="add-game-form" onSubmit={handleSubmit} className="space-y-4">
+          <form id="add-game-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
             {/* Game Selection */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-2">
@@ -198,30 +206,34 @@ export function AddGameDrawer({
                 className="w-full"
                 disabled={isSubmitting}
                 required
+                autoComplete="off"
+                autoFocus={false}
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 The username that will be created in the game
               </p>
             </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">
-                Game Password <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Enter password for the game"
-                className="w-full"
-                disabled={isSubmitting}
-                required
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                The password for accessing the game account
-              </p>
-            </div>
+            {/* Password - Hidden for Vegas Sweeps */}
+            {!isVegasSweeps && (
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-2">
+                  Game Password <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Enter password for the game"
+                  className="w-full"
+                  disabled={isSubmitting}
+                  required
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  The password for accessing the game account
+                </p>
+              </div>
+            )}
 
             {/* Info Box */}
             <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
@@ -255,7 +267,7 @@ export function AddGameDrawer({
               type="submit"
               form="add-game-form"
               variant="primary"
-              disabled={isSubmitting || !formData.code || !formData.username || !formData.password}
+              disabled={isSubmitting || !formData.code || !formData.username || (!isVegasSweeps && !formData.password)}
               isLoading={isSubmitting}
               className="px-6 py-2.5 font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
             >

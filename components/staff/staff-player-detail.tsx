@@ -871,18 +871,18 @@ function EditGameDrawerContent({
   isSubmitting,
 }: EditGameDrawerContentProps) {
   const [formData, setFormData] = useState({
-    username: game.username || '',
+    username: '',
     password: '',
   });
 
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        username: game.username || '',
+        username: '',
         password: '',
       });
     }
-  }, [isOpen, game.username]);
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -915,7 +915,7 @@ function EditGameDrawerContent({
 
       {/* Drawer Body */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24 md:pb-6">
-        <form id="edit-game-form" onSubmit={handleSubmit} className="space-y-4">
+        <form id="edit-game-form" onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {/* Game Info */}
           <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <div className="flex items-start gap-2">
@@ -944,6 +944,8 @@ function EditGameDrawerContent({
               className="w-full"
               disabled={isSubmitting}
               required
+              autoComplete="off"
+              autoFocus={false}
             />
             <p className="mt-1 text-xs text-muted-foreground">
               The username for accessing the game account
