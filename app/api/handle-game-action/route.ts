@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     
     // Forward directly to the Django backend
     // Note: This is an admin endpoint, not a REST API endpoint
-    const backendUrl = `${BACKEND_URL}/admin/game-action/`;
+    const backendUrl = `${BACKEND_URL}/api/v1/game-action/`;
 
     console.log('🔷 Proxy Configuration:');
     console.log('  - BACKEND_URL:', BACKEND_URL);
