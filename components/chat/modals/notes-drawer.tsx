@@ -184,6 +184,7 @@ export function NotesDrawer({
                   }}
                   placeholder="Add private notes about this player..."
                   className="w-full min-h-[200px] p-3 border border-border rounded-lg bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-muted-foreground"
+                  autoComplete="off"
                 />
               </div>
             </div>

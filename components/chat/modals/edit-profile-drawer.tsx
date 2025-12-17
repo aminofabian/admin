@@ -90,6 +90,7 @@ export function EditProfileDrawer({
                 onChange={(e) => setProfileFormData(prev => ({ ...prev, username: e.target.value }))}
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isUpdating}
+                autoComplete="off"
               />
             </div>
 
@@ -107,6 +108,7 @@ export function EditProfileDrawer({
                 onChange={(e) => setProfileFormData(prev => ({ ...prev, full_name: e.target.value }))}
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isUpdating}
+                autoComplete="off"
               />
             </div>
 
@@ -124,6 +126,7 @@ export function EditProfileDrawer({
                 onChange={(e) => setProfileFormData(prev => ({ ...prev, dob: e.target.value }))}
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isUpdating}
+                autoComplete="off"
               />
             </div>
 
@@ -141,6 +144,7 @@ export function EditProfileDrawer({
                 onChange={(e) => setProfileFormData(prev => ({ ...prev, email: e.target.value }))}
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isUpdating}
+                autoComplete="off"
               />
             </div>
 
@@ -160,6 +164,7 @@ export function EditProfileDrawer({
                 placeholder="Enter new password"
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isUpdating}
+                autoComplete="new-password"
               />
             </div>
 
@@ -183,6 +188,7 @@ export function EditProfileDrawer({
                   }`}
                   disabled={isUpdating}
                   placeholder="Confirm new password"
+                  autoComplete="new-password"
                 />
                 {profileFormData.password && profileFormData.confirmPassword && profileFormData.password !== profileFormData.confirmPassword && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">Passwords do not match</p>

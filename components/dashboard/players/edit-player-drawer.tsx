@@ -149,6 +149,7 @@ export function EditPlayerDetailsDrawer({
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isSaving}
                 placeholder="player@example.com"
+                autoComplete="off"
               />
             </div>
 
@@ -167,6 +168,7 @@ export function EditPlayerDetailsDrawer({
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isSaving}
                 placeholder="John Doe"
+                autoComplete="off"
               />
             </div>
 
@@ -184,6 +186,7 @@ export function EditPlayerDetailsDrawer({
                 onChange={(e) => setEditableFields(prev => ({ ...prev, dob: e.target.value }))}
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isSaving}
+                autoComplete="off"
               />
             </div>
 
@@ -221,6 +224,7 @@ export function EditPlayerDetailsDrawer({
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isSaving}
                 placeholder="+1 (555) 123-4567"
+                autoComplete="off"
               />
             </div>
 
@@ -240,6 +244,7 @@ export function EditPlayerDetailsDrawer({
                 className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={isSaving}
                 placeholder="Enter new password"
+                autoComplete="new-password"
               />
             </div>
 
@@ -263,6 +268,7 @@ export function EditPlayerDetailsDrawer({
                   }`}
                   disabled={isSaving}
                   placeholder="Confirm new password"
+                  autoComplete="new-password"
                 />
                 {editableFields.password && editableFields.confirm_password && editableFields.password !== editableFields.confirm_password && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">Passwords do not match</p>

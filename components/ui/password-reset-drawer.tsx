@@ -137,6 +137,7 @@ export function PasswordResetDrawer({
               error={errors.password}
               disabled={isLoading}
               className="w-full"
+              autoComplete="new-password"
             />
           </div>
           
@@ -155,6 +156,7 @@ export function PasswordResetDrawer({
               error={errors.confirmPassword}
               disabled={isLoading}
               className="w-full"
+              autoComplete="new-password"
             />
           </div>
         </div>

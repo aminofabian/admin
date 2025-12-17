@@ -228,6 +228,7 @@ export function AddGameDrawer({
                   className="w-full"
                   disabled={isSubmitting}
                   required
+                  autoComplete="new-password"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
                   The password for accessing the game account

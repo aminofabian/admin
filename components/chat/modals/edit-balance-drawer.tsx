@@ -127,6 +127,7 @@ export function EditBalanceDrawer({
               disabled={isUpdating}
               min="0"
               step="1"
+              autoComplete="off"
             />
           </div>
 
