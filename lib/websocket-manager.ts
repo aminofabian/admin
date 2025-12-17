@@ -173,7 +173,16 @@ class WebSocketManager {
     };
 
     managed.ws.onerror = (error) => {
-      console.error(`❌ [WebSocket Manager] WebSocket error for ${managed.url}:`, error);
+      // WebSocket error events are often empty, but we log the connection state for debugging
+      const state = managed.ws.readyState;
+      const stateNames = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+      const stateName = stateNames[state] || 'UNKNOWN';
+      
+      // Only log if not already closing/closed (to avoid duplicate logs)
+      if (state !== WebSocket.CLOSING && state !== WebSocket.CLOSED) {
+        console.warn(`⚠️ [WebSocket Manager] WebSocket error for ${managed.url} (state: ${stateName})`);
+      }
+      
       managed.isConnecting = false;
 
       // Clear connection timeout
@@ -183,8 +192,8 @@ class WebSocketManager {
       managed.listeners.forEach(listener => {
         try {
           listener.onError?.(error);
-        } catch (error) {
-          console.error('❌ [WebSocket Manager] Error in onError listener:', error);
+        } catch (err) {
+          console.error('❌ [WebSocket Manager] Error in onError listener:', err);
         }
       });
     };
