@@ -245,15 +245,15 @@ export default function DashboardPage() {
               href={section.href}
               className="group relative flex flex-col items-center justify-center bg-card border border-border/50 rounded-lg hover:border-primary/50 hover:shadow-md active:scale-95 transition-all duration-200 p-4 sm:p-3"
             >
-              {/* Count Badge - Prominent on card */}
+              {/* Count Badge - Corner position */}
               {section.count !== undefined && section.count > 0 && (
-                <span className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center h-6 min-w-[1.5rem] px-2 text-xs font-bold rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white border-2 border-white dark:border-background shadow-lg animate-pulse">
+                <span className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1.5 text-[10px] font-semibold rounded-md bg-gradient-to-br from-primary/15 to-primary/10 text-primary border border-primary/20 dark:from-primary/25 dark:to-primary/15 dark:border-primary/30 shadow-sm">
                   {section.count > 99 ? '99+' : section.count}
                 </span>
               )}
               
               {/* Icon Container - Mobile App Style */}
-              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors mb-2 flex-shrink-0 relative">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors mb-2 flex-shrink-0">
                 <div className="text-primary">
                   {section.icon}
                 </div>
