@@ -342,6 +342,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
 interface SidebarProps {
   onClose?: () => void;
   isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 function SubMenuItemComponent({
@@ -560,7 +561,7 @@ function MenuItem({
   );
 }
 
-export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
+export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { counts: processingCounts } = useProcessingWebSocketContext();
@@ -575,96 +576,166 @@ export function Sidebar({ onClose, isCollapsed = false }: SidebarProps) {
   };
 
   return (
-    <aside className="w-full h-screen bg-gradient-to-b from-background via-background/98 to-background border-r border-border/50 flex flex-col">
-      {/* Header */}
-      <div className="relative p-6 flex items-center justify-between border-b border-border/50">
-        <Logo
-          showText={true}
-          size="sm"
-          className="relative z-10"
-        />
-        <button
-          onClick={onClose}
-          className="lg:hidden p-2 hover:bg-muted rounded-lg transition-colors"
-        >
-          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
+    <>
+      {/* Desktop Toggle Button - When collapsed, elegant minimal design */}
+      {onToggleCollapse && isCollapsed && (
+        <div className="hidden lg:block fixed left-1 top-1 z-50">
+          <button
+            onClick={onToggleCollapse}
+            className="relative flex items-center justify-center w-7 h-7 rounded-md transition-all duration-700 ease-out group bg-background/60 backdrop-blur-xl border border-border/30 hover:border-primary/20 shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] hover:bg-background/80"
+            title="Show sidebar"
+            aria-label="Show sidebar"
+          >
+            <svg 
+              className="relative z-10 w-3.5 h-3.5 text-muted-foreground/60 transition-all duration-700 group-hover:text-primary/80 group-hover:translate-x-[1px]"
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path 
+                strokeWidth={1.5} 
+                d="M9 5l7 7-7 7" 
+              />
+            </svg>
+            {/* Elegant shimmer sweep on hover */}
+            <div className="absolute inset-0 rounded-md overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/3 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-shimmer transition-opacity duration-700" />
+            </div>
+          </button>
+        </div>
+      )}
+      
+      <aside className={`w-full h-screen bg-gradient-to-b from-background via-background/98 to-background flex flex-col transition-all duration-300 ${isCollapsed ? 'lg:overflow-hidden lg:border-r-0' : 'border-r border-border/50 shadow-sm'}`}>
+        {/* Header */}
+        <div className="relative p-4 lg:p-5 flex items-center justify-between border-b border-border/50 bg-gradient-to-r from-background to-background/95">
+          {!isCollapsed && (
+            <Logo
+              showText={true}
+              size="sm"
+              className="relative z-10 transition-opacity duration-300"
+            />
+          )}
+          {/* Mobile close button */}
+          <button
+            onClick={onClose}
+            className="lg:hidden p-2 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110 active:scale-95"
+            aria-label="Close sidebar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
       {/* User Profile Section */}
-      <div className="p-6 border-b border-border/50">
-        <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg hover:bg-muted/40 transition-colors">
-          <div className="relative w-10 h-10 bg-primary rounded-full flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-bold">
-              {user?.username?.charAt(0).toUpperCase() || 'A'}
-            </span>
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sm truncate">
-              {user?.username || 'Admin'}
+      {!isCollapsed && (
+        <div className="p-6 border-b border-border/50">
+          <div className="relative flex items-center gap-3 p-4 bg-muted/30 rounded-lg hover:bg-muted/40 transition-colors">
+            <div className="relative w-10 h-10 bg-primary rounded-full flex items-center justify-center shrink-0">
+              <span className="text-primary-foreground font-bold">
+                {user?.username?.charAt(0).toUpperCase() || 'A'}
+              </span>
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
             </div>
-            <div className="text-xs text-muted-foreground capitalize">
-              {user?.role || 'SuperAdmin'}
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm truncate">
+                {user?.username || 'Admin'}
+              </div>
+              <div className="text-xs text-muted-foreground capitalize">
+                {user?.role || 'SuperAdmin'}
+              </div>
             </div>
+            
+            {/* Desktop Toggle Button - Elegant minimal design in top-right corner */}
+            {onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                className="hidden lg:flex absolute -top-3 -right-3 items-center justify-center w-7 h-7 rounded-md transition-all duration-700 ease-out group bg-background/60 backdrop-blur-xl border border-border/30 hover:border-primary/20 shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] hover:bg-background/80 z-10"
+                title="Hide sidebar"
+                aria-label="Hide sidebar"
+              >
+                <svg 
+                  className="relative z-10 w-3.5 h-3.5 text-muted-foreground/60 transition-all duration-700 group-hover:text-primary/80 group-hover:-translate-x-[1px]"
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path 
+                    strokeWidth={1.5} 
+                    d="M15 19l-7-7 7-7" 
+                  />
+                </svg>
+                {/* Elegant shimmer sweep on hover */}
+                <div className="absolute inset-0 rounded-md overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/3 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-shimmer transition-opacity duration-700" />
+                </div>
+              </button>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-0.5">
-        {filteredCategories.map((category) => (
-          <MenuItem
-            key={category.name}
-            category={category}
-            pathname={pathname}
-            onClose={onClose}
-            isCollapsed={isCollapsed}
-            processingCounts={processingCounts}
-            userRole={user?.role}
-          />
-        ))}
-      </nav>
+      {!isCollapsed && (
+        <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-0.5">
+          {filteredCategories.map((category) => (
+            <MenuItem
+              key={category.name}
+              category={category}
+              pathname={pathname}
+              onClose={onClose}
+              isCollapsed={isCollapsed}
+              processingCounts={processingCounts}
+              userRole={user?.role}
+            />
+          ))}
+        </nav>
+      )}
 
       {/* Footer */}
-      <div className="border-t border-border/50 p-6 space-y-3">
-        {/* Chat Link - Hidden for superadmin */}
-        {user?.role !== 'superadmin' && (
-          <Link
-            href="/dashboard/chat"
-            onClick={onClose}
-            className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors ${pathname === '/dashboard/chat'
-                ? 'bg-primary/10 text-primary font-semibold shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-              }`}
+      {!isCollapsed && (
+        <div className="border-t border-border/50 p-6 space-y-3">
+          {/* Chat Link - Hidden for superadmin */}
+          {user?.role !== 'superadmin' && (
+            <Link
+              href="/dashboard/chat"
+              onClick={onClose}
+              className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors ${pathname === '/dashboard/chat'
+                  ? 'bg-primary/10 text-primary font-semibold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                }`}
+            >
+              <div className={`shrink-0 transition-all duration-200 ${pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
+                }`}>
+                <ChatIcon />
+              </div>
+              <span>Chat</span>
+            </Link>
+          )}
+
+          {/* Status */}
+          <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
+            <span className="w-2 h-2 bg-green-500 rounded-full" />
+            <span className="text-xs font-medium text-green-600 dark:text-green-400">System Online</span>
+          </div>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
           >
-            <div className={`shrink-0 transition-all duration-200 ${pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
-              }`}>
-              <ChatIcon />
-            </div>
-            <span>Chat</span>
-          </Link>
-        )}
-
-        {/* Status */}
-        <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
-          <span className="w-2 h-2 bg-green-500 rounded-full" />
-          <span className="text-xs font-medium text-green-600 dark:text-green-400">System Online</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Logout</span>
+          </button>
         </div>
-
-        {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-6 py-3 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span>Logout</span>
-        </button>
-      </div>
-    </aside>
+      )}
+      </aside>
+    </>
   );
 }

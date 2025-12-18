@@ -19,6 +19,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { addToast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const isSuperAdmin = user?.role === 'superadmin';
 
   // Check if superadmin is on wrong domain
@@ -63,19 +64,27 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       
       {/* Sidebar - Mobile/Tablet: hidden by default, Desktop: w-56 on xl+ */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-64 lg:w-56 h-screen transform transition-all duration-300 ease-in-out
+        fixed lg:static inset-y-0 left-0 z-50 h-screen transform transition-all duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${isSidebarCollapsed ? 'lg:w-0' : 'w-64 lg:w-56'}
       `}>
-        <Sidebar onClose={() => setSidebarOpen(false)} />
+        <Sidebar 
+          onClose={() => setSidebarOpen(false)} 
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        />
       </div>
 
       {/* Main content - Mobile App Style */}
       <div className="flex-1 flex flex-col w-full">
-        <TopNavigation onMenuClick={() => setSidebarOpen(true)} />
+        <TopNavigation 
+          onMenuClick={() => setSidebarOpen(true)} 
+        />
         <main className="flex-1 p-4 lg:p-4 xl:p-6 bg-gradient-to-b from-background to-background/50 pb-20 lg:pb-4">
           {children}
         </main>
       </div>
+
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
