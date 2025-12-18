@@ -6,7 +6,8 @@ import { useTheme } from '@/providers/theme-provider';
 import { useAuth } from '@/providers/auth-provider';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useChatUsers } from '@/hooks/use-chat-users';
 
 interface TopNavigationProps {
   onMenuClick?: () => void;
@@ -18,6 +19,19 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   const pathname = usePathname();
   const { counts: processingCounts } = useProcessingWebSocketContext();
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Get chat users to check for unread messages
+  const adminId = user?.id ?? 0;
+  const { users: chatUsers } = useChatUsers({
+    adminId,
+    enabled: adminId > 0 && user?.role !== USER_ROLES.SUPERADMIN,
+  });
+
+  // Calculate total unread count across all chat users
+  const hasUnreadMessages = useMemo(() => {
+    if (!chatUsers || chatUsers.length === 0) return false;
+    return chatUsers.some((chatUser) => (chatUser.unreadCount ?? 0) > 0);
+  }, [chatUsers]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -162,6 +176,10 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                   }`}>
                     {item.count > 99 ? '99+' : item.count}
                   </span>
+                )}
+                {/* Red dot indicator for chat when there are unread messages */}
+                {item.href === '/dashboard/chat' && hasUnreadMessages && (
+                  <span className="absolute -top-0.5 -right-0.5 z-10 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-card shadow-sm" />
                 )}
               </div>
               {/* Label */}

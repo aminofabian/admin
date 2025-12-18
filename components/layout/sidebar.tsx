@@ -5,8 +5,9 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { Logo } from '@/components/ui';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
+import { useChatUsers } from '@/hooks/use-chat-users';
 
 interface SubMenuItem {
   name: string;
@@ -566,6 +567,19 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
   const { user, logout } = useAuth();
   const { counts: processingCounts } = useProcessingWebSocketContext();
 
+  // Get chat users to check for unread messages
+  const adminId = user?.id ?? 0;
+  const { users: chatUsers } = useChatUsers({
+    adminId,
+    enabled: adminId > 0 && user?.role !== USER_ROLES.SUPERADMIN,
+  });
+
+  // Calculate total unread count across all chat users
+  const hasUnreadMessages = useMemo(() => {
+    if (!chatUsers || chatUsers.length === 0) return false;
+    return chatUsers.some((chatUser) => (chatUser.unreadCount ?? 0) > 0);
+  }, [chatUsers]);
+
   const filteredCategories = user
     ? MENU_CATEGORIES.filter((cat) => cat.roles.includes(user.role))
     : MENU_CATEGORIES;
@@ -704,14 +718,18 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
             <Link
               href="/dashboard/chat"
               onClick={onClose}
-              className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors ${pathname === '/dashboard/chat'
+              className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-medium rounded-lg transition-colors relative ${pathname === '/dashboard/chat'
                   ? 'bg-primary/10 text-primary font-semibold shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
                 }`}
             >
-              <div className={`shrink-0 transition-all duration-200 ${pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
+              <div className={`shrink-0 transition-all duration-200 relative ${pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
                 }`}>
                 <ChatIcon />
+                {/* Red dot indicator when there are unread messages */}
+                {hasUnreadMessages && (
+                  <span className="absolute -top-0.5 -right-0.5 z-10 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background shadow-sm" />
+                )}
               </div>
               <span>Chat</span>
             </Link>
