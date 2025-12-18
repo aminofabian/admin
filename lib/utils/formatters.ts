@@ -68,6 +68,8 @@ export const formatDate = (dateString: string | null | undefined): string => {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
       timeZone: 'UTC',
     }).format(date);
     
@@ -85,8 +87,9 @@ export const formatDate = (dateString: string | null | undefined): string => {
     const day = date.getUTCDate();
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
     
-    return `${month} ${day}, ${year}, ${hours}:${minutes}`;
+    return `${month} ${day}, ${year}, ${hours}:${minutes}:${seconds}`;
   }
 };
 
