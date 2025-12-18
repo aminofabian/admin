@@ -358,12 +358,18 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           const playerData = updateData.player || {};
           const newBalance = updateData.balance ?? playerData.balance ?? updateData.player_bal;
           const newWinningBalance = updateData.winning_balance ?? playerData.winning_balance ?? updateData.player_winning_bal;
+          
+          // Extract unread count - handle both 0 and undefined/null cases
+          const extractedUnreadCount = extractUnreadCount(updateData);
+          const newUnreadCount = extractedUnreadCount !== undefined && extractedUnreadCount !== null 
+            ? extractedUnreadCount 
+            : existingChat.unreadCount;
 
           const updatedChat = {
             ...existingChat,
             lastMessage: updateData.last_message || existingChat.lastMessage,
             lastMessageTime: isValidTimestamp(updateData.last_message_time) ? updateData.last_message_time : existingChat.lastMessageTime,
-            unreadCount: extractUnreadCount(updateData) ?? existingChat.unreadCount,
+            unreadCount: newUnreadCount,
             balance: newBalance !== undefined ? String(newBalance) : existingChat.balance,
             winningBalance: newWinningBalance !== undefined ? String(newWinningBalance) : existingChat.winningBalance,
           };
@@ -386,6 +392,95 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         const chatIdToRemove = data.message?.chat_id || data.chat_id;
         !IS_PROD && console.log(`🗑️ [Chat Users] Removing chat with ID: ${chatIdToRemove}`);
         setActiveChats((prevUsers) => prevUsers.filter((user) => user.id !== String(chatIdToRemove)));
+      }
+
+      // Handle mark_message_as_read - update unread count when messages are marked as read
+      if (messageType === 'mark_message_as_read' || messageType === 'read') {
+        const chatId = data.chat_id || data.message?.chat_id;
+        const userId = data.user_id || data.player_id || data.message?.user_id || data.message?.player_id;
+        
+        if (chatId || userId) {
+          !IS_PROD && console.log('✅ [Chat Users] Messages marked as read, updating unread count:', { chatId, userId });
+          
+          setActiveChats((prevChats) => {
+            let hasChanges = false;
+            const updatedChats = prevChats.map((chat) => {
+              const isMatch =
+                (chatId && chat.id === String(chatId)) ||
+                (userId !== undefined && chat.user_id === Number(userId));
+              
+              if (isMatch && chat.unreadCount && chat.unreadCount > 0) {
+                hasChanges = true;
+                return {
+                  ...chat,
+                  unreadCount: 0,
+                };
+              }
+              return chat;
+            });
+            
+            return hasChanges ? updatedChats : prevChats;
+          });
+
+          setAllPlayers((prevPlayers) => {
+            let hasChanges = false;
+            const updatedPlayers = prevPlayers.map((player) => {
+              const isMatch =
+                (chatId && player.id === String(chatId)) ||
+                (userId !== undefined && player.user_id === Number(userId));
+              
+              if (isMatch && player.unreadCount && player.unreadCount > 0) {
+                hasChanges = true;
+                return {
+                  ...player,
+                  unreadCount: 0,
+                };
+              }
+              return player;
+            });
+            
+            return hasChanges ? updatedPlayers : prevPlayers;
+          });
+        }
+        return;
+      }
+
+      // Handle update_chat with unread_count = 0 (when messages are marked as read)
+      if ((data.message && data.message.type === 'update_chat') || data.type === 'update_chat') {
+        const updateData = data.message || data;
+        const chatId = String(updateData.chat_id || updateData.id || '');
+        const unreadCount = extractUnreadCount(updateData);
+        
+        // If unread count is explicitly 0, update immediately (messages marked as read)
+        if (unreadCount === 0 && chatId) {
+          !IS_PROD && console.log('✅ [Chat Users] Unread count updated to 0 via WebSocket:', chatId);
+          
+          setActiveChats((prevChats) => {
+            const chatIndex = prevChats.findIndex((chat) => chat.id === chatId);
+            if (chatIndex !== -1 && prevChats[chatIndex].unreadCount !== 0) {
+              const updatedChats = [...prevChats];
+              updatedChats[chatIndex] = {
+                ...updatedChats[chatIndex],
+                unreadCount: 0,
+              };
+              return updatedChats;
+            }
+            return prevChats;
+          });
+
+          setAllPlayers((prevPlayers) => {
+            const playerIndex = prevPlayers.findIndex((player) => player.id === chatId);
+            if (playerIndex !== -1 && prevPlayers[playerIndex].unreadCount !== 0) {
+              const updatedPlayers = [...prevPlayers];
+              updatedPlayers[playerIndex] = {
+                ...updatedPlayers[playerIndex],
+                unreadCount: 0,
+              };
+              return updatedPlayers;
+            }
+            return prevPlayers;
+          });
+        }
       }
 
       // Handle re_arrange
