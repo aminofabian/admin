@@ -145,6 +145,7 @@ export function ChatComponent() {
   const displayedMessageIdsRef = useRef<Set<string>>(new Set()); // Track displayed messages for animation
   const hasScrolledForQueryParamsRef = useRef<string | null>(null); // Track if we've scrolled for query param navigation
   const processedQueryPlayerIdRef = useRef<number | null>(null); // Track which playerId we've already processed
+  const processedQueryUsernameRef = useRef<string | null>(null); // Track which username we've already processed
   const lastSetSearchQueryRef = useRef<string>(''); // Track last search query we set to avoid unnecessary updates
   const queryParamPlayerRef = useRef<Player | null>(null); // Store the player selected via query params to ensure they stay visible
   const { addToast } = useToast();
@@ -1233,6 +1234,7 @@ export function ChatComponent() {
   }, [isConnected, selectedPlayer, markAllAsRead]);
 
   const queryPlayerId = searchParams.get('playerId');
+  const queryUsername = searchParams.get('username');
 
   // Effect to handle query param player selection - runs only when queryPlayerId changes
   useEffect(() => {
@@ -1490,9 +1492,138 @@ export function ChatComponent() {
     }
   }, [queryPlayerId, selectedPlayer, markChatAsReadDebounced, router]);
 
+  // Effect to handle username query param player selection
+  useEffect(() => {
+    // Only process username if playerId is not present (playerId takes precedence)
+    if (queryPlayerId || !queryUsername) {
+      if (!queryUsername) {
+        // Clear processing ref when username param is removed
+        processedQueryUsernameRef.current = null;
+      }
+      return;
+    }
+
+    const targetUsername = queryUsername.trim().toLowerCase();
+
+    if (!targetUsername) {
+      return;
+    }
+
+    // Reset processed ref if username changed to a different player
+    if (processedQueryUsernameRef.current !== null && processedQueryUsernameRef.current !== targetUsername) {
+      processedQueryUsernameRef.current = null;
+      lastSetSearchQueryRef.current = '';
+    }
+
+    // Skip if we've already processed this exact username
+    if (processedQueryUsernameRef.current === targetUsername) {
+      return;
+    }
+
+    // When a player is selected via query params, ensure we have all players loaded
+    if (allPlayers.length === 0 && !isLoadingAllPlayers) {
+      void fetchAllPlayers();
+    }
+
+    // Switch to "all-chats" tab when query params are present
+    setActiveTab('all-chats');
+  }, [queryUsername, queryPlayerId, allPlayers.length, isLoadingAllPlayers, fetchAllPlayers]);
+
+  // Separate effect to find and select player by username when data is available
+  useEffect(() => {
+    // Only process username if playerId is not present (playerId takes precedence)
+    if (queryPlayerId || !queryUsername) {
+      return;
+    }
+
+    const targetUsername = queryUsername.trim().toLowerCase();
+
+    if (!targetUsername) {
+      return;
+    }
+
+    // Skip if we've already processed this username
+    if (processedQueryUsernameRef.current === targetUsername) {
+      if (!IS_PROD) console.log(`⏭️ [Query Param Username] Already processed username ${targetUsername}, skipping`);
+      return;
+    }
+
+    // Search for the player by username in the available data (case-insensitive)
+    let candidate = [...allPlayers, ...activeChatsUsers].find((player) => {
+      const playerUsername = (player.username || '').trim().toLowerCase();
+      return playerUsername === targetUsername;
+    });
+
+    // If not found in loaded data, check if we have them in the ref (from a previous find)
+    if (!candidate && queryParamPlayerRef.current) {
+      const refUsername = (queryParamPlayerRef.current.username || '').trim().toLowerCase();
+      if (refUsername === targetUsername) {
+        candidate = queryParamPlayerRef.current;
+      }
+    }
+
+    if (candidate) {
+      // Mark this username as processed to prevent re-running
+      processedQueryUsernameRef.current = targetUsername;
+
+      // Store the player in ref to ensure they always appear in the list
+      queryParamPlayerRef.current = candidate;
+
+      // Set search query only if not already set for this player
+      if (candidate.username && lastSetSearchQueryRef.current !== candidate.username) {
+        lastSetSearchQueryRef.current = candidate.username;
+        setSearchQuery(candidate.username);
+      }
+
+      // Select the player if not already selected
+      if (!selectedPlayer || selectedPlayer.user_id !== candidate.user_id) {
+        setActiveTab('all-chats');
+        setSelectedPlayer(candidate);
+        setPendingPinMessageId(null);
+        setMobileView('chat');
+
+        // Mark as read
+        markChatAsReadDebounced({
+          chatId: candidate.id,
+          userId: candidate.user_id,
+        });
+
+        // Clear URL params after a short delay to ensure state is set
+        setTimeout(() => {
+          router.replace('/dashboard/chat', { scroll: false });
+        }, 100);
+      }
+    } else if (queryParamPlayerRef.current) {
+      // If we have the player in ref but they're not in the data yet, still select them
+      const refUsername = (queryParamPlayerRef.current.username || '').trim().toLowerCase();
+      if (refUsername === targetUsername) {
+        if (!selectedPlayer || selectedPlayer.user_id !== queryParamPlayerRef.current.user_id) {
+          setActiveTab('all-chats');
+          const player = queryParamPlayerRef.current;
+          setSelectedPlayer(player);
+          setPendingPinMessageId(null);
+          setMobileView('chat');
+
+          // Mark as read if player has chatId
+          if (player.id) {
+            markChatAsReadDebounced({
+              chatId: player.id,
+              userId: player.user_id,
+            });
+          }
+
+          // Clear URL params after a short delay to ensure state is set
+          setTimeout(() => {
+            router.replace('/dashboard/chat', { scroll: false });
+          }, 100);
+        }
+      }
+    }
+  }, [queryUsername, queryPlayerId, allPlayers, activeChatsUsers, selectedPlayer, markChatAsReadDebounced, router]);
+
   // Scroll to bottom when navigating from player page via query params
   useEffect(() => {
-    if (!queryPlayerId) {
+    if (!queryPlayerId && !queryUsername) {
       // Clear the ref when query params are removed
       hasScrolledForQueryParamsRef.current = null;
       return;
@@ -1503,15 +1634,28 @@ export function ChatComponent() {
     }
 
     // Verify this is the player from query params
-    const rawUserId = Number(queryPlayerId);
-    const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
+    let matchesQuery = false;
+    let queryKey = '';
 
-    if (!targetUserId || selectedPlayer.user_id !== targetUserId) {
-      return;
+    if (queryPlayerId) {
+      const rawUserId = Number(queryPlayerId);
+      const targetUserId = Number.isFinite(rawUserId) ? rawUserId : null;
+      if (targetUserId && selectedPlayer.user_id === targetUserId) {
+        matchesQuery = true;
+        queryKey = `playerId-${queryPlayerId}`;
+      }
+    } else if (queryUsername) {
+      const targetUsername = queryUsername.trim().toLowerCase();
+      const playerUsername = (selectedPlayer.username || '').trim().toLowerCase();
+      if (targetUsername && playerUsername === targetUsername) {
+        matchesQuery = true;
+        queryKey = `username-${queryUsername}`;
+      }
     }
 
-    // Create a unique key for this query param navigation
-    const queryKey = `${queryPlayerId}`;
+    if (!matchesQuery) {
+      return;
+    }
 
     // Skip if we've already scrolled for this query param
     if (hasScrolledForQueryParamsRef.current === queryKey) {

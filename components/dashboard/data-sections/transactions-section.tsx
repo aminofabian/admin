@@ -1006,11 +1006,14 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
   }, [transaction, onView]);
 
   const handleOpenChat = useCallback(() => {
-    // Note: Transactions don't have user_id, so we can't navigate directly
-    // The chat component will need to handle username-based lookup if needed
-    const chatUrl = `/dashboard/chat`;
-    router.push(chatUrl);
-  }, [router]);
+    if (transaction.user_username) {
+      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`;
+      router.push(chatUrl);
+    } else {
+      const chatUrl = `/dashboard/chat`;
+      router.push(chatUrl);
+    }
+  }, [router, transaction.user_username]);
 
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
@@ -1161,11 +1164,14 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
   }, [transaction, onView]);
 
   const handleOpenChat = useCallback(() => {
-    // Note: Transactions don't have user_id, so we can't navigate directly
-    // The chat component will need to handle username-based lookup if needed
-    const chatUrl = `/dashboard/chat`;
-    router.push(chatUrl);
-  }, [router]);
+    if (transaction.user_username) {
+      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`;
+      router.push(chatUrl);
+    } else {
+      const chatUrl = `/dashboard/chat`;
+      router.push(chatUrl);
+    }
+  }, [router, transaction.user_username]);
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
