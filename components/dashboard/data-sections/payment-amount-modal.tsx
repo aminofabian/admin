@@ -6,6 +6,95 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { PaymentMethod, PaymentMethodAction } from '@/types';
 
+type AmountScope = 'admin' | 'superadmin';
+
+export interface AmountValidationErrors {
+  minAmount?: string;
+  maxAmount?: string;
+}
+
+interface AmountValidationContext {
+  scope: AmountScope;
+  action: PaymentMethodAction;
+  paymentMethod: PaymentMethod | null;
+  minAmount: string;
+  maxAmount: string;
+}
+
+const formatCurrencyLimit = (value: number): string => {
+  return `$${value.toFixed(2)}`;
+};
+
+export const validatePaymentAmounts = ({
+  scope,
+  action,
+  paymentMethod,
+  minAmount,
+  maxAmount,
+}: AmountValidationContext): AmountValidationErrors => {
+  const errors: AmountValidationErrors = {};
+
+  const hasMin = minAmount.trim() !== '';
+  const hasMax = maxAmount.trim() !== '';
+
+  const parsedMin = hasMin ? parseFloat(minAmount) : NaN;
+  const parsedMax = hasMax ? parseFloat(maxAmount) : NaN;
+
+  if (hasMin) {
+    if (isNaN(parsedMin) || parsedMin < 0) {
+      errors.minAmount = 'Minimum amount must be a valid positive number';
+    }
+  }
+
+  if (hasMax) {
+    if (isNaN(parsedMax) || parsedMax < 0) {
+      errors.maxAmount = 'Maximum amount must be a valid positive number';
+    }
+  }
+
+  if (hasMin && hasMax && !isNaN(parsedMin) && !isNaN(parsedMax) && parsedMin > parsedMax) {
+    errors.maxAmount = 'Maximum amount must be greater than or equal to minimum amount';
+  }
+
+  // For admin scope, enforce superadmin global limits when present
+  if (scope === 'admin' && paymentMethod) {
+    const superMinKey =
+      action === 'cashout' ? 'superadmin_min_amount_cashout' : 'superadmin_min_amount_purchase';
+    const superMaxKey =
+      action === 'cashout' ? 'superadmin_max_amount_cashout' : 'superadmin_max_amount_purchase';
+
+    const superMinRaw = paymentMethod[superMinKey];
+    const superMaxRaw = paymentMethod[superMaxKey];
+
+    const superMin = superMinRaw != null && superMinRaw !== '' ? parseFloat(superMinRaw) : NaN;
+    const superMax = superMaxRaw != null && superMaxRaw !== '' ? parseFloat(superMaxRaw) : NaN;
+
+    if (!isNaN(superMin) && hasMin && !isNaN(parsedMin) && parsedMin < superMin) {
+      errors.minAmount = `Minimum amount must be at least ${formatCurrencyLimit(superMin)} (set by superadmin)`;
+    }
+
+    if (!isNaN(superMax) && hasMax && !isNaN(parsedMax) && parsedMax > superMax) {
+      errors.maxAmount = `Maximum amount must be at most ${formatCurrencyLimit(superMax)} (set by superadmin)`;
+    }
+
+    if (!isNaN(superMin) && hasMax && !isNaN(parsedMax) && parsedMax < superMin) {
+      // If admin sets only max and it is below the allowed minimum
+      errors.maxAmount = `Maximum amount cannot be below the superadmin minimum of ${formatCurrencyLimit(
+        superMin,
+      )}`;
+    }
+
+    if (!isNaN(superMax) && hasMin && !isNaN(parsedMin) && parsedMin > superMax) {
+      // If admin sets only min and it is above the allowed maximum
+      errors.minAmount = `Minimum amount cannot exceed the superadmin maximum of ${formatCurrencyLimit(
+        superMax,
+      )}`;
+    }
+  }
+
+  return errors;
+};
+
 interface PaymentAmountModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -13,6 +102,7 @@ interface PaymentAmountModalProps {
   action: PaymentMethodAction;
   onSave: (minAmount: number | null, maxAmount: number | null) => Promise<void>;
   isLoading?: boolean;
+  scope?: AmountScope;
 }
 
 export function PaymentAmountModal({
@@ -22,46 +112,45 @@ export function PaymentAmountModal({
   action,
   onSave,
   isLoading = false,
+  scope = 'admin',
 }: PaymentAmountModalProps) {
   const [minAmount, setMinAmount] = useState<string>('');
   const [maxAmount, setMaxAmount] = useState<string>('');
-  const [errors, setErrors] = useState<{ minAmount?: string; maxAmount?: string }>({});
+  const [errors, setErrors] = useState<AmountValidationErrors>({});
 
   useEffect(() => {
     if (paymentMethod && isOpen) {
-      const minField = action === 'cashout' ? 'min_amount_cashout' : 'min_amount_purchase';
-      const maxField = action === 'cashout' ? 'max_amount_cashout' : 'max_amount_purchase';
+      const minField =
+        scope === 'superadmin'
+          ? action === 'cashout'
+            ? 'superadmin_min_amount_cashout'
+            : 'superadmin_min_amount_purchase'
+          : action === 'cashout'
+          ? 'min_amount_cashout'
+          : 'min_amount_purchase';
+      const maxField =
+        scope === 'superadmin'
+          ? action === 'cashout'
+            ? 'superadmin_max_amount_cashout'
+            : 'superadmin_max_amount_purchase'
+          : action === 'cashout'
+          ? 'max_amount_cashout'
+          : 'max_amount_purchase';
       
       setMinAmount(paymentMethod[minField] || '');
       setMaxAmount(paymentMethod[maxField] || '');
       setErrors({});
     }
-  }, [paymentMethod, action, isOpen]);
+  }, [paymentMethod, action, isOpen, scope]);
 
   const validateForm = (): boolean => {
-    const newErrors: { minAmount?: string; maxAmount?: string } = {};
-
-    if (minAmount.trim() !== '') {
-      const min = parseFloat(minAmount);
-      if (isNaN(min) || min < 0) {
-        newErrors.minAmount = 'Minimum amount must be a valid positive number';
-      }
-    }
-
-    if (maxAmount.trim() !== '') {
-      const max = parseFloat(maxAmount);
-      if (isNaN(max) || max < 0) {
-        newErrors.maxAmount = 'Maximum amount must be a valid positive number';
-      }
-    }
-
-    if (minAmount.trim() !== '' && maxAmount.trim() !== '') {
-      const min = parseFloat(minAmount);
-      const max = parseFloat(maxAmount);
-      if (!isNaN(min) && !isNaN(max) && min > max) {
-        newErrors.maxAmount = 'Maximum amount must be greater than or equal to minimum amount';
-      }
-    }
+    const newErrors = validatePaymentAmounts({
+      scope,
+      action,
+      paymentMethod,
+      minAmount,
+      maxAmount,
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -86,7 +175,33 @@ export function PaymentAmountModal({
   if (!paymentMethod) return null;
 
   const actionLabel = action === 'cashout' ? 'Cashout' : 'Purchase';
-  const title = `Edit ${actionLabel} Amounts`;
+  const title =
+    scope === 'superadmin'
+      ? `Set Superadmin ${actionLabel} Limits`
+      : `Edit ${actionLabel} Amounts`;
+
+  const superMinRaw =
+    scope === 'admin' && paymentMethod
+      ? action === 'cashout'
+        ? paymentMethod.superadmin_min_amount_cashout
+        : paymentMethod.superadmin_min_amount_purchase
+      : null;
+
+  const superMaxRaw =
+    scope === 'admin' && paymentMethod
+      ? action === 'cashout'
+        ? paymentMethod.superadmin_max_amount_cashout
+        : paymentMethod.superadmin_max_amount_purchase
+      : null;
+
+  const superMin =
+    superMinRaw != null && superMinRaw !== '' && !Number.isNaN(parseFloat(superMinRaw))
+      ? parseFloat(superMinRaw)
+      : null;
+  const superMax =
+    superMaxRaw != null && superMaxRaw !== '' && !Number.isNaN(parseFloat(superMaxRaw))
+      ? parseFloat(superMaxRaw)
+      : null;
 
   return (
     <Drawer
@@ -123,11 +238,33 @@ export function PaymentAmountModal({
             </svg>
             <div>
               <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                {paymentMethod.payment_method_display} - {actionLabel} Amount Limits
+                {paymentMethod.payment_method_display} - {actionLabel}{' '}
+                {scope === 'superadmin' ? 'Superadmin Limits' : 'Amount Limits'}
               </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                Set the minimum and maximum amounts allowed for {actionLabel.toLowerCase()} transactions using this payment method. Leave fields empty to remove limits.
-              </p>
+              {scope === 'superadmin' ? (
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  Configure the global minimum and maximum amounts allowed for{' '}
+                  {actionLabel.toLowerCase()} transactions. Admins will only be able to set their own
+                  limits within this range. Leave fields empty to remove global limits.
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    Set the minimum and maximum amounts allowed for{' '}
+                    {actionLabel.toLowerCase()} transactions using this payment method.
+                    {superMin == null && superMax == null
+                      ? ' Leave fields empty to remove limits.'
+                      : ' Your limits must stay within the superadmin range.'}
+                  </p>
+                  {(superMin != null || superMax != null) && (
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                      Superadmin limits:{' '}
+                      {superMin != null ? `min ${formatCurrencyLimit(superMin)}` : 'no minimum'}{' '}
+                      · {superMax != null ? `max ${formatCurrencyLimit(superMax)}` : 'no maximum'}
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

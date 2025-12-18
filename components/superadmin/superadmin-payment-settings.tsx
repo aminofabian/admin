@@ -19,7 +19,8 @@ import {
 import { useToast } from '@/components/ui/toast';
 import { EmptyState, LoadingState, ErrorState } from '@/components/features';
 import { paymentMethodsApi } from '@/lib/api';
-import type { Company, PaymentMethod } from '@/types';
+import type { Company, PaymentMethod, PaymentMethodAction } from '@/types';
+import { PaymentAmountModal } from '@/components/dashboard/data-sections/payment-amount-modal';
 
 type SortField = 'name' | 'type' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -45,6 +46,17 @@ export function SuperAdminPaymentSettings() {
     }>({
         isOpen: false,
         action: 'toggleCashout',
+        isLoading: false,
+    });
+    const [limitsModal, setLimitsModal] = useState<{
+        isOpen: boolean;
+        paymentMethod: PaymentMethod | null;
+        action: PaymentMethodAction;
+        isLoading: boolean;
+    }>({
+        isOpen: false,
+        paymentMethod: null,
+        action: 'purchase',
         isLoading: false,
     });
 
@@ -180,6 +192,79 @@ export function SuperAdminPaymentSettings() {
         setConfirmModal({
             isOpen: true,
             action: 'disableAllCashout',
+            isLoading: false,
+        });
+    };
+
+    const formatAmount = (amount: string | null | undefined): string => {
+        if (!amount) return 'No limit';
+        const num = parseFloat(amount);
+        if (Number.isNaN(num)) return 'No limit';
+        return `$${num.toFixed(2)}`;
+    };
+
+    const handleEditSuperadminLimits = (method: PaymentMethod, action: PaymentMethodAction) => {
+        setLimitsModal({
+            isOpen: true,
+            paymentMethod: method,
+            action,
+            isLoading: false,
+        });
+    };
+
+    const handleSaveSuperadminLimits = async (minAmount: number | null, maxAmount: number | null) => {
+        if (!limitsModal.paymentMethod) return;
+
+        setLimitsModal(prev => ({ ...prev, isLoading: true }));
+
+        try {
+            const { paymentMethod, action } = limitsModal;
+            const payload =
+                action === 'cashout'
+                    ? {
+                        superadmin_min_amount_cashout: minAmount,
+                        superadmin_max_amount_cashout: maxAmount,
+                    }
+                    : {
+                        superadmin_min_amount_purchase: minAmount,
+                        superadmin_max_amount_purchase: maxAmount,
+                    };
+
+            await paymentMethodsApi.patch(paymentMethod.id, payload);
+
+            if (selectedCompanyId) {
+                await fetchCompanyPaymentMethods(selectedCompanyId);
+            }
+
+            addToast({
+                type: 'success',
+                title: 'Superadmin Limits Updated',
+                description: `Global ${limitsModal.action === 'cashout' ? 'cashout' : 'purchase'
+                    } limits have been updated successfully.`,
+            });
+
+            setLimitsModal({
+                isOpen: false,
+                paymentMethod: null,
+                action: 'purchase',
+                isLoading: false,
+            });
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to update superadmin limits';
+            addToast({
+                type: 'error',
+                title: 'Failed to Update Limits',
+                description: errorMessage,
+            });
+            setLimitsModal(prev => ({ ...prev, isLoading: false }));
+        }
+    };
+
+    const handleCloseSuperadminLimits = () => {
+        setLimitsModal({
+            isOpen: false,
+            paymentMethod: null,
+            action: 'purchase',
             isLoading: false,
         });
     };
@@ -684,6 +769,9 @@ export function SuperAdminPaymentSettings() {
                                                     </button>
                                                 </TableHead>
                                                 <TableHead>
+                                                    Superadmin Limits
+                                                </TableHead>
+                                                <TableHead>
                                                     <button
                                                         onClick={() => handleSort('status')}
                                                         className="flex items-center gap-2 hover:text-primary transition-colors"
@@ -727,6 +815,26 @@ export function SuperAdminPaymentSettings() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="text-xs text-muted-foreground">
+                                                                Min:{' '}
+                                                                <span className="font-medium text-foreground">
+                                                                    {viewMode === 'purchase'
+                                                                        ? formatAmount(method.superadmin_min_amount_purchase)
+                                                                        : formatAmount(method.superadmin_min_amount_cashout)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                Max:{' '}
+                                                                <span className="font-medium text-foreground">
+                                                                    {viewMode === 'purchase'
+                                                                        ? formatAmount(method.superadmin_max_amount_purchase)
+                                                                        : formatAmount(method.superadmin_max_amount_cashout)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
                                                         <Badge variant="info">{method.method_type || 'N/A'}</Badge>
                                                     </TableCell>
                                                     <TableCell>
@@ -742,6 +850,19 @@ export function SuperAdminPaymentSettings() {
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <div className="flex items-center justify-end gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="secondary"
+                                                                onClick={() =>
+                                                                    handleEditSuperadminLimits(
+                                                                        method,
+                                                                        viewMode === 'purchase' ? 'purchase' : 'cashout',
+                                                                    )
+                                                                }
+                                                                disabled={limitsModal.isLoading}
+                                                            >
+                                                                Edit Limits
+                                                            </Button>
                                                             {viewMode === 'purchase' ? (
                                                                 <Button
                                                                     size="sm"
@@ -869,6 +990,46 @@ export function SuperAdminPaymentSettings() {
                                                         </Button>
                                                     )}
                                                 </div>
+
+                                                {/* Superadmin Limits on mobile */}
+                                                <div className="pt-2 border-t">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                            Superadmin Limits
+                                                        </span>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="secondary"
+                                                            onClick={() =>
+                                                                handleEditSuperadminLimits(
+                                                                    method,
+                                                                    viewMode === 'purchase' ? 'purchase' : 'cashout',
+                                                                )
+                                                            }
+                                                            disabled={limitsModal.isLoading}
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div>
+                                                            <span className="text-muted-foreground">Min:</span>{' '}
+                                                            <span className="font-medium text-foreground">
+                                                                {viewMode === 'purchase'
+                                                                    ? formatAmount(method.superadmin_min_amount_purchase)
+                                                                    : formatAmount(method.superadmin_min_amount_cashout)}
+                                                            </span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-muted-foreground">Max:</span>{' '}
+                                                            <span className="font-medium text-foreground">
+                                                                {viewMode === 'purchase'
+                                                                    ? formatAmount(method.superadmin_max_amount_purchase)
+                                                                    : formatAmount(method.superadmin_max_amount_cashout)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </CardContent>
                                         </Card>
                                     ))}
@@ -930,6 +1091,16 @@ export function SuperAdminPaymentSettings() {
                 cancelText="Cancel"
                 variant={confirmModal.action === 'disableAllPurchase' || confirmModal.action === 'disableAllCashout' ? 'warning' : 'info'}
                 isLoading={confirmModal.isLoading}
+            />
+            {/* Superadmin Limits Modal */}
+            <PaymentAmountModal
+                isOpen={limitsModal.isOpen}
+                onClose={handleCloseSuperadminLimits}
+                paymentMethod={limitsModal.paymentMethod}
+                action={limitsModal.action}
+                onSave={handleSaveSuperadminLimits}
+                isLoading={limitsModal.isLoading}
+                scope="superadmin"
             />
         </div >
     );

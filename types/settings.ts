@@ -92,10 +92,16 @@ export interface PaymentMethod {
   is_enabled_for_purchase?: boolean;
   enabled_for_cashout_by_superadmin?: boolean;
   enabled_for_purchase_by_superadmin?: boolean;
+  // Admin-level limits (per company/admin)
   min_amount_cashout?: string | null;
   max_amount_cashout?: string | null;
   min_amount_purchase?: string | null;
   max_amount_purchase?: string | null;
+  // Global limits configured by superadmin
+  superadmin_min_amount_cashout?: string | null;
+  superadmin_max_amount_cashout?: string | null;
+  superadmin_min_amount_purchase?: string | null;
+  superadmin_max_amount_purchase?: string | null;
   created: string;
   modified: string;
 }
@@ -110,6 +116,10 @@ export interface UpdatePaymentMethodRequest {
   max_amount_cashout?: number | null;
   min_amount_purchase?: number | null;
   max_amount_purchase?: number | null;
+  superadmin_min_amount_cashout?: number | null;
+  superadmin_max_amount_cashout?: number | null;
+  superadmin_min_amount_purchase?: number | null;
+  superadmin_max_amount_purchase?: number | null;
 }
 
 export interface PaymentMethodsListResponse {

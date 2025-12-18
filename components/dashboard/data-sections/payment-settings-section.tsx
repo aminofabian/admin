@@ -554,6 +554,7 @@ export function PaymentSettingsSection() {
         action={filterAction}
         onSave={handleSaveAmounts}
         isLoading={isUpdatingAmounts}
+        scope="admin"
       />
     </div>
   );
