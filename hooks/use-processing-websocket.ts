@@ -83,6 +83,14 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
   const userData = rawCashout.user && typeof rawCashout.user === 'object' ? rawCashout.user : null;
   const nestedData = rawCashout.data && typeof rawCashout.data === 'object' ? rawCashout.data : null;
   
+  // Extract payment_details from various possible locations
+  // Check rawCashout first, then nestedData, ensuring it's an object if present
+  const paymentDetails = (rawCashout.payment_details && typeof rawCashout.payment_details === 'object') 
+    ? rawCashout.payment_details 
+    : (nestedData?.payment_details && typeof nestedData.payment_details === 'object')
+      ? nestedData.payment_details
+      : null;
+  
   return {
     id: rawCashout.id || rawCashout.transaction_id || nestedData?.id || nestedData?.transaction_id || '',
     user_username: rawCashout.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawCashout.username || nestedData?.username || '',
@@ -110,6 +118,7 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
     updated_at: rawCashout.updated_at || rawCashout.updated || nestedData?.updated_at || nestedData?.updated || new Date().toISOString(),
     payment_url: rawCashout.payment_url || nestedData?.payment_url || null,
     invoice_url: rawCashout.invoice_url || nestedData?.invoice_url,
+    payment_details: paymentDetails,
   };
 }
 
@@ -312,7 +321,12 @@ export function useProcessingWebSocket({
               }
 
               if (message.cashout_data && typeof message.cashout_data === 'object' && !Array.isArray(message.cashout_data)) {
-                const transaction = transformCashoutToTransaction(message.cashout_data);
+                // Merge payment_details from message level if present and not already in cashout_data
+                const cashoutData = { ...message.cashout_data };
+                if ((message as any).payment_details && !cashoutData.payment_details) {
+                  cashoutData.payment_details = (message as any).payment_details;
+                }
+                const transaction = transformCashoutToTransaction(cashoutData);
                 onTransactionUpdate?.(transaction);
                 return;
               }
@@ -369,7 +383,12 @@ export function useProcessingWebSocket({
                 const transaction = transformPurchaseToTransaction(message.data);
                 onTransactionUpdate?.(transaction);
               } else if (message.activity_type === 'cashout' && message.data) {
-                const transaction = transformCashoutToTransaction(message.data);
+                // Merge payment_details from message level if present and not already in data
+                const cashoutData = { ...message.data };
+                if ((message as any).payment_details && !cashoutData.payment_details) {
+                  cashoutData.payment_details = (message as any).payment_details;
+                }
+                const transaction = transformCashoutToTransaction(cashoutData);
                 onTransactionUpdate?.(transaction);
               } else if (message.data && !message.activity_type) {
                 const data = message.data;
@@ -383,7 +402,12 @@ export function useProcessingWebSocket({
                     const transaction = transformPurchaseToTransaction(data);
                     onTransactionUpdate?.(transaction);
                   } else if (data.type === 'cashout') {
-                    const transaction = transformCashoutToTransaction(data);
+                    // Merge payment_details from message level if present and not already in data
+                    const cashoutData = { ...data };
+                    if ((message as any).payment_details && !cashoutData.payment_details) {
+                      cashoutData.payment_details = (message as any).payment_details;
+                    }
+                    const transaction = transformCashoutToTransaction(cashoutData);
                     onTransactionUpdate?.(transaction);
                   }
                 } else {
