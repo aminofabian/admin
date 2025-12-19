@@ -1,13 +1,22 @@
 'use client';
 
-import { memo, useMemo } from 'react';
-import { Badge } from '@/components/ui';
+import { memo, useMemo, useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button, Badge } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type { TransactionQueue } from '@/types';
+import { playersApi } from '@/lib/api';
 import {
-  ActionModalWrapper,
-  ModalHeader,
-} from './action-modal-wrapper';
+  DetailsModalWrapper,
+  DetailsCard,
+  DetailsHeader,
+  DetailsRow,
+  DetailsField,
+  DetailsHighlightBox,
+  DetailsAmountBox,
+  DetailsRemarks,
+  DetailsCloseButton,
+} from './details-modal-wrapper';
 
 interface GameActivityViewModalProps {
   activity: TransactionQueue;
@@ -20,6 +29,34 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
   isOpen,
   onClose,
 }: GameActivityViewModalProps) {
+  const router = useRouter();
+  const [playerId, setPlayerId] = useState<number | null>(null);
+  const [isLoadingPlayerId, setIsLoadingPlayerId] = useState(false);
+
+  // Fetch player ID from username when modal opens
+  useEffect(() => {
+    if (!isOpen || !activity.user_username || playerId) {
+      return;
+    }
+
+    const fetchPlayerId = async () => {
+      setIsLoadingPlayerId(true);
+      try {
+        // Search for player by username
+        const response = await playersApi.list({ username: activity.user_username, page_size: 1 });
+        if (response?.results && response.results.length > 0) {
+          setPlayerId(response.results[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch player ID:', error);
+      } finally {
+        setIsLoadingPlayerId(false);
+      }
+    };
+
+    fetchPlayerId();
+  }, [isOpen, activity.user_username, playerId]);
+
   // Memoize expensive computations
   const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
   const typeLabel = useMemo(() => mapTypeToLabel(activity.type), [activity.type]);
@@ -96,171 +133,144 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
   const formattedUpdatedAt = useMemo(() => formatDate(activity.updated_at), [activity.updated_at]);
   const showUpdatedAt = useMemo(() => activity.updated_at !== activity.created_at, [activity.updated_at, activity.created_at]);
 
+  const statusColor = activity.status === 'completed' ? 'green' : activity.status === 'failed' ? 'red' : 'yellow';
+  const amountVariant: 'positive' | 'negative' = activity.type === 'redeem_game' ? 'negative' : 'positive';
+
+  const handleOpenChat = useCallback(() => {
+    if (activity.user_username) {
+      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`;
+      router.push(chatUrl);
+      onClose();
+    }
+  }, [router, activity.user_username, onClose]);
+
+  const handleGoToPlayerDetails = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/players/${playerId}`);
+      onClose();
+    } else if (activity.user_username) {
+      // Fallback: navigate to players page with search
+      router.push(`/dashboard/players?search=${encodeURIComponent(activity.user_username)}`);
+      onClose();
+    }
+  }, [router, playerId, activity.user_username, onClose]);
+
   return (
-    <ActionModalWrapper
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Activity Details"
-    >
-      <ModalHeader
-        badges={
-          <>
-            <Badge variant={statusVariant} className="text-sm px-3 py-1">
-              {activity.status}
-            </Badge>
-            <Badge variant={typeVariant} className="text-sm px-3 py-1 capitalize">
-              {typeLabel}
-            </Badge>
-          </>
-        }
-        amount={formattedAmount}
-        bonus={formattedBonus ? `+${formattedBonus} bonus` : undefined}
-      />
+    <DetailsModalWrapper isOpen={isOpen} onClose={onClose} title="Activity Details">
+      <DetailsCard id={activity.id}>
+        <div className="space-y-4">
+          {/* Header with Type and Status */}
+          <DetailsHeader
+            icon={
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {activity.type === 'recharge_game' ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                ) : activity.type === 'redeem_game' ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                )}
+              </svg>
+            }
+            label={typeLabel}
+            status={activity.status}
+            statusColor={statusColor}
+          />
 
-      {/* Amount Breakdown for Recharge */}
-      {activity.type === 'recharge_game' && formattedBonus && totalAmountSent && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
-            <h3 className="text-sm font-bold text-blue-900 dark:text-blue-100 uppercase tracking-wide mb-3">
-              Recharge Breakdown
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-blue-700 dark:text-blue-300">Recharge Amount:</span>
-                <span className="font-semibold text-blue-900 dark:text-blue-100">{formattedAmount}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-green-700 dark:text-green-300">Bonus Amount:</span>
-                <span className="font-semibold text-green-600 dark:text-green-400">+{formattedBonus}</span>
-              </div>
-              <div className="flex justify-between items-center pt-2 border-t border-blue-200 dark:border-blue-800">
-                <span className="text-blue-700 dark:text-blue-300">Total Sent to Game:</span>
-                <span className="font-bold text-blue-900 dark:text-blue-100">{totalAmountSent}</span>
-              </div>
-              {newCreditsBalance && (
-                <div className="flex justify-between items-center">
-                  <span className="text-blue-700 dark:text-blue-300">New Credits Balance:</span>
-                  <span className="font-bold text-blue-900 dark:text-blue-100">{newCreditsBalance}</span>
-                </div>
-              )}
-              {newWinningBalance && (
-                <div className="flex justify-between items-center">
-                  <span className="text-green-700 dark:text-green-300">New Winnings Balance:</span>
-                  <span className="font-bold text-green-600 dark:text-green-400">{newWinningBalance}</span>
-                </div>
-              )}
-              {!newCreditsBalance && !newWinningBalance && (
-                <div className="flex justify-between items-center pt-2 border-t border-blue-200 dark:border-blue-800">
-                  <span className="text-blue-700 dark:text-blue-300">New Game Balance:</span>
-                  <span className="font-bold text-green-600 dark:text-green-400">{formattedBalance}</span>
-                </div>
-              )}
-            </div>
-        </div>
-      )}
+          {/* Game and Game Username */}
+          <DetailsRow>
+            <DetailsField label="Game" value={activity.game} />
+            <DetailsField label="Game Username" value={gameUsername || '—'} />
+          </DetailsRow>
 
-      {/* Activity ID */}
-      <div className="space-y-1">
-          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</label>
-          <div className="text-sm font-mono font-medium text-foreground bg-muted/50 px-3 py-2 rounded-lg border border-border/30">
-            {activity.id}
-          </div>
-      </div>
+          {/* User Information */}
+          <div className="space-y-3">
+            <DetailsRow>
+              <DetailsField
+                label="User"
+                value={websiteUsername || `User ${activity.user_id}`}
+              />
+              <DetailsField label="Email" value={activity.user_email || '—'} />
+            </DetailsRow>
+            <DetailsRow>
+              <DetailsField label="Operator" value={activity.operator || '—'} />
+            </DetailsRow>
 
-      {/* Game Information */}
-      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/30">
-          <div className="space-y-1">
-            <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Game</label>
-            <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{activity.game}</div>
-          </div>
-          {/* Show balance information only if not in recharge breakdown */}
-          {!(activity.type === 'recharge_game' && formattedBonus && totalAmountSent) && (
-            <div className="space-y-3 mt-3">
-              {(newCreditsBalance || newWinningBalance) ? (
-                <>
-                  {newCreditsBalance && (
-                    <div className="space-y-1">
-                      <label className="block text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">New Credits Balance</label>
-                      <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{newCreditsBalance}</div>
-                    </div>
-                  )}
-                  {newWinningBalance && (
-                    <div className="space-y-1">
-                      <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Winnings Balance</label>
-                      <div className="text-lg font-bold text-green-900 dark:text-green-100">{newWinningBalance}</div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">New Game Balance</label>
-                  <div className="text-lg font-bold text-green-900 dark:text-green-100">{formattedBalance}</div>
-                </div>
-              )}
-            </div>
-          )}
-      </div>
-
-      {/* User Information */}
-      <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">User Information</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Username</label>
-              <div className="text-sm font-semibold text-foreground">
-                {websiteUsername || `User ${activity.user_id}`}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Email</label>
-              <div className="text-sm text-foreground">{activity.user_email || '—'}</div>
+            {/* Action Buttons for Player */}
+            <div className="pt-2 flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenChat}
+                className="flex-1 font-medium text-xs h-8 flex items-center justify-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Chat
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleGoToPlayerDetails}
+                disabled={isLoadingPlayerId}
+                className="flex-1 font-medium text-xs h-8 flex items-center justify-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {isLoadingPlayerId ? 'Loading...' : 'Player Details'}
+              </Button>
             </div>
           </div>
-      </div>
 
-      {/* Game Information */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Game Information</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Game Username</label>
-              <div className="text-sm font-semibold text-foreground">
-                {gameUsername || '—'}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Operator</label>
-              <div className="text-sm text-foreground">{activity.operator || '—'}</div>
-            </div>
-          </div>
-      </div>
+          {/* Financial Information */}
+          <div className="space-y-3">
+            {/* Amount */}
+            <DetailsAmountBox
+              amount={formattedAmount}
+              bonus={formattedBonus ? `+${formattedBonus}` : undefined}
+              variant={amountVariant}
+            />
 
-      {/* Timestamps */}
-      <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Dates</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-muted-foreground">Created</label>
-              <div className="text-sm font-medium text-foreground">{formattedCreatedAt}</div>
-            </div>
-            {showUpdatedAt && (
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-muted-foreground">Updated</label>
-                <div className="text-sm font-medium text-foreground">{formattedUpdatedAt}</div>
-              </div>
+            {/* Balance Information */}
+            {(newCreditsBalance || newWinningBalance) && (
+              <DetailsRow>
+                {newCreditsBalance && (
+                  <DetailsHighlightBox
+                    label="New Credits"
+                    value={newCreditsBalance}
+                    variant="blue"
+                  />
+                )}
+                {newWinningBalance && (
+                  <DetailsHighlightBox
+                    label="New Winnings"
+                    value={newWinningBalance}
+                    variant="green"
+                  />
+                )}
+              </DetailsRow>
             )}
           </div>
-      </div>
 
-      {/* Remarks */}
-      {activity.remarks && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide border-b border-border pb-2">Remarks</h3>
-          <div className="text-sm text-foreground bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-900/30">
-            {activity.remarks}
+          {/* Metadata */}
+          <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <DetailsRow>
+              <DetailsField label="Created" value={formattedCreatedAt} />
+              {showUpdatedAt && (
+                <DetailsField label="Updated" value={formattedUpdatedAt} />
+              )}
+            </DetailsRow>
+
+            {/* Remarks */}
+            {activity.remarks && <DetailsRemarks remarks={activity.remarks} />}
           </div>
         </div>
-      )}
-    </ActionModalWrapper>
+      </DetailsCard>
+
+      <DetailsCloseButton onClose={onClose} />
+    </DetailsModalWrapper>
   );
 });
 

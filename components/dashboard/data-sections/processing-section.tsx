@@ -244,24 +244,18 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   const isPurchase = transaction.type === 'purchase';
   const statusVariant = getStatusVariant(transaction.status);
 
-  const handleOpenChat = useCallback(() => {
-    if (transaction.user_username) {
-      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`;
-      router.push(chatUrl);
-    } else {
-      const chatUrl = `/dashboard/chat`;
-      router.push(chatUrl);
-    }
-  }, [router, transaction.user_username]);
+  const handleOpenDetails = useCallback(() => {
+    onView();
+  }, [onView]);
 
   const userCell = (
     <TableCell>
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={handleOpenChat}
+          onClick={handleOpenDetails}
           className="flex-shrink-0 touch-manipulation"
-          title="Open chat with this player"
+          title="View transaction details"
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
             {transaction.user_username?.charAt(0).toUpperCase() ?? '?'}
@@ -270,9 +264,9 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
         <div>
           <button
             type="button"
-            onClick={handleOpenChat}
+            onClick={handleOpenDetails}
             className="text-left touch-manipulation"
-            title="Open chat with this player"
+            title="View transaction details"
           >
             <div className="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{transaction.user_username ?? '—'}</div>
           </button>
@@ -389,27 +383,6 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
       {statusCell}
       {paymentCell}
       {datesCell}
-      <TableCell className="text-right">
-        <div className="flex items-center justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-            disabled={isActionPending}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onView();
-            }}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            View
-          </Button>
-        </div>
-      </TableCell>
     </TableRow>
   );
 }
@@ -1027,7 +1000,6 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                       <TableHead>Status</TableHead>
                       <TableHead>Payment</TableHead>
                       <TableHead>Dates</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1056,14 +1028,8 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
               const formattedBonus = bonusValue !== 0 ? formatCurrency(String(bonusValue)) : null;
               const userInitial = transaction.user_username?.charAt(0).toUpperCase() ?? '?';
 
-              const handleOpenChat = () => {
-                if (transaction.user_username) {
-                  const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`;
-                  router.push(chatUrl);
-                } else {
-                  const chatUrl = `/dashboard/chat`;
-                  router.push(chatUrl);
-                }
+              const handleOpenDetails = () => {
+                handleViewTransaction(transaction);
               };
 
               return (
@@ -1076,9 +1042,9 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                     <div className="flex items-start gap-3">
                       <button
                         type="button"
-                        onClick={handleOpenChat}
+                        onClick={handleOpenDetails}
                         className="flex-shrink-0 touch-manipulation"
-                        title="Open chat with this player"
+                        title="View transaction details"
                       >
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md cursor-pointer hover:opacity-80 transition-opacity">
                           {userInitial}
@@ -1089,9 +1055,9 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                           <div className="flex-1 min-w-0">
                             <button
                               type="button"
-                              onClick={handleOpenChat}
+                              onClick={handleOpenDetails}
                               className="text-left w-full touch-manipulation"
-                              title="Open chat with this player"
+                              title="View transaction details"
                             >
                               <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                 {transaction.user_username ?? '—'}
@@ -1181,28 +1147,14 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                     </div>
                   </div>
 
-                  {/* Bottom Section: Date & Action */}
-                  <div className="p-3 flex items-center justify-between">
+                  {/* Bottom Section: Date */}
+                  <div className="p-3">
                     <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
                       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       <span>{transaction.created_at ? formatDate(transaction.created_at) : '—'}</span>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleViewTransaction(transaction)}
-                      disabled={pendingTransactionId === transaction.id}
-                      className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium shadow-sm text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 touch-manipulation"
-                      title="View transaction"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      <span className="hidden sm:inline">View</span>
-                    </Button>
                   </div>
                 </div>
               );
