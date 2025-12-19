@@ -5,7 +5,7 @@ import { ArrowDownNarrowWide } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui';
 import { formatCurrency, isValidTimestamp } from '@/lib/utils/formatters';
-import { useChatUsers } from '@/hooks/use-chat-users';
+import { useChatUsersContext } from '@/contexts/chat-users-context';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
 import { useOnlinePlayers } from '@/hooks/use-online-players';
 import { storage } from '@/lib/utils/storage';
@@ -167,7 +167,7 @@ export function ChatComponent() {
     '❌', '⚠️', '🎉', '🎊', '🎈', '🎁', '🏆', '🥇'
   ];
 
-  // Fetch chat users list
+  // Get chat users from shared context
   const {
     users: activeChatsUsers, // Users with active chats (from WebSocket)
     allPlayers, // All players (from REST API)
@@ -182,10 +182,7 @@ export function ChatComponent() {
     updateChatLastMessage,
     markChatAsRead,
     markChatAsReadDebounced,
-  } = useChatUsers({
-    adminId: adminUserId,
-    enabled: hasValidAdminUser,
-  });
+  } = useChatUsersContext();
 
   // ✨ OPTIMIZED: Fetch online players using hybrid REST + WebSocket approach
   const {

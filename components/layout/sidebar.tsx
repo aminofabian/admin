@@ -7,7 +7,7 @@ import { USER_ROLES } from '@/lib/constants/roles';
 import { Logo } from '@/components/ui';
 import { useState, useMemo } from 'react';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
-import { useChatUsers } from '@/hooks/use-chat-users';
+import { useChatUsersContext } from '@/contexts/chat-users-context';
 
 interface SubMenuItem {
   name: string;
@@ -567,12 +567,8 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
   const { user, logout } = useAuth();
   const { counts: processingCounts } = useProcessingWebSocketContext();
 
-  // Get chat users to check for unread messages
-  const adminId = user?.id ?? 0;
-  const { users: chatUsers } = useChatUsers({
-    adminId,
-    enabled: adminId > 0 && user?.role !== USER_ROLES.SUPERADMIN,
-  });
+  // Get chat users from shared context
+  const { users: chatUsers } = useChatUsersContext();
 
   // Calculate total unread count across all chat users
   const hasUnreadMessages = useMemo(() => {

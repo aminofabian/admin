@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from '@/providers/theme-provider';
 import { useAuth } from '@/providers/auth-provider';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
+import { useChatUsersContext } from '@/contexts/chat-users-context';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { useState, useEffect, useMemo } from 'react';
-import { useChatUsers } from '@/hooks/use-chat-users';
 
 interface TopNavigationProps {
   onMenuClick?: () => void;
@@ -20,12 +20,8 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   const { counts: processingCounts } = useProcessingWebSocketContext();
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Get chat users to check for unread messages
-  const adminId = user?.id ?? 0;
-  const { users: chatUsers } = useChatUsers({
-    adminId,
-    enabled: adminId > 0 && user?.role !== USER_ROLES.SUPERADMIN,
-  });
+  // Get chat users from shared context
+  const { users: chatUsers } = useChatUsersContext();
 
   // Calculate total unread count across all chat users
   const hasUnreadMessages = useMemo(() => {
