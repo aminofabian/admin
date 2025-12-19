@@ -55,7 +55,7 @@ interface UseChatUsersReturn {
   isLoadingMore: boolean; // Loading state for pagination
   error: string | null;
   isConnected: boolean; // WebSocket connection status
-  refetch: () => void;
+  refetch: () => Promise<void>;
   fetchAllPlayers: () => Promise<void>;
   loadMorePlayers: () => Promise<void>; // Load next page
   hasMorePlayers: boolean; // Whether there are more pages
@@ -520,7 +520,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   }, []);
 
 
-  const refetch = useCallback(() => {
+  const refetch = useCallback(async () => {
     disconnect();
     connect();
   }, [connect, disconnect]);
