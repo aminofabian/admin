@@ -1053,7 +1053,9 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
       <TableCell>
         <div className="space-y-1">
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            C: {formatCurrency(transaction.previous_balance)}
+            C: {transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
+              ? formatCurrency(transaction.previous_balance)
+              : formatCurrency('0')}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
             W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
@@ -1065,7 +1067,9 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
       <TableCell>
         <div className="space-y-1">
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            C: {formatCurrency(transaction.new_balance)}
+            C: {transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
+              ? formatCurrency(transaction.new_balance)
+              : formatCurrency('0')}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
             W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
@@ -1204,7 +1208,9 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
           <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
             <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">Previous Credit</div>
             <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-              {formatCurrency(transaction.previous_balance)}
+              {transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
+                ? formatCurrency(transaction.previous_balance)
+                : formatCurrency('0')}
             </div>
           </div>
           <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
@@ -1218,7 +1224,9 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
           <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
             <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">New Credit</div>
             <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-              {formatCurrency(transaction.new_balance)}
+              {transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
+                ? formatCurrency(transaction.new_balance)
+                : formatCurrency('0')}
             </div>
           </div>
           <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
