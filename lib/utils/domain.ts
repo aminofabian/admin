@@ -159,12 +159,13 @@ export function getBrandName(): string {
 
 /**
  * Gets the player frontend URL based on the current admin domain
- * Maps admin domains to their corresponding player frontend sites
+ * Dynamically constructs the player frontend URL from the brand name
  * Examples:
  * - "bitslot.bruii.com" -> "https://bitslot.cc/login"
- * - "spincash.bruii.com" -> "https://spincash.cc"
+ * - "spincash.bruii.com" -> "https://spincash.cc/login"
+ * - "anybrand.bruii.com" -> "https://anybrand.cc/login"
  * 
- * Returns the player frontend URL, or null if no mapping exists
+ * Returns the player frontend URL, or null if domain cannot be mapped
  */
 export function getPlayerFrontendUrl(): string | null {
   if (typeof window === 'undefined') {
@@ -173,24 +174,25 @@ export function getPlayerFrontendUrl(): string | null {
   
   const hostname = window.location.hostname.toLowerCase();
   
-  // Map admin domains to player frontend domains
-  const domainMapping: Record<string, string> = {
-    'bitslot.bruii.com': 'https://bitslot.cc/login',
-    'spincash.bruii.com': 'https://spincash.cc/login',
-  };
-  
-  // Check for exact match first
-  if (domainMapping[hostname]) {
-    return domainMapping[hostname];
+  // Skip localhost and superadmin domains
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('localhost:') || hostname.startsWith('127.0.0.1:')) {
+    return null;
   }
   
-  // Check for pattern matching (e.g., any subdomain of bitslot.bruii.com)
-  for (const [adminDomain, playerUrl] of Object.entries(domainMapping)) {
-    if (hostname.endsWith(`.${adminDomain}`) || hostname === adminDomain) {
-      return playerUrl;
-    }
+  // Skip superadmin domain
+  if (hostname === 'sa.bruii.com' || isSuperadminDomain()) {
+    return null;
   }
   
-  return null;
+  // Extract brand name from hostname
+  const brandName = extractBrandNameFromHostname(hostname).toLowerCase();
+  
+  // Skip if brand name is invalid or fallback
+  if (!brandName || brandName === 'slotthing' || brandName === 'bruii') {
+    return null;
+  }
+  
+  // Construct player frontend URL: https://{brandname}.cc/login
+  return `https://${brandName}.cc/login`;
 }
 
