@@ -649,7 +649,6 @@ function HistoryGameActivitiesTable({
                     <TableHead>New Balance</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Dates</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -693,7 +692,6 @@ interface HistoryGameActivityRowProps {
 }
 
 function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProps) {
-  const router = useRouter();
   const statusVariant = mapStatusToVariant(activity.status);
   const typeLabel = mapTypeToLabel(activity.type);
   const typeVariant = mapTypeToVariant(activity.type);
@@ -764,14 +762,9 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
   const formattedCreatedAt = formatDate(activity.created_at);
   const formattedUpdatedAt = formatDate(activity.updated_at);
 
-  const handleViewClick = () => {
+  const handleOpenDetails = useCallback(() => {
     onView(activity);
-  };
-
-  const handleOpenChat = useCallback(() => {
-    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}`;
-    router.push(chatUrl);
-  }, [router, activity.user_id]);
+  }, [activity, onView]);
 
   const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
   const bonusColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400');
@@ -782,9 +775,9 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={handleOpenChat}
+            onClick={handleOpenDetails}
             className="flex-shrink-0 touch-manipulation"
-            title="Open chat with this player"
+            title="View activity details"
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
               {userInitial}
@@ -793,9 +786,9 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
           <div>
             <button
               type="button"
-              onClick={handleOpenChat}
+              onClick={handleOpenDetails}
               className="text-left touch-manipulation"
-              title="Open chat with this player"
+              title="View activity details"
             >
               <div className="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                 {websiteUsername || `User ${activity.user_id}`}
@@ -857,23 +850,6 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
           <div>{formattedUpdatedAt}</div>
         </div>
       </TableCell>
-      <TableCell className="text-right">
-        <div className="flex items-center justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleViewClick}
-            title="View activity"
-            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            View
-          </Button>
-        </div>
-      </TableCell>
     </TableRow>
   );
 }
@@ -926,16 +902,10 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
 
   const formattedCreatedAt = formatDate(activity.created_at);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleViewClick = () => {
-    onView(activity);
-  };
-
-  const handleOpenChat = useCallback((e: React.MouseEvent) => {
+  const handleOpenDetails = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    const chatUrl = `/dashboard/chat?playerId=${activity.user_id}`;
-    router.push(chatUrl);
-  }, [router, activity.user_id]);
+    onView(activity);
+  }, [activity, onView]);
 
   const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
 
@@ -947,9 +917,9 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
         <div className="flex-1">
           <button
             type="button"
-            onClick={handleOpenChat}
+            onClick={handleOpenDetails}
             className="text-left w-full touch-manipulation"
-            title="Open chat with this player"
+            title="View activity details"
           >
             <div className="font-semibold text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
               {websiteUsername || `User ${activity.user_id}`}

@@ -1,8 +1,11 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type { TransactionQueue } from '@/types';
+import { playersApi } from '@/lib/api';
 import {
   DetailsModalWrapper,
   DetailsCard,
@@ -26,6 +29,34 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
   isOpen,
   onClose,
 }: ActivityDetailsModalProps) {
+  const router = useRouter();
+  const [playerId, setPlayerId] = useState<number | null>(null);
+  const [isLoadingPlayerId, setIsLoadingPlayerId] = useState(false);
+
+  // Fetch player ID from username when modal opens
+  useEffect(() => {
+    if (!isOpen || !activity.user_username || playerId) {
+      return;
+    }
+
+    const fetchPlayerId = async () => {
+      setIsLoadingPlayerId(true);
+      try {
+        // Search for player by username
+        const response = await playersApi.list({ username: activity.user_username, page_size: 1 });
+        if (response?.results && response.results.length > 0) {
+          setPlayerId(response.results[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch player ID:', error);
+      } finally {
+        setIsLoadingPlayerId(false);
+      }
+    };
+
+    fetchPlayerId();
+  }, [isOpen, activity.user_username, playerId]);
+
   // Memoize expensive computations
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const statusVariant = useMemo(() => mapStatusToVariant(activity.status), [activity.status]);
@@ -110,10 +141,29 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
 
   const statusColor = activity.status === 'completed' ? 'green' : activity.status === 'failed' ? 'red' : 'yellow';
 
+  const handleOpenChat = useCallback(() => {
+    if (activity.user_username) {
+      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`;
+      router.push(chatUrl);
+      onClose();
+    }
+  }, [router, activity.user_username, onClose]);
+
+  const handleGoToPlayerDetails = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/players/${playerId}`);
+      onClose();
+    } else if (activity.user_username) {
+      // Fallback: navigate to players page with search
+      router.push(`/dashboard/players?search=${encodeURIComponent(activity.user_username)}`);
+      onClose();
+    }
+  }, [router, playerId, activity.user_username, onClose]);
+
   return (
     <DetailsModalWrapper isOpen={isOpen} onClose={onClose} title="Activity Details">
       <DetailsCard id={activity.id}>
-        <div className="space-y-2">
+        <div className="space-y-4">
           {/* Header with Type and Status */}
           <DetailsHeader
             icon={
@@ -138,59 +188,89 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
             <DetailsField label="Game Username" value={gameUsername || '—'} />
           </DetailsRow>
 
-          {/* User and Email */}
-          <DetailsRow>
-            <DetailsField
-              label="User"
-              value={websiteUsername || `User ${activity.user_id}`}
-            />
-            <DetailsField label="Email" value={activity.user_email || '—'} />
-          </DetailsRow>
-
-          {/* Balance Information */}
-          {(newCreditsBalance || newWinningBalance) && (
+          {/* User Information */}
+          <div className="space-y-3">
             <DetailsRow>
-              {newCreditsBalance && (
-                <DetailsHighlightBox
-                  label="New Credits"
-                  value={newCreditsBalance}
-                  variant="blue"
-                />
-              )}
-              {newWinningBalance && (
-                <DetailsHighlightBox
-                  label="New Winnings"
-                  value={newWinningBalance}
-                  variant="green"
-                />
+              <DetailsField
+                label="User"
+                value={websiteUsername || `User ${activity.user_id}`}
+              />
+              <DetailsField label="Email" value={activity.user_email || '—'} />
+            </DetailsRow>
+            <DetailsRow>
+              <DetailsField label="Operator" value={activity.operator || '—'} />
+            </DetailsRow>
+
+            {/* Action Buttons for Player */}
+            <div className="pt-2 flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenChat}
+                className="flex-1 font-medium text-xs h-8 flex items-center justify-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Chat
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleGoToPlayerDetails}
+                disabled={isLoadingPlayerId}
+                className="flex-1 font-medium text-xs h-8 flex items-center justify-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {isLoadingPlayerId ? 'Loading...' : 'Player Details'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Financial Information */}
+          <div className="space-y-3">
+            {/* Amount */}
+            <DetailsAmountBox
+              amount={formattedAmount}
+              bonus={formattedBonus ? `+${formattedBonus}` : undefined}
+              variant={amountVariant}
+            />
+
+            {/* Balance Information */}
+            {(newCreditsBalance || newWinningBalance) && (
+              <DetailsRow>
+                {newCreditsBalance && (
+                  <DetailsHighlightBox
+                    label="New Credits"
+                    value={newCreditsBalance}
+                    variant="blue"
+                  />
+                )}
+                {newWinningBalance && (
+                  <DetailsHighlightBox
+                    label="New Winnings"
+                    value={newWinningBalance}
+                    variant="green"
+                  />
+                )}
+              </DetailsRow>
+            )}
+          </div>
+
+          {/* Metadata */}
+          <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <DetailsRow>
+              <DetailsField label="Created" value={formattedCreatedAt} />
+              {showUpdatedAt && (
+                <DetailsField label="Updated" value={formattedUpdatedAt} />
               )}
             </DetailsRow>
-          )}
 
-          {/* Amount */}
-          <DetailsAmountBox
-            amount={formattedAmount}
-            bonus={formattedBonus ? `+${formattedBonus}` : undefined}
-            variant={amountVariant}
-          />
-
-          {/* Dates */}
-          <DetailsRow>
-            <DetailsField label="Created" value={formattedCreatedAt} />
-            {showUpdatedAt && (
-              <DetailsField label="Updated" value={formattedUpdatedAt} />
-            )}
-          </DetailsRow>
-
-          {/* Operator */}
-          {activity.operator && (
-            <div className="pt-2 border-t border-border">
-              <DetailsField label="Operator" value={activity.operator} />
-            </div>
-          )}
-
-          {/* Remarks */}
-          {activity.remarks && <DetailsRemarks remarks={activity.remarks} />}
+            {/* Remarks */}
+            {activity.remarks && <DetailsRemarks remarks={activity.remarks} />}
+          </div>
         </div>
       </DetailsCard>
 
