@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY, REFRESH_TOKEN_KEY, PROJECT_UUID_KEY } from '@/lib/constants/api';
-import { isSuperadminDomain } from '@/lib/utils/domain';
+import { isSuperadminDomain, getPlayerFrontendUrl } from '@/lib/utils/domain';
 import type { AuthUser, LoginRequest } from '@/types';
 
 interface AuthContextValue {
@@ -159,6 +159,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         storage.clear();
         setUser(null);
         throw new Error('SUPERADMIN_DOMAIN_RESTRICTION: Access restricted. Superadmin login is only allowed from authorized domains.');
+      }
+      
+      // Check if user is a player - redirect to player frontend site without logging in
+      if (response.role === 'player') {
+        const playerUrl = getPlayerFrontendUrl();
+        if (playerUrl) {
+          console.log('🎮 Player detected - redirecting to player frontend without admin login:', playerUrl);
+          // Clear any stored data - players should not be logged into admin panel
+          storage.clear();
+          setUser(null);
+          // Redirect to player frontend site
+          window.location.href = playerUrl;
+          return;
+        }
+        // If no mapping found, clear data and show error
+        storage.clear();
+        setUser(null);
+        throw new Error('PLAYER_REDIRECT_ERROR: Player login is not available on this domain. Please use the player frontend site.');
       }
       
       storage.set(TOKEN_KEY, response.auth_token.access);

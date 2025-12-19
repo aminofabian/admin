@@ -157,3 +157,40 @@ export function getBrandName(): string {
   return extractBrandNameFromHostname(window.location.hostname);
 }
 
+/**
+ * Gets the player frontend URL based on the current admin domain
+ * Maps admin domains to their corresponding player frontend sites
+ * Examples:
+ * - "bitslot.bruii.com" -> "https://bitslot.cc/login"
+ * - "spincash.bruii.com" -> "https://spincash.cc"
+ * 
+ * Returns the player frontend URL, or null if no mapping exists
+ */
+export function getPlayerFrontendUrl(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  const hostname = window.location.hostname.toLowerCase();
+  
+  // Map admin domains to player frontend domains
+  const domainMapping: Record<string, string> = {
+    'bitslot.bruii.com': 'https://bitslot.cc/login',
+    'spincash.bruii.com': 'https://spincash.cc',
+  };
+  
+  // Check for exact match first
+  if (domainMapping[hostname]) {
+    return domainMapping[hostname];
+  }
+  
+  // Check for pattern matching (e.g., any subdomain of bitslot.bruii.com)
+  for (const [adminDomain, playerUrl] of Object.entries(domainMapping)) {
+    if (hostname.endsWith(`.${adminDomain}`) || hostname === adminDomain) {
+      return playerUrl;
+    }
+  }
+  
+  return null;
+}
+
