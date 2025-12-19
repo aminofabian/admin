@@ -255,9 +255,19 @@ const MENU_CATEGORIES: MenuCategory[] = [
     ],
   },
   {
+    name: 'User Management',
+    icon: <UsersIcon />,
+    roles: [USER_ROLES.MANAGER],
+    submenu: [
+      { name: 'Players', href: '/dashboard/players', icon: <PlayerIcon /> },
+      { name: 'Staffs', href: '/dashboard/staffs', icon: <StaffIcon /> },
+      { name: 'Agents', href: '/dashboard/agents', icon: <AgentIcon /> },
+    ],
+  },
+  {
     name: 'Players',
     icon: <PlayerIcon />,
-    roles: [USER_ROLES.STAFF, USER_ROLES.MANAGER],
+    roles: [USER_ROLES.STAFF],
     href: '/dashboard/players',
   },
   {
