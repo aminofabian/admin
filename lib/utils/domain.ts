@@ -176,7 +176,7 @@ export function getPlayerFrontendUrl(): string | null {
   // Map admin domains to player frontend domains
   const domainMapping: Record<string, string> = {
     'bitslot.bruii.com': 'https://bitslot.cc/login',
-    'spincash.bruii.com': 'https://spincash.cc',
+    'spincash.bruii.com': 'https://spincash.cc/login',
   };
   
   // Check for exact match first
