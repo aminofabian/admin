@@ -7,7 +7,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import { useChatUsersContext } from '@/contexts/chat-users-context';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 interface TopNavigationProps {
   onMenuClick?: () => void;
@@ -17,17 +17,56 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
   const pathname = usePathname();
-  const { counts: processingCounts } = useProcessingWebSocketContext();
+  const { 
+    counts: processingCounts, 
+    isConnected: wsConnected, 
+    isConnecting: wsConnecting,
+    isUsingFallback: wsFallback,
+    error: wsError 
+  } = useProcessingWebSocketContext();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   // Get chat users from shared context
-  const { users: chatUsers } = useChatUsersContext();
+  const { users: chatUsers, isConnected: chatConnected } = useChatUsersContext();
 
   // Calculate total unread count across all chat users
   const hasUnreadMessages = useMemo(() => {
     if (!chatUsers || chatUsers.length === 0) return false;
     return chatUsers.some((chatUser) => (chatUser.unreadCount ?? 0) > 0);
   }, [chatUsers]);
+
+  const totalUnreadCount = useMemo(() => {
+    if (!chatUsers || chatUsers.length === 0) return 0;
+    return chatUsers.reduce((sum, chatUser) => sum + (chatUser.unreadCount ?? 0), 0);
+  }, [chatUsers]);
+
+  // Calculate total notification count
+  const totalNotificationCount = useMemo(() => {
+    let count = 0;
+    if (totalUnreadCount > 0) count += totalUnreadCount;
+    // Sum all pending processing items
+    count += (processingCounts.purchase_count ?? 0);
+    count += (processingCounts.cashout_count ?? 0);
+    count += (processingCounts.game_activities_count ?? 0);
+    if (!wsConnected && !wsConnecting) count += 1; // Connection issue
+    return count;
+  }, [totalUnreadCount, processingCounts, wsConnected, wsConnecting]);
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
+      }
+    };
+
+    if (isNotificationOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isNotificationOpen]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -234,17 +273,204 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           </button>
         </div>
 
-        {/* Notifications/Alerts - Responsive sizing */}
-        <button 
-          className="relative p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
-          title="Notifications"
-        >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          {/* Notification Badge - Animated */}
-          <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse ring-2 ring-card"></span>
-        </button>
+        {/* Notifications/Alerts - Responsive sizing with dropdown */}
+        <div className="relative" ref={notificationRef}>
+          <button 
+            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+            className="relative p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
+            title="Notifications"
+          >
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {/* Notification Badge - Show count or pulse if there are notifications */}
+            {totalNotificationCount > 0 ? (
+              <span className="absolute -top-0.5 -right-0.5 sm:top-0 sm:right-0 inline-flex items-center justify-center min-w-[1.125rem] h-4.5 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full ring-2 ring-card shadow-lg animate-pulse">
+                {totalNotificationCount > 99 ? '99+' : totalNotificationCount}
+              </span>
+            ) : (
+              <span className={`absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 rounded-full ring-2 ring-card transition-colors ${
+                wsConnected ? 'bg-green-500' : wsConnecting ? 'bg-yellow-500 animate-pulse' : 'bg-gray-400'
+              }`}></span>
+            )}
+          </button>
+
+          {/* Notification Dropdown Panel */}
+          {isNotificationOpen && (
+            <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-card border border-border rounded-lg shadow-xl z-50 max-h-[80vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+                <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+                <button
+                  onClick={() => setIsNotificationOpen(false)}
+                  className="p-1 rounded-md hover:bg-accent transition-colors"
+                  aria-label="Close notifications"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content - Scrollable */}
+              <div className="overflow-y-auto flex-1">
+                {/* WebSocket Connection Status */}
+                <div className="p-3 border-b border-border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        wsConnected ? 'bg-green-500 animate-pulse' : 
+                        wsConnecting ? 'bg-yellow-500 animate-pulse' : 
+                        'bg-red-500'
+                      }`}></div>
+                      <span className="text-xs font-medium text-foreground">Processing WebSocket</span>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      wsConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
+                      wsConnecting ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
+                      'bg-red-500/20 text-red-600 dark:text-red-400'
+                    }`}>
+                      {wsConnected ? 'Connected' : wsConnecting ? 'Connecting...' : wsFallback ? 'Fallback Mode' : 'Disconnected'}
+                    </span>
+                  </div>
+                  {wsError && (
+                    <p className="text-xs text-muted-foreground mt-1 ml-4">{wsError}</p>
+                  )}
+                </div>
+
+                {/* Chat Connection Status */}
+                <div className="p-3 border-b border-border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        chatConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+                      }`}></div>
+                      <span className="text-xs font-medium text-foreground">Chat WebSocket</span>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      chatConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
+                    }`}>
+                      {chatConnected ? 'Connected' : 'Disconnected'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Unread Messages */}
+                {totalUnreadCount > 0 && (
+                  <Link
+                    href="/dashboard/chat"
+                    onClick={() => setIsNotificationOpen(false)}
+                    className="block p-3 border-b border-border hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">New Messages</p>
+                          <p className="text-xs text-muted-foreground">
+                            {totalUnreadCount} unread {totalUnreadCount === 1 ? 'message' : 'messages'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-500/20 px-2 py-1 rounded-full">
+                        {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                      </span>
+                    </div>
+                  </Link>
+                )}
+
+                {/* Processing Queue Notifications */}
+                {((processingCounts.purchase_count ?? 0) > 0 || (processingCounts.cashout_count ?? 0) > 0 || (processingCounts.game_activities_count ?? 0) > 0) && (
+                  <div className="p-3 border-b border-border">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Processing Queue</p>
+                    
+                    {(processingCounts.purchase_count ?? 0) > 0 && (
+                      <Link
+                        href="/dashboard/processing/purchase"
+                        onClick={() => setIsNotificationOpen(false)}
+                        className="flex items-center justify-between p-2 rounded-md hover:bg-accent/50 transition-colors mb-1"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 11H6L5 9z" />
+                          </svg>
+                          <span className="text-xs text-foreground">Purchase Requests</span>
+                        </div>
+                        <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-500/20 px-2 py-0.5 rounded-full">
+                          {processingCounts.purchase_count ?? 0}
+                        </span>
+                      </Link>
+                    )}
+
+                    {(processingCounts.cashout_count ?? 0) > 0 && (
+                      <Link
+                        href="/dashboard/processing/cashout"
+                        onClick={() => setIsNotificationOpen(false)}
+                        className="flex items-center justify-between p-2 rounded-md hover:bg-accent/50 transition-colors mb-1"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span className="text-xs text-foreground">Cashout Requests</span>
+                        </div>
+                        <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded-full">
+                          {processingCounts.cashout_count ?? 0}
+                        </span>
+                      </Link>
+                    )}
+
+                    {(processingCounts.game_activities_count ?? 0) > 0 && (
+                      <Link
+                        href="/dashboard/processing/game-activities"
+                        onClick={() => setIsNotificationOpen(false)}
+                        className="flex items-center justify-between p-2 rounded-md hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          <span className="text-xs text-foreground">Game Activities</span>
+                        </div>
+                        <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-500/20 px-2 py-0.5 rounded-full">
+                          {processingCounts.game_activities_count ?? 0}
+                        </span>
+                      </Link>
+                    )}
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {totalNotificationCount === 0 && (
+                  <div className="p-8 text-center">
+                    <svg className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm text-muted-foreground">All caught up!</p>
+                    <p className="text-xs text-muted-foreground mt-1">No new notifications</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              {totalNotificationCount > 0 && (
+                <div className="p-3 border-t border-border bg-muted/30">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setIsNotificationOpen(false)}
+                    className="text-xs text-primary hover:underline font-medium"
+                  >
+                    View all notifications →
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* System Health (hidden on small screens) */}
         <button 

@@ -623,11 +623,35 @@ export default function PlayerDetailPage() {
 
     setIsRemovingAgent(true);
     try {
-      // Remove agent by setting agent_id to null
-      // TypeScript doesn't allow null for optional number, but API accepts it
-      await playersApi.update(selectedPlayer.id, {
-        agent_id: null as unknown as number | undefined,
-      });
+      // Try dedicated endpoint first, fall back to PATCH if it doesn't exist
+      let response;
+      try {
+        console.log('📤 Trying dedicated remove-player-from-agent API');
+        response = await playersApi.removeFromAgent({
+          player_id: selectedPlayer.id,
+        });
+        console.log('📦 API response received:', response);
+      } catch (dedicatedError: unknown) {
+        // Check if it's a 404 (endpoint doesn't exist) or if the endpoint isn't available
+        const apiError = dedicatedError as ApiError;
+        const errorMessage = apiError?.message || apiError?.detail || '';
+        const is404Error = 
+          errorMessage.includes('404') || 
+          errorMessage.toLowerCase().includes('not found') ||
+          (apiError as { status?: number })?.status === 404;
+        
+        if (is404Error) {
+          console.log('⚠️ Dedicated endpoint not found, falling back to PATCH');
+          // Use PATCH with agent_id as undefined (omitted from request)
+          // Some backends require explicitly sending null, others accept undefined
+          await playersApi.update(selectedPlayer.id, {
+            agent_id: null as unknown as number | undefined,
+          });
+          response = { message: 'Agent removed successfully' };
+        } else {
+          throw dedicatedError;
+        }
+      }
 
       // Update local state to remove agent information
       setSelectedPlayer((prev) => {
@@ -646,11 +670,12 @@ export default function PlayerDetailPage() {
       addToast({
         type: 'success',
         title: 'Agent removed',
-        description: `Player "${selectedPlayer.username}" has been moved to company and is no longer assigned to an agent.`,
+        description: response?.message || `Player "${selectedPlayer.username}" has been moved to company and is no longer assigned to an agent.`,
       });
 
       setShowRemoveAgentModal(false);
     } catch (error) {
+      console.error('❌ Agent removal failed:', error);
       const { title, message } = extractErrorMessage(error);
       addToast({
         type: 'error',

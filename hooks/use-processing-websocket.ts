@@ -31,6 +31,7 @@ interface UseProcessingWebSocketOptions {
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Event) => void;
+  onConnectionFailed?: () => void; // Called when max reconnection attempts reached
   reconnectInterval?: number;
   maxReconnectAttempts?: number;
 }
@@ -40,6 +41,7 @@ interface UseProcessingWebSocketReturn {
   isConnecting: boolean;
   error: string | null;
   reconnectAttempts: number;
+  hasConnectionFailed: boolean; // True when max reconnection attempts reached
   sendMessage: (message: unknown) => void;
   disconnect: () => void;
   connect: () => void;
@@ -187,6 +189,7 @@ export function useProcessingWebSocket({
   onConnect,
   onDisconnect,
   onError,
+  onConnectionFailed,
   reconnectInterval = 3000,
   maxReconnectAttempts = 10,
 }: UseProcessingWebSocketOptions = {}): UseProcessingWebSocketReturn {
@@ -196,11 +199,13 @@ export function useProcessingWebSocket({
   const wsUrlRef = useRef<string>('');
   const listenersRef = useRef<Set<WebSocketListeners>>(new Set());
   const shouldReconnectRef = useRef(true);
+  const connectionFailedCalledRef = useRef(false);
 
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [hasConnectionFailed, setHasConnectionFailed] = useState(false);
 
   const getWebSocketUrl = useCallback((): string | null => {
     if (!user?.username) {
@@ -231,6 +236,7 @@ export function useProcessingWebSocket({
     setIsConnected(false);
     setIsConnecting(false);
     setError(null);
+    // Don't reset hasConnectionFailed here - keep it for fallback mode
   }, []);
 
   
@@ -261,6 +267,8 @@ export function useProcessingWebSocket({
           setIsConnecting(false);
           setError(null);
           setReconnectAttempts(0);
+          setHasConnectionFailed(false);
+          connectionFailedCalledRef.current = false;
           onConnect?.();
         },
         onMessage: (data) => {
@@ -439,6 +447,22 @@ export function useProcessingWebSocket({
           setIsConnected(false);
           setIsConnecting(false);
           onDisconnect?.();
+          
+          // Check if this was a final close after max reconnection attempts
+          // The websocket manager will stop reconnecting after maxReconnectAttempts
+          // We track this by checking if we're not reconnecting and wasClean is false
+          if (!event.wasClean && !connectionFailedCalledRef.current) {
+            // Set a small timeout to allow the manager to attempt reconnection
+            // If after this time we're still disconnected, trigger the failed callback
+            setTimeout(() => {
+              if (!websocketManager.isConnected(wsUrlRef.current) && !connectionFailedCalledRef.current) {
+                console.log('⚠️ Processing WebSocket: Connection failed after max attempts');
+                connectionFailedCalledRef.current = true;
+                setHasConnectionFailed(true);
+                onConnectionFailed?.();
+              }
+            }, (maxReconnectAttempts + 1) * reconnectInterval + 5000);
+          }
         },
       };
 
@@ -469,6 +493,7 @@ export function useProcessingWebSocket({
     onConnect,
     onDisconnect,
     onError,
+    onConnectionFailed,
     reconnectInterval,
     maxReconnectAttempts,
   ]);
@@ -505,6 +530,7 @@ export function useProcessingWebSocket({
     isConnecting,
     error,
     reconnectAttempts,
+    hasConnectionFailed,
     sendMessage,
     disconnect,
     connect,

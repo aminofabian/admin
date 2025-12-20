@@ -451,7 +451,45 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     setPage: setQueuePage,
   } = useTransactionQueuesStore();
 
-  const { isConnected: wsConnected, isConnecting: wsConnecting, error: wsError, subscribeToQueueUpdates, subscribeToTransactionUpdates } = useProcessingWebSocketContext();
+  const { 
+    isConnected: wsConnected, 
+    isConnecting: wsConnecting, 
+    error: wsError, 
+    isUsingFallback,
+    refreshData,
+    subscribeToQueueUpdates, 
+    subscribeToTransactionUpdates 
+  } = useProcessingWebSocketContext();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Manual refresh handler for fallback mode
+  const handleManualRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+      // Also refresh the stores
+      if (isTransactionsView) {
+        await fetchTransactions();
+      } else {
+        await fetchQueues();
+      }
+      addToast({
+        type: 'success',
+        title: 'Data Refreshed',
+        description: 'Successfully refreshed data from server',
+        duration: 2000,
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Refresh Failed',
+        description: 'Failed to refresh data. Please try again.',
+        duration: 3000,
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshData, isTransactionsView, fetchTransactions, fetchQueues, addToast]);
 
   useEffect(() => {
     const unsubscribeQueue = subscribeToQueueUpdates((updatedQueue: TransactionQueue, isInitialLoad = false) => {
@@ -941,31 +979,57 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
             <div className="flex-1 min-w-0" />
             
             {/* WebSocket Connection Status */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shrink-0">
-              {wsConnecting && (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                  <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
-                </>
-              )}
-              {wsConnected && !wsConnecting && (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
-                </>
-              )}
-              {!wsConnected && !wsConnecting && wsError && (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
-                </>
-              )}
-              {!wsConnected && !wsConnecting && !wsError && (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-gray-400" />
-                  <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
-                </>
-              )}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                {wsConnecting && (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                    <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
+                  </>
+                )}
+                {wsConnected && !wsConnecting && (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
+                  </>
+                )}
+                {isUsingFallback && !wsConnected && !wsConnecting && (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                    <span className="text-xs font-medium text-orange-600 dark:text-orange-400">API Mode (Auto-refresh)</span>
+                  </>
+                )}
+                {!wsConnected && !wsConnecting && !isUsingFallback && wsError && (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
+                  </>
+                )}
+                {!wsConnected && !wsConnecting && !isUsingFallback && !wsError && (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-gray-400" />
+                    <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
+                  </>
+                )}
+              </div>
+              {/* Refresh button - always visible, but highlighted in fallback mode */}
+              <Button
+                variant={isUsingFallback ? "primary" : "ghost"}
+                size="sm"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className={isUsingFallback ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}
+                title={isUsingFallback ? "Refresh data (WebSocket unavailable)" : "Refresh data"}
+              >
+                <svg 
+                  className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </Button>
             </div>
           </div>
         </div>
@@ -1249,31 +1313,57 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
               <div className="flex-1 min-w-0" />
               
               {/* WebSocket Connection Status */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shrink-0">
-                {wsConnecting && (
-                  <>
-                    <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                    <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
-                  </>
-                )}
-                {wsConnected && !wsConnecting && (
-                  <>
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
-                  </>
-                )}
-                {!wsConnected && !wsConnecting && wsError && (
-                  <>
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                    <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
-                  </>
-                )}
-                {!wsConnected && !wsConnecting && !wsError && (
-                  <>
-                    <div className="w-2 h-2 rounded-full bg-gray-400" />
-                    <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
-                  </>
-                )}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                  {wsConnecting && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                      <span className="text-xs font-medium text-muted-foreground">Connecting...</span>
+                    </>
+                  )}
+                  {wsConnected && !wsConnecting && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
+                    </>
+                  )}
+                  {isUsingFallback && !wsConnected && !wsConnecting && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                      <span className="text-xs font-medium text-orange-600 dark:text-orange-400">API Mode (Auto-refresh)</span>
+                    </>
+                  )}
+                  {!wsConnected && !wsConnecting && !isUsingFallback && wsError && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-xs font-medium text-red-600 dark:text-red-400">Offline</span>
+                    </>
+                  )}
+                  {!wsConnected && !wsConnecting && !isUsingFallback && !wsError && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-gray-400" />
+                      <span className="text-xs font-medium text-muted-foreground">Disconnected</span>
+                    </>
+                  )}
+                </div>
+                {/* Refresh button - always visible, but highlighted in fallback mode */}
+                <Button
+                  variant={isUsingFallback ? "primary" : "ghost"}
+                  size="sm"
+                  onClick={handleManualRefresh}
+                  disabled={isRefreshing}
+                  className={isUsingFallback ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}
+                  title={isUsingFallback ? "Refresh data (WebSocket unavailable)" : "Refresh data"}
+                >
+                  <svg 
+                    className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </Button>
               </div>
             </div>
           </div>
