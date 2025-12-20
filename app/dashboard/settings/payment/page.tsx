@@ -24,7 +24,7 @@ export default function PaymentSettingsPage() {
     );
   }
 
-  // If user is manager, render read-only payment settings view
+  // If user is manager, render manager payment settings view (same capabilities as admin)
   if (user?.role === USER_ROLES.MANAGER) {
     return (
       <div className="container mx-auto px-4 py-6">

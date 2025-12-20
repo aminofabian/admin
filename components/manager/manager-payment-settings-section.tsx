@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ErrorState, EmptyState } from '@/components/features';
 import { usePaymentMethodsStore } from '@/stores';
+import { useToast } from '@/components/ui/toast';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Skeleton } from '@/components/ui';
+import { PaymentAmountModal } from '@/components/dashboard/data-sections/payment-amount-modal';
 import type { PaymentMethod, PaymentMethodAction } from '@/types';
 
 // Get payment method initials
@@ -20,15 +22,21 @@ const getPaymentMethodInitials = (paymentMethodDisplay: string): string => {
 };
 
 /**
- * Manager Payment Settings Section - Read-only
- * Shows payment methods but does not allow editing
+ * Manager Payment Settings Section
+ * Full admin capabilities for managing payment methods
  */
 export function ManagerPaymentSettingsSection() {
   const paymentMethods = usePaymentMethodsStore((state) => state.paymentMethods);
   const isLoading = usePaymentMethodsStore((state) => state.isLoading);
   const error = usePaymentMethodsStore((state) => state.error);
   const fetchPaymentMethods = usePaymentMethodsStore((state) => state.fetchPaymentMethods);
+  const { addToast } = useToast();
+  const updatePaymentMethodAmounts = usePaymentMethodsStore((state) => state.updatePaymentMethodAmounts);
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
   const [filterAction, setFilterAction] = useState<PaymentMethodAction>('cashout');
+  const [amountModalOpen, setAmountModalOpen] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodRow | null>(null);
+  const [isUpdatingAmounts, setIsUpdatingAmounts] = useState(false);
 
   type PaymentMethodRow = PaymentMethod & {
     action: PaymentMethodAction;
@@ -70,6 +78,50 @@ export function ManagerPaymentSettingsSection() {
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);
 
+  const handleEditAmounts = (method: PaymentMethodRow) => {
+    setSelectedPaymentMethod(method);
+    setAmountModalOpen(true);
+  };
+
+  const handleSaveAmounts = async (minAmount: number | null, maxAmount: number | null) => {
+    if (!selectedPaymentMethod) return;
+
+    setIsUpdatingAmounts(true);
+    try {
+      await updatePaymentMethodAmounts({
+        id: selectedPaymentMethod.id,
+        action: selectedPaymentMethod.action,
+        minAmount,
+        maxAmount,
+      });
+
+      addToast({
+        type: 'success',
+        title: 'Amounts updated',
+        description: `Amount limits for ${selectedPaymentMethod.payment_method_display} have been updated successfully.`,
+      });
+
+      setAmountModalOpen(false);
+      setSelectedPaymentMethod(null);
+    } catch (error) {
+      console.error('Failed to update payment method amounts:', error);
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: `Failed to update amount limits for ${selectedPaymentMethod.payment_method_display}.`,
+      });
+    } finally {
+      setIsUpdatingAmounts(false);
+    }
+  };
+
+  const formatAmount = (amount: string | null | undefined): string => {
+    if (!amount) return 'No limit';
+    const num = parseFloat(amount);
+    if (isNaN(num)) return 'No limit';
+    return `$${num.toFixed(2)}`;
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -105,8 +157,8 @@ export function ManagerPaymentSettingsSection() {
             <div className="min-w-full">
               {/* Table Header Skeleton */}
               <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-4 gap-4 px-4 py-3">
-                  {[...Array(4)].map((_, i) => (
+                <div className="grid grid-cols-6 gap-4 px-4 py-3">
+                  {[...Array(6)].map((_, i) => (
                     <Skeleton key={i} className="h-4 w-24" />
                   ))}
                 </div>
@@ -115,7 +167,7 @@ export function ManagerPaymentSettingsSection() {
               {/* Table Rows Skeleton */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-4 gap-4 px-4 py-4">
+                  <div key={i} className="grid grid-cols-6 gap-4 px-4 py-4">
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-lg" />
                       <div className="flex-1">
@@ -124,8 +176,12 @@ export function ManagerPaymentSettingsSection() {
                     </div>
                     <Skeleton className="h-6 w-20 rounded-md" />
                     <Skeleton className="h-6 w-20 rounded-md" />
+                    <Skeleton className="h-6 w-20 rounded-md" />
                     <div className="flex justify-center">
                       <Skeleton className="h-6 w-16 rounded-md" />
+                    </div>
+                    <div className="flex justify-end">
+                      <Skeleton className="h-9 w-24 rounded-lg" />
                     </div>
                   </div>
                 ))}
@@ -164,14 +220,9 @@ export function ManagerPaymentSettingsSection() {
           </div>
           
           {/* Title */}
-          <div className="flex flex-col shrink-0">
-            <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              Payment Methods
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-              View payment method configurations (read-only)
-            </p>
-          </div>
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+            Payment Methods
+          </h2>
           
           {/* Spacer */}
           <div className="flex-1 min-w-0" />
@@ -241,90 +292,273 @@ export function ManagerPaymentSettingsSection() {
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Usage</TableHead>
+                    <TableHead>Amount Limits</TableHead>
                     <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sortedResults.map((method) => (
                     <TableRow key={method.loadingKey} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-sm">
-                            {getPaymentMethodInitials(method.payment_method_display)}
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {method.payment_method_display}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 text-xs font-medium capitalize">
-                          {method.method_type}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 capitalize">
-                          {method.action}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${method.isEnabled ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${method.isEnabled ? 'bg-green-500' : 'bg-red-500'}`} />
-                          {method.isEnabled ? 'Active' : 'Inactive'}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="lg:hidden space-y-2">
-              {sortedResults.map((method) => (
-                <div
-                  key={method.loadingKey}
-                  className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-                >
-                  <div className="p-4">
-                    <div className="flex items-center justify-between gap-6">
-                      {/* Left: Icon + Info */}
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-md">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-sm">
                           {getPaymentMethodInitials(method.payment_method_display)}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-gray-900 dark:text-gray-100 leading-tight truncate">
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
                             {method.payment_method_display}
-                          </h3>
+                          </div>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Mobile badges */}
-                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    </TableCell>
+                    <TableCell>
                       <span className="inline-flex items-center px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 text-xs font-medium capitalize">
                         {method.method_type}
                       </span>
-                      <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800 text-xs font-medium capitalize">
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 capitalize">
                         {method.action}
                       </span>
-                      
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                          Min: <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {formatAmount(method.action === 'cashout' ? method.min_amount_cashout : method.min_amount_purchase)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                          Max: <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {formatAmount(method.action === 'cashout' ? method.max_amount_cashout : method.max_amount_purchase)}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${method.isEnabled ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${method.isEnabled ? 'bg-green-500' : 'bg-red-500'}`} />
                         {method.isEnabled ? 'Active' : 'Inactive'}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEditAmounts(method)}
+                          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0"
+                          title="Edit amount limits"
+                        >
+                          Edit Min/Max
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const isCurrentlyLoading = loadingIds.has(method.loadingKey);
+                            if (isCurrentlyLoading) return;
+
+                            setLoadingIds((prev) => new Set(prev).add(method.loadingKey));
+                            
+                            try {
+                              const newStatus = !method.isEnabled;
+                              await usePaymentMethodsStore.getState().updatePaymentMethod({
+                                id: method.id,
+                                action: method.action,
+                                value: newStatus,
+                              });
+                              
+                              addToast({
+                                type: 'success',
+                                title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
+                                description: `${method.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+                              });
+                            } catch (error) {
+                              console.error('Failed to update payment method:', error);
+                              addToast({
+                                type: 'error',
+                                title: 'Update failed',
+                                description: `Failed to ${method.isEnabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
+                              });
+                            } finally {
+                              setLoadingIds((prev) => {
+                                const next = new Set(prev);
+                                next.delete(method.loadingKey);
+                                return next;
+                              });
+                            }
+                          }}
+                          disabled={loadingIds.has(method.loadingKey)}
+                          className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                            method.isEnabled
+                              ? loadingIds.has(method.loadingKey)
+                                ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 cursor-not-allowed opacity-70'
+                                : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
+                              : loadingIds.has(method.loadingKey)
+                                ? 'bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 cursor-not-allowed opacity-70'
+                                : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
+                          }`}
+                        >
+                          {loadingIds.has(method.loadingKey) ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                              <span className="whitespace-nowrap">
+                                {method.isEnabled ? 'Disabling...' : 'Enabling...'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="whitespace-nowrap">{method.isEnabled ? 'Disable' : 'Enable'}</span>
+                          )}
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-2">
+            {sortedResults.map((method) => (
+              <div
+                key={method.loadingKey}
+                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+              >
+                <div className="p-4">
+                  <div className="flex items-center justify-between gap-6">
+                    {/* Left: Icon + Info */}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-md">
+                        {getPaymentMethodInitials(method.payment_method_display)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100 leading-tight truncate">
+                          {method.payment_method_display}
+                        </h3>
+                      </div>
+                    </div>
+
+                    {/* Right: Action Button */}
+                    <button
+                      onClick={async () => {
+                        const isCurrentlyLoading = loadingIds.has(method.loadingKey);
+                        if (isCurrentlyLoading) return;
+
+                        setLoadingIds((prev) => new Set(prev).add(method.loadingKey));
+                        
+                        try {
+                          const newStatus = !method.isEnabled;
+                          await usePaymentMethodsStore.getState().updatePaymentMethod({
+                            id: method.id,
+                            action: method.action,
+                            value: newStatus,
+                          });
+                          
+                          addToast({
+                            type: 'success',
+                            title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
+                            description: `${method.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+                          });
+                        } catch (error) {
+                          console.error('Failed to update payment method:', error);
+                          addToast({
+                            type: 'error',
+                            title: 'Update failed',
+                            description: `Failed to ${method.isEnabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
+                          });
+                        } finally {
+                          setLoadingIds((prev) => {
+                            const next = new Set(prev);
+                            next.delete(method.loadingKey);
+                            return next;
+                          });
+                        }
+                      }}
+                      disabled={loadingIds.has(method.loadingKey)}
+                      className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                        method.isEnabled
+                          ? loadingIds.has(method.loadingKey)
+                            ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 cursor-not-allowed opacity-70'
+                            : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
+                          : loadingIds.has(method.loadingKey)
+                            ? 'bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 cursor-not-allowed opacity-70'
+                            : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
+                      }`}
+                    >
+                      {loadingIds.has(method.loadingKey) ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                          <span className="whitespace-nowrap">
+                            {method.isEnabled ? 'Disabling...' : 'Enabling...'}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="whitespace-nowrap">{method.isEnabled ? 'Disable' : 'Enable'}</span>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Mobile Amount Limits */}
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Amount Limits</span>
+                      <button
+                        onClick={() => handleEditAmounts(method)}
+                        className="px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">Min:</span>{' '}
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {formatAmount(method.action === 'cashout' ? method.min_amount_cashout : method.min_amount_purchase)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">Max:</span>{' '}
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {formatAmount(method.action === 'cashout' ? method.max_amount_cashout : method.max_amount_purchase)}
+                        </span>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Mobile badges */}
+                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <span className="inline-flex items-center px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 text-xs font-medium capitalize">
+                      {method.method_type}
+                    </span>
+                    <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800 text-xs font-medium capitalize">
+                      {method.action}
+                    </span>
+                    
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium ${method.isEnabled ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${method.isEnabled ? 'bg-green-500' : 'bg-red-500'}`} />
+                      {method.isEnabled ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
       </div>
+
+      {/* Amount Modal */}
+      <PaymentAmountModal
+        isOpen={amountModalOpen}
+        onClose={() => {
+          setAmountModalOpen(false);
+          setSelectedPaymentMethod(null);
+        }}
+        paymentMethod={selectedPaymentMethod as PaymentMethod | null}
+        action={filterAction}
+        onSave={handleSaveAmounts}
+        isLoading={isUpdatingAmounts}
+        scope="admin"
+      />
     </div>
   );
 }
-

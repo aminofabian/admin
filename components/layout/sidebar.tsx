@@ -332,9 +332,19 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Settings',
     icon: <SettingsIcon />,
-    roles: [USER_ROLES.STAFF, USER_ROLES.MANAGER],
+    roles: [USER_ROLES.STAFF],
     submenu: [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
+      { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
+    ],
+  },
+  {
+    name: 'Settings',
+    icon: <SettingsIcon />,
+    roles: [USER_ROLES.MANAGER],
+    submenu: [
+      { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
+      { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },
@@ -342,6 +352,16 @@ const MENU_CATEGORIES: MenuCategory[] = [
     name: 'Affiliates',
     icon: <AffiliateIcon />,
     roles: [USER_ROLES.COMPANY],
+    submenu: [
+      { name: 'Agents', href: '/dashboard/agents', icon: <AffiliatesAgentIcon /> },
+      { name: 'Affiliates', href: '/dashboard/affiliates', icon: <AffiliateIcon /> },
+      { name: 'Default Settings', href: '/dashboard/settings/affiliate', icon: <AffiliatesDefaultIcon /> },
+    ],
+  },
+  {
+    name: 'Affiliates',
+    icon: <AffiliateIcon />,
+    roles: [USER_ROLES.MANAGER],
     submenu: [
       { name: 'Agents', href: '/dashboard/agents', icon: <AffiliatesAgentIcon /> },
       { name: 'Affiliates', href: '/dashboard/affiliates', icon: <AffiliateIcon /> },
