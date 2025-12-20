@@ -358,16 +358,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Default Settings', href: '/dashboard/settings/affiliate', icon: <AffiliatesDefaultIcon /> },
     ],
   },
-  {
-    name: 'Affiliates',
-    icon: <AffiliateIcon />,
-    roles: [USER_ROLES.MANAGER],
-    submenu: [
-      { name: 'Agents', href: '/dashboard/agents', icon: <AffiliatesAgentIcon /> },
-      { name: 'Affiliates', href: '/dashboard/affiliates', icon: <AffiliateIcon /> },
-      { name: 'Default Settings', href: '/dashboard/settings/affiliate', icon: <AffiliatesDefaultIcon /> },
-    ],
-  },
 ];
 
 interface SidebarProps {
