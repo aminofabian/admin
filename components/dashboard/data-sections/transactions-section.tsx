@@ -483,14 +483,38 @@ export function TransactionsSection() {
       setIsOperatorLoading(true);
 
       try {
-        // Get company name from localStorage (username is the company name)
-        let companyName = 'Company';
+        // Get company name from URL hostname
+        // e.g., bitslot.bruii.com -> bitslot, spincash.bruii.com -> spincash
+        // For localhost, default to bitslot
+        let companyName = 'bitslot';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            companyName = 'bitslot';
+          } else if (hostname.includes('.bruii.com')) {
+            // Extract subdomain (company name) from hostname
+            companyName = hostname.split('.bruii.com')[0];
+          } else {
+            // Fallback: try to extract subdomain if it exists
+            const parts = hostname.split('.');
+            if (parts.length > 1) {
+              companyName = parts[0];
+            }
+          }
+        }
+
+        // Get user role and username from localStorage
+        let userRole: string | undefined;
+        let username: string | undefined;
         const userData = storage.get('user');
         if (userData) {
           try {
             const user = JSON.parse(userData);
+            if (user?.role) {
+              userRole = user.role;
+            }
             if (user?.username) {
-              companyName = user.username;
+              username = user.username;
             }
           } catch (error) {
             console.warn('Failed to parse user data from localStorage:', error);
@@ -502,35 +526,45 @@ export function TransactionsSection() {
         // Add "Bot" operator - use 'bot' as value, 'Bot' as label
         operatorMap.set('bot', { value: 'bot', label: 'Bot' });
 
-        // Add "Company" - use username as both value and label
+        // Add "Company" - use company name from URL
         operatorMap.set(companyName, { value: companyName, label: companyName });
 
-        // Try to fetch active staff (may fail for staff users due to permissions)
-        try {
-          const staffResponse = await staffsApi.list({ page_size: 100 });
-          const activeStaff = (staffResponse?.results || []).filter((staff: Staff) => staff.is_active);
-          activeStaff.forEach((staff: Staff) => {
-            if (staff?.username) {
-              operatorMap.set(staff.username, { value: staff.username, label: staff.username });
-            }
-          });
-        } catch (error) {
-          // Permission denied is expected for staff users - silently skip
-          console.debug('Cannot load staff list (permission denied - expected for staff users)');
+        // Add user's username for managers and staff
+        if ((userRole === 'manager' || userRole === 'staff') && username) {
+          operatorMap.set(username, { value: username, label: username });
         }
 
-        // Try to fetch active managers (may fail for staff users due to permissions)
-        try {
-          const managersResponse = await managersApi.list({ page_size: 100 });
-          const activeManagers = (managersResponse?.results || []).filter((manager: Manager) => manager.is_active);
-          activeManagers.forEach((manager: Manager) => {
-            if (manager?.username) {
-              operatorMap.set(manager.username, { value: manager.username, label: manager.username });
-            }
-          });
-        } catch (error) {
-          // Permission denied is expected for staff users - silently skip
-          console.debug('Cannot load managers list (permission denied - expected for staff users)');
+        // Try to fetch active staff (may fail for staff users due to permissions)
+        // Skip if current user is staff
+        if (userRole !== 'staff') {
+          try {
+            const staffResponse = await staffsApi.list({ page_size: 100 });
+            const activeStaff = (staffResponse?.results || []).filter((staff: Staff) => staff.is_active);
+            activeStaff.forEach((staff: Staff) => {
+              if (staff?.username) {
+                operatorMap.set(staff.username, { value: staff.username, label: staff.username });
+              }
+            });
+          } catch (error) {
+            // Permission denied is expected for staff users - silently skip
+            console.debug('Cannot load staff list (permission denied - expected for staff users)');
+          }
+        }
+
+        // Try to fetch active managers (skip if current user is manager)
+        if (userRole !== 'manager') {
+          try {
+            const managersResponse = await managersApi.list({ page_size: 100 });
+            const activeManagers = (managersResponse?.results || []).filter((manager: Manager) => manager.is_active);
+            activeManagers.forEach((manager: Manager) => {
+              if (manager?.username) {
+                operatorMap.set(manager.username, { value: manager.username, label: manager.username });
+              }
+            });
+          } catch (error) {
+            // Permission denied is expected for staff users - silently skip
+            console.debug('Cannot load managers list (permission denied - expected for staff users)');
+          }
         }
 
         if (!isMounted || isCancelled) {
