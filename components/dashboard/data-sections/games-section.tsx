@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
-import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton, Modal, Input, useToast } from '@/components/ui';
+import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { EmptyState, ErrorState, GameForm, StoreBalanceModal } from '@/components/features';
 import { useGamesStore } from '@/stores';
 import { useAuth } from '@/providers/auth-provider';
@@ -19,16 +19,13 @@ function getGameDashboardUrl(game: Game): string | undefined {
 
 export function GamesSection() {
   const { user } = useAuth();
-  const { addToast } = useToast();
   const {
     games: data,
-    minimumRedeemMultiplier,
     isLoading,
     error,
     balanceCheckLoading,
     fetchGames,
     updateGame,
-    updateMinimumRedeemMultiplier,
     checkStoreBalance,
   } = useGamesStore();
 
@@ -41,10 +38,6 @@ export function GamesSection() {
   const [balanceData, setBalanceData] = useState<CheckStoreBalanceResponse | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
-  const [isMultiplierModalOpen, setIsMultiplierModalOpen] = useState(false);
-  const [multiplierValue, setMultiplierValue] = useState('');
-  const [isUpdatingMultiplier, setIsUpdatingMultiplier] = useState(false);
-  const [multiplierError, setMultiplierError] = useState<string | null>(null);
 
   const canManageGames = user?.role === USER_ROLES.SUPERADMIN || user?.role === USER_ROLES.COMPANY;
   const games = useMemo<Game[]>(() => {
@@ -56,16 +49,7 @@ export function GamesSection() {
     return [...data].sort((a, b) => a.title.localeCompare(b.title));
   }, [data]);
   const totalCount = games.length;
-  const stats = useMemo(() => buildGameStats(
-    games, 
-    totalCount, 
-    minimumRedeemMultiplier,
-    () => {
-      setMultiplierValue(minimumRedeemMultiplier || '');
-      setMultiplierError(null);
-      setIsMultiplierModalOpen(true);
-    }
-  ), [games, totalCount, minimumRedeemMultiplier]);
+  const stats = useMemo(() => buildGameStats(games, totalCount), [games, totalCount]);
 
   useEffect(() => {
     // Only fetch if user has permission, we don't have data, and we're not already loading
@@ -108,8 +92,8 @@ export function GamesSection() {
         </div>
 
         {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
             <div
               key={i}
               className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
@@ -186,32 +170,14 @@ export function GamesSection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map(stat => (
           <div
             key={stat.title}
-            className={`rounded-lg border border-border bg-card p-3 sm:p-4 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-950 ${
-              stat.onClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-900' : ''
-            }`}
-            onClick={stat.onClick}
+            className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
           >
-            <div className="flex flex-col items-center text-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
-                {stat.icon}
-              </div>
-              <div className="w-full">
-                <div className="text-xs text-muted-foreground">{stat.title}</div>
-                <div className="mt-0.5 text-base sm:text-lg font-semibold text-foreground">{stat.value}</div>
-              </div>
-            </div>
-            {stat.onClick && (
-              <div className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-1">
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span className="hidden sm:inline">Edit</span>
-              </div>
-            )}
+            <div className="text-sm text-muted-foreground dark:text-slate-400">{stat.title}</div>
+            <div className="mt-1 text-2xl font-semibold text-foreground dark:text-white">{stat.value}</div>
           </div>
         ))}
       </div>
@@ -351,79 +317,6 @@ export function GamesSection() {
         error={balanceError}
       />
 
-      <Modal
-        isOpen={isMultiplierModalOpen}
-        onClose={() => {
-          setIsMultiplierModalOpen(false);
-          setMultiplierValue('');
-          setMultiplierError(null);
-        }}
-        title="Update Minimum Redeem Multiplier"
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setIsMultiplierModalOpen(false);
-                setMultiplierValue('');
-                setMultiplierError(null);
-              }}
-              disabled={isUpdatingMultiplier}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={async () => {
-                const value = parseFloat(multiplierValue);
-                if (isNaN(value) || value < 0) {
-                  setMultiplierError('Please enter a valid number greater than or equal to 0');
-                  return;
-                }
-
-                try {
-                  setIsUpdatingMultiplier(true);
-                  setMultiplierError(null);
-                  await updateMinimumRedeemMultiplier(value);
-                  setIsMultiplierModalOpen(false);
-                  setMultiplierValue('');
-                  addToast({
-                    type: 'success',
-                    title: 'Success',
-                    description: 'Minimum redeem multiplier updated successfully',
-                  });
-                } catch (err) {
-                  const message = err instanceof Error ? err.message : 'Failed to update multiplier';
-                  setMultiplierError(message);
-                } finally {
-                  setIsUpdatingMultiplier(false);
-                }
-              }}
-              disabled={isUpdatingMultiplier}
-            >
-              {isUpdatingMultiplier ? 'Updating...' : 'Update'}
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          {multiplierError && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {multiplierError}
-            </div>
-          )}
-          
-          <Input
-            label="Minimum Redeem Multiplier"
-            type="number"
-            step="0.01"
-            min="0"
-            value={multiplierValue}
-            onChange={(e) => setMultiplierValue(e.target.value)}
-            placeholder="e.g., 1.00"
-            disabled={isUpdatingMultiplier}
-          />
-        </div>
-      </Modal>
     </div>
   );
 }
@@ -439,14 +332,12 @@ interface GameStat {
 
 function buildGameStats(
   games: Game[], 
-  total: number, 
-  minimumRedeemMultiplier: string | null,
-  onMultiplierClick?: () => void
+  total: number
 ): GameStat[] {
   const active = games.filter((game) => game.game_status).length;
   const inactive = games.filter((game) => !game.game_status).length;
 
-  const stats: GameStat[] = [
+  return [
     {
       title: 'Total Games',
       value: total.toLocaleString(),
@@ -477,23 +368,6 @@ function buildGameStats(
       ),
     },
   ];
-
-  // Add multiplier stat if available
-  if (minimumRedeemMultiplier) {
-    stats.push({
-      title: 'Min Redeem Multiplier',
-      value: minimumRedeemMultiplier,
-      variant: 'info',
-      onClick: onMultiplierClick,
-      icon: (
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-        </svg>
-      ),
-    });
-  }
-
-  return stats;
 }
 
 interface GamesTableProps {

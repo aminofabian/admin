@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Modal, useToast } from '@/components/ui';
 import { LoadingState, ErrorState } from '@/components/features';
 import type { Game, UpdateGameSettingsRequest } from '@/types';
 
@@ -59,6 +60,7 @@ function getGameDashboardUrl(game: Game): string | undefined {
 }
 
 export function GameSettingsSection() {
+  const { addToast } = useToast();
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -66,12 +68,18 @@ export function GameSettingsSection() {
     dashboard_url: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMultiplierModalOpen, setIsMultiplierModalOpen] = useState(false);
+  const [multiplierValue, setMultiplierValue] = useState('');
+  const [isUpdatingMultiplier, setIsUpdatingMultiplier] = useState(false);
+  const [multiplierError, setMultiplierError] = useState<string | null>(null);
 
   const {
     games: gamesData,
+    minimumRedeemMultiplier,
     isLoading,
     error,
     fetchGames,
+    updateMinimumRedeemMultiplier,
   } = useGamesStore();
 
   const {
@@ -82,6 +90,12 @@ export function GameSettingsSection() {
   useEffect(() => {
     fetchGames();
   }, [fetchGames]);
+
+  useEffect(() => {
+    if (minimumRedeemMultiplier) {
+      setMultiplierValue(minimumRedeemMultiplier);
+    }
+  }, [minimumRedeemMultiplier]);
 
   const handleEdit = (game: Game) => {
     setEditingGame(game);
@@ -177,6 +191,33 @@ export function GameSettingsSection() {
               <strong>Note:</strong> Games are manually created and cannot be created via API. Only updates are allowed.
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Minimum Redeem Multiplier Card */}
+      <div className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="text-sm text-muted-foreground dark:text-slate-400">Min Redeem Multiplier</div>
+            <div className="mt-1 text-2xl font-semibold text-foreground dark:text-white">
+              {minimumRedeemMultiplier || 'Not set'}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setMultiplierValue(minimumRedeemMultiplier || '');
+              setMultiplierError(null);
+              setIsMultiplierModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit
+          </Button>
         </div>
       </div>
 
@@ -301,6 +342,80 @@ export function GameSettingsSection() {
         </Table>
         </div>
       </div>
+
+      <Modal
+        isOpen={isMultiplierModalOpen}
+        onClose={() => {
+          setIsMultiplierModalOpen(false);
+          setMultiplierValue(minimumRedeemMultiplier || '');
+          setMultiplierError(null);
+        }}
+        title="Update Minimum Redeem Multiplier"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setIsMultiplierModalOpen(false);
+                setMultiplierValue(minimumRedeemMultiplier || '');
+                setMultiplierError(null);
+              }}
+              disabled={isUpdatingMultiplier}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                const value = parseFloat(multiplierValue);
+                if (isNaN(value) || value < 0) {
+                  setMultiplierError('Please enter a valid number greater than or equal to 0');
+                  return;
+                }
+
+                try {
+                  setIsUpdatingMultiplier(true);
+                  setMultiplierError(null);
+                  await updateMinimumRedeemMultiplier(value);
+                  setIsMultiplierModalOpen(false);
+                  setMultiplierValue('');
+                  addToast({
+                    type: 'success',
+                    title: 'Success',
+                    description: 'Minimum redeem multiplier updated successfully',
+                  });
+                } catch (err) {
+                  const message = err instanceof Error ? err.message : 'Failed to update multiplier';
+                  setMultiplierError(message);
+                } finally {
+                  setIsUpdatingMultiplier(false);
+                }
+              }}
+              disabled={isUpdatingMultiplier}
+            >
+              {isUpdatingMultiplier ? 'Updating...' : 'Update'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {multiplierError && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {multiplierError}
+            </div>
+          )}
+          
+          <Input
+            label="Minimum Redeem Multiplier"
+            type="number"
+            step="0.01"
+            min="0"
+            value={multiplierValue}
+            onChange={(e) => setMultiplierValue(e.target.value)}
+            placeholder="e.g., 1.00"
+            disabled={isUpdatingMultiplier}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
