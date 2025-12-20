@@ -49,8 +49,7 @@ export function StaffGamesSection() {
           <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
             <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
             <div className="flex flex-col shrink-0">
-              <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 mb-2" />
-              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32" />
             </div>
           </div>
         </div>
@@ -88,9 +87,6 @@ export function StaffGamesSection() {
             <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
               Games
             </h2>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-              {totalCount.toLocaleString()} {totalCount === 1 ? 'game' : 'games'} • {activeCount} active • {inactiveCount} inactive
-            </p>
           </div>
         </div>
       </div>
