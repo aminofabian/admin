@@ -70,23 +70,23 @@ export const validatePaymentAmounts = ({
     const superMax = superMaxRaw != null && superMaxRaw !== '' ? parseFloat(superMaxRaw) : NaN;
 
     if (!isNaN(superMin) && hasMin && !isNaN(parsedMin) && parsedMin < superMin) {
-      errors.minAmount = `Minimum amount must be at least ${formatCurrencyLimit(superMin)} (set by superadmin)`;
+      errors.minAmount = `Minimum amount must be at least ${formatCurrencyLimit(superMin)}`;
     }
 
     if (!isNaN(superMax) && hasMax && !isNaN(parsedMax) && parsedMax > superMax) {
-      errors.maxAmount = `Maximum amount must be at most ${formatCurrencyLimit(superMax)} (set by superadmin)`;
+      errors.maxAmount = `Maximum amount must be at most ${formatCurrencyLimit(superMax)}`;
     }
 
     if (!isNaN(superMin) && hasMax && !isNaN(parsedMax) && parsedMax < superMin) {
       // If admin sets only max and it is below the allowed minimum
-      errors.maxAmount = `Maximum amount cannot be below the superadmin minimum of ${formatCurrencyLimit(
+      errors.maxAmount = `Maximum amount cannot be below the minimum of ${formatCurrencyLimit(
         superMin,
       )}`;
     }
 
     if (!isNaN(superMax) && hasMin && !isNaN(parsedMin) && parsedMin > superMax) {
       // If admin sets only min and it is above the allowed maximum
-      errors.minAmount = `Minimum amount cannot exceed the superadmin maximum of ${formatCurrencyLimit(
+      errors.minAmount = `Minimum amount cannot exceed the maximum of ${formatCurrencyLimit(
         superMax,
       )}`;
     }
@@ -254,11 +254,11 @@ export function PaymentAmountModal({
                     {actionLabel.toLowerCase()} transactions using this payment method.
                     {superMin == null && superMax == null
                       ? ' Leave fields empty to remove limits.'
-                      : ' Your limits must stay within the superadmin range.'}
+                      : ' Your limits must stay within the allowed range.'}
                   </p>
                   {(superMin != null || superMax != null) && (
                     <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                      Superadmin limits:{' '}
+                      Allowed limits:{' '}
                       {superMin != null ? `min ${formatCurrencyLimit(superMin)}` : 'no minimum'}{' '}
                       · {superMax != null ? `max ${formatCurrencyLimit(superMax)}` : 'no maximum'}
                     </p>
