@@ -637,8 +637,7 @@ export default function PlayerDetailPage() {
         const errorMessage = apiError?.message || apiError?.detail || '';
         const is404Error = 
           errorMessage.includes('404') || 
-          errorMessage.toLowerCase().includes('not found') ||
-          (apiError as { status?: number })?.status === 404;
+          errorMessage.toLowerCase().includes('not found');
         
         if (is404Error) {
           console.log('⚠️ Dedicated endpoint not found, falling back to PATCH');
