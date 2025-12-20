@@ -8,10 +8,11 @@ import { StaffSignupBonusPage } from '@/components/staff/staff-signup-bonus-page
 export default function SignUpBonusPage() {
   const { user } = useAuth();
 
-  // If user is staff or manager, render read-only view
-  if (user?.role === USER_ROLES.STAFF || user?.role === USER_ROLES.MANAGER) {
+  // If user is staff, render read-only view
+  if (user?.role === USER_ROLES.STAFF) {
     return <StaffSignupBonusPage />;
   }
 
+  // Managers and company users get the same component with edit functionality
   return <SignUpBonusPageContent />;
 }

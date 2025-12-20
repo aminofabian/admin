@@ -8,10 +8,11 @@ import { StaffTransferBonusPage } from '@/components/staff/staff-transfer-bonus-
 export default function TransferBonusPage() {
   const { user } = useAuth();
 
-  // If user is staff or manager, render read-only view
-  if (user?.role === USER_ROLES.STAFF || user?.role === USER_ROLES.MANAGER) {
+  // If user is staff, render read-only view
+  if (user?.role === USER_ROLES.STAFF) {
     return <StaffTransferBonusPage />;
   }
 
+  // Managers and company users get the same component with edit functionality
   return <TransferBonusPageContent />;
 }
