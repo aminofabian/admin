@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import { validatePassword } from '@/lib/utils/password-validation';
 import type { CompanySettings, CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
 
 interface CompanySettingsFormProps {
@@ -62,8 +64,11 @@ export function CompanySettingsForm({ onSubmit, onCancel, initialData }: Company
     // Password validation only for new companies or when password is provided
     if (!initialData && !formData.password.trim()) {
       newErrors.password = 'Password is required for new companies';
-    } else if (formData.password && formData.password.length < 5) {
-      newErrors.password = 'Password must be at least 5 characters';
+    } else if (formData.password) {
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.isValid) {
+        newErrors.password = passwordValidation.errors[0];
+      }
     }
 
     if (!formData.email.trim()) {
@@ -230,19 +235,14 @@ export function CompanySettingsForm({ onSubmit, onCancel, initialData }: Company
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-            Password {!initialData && '*'}
-          </label>
-          <Input
-            type="password"
+          <PasswordInput
+            label={`Password ${!initialData ? '*' : ''}`}
             value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className={errors.password ? 'border-red-500' : ''}
-            placeholder={initialData ? "Leave blank to keep current password" : "Enter admin password (min 5 chars)"}
+            onChange={(value) => setFormData({ ...formData, password: value })}
+            error={errors.password}
+            placeholder={initialData ? "Leave blank to keep current password" : "Enter admin password"}
+            showRequirements={!initialData}
           />
-          {errors.password && (
-            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.password}</p>
-          )}
         </div>
 
         <div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Input, Button } from '@/components/ui';
+import { Input, Button, PasswordInput } from '@/components/ui';
+import { validatePassword } from '@/lib/utils/password-validation';
 import type { Agent, CreateUserRequest, UpdateUserRequest } from '@/types';
 
 interface AgentFormProps {
@@ -46,8 +47,11 @@ export const AgentForm = ({ agent, onSubmit, onCancel, isLoading }: AgentFormPro
     if (!isEditMode) {
       if (!formData.password.trim()) {
         newErrors.password = 'Password is required';
-      } else if (formData.password.length < 5) {
-        newErrors.password = 'Password must be at least 5 characters';
+      } else {
+        const passwordValidation = validatePassword(formData.password);
+        if (!passwordValidation.isValid) {
+          newErrors.password = passwordValidation.errors[0];
+        }
       }
     }
 
@@ -117,13 +121,12 @@ export const AgentForm = ({ agent, onSubmit, onCancel, isLoading }: AgentFormPro
 
         {/* Password (only for create) */}
         {!isEditMode && (
-          <Input
+          <PasswordInput
             label="Password *"
-            type="password"
             value={formData.password}
-            onChange={(e) => handleChange('password', e.target.value)}
+            onChange={(value) => handleChange('password', value)}
             error={errors.password}
-            placeholder="Minimum 5 characters"
+            placeholder="Enter password"
             disabled={isLoading}
             autoComplete="new-password"
           />

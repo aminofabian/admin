@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Input } from './';
+import { Button, Input, PasswordInput, ConfirmPasswordInput } from './';
+import { validatePassword } from '@/lib/utils/password-validation';
 
 interface PasswordResetModalProps {
   isOpen: boolean;
@@ -33,8 +34,11 @@ export function PasswordResetModal({
 
     if (!password) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 5) {
-      newErrors.password = 'Password must be at least 5 characters';
+    } else {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        newErrors.password = passwordValidation.errors[0];
+      }
     }
 
     if (!confirmPassword) {
@@ -111,17 +115,16 @@ export function PasswordResetModal({
             <form autoComplete="off" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
               <div className="space-y-4 mb-6">
                 <div>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     label="New Password"
                     value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
+                    onChange={(value) => {
+                      setPassword(value);
                       if (errors.password) {
                         setErrors((prev) => ({ ...prev, password: undefined }));
                       }
                     }}
-                    placeholder="Enter new password (min 5 characters)"
+                    placeholder="Enter new password"
                     error={errors.password}
                     disabled={isLoading}
                     className="w-full"
@@ -130,12 +133,12 @@ export function PasswordResetModal({
                 </div>
                 
                 <div>
-                  <Input
-                    type="password"
+                  <ConfirmPasswordInput
                     label="Confirm Password"
                     value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
+                    password={password}
+                    onChange={(value) => {
+                      setConfirmPassword(value);
                       if (errors.confirmPassword) {
                         setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
                       }

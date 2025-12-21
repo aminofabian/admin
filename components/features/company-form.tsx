@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Input, Button } from '@/components/ui';
+import { Input, Button, PasswordInput } from '@/components/ui';
+import { validatePassword } from '@/lib/utils/password-validation';
 import type { Company, CreateCompanyRequest, UpdateCompanyRequest } from '@/types';
 
 interface CompanyFormProps {
@@ -63,8 +64,11 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     if (!isEditMode) {
       if (!formData.password.trim()) {
         newErrors.password = 'Password is required';
-      } else if (formData.password.length < 5) {
-        newErrors.password = 'Password must be at least 5 characters';
+      } else {
+        const passwordValidation = validatePassword(formData.password);
+        if (!passwordValidation.isValid) {
+          newErrors.password = passwordValidation.errors[0];
+        }
       }
     }
 
@@ -192,13 +196,12 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
 
         {/* Password (only for create) */}
         {!isEditMode && (
-          <Input
+          <PasswordInput
             label="Password *"
-            type="password"
             value={formData.password}
-            onChange={(e) => handleChange('password', e.target.value)}
+            onChange={(value) => handleChange('password', value)}
             error={errors.password}
-            placeholder="Minimum 5 characters"
+            placeholder="Enter password"
             disabled={isLoading}
           />
         )}

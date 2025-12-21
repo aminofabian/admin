@@ -8,6 +8,8 @@ export * from './input';
 export * from './logo';
 export * from './modal';
 export * from './pagination';
+export * from './password-input';
+export * from './confirm-password-input';
 export * from './password-reset-drawer';
 export * from './password-reset-modal';
 export * from './search-input';

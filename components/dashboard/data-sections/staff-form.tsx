@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { Input, Button } from '@/components/ui';
+import { Input, Button, PasswordInput } from '@/components/ui';
+import { validatePassword } from '@/lib/utils/password-validation';
 import type { Staff, CreateUserRequest, UpdateUserRequest } from '@/types';
 
 interface StaffFormProps {
@@ -46,8 +47,11 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
     if (!isEditMode) {
       if (!formData.password.trim()) {
         newErrors.password = 'Password is required';
-      } else if (formData.password.length < 5) {
-        newErrors.password = 'Password must be at least 5 characters';
+      } else {
+        const passwordValidation = validatePassword(formData.password);
+        if (!passwordValidation.isValid) {
+          newErrors.password = passwordValidation.errors[0];
+        }
       }
     }
 
@@ -128,27 +132,16 @@ export const StaffForm = ({ staff, onSubmit, onCancel, isLoading }: StaffFormPro
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
+            <PasswordInput
               label="Password *"
-              type="password"
               value={formData.password}
-              onChange={(e) => handleChange('password', e.target.value)}
+              onChange={(value) => handleChange('password', value)}
               error={errors.password}
-              placeholder="Minimum 5 characters"
+              placeholder="Enter password"
               disabled={isLoading}
               className="transition-all duration-200"
             />
             <div className="hidden md:block" /> {/* Spacer for grid */}
-          </div>
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-950/30">
-            <div className="flex items-start gap-2">
-              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-xs text-amber-800 dark:text-amber-300">
-                <span className="font-medium">Password Requirements:</span> Must be at least 8 characters long. Choose a strong password to secure the manager&apos;s account.
-              </p>
-            </div>
           </div>
         </div>
       )}
