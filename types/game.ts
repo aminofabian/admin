@@ -5,6 +5,7 @@ export interface Game {
   game_category: string;
   game_status: boolean;
   dashboard_url?: string;
+  playing_url?: string;
   created: string;
 }
 
@@ -36,6 +37,7 @@ export interface UpdateGameRequest {
   title?: string;
   game_status?: boolean;
   dashboard_url?: string;
+  playing_url?: string;
 }
 
 export interface CheckStoreBalanceRequest {

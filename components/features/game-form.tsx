@@ -16,6 +16,7 @@ interface GameFormProps {
 export const GameForm = ({ game, onSubmit, onCancel, isLoading, backendErrors = {}, onClearBackendError }: GameFormProps) => {
   const [formData, setFormData] = useState<UpdateGameRequest>({
     dashboard_url: game.dashboard_url || '',
+    playing_url: game.playing_url || '',
     game_status: game.game_status,
   });
 
@@ -33,6 +34,13 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading, backendErrors = 
     if (formData.dashboard_url && formData.dashboard_url.trim()) {
       if (!/^https?:\/\/.+/.test(formData.dashboard_url)) {
         newErrors.dashboard_url = 'Must be a valid URL (e.g., https://example.com)';
+      }
+    }
+
+    // Playing URL validation (optional, but if provided must be valid)
+    if (formData.playing_url && formData.playing_url.trim()) {
+      if (!/^https?:\/\/.+/.test(formData.playing_url)) {
+        newErrors.playing_url = 'Must be a valid URL (e.g., https://example.com)';
       }
     }
 
@@ -86,6 +94,17 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading, backendErrors = 
           onChange={(e) => handleChange('dashboard_url', e.target.value)}
           error={allErrors.dashboard_url}
           placeholder="https://dashboard.game.com"
+          disabled={isLoading}
+        />
+
+        {/* Playing URL (editable) */}
+        <Input
+          label="Playing URL"
+          type="url"
+          value={formData.playing_url}
+          onChange={(e) => handleChange('playing_url', e.target.value)}
+          error={allErrors.playing_url}
+          placeholder="https://play.game.com"
           disabled={isLoading}
         />
 

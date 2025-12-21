@@ -17,6 +17,14 @@ function getGameDashboardUrl(game: Game): string | undefined {
   return game.dashboard_url || undefined;
 }
 
+/**
+ * Get the playing URL for a game from the API response
+ */
+function getGamePlayingUrl(game: Game): string | undefined {
+  // Use playing_url from API response (can be edited via the form)
+  return game.playing_url || undefined;
+}
+
 export function GamesSection() {
   const { user } = useAuth();
   const {
@@ -399,6 +407,7 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
               <TableHead>Game</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Dashboard URL</TableHead>
+              <TableHead>Playing URL</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -432,6 +441,28 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                         View
+                      </Button>
+                    ) : (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
+                    );
+                  })()}
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const playingUrl = getGamePlayingUrl(game);
+                    return playingUrl ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(playingUrl, '_blank', 'noopener,noreferrer')}
+                        title="Play game"
+                        className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Play
                       </Button>
                     ) : (
                       <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
@@ -483,6 +514,7 @@ interface GameCardProps {
 
 function GameCard({ game, onEditGame, onCheckBalance }: GameCardProps) {
   const dashboardUrl = getGameDashboardUrl(game);
+  const playingUrl = getGamePlayingUrl(game);
 
   return (
     <div className="border rounded-lg p-4 space-y-3 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
@@ -506,6 +538,15 @@ function GameCard({ game, onEditGame, onCheckBalance }: GameCardProps) {
         </div>
       )}
 
+      {playingUrl && (
+        <div className="text-sm">
+          <span className="text-gray-500 dark:text-gray-400">Playing URL:</span>{' '}
+          <span className="font-medium text-gray-900 dark:text-gray-100 break-all">
+            {playingUrl}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
         {dashboardUrl && (
           <Button
@@ -522,12 +563,27 @@ function GameCard({ game, onEditGame, onCheckBalance }: GameCardProps) {
             View
           </Button>
         )}
+        {playingUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open(playingUrl, '_blank', 'noopener,noreferrer')}
+            title="Play game"
+            className="flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Play
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onCheckBalance(game)}
           title="Check store balance"
-          className={`flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 ${dashboardUrl ? '' : 'flex-1'}`}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 ${dashboardUrl || playingUrl ? '' : 'flex-1'}`}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
