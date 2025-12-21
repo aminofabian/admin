@@ -163,24 +163,10 @@ export const playersApi = {
       data: {
         player_id: number;
         player_username: string;
-        agent_id: number;
-        agent_username: string;
+        agent_id: number | null;
+        agent_username: string | null;
       };
     }>(`${API_PREFIX}/assign-player-to-agent/`, data),
-
-  removeFromAgent: (data: {
-    player_id: number;
-  }) =>
-    apiClient.post<{
-      status: string;
-      message: string;
-      data: {
-        player_id: number;
-        player_username: string;
-        agent_id: null;
-        agent_username: null;
-      };
-    }>(`${API_PREFIX}/remove-player-from-agent/`, data),
 
   checkGameBalance: (data: CheckPlayerGameBalanceRequest) =>
     apiClient.post<CheckPlayerGameBalanceResponse>(

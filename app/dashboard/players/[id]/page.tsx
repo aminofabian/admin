@@ -581,15 +581,26 @@ export default function PlayerDetailPage() {
         }
 
         console.log('✅ Updating selectedPlayer with new agent data');
-        return {
-          ...prev,
-          agent_id,
-          agent: {
-            id: agent_id,
-            username: agent_username,
-          },
-          agent_username,
-        };
+        // Handle both assignment (non-null) and removal (null) cases
+        if (agent_id !== null && agent_id !== undefined && agent_username !== null && agent_username !== undefined) {
+          return {
+            ...prev,
+            agent_id: agent_id as number,
+            agent: {
+              id: agent_id as number,
+              username: agent_username,
+            },
+            agent_username,
+          };
+        } else {
+          // Agent was removed (null values)
+          return {
+            ...prev,
+            agent_id: undefined,
+            agent: undefined,
+            agent_username: undefined,
+          };
+        }
       });
 
       // Ensure selectedAgentId stays in sync with what we just assigned
@@ -623,34 +634,14 @@ export default function PlayerDetailPage() {
 
     setIsRemovingAgent(true);
     try {
-      // Try dedicated endpoint first, fall back to PATCH if it doesn't exist
-      let response;
-      try {
-        console.log('📤 Trying dedicated remove-player-from-agent API');
-        response = await playersApi.removeFromAgent({
-          player_id: selectedPlayer.id,
-        });
-        console.log('📦 API response received:', response);
-      } catch (dedicatedError: unknown) {
-        // Check if it's a 404 (endpoint doesn't exist) or if the endpoint isn't available
-        const apiError = dedicatedError as ApiError;
-        const errorMessage = apiError?.message || apiError?.detail || '';
-        const is404Error = 
-          errorMessage.includes('404') || 
-          errorMessage.toLowerCase().includes('not found');
-        
-        if (is404Error) {
-          console.log('⚠️ Dedicated endpoint not found, falling back to PATCH');
-          // Use PATCH with agent_id as undefined (omitted from request)
-          // Some backends require explicitly sending null, others accept undefined
-          await playersApi.update(selectedPlayer.id, {
-            agent_id: null as unknown as number | undefined,
-          });
-          response = { message: 'Agent removed successfully' };
-        } else {
-          throw dedicatedError;
-        }
-      }
+      console.log('📤 Calling assign-player-to-agent API with empty agent_username to remove agent');
+      // Use the same endpoint with empty agent_username to unassign the agent
+      const response = await playersApi.assignToAgent({
+        player_id: selectedPlayer.id,
+        agent_username: '',
+      });
+
+      console.log('📦 API response received:', response);
 
       // Update local state to remove agent information
       setSelectedPlayer((prev) => {
@@ -669,7 +660,7 @@ export default function PlayerDetailPage() {
       addToast({
         type: 'success',
         title: 'Agent removed',
-        description: response?.message || `Player "${selectedPlayer.username}" has been moved to company and is no longer assigned to an agent.`,
+        description: response.message || `Player "${selectedPlayer.username}" has been moved to company and is no longer assigned to an agent.`,
       });
 
       setShowRemoveAgentModal(false);
