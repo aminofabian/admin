@@ -6,6 +6,7 @@ import { USER_ROLES } from '@/lib/constants/roles';
 import { SuperAdminDashboard } from '@/components/superadmin';
 import { ManagerDashboard } from '@/components/manager';
 import { StaffDashboard } from '@/components/staff';
+import { AgentDashboard } from '@/components/agent';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import type { ReactNode } from 'react';
 
@@ -34,6 +35,11 @@ export default function DashboardPage() {
   // If user is staff, render staff dashboard
   if (user?.role === USER_ROLES.STAFF) {
     return <StaffDashboard />;
+  }
+
+  // If user is agent, render agent dashboard
+  if (user?.role === USER_ROLES.AGENT) {
+    return <AgentDashboard />;
   }
 
   // Type guard: check if user role includes superadmin

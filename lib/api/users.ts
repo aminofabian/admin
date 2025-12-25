@@ -12,6 +12,7 @@ import type {
   UpdateUserRequest,
   CheckPlayerGameBalanceRequest,
   CheckPlayerGameBalanceResponse,
+  AgentDashboardResponse,
   PaginatedResponse
 } from '@/types';
 
@@ -46,6 +47,11 @@ export const agentsApi = {
 
   update: (id: number, data: UpdateUserRequest) => 
     apiClient.patch<Agent>(`api/admin/agents/${id}`, data),
+
+  getDashboard: (params?: { date_from?: string; date_to?: string }) =>
+    apiClient.get<AgentDashboardResponse>(API_ENDPOINTS.AGENTS.DASHBOARD, {
+      params,
+    }),
 };
 
 export const staffsApi = {

@@ -89,3 +89,18 @@ export interface CheckPlayerGameBalanceResponse {
   message: string;
 }
 
+export interface AgentDashboardStats {
+  total_players: number;
+  total_topup: number;
+  total_cashout: number;
+  payment_method_fee: number;
+  affiliation_fee: number;
+  total_earnings: number;
+}
+
+export interface AgentDashboardResponse {
+  agent_id: number;
+  agent_username: string;
+  agent_stats: AgentDashboardStats;
+}
+

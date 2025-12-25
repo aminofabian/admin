@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
   AGENTS: {
     LIST: `${API_PREFIX}/agents/`,
     DETAIL: (id: number) => `${API_PREFIX}/agents/${id}/`,
+    DASHBOARD: `${API_PREFIX}/agent-dashboard/`,
   },
   STAFFS: {
     LIST: `${API_PREFIX}/staffs/`,
