@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { agentsApi, transactionsApi } from '@/lib/api';
+import { agentsApi, transactionsApi, affiliatesApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
 import {
   Badge,
@@ -19,10 +19,10 @@ import {
   useToast,
   ConfirmModal,
 } from '@/components/ui';
-import { AgentForm, EmptyState, ErrorState, EditProfileDrawer, type EditProfileFormData } from '@/components/features';
+import { AgentForm, EmptyState, ErrorState, EditProfileDrawer, type EditProfileFormData, CommissionSettingsForm } from '@/components/features';
 import { Skeleton } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
-import type { Agent, CreateUserRequest, PaginatedResponse, UpdateUserRequest } from '@/types';
+import type { Agent, CreateUserRequest, PaginatedResponse, UpdateUserRequest, Affiliate, UpdateAffiliateRequest } from '@/types';
 
 const SUCCESS_MESSAGE_TIMEOUT_MS = 5000;
 
@@ -534,6 +534,200 @@ function ToggleConfirmModal({ confirmState, onConfirm, onCancel }: ToggleConfirm
   );
 }
 
+type CommissionEditDrawerProps = {
+  isOpen: boolean;
+  agent: Agent | null;
+  affiliate: Affiliate | null;
+  isLoading: boolean;
+  isUpdating: boolean;
+  onClose: () => void;
+  onUpdate: (data: UpdateAffiliateRequest) => Promise<void>;
+};
+
+function CommissionEditDrawer({
+  isOpen,
+  agent,
+  affiliate,
+  isLoading,
+  isUpdating,
+  onClose,
+  onUpdate,
+}: CommissionEditDrawerProps) {
+  if (!agent) return null;
+
+  if (isLoading) {
+    return (
+      <Drawer isOpen={isOpen} onClose={onClose} title={`Edit Commission - ${agent.username}`} size="md">
+        <div className="flex items-center justify-center py-12">
+          <Skeleton className="h-8 w-8 rounded-full" />
+        </div>
+      </Drawer>
+    );
+  }
+
+  if (!affiliate) {
+    return (
+      <Drawer isOpen={isOpen} onClose={onClose} title={`Edit Commission - ${agent.username}`} size="md">
+        <div className="py-12">
+          <EmptyState
+            title="Affiliate data not found"
+            description="This agent does not have affiliate commission settings configured."
+          />
+        </div>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Drawer isOpen={isOpen} onClose={onClose} title={`Edit Commission - ${agent.username}`} size="md">
+      <CommissionSettingsForm
+        affiliate={affiliate}
+        onSubmit={onUpdate}
+        onCancel={onClose}
+        isLoading={isUpdating}
+      />
+    </Drawer>
+  );
+}
+
+type AgentStatsDrawerProps = {
+  isOpen: boolean;
+  agent: Agent | null;
+  affiliate: Affiliate | null;
+  isLoading: boolean;
+  onClose: () => void;
+};
+
+function AgentStatsDrawer({
+  isOpen,
+  agent,
+  affiliate,
+  isLoading,
+  onClose,
+}: AgentStatsDrawerProps) {
+  if (!agent) return null;
+
+  return (
+    <Drawer isOpen={isOpen} onClose={onClose} title={`Agent Stats - ${agent.username}`} size="md">
+      {isLoading ? (
+        <div className="space-y-4 py-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      ) : !affiliate ? (
+        <div className="py-12">
+          <EmptyState
+            title="Stats not available"
+            description="This agent does not have affiliate statistics available."
+          />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              {affiliate.name}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              {affiliate.email}
+            </p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Commission Rate</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {affiliate.affiliate_percentage}%
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Affiliate Fee</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {affiliate.affiliate_fee}%
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Payment Method Fee</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {affiliate.payment_method_fee}%
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 dark:text-gray-400">Created</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {formatDate(affiliate.created)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800/50">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-300">Total Players</p>
+                <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                </svg>
+              </div>
+              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                {affiliate.total_players}
+              </p>
+            </div>
+
+            <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800/50">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-green-900 dark:text-green-300">Total Earnings</p>
+                <svg className="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m-3-2.818l.818.182a2.5 2.5 0 004.364 0l.818-.182M12 6V4.5m0 0V3m0 1.5h3.75M12 6H8.25m3.75 0v1.5m0 0H8.25m3.75 0h3.75m-3.75 0v1.5m0 0H8.25" />
+                </svg>
+              </div>
+              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                ${affiliate.total_earnings.toFixed(2)}
+              </p>
+            </div>
+
+            <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-4 border border-purple-200 dark:border-purple-800/50">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-purple-900 dark:text-purple-300">Total Topup</p>
+                <svg className="h-5 w-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                ${affiliate.total_topup.toFixed(2)}
+              </p>
+            </div>
+
+            <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-4 border border-orange-200 dark:border-orange-800/50">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-orange-900 dark:text-orange-300">Total Cashout</p>
+                <svg className="h-5 w-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                ${affiliate.total_cashout.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {affiliate.affiliate_link && (
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Affiliate Link</p>
+              <a
+                href={affiliate.affiliate_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+              >
+                {affiliate.affiliate_link}
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+    </Drawer>
+  );
+}
+
 type CreateAgentDrawerProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -563,6 +757,8 @@ type AgentActionsDrawerProps = {
   onViewTransactions: () => void;
   onViewPlayers: () => void;
   onEditProfile: () => void;
+  onEditCommission: () => void;
+  onViewStats: () => void;
 };
 
 function AgentActionsDrawer({
@@ -572,6 +768,8 @@ function AgentActionsDrawer({
   onViewTransactions,
   onViewPlayers,
   onEditProfile,
+  onEditCommission,
+  onViewStats,
 }: AgentActionsDrawerProps) {
   if (!agent) return null;
 
@@ -615,6 +813,28 @@ function AgentActionsDrawer({
           </svg>
           <span>Edit Profile</span>
         </Button>
+
+        <Button
+          variant="ghost"
+          onClick={onEditCommission}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375A1.125 1.125 0 012 18.75v-9.75A1.125 1.125 0 013.375 6h.375m0 0H3m16.5 0v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375A1.125 1.125 0 012 18.75v-9.75A1.125 1.125 0 013.375 6h.375m0 0H3" />
+          </svg>
+          <span>Edit Affiliate Commission</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          onClick={onViewStats}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+          </svg>
+          <span>View Agent Stats</span>
+        </Button>
       </div>
     </Drawer>
   );
@@ -649,6 +869,19 @@ type AgentsDashboardViewProps = {
   profileFormData: EditProfileFormData;
   setProfileFormData: React.Dispatch<React.SetStateAction<EditProfileFormData>>;
   actionDrawerState: ActionDrawerState;
+  commissionDrawer: {
+    isOpen: boolean;
+    agent: Agent | null;
+    affiliate: Affiliate | null;
+    isLoading: boolean;
+    isUpdating: boolean;
+  };
+  statsDrawer: {
+    isOpen: boolean;
+    agent: Agent | null;
+    affiliate: Affiliate | null;
+    isLoading: boolean;
+  };
   onRetry: () => Promise<void>;
   onOpenCreate: () => void;
   onCloseModals: () => void;
@@ -666,6 +899,11 @@ type AgentsDashboardViewProps = {
   onCreateAgent: (formData: CreateUserRequest | UpdateUserRequest) => Promise<void>;
   onConfirmToggle: () => Promise<void>;
   onCancelToggle: () => void;
+  onOpenEditCommission: (agent: Agent) => void;
+  onCloseEditCommission: () => void;
+  onUpdateCommission: (data: UpdateAffiliateRequest) => Promise<void>;
+  onOpenViewStats: (agent: Agent) => void;
+  onCloseViewStats: () => void;
 };
 
 function AgentsDashboardView({
@@ -684,6 +922,8 @@ function AgentsDashboardView({
   profileFormData,
   setProfileFormData,
   actionDrawerState,
+  commissionDrawer,
+  statsDrawer,
   onRetry,
   onOpenCreate,
   onCloseModals,
@@ -701,6 +941,11 @@ function AgentsDashboardView({
   onCreateAgent,
   onConfirmToggle,
   onCancelToggle,
+  onOpenEditCommission,
+  onCloseEditCommission,
+  onUpdateCommission,
+  onOpenViewStats,
+  onCloseViewStats,
 }: AgentsDashboardViewProps) {
   if (isLoading) {
     return (
@@ -807,6 +1052,30 @@ function AgentsDashboardView({
           onCloseActions();
           if (agent) onOpenEditProfile(agent);
         }}
+        onEditCommission={() => {
+          onCloseActions();
+          if (agent) onOpenEditCommission(agent);
+        }}
+        onViewStats={() => {
+          onCloseActions();
+          if (agent) onOpenViewStats(agent);
+        }}
+      />
+      <CommissionEditDrawer
+        isOpen={commissionDrawer.isOpen}
+        agent={commissionDrawer.agent}
+        affiliate={commissionDrawer.affiliate}
+        isLoading={commissionDrawer.isLoading}
+        isUpdating={commissionDrawer.isUpdating}
+        onClose={onCloseEditCommission}
+        onUpdate={onUpdateCommission}
+      />
+      <AgentStatsDrawer
+        isOpen={statsDrawer.isOpen}
+        agent={statsDrawer.agent}
+        affiliate={statsDrawer.affiliate}
+        isLoading={statsDrawer.isLoading}
+        onClose={onCloseViewStats}
       />
     </>
   );
@@ -837,6 +1106,30 @@ export default function AgentsDashboard() {
   const [actionDrawerState, setActionDrawerState] = useState<ActionDrawerState>({
     isOpen: false,
     agent: null,
+  });
+  const [commissionDrawer, setCommissionDrawer] = useState<{
+    isOpen: boolean;
+    agent: Agent | null;
+    affiliate: Affiliate | null;
+    isLoading: boolean;
+    isUpdating: boolean;
+  }>({
+    isOpen: false,
+    agent: null,
+    affiliate: null,
+    isLoading: false,
+    isUpdating: false,
+  });
+  const [statsDrawer, setStatsDrawer] = useState<{
+    isOpen: boolean;
+    agent: Agent | null;
+    affiliate: Affiliate | null;
+    isLoading: boolean;
+  }>({
+    isOpen: false,
+    agent: null,
+    affiliate: null,
+    isLoading: false,
   });
 
   const viewTransactions = useCallback(async (agent: Agent) => {
@@ -1023,6 +1316,131 @@ export default function AgentsDashboard() {
     setActionDrawerState({ isOpen: false, agent: null });
   }, []);
 
+  const handleOpenEditCommission = useCallback(async (agent: Agent) => {
+    setCommissionDrawer({
+      isOpen: true,
+      agent,
+      affiliate: null,
+      isLoading: true,
+      isUpdating: false,
+    });
+
+    try {
+      const affiliatesResponse = await affiliatesApi.list({ search: agent.username, page_size: 100 });
+      const affiliate = affiliatesResponse.results.find(
+        (aff) => aff.name === agent.username || aff.email === agent.email
+      );
+
+      setCommissionDrawer({
+        isOpen: true,
+        agent,
+        affiliate: affiliate || null,
+        isLoading: false,
+        isUpdating: false,
+      });
+    } catch (error) {
+      console.error('Failed to fetch affiliate data:', error);
+      addToast({
+        type: 'error',
+        title: 'Failed to load commission data',
+        description: 'Could not load affiliate commission settings for this agent.',
+      });
+      setCommissionDrawer({
+        isOpen: false,
+        agent: null,
+        affiliate: null,
+        isLoading: false,
+        isUpdating: false,
+      });
+    }
+  }, [addToast]);
+
+  const handleCloseEditCommission = useCallback(() => {
+    setCommissionDrawer({
+      isOpen: false,
+      agent: null,
+      affiliate: null,
+      isLoading: false,
+      isUpdating: false,
+    });
+  }, []);
+
+  const handleUpdateCommission = useCallback(async (data: UpdateAffiliateRequest) => {
+    if (!commissionDrawer.affiliate) return;
+
+    setCommissionDrawer((prev) => ({ ...prev, isUpdating: true }));
+
+    try {
+      await affiliatesApi.update(commissionDrawer.affiliate.id, data);
+      addToast({
+        type: 'success',
+        title: 'Commission updated',
+        description: `Commission settings for "${commissionDrawer.agent?.username}" have been updated successfully!`,
+      });
+      setCommissionDrawer({
+        isOpen: false,
+        agent: null,
+        affiliate: null,
+        isLoading: false,
+        isUpdating: false,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update commission settings';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: errorMessage,
+      });
+      setCommissionDrawer((prev) => ({ ...prev, isUpdating: false }));
+      throw error;
+    }
+  }, [commissionDrawer.affiliate, commissionDrawer.agent, addToast]);
+
+  const handleOpenViewStats = useCallback(async (agent: Agent) => {
+    setStatsDrawer({
+      isOpen: true,
+      agent,
+      affiliate: null,
+      isLoading: true,
+    });
+
+    try {
+      const affiliatesResponse = await affiliatesApi.list({ search: agent.username, page_size: 100 });
+      const affiliate = affiliatesResponse.results.find(
+        (aff) => aff.name === agent.username || aff.email === agent.email
+      );
+
+      setStatsDrawer({
+        isOpen: true,
+        agent,
+        affiliate: affiliate || null,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Failed to fetch affiliate stats:', error);
+      addToast({
+        type: 'error',
+        title: 'Failed to load stats',
+        description: 'Could not load agent statistics.',
+      });
+      setStatsDrawer({
+        isOpen: false,
+        agent: null,
+        affiliate: null,
+        isLoading: false,
+      });
+    }
+  }, [addToast]);
+
+  const handleCloseViewStats = useCallback(() => {
+    setStatsDrawer({
+      isOpen: false,
+      agent: null,
+      affiliate: null,
+      isLoading: false,
+    });
+  }, []);
+
   return (
     <AgentsDashboardView
       data={dashboard.data}
@@ -1057,6 +1475,13 @@ export default function AgentsDashboard() {
       onCreateAgent={dashboard.handleCreateAgent}
       onConfirmToggle={dashboard.confirmToggle}
       onCancelToggle={dashboard.cancelToggle}
+      commissionDrawer={commissionDrawer}
+      statsDrawer={statsDrawer}
+      onOpenEditCommission={handleOpenEditCommission}
+      onCloseEditCommission={handleCloseEditCommission}
+      onUpdateCommission={handleUpdateCommission}
+      onOpenViewStats={handleOpenViewStats}
+      onCloseViewStats={handleCloseViewStats}
     />
   );
 }

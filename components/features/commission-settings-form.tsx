@@ -18,9 +18,15 @@ export function CommissionSettingsForm({
   isLoading = false,
 }: CommissionSettingsFormProps) {
   const [formData, setFormData] = useState<UpdateAffiliateRequest>({
-    affiliation_percentage: parseFloat(affiliate.affiliate_percentage),
-    affiliation_fee_percentage: parseFloat(affiliate.affiliate_fee),
-    payment_method_fee_percentage: parseFloat(affiliate.payment_method_fee),
+    affiliation_percentage: parseFloat(affiliate.affiliate_percentage) || undefined,
+    affiliation_fee_percentage: parseFloat(affiliate.affiliate_fee) || undefined,
+    payment_method_fee_percentage: parseFloat(affiliate.payment_method_fee) || undefined,
+  });
+
+  const [inputValues, setInputValues] = useState<Record<string, string>>({
+    affiliation_percentage: affiliate.affiliate_percentage || '',
+    affiliation_fee_percentage: affiliate.affiliate_fee || '',
+    payment_method_fee_percentage: affiliate.payment_method_fee || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,11 +73,27 @@ export function CommissionSettingsForm({
   const handleInputChange = (field: keyof UpdateAffiliateRequest) => (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const value = parseFloat(e.target.value) || 0;
-    setFormData(prev => ({
+    const inputValue = e.target.value;
+    
+    setInputValues(prev => ({
       ...prev,
-      [field]: value,
+      [field]: inputValue,
     }));
+
+    if (inputValue === '' || inputValue === '.') {
+      setFormData(prev => ({
+        ...prev,
+        [field]: undefined,
+      }));
+    } else {
+      const numValue = parseFloat(inputValue);
+      if (!isNaN(numValue)) {
+        setFormData(prev => ({
+          ...prev,
+          [field]: numValue,
+        }));
+      }
+    }
     
     // Clear error when user starts typing
     if (errors[field]) {
@@ -108,7 +130,7 @@ export function CommissionSettingsForm({
             min="0"
             max="100"
             step="0.01"
-            value={formData.affiliation_percentage}
+            value={inputValues.affiliation_percentage}
             onChange={handleInputChange('affiliation_percentage')}
             error={errors.affiliation_percentage}
             placeholder="Enter commission percentage"
@@ -128,7 +150,7 @@ export function CommissionSettingsForm({
             min="0"
             max="100"
             step="0.01"
-            value={formData.affiliation_fee_percentage}
+            value={inputValues.affiliation_fee_percentage}
             onChange={handleInputChange('affiliation_fee_percentage')}
             error={errors.affiliation_fee_percentage}
             placeholder="Enter fee percentage"
@@ -148,7 +170,7 @@ export function CommissionSettingsForm({
             min="0"
             max="100"
             step="0.01"
-            value={formData.payment_method_fee_percentage}
+            value={inputValues.payment_method_fee_percentage}
             onChange={handleInputChange('payment_method_fee_percentage')}
             error={errors.payment_method_fee_percentage}
             placeholder="Enter payment method fee percentage"
