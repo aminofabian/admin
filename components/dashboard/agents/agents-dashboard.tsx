@@ -317,6 +317,9 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions 
               <TableHead>Username</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Commission</TableHead>
+              <TableHead>Payment Method Fee</TableHead>
+              <TableHead>System Fee</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -352,6 +355,17 @@ type AgentCardProps = {
 
 function AgentCard({ agent, onOpenActions }: AgentCardProps) {
   const styles = getAgentStyles(agent.is_active);
+  const agentWithAffiliate = agent as Agent & {
+    affiliation_percentage?: string;
+    payment_method_fee_percentage?: string;
+    affiliation_fee_percentage?: string;
+  };
+
+  const formatPercentage = (value: string | undefined): string => {
+    if (!value) return 'N/A';
+    const num = parseFloat(value);
+    return isNaN(num) ? 'N/A' : `${num.toFixed(2)}%`;
+  };
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
@@ -396,6 +410,30 @@ function AgentCard({ agent, onOpenActions }: AgentCardProps) {
         </div>
       </div>
 
+      {/* Commission Section */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800 space-y-2">
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div>
+            <p className="text-gray-500 dark:text-gray-400 mb-0.5">Commission</p>
+            <p className="font-medium text-gray-900 dark:text-gray-100">
+              {formatPercentage(agentWithAffiliate.affiliation_percentage)}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-500 dark:text-gray-400 mb-0.5">Payment Method Fee</p>
+            <p className="font-medium text-gray-900 dark:text-gray-100">
+              {formatPercentage(agentWithAffiliate.payment_method_fee_percentage)}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-500 dark:text-gray-400 mb-0.5">System Fee</p>
+            <p className="font-medium text-gray-900 dark:text-gray-100">
+              {formatPercentage(agentWithAffiliate.affiliation_fee_percentage)}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Bottom Section: Date & Actions */}
       <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
@@ -428,6 +466,17 @@ type AgentRowProps = {
 
 function AgentRow({ agent, onOpenActions }: AgentRowProps) {
   const styles = getAgentStyles(agent.is_active);
+  const agentWithAffiliate = agent as Agent & {
+    affiliation_percentage?: string;
+    payment_method_fee_percentage?: string;
+    affiliation_fee_percentage?: string;
+  };
+
+  const formatPercentage = (value: string | undefined): string => {
+    if (!value) return 'N/A';
+    const num = parseFloat(value);
+    return isNaN(num) ? 'N/A' : `${num.toFixed(2)}%`;
+  };
 
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
@@ -451,6 +500,21 @@ function AgentRow({ agent, onOpenActions }: AgentRowProps) {
         <Badge variant={styles.statusVariant}>
           {styles.statusLabel}
         </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          {formatPercentage(agentWithAffiliate.affiliation_percentage)}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          {formatPercentage(agentWithAffiliate.payment_method_fee_percentage)}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm text-gray-700 dark:text-gray-300">
+          {formatPercentage(agentWithAffiliate.affiliation_fee_percentage)}
+        </div>
       </TableCell>
       <TableCell>
         <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -967,8 +1031,8 @@ function AgentsDashboardView({
             <div className="min-w-full">
               {/* Table Header Skeleton */}
               <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-5 gap-4 px-4 py-3">
-                  {[...Array(5)].map((_, i) => (
+                <div className="grid grid-cols-8 gap-4 px-4 py-3">
+                  {[...Array(8)].map((_, i) => (
                     <Skeleton key={i} className="h-4 w-24" />
                   ))}
                 </div>
@@ -977,7 +1041,7 @@ function AgentsDashboardView({
               {/* Table Rows Skeleton */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-5 gap-4 px-4 py-4">
+                  <div key={i} className="grid grid-cols-8 gap-4 px-4 py-4">
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div className="flex-1">
@@ -987,6 +1051,9 @@ function AgentsDashboardView({
                     </div>
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-6 w-16 rounded-full" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-20" />
                     <Skeleton className="h-4 w-24" />
                     <div className="flex justify-end">
                       <Skeleton className="h-8 w-20 rounded-full" />
