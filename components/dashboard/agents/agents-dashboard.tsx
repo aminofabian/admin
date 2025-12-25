@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { agentsApi, transactionsApi, affiliatesApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
+import { validatePassword } from '@/lib/utils/password-validation';
 import {
   Badge,
   Button,
@@ -1254,14 +1255,28 @@ export default function AgentsDashboard() {
       return;
     }
 
-    // Validate passwords match if provided
-    if (profileFormData.password && profileFormData.password !== profileFormData.confirmPassword) {
-      addToast({
-        type: 'error',
-        title: 'Password mismatch',
-        description: 'Password and Confirm Password must match.',
-      });
-      return;
+    // Validate password if provided
+    if (profileFormData.password) {
+      // Validate password strength
+      const passwordValidation = validatePassword(profileFormData.password);
+      if (!passwordValidation.isValid) {
+        addToast({
+          type: 'error',
+          title: 'Invalid password',
+          description: passwordValidation.errors[0] || 'Password does not meet requirements.',
+        });
+        return;
+      }
+
+      // Validate passwords match
+      if (profileFormData.password !== profileFormData.confirmPassword) {
+        addToast({
+          type: 'error',
+          title: 'Password mismatch',
+          description: 'Password and Confirm Password must match.',
+        });
+        return;
+      }
     }
 
     setEditProfileDrawer((prev) => ({ ...prev, isLoading: true }));
@@ -1293,11 +1308,83 @@ export default function AgentsDashboard() {
       setEditProfileDrawer({ isOpen: false, agent: null, isLoading: false });
       await dashboard.loadAgents();
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to update profile';
+      let errorMessage = 'Failed to update profile';
+      let errorTitle = 'Update failed';
+
+      // Extract field-specific validation errors from backend
+      if (err && typeof err === 'object') {
+        const errorObj = err as Record<string, unknown>;
+        
+        // Check if error is a direct field error object like {"password": ["error message"]}
+        const hasFieldErrors = Object.keys(errorObj).some(key => {
+          const value = errorObj[key];
+          return (Array.isArray(value) && value.length > 0) || (typeof value === 'string' && value);
+        });
+        
+        if (hasFieldErrors) {
+          const errorMessages: string[] = [];
+          Object.entries(errorObj).forEach(([field, messages]) => {
+            if (Array.isArray(messages) && messages.length > 0) {
+              const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+            } else if (typeof messages === 'string' && messages) {
+              const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              errorMessages.push(`${fieldName}: ${messages}`);
+            }
+          });
+          
+          if (errorMessages.length > 0) {
+            errorMessage = errorMessages.join('; ');
+            errorTitle = 'Validation failed';
+          }
+        } else {
+          // Check for errors in nested structure
+          const apiError = errorObj as {
+            errors?: Record<string, string[]>;
+            detail?: string | Record<string, string[]>;
+            message?: string;
+          };
+          
+          if (apiError.errors && typeof apiError.errors === 'object') {
+            const errorMessages: string[] = [];
+            Object.entries(apiError.errors).forEach(([field, messages]) => {
+              if (Array.isArray(messages) && messages.length > 0) {
+                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+              }
+            });
+            if (errorMessages.length > 0) {
+              errorMessage = errorMessages.join('; ');
+              errorTitle = 'Validation failed';
+            }
+          } else if (apiError.detail && typeof apiError.detail === 'object' && !Array.isArray(apiError.detail)) {
+            const errorMessages: string[] = [];
+            Object.entries(apiError.detail as Record<string, unknown>).forEach(([field, messages]) => {
+              if (Array.isArray(messages) && messages.length > 0) {
+                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                errorMessages.push(`${fieldName}: ${messages.join(', ')}`);
+              } else if (typeof messages === 'string') {
+                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                errorMessages.push(`${fieldName}: ${messages}`);
+              }
+            });
+            if (errorMessages.length > 0) {
+              errorMessage = errorMessages.join('; ');
+              errorTitle = 'Validation failed';
+            }
+          } else if (apiError.message) {
+            errorMessage = apiError.message;
+          } else if (apiError.detail && typeof apiError.detail === 'string') {
+            errorMessage = apiError.detail;
+          }
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
       addToast({
         type: 'error',
-        title: 'Update failed',
+        title: errorTitle,
         description: errorMessage,
       });
       setEditProfileDrawer((prev) => ({ ...prev, isLoading: false }));

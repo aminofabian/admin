@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Input } from '@/components/ui';
+import { Button, Input, PasswordInput, ConfirmPasswordInput } from '@/components/ui';
 
 export interface EditProfileFormData {
   username: string;
@@ -151,49 +151,31 @@ export function EditProfileDrawer({
 
               {/* Password */}
               <div className="group">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  Password
-                  <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">(leave blank to keep current)</span>
-                </label>
-                <Input
-                  type="password"
+                <PasswordInput
+                  label="Password"
                   value={profileFormData.password}
-                  onChange={(e) => setProfileFormData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Enter new password"
-                  className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  onChange={(value) => setProfileFormData(prev => ({ ...prev, password: value }))}
+                  placeholder="Enter new password (leave blank to keep current)"
                   disabled={isUpdating}
+                  className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   autoComplete="new-password"
+                  showRequirements={!!profileFormData.password}
                 />
               </div>
 
               {/* Confirm Password */}
               {profileFormData.password && (
                 <div className="group">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    Confirm Password
-                  </label>
-                  <Input
-                    type="password"
+                  <ConfirmPasswordInput
+                    label="Confirm Password"
                     value={profileFormData.confirmPassword}
-                    onChange={(e) => setProfileFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    className={`w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      profileFormData.password && profileFormData.confirmPassword && profileFormData.password !== profileFormData.confirmPassword
-                        ? 'border-red-500 dark:border-red-400'
-                        : ''
-                    }`}
-                    disabled={isUpdating}
+                    password={profileFormData.password}
+                    onChange={(value) => setProfileFormData(prev => ({ ...prev, confirmPassword: value }))}
                     placeholder="Confirm new password"
+                    disabled={isUpdating}
+                    className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     autoComplete="new-password"
                   />
-                  {profileFormData.password && profileFormData.confirmPassword && profileFormData.password !== profileFormData.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">Passwords do not match</p>
-                  )}
                 </div>
               )}
 
