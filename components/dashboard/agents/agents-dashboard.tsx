@@ -690,34 +690,34 @@ function AgentStatsDrawer({
       ) : (
         <div className="space-y-6">
           <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
               {affiliate.name}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
               {affiliate.email}
             </p>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Commission Rate</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <p className="text-gray-500 dark:text-gray-400 text-xs">Commission Rate</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {affiliate.affiliate_percentage}%
                 </p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Affiliate Fee</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <p className="text-gray-500 dark:text-gray-400 text-xs">Affiliate Fee</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {affiliate.affiliate_fee}%
                 </p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Payment Method Fee</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <p className="text-gray-500 dark:text-gray-400 text-xs">Payment Method Fee</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {affiliate.payment_method_fee}%
                 </p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400">Created</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <p className="text-gray-500 dark:text-gray-400 text-xs">Created</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {formatDate(affiliate.created)}
                 </p>
               </div>
@@ -727,48 +727,48 @@ function AgentStatsDrawer({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800/50">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-300">Total Players</p>
-                <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <p className="text-xs font-medium text-blue-900 dark:text-blue-300">Total Players</p>
+                <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                 </svg>
               </div>
-              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              <p className="text-xl font-bold text-blue-900 dark:text-blue-100">
                 {affiliate.total_players}
               </p>
             </div>
 
             <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800/50">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-green-900 dark:text-green-300">Total Earnings</p>
-                <svg className="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <p className="text-xs font-medium text-green-900 dark:text-green-300">Total Earnings</p>
+                <svg className="h-4 w-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m-3-2.818l.818.182a2.5 2.5 0 004.364 0l.818-.182M12 6V4.5m0 0V3m0 1.5h3.75M12 6H8.25m3.75 0v1.5m0 0H8.25m3.75 0h3.75m-3.75 0v1.5m0 0H8.25" />
                 </svg>
               </div>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+              <p className="text-xl font-bold text-green-900 dark:text-green-100">
                 ${affiliate.total_earnings.toFixed(2)}
               </p>
             </div>
 
             <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-4 border border-purple-200 dark:border-purple-800/50">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-purple-900 dark:text-purple-300">Total Topup</p>
-                <svg className="h-5 w-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <p className="text-xs font-medium text-purple-900 dark:text-purple-300">Total Topup</p>
+                <svg className="h-4 w-4 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
-              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+              <p className="text-xl font-bold text-purple-900 dark:text-purple-100">
                 ${affiliate.total_topup.toFixed(2)}
               </p>
             </div>
 
             <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-4 border border-orange-200 dark:border-orange-800/50">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-orange-900 dark:text-orange-300">Total Cashout</p>
-                <svg className="h-5 w-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <p className="text-xs font-medium text-orange-900 dark:text-orange-300">Total Cashout</p>
+                <svg className="h-4 w-4 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
-              <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+              <p className="text-xl font-bold text-orange-900 dark:text-orange-100">
                 ${affiliate.total_cashout.toFixed(2)}
               </p>
             </div>
