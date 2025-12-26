@@ -364,7 +364,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     submenu: [
       { name: 'Agents', href: '/dashboard/agents', icon: <AffiliatesAgentIcon /> },
       { name: 'Affiliates', href: '/dashboard/affiliates', icon: <AffiliateIcon /> },
-      { name: 'Default Settings', href: '/dashboard/settings/affiliate', icon: <AffiliatesDefaultIcon /> },
     ],
   },
 ];
