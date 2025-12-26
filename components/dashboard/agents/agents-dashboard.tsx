@@ -49,7 +49,7 @@ type AgentsDashboardState = {
   prepareToggle: (agent: Agent) => void;
   confirmToggle: () => Promise<void>;
   cancelToggle: () => void;
-  updateAgentCommission: (agentId: number, commissionData: { affiliation_percentage?: string; affiliation_fee_percentage?: string; payment_method_fee_percentage?: string }) => void;
+  updateAgentCommission: (agentId: number, commissionData: { affiliation_percentage?: string; affiliation_fee_percentage?: string; payment_method_fee_percentage?: string; affiliate_link?: string }) => void;
 };
 
 function useAgentsDashboard(): AgentsDashboardState {
@@ -146,7 +146,7 @@ function useAgentsDashboard(): AgentsDashboardState {
 
   const dismissSuccessMessage = useCallback(() => setSuccessMessage(''), []);
 
-  const updateAgentCommission = useCallback((agentId: number, commissionData: { affiliation_percentage?: string; affiliation_fee_percentage?: string; payment_method_fee_percentage?: string }) => {
+  const updateAgentCommission = useCallback((agentId: number, commissionData: { affiliation_percentage?: string; affiliation_fee_percentage?: string; payment_method_fee_percentage?: string; affiliate_link?: string }) => {
     setData((prevData) => {
       if (!prevData) return prevData;
       
@@ -158,6 +158,7 @@ function useAgentsDashboard(): AgentsDashboardState {
               affiliation_percentage?: string;
               affiliation_fee_percentage?: string;
               payment_method_fee_percentage?: string;
+              affiliate_link?: string;
             };
             
             if (commissionData.affiliation_percentage !== undefined) {
@@ -168,6 +169,9 @@ function useAgentsDashboard(): AgentsDashboardState {
             }
             if (commissionData.payment_method_fee_percentage !== undefined) {
               updatedAgent.payment_method_fee_percentage = commissionData.payment_method_fee_percentage;
+            }
+            if (commissionData.affiliate_link !== undefined) {
+              updatedAgent.affiliate_link = commissionData.affiliate_link;
             }
             
             return updatedAgent as Agent;
@@ -355,6 +359,7 @@ function AgentsTableContent({ data, page, pageSize, onPageChange, onOpenActions 
               <TableHead>Commission</TableHead>
               <TableHead>Payment Method Fee</TableHead>
               <TableHead>System Fee</TableHead>
+              <TableHead>Affiliate Link</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -394,6 +399,7 @@ function AgentCard({ agent, onOpenActions }: AgentCardProps) {
     affiliation_percentage?: string;
     payment_method_fee_percentage?: string;
     affiliation_fee_percentage?: string;
+    affiliate_link?: string;
   };
 
   const formatPercentage = (value: string | undefined): string => {
@@ -469,6 +475,26 @@ function AgentCard({ agent, onOpenActions }: AgentCardProps) {
         </div>
       </div>
 
+      {/* Affiliate Link Section */}
+      {agentWithAffiliate.affiliate_link && (
+        <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2">
+            <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            <a
+              href={agentWithAffiliate.affiliate_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate flex-1"
+              title={agentWithAffiliate.affiliate_link}
+            >
+              {agentWithAffiliate.affiliate_link}
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Section: Date & Actions */}
       <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
@@ -505,6 +531,7 @@ function AgentRow({ agent, onOpenActions }: AgentRowProps) {
     affiliation_percentage?: string;
     payment_method_fee_percentage?: string;
     affiliation_fee_percentage?: string;
+    affiliate_link?: string;
   };
 
   const formatPercentage = (value: string | undefined): string => {
@@ -550,6 +577,21 @@ function AgentRow({ agent, onOpenActions }: AgentRowProps) {
         <div className="text-sm text-gray-700 dark:text-gray-300">
           {formatPercentage(agentWithAffiliate.affiliation_fee_percentage)}
         </div>
+      </TableCell>
+      <TableCell>
+        {agentWithAffiliate.affiliate_link ? (
+          <a
+            href={agentWithAffiliate.affiliate_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate max-w-xs block"
+            title={agentWithAffiliate.affiliate_link}
+          >
+            {agentWithAffiliate.affiliate_link}
+          </a>
+        ) : (
+          <div className="text-sm text-gray-400 dark:text-gray-500">N/A</div>
+        )}
       </TableCell>
       <TableCell>
         <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -1042,8 +1084,8 @@ function AgentsDashboardView({
             <div className="min-w-full">
               {/* Table Header Skeleton */}
               <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-8 gap-4 px-4 py-3">
-                  {[...Array(8)].map((_, i) => (
+                <div className="grid grid-cols-9 gap-4 px-4 py-3">
+                  {[...Array(9)].map((_, i) => (
                     <Skeleton key={i} className="h-4 w-24" />
                   ))}
                 </div>
@@ -1052,7 +1094,7 @@ function AgentsDashboardView({
               {/* Table Rows Skeleton */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-8 gap-4 px-4 py-4">
+                  <div key={i} className="grid grid-cols-9 gap-4 px-4 py-4">
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div className="flex-1">
@@ -1065,6 +1107,7 @@ function AgentsDashboardView({
                     <Skeleton className="h-4 w-20" />
                     <Skeleton className="h-4 w-20" />
                     <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-4 w-24" />
                     <div className="flex justify-end">
                       <Skeleton className="h-8 w-20 rounded-full" />
@@ -1544,6 +1587,7 @@ export default function AgentsDashboard() {
           affiliation_percentage: updatedAffiliate.affiliate_percentage,
           affiliation_fee_percentage: updatedAffiliate.affiliate_fee,
           payment_method_fee_percentage: updatedAffiliate.payment_method_fee,
+          affiliate_link: updatedAffiliate.affiliate_link,
         });
       }
       
