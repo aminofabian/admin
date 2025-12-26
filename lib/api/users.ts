@@ -52,6 +52,11 @@ export const agentsApi = {
     apiClient.get<AgentDashboardResponse>(API_ENDPOINTS.AGENTS.DASHBOARD, {
       params,
     }),
+
+  getStats: (agentId: number) =>
+    apiClient.get<AgentDashboardResponse>(API_ENDPOINTS.AGENTS.STATS, {
+      params: { agent_id: agentId },
+    }),
 };
 
 export const staffsApi = {

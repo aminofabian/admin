@@ -23,7 +23,7 @@ import {
 import { AgentForm, EmptyState, ErrorState, EditProfileDrawer, type EditProfileFormData, CommissionSettingsForm } from '@/components/features';
 import { Skeleton } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
-import type { Agent, CreateUserRequest, PaginatedResponse, UpdateUserRequest, Affiliate, UpdateAffiliateRequest } from '@/types';
+import type { Agent, CreateUserRequest, PaginatedResponse, UpdateUserRequest, Affiliate, UpdateAffiliateRequest, AgentDashboardResponse } from '@/types';
 
 const SUCCESS_MESSAGE_TIMEOUT_MS = 5000;
 
@@ -658,7 +658,7 @@ function CommissionEditDrawer({
 type AgentStatsDrawerProps = {
   isOpen: boolean;
   agent: Agent | null;
-  affiliate: Affiliate | null;
+  statsData: AgentDashboardResponse | null;
   isLoading: boolean;
   onClose: () => void;
 };
@@ -666,11 +666,13 @@ type AgentStatsDrawerProps = {
 function AgentStatsDrawer({
   isOpen,
   agent,
-  affiliate,
+  statsData,
   isLoading,
   onClose,
 }: AgentStatsDrawerProps) {
   if (!agent) return null;
+
+  const stats = statsData?.agent_stats;
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={`Agent Stats - ${agent.username}`} size="md">
@@ -680,45 +682,33 @@ function AgentStatsDrawer({
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
         </div>
-      ) : !affiliate ? (
+      ) : !statsData || !stats ? (
         <div className="py-12">
           <EmptyState
             title="Stats not available"
-            description="This agent does not have affiliate statistics available."
+            description="This agent does not have statistics available."
           />
         </div>
       ) : (
         <div className="space-y-6">
           <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2">
-              {affiliate.name}
+              {statsData.agent_username}
             </h3>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
-              {affiliate.email}
+              {agent.email}
             </p>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs">Commission Rate</p>
-                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                  {affiliate.affiliate_percentage}%
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs">Affiliate Fee</p>
-                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                  {affiliate.affiliate_fee}%
-                </p>
-              </div>
-              <div>
                 <p className="text-gray-500 dark:text-gray-400 text-xs">Payment Method Fee</p>
                 <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                  {affiliate.payment_method_fee}%
+                  ${stats.payment_method_fee.toFixed(2)}
                 </p>
               </div>
               <div>
-                <p className="text-gray-500 dark:text-gray-400 text-xs">Created</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs">Affiliation Fee</p>
                 <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                  {formatDate(affiliate.created)}
+                  ${stats.affiliation_fee.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -733,7 +723,7 @@ function AgentStatsDrawer({
                 </svg>
               </div>
               <p className="text-xl font-bold text-blue-900 dark:text-blue-100">
-                {affiliate.total_players}
+                {stats.total_players}
               </p>
             </div>
 
@@ -745,7 +735,7 @@ function AgentStatsDrawer({
                 </svg>
               </div>
               <p className="text-xl font-bold text-green-900 dark:text-green-100">
-                ${affiliate.total_earnings.toFixed(2)}
+                ${stats.total_earnings.toFixed(2)}
               </p>
             </div>
 
@@ -757,7 +747,7 @@ function AgentStatsDrawer({
                 </svg>
               </div>
               <p className="text-xl font-bold text-purple-900 dark:text-purple-100">
-                ${affiliate.total_topup.toFixed(2)}
+                ${stats.total_topup.toFixed(2)}
               </p>
             </div>
 
@@ -769,24 +759,10 @@ function AgentStatsDrawer({
                 </svg>
               </div>
               <p className="text-xl font-bold text-orange-900 dark:text-orange-100">
-                ${affiliate.total_cashout.toFixed(2)}
+                ${stats.total_cashout.toFixed(2)}
               </p>
             </div>
           </div>
-
-          {affiliate.affiliate_link && (
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Affiliate Link</p>
-              <a
-                href={affiliate.affiliate_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
-              >
-                {affiliate.affiliate_link}
-              </a>
-            </div>
-          )}
         </div>
       )}
     </Drawer>
@@ -944,7 +920,7 @@ type AgentsDashboardViewProps = {
   statsDrawer: {
     isOpen: boolean;
     agent: Agent | null;
-    affiliate: Affiliate | null;
+    statsData: AgentDashboardResponse | null;
     isLoading: boolean;
   };
   onRetry: () => Promise<void>;
@@ -1141,7 +1117,7 @@ function AgentsDashboardView({
       <AgentStatsDrawer
         isOpen={statsDrawer.isOpen}
         agent={statsDrawer.agent}
-        affiliate={statsDrawer.affiliate}
+        statsData={statsDrawer.statsData}
         isLoading={statsDrawer.isLoading}
         onClose={onCloseViewStats}
       />
@@ -1191,12 +1167,12 @@ export default function AgentsDashboard() {
   const [statsDrawer, setStatsDrawer] = useState<{
     isOpen: boolean;
     agent: Agent | null;
-    affiliate: Affiliate | null;
+    statsData: AgentDashboardResponse | null;
     isLoading: boolean;
   }>({
     isOpen: false,
     agent: null,
-    affiliate: null,
+    statsData: null,
     isLoading: false,
   });
 
@@ -1554,24 +1530,20 @@ export default function AgentsDashboard() {
     setStatsDrawer({
       isOpen: true,
       agent,
-      affiliate: null,
+      statsData: null,
       isLoading: true,
     });
 
     try {
-      const affiliatesResponse = await affiliatesApi.list({ search: agent.username, page_size: 100 });
-      const affiliate = affiliatesResponse.results.find(
-        (aff) => aff.name === agent.username || aff.email === agent.email
-      );
-
+      const statsData = await agentsApi.getStats(agent.id);
       setStatsDrawer({
         isOpen: true,
         agent,
-        affiliate: affiliate || null,
+        statsData,
         isLoading: false,
       });
     } catch (error) {
-      console.error('Failed to fetch affiliate stats:', error);
+      console.error('Failed to fetch agent stats:', error);
       addToast({
         type: 'error',
         title: 'Failed to load stats',
@@ -1580,7 +1552,7 @@ export default function AgentsDashboard() {
       setStatsDrawer({
         isOpen: false,
         agent: null,
-        affiliate: null,
+        statsData: null,
         isLoading: false,
       });
     }
@@ -1590,7 +1562,7 @@ export default function AgentsDashboard() {
     setStatsDrawer({
       isOpen: false,
       agent: null,
-      affiliate: null,
+      statsData: null,
       isLoading: false,
     });
   }, []);
