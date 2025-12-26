@@ -395,6 +395,7 @@ type AgentCardProps = {
 
 function AgentCard({ agent, onOpenActions }: AgentCardProps) {
   const styles = getAgentStyles(agent.is_active);
+  const { addToast } = useToast();
   const agentWithAffiliate = agent as Agent & {
     affiliation_percentage?: string;
     payment_method_fee_percentage?: string;
@@ -406,6 +407,23 @@ function AgentCard({ agent, onOpenActions }: AgentCardProps) {
     if (!value) return 'N/A';
     const num = parseFloat(value);
     return isNaN(num) ? 'N/A' : `${num.toFixed(2)}%`;
+  };
+
+  const handleCopyLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      addToast({
+        type: 'success',
+        title: 'Link copied',
+        description: 'Affiliate link has been copied to clipboard',
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Copy failed',
+        description: 'Failed to copy link to clipboard',
+      });
+    }
   };
 
   return (
@@ -491,6 +509,15 @@ function AgentCard({ agent, onOpenActions }: AgentCardProps) {
             >
               {agentWithAffiliate.affiliate_link}
             </a>
+            <button
+              onClick={() => handleCopyLink(agentWithAffiliate.affiliate_link!)}
+              className="shrink-0 p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors touch-manipulation"
+              title="Copy link"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
           </div>
         </div>
       )}
@@ -527,6 +554,7 @@ type AgentRowProps = {
 
 function AgentRow({ agent, onOpenActions }: AgentRowProps) {
   const styles = getAgentStyles(agent.is_active);
+  const { addToast } = useToast();
   const agentWithAffiliate = agent as Agent & {
     affiliation_percentage?: string;
     payment_method_fee_percentage?: string;
@@ -538,6 +566,23 @@ function AgentRow({ agent, onOpenActions }: AgentRowProps) {
     if (!value) return 'N/A';
     const num = parseFloat(value);
     return isNaN(num) ? 'N/A' : `${num.toFixed(2)}%`;
+  };
+
+  const handleCopyLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      addToast({
+        type: 'success',
+        title: 'Link copied',
+        description: 'Affiliate link has been copied to clipboard',
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: 'Copy failed',
+        description: 'Failed to copy link to clipboard',
+      });
+    }
   };
 
   return (
@@ -580,15 +625,26 @@ function AgentRow({ agent, onOpenActions }: AgentRowProps) {
       </TableCell>
       <TableCell>
         {agentWithAffiliate.affiliate_link ? (
-          <a
-            href={agentWithAffiliate.affiliate_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate max-w-xs block"
-            title={agentWithAffiliate.affiliate_link}
-          >
-            {agentWithAffiliate.affiliate_link}
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href={agentWithAffiliate.affiliate_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate max-w-xs flex-1"
+              title={agentWithAffiliate.affiliate_link}
+            >
+              {agentWithAffiliate.affiliate_link}
+            </a>
+            <button
+              onClick={() => handleCopyLink(agentWithAffiliate.affiliate_link!)}
+              className="shrink-0 p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors touch-manipulation"
+              title="Copy link"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
+          </div>
         ) : (
           <div className="text-sm text-gray-400 dark:text-gray-500">N/A</div>
         )}
