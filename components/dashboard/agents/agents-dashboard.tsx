@@ -49,6 +49,7 @@ type AgentsDashboardState = {
   prepareToggle: (agent: Agent) => void;
   confirmToggle: () => Promise<void>;
   cancelToggle: () => void;
+  updateAgentCommission: (agentId: number, commissionData: { affiliation_percentage?: string; affiliation_fee_percentage?: string; payment_method_fee_percentage?: string }) => void;
 };
 
 function useAgentsDashboard(): AgentsDashboardState {
@@ -145,6 +146,38 @@ function useAgentsDashboard(): AgentsDashboardState {
 
   const dismissSuccessMessage = useCallback(() => setSuccessMessage(''), []);
 
+  const updateAgentCommission = useCallback((agentId: number, commissionData: { affiliation_percentage?: string; affiliation_fee_percentage?: string; payment_method_fee_percentage?: string }) => {
+    setData((prevData) => {
+      if (!prevData) return prevData;
+      
+      return {
+        ...prevData,
+        results: prevData.results.map((agent) => {
+          if (agent.id === agentId) {
+            const updatedAgent = { ...agent } as Agent & {
+              affiliation_percentage?: string;
+              affiliation_fee_percentage?: string;
+              payment_method_fee_percentage?: string;
+            };
+            
+            if (commissionData.affiliation_percentage !== undefined) {
+              updatedAgent.affiliation_percentage = commissionData.affiliation_percentage;
+            }
+            if (commissionData.affiliation_fee_percentage !== undefined) {
+              updatedAgent.affiliation_fee_percentage = commissionData.affiliation_fee_percentage;
+            }
+            if (commissionData.payment_method_fee_percentage !== undefined) {
+              updatedAgent.payment_method_fee_percentage = commissionData.payment_method_fee_percentage;
+            }
+            
+            return updatedAgent as Agent;
+          }
+          return agent;
+        }),
+      };
+    });
+  }, []);
+
   return useMemo(() => ({
     data,
     isLoading,
@@ -165,6 +198,7 @@ function useAgentsDashboard(): AgentsDashboardState {
     prepareToggle,
     confirmToggle,
     cancelToggle,
+    updateAgentCommission,
   }), [
     cancelToggle,
     closeModals,
@@ -185,6 +219,7 @@ function useAgentsDashboard(): AgentsDashboardState {
     setPage,
     submitError,
     successMessage,
+    updateAgentCommission,
   ]);
 }
 
@@ -1496,16 +1531,26 @@ export default function AgentsDashboard() {
   }, []);
 
   const handleUpdateCommission = useCallback(async (data: UpdateAffiliateRequest) => {
-    if (!commissionDrawer.affiliate) return;
+    if (!commissionDrawer.affiliate || !commissionDrawer.agent) return;
 
     setCommissionDrawer((prev) => ({ ...prev, isUpdating: true }));
 
     try {
-      await affiliatesApi.update(commissionDrawer.affiliate.id, data);
+      const updatedAffiliate = await affiliatesApi.update(commissionDrawer.affiliate.id, data);
+      
+      // Update the agent in the table with the new commission data from the response
+      if (updatedAffiliate) {
+        dashboard.updateAgentCommission(commissionDrawer.agent.id, {
+          affiliation_percentage: updatedAffiliate.affiliate_percentage,
+          affiliation_fee_percentage: updatedAffiliate.affiliate_fee,
+          payment_method_fee_percentage: updatedAffiliate.payment_method_fee,
+        });
+      }
+      
       addToast({
         type: 'success',
         title: 'Commission updated',
-        description: `Commission settings for "${commissionDrawer.agent?.username}" have been updated successfully!`,
+        description: `Commission settings for "${commissionDrawer.agent.username}" have been updated successfully!`,
       });
       setCommissionDrawer({
         isOpen: false,
@@ -1524,7 +1569,7 @@ export default function AgentsDashboard() {
       setCommissionDrawer((prev) => ({ ...prev, isUpdating: false }));
       throw error;
     }
-  }, [commissionDrawer.affiliate, commissionDrawer.agent, addToast]);
+  }, [commissionDrawer.affiliate, commissionDrawer.agent, addToast, dashboard]);
 
   const handleOpenViewStats = useCallback(async (agent: Agent) => {
     setStatsDrawer({
