@@ -142,6 +142,12 @@ const AffiliatesAgentIcon = () => (
   </svg>
 );
 
+const RolesIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+);
+
 const AffiliatesDefaultIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -252,12 +258,20 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'User Management',
     icon: <UsersIcon />,
-    roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT],
+    roles: [USER_ROLES.COMPANY],
     submenu: [
       { name: 'Players', href: '/dashboard/players', icon: <PlayerIcon /> },
       { name: 'Agents', href: '/dashboard/agents', icon: <AgentIcon /> },
-      { name: 'Staffs', href: '/dashboard/staffs', icon: <StaffIcon />, roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT] },
-      { name: 'Managers', href: '/dashboard/managers', icon: <ManagerIcon />, roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT] },
+      { name: 'Staffs', href: '/dashboard/staffs', icon: <StaffIcon /> },
+      { name: 'Managers', href: '/dashboard/managers', icon: <ManagerIcon /> },
+    ],
+  },
+  {
+    name: 'User Management',
+    icon: <UsersIcon />,
+    roles: [USER_ROLES.AGENT],
+    submenu: [
+      { name: 'Players', href: '/dashboard/players', icon: <PlayerIcon /> },
     ],
   },
   {
@@ -279,7 +293,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Games',
     icon: <GameIcon />,
-    roles: [USER_ROLES.COMPANY, USER_ROLES.AGENT, USER_ROLES.PLAYER, USER_ROLES.STAFF, USER_ROLES.MANAGER],
+    roles: [USER_ROLES.COMPANY, USER_ROLES.PLAYER, USER_ROLES.STAFF, USER_ROLES.MANAGER],
     href: '/dashboard/games',
   },
   {
