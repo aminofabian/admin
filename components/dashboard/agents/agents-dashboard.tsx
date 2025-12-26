@@ -496,25 +496,28 @@ function AgentCard({ agent, onOpenActions }: AgentCardProps) {
       {/* Affiliate Link Section */}
       {agentWithAffiliate.affiliate_link && (
         <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2">
-            <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-            <a
-              href={agentWithAffiliate.affiliate_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate flex-1"
-              title={agentWithAffiliate.affiliate_link}
-            >
-              {agentWithAffiliate.affiliate_link}
-            </a>
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Affiliate Link</p>
+          <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-1.5">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <svg className="h-3 w-3 text-indigo-500 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <a
+                href={agentWithAffiliate.affiliate_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 truncate flex-1 min-w-0 transition-colors"
+                title={agentWithAffiliate.affiliate_link}
+              >
+                {agentWithAffiliate.affiliate_link}
+              </a>
+            </div>
             <button
               onClick={() => handleCopyLink(agentWithAffiliate.affiliate_link!)}
-              className="shrink-0 p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors touch-manipulation"
-              title="Copy link"
+              className="shrink-0 p-1.5 rounded-md bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200 shadow-sm hover:shadow touch-manipulation"
+              title="Copy link to clipboard"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </button>
@@ -625,22 +628,27 @@ function AgentRow({ agent, onOpenActions }: AgentRowProps) {
       </TableCell>
       <TableCell>
         {agentWithAffiliate.affiliate_link ? (
-          <div className="flex items-center gap-2">
-            <a
-              href={agentWithAffiliate.affiliate_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate max-w-xs flex-1"
-              title={agentWithAffiliate.affiliate_link}
-            >
-              {agentWithAffiliate.affiliate_link}
-            </a>
+          <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-1.5 max-w-xs">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <svg className="h-3 w-3 text-indigo-500 dark:text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <a
+                href={agentWithAffiliate.affiliate_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 truncate flex-1 min-w-0 transition-colors"
+                title={agentWithAffiliate.affiliate_link}
+              >
+                {agentWithAffiliate.affiliate_link}
+              </a>
+            </div>
             <button
               onClick={() => handleCopyLink(agentWithAffiliate.affiliate_link!)}
-              className="shrink-0 p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors touch-manipulation"
-              title="Copy link"
+              className="shrink-0 p-1.5 rounded-md bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200 shadow-sm hover:shadow touch-manipulation"
+              title="Copy link to clipboard"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </button>
