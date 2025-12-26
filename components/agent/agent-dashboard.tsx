@@ -103,8 +103,8 @@ export function AgentDashboard() {
 
       {stats && (
         <div className="flex justify-center">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl">
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl items-stretch">
+            <div className="rounded-lg border border-border bg-card p-4 shadow-sm flex items-center justify-center h-full">
               <div className="flex flex-col items-center text-center gap-2">
                 <div className="flex items-center gap-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Earning</p>
@@ -115,31 +115,31 @@ export function AgentDashboard() {
                 <div className="text-xl font-semibold text-foreground">{formatCurrency(stats.total_earnings)}</div>
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            <div className="rounded-lg border border-border bg-card p-4 shadow-sm flex items-center justify-center h-full">
               <div className="flex flex-col items-center text-center gap-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Purchase</p>
                 <div className="text-xl font-semibold text-foreground">{formatCurrency(stats.total_topup)}</div>
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            <div className="rounded-lg border border-border bg-card p-4 shadow-sm flex items-center justify-center h-full">
               <div className="flex flex-col items-center text-center gap-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Cashout</p>
                 <div className="text-xl font-semibold text-foreground">{formatCurrency(stats.total_cashout)}</div>
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            <div className="rounded-lg border border-border bg-card p-4 shadow-sm flex items-center justify-center h-full">
               <div className="flex flex-col items-center text-center gap-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payment Method Fees</p>
                 <div className="text-xl font-semibold text-foreground">{formatCurrency(stats.payment_method_fee)}</div>
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            <div className="rounded-lg border border-border bg-card p-4 shadow-sm flex items-center justify-center h-full">
               <div className="flex flex-col items-center text-center gap-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Affiliate Fees</p>
                 <div className="text-xl font-semibold text-foreground">{formatCurrency(stats.affiliation_fee)}</div>
               </div>
             </div>
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            <div className="rounded-lg border border-border bg-card p-4 shadow-sm flex items-center justify-center h-full">
               <div className="flex flex-col items-center text-center gap-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total players</p>
                 <div className="text-xl font-semibold text-foreground">{stats.total_players.toString()}</div>
