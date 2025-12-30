@@ -910,7 +910,7 @@ export function useChatWebSocket({
     const readyState = ws?.readyState;
 
     // Case 1: WebSocket is OPEN - send immediately
-    if (readyState === WebSocket.OPEN) {
+    if (ws && readyState === WebSocket.OPEN) {
       try {
         const message = {
           type: 'message',

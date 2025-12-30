@@ -5,8 +5,16 @@ import { useProcessingWebSocket, type ProcessingCounts } from '@/hooks/use-proce
 import { transactionsApi } from '@/lib/api/transactions';
 import type { TransactionQueue, Transaction } from '@/types';
 
-// Fallback refresh interval when WebSocket is disconnected (30 seconds)
-const FALLBACK_REFRESH_INTERVAL = 30000;
+// Adaptive polling intervals (in milliseconds)
+const POLLING_INTERVALS = {
+  FAST: 15000,      // 15s - when changes detected
+  NORMAL: 30000,    // 30s - default
+  SLOW: 60000,      // 60s - when no changes for a while
+  MAX: 300000,      // 5min - maximum backoff on errors
+} as const;
+
+// Page size for polling (smaller to reduce server load)
+const POLLING_PAGE_SIZE = 50;
 
 interface ProcessingWebSocketContextValue {
   isConnected: boolean;
@@ -35,6 +43,13 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
   });
   const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  
+  // Adaptive polling state
+  const currentIntervalRef = useRef<number>(POLLING_INTERVALS.NORMAL);
+  const consecutiveNoChangeRef = useRef<number>(0);
+  const consecutiveErrorsRef = useRef<number>(0);
+  const lastDataHashRef = useRef<string>('');
+  const isTabVisibleRef = useRef<boolean>(true);
 
   const handleQueueUpdate = useCallback((queue: TransactionQueue, isInitialLoad = false) => {
     queueUpdateCallbacksRef.current.forEach((callback) => {
@@ -71,10 +86,27 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
   }, []);
 
   /**
+   * Create a hash of the data to detect changes
+   */
+  const createDataHash = useCallback((data: { purchases: Transaction[]; cashouts: Transaction[]; queues: TransactionQueue[] }): string => {
+    const purchaseIds = data.purchases.map(t => t.id).sort().join(',');
+    const cashoutIds = data.cashouts.map(t => t.id).sort().join(',');
+    const queueIds = data.queues.map(q => q.id).sort().join(',');
+    return `${purchaseIds}|${cashoutIds}|${queueIds}`;
+  }, []);
+
+  /**
    * Fetch data via REST API as fallback when WebSocket is unavailable
    * This fetches pending purchases, pending cashouts, and processing game activities
+   * Uses adaptive polling intervals based on changes detected
    */
   const fetchDataViaApi = useCallback(async () => {
+    // Skip if tab is hidden (saves server resources)
+    if (!isTabVisibleRef.current) {
+      console.log('⏭️ [Fallback] Tab hidden, skipping poll...');
+      return;
+    }
+
     if (isFetching) {
       console.log('⏭️ [Fallback] Already fetching, skipping...');
       return;
@@ -84,21 +116,31 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
     setIsFetching(true);
 
     try {
-      // Fetch all pending data in parallel
+      // Fetch all pending data in parallel with smaller page size
       const [purchasesResponse, cashoutsResponse, queuesResponse] = await Promise.all([
-        transactionsApi.listPurchases({ status: 'pending', page_size: 100 }).catch((err) => {
+        transactionsApi.listPurchases({ status: 'pending', page_size: POLLING_PAGE_SIZE }).catch((err) => {
           console.error('❌ [Fallback] Failed to fetch purchases:', err);
           return { results: [], count: 0 };
         }),
-        transactionsApi.listCashouts({ status: 'pending', page_size: 100 }).catch((err) => {
+        transactionsApi.listCashouts({ status: 'pending', page_size: POLLING_PAGE_SIZE }).catch((err) => {
           console.error('❌ [Fallback] Failed to fetch cashouts:', err);
           return { results: [], count: 0 };
         }),
-        transactionsApi.queuesProcessing({ page_size: 100 }).catch((err) => {
+        transactionsApi.queuesProcessing({ page_size: POLLING_PAGE_SIZE }).catch((err) => {
           console.error('❌ [Fallback] Failed to fetch queues:', err);
           return { results: [], count: 0 };
         }),
       ]);
+
+      // Create data hash to detect changes
+      const currentData = {
+        purchases: purchasesResponse.results,
+        cashouts: cashoutsResponse.results,
+        queues: queuesResponse.results,
+      };
+      const currentHash = createDataHash(currentData);
+      const hasChanged = currentHash !== lastDataHashRef.current;
+      lastDataHashRef.current = currentHash;
 
       // Update counts
       const newCounts: ProcessingCounts = {
@@ -108,10 +150,30 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
       };
       setCounts(newCounts);
 
+      // Reset error counter on success
+      consecutiveErrorsRef.current = 0;
+
+      // Adaptive interval adjustment based on changes
+      if (hasChanged) {
+        consecutiveNoChangeRef.current = 0;
+        // If changes detected, use faster polling
+        currentIntervalRef.current = POLLING_INTERVALS.FAST;
+        console.log('📊 [Fallback] Data changed, switching to fast polling (15s)');
+      } else {
+        consecutiveNoChangeRef.current += 1;
+        // If no changes for 2+ polls, slow down
+        if (consecutiveNoChangeRef.current >= 2) {
+          currentIntervalRef.current = POLLING_INTERVALS.SLOW;
+          console.log('📊 [Fallback] No changes detected, switching to slow polling (60s)');
+        }
+      }
+
       console.log('📊 [Fallback] Data fetched:', {
         purchases: purchasesResponse.results.length,
         cashouts: cashoutsResponse.results.length,
         queues: queuesResponse.results.length,
+        hasChanged,
+        nextInterval: currentIntervalRef.current / 1000 + 's',
       });
 
       // Notify subscribers with the fetched data (as initial load)
@@ -138,30 +200,62 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
       console.log('✅ [Fallback] Data refresh complete');
     } catch (error) {
       console.error('❌ [Fallback] Error fetching data:', error);
+      
+      // Exponential backoff on errors
+      consecutiveErrorsRef.current += 1;
+      const backoffMultiplier = Math.min(consecutiveErrorsRef.current, 4); // Max 4x backoff
+      currentIntervalRef.current = Math.min(
+        POLLING_INTERVALS.NORMAL * Math.pow(2, backoffMultiplier - 1),
+        POLLING_INTERVALS.MAX
+      );
+      
+      console.warn(`⚠️ [Fallback] Error occurred, backing off to ${currentIntervalRef.current / 1000}s`);
     } finally {
       setIsFetching(false);
     }
-  }, [isFetching, handleTransactionUpdate, handleQueueUpdate]);
+  }, [isFetching, handleTransactionUpdate, handleQueueUpdate, createDataHash]);
 
   /**
    * Called when WebSocket connection completely fails (max reconnection attempts reached)
-   * Switches to fallback mode and starts periodic API polling
+   * Switches to fallback mode and starts adaptive API polling
    */
   const handleConnectionFailed = useCallback(() => {
     console.log('⚠️ [Context] WebSocket connection failed, switching to API fallback mode');
     setIsUsingFallback(true);
     
+    // Reset polling state
+    currentIntervalRef.current = POLLING_INTERVALS.NORMAL;
+    consecutiveNoChangeRef.current = 0;
+    consecutiveErrorsRef.current = 0;
+    lastDataHashRef.current = '';
+    
     // Fetch initial data immediately
     fetchDataViaApi();
     
-    // Start periodic refresh
-    if (fallbackIntervalRef.current) {
-      clearInterval(fallbackIntervalRef.current);
-    }
-    fallbackIntervalRef.current = setInterval(() => {
-      console.log('🔄 [Fallback] Auto-refreshing data...');
-      fetchDataViaApi();
-    }, FALLBACK_REFRESH_INTERVAL);
+    // Start adaptive periodic refresh
+    const scheduleNextPoll = () => {
+      if (fallbackIntervalRef.current) {
+        clearTimeout(fallbackIntervalRef.current);
+      }
+      
+      // Only schedule if tab is visible
+      if (isTabVisibleRef.current) {
+        fallbackIntervalRef.current = setTimeout(() => {
+          console.log(`🔄 [Fallback] Auto-refreshing data (interval: ${currentIntervalRef.current / 1000}s)...`);
+          fetchDataViaApi().finally(() => {
+            // Schedule next poll with current interval
+            scheduleNextPoll();
+          });
+        }, currentIntervalRef.current);
+      } else {
+        // If tab is hidden, check again in 5 seconds
+        fallbackIntervalRef.current = setTimeout(() => {
+          scheduleNextPoll();
+        }, 5000);
+      }
+    };
+    
+    scheduleNextPoll();
   }, [fetchDataViaApi]);
 
   /**
@@ -172,9 +266,14 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
     console.log('✅ [Context] WebSocket connected, disabling fallback mode');
     setIsUsingFallback(false);
     
+    // Reset polling state
+    currentIntervalRef.current = POLLING_INTERVALS.NORMAL;
+    consecutiveNoChangeRef.current = 0;
+    consecutiveErrorsRef.current = 0;
+    
     // Stop periodic refresh
     if (fallbackIntervalRef.current) {
-      clearInterval(fallbackIntervalRef.current);
+      clearTimeout(fallbackIntervalRef.current);
       fallbackIntervalRef.current = null;
     }
   }, []);
@@ -189,11 +288,51 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
     onConnectionFailed: handleConnectionFailed,
   });
 
+  // Page Visibility API - pause polling when tab is hidden
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      isTabVisibleRef.current = !document.hidden;
+      
+      if (isUsingFallback) {
+        if (document.hidden) {
+          console.log('⏸️ [Fallback] Tab hidden, pausing polling...');
+          if (fallbackIntervalRef.current) {
+            clearTimeout(fallbackIntervalRef.current);
+            fallbackIntervalRef.current = null;
+          }
+        } else {
+          console.log('▶️ [Fallback] Tab visible, resuming polling...');
+          // Resume polling immediately
+          fetchDataViaApi();
+          // Restart polling interval
+          const scheduleNextPoll = () => {
+            if (fallbackIntervalRef.current) {
+              clearTimeout(fallbackIntervalRef.current);
+            }
+            fallbackIntervalRef.current = setTimeout(() => {
+              fetchDataViaApi().finally(() => {
+                scheduleNextPoll();
+              });
+            }, currentIntervalRef.current);
+          };
+          scheduleNextPoll();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    isTabVisibleRef.current = !document.hidden;
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isUsingFallback, fetchDataViaApi]);
+
   // Cleanup interval on unmount
   useEffect(() => {
     return () => {
       if (fallbackIntervalRef.current) {
-        clearInterval(fallbackIntervalRef.current);
+        clearTimeout(fallbackIntervalRef.current);
       }
     };
   }, []);
