@@ -147,6 +147,11 @@ export function useChatWebSocket({
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
   
+  // Message queue for messages sent while connecting
+  const messageQueueRef = useRef<Array<{ text: string; timestamp: number }>>([]);
+  const connectionWaitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const CONNECTION_WAIT_TIMEOUT = 3000; // Wait 3 seconds for connection before falling back
+  
   // Use ref to avoid reconnecting WebSocket when callback changes
   const onMessageReceivedRef = useRef(onMessageReceived);
   useEffect(() => {
@@ -457,6 +462,38 @@ export function useChatWebSocket({
         setConnectionError(null);
         reconnectAttemptsRef.current = 0;
         
+        // Clear connection wait timeout
+        if (connectionWaitTimeoutRef.current) {
+          clearTimeout(connectionWaitTimeoutRef.current);
+          connectionWaitTimeoutRef.current = null;
+        }
+        
+        // Process queued messages
+        if (messageQueueRef.current.length > 0) {
+          !IS_PROD && console.log(`📤 [Chat WS] Processing ${messageQueueRef.current.length} queued messages`);
+          const queuedMessages = [...messageQueueRef.current];
+          messageQueueRef.current = [];
+          
+          // Send queued messages via WebSocket
+          queuedMessages.forEach(({ text }) => {
+            try {
+              const message = {
+                type: 'message',
+                sender_id: adminId,
+                is_player_sender: false,
+                message: text,
+                sent_time: new Date().toISOString(),
+              };
+              ws.send(JSON.stringify(message));
+              !IS_PROD && console.log('✅ [Chat WS] Sent queued message:', text.substring(0, 50));
+            } catch (error) {
+              console.error('❌ [Chat WS] Failed to send queued message:', error);
+              // Re-queue failed message for REST API fallback
+              messageQueueRef.current.push({ text, timestamp: Date.now() });
+            }
+          });
+        }
+        
         // Fetch message history after connecting
         !IS_PROD && console.log('📜 [Chat WS] Fetching message history after connection...');
         void fetchMessageHistory(1, 'replace');
@@ -746,10 +783,112 @@ export function useChatWebSocket({
     }
   }, [userId, chatId, adminId, enabled, fetchMessageHistory]);
 
+  const sendMessageViaRest = useCallback(async (text: string, retryCount = 0): Promise<boolean> => {
+    const MAX_RETRIES = 2;
+    
+    try {
+      const token = storage.get(TOKEN_KEY);
+      if (!token) {
+        console.error('❌ No authentication token found');
+        setConnectionError('Authentication required. Please log in again.');
+        return false;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/chat/send/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          sender_id: adminId,
+          receiver_id: userId,
+          message: text,
+          is_player_sender: false,
+          sent_time: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          console.error('🚨 Authentication failed - redirecting to login');
+          storage.clear();
+          if (typeof window !== 'undefined') {
+            window.location.replace('/login');
+          }
+          return false;
+        }
+        
+        // Retry on server errors (5xx) or network errors
+        if (retryCount < MAX_RETRIES && (response.status >= 500 || response.status === 0)) {
+          !IS_PROD && console.log(`🔄 Retrying REST API send (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          return sendMessageViaRest(text, retryCount + 1);
+        }
+        
+        throw new Error(`Failed to send message: ${response.status} ${response.statusText}`);
+      }
+
+      !IS_PROD && console.log('✅ Message sent successfully via REST API');
+      
+      // Add the message to local state for instant feedback
+      const messageDate = new Date();
+      const newMessage: ChatMessage = {
+        id: Date.now().toString(),
+        text,
+        sender: 'admin',
+        timestamp: messageDate.toISOString(),
+        date: messageDate.toISOString().split('T')[0],
+        time: messageDate.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        isRead: false,
+        userId: adminId,
+        isPinned: false,
+      };
+
+      setMessages((prev) => [...prev, newMessage]);
+      
+      if (onMessageReceivedRef.current) {
+        onMessageReceivedRef.current(newMessage);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send message via REST API:', error);
+      
+      if (retryCount < MAX_RETRIES) {
+        !IS_PROD && console.log(`🔄 Retrying REST API send (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        return sendMessageViaRest(text, retryCount + 1);
+      }
+      
+      setConnectionError('Failed to send message. Please check your connection and try again.');
+      return false;
+    }
+  }, [adminId, userId]);
+
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
+    }
+
+    if (connectionWaitTimeoutRef.current) {
+      clearTimeout(connectionWaitTimeoutRef.current);
+      connectionWaitTimeoutRef.current = null;
+    }
+
+    // Process any remaining queued messages via REST API before disconnecting
+    if (messageQueueRef.current.length > 0) {
+      !IS_PROD && console.log(`📤 Processing ${messageQueueRef.current.length} queued messages before disconnect...`);
+      const queuedMessages = [...messageQueueRef.current];
+      messageQueueRef.current = [];
+      
+      queuedMessages.forEach(({ text }) => {
+        void sendMessageViaRest(text);
+      });
     }
 
     if (wsRef.current) {
@@ -760,13 +899,19 @@ export function useChatWebSocket({
 
     setIsConnected(false);
     reconnectAttemptsRef.current = 0;
-  }, []);
+  }, [sendMessageViaRest]);
 
   const sendMessage = useCallback((text: string) => {
-    //  Try WebSocket first, fallback to REST API if not connected
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+    if (!text.trim()) {
+      return;
+    }
+
+    const ws = wsRef.current;
+    const readyState = ws?.readyState;
+
+    // Case 1: WebSocket is OPEN - send immediately
+    if (readyState === WebSocket.OPEN) {
       try {
-        // Send message via WebSocket
         const message = {
           type: 'message',
           sender_id: adminId,
@@ -775,72 +920,51 @@ export function useChatWebSocket({
           sent_time: new Date().toISOString(),
         };
 
-        wsRef.current.send(JSON.stringify(message));
+        ws.send(JSON.stringify(message));
         !IS_PROD && console.log('📤 Sent message via WebSocket - waiting for confirmation');
         return;
       } catch (error) {
         console.error('❌ Failed to send via WebSocket, trying REST API:', error);
+        // Fall through to REST API fallback
       }
     }
 
-    // Fallback to REST API if WebSocket is not available
-    !IS_PROD && console.log('📤 WebSocket not available, sending via REST API...');
-    
-    fetch(`${API_BASE_URL}/api/v1/chat/send/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${storage.get(TOKEN_KEY)}`,
-      },
-      body: JSON.stringify({
-        sender_id: adminId,
-        receiver_id: userId,
-        message: text,
-        is_player_sender: false,
-        sent_time: new Date().toISOString(),
-      }),
-    })
-      .then(response => {
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            console.error('🚨 Authentication failed - redirecting to login');
-            storage.clear();
-            if (typeof window !== 'undefined') {
-              window.location.replace('/login');
+    // Case 2: WebSocket is CONNECTING - queue the message and wait
+    if (readyState === WebSocket.CONNECTING) {
+      !IS_PROD && console.log('⏳ WebSocket connecting, queueing message...');
+      
+      // Add to queue
+      messageQueueRef.current.push({ text, timestamp: Date.now() });
+      
+      // Set timeout to wait for connection, then fallback to REST API
+      if (!connectionWaitTimeoutRef.current) {
+        connectionWaitTimeoutRef.current = setTimeout(async () => {
+          connectionWaitTimeoutRef.current = null;
+          
+          // If still connecting after timeout, process queue via REST API
+          if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+            !IS_PROD && console.log('⏱️ Connection timeout, sending queued messages via REST API...');
+            const queuedMessages = [...messageQueueRef.current];
+            messageQueueRef.current = [];
+            
+            // Send all queued messages via REST API
+            for (const { text: queuedText } of queuedMessages) {
+              await sendMessageViaRest(queuedText);
             }
+          } else if (wsRef.current?.readyState === WebSocket.OPEN) {
+            // Connection established - messages will be sent via WebSocket in onopen handler
+            !IS_PROD && console.log('✅ Connection established, queued messages will be sent via WebSocket');
           }
-          throw new Error(`Failed to send message: ${response.status}`);
-        }
-        !IS_PROD && console.log(' Message sent successfully via REST API');
-        
-        // Add the message to local state for instant feedback
-        const messageDate = new Date();
-        const newMessage: ChatMessage = {
-          id: Date.now().toString(),
-          text,
-          sender: 'admin',
-          timestamp: messageDate.toISOString(),
-          date: messageDate.toISOString().split('T')[0],
-          time: messageDate.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-          isRead: false,
-          userId: adminId,
-          isPinned: false,
-        };
+        }, CONNECTION_WAIT_TIMEOUT);
+      }
+      
+      return;
+    }
 
-        setMessages((prev) => [...prev, newMessage]);
-        
-        if (onMessageReceivedRef.current) {
-          onMessageReceivedRef.current(newMessage);
-        }
-      })
-      .catch(error => {
-        console.error('❌ Failed to send message:', error);
-        setConnectionError('Failed to send message. Please try again.');
-      });
-  }, [adminId, userId]);
+    // Case 3: WebSocket is CLOSED or CLOSING - send via REST API immediately
+    !IS_PROD && console.log('📤 WebSocket not available, sending via REST API...');
+    void sendMessageViaRest(text);
+  }, [adminId, sendMessageViaRest]);
 
   const markAsRead = useCallback((messageId: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
