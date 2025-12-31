@@ -16,6 +16,7 @@ import {
   Skeleton,
   Drawer,
 } from '@/components/ui';
+import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/utils/formatters';
 import type { ChatLink, UpdateChatLinkRequest } from '@/types';
 
@@ -50,6 +51,7 @@ interface ChatLinkRowProps {
 function ChatLinkRow({ chatLink, onEdit, onToggleEnabled }: ChatLinkRowProps) {
   const [localIsEnabled, setLocalIsEnabled] = useState(chatLink.is_enabled);
   const [isToggling, setIsToggling] = useState(false);
+  const { addToast } = useToast();
 
   // Sync local state with prop changes
   useEffect(() => {
@@ -63,10 +65,20 @@ function ChatLinkRow({ chatLink, onEdit, onToggleEnabled }: ChatLinkRowProps) {
     
     try {
       await onToggleEnabled(chatLink.id, checked);
+      addToast({
+        type: 'success',
+        title: `${chatLink.platform_display} ${checked ? 'enabled' : 'disabled'}`,
+        description: `The ${chatLink.platform_display} link has been ${checked ? 'enabled' : 'disabled'} successfully.`,
+      });
     } catch (err) {
       // Revert on error
       setLocalIsEnabled(chatLink.is_enabled);
-      console.error('Failed to update status:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update status';
+      addToast({
+        type: 'error',
+        title: 'Failed to update status',
+        description: errorMessage,
+      });
     } finally {
       setIsToggling(false);
     }
@@ -191,6 +203,7 @@ interface EditChatLinkDrawerProps {
 function EditChatLinkDrawer({ chatLink, isOpen, onClose, onSave, isSaving }: EditChatLinkDrawerProps) {
   const [linkUrl, setLinkUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   useEffect(() => {
     if (chatLink) {
@@ -208,9 +221,20 @@ function EditChatLinkDrawer({ chatLink, isOpen, onClose, onSave, isSaving }: Edi
 
     try {
       await onSave(chatLink.id, { link_url: linkUrl });
+      addToast({
+        type: 'success',
+        title: 'Link updated successfully',
+        description: `The ${chatLink.platform_display} link URL has been updated.`,
+      });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update link');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update link';
+      setError(errorMessage);
+      addToast({
+        type: 'error',
+        title: 'Failed to update link',
+        description: errorMessage,
+      });
     }
   };
 
