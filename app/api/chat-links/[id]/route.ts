@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
-    const apiUrl = `${backendUrl}/api/v1/chat-links/${params.id}/`;
+    const apiUrl = `${backendUrl}/api/v1/chat-links/${id}/`;
 
     const authHeader = request.headers.get('Authorization');
     const body = await request.json();
