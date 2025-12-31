@@ -45,15 +45,30 @@ interface ChatLinkRowProps {
   chatLink: ChatLink;
   onEdit: (chatLink: ChatLink) => void;
   onToggleEnabled: (id: number, checked: boolean) => Promise<void>;
-  isUpdating: boolean;
 }
 
-function ChatLinkRow({ chatLink, onEdit, onToggleEnabled, isUpdating }: ChatLinkRowProps) {
+function ChatLinkRow({ chatLink, onEdit, onToggleEnabled }: ChatLinkRowProps) {
+  const [localIsEnabled, setLocalIsEnabled] = useState(chatLink.is_enabled);
+  const [isToggling, setIsToggling] = useState(false);
+
+  // Sync local state with prop changes
+  useEffect(() => {
+    setLocalIsEnabled(chatLink.is_enabled);
+  }, [chatLink.is_enabled]);
+
   const handleToggleEnabled = async (checked: boolean) => {
+    // Optimistic update - update UI immediately
+    setLocalIsEnabled(checked);
+    setIsToggling(true);
+    
     try {
       await onToggleEnabled(chatLink.id, checked);
     } catch (err) {
+      // Revert on error
+      setLocalIsEnabled(chatLink.is_enabled);
       console.error('Failed to update status:', err);
+    } finally {
+      setIsToggling(false);
     }
   };
 
@@ -69,14 +84,14 @@ function ChatLinkRow({ chatLink, onEdit, onToggleEnabled, isUpdating }: ChatLink
       </TableCell>
       <TableCell>
         <Switch
-          checked={chatLink.is_enabled}
+          checked={localIsEnabled}
           onChange={handleToggleEnabled}
-          disabled={isUpdating}
+          disabled={isToggling}
         />
       </TableCell>
       <TableCell>
-        <Badge variant={chatLink.is_enabled ? 'success' : 'default'}>
-          {chatLink.is_enabled ? 'Enabled' : 'Disabled'}
+        <Badge variant={localIsEnabled ? 'success' : 'default'}>
+          {localIsEnabled ? 'Enabled' : 'Disabled'}
         </Badge>
       </TableCell>
       <TableCell>
@@ -104,7 +119,7 @@ function ChatLinkRow({ chatLink, onEdit, onToggleEnabled, isUpdating }: ChatLink
             variant="ghost"
             size="sm"
             onClick={() => onEdit(chatLink)}
-            disabled={isUpdating}
+            disabled={isToggling}
             className="flex items-center gap-2 shrink-0"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,12 +137,10 @@ function ChatLinksTable({
   chatLinks,
   onEdit,
   onToggleEnabled,
-  isUpdating,
 }: {
   chatLinks: ChatLink[];
   onEdit: (chatLink: ChatLink) => void;
   onToggleEnabled: (id: number, checked: boolean) => Promise<void>;
-  isUpdating: boolean;
 }) {
   // Ensure chatLinks is always an array
   const linksArray = Array.isArray(chatLinks) ? chatLinks : [];
@@ -159,7 +172,6 @@ function ChatLinksTable({
               chatLink={chatLink}
               onEdit={onEdit}
               onToggleEnabled={onToggleEnabled}
-              isUpdating={isUpdating}
             />
           ))}
         </TableBody>
@@ -308,11 +320,11 @@ export default function SocialLinksPage() {
   };
 
   const handleToggleEnabled = async (id: number, checked: boolean) => {
-    setIsUpdating(true);
     try {
       await updateChatLink(id, { is_enabled: checked });
-    } finally {
-      setIsUpdating(false);
+    } catch (err) {
+      console.error('Failed to toggle enabled status:', err);
+      throw err;
     }
   };
 
@@ -360,7 +372,6 @@ export default function SocialLinksPage() {
           chatLinks={linksArray}
           onEdit={handleEdit}
           onToggleEnabled={handleToggleEnabled}
-          isUpdating={isUpdating}
         />
       </div>
       <EditChatLinkDrawer

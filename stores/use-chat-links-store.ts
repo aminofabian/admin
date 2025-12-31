@@ -60,6 +60,19 @@ export const useChatLinksStore = create<ChatLinksStore>((set, get) => ({
   },
 
   updateChatLink: async (id: number, data: UpdateChatLinkRequest) => {
+    const currentLinks = get().chatLinks;
+    const existingLink = currentLinks.find((link) => link.id === id);
+
+    if (!existingLink) {
+      throw new Error('Chat link not found');
+    }
+
+    // Optimistic update - update UI immediately
+    const optimisticLinks = currentLinks.map((link) =>
+      link.id === id ? { ...link, ...data } : link
+    );
+    set({ chatLinks: optimisticLinks });
+
     try {
       const chatLink = await chatLinksApi.update(id, data);
 
@@ -67,14 +80,20 @@ export const useChatLinksStore = create<ChatLinksStore>((set, get) => ({
         throw new Error('No data returned from server');
       }
 
-      const updatedLinks = get().chatLinks.map((link) =>
-        link.id === id ? chatLink : link
+      // Merge the updated fields with the existing chat link to preserve all fields
+      const updatedLinks = optimisticLinks.map((link) =>
+        link.id === id ? { ...link, ...chatLink } : link
       );
 
       set({ chatLinks: updatedLinks });
 
-      return chatLink;
+      // Return the merged chat link
+      const mergedChatLink = updatedLinks.find((link) => link.id === id);
+      return mergedChatLink || chatLink;
     } catch (err: unknown) {
+      // Revert optimistic update on error
+      set({ chatLinks: currentLinks });
+
       let errorMessage = 'Failed to update chat link';
 
       if (err && typeof err === 'object' && 'detail' in err) {
