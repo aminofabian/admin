@@ -141,3 +141,19 @@ export interface CompanyUpdateResponse {
   message: string;
   data: CompanySettings;
 }
+
+// Chat Links Types
+export interface ChatLink {
+  id: number;
+  platform: string;
+  platform_display: string;
+  link_url: string;
+  is_enabled: boolean;
+  created: string;
+  modified: string;
+}
+
+export interface UpdateChatLinkRequest {
+  link_url?: string;
+  is_enabled?: boolean;
+}

@@ -86,6 +86,10 @@ export const API_ENDPOINTS = {
     ADMIN_CHAT: `${API_PREFIX}/admin/chat/`, // New JWT-authenticated endpoint
     WEBSOCKET_BASE: '/ws/cschat/', // WebSocket endpoint base (backend)
   },
+  CHAT_LINKS: {
+    LIST: `${API_PREFIX}/chat-links/`,
+    DETAIL: (id: number) => `${API_PREFIX}/chat-links/${id}/`,
+  },
 } as const;
 
 export const TOKEN_KEY = 'auth_token';
