@@ -45,7 +45,8 @@ function ChatLinksHeader() {
 interface ChatLinkRowProps {
   chatLink: ChatLink;
   onEdit: (chatLink: ChatLink) => void;
-  onToggleEnabled: (id: number, checked: boolean) => Promise<void>;
+  onToggleDashboard: (id: number, checked: boolean) => Promise<void>;
+  onToggleLandingPage: (id: number, checked: boolean) => Promise<void>;
 }
 
 function getPlatformIcon(platform: string) {
@@ -84,31 +85,37 @@ function getPlatformIcon(platform: string) {
   }
 }
 
-function ChatLinkRow({ chatLink, onEdit, onToggleEnabled }: ChatLinkRowProps) {
-  const [localIsEnabled, setLocalIsEnabled] = useState(chatLink.is_enabled);
-  const [isToggling, setIsToggling] = useState(false);
+function ChatLinkRow({ chatLink, onEdit, onToggleDashboard, onToggleLandingPage }: ChatLinkRowProps) {
+  const [localDashboardEnabled, setLocalDashboardEnabled] = useState(chatLink.is_enabled_for_dashboard);
+  const [localLandingPageEnabled, setLocalLandingPageEnabled] = useState(chatLink.is_enabled_for_landing_page);
+  const [isTogglingDashboard, setIsTogglingDashboard] = useState(false);
+  const [isTogglingLandingPage, setIsTogglingLandingPage] = useState(false);
   const { addToast } = useToast();
 
   // Sync local state with prop changes
   useEffect(() => {
-    setLocalIsEnabled(chatLink.is_enabled);
-  }, [chatLink.is_enabled]);
+    setLocalDashboardEnabled(chatLink.is_enabled_for_dashboard);
+  }, [chatLink.is_enabled_for_dashboard]);
 
-  const handleToggleEnabled = async (checked: boolean) => {
+  useEffect(() => {
+    setLocalLandingPageEnabled(chatLink.is_enabled_for_landing_page);
+  }, [chatLink.is_enabled_for_landing_page]);
+
+  const handleToggleDashboard = async (checked: boolean) => {
     // Optimistic update - update UI immediately
-    setLocalIsEnabled(checked);
-    setIsToggling(true);
+    setLocalDashboardEnabled(checked);
+    setIsTogglingDashboard(true);
     
     try {
-      await onToggleEnabled(chatLink.id, checked);
+      await onToggleDashboard(chatLink.id, checked);
       addToast({
         type: 'success',
-        title: `${chatLink.platform_display} ${checked ? 'enabled' : 'disabled'}`,
-        description: `The ${chatLink.platform_display} link has been ${checked ? 'enabled' : 'disabled'} successfully.`,
+        title: `${chatLink.platform_display} ${checked ? 'enabled' : 'disabled'} for dashboard`,
+        description: `The ${chatLink.platform_display} link has been ${checked ? 'enabled' : 'disabled'} for dashboard successfully.`,
       });
     } catch (err) {
       // Revert on error
-      setLocalIsEnabled(chatLink.is_enabled);
+      setLocalDashboardEnabled(chatLink.is_enabled_for_dashboard);
       const errorMessage = err instanceof Error ? err.message : 'Failed to update status';
       addToast({
         type: 'error',
@@ -116,7 +123,33 @@ function ChatLinkRow({ chatLink, onEdit, onToggleEnabled }: ChatLinkRowProps) {
         description: errorMessage,
       });
     } finally {
-      setIsToggling(false);
+      setIsTogglingDashboard(false);
+    }
+  };
+
+  const handleToggleLandingPage = async (checked: boolean) => {
+    // Optimistic update - update UI immediately
+    setLocalLandingPageEnabled(checked);
+    setIsTogglingLandingPage(true);
+    
+    try {
+      await onToggleLandingPage(chatLink.id, checked);
+      addToast({
+        type: 'success',
+        title: `${chatLink.platform_display} ${checked ? 'enabled' : 'disabled'} for landing page`,
+        description: `The ${chatLink.platform_display} link has been ${checked ? 'enabled' : 'disabled'} for landing page successfully.`,
+      });
+    } catch (err) {
+      // Revert on error
+      setLocalLandingPageEnabled(chatLink.is_enabled_for_landing_page);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update status';
+      addToast({
+        type: 'error',
+        title: 'Failed to update status',
+        description: errorMessage,
+      });
+    } finally {
+      setIsTogglingLandingPage(false);
     }
   };
 
@@ -138,18 +171,34 @@ function ChatLinkRow({ chatLink, onEdit, onToggleEnabled }: ChatLinkRowProps) {
         </div>
       </TableCell>
       <TableCell className="py-4">
-        <div className="flex items-center">
-          <Switch
-            checked={localIsEnabled}
-            onChange={handleToggleEnabled}
-            disabled={isToggling}
-          />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={localDashboardEnabled}
+              onChange={handleToggleDashboard}
+              disabled={isTogglingDashboard}
+            />
+            <span className="text-xs text-gray-600 dark:text-gray-400">Dashboard</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={localLandingPageEnabled}
+              onChange={handleToggleLandingPage}
+              disabled={isTogglingLandingPage}
+            />
+            <span className="text-xs text-gray-600 dark:text-gray-400">Landing Page</span>
+          </div>
         </div>
       </TableCell>
       <TableCell className="py-4">
-        <Badge variant={localIsEnabled ? 'success' : 'default'}>
-          {localIsEnabled ? 'Enabled' : 'Disabled'}
-        </Badge>
+        <div className="flex flex-col gap-2">
+          <Badge variant={localDashboardEnabled ? 'success' : 'default'}>
+            {localDashboardEnabled ? 'Enabled' : 'Disabled'} (Dashboard)
+          </Badge>
+          <Badge variant={localLandingPageEnabled ? 'success' : 'default'}>
+            {localLandingPageEnabled ? 'Enabled' : 'Disabled'} (Landing Page)
+          </Badge>
+        </div>
       </TableCell>
       <TableCell className="py-4">
         <div className="flex items-center gap-2">
@@ -189,7 +238,7 @@ function ChatLinkRow({ chatLink, onEdit, onToggleEnabled }: ChatLinkRowProps) {
             variant="ghost"
             size="sm"
             onClick={() => onEdit(chatLink)}
-            disabled={isToggling}
+            disabled={isTogglingDashboard || isTogglingLandingPage}
             className="flex items-center gap-2 shrink-0 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -206,11 +255,13 @@ function ChatLinkRow({ chatLink, onEdit, onToggleEnabled }: ChatLinkRowProps) {
 function ChatLinksTable({
   chatLinks,
   onEdit,
-  onToggleEnabled,
+  onToggleDashboard,
+  onToggleLandingPage,
 }: {
   chatLinks: ChatLink[];
   onEdit: (chatLink: ChatLink) => void;
-  onToggleEnabled: (id: number, checked: boolean) => Promise<void>;
+  onToggleDashboard: (id: number, checked: boolean) => Promise<void>;
+  onToggleLandingPage: (id: number, checked: boolean) => Promise<void>;
 }) {
   // Ensure chatLinks is always an array
   const linksArray = Array.isArray(chatLinks) ? chatLinks : [];
@@ -239,8 +290,8 @@ function ChatLinksTable({
         <TableHeader>
           <TableRow className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Platform</TableHead>
-            <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Status</TableHead>
-            <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Enabled</TableHead>
+            <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Toggle Status</TableHead>
+            <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Enabled Status</TableHead>
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Last Modified</TableHead>
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Link URL</TableHead>
           </TableRow>
@@ -251,7 +302,8 @@ function ChatLinksTable({
               key={chatLink.id}
               chatLink={chatLink}
               onEdit={onEdit}
-              onToggleEnabled={onToggleEnabled}
+              onToggleDashboard={onToggleDashboard}
+              onToggleLandingPage={onToggleLandingPage}
             />
           ))}
         </TableBody>
@@ -338,7 +390,7 @@ function EditChatLinkDrawer({ chatLink, isOpen, onClose, onSave, isSaving }: Edi
                 Platform Information
               </p>
               <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                This link will be displayed to players on their dashboard if enabled. Make sure the URL is correct and accessible.
+                This link can be displayed on the player dashboard and/or the landing page footer. Enable the toggles as needed and make sure the URL is correct and accessible.
               </p>
             </div>
           </div>
@@ -423,11 +475,20 @@ export default function SocialLinksPage() {
     }
   };
 
-  const handleToggleEnabled = async (id: number, checked: boolean) => {
+  const handleToggleDashboard = async (id: number, checked: boolean) => {
     try {
-      await updateChatLink(id, { is_enabled: checked });
+      await updateChatLink(id, { is_enabled_for_dashboard: checked });
     } catch (err) {
-      console.error('Failed to toggle enabled status:', err);
+      console.error('Failed to toggle dashboard status:', err);
+      throw err;
+    }
+  };
+
+  const handleToggleLandingPage = async (id: number, checked: boolean) => {
+    try {
+      await updateChatLink(id, { is_enabled_for_landing_page: checked });
+    } catch (err) {
+      console.error('Failed to toggle landing page status:', err);
       throw err;
     }
   };
@@ -482,20 +543,31 @@ export default function SocialLinksPage() {
                 Manage social media and messaging platform links for player support
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50">
-              <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
-                {linksArray.filter((link) => link.is_enabled).length} of {linksArray.length} enabled
-              </span>
+            <div className="hidden sm:flex items-center gap-4">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50">
+                <svg className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                  {linksArray.filter((link) => link.is_enabled_for_dashboard).length} of {linksArray.length} (Dashboard)
+                </span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50">
+                <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                  {linksArray.filter((link) => link.is_enabled_for_landing_page).length} of {linksArray.length} (Landing Page)
+                </span>
+              </div>
             </div>
           </div>
         </div>
         <ChatLinksTable
           chatLinks={linksArray}
           onEdit={handleEdit}
-          onToggleEnabled={handleToggleEnabled}
+          onToggleDashboard={handleToggleDashboard}
+          onToggleLandingPage={handleToggleLandingPage}
         />
       </div>
       <EditChatLinkDrawer

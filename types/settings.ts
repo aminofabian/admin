@@ -148,12 +148,14 @@ export interface ChatLink {
   platform: string;
   platform_display: string;
   link_url: string;
-  is_enabled: boolean;
+  is_enabled_for_dashboard: boolean;
+  is_enabled_for_landing_page: boolean;
   created: string;
   modified: string;
 }
 
 export interface UpdateChatLinkRequest {
   link_url?: string;
-  is_enabled?: boolean;
+  is_enabled_for_dashboard?: boolean;
+  is_enabled_for_landing_page?: boolean;
 }
