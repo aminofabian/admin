@@ -9,7 +9,6 @@ import {
   TableRow,
   TableHead,
   TableCell,
-  Badge,
   Button,
   Input,
   Switch,
@@ -191,16 +190,6 @@ function ChatLinkRow({ chatLink, onEdit, onToggleDashboard, onToggleLandingPage 
         </div>
       </TableCell>
       <TableCell className="py-4">
-        <div className="flex flex-col gap-2">
-          <Badge variant={localDashboardEnabled ? 'success' : 'default'}>
-            {localDashboardEnabled ? 'Enabled' : 'Disabled'} (Dashboard)
-          </Badge>
-          <Badge variant={localLandingPageEnabled ? 'success' : 'default'}>
-            {localLandingPageEnabled ? 'Enabled' : 'Disabled'} (Landing Page)
-          </Badge>
-        </div>
-      </TableCell>
-      <TableCell className="py-4">
         <div className="flex items-center gap-2">
           <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -291,7 +280,6 @@ function ChatLinksTable({
           <TableRow className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Platform</TableHead>
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Toggle Status</TableHead>
-            <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Enabled Status</TableHead>
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Last Modified</TableHead>
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Link URL</TableHead>
           </TableRow>
