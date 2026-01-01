@@ -118,43 +118,55 @@ class ApiClient {
       // Check for invalid token errors
       const errorMessage = errorData.message || errorData.detail || errorData.error || '';
       const errorCode = errorData.code || '';
+      const detailString = typeof errorData.detail === 'string' ? errorData.detail : '';
       
       // Parse detail field if it's a JSON string (common in nested error responses)
       let parsedDetail: Record<string, unknown> | null = null;
       let detailCode = '';
-      if (errorData.detail && typeof errorData.detail === 'string') {
+      let parsedDetailMessage = '';
+      if (detailString) {
         try {
-          const parsed = JSON.parse(errorData.detail);
+          const parsed = JSON.parse(detailString);
           if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
             parsedDetail = parsed as Record<string, unknown>;
             detailCode = (typeof parsedDetail.code === 'string' ? parsedDetail.code : '') || '';
+            parsedDetailMessage = (typeof parsedDetail.detail === 'string' ? parsedDetail.detail : '') || 
+                                   (typeof parsedDetail.message === 'string' ? parsedDetail.message : '') || '';
           }
         } catch {
           // detail is not JSON, that's fine
         }
       }
       
+      // Combine all possible error messages for token detection
+      const allErrorMessages = [
+        errorMessage,
+        detailString,
+        parsedDetailMessage,
+      ].filter(Boolean).join(' ');
+      
       // Check for the specific error structure the user mentioned
       // Distinguish between token errors (should redirect) and permission errors (should not redirect)
       // For 403 errors, only redirect if it's clearly a token error, otherwise treat as permission error
       const isPermissionError = 
-        errorMessage.toLowerCase().includes('permission') ||
-        errorMessage.toLowerCase().includes('forbidden') ||
-        errorMessage.toLowerCase().includes('not allowed') ||
-        errorMessage.toLowerCase().includes('access denied') ||
-        errorMessage.toLowerCase().includes('you do not have permission') ||
+        allErrorMessages.toLowerCase().includes('permission') ||
+        allErrorMessages.toLowerCase().includes('forbidden') ||
+        allErrorMessages.toLowerCase().includes('not allowed') ||
+        allErrorMessages.toLowerCase().includes('access denied') ||
+        allErrorMessages.toLowerCase().includes('you do not have permission') ||
         errorCode === 'permission_denied' ||
         detailCode === 'permission_denied' ||
         (parsedDetail && typeof parsedDetail.code === 'string' && parsedDetail.code === 'permission_denied');
 
-      // Check if it's a clear token error
+      // Check if it's a clear token error - check in all possible locations
       const isClearTokenError = 
-        errorMessage.includes('Given token not valid for any token type') ||
-        errorMessage.includes('token_not_valid') ||
-        errorMessage.includes('Token is invalid') ||
-        errorMessage.includes('Token is invalid or expired') ||
-        errorMessage.includes('Token has expired') ||
-        errorMessage.includes('Invalid token') ||
+        allErrorMessages.includes('Given token not valid for any token type') ||
+        allErrorMessages.includes('token_not_valid') ||
+        allErrorMessages.includes('Token is invalid') ||
+        allErrorMessages.includes('Token is invalid or expired') ||
+        allErrorMessages.includes('Token has expired') ||
+        allErrorMessages.includes('Invalid token') ||
+        allErrorMessages.includes('token expired') ||
         errorCode === 'token_not_valid' ||
         detailCode === 'token_not_valid' ||
         (parsedDetail && typeof parsedDetail.code === 'string' && parsedDetail.code === 'token_not_valid');
@@ -172,22 +184,27 @@ class ApiClient {
           message: errorMessage, 
           code: errorCode,
           detailCode,
-          parsedDetail 
+          parsedDetail,
+          allErrorMessages 
         });
         
         // Clear all stored authentication data
         storage.clear();
         
-        // Redirect to login page (use replace to prevent back navigation)
+        // Redirect to login page immediately (use replace to prevent back navigation)
         if (typeof window !== 'undefined') {
           window.location.replace('/login');
         }
         
-        // Throw a user-friendly error
-        throw {
+        // Throw a special error that stores can identify and ignore
+        const authError: ApiError = {
           status: 'error',
           message: 'Your session has expired. Please login again.',
+          code: 'AUTH_REQUIRED',
         };
+        // Mark this error so stores know not to display it
+        (authError as { _isAuthError?: boolean })._isAuthError = true;
+        throw authError;
       }
 
       throw errorData;

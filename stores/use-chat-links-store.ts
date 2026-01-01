@@ -40,6 +40,12 @@ export const useChatLinksStore = create<ChatLinksStore>((set, get) => ({
         error: null,
       });
     } catch (err: unknown) {
+      // Don't set error state if it's an auth error (redirect is happening)
+      if (err && typeof err === 'object' && '_isAuthError' in err && (err as { _isAuthError?: boolean })._isAuthError) {
+        set({ isLoading: false });
+        return;
+      }
+
       let errorMessage = 'Failed to load chat links';
 
       if (err && typeof err === 'object' && 'detail' in err) {
@@ -91,6 +97,14 @@ export const useChatLinksStore = create<ChatLinksStore>((set, get) => ({
       const mergedChatLink = updatedLinks.find((link) => link.id === id);
       return mergedChatLink || chatLink;
     } catch (err: unknown) {
+      // Don't set error state if it's an auth error (redirect is happening)
+      if (err && typeof err === 'object' && '_isAuthError' in err && (err as { _isAuthError?: boolean })._isAuthError) {
+        // Revert optimistic update
+        set({ chatLinks: currentLinks });
+        // Re-throw to allow callers to handle it (though redirect is happening)
+        throw err;
+      }
+
       // Revert optimistic update on error
       set({ chatLinks: currentLinks });
 
