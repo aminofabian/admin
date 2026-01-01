@@ -371,15 +371,15 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },
-  {
-    name: 'Affiliates',
-    icon: <AffiliateIcon />,
-    roles: [USER_ROLES.COMPANY],
-    submenu: [
-      { name: 'Agents', href: '/dashboard/agents', icon: <AffiliatesAgentIcon /> },
-      { name: 'Affiliates', href: '/dashboard/affiliates', icon: <AffiliateIcon /> },
-    ],
-  },
+  // {
+  //   name: 'Affiliates',
+  //   icon: <AffiliateIcon />,
+  //   roles: [USER_ROLES.COMPANY],
+  //   submenu: [
+  //     { name: 'Agents', href: '/dashboard/agents', icon: <AffiliatesAgentIcon /> },
+  //     { name: 'Affiliates', href: '/dashboard/affiliates', icon: <AffiliateIcon /> },
+  //   ],
+  // },
 ];
 
 interface SidebarProps {
