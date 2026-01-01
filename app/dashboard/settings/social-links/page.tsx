@@ -171,21 +171,21 @@ function ChatLinkRow({ chatLink, onEdit, onToggleDashboard, onToggleLandingPage 
       </TableCell>
       <TableCell className="py-4">
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Switch
               checked={localDashboardEnabled}
               onChange={handleToggleDashboard}
               disabled={isTogglingDashboard}
             />
-            <span className="text-xs text-gray-600 dark:text-gray-400">Dashboard</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">Dashboard</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Switch
               checked={localLandingPageEnabled}
               onChange={handleToggleLandingPage}
               disabled={isTogglingLandingPage}
             />
-            <span className="text-xs text-gray-600 dark:text-gray-400">Landing Page</span>
+            <span className="text-sm text-gray-700 dark:text-gray-300">Landing Page</span>
           </div>
         </div>
       </TableCell>
