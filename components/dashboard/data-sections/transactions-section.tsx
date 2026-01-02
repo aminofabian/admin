@@ -959,8 +959,8 @@ function TransactionsTable({
                     <TableHead>User</TableHead>
                     <TableHead>Transaction</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Previous Balance</TableHead>
-                    <TableHead>New Balance</TableHead>
+                    <TableHead>Credit</TableHead>
+                    <TableHead>Winning</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Dates</TableHead>
@@ -1034,6 +1034,58 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
   const formattedCreatedAt = useMemo(() => formatDate(transaction.created_at), [transaction.created_at]);
   const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated_at), [transaction.updated_at]);
 
+  const previousCreditBalance = useMemo(() => {
+    const value = transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
+      ? parseFloat(transaction.previous_balance)
+      : 0;
+    return { value, formatted: formatCurrency(String(value)) };
+  }, [transaction.previous_balance]);
+
+  const newCreditBalance = useMemo(() => {
+    const value = transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
+      ? parseFloat(transaction.new_balance)
+      : 0;
+    return { value, formatted: formatCurrency(String(value)) };
+  }, [transaction.new_balance]);
+
+  const previousWinningBalance = useMemo(() => {
+    const value = transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+      ? parseFloat(transaction.previous_winning_balance)
+      : 0;
+    return { value, formatted: formatCurrency(String(value)) };
+  }, [transaction.previous_winning_balance]);
+
+  const newWinningBalance = useMemo(() => {
+    const value = transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+      ? parseFloat(transaction.new_winning_balance)
+      : 0;
+    return { value, formatted: formatCurrency(String(value)) };
+  }, [transaction.new_winning_balance]);
+
+  const creditChanged = useMemo(() => {
+    return previousCreditBalance.value !== newCreditBalance.value;
+  }, [previousCreditBalance.value, newCreditBalance.value]);
+
+  const winningChanged = useMemo(() => {
+    return previousWinningBalance.value !== newWinningBalance.value;
+  }, [previousWinningBalance.value, newWinningBalance.value]);
+
+  const creditDisplayText = useMemo(() => {
+    return `${previousCreditBalance.formatted} → ${newCreditBalance.formatted}`;
+  }, [previousCreditBalance.formatted, newCreditBalance.formatted]);
+
+  const winningDisplayText = useMemo(() => {
+    return `${previousWinningBalance.formatted} → ${newWinningBalance.formatted}`;
+  }, [previousWinningBalance.formatted, newWinningBalance.formatted]);
+
+  const creditColorClass = useMemo(() => {
+    return creditChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
+  }, [creditChanged]);
+
+  const winningColorClass = useMemo(() => {
+    return winningChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
+  }, [winningChanged]);
+
   const handleOpenTransactionDetails = useCallback(() => {
     onView(transaction);
   }, [transaction, onView]);
@@ -1085,31 +1137,13 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         )}
       </TableCell>
       <TableCell>
-        <div className="space-y-1">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            C: {transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
-              ? formatCurrency(transaction.previous_balance)
-              : formatCurrency('0')}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-              ? formatCurrency(transaction.previous_winning_balance)
-              : formatCurrency('0')}
-          </div>
+        <div className={`text-xs ${creditColorClass}`}>
+          {creditDisplayText}
         </div>
       </TableCell>
       <TableCell>
-        <div className="space-y-1">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            C: {transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
-              ? formatCurrency(transaction.new_balance)
-              : formatCurrency('0')}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-              ? formatCurrency(transaction.new_winning_balance)
-              : formatCurrency('0')}
-          </div>
+        <div className={`text-xs ${winningColorClass}`}>
+          {winningDisplayText}
         </div>
       </TableCell>
       <TableCell>
@@ -1138,7 +1172,11 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     prevProps.transaction.updated_at === nextProps.transaction.updated_at &&
     prevProps.transaction.updated === nextProps.transaction.updated &&
     prevProps.onView === nextProps.onView &&
-    prevProps.transaction.user_username === nextProps.transaction.user_username
+    prevProps.transaction.user_username === nextProps.transaction.user_username &&
+    prevProps.transaction.previous_balance === nextProps.transaction.previous_balance &&
+    prevProps.transaction.new_balance === nextProps.transaction.new_balance &&
+    prevProps.transaction.previous_winning_balance === nextProps.transaction.previous_winning_balance &&
+    prevProps.transaction.new_winning_balance === nextProps.transaction.new_winning_balance
   );
 });
 
