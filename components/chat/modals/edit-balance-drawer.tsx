@@ -147,7 +147,7 @@ export function EditBalanceDrawer({
                   className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-500"
                   disabled={isUpdating}
                 />
-                <span className="text-sm font-medium text-foreground">Main Balance</span>
+                <span className="text-sm font-medium text-foreground">Credit Balance</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border-2 rounded-lg transition-colors hover:bg-muted/50"
                 style={{ borderColor: balanceType === 'winning' ? 'rgb(234, 179, 8)' : 'transparent' }}>
