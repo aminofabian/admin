@@ -602,6 +602,7 @@ export function useChatReset({
               isRead: false,
               userId: rawData.sender_id || rawData.player_id,
               // Include additional metadata from the backend
+              type: rawData.type, // CRITICAL: Include message type for proper parsing (balanceUpdated, etc.)
               isFile: rawData.is_file || false,
               fileExtension: rawData.file_extension || undefined,
               fileUrl: rawData.file || rawData.file_url || undefined,
