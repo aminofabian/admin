@@ -181,7 +181,7 @@ interface TransactionDetails {
   gameName: string | null;
 }
 
-export const parseTransactionMessage = (text: string): TransactionDetails => {
+export const parseTransactionMessage = (text: string, messageType?: string): TransactionDetails => {
   const result: TransactionDetails = {
     type: null,
     amount: null,
@@ -191,6 +191,10 @@ export const parseTransactionMessage = (text: string): TransactionDetails => {
   };
 
   if (!text) return result;
+  
+  // Check message type first - if it's a balance update, prioritize manual operations
+  const isBalanceUpdate = messageType?.toLowerCase() === 'balanceupdated' || 
+                          messageType?.toLowerCase() === 'balance_updated';
 
   // Strip HTML tags for parsing
   const cleanText = stripHtml(text).toLowerCase();
@@ -281,18 +285,36 @@ export const parseTransactionMessage = (text: string): TransactionDetails => {
   }
 
   // Determine transaction type based on text patterns (order matters - more specific first)
-  if (cleanText.includes('successfully purchased') || (cleanText.includes('purchased') && cleanText.includes('credit'))) {
+  // Manual balance changes should be detected BEFORE purchases/cashouts
+  // Check for manual operations first (these don't have "successfully" prefix)
+  if (cleanText.includes('deducted from your winning balance')) {
+    result.type = 'winning_deducted';
+  } else if (cleanText.includes('added to your winning balance')) {
+    result.type = 'winning_added';
+  } else if (cleanText.includes('deducted from your credit balance')) {
+    result.type = 'credit_deducted';
+  } else if (cleanText.includes('added to your credit balance')) {
+    result.type = 'credit_added';
+  } 
+  // If it's a balance update type, don't treat as purchase/cashout
+  else if (isBalanceUpdate) {
+    // Already handled above, but if we get here, it's a balance update without specific text
+    // Try to determine from context
+    if (cleanText.includes('deducted') && cleanText.includes('winning')) {
+      result.type = 'winning_deducted';
+    } else if (cleanText.includes('added') && cleanText.includes('winning')) {
+      result.type = 'winning_added';
+    } else if (cleanText.includes('deducted') && cleanText.includes('credit')) {
+      result.type = 'credit_deducted';
+    } else if (cleanText.includes('added') && cleanText.includes('credit')) {
+      result.type = 'credit_added';
+    }
+  }
+  // Then check for frontend transactions (purchases/cashouts)
+  else if (cleanText.includes('successfully purchased') || (cleanText.includes('purchased') && cleanText.includes('credit'))) {
     result.type = 'credit_purchase';
   } else if (cleanText.includes('successfully cashed out') || cleanText.includes('cashed out')) {
     result.type = 'cashout';
-  } else if (cleanText.includes('deducted from your winning balance') || (cleanText.includes('deducted') && cleanText.includes('winning'))) {
-    result.type = 'winning_deducted';
-  } else if (cleanText.includes('added to your winning balance') || (cleanText.includes('added') && cleanText.includes('winning'))) {
-    result.type = 'winning_added';
-  } else if (cleanText.includes('deducted from your credit balance') || (cleanText.includes('deducted') && cleanText.includes('credit'))) {
-    result.type = 'credit_deducted';
-  } else if (cleanText.includes('added to your credit balance') || (cleanText.includes('added') && cleanText.includes('credit'))) {
-    result.type = 'credit_added';
   } else if (cleanText.includes('successfully recharged') || cleanText.includes('recharged')) {
     result.type = 'recharge';
   } else if (cleanText.includes('successfully redeemed') || cleanText.includes('redeemed')) {
@@ -305,8 +327,8 @@ export const parseTransactionMessage = (text: string): TransactionDetails => {
 /**
  * Formats a transaction message according to the specified format
  */
-export const formatTransactionMessage = (message: { text: string; userBalance?: string; winningBalance?: string }): string => {
-  const details = parseTransactionMessage(message.text);
+export const formatTransactionMessage = (message: { text: string; userBalance?: string; winningBalance?: string; type?: string }): string => {
+  const details = parseTransactionMessage(message.text, message.type);
   
   // Even if we can't determine the type, if we found credits and winnings, try to format it
   if (!details.type) {
@@ -323,10 +345,37 @@ export const formatTransactionMessage = (message: { text: string; userBalance?: 
         amount = amountMatch ? amountMatch[1].replace(/,/g, '') : '0';
       }
       
-      // Try to determine type from text
+      // Try to determine type from text - prioritize manual operations
       const cleanText = stripHtml(message.text).toLowerCase();
+      const isBalanceUpdate = message.type?.toLowerCase() === 'balanceupdated' || 
+                              message.type?.toLowerCase() === 'balance_updated';
       let transactionType = '';
-      if (cleanText.includes('successfully purchased') || cleanText.includes('purchased credit')) {
+      
+      // Check for manual operations first (these don't have "successfully" prefix)
+      if (cleanText.includes('deducted from your winning balance')) {
+        transactionType = 'winning_deducted';
+      } else if (cleanText.includes('added to your winning balance')) {
+        transactionType = 'winning_added';
+      } else if (cleanText.includes('deducted from your credit balance')) {
+        transactionType = 'credit_deducted';
+      } else if (cleanText.includes('added to your credit balance')) {
+        transactionType = 'credit_added';
+      }
+      // If it's a balance update type, don't treat as purchase/cashout
+      else if (isBalanceUpdate) {
+        // Already handled above, but if we get here, try to determine from context
+        if (cleanText.includes('deducted') && cleanText.includes('winning')) {
+          transactionType = 'winning_deducted';
+        } else if (cleanText.includes('added') && cleanText.includes('winning')) {
+          transactionType = 'winning_added';
+        } else if (cleanText.includes('deducted') && cleanText.includes('credit')) {
+          transactionType = 'credit_deducted';
+        } else if (cleanText.includes('added') && cleanText.includes('credit')) {
+          transactionType = 'credit_added';
+        }
+      }
+      // Then check for frontend transactions
+      else if (cleanText.includes('successfully purchased') || cleanText.includes('purchased credit')) {
         transactionType = 'credit_purchase';
       } else if (cleanText.includes('successfully cashed out') || cleanText.includes('cashed out')) {
         transactionType = 'cashout';
@@ -334,14 +383,6 @@ export const formatTransactionMessage = (message: { text: string; userBalance?: 
         transactionType = 'recharge';
       } else if (cleanText.includes('successfully redeemed') || cleanText.includes('redeemed')) {
         transactionType = 'redeem';
-      } else if (cleanText.includes('added to your credit balance')) {
-        transactionType = 'credit_added';
-      } else if (cleanText.includes('deducted from your credit balance')) {
-        transactionType = 'credit_deducted';
-      } else if (cleanText.includes('added to your winning balance')) {
-        transactionType = 'winning_added';
-      } else if (cleanText.includes('deducted from your winning balance')) {
-        transactionType = 'winning_deducted';
       }
       
       if (transactionType) {
@@ -356,13 +397,13 @@ export const formatTransactionMessage = (message: { text: string; userBalance?: 
           case 'cashout':
             return `You successfully cashed out <b>${formattedAmount}</b>.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'credit_added':
-            return `<b>${formattedAmount}</b> added to your credit balance.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `<b>${formattedAmount}</b> added to your credit balance (manual top-up).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'credit_deducted':
-            return `<b>${formattedAmount}</b> deducted from your credit balance.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `<b>${formattedAmount}</b> deducted from your credit balance (manual withdraw).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'winning_added':
-            return `<b>${formattedAmount}</b> added to your winning balance.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `<b>${formattedAmount}</b> added to your winning balance (manual top-up).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'winning_deducted':
-            return `<b>${formattedAmount}</b> deducted from your winning balance.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `<b>${formattedAmount}</b> deducted from your winning balance (manual withdraw).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'recharge':
             return `You successfully recharged <b>${formattedAmount}</b>${gameName ? ` to ${gameName}` : ''}.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'redeem':
@@ -422,16 +463,16 @@ export const formatTransactionMessage = (message: { text: string; userBalance?: 
       formattedText = `You successfully cashed out <b>${formattedAmount}</b>.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'credit_added':
-      formattedText = `<b>${formattedAmount}</b> added to your credit balance.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `<b>${formattedAmount}</b> added to your credit balance (manual top-up).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'credit_deducted':
-      formattedText = `<b>${formattedAmount}</b> deducted from your credit balance.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `<b>${formattedAmount}</b> deducted from your credit balance (manual withdraw).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'winning_added':
-      formattedText = `<b>${formattedAmount}</b> added to your winning balance.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `<b>${formattedAmount}</b> added to your winning balance (manual top-up).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'winning_deducted':
-      formattedText = `<b>${formattedAmount}</b> deducted from your winning balance.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `<b>${formattedAmount}</b> deducted from your winning balance (manual withdraw).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'recharge':
       formattedText = `You successfully recharged <b>${formattedAmount}</b>${gameName ? ` to ${gameName}` : ''}.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
