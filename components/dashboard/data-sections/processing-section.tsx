@@ -304,32 +304,70 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
     </TableCell>
   );
 
-  const prevBalanceCell = (
+  const previousCreditBalance = useMemo(() => {
+    const value = transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
+      ? parseFloat(transaction.previous_balance)
+      : 0;
+    return { value, formatted: formatCurrency(String(value)) };
+  }, [transaction.previous_balance]);
+
+  const newCreditBalance = useMemo(() => {
+    const value = transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
+      ? parseFloat(transaction.new_balance)
+      : 0;
+    return { value, formatted: formatCurrency(String(value)) };
+  }, [transaction.new_balance]);
+
+  const previousWinningBalance = useMemo(() => {
+    const value = transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
+      ? parseFloat(transaction.previous_winning_balance)
+      : 0;
+    return { value, formatted: formatCurrency(String(value)) };
+  }, [transaction.previous_winning_balance]);
+
+  const newWinningBalance = useMemo(() => {
+    const value = transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
+      ? parseFloat(transaction.new_winning_balance)
+      : 0;
+    return { value, formatted: formatCurrency(String(value)) };
+  }, [transaction.new_winning_balance]);
+
+  const creditChanged = useMemo(() => {
+    return previousCreditBalance.value !== newCreditBalance.value;
+  }, [previousCreditBalance.value, newCreditBalance.value]);
+
+  const winningChanged = useMemo(() => {
+    return previousWinningBalance.value !== newWinningBalance.value;
+  }, [previousWinningBalance.value, newWinningBalance.value]);
+
+  const creditDisplayText = useMemo(() => {
+    return `${previousCreditBalance.formatted} → ${newCreditBalance.formatted}`;
+  }, [previousCreditBalance.formatted, newCreditBalance.formatted]);
+
+  const winningDisplayText = useMemo(() => {
+    return `${previousWinningBalance.formatted} → ${newWinningBalance.formatted}`;
+  }, [previousWinningBalance.formatted, newWinningBalance.formatted]);
+
+  const creditColorClass = useMemo(() => {
+    return creditChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
+  }, [creditChanged]);
+
+  const winningColorClass = useMemo(() => {
+    return winningChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
+  }, [winningChanged]);
+
+  const creditCell = (
     <TableCell>
-      <div className="space-y-1">
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          C: {formatCurrency(transaction.previous_balance || '0')}
-        </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-            ? formatCurrency(transaction.previous_winning_balance)
-            : formatCurrency('0')}
-        </div>
+      <div className={`text-xs ${creditColorClass}`}>
+        {creditDisplayText}
       </div>
     </TableCell>
   );
 
-  const newBalanceCell = (
+  const winningCell = (
     <TableCell>
-      <div className="space-y-1">
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          C: {formatCurrency(transaction.new_balance || '0')}
-        </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-            ? formatCurrency(transaction.new_winning_balance)
-            : formatCurrency('0')}
-        </div>
+      <div className={`text-xs ${winningColorClass}`}>
+        {winningDisplayText}
       </div>
     </TableCell>
   );
@@ -378,8 +416,8 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
       {userCell}
       {transactionCell}
       {amountCell}
-      {prevBalanceCell}
-      {newBalanceCell}
+      {creditCell}
+      {winningCell}
       {statusCell}
       {paymentCell}
       {datesCell}
@@ -1059,8 +1097,8 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                       <TableHead>User</TableHead>
                       <TableHead>Transaction</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Previous Balance</TableHead>
-                      <TableHead>New Balance</TableHead>
+                      <TableHead>Credit</TableHead>
+                      <TableHead>Winning</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Payment</TableHead>
                       <TableHead>Dates</TableHead>
