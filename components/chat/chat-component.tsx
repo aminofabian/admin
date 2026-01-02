@@ -1177,12 +1177,24 @@ export function ChatComponent() {
         balanceType: balanceType,
       });
 
+      // Determine the message based on operation and balance type
+      let title = '';
+      if (balanceType === 'main') {
+        title = operation === 'increase'
+          ? `$${balanceValue} added to your credit balance.`
+          : `$${balanceValue} deducted from your credit balance.`;
+      } else {
+        title = operation === 'increase'
+          ? `$${balanceValue} added to your winning balance.`
+          : `$${balanceValue} deducted from your winning balance.`;
+      }
+
+      const description = `Credits: ${formatCurrency(response.player_bal)}\nWinnings: ${formatCurrency(response.player_winning_bal)}`;
+
       addToast({
         type: 'success',
-        title: `Balance ${operation === 'increase' ? 'increased' : 'decreased'} successfully`,
-        description: `${balanceType === 'main' ? 'Main' : 'Winning'} balance updated to ${formatCurrency(
-          balanceType === 'main' ? response.player_bal : response.player_winning_bal
-        )}`,
+        title,
+        description,
       });
 
       setIsEditBalanceModalOpen(false);

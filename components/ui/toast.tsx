@@ -156,7 +156,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
             {toast.title}
           </div>
           {toast.description && (
-            <div className="text-sm mt-1 opacity-90">
+            <div className="text-sm mt-1 opacity-90 whitespace-pre-line">
               {toast.description}
             </div>
           )}
