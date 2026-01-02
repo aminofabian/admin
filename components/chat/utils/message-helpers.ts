@@ -397,13 +397,13 @@ export const formatTransactionMessage = (message: { text: string; userBalance?: 
           case 'cashout':
             return `You successfully cashed out <b>${formattedAmount}</b>.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'credit_added':
-            return `<b>${formattedAmount}</b> added to your credit balance (manual top-up).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `<b>${formattedAmount}</b> added to your credit balance (<b>manual top-up</b>).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'credit_deducted':
-            return `<b>${formattedAmount}</b> deducted from your credit balance (manual withdraw).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `<b>${formattedAmount}</b> deducted from your credit balance (<b>manual withdraw</b>).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'winning_added':
-            return `<b>${formattedAmount}</b> added to your winning balance (manual top-up).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `<b>${formattedAmount}</b> added to your winning balance (<b>manual top-up</b>).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'winning_deducted':
-            return `<b>${formattedAmount}</b> deducted from your winning balance (manual withdraw).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `<b>${formattedAmount}</b> deducted from your winning balance (<b>manual withdraw</b>).\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'recharge':
             return `You successfully recharged <b>${formattedAmount}</b>${gameName ? ` to ${gameName}` : ''}.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'redeem':
@@ -463,16 +463,16 @@ export const formatTransactionMessage = (message: { text: string; userBalance?: 
       formattedText = `You successfully cashed out <b>${formattedAmount}</b>.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'credit_added':
-      formattedText = `<b>${formattedAmount}</b> added to your credit balance (manual top-up).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `<b>${formattedAmount}</b> added to your credit balance (<b>manual top-up</b>).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'credit_deducted':
-      formattedText = `<b>${formattedAmount}</b> deducted from your credit balance (manual withdraw).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `<b>${formattedAmount}</b> deducted from your credit balance (<b>manual withdraw</b>).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'winning_added':
-      formattedText = `<b>${formattedAmount}</b> added to your winning balance (manual top-up).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `<b>${formattedAmount}</b> added to your winning balance (<b>manual top-up</b>).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'winning_deducted':
-      formattedText = `<b>${formattedAmount}</b> deducted from your winning balance (manual withdraw).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `<b>${formattedAmount}</b> deducted from your winning balance (<b>manual withdraw</b>).\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'recharge':
       formattedText = `You successfully recharged <b>${formattedAmount}</b>${gameName ? ` to ${gameName}` : ''}.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;

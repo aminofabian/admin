@@ -38,6 +38,13 @@ export function GlobalTransactionNotifications() {
           return;
         }
 
+        // Only show notifications for frontend transactions (those with payment_method)
+        // Manual/admin transactions typically don't have a payment_method
+        const paymentMethod = updatedTransaction.payment_method;
+        if (!paymentMethod || paymentMethod.trim() === '' || paymentMethod === '—') {
+          return;
+        }
+
         const statusLower = String(updatedTransaction.status || '').toLowerCase();
         const isCompleted = 
           statusLower === 'completed' || 
