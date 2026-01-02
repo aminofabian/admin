@@ -628,10 +628,17 @@ export function useChatWebSocket({
               // Update balance in all existing messages for this player
               if (playerId && String(playerId) === String(userId) && balance !== undefined && balance !== null) {
                 const balanceValue = String(balance);
+                const winningBalanceValue = winningBalance !== undefined && winningBalance !== null
+                  ? String(winningBalance)
+                  : undefined;
                 setMessages((prev) =>
                   prev.map((msg) => {
                     if (msg.userId === Number(playerId) || msg.sender === 'player') {
-                      return { ...msg, userBalance: balanceValue };
+                      return {
+                        ...msg,
+                        userBalance: balanceValue,
+                        winningBalance: winningBalanceValue,
+                      };
                     }
                     return msg;
                   }),
@@ -714,10 +721,17 @@ export function useChatWebSocket({
               // Update balance in all messages for this player
               if (String(playerId) === String(userId) && balance !== undefined && balance !== null) {
                 const balanceValue = String(balance);
+                const winningBalanceValue = winningBalance !== undefined && winningBalance !== null
+                  ? String(winningBalance)
+                  : undefined;
                 setMessages((prev) =>
                   prev.map((message) => {
                     if (message.userId === Number(playerId) || message.sender === 'player') {
-                      return { ...message, userBalance: balanceValue };
+                      return {
+                        ...message,
+                        userBalance: balanceValue,
+                        winningBalance: winningBalanceValue,
+                      };
                     }
                     return message;
                   }),

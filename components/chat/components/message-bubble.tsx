@@ -12,6 +12,7 @@ import {
   isAutoMessage,
   isPurchaseNotification,
   removeAutomatedMessageHeading,
+  formatTransactionMessage,
 } from '../utils/message-helpers';
 
 interface MessageBubbleProps {
@@ -45,14 +46,13 @@ export const MessageBubble = memo(function MessageBubble({
 
   // Render purchase notifications and auto messages in a centered, neutral style
   if (isAuto || isPurchase) {
-    // Remove heading from automated messages (e.g., "Recharge", "Redeem")
-    const textWithoutHeading = removeAutomatedMessageHeading(message.text);
+    // Format transaction messages according to the specified format
+    const formattedMessage = formatTransactionMessage(message);
     
-    // Convert <br> tags to line breaks and preserve HTML formatting
-    const formattedText = textWithoutHeading
-      .replace(/<br\s*\/?>/gi, '<br />')
-      .replace(/<b>/gi, '<b>')
-      .replace(/<\/b>/gi, '</b>');
+    // Convert line breaks to <br> tags for HTML rendering
+    const formattedText = formattedMessage
+      .replace(/\n/g, '<br />')
+      .replace(/<br\s*\/?>/gi, '<br />');
 
     return (
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-200 my-4">

@@ -31,7 +31,8 @@ export interface ChatMessage {
   isFile?: boolean; // Whether this message contains a file
   fileExtension?: string; // File extension if isFile is true (WebSocket)
   fileUrl?: string; // File URL from REST API endpoint
-  userBalance?: string; // User balance at the time of message
+  userBalance?: string; // User credit balance at the time of message
+  winningBalance?: string; // User winning balance at the time of message
   isPinned?: boolean;
 }
 

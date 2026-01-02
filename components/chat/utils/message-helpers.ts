@@ -169,3 +169,279 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
   // Check if text matches auto message patterns (check both HTML and plain text)
   return autoPatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
 };
+
+/**
+ * Parses transaction message text to extract transaction details
+ */
+interface TransactionDetails {
+  type: 'credit_purchase' | 'cashout' | 'credit_added' | 'credit_deducted' | 'winning_added' | 'winning_deducted' | 'recharge' | 'redeem' | null;
+  amount: string | null;
+  credits: string | null;
+  winnings: string | null;
+  gameName: string | null;
+}
+
+export const parseTransactionMessage = (text: string): TransactionDetails => {
+  const result: TransactionDetails = {
+    type: null,
+    amount: null,
+    credits: null,
+    winnings: null,
+    gameName: null,
+  };
+
+  if (!text) return result;
+
+  // Strip HTML tags for parsing
+  const cleanText = stripHtml(text).toLowerCase();
+  const originalText = text;
+  
+  // Extract amount - look for $X patterns, prioritizing amounts in the main message
+  // Handle HTML tags like "<b>$10</b>"
+  const amountPatterns = [
+    /<b>[\s\$]*([\d,]+\.?\d*)[\s\$]*<\/b>/i, // <b>$10</b>
+    /\$([\d,]+\.?\d*)/g, // $5, $5.00, $1,234.56
+    /([\d,]+\.?\d*)\s*(?:credit|dollar|usd)/gi, // 5 credit, 5 dollars
+  ];
+  
+  for (const pattern of amountPatterns) {
+    let match;
+    if (pattern.global) {
+      // Use matchAll for global patterns
+      const matches = originalText.matchAll(pattern);
+      match = matches.next().value;
+    } else {
+      // Use match for non-global patterns
+      match = originalText.match(pattern);
+    }
+    
+    if (match) {
+      const value = match[1]?.replace(/,/g, '') || match[0]?.replace(/[$,<>b\/\s]/gi, '');
+      if (value && !isNaN(parseFloat(value))) {
+        result.amount = value;
+        break;
+      }
+    }
+  }
+
+  // Extract credits balance - handle HTML tags like "Credits: <b>$109.20</b>"
+  const creditsPatterns = [
+    /credits?[:\s]*(?:<[^>]+>)*\$?([\d,]+\.?\d*)(?:<\/[^>]+>)*/i,
+    /credits?[:\s]*<b>[\s\$]*([\d,]+\.?\d*)[\s\$]*<\/b>/i,
+    /credits?[:\s]*\$?([\d,]+\.?\d*)/i,
+    /credit\s+balance[:\s]*(?:<[^>]+>)*\$?([\d,]+\.?\d*)(?:<\/[^>]+>)*/i,
+  ];
+  
+  for (const pattern of creditsPatterns) {
+    const match = originalText.match(pattern);
+    if (match && match[1]) {
+      const value = match[1].replace(/,/g, '');
+      if (value && !isNaN(parseFloat(value))) {
+        result.credits = value;
+        break;
+      }
+    }
+  }
+
+  // Extract winnings balance - handle HTML tags like "Winnings: <b>$28.00</b>"
+  const winningsPatterns = [
+    /winnings?[:\s]*(?:<[^>]+>)*\$?([\d,]+\.?\d*)(?:<\/[^>]+>)*/i,
+    /winnings?[:\s]*<b>[\s\$]*([\d,]+\.?\d*)[\s\$]*<\/b>/i,
+    /winnings?[:\s]*\$?([\d,]+\.?\d*)/i,
+    /winning\s+balance[:\s]*(?:<[^>]+>)*\$?([\d,]+\.?\d*)(?:<\/[^>]+>)*/i,
+  ];
+  
+  for (const pattern of winningsPatterns) {
+    const match = originalText.match(pattern);
+    if (match && match[1]) {
+      const value = match[1].replace(/,/g, '');
+      if (value && !isNaN(parseFloat(value))) {
+        result.winnings = value;
+        break;
+      }
+    }
+  }
+
+  // Extract game name (for recharge/redeem) - look for "to {Game Name}" or "from {Game Name}"
+  const gamePatterns = [
+    /(?:to|from)\s+([^.\n<]+?)(?:\.|$|<br)/i,
+    /(?:to|from)\s+([A-Z][^.\n<]+?)(?:\.|$|<br)/i, // Capitalized game names
+  ];
+  
+  for (const pattern of gamePatterns) {
+    const match = originalText.match(pattern);
+    if (match && match[1]) {
+      const gameName = stripHtml(match[1]).trim();
+      // Only accept if it looks like a game name (not just a number or single word)
+      if (gameName.length > 1 && !/^\d+$/.test(gameName)) {
+        result.gameName = gameName;
+        break;
+      }
+    }
+  }
+
+  // Determine transaction type based on text patterns (order matters - more specific first)
+  if (cleanText.includes('successfully purchased') || (cleanText.includes('purchased') && cleanText.includes('credit'))) {
+    result.type = 'credit_purchase';
+  } else if (cleanText.includes('successfully cashed out') || cleanText.includes('cashed out')) {
+    result.type = 'cashout';
+  } else if (cleanText.includes('deducted from your winning balance') || (cleanText.includes('deducted') && cleanText.includes('winning'))) {
+    result.type = 'winning_deducted';
+  } else if (cleanText.includes('added to your winning balance') || (cleanText.includes('added') && cleanText.includes('winning'))) {
+    result.type = 'winning_added';
+  } else if (cleanText.includes('deducted from your credit balance') || (cleanText.includes('deducted') && cleanText.includes('credit'))) {
+    result.type = 'credit_deducted';
+  } else if (cleanText.includes('added to your credit balance') || (cleanText.includes('added') && cleanText.includes('credit'))) {
+    result.type = 'credit_added';
+  } else if (cleanText.includes('successfully recharged') || cleanText.includes('recharged')) {
+    result.type = 'recharge';
+  } else if (cleanText.includes('successfully redeemed') || cleanText.includes('redeemed')) {
+    result.type = 'redeem';
+  }
+
+  return result;
+};
+
+/**
+ * Formats a transaction message according to the specified format
+ */
+export const formatTransactionMessage = (message: { text: string; userBalance?: string; winningBalance?: string }): string => {
+  const details = parseTransactionMessage(message.text);
+  
+  // Even if we can't determine the type, if we found credits and winnings, try to format it
+  if (!details.type) {
+    // Check if it already has the correct format (has "Credits:" and "Winnings:")
+    const hasCorrectFormat = /credits?[:\s]*(?:<[^>]+>)*\$?[\d,]+\.?\d*/i.test(message.text) && 
+                             /winnings?[:\s]*(?:<[^>]+>)*\$?[\d,]+\.?\d*/i.test(message.text);
+    
+    if (hasCorrectFormat && details.credits && details.winnings) {
+      // Extract amount from the message
+      let amount = details.amount;
+      if (!amount) {
+        const amountMatch = message.text.match(/<b>[\s\$]*([\d,]+\.?\d*)[\s\$]*<\/b>/i) || 
+                           message.text.match(/\$([\d,]+\.?\d*)/);
+        amount = amountMatch ? amountMatch[1].replace(/,/g, '') : '0';
+      }
+      
+      // Try to determine type from text
+      const cleanText = stripHtml(message.text).toLowerCase();
+      let transactionType = '';
+      if (cleanText.includes('successfully purchased') || cleanText.includes('purchased credit')) {
+        transactionType = 'credit_purchase';
+      } else if (cleanText.includes('successfully cashed out') || cleanText.includes('cashed out')) {
+        transactionType = 'cashout';
+      } else if (cleanText.includes('successfully recharged') || cleanText.includes('recharged')) {
+        transactionType = 'recharge';
+      } else if (cleanText.includes('successfully redeemed') || cleanText.includes('redeemed')) {
+        transactionType = 'redeem';
+      } else if (cleanText.includes('added to your credit balance')) {
+        transactionType = 'credit_added';
+      } else if (cleanText.includes('deducted from your credit balance')) {
+        transactionType = 'credit_deducted';
+      } else if (cleanText.includes('added to your winning balance')) {
+        transactionType = 'winning_added';
+      } else if (cleanText.includes('deducted from your winning balance')) {
+        transactionType = 'winning_deducted';
+      }
+      
+      if (transactionType) {
+        const formattedAmount = amount ? `$${amount}` : '$0';
+        const formattedCredits = details.credits ? `$${details.credits}` : '$0';
+        const formattedWinnings = details.winnings ? `$${details.winnings}` : '$0';
+        const gameName = details.gameName || '';
+        
+        switch (transactionType) {
+          case 'credit_purchase':
+            return `You successfully purchased ${formattedAmount} credit.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+          case 'cashout':
+            return `You successfully cashed out ${formattedAmount}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+          case 'credit_added':
+            return `${formattedAmount} added to your credit balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+          case 'credit_deducted':
+            return `${formattedAmount} deducted from your credit balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+          case 'winning_added':
+            return `${formattedAmount} added to your winning balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+          case 'winning_deducted':
+            return `${formattedAmount} deducted from your winning balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+          case 'recharge':
+            return `You successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+          case 'redeem':
+            return `You successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+        }
+      }
+    }
+    
+    // If not formatted correctly and we can't determine type, return original
+    return message.text;
+  }
+
+  // Use parsed values, or try to extract from original text if parsing failed
+  let amount = details.amount;
+  if (!amount) {
+    // Try to extract amount from original text
+    const amountMatch = message.text.match(/\$?([\d,]+\.?\d*)/);
+    amount = amountMatch ? amountMatch[1].replace(/,/g, '') : '0';
+  }
+  const formattedAmount = amount ? `$${amount}` : '$0';
+
+  // Extract credits - prioritize: message object > parsed from text > fallback to '0'
+  let credits = details.credits;
+  if (!credits) {
+    // Try to extract from message text
+    const creditsMatch = message.text.match(/credits?[:\s]*\$?([\d,]+\.?\d*)/i);
+    credits = creditsMatch ? creditsMatch[1].replace(/,/g, '') : null;
+  }
+  // If still no credits found, use userBalance from message object (most reliable)
+  if (!credits && message.userBalance) {
+    credits = String(message.userBalance).replace(/[$,]/g, '');
+  }
+  const formattedCredits = credits || '0';
+
+  // Extract winnings - prioritize: message object > parsed from text > fallback to '0'
+  let winnings = details.winnings;
+  if (!winnings) {
+    // Try to extract from message text
+    const winningsMatch = message.text.match(/winnings?[:\s]*\$?([\d,]+\.?\d*)/i);
+    winnings = winningsMatch ? winningsMatch[1].replace(/,/g, '') : null;
+  }
+  // If still no winnings found, use winningBalance from message object (most reliable)
+  if (!winnings && message.winningBalance) {
+    winnings = String(message.winningBalance).replace(/[$,]/g, '');
+  }
+  const formattedWinnings = winnings || '0';
+
+  const gameName = details.gameName || '';
+
+  let formattedText = '';
+
+  switch (details.type) {
+    case 'credit_purchase':
+      formattedText = `You successfully purchased ${formattedAmount} credit.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      break;
+    case 'cashout':
+      formattedText = `You successfully cashed out ${formattedAmount}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      break;
+    case 'credit_added':
+      formattedText = `${formattedAmount} added to your credit balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      break;
+    case 'credit_deducted':
+      formattedText = `${formattedAmount} deducted from your credit balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      break;
+    case 'winning_added':
+      formattedText = `${formattedAmount} added to your winning balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      break;
+    case 'winning_deducted':
+      formattedText = `${formattedAmount} deducted from your winning balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      break;
+    case 'recharge':
+      formattedText = `You successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      break;
+    case 'redeem':
+      formattedText = `You successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      break;
+    default:
+      return message.text;
+  }
+
+  return formattedText;
+};

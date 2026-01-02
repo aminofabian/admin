@@ -50,6 +50,9 @@ interface RawHistoryMessage {
   file_url?: string;
   user_balance?: string | number;
   balance?: string | number;
+  player_bal?: string | number;
+  winning_balance?: string | number;
+  player_winning_bal?: string | number;
   is_pinned?: boolean;
   isPinned?: boolean;
 }
@@ -60,6 +63,11 @@ const mapHistoryMessage = (msg: RawHistoryMessage): ChatMessage => {
 
   const timestamp = msg.sent_time ?? msg.timestamp ?? new Date().toISOString();
   const messageDate = new Date(timestamp);
+
+  // Extract credit balance (try multiple field names)
+  const creditBalance = msg.user_balance ?? msg.balance ?? msg.player_bal;
+  // Extract winning balance (try multiple field names)
+  const winningBalance = msg.winning_balance ?? msg.player_winning_bal;
 
   return {
     id: String(msg.id ?? msg.message_id ?? Date.now()),
@@ -78,8 +86,11 @@ const mapHistoryMessage = (msg: RawHistoryMessage): ChatMessage => {
     isFile: msg.is_file ?? false,
     fileExtension: msg.file_extension ?? undefined,
     fileUrl: msg.file || msg.file_url || undefined,
-    userBalance: msg.user_balance ?? msg.balance
-      ? String(msg.user_balance ?? msg.balance)
+    userBalance: creditBalance !== undefined && creditBalance !== null
+      ? String(creditBalance)
+      : undefined,
+    winningBalance: winningBalance !== undefined && winningBalance !== null
+      ? String(winningBalance)
       : undefined,
     isPinned: msg.is_pinned ?? msg.isPinned ?? false,
   };
@@ -573,6 +584,11 @@ export function useChatReset({
             const timestamp = rawData.sent_time || rawData.timestamp || new Date().toISOString();
             const messageDate = new Date(timestamp);
 
+            // Extract credit balance (try multiple field names)
+            const creditBalance = rawData.user_balance ?? rawData.balance ?? rawData.player_bal;
+            // Extract winning balance (try multiple field names)
+            const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal;
+
             const newMessage: ChatMessage = {
               id: rawData.id || rawData.message_id || Date.now().toString(),
               text: rawData.message || '',
@@ -591,6 +607,12 @@ export function useChatReset({
               fileUrl: rawData.file || rawData.file_url || undefined,
               isComment: rawData.is_comment || false,
               isPinned: rawData.is_pinned ?? false,
+              userBalance: creditBalance !== undefined && creditBalance !== null
+                ? String(creditBalance)
+                : undefined,
+              winningBalance: winningBalance !== undefined && winningBalance !== null
+                ? String(winningBalance)
+                : undefined,
             };
 
             if (!IS_PROD) {
