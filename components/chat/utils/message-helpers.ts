@@ -352,21 +352,21 @@ export const formatTransactionMessage = (message: { text: string; userBalance?: 
         
         switch (transactionType) {
           case 'credit_purchase':
-            return `You successfully purchased ${formattedAmount} credit.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `You successfully purchased <b>${formattedAmount}</b> credit.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'cashout':
-            return `You successfully cashed out ${formattedAmount}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `You successfully cashed out <b>${formattedAmount}</b>.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'credit_added':
-            return `${formattedAmount} added to your credit balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `<b>${formattedAmount}</b> added to your credit balance.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'credit_deducted':
-            return `${formattedAmount} deducted from your credit balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `<b>${formattedAmount}</b> deducted from your credit balance.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'winning_added':
-            return `${formattedAmount} added to your winning balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `<b>${formattedAmount}</b> added to your winning balance.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'winning_deducted':
-            return `${formattedAmount} deducted from your winning balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `<b>${formattedAmount}</b> deducted from your winning balance.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'recharge':
-            return `You successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `You successfully recharged <b>${formattedAmount}</b>${gameName ? ` to ${gameName}` : ''}.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
           case 'redeem':
-            return `You successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `You successfully redeemed <b>${formattedAmount}</b>${gameName ? ` from ${gameName}` : ''}.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
         }
       }
     }
@@ -416,28 +416,28 @@ export const formatTransactionMessage = (message: { text: string; userBalance?: 
 
   switch (details.type) {
     case 'credit_purchase':
-      formattedText = `You successfully purchased ${formattedAmount} credit.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `You successfully purchased <b>${formattedAmount}</b> credit.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'cashout':
-      formattedText = `You successfully cashed out ${formattedAmount}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `You successfully cashed out <b>${formattedAmount}</b>.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'credit_added':
-      formattedText = `${formattedAmount} added to your credit balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `<b>${formattedAmount}</b> added to your credit balance.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'credit_deducted':
-      formattedText = `${formattedAmount} deducted from your credit balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `<b>${formattedAmount}</b> deducted from your credit balance.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'winning_added':
-      formattedText = `${formattedAmount} added to your winning balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `<b>${formattedAmount}</b> added to your winning balance.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'winning_deducted':
-      formattedText = `${formattedAmount} deducted from your winning balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `<b>${formattedAmount}</b> deducted from your winning balance.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'recharge':
-      formattedText = `You successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `You successfully recharged <b>${formattedAmount}</b>${gameName ? ` to ${gameName}` : ''}.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     case 'redeem':
-      formattedText = `You successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `You successfully redeemed <b>${formattedAmount}</b>${gameName ? ` from ${gameName}` : ''}.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
       break;
     default:
       return message.text;
