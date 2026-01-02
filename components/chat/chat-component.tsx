@@ -148,6 +148,14 @@ export function ChatComponent() {
   const processedQueryUsernameRef = useRef<string | null>(null); // Track which username we've already processed
   const lastSetSearchQueryRef = useRef<string>(''); // Track last search query we set to avoid unnecessary updates
   const queryParamPlayerRef = useRef<Player | null>(null); // Store the player selected via query params to ensure they stay visible
+  // Track last manual payment operation to help determine message type for balanceUpdated messages
+  const lastManualPaymentRef = useRef<{
+    playerId: number;
+    amount: number;
+    operation: 'increase' | 'decrease';
+    balanceType: 'main' | 'winning';
+    timestamp: number;
+  } | null>(null);
   const { addToast } = useToast();
 
   // Common emojis for quick access
@@ -299,7 +307,48 @@ export function ChatComponent() {
   // });
 
   //  TEMPORARY: Show all messages without viewport optimization
-  const visibleMessages = wsMessages;
+  // Process messages to add operationType for balanceUpdated messages (workaround for backend bug)
+  const visibleMessages = useMemo(() => {
+    if (!lastManualPaymentRef.current) {
+      return wsMessages;
+    }
+
+    const lastOp = lastManualPaymentRef.current;
+    const now = Date.now();
+    const FIVE_SECONDS = 5000; // Match messages within 5 seconds of operation
+
+    return wsMessages.map((msg) => {
+      // Only process balanceUpdated messages that might match our last operation
+      if (msg.type?.toLowerCase() !== 'balanceupdated' && msg.type?.toLowerCase() !== 'balance_updated') {
+        return msg;
+      }
+
+      // Check if message matches last operation (same player, recent timestamp)
+      const messageTime = new Date(msg.timestamp).getTime();
+      const timeDiff = Math.abs(messageTime - lastOp.timestamp);
+      
+      if (
+        msg.userId === lastOp.playerId &&
+        timeDiff < FIVE_SECONDS &&
+        !msg.operationType // Only set if not already set
+      ) {
+        // Extract amount from message text to verify it matches
+        const amountMatch = msg.text.match(/\$([\d,]+\.?\d*)/);
+        if (amountMatch) {
+          const messageAmount = parseFloat(amountMatch[1].replace(/,/g, ''));
+          // If amounts match (within small tolerance), it's likely the same operation
+          if (Math.abs(messageAmount - lastOp.amount) < 0.01) {
+            return {
+              ...msg,
+              operationType: lastOp.operation,
+            };
+          }
+        }
+      }
+
+      return msg;
+    });
+  }, [wsMessages]);
 
   const groupedMessages = useMemo(() => groupMessagesByDate(visibleMessages), [visibleMessages]);
 
@@ -1176,6 +1225,23 @@ export function ChatComponent() {
         type: operation,
         balanceType: balanceType,
       });
+
+      // Track the last manual payment operation to help determine message type
+      // when balanceUpdated messages arrive from backend
+      lastManualPaymentRef.current = {
+        playerId: selectedPlayer.user_id,
+        amount: balanceValue,
+        operation,
+        balanceType,
+        timestamp: Date.now(),
+      };
+
+      // Clear the last operation after 10 seconds to avoid incorrect matches
+      setTimeout(() => {
+        if (lastManualPaymentRef.current?.timestamp === lastManualPaymentRef.current?.timestamp) {
+          lastManualPaymentRef.current = null;
+        }
+      }, 10000);
 
       // Determine the message based on operation and balance type
       let title = '';

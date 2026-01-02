@@ -47,7 +47,11 @@ export const MessageBubble = memo(function MessageBubble({
   // Render purchase notifications and auto messages in a centered, neutral style
   if (isAuto || isPurchase) {
     // Format transaction messages according to the specified format
-    const formattedMessage = formatTransactionMessage(message);
+    // Pass operationType if available (workaround for backend bug)
+    const formattedMessage = formatTransactionMessage({
+      ...message,
+      operationType: message.operationType,
+    });
     
     // Convert line breaks to <br> tags for HTML rendering
     const formattedText = formattedMessage
