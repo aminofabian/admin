@@ -123,8 +123,7 @@ export default function DashboardPage() {
         </svg>
       ),
     },
-    // Processing - Hidden for agents
-    ...(user?.role !== USER_ROLES.AGENT ? [
+    // Processing
     {
       label: 'Purchase Processing',
       href: '/dashboard/processing/purchase',
@@ -155,7 +154,6 @@ export default function DashboardPage() {
       ),
       count: processingCounts.game_activities_count,
     },
-    ] : []),
     // Bonuses
     {
       label: 'Purchase Bonuses',
@@ -259,14 +257,14 @@ export default function DashboardPage() {
                   {section.count > 99 ? '99+' : section.count}
                 </span>
               )}
-              
+
               {/* Icon Container - Mobile App Style */}
               <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors mb-2 flex-shrink-0">
                 <div className="text-primary">
                   {section.icon}
                 </div>
               </div>
-              
+
               {/* Label - Mobile App Style */}
               <span className="text-xs sm:text-xs font-medium text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors px-1">
                 {section.label}
