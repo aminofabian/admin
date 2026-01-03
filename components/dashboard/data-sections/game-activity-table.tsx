@@ -276,12 +276,12 @@ function GameActivityRow({
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+        <div className="text-xs text-gray-600 dark:text-gray-400">
           {creditsDisplay}
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm font-medium text-green-600 dark:text-green-400">
+        <div className="text-xs text-gray-600 dark:text-gray-400">
           {winningsDisplay}
         </div>
       </TableCell>
