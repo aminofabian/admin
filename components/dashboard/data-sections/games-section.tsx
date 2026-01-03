@@ -178,14 +178,14 @@ export function GamesSection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
         {stats.map(stat => (
           <div
             key={stat.title}
-            className="rounded-2xl border border-border bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
+            className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
           >
-            <div className="text-sm text-muted-foreground dark:text-slate-400">{stat.title}</div>
-            <div className="mt-1 text-2xl font-semibold text-foreground dark:text-white">{stat.value}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">{stat.title}</div>
+            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{stat.value}</div>
           </div>
         ))}
       </div>
@@ -388,7 +388,7 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
   return (
     <>
       {/* Mobile Card View */}
-      <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
+      <div className="lg:hidden space-y-3 px-3 sm:px-4 py-4">
         {games.map(game => (
           <GameCard
             key={game.id}
@@ -517,91 +517,120 @@ function GameCard({ game, onEditGame, onCheckBalance }: GameCardProps) {
   const playingUrl = getGamePlayingUrl(game);
 
   return (
-    <div className="border rounded-lg p-4 space-y-3 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="font-semibold text-gray-900 dark:text-gray-100">
-            {game.title}
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
+      {/* Header Section */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+              {game.title}
+            </h3>
           </div>
+          <Badge 
+            variant={game.game_status ? 'success' : 'danger'} 
+            className="text-[10px] px-2 py-0.5 shrink-0"
+          >
+            {game.game_status ? 'Active' : 'Inactive'}
+          </Badge>
         </div>
-        <Badge variant={game.game_status ? 'success' : 'danger'}>
-          {game.game_status ? 'Active' : 'Inactive'}
-        </Badge>
       </div>
 
-      {dashboardUrl && (
-        <div className="text-sm">
-          <span className="text-gray-500 dark:text-gray-400">Dashboard URL:</span>{' '}
-          <span className="font-medium text-gray-900 dark:text-gray-100 break-all">
-            {dashboardUrl}
-          </span>
+      {/* URLs Section */}
+      {(dashboardUrl || playingUrl) && (
+        <div className="p-3 border-b border-gray-100 dark:border-gray-800 space-y-2.5">
+          {dashboardUrl && (
+            <div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1.5 font-medium">
+                Dashboard URL
+              </div>
+              <a
+                href={dashboardUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline break-all transition-colors"
+                title={dashboardUrl}
+              >
+                {dashboardUrl}
+              </a>
+            </div>
+          )}
+          {playingUrl && (
+            <div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1.5 font-medium">
+                Playing URL
+              </div>
+              <a
+                href={playingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline break-all transition-colors"
+                title={playingUrl}
+              >
+                {playingUrl}
+              </a>
+            </div>
+          )}
         </div>
       )}
 
-      {playingUrl && (
-        <div className="text-sm">
-          <span className="text-gray-500 dark:text-gray-400">Playing URL:</span>{' '}
-          <span className="font-medium text-gray-900 dark:text-gray-100 break-all">
-            {playingUrl}
-          </span>
+      {/* Actions Section */}
+      <div className="p-3">
+        <div className="grid grid-cols-2 gap-2">
+          {dashboardUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open(dashboardUrl, '_blank', 'noopener,noreferrer')}
+              title="View dashboard"
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors touch-manipulation"
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span className="truncate">View</span>
+            </Button>
+          )}
+          {playingUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open(playingUrl, '_blank', 'noopener,noreferrer')}
+              title="Play game"
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors touch-manipulation"
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="truncate">Play</span>
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onCheckBalance(game)}
+            title="Check store balance"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors touch-manipulation"
+          >
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="truncate">Balance</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEditGame(game)}
+            title="Edit game"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors touch-manipulation"
+          >
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <span className="truncate">Edit</span>
+          </Button>
         </div>
-      )}
-
-      <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-        {dashboardUrl && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.open(dashboardUrl, '_blank', 'noopener,noreferrer')}
-            title="View dashboard"
-            className="flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            View
-          </Button>
-        )}
-        {playingUrl && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.open(playingUrl, '_blank', 'noopener,noreferrer')}
-            title="Play game"
-            className="flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Play
-          </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onCheckBalance(game)}
-          title="Check store balance"
-          className={`flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 ${dashboardUrl || playingUrl ? '' : 'flex-1'}`}
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Balance
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onEditGame(game)}
-          title="Edit game"
-          className="flex-1 flex items-center justify-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-          Edit
-        </Button>
       </div>
     </div>
   );
