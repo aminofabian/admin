@@ -1,16 +1,23 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { Badge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
-import { EmptyState, ErrorState } from '@/components/features';
+import { useEffect, useMemo, useState } from 'react';
+import { Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
+import { EmptyState, ErrorState, StoreBalanceModal } from '@/components/features';
 import { useGamesStore } from '@/stores';
-import type { Game } from '@/types';
+import type { Game, CheckStoreBalanceResponse, ApiError } from '@/types';
 
 /**
  * Get the dashboard URL for a game from the API response
  */
 function getGameDashboardUrl(game: Game): string | undefined {
   return game.dashboard_url || undefined;
+}
+
+/**
+ * Get the playing URL for a game from the API response
+ */
+function getGamePlayingUrl(game: Game): string | undefined {
+  return game.playing_url || undefined;
 }
 
 /**
@@ -22,8 +29,15 @@ export function StaffGamesSection() {
     games: data,
     isLoading,
     error,
+    balanceCheckLoading,
     fetchGames,
+    checkStoreBalance,
   } = useGamesStore();
+
+  const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+  const [balanceData, setBalanceData] = useState<CheckStoreBalanceResponse | null>(null);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
 
   const games = useMemo<Game[]>(() => {
     if (!data || !Array.isArray(data)) {
@@ -33,8 +47,7 @@ export function StaffGamesSection() {
   }, [data]);
 
   const totalCount = games.length;
-  const activeCount = games.filter((game) => game.game_status).length;
-  const inactiveCount = games.filter((game) => !game.game_status).length;
+  const stats = useMemo(() => buildGameStats(games, totalCount), [games, totalCount]);
 
   useEffect(() => {
     if (!data && !isLoading) {
@@ -42,22 +55,80 @@ export function StaffGamesSection() {
     }
   }, [data, isLoading, fetchGames]);
 
+  const handleCheckBalance = async (game: Game) => {
+    setSelectedGame(game);
+    setBalanceError(null);
+    setBalanceData(null);
+    setIsBalanceModalOpen(true);
+
+    try {
+      const response = await checkStoreBalance({ game_id: game.id });
+      setBalanceData(response);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to check balance';
+      setBalanceError(message);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3 sm:space-y-4 md:space-y-6">
+        {/* Header Skeleton */}
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
           <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
             <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
-            <div className="flex flex-col shrink-0">
-              <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32" />
-            </div>
+            <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 shrink-0" />
+            <div className="flex-1 min-w-0" />
           </div>
         </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-24 mb-2" />
+                  <Skeleton className="h-8 w-16" />
+                </div>
+                <Skeleton className="h-10 w-10 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Table Skeleton */}
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="p-4 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {/* Table Header Skeleton */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-4 gap-4 px-4 py-3">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-24" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Table Rows Skeleton */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="grid grid-cols-4 gap-4 px-4 py-4">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <Skeleton className="h-8 w-20 rounded-full" />
+                    <div className="flex justify-end gap-2">
+                      <Skeleton className="h-8 w-20 rounded-full" />
+                      <Skeleton className="h-8 w-20 rounded-full" />
+                      <Skeleton className="h-8 w-20 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -75,66 +146,40 @@ export function StaffGamesSection() {
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
-      {/* Header */}
+      {/* Header - Compact */}
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
+        {/* Single compact row - everything in one line */}
         <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
+          {/* Icon */}
           <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
             <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
             </svg>
           </div>
-          <div className="flex flex-col shrink-0">
-            <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              Games
-            </h2>
-          </div>
+
+          {/* Title */}
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
+            Games
+          </h2>
+
+          {/* Spacer */}
+          <div className="flex-1 min-w-0" />
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 sm:p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shrink-0">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6-3 6 3m-12 0v6l6 3m0-6l6-3m-6 3v6" />
-              </svg>
-            </div>
-            <div className="w-full">
-              <div className="text-xs text-gray-600 dark:text-gray-400">Total Games</div>
-              <div className="mt-0.5 text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{totalCount.toLocaleString()}</div>
-            </div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+        {stats.map(stat => (
+          <div
+            key={stat.title}
+            className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
+          >
+            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">{stat.title}</div>
+            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{stat.value}</div>
           </div>
-        </div>
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 sm:p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 shrink-0">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div className="w-full">
-              <div className="text-xs text-gray-600 dark:text-gray-400">Active</div>
-              <div className="mt-0.5 text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{activeCount.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 sm:p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 shrink-0">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-12.728 12.728" />
-              </svg>
-            </div>
-            <div className="w-full">
-              <div className="text-xs text-gray-600 dark:text-gray-400">Inactive</div>
-              <div className="mt-0.5 text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{inactiveCount.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Games Table */}
+      {/* Content */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {!games.length ? (
           <div className="py-12">
@@ -144,84 +189,305 @@ export function StaffGamesSection() {
             />
           </div>
         ) : (
-          <>
-            {/* Mobile Card View */}
-            <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
-              {games.map(game => (
-                <div
-                  key={game.id}
-                  className="border rounded-lg p-4 space-y-3 bg-white dark:bg-gray-800 shadow-sm"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-900 dark:text-gray-100">
-                        {game.title}
-                      </div>
-                    </div>
-                    <Badge variant={game.game_status ? 'success' : 'danger'}>
-                      {game.game_status ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                  {getGameDashboardUrl(game) && (
-                    <div className="text-sm">
-                      <span className="text-gray-500 dark:text-gray-400">Dashboard URL:</span>{' '}
-                      <span className="font-medium text-gray-900 dark:text-gray-100 break-all">
-                        {getGameDashboardUrl(game)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Game</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dashboard URL</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {games.map(game => (
-                    <TableRow
-                      key={game.id}
-                      className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                    >
-                      <TableCell>
-                        <div className="font-medium text-gray-900 dark:text-gray-100">{game.title}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={game.game_status ? 'success' : 'danger'}>
-                          {game.game_status ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const dashboardUrl = getGameDashboardUrl(game);
-                          return dashboardUrl ? (
-                            <a
-                              href={dashboardUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
-                            >
-                              {dashboardUrl}
-                            </a>
-                          ) : (
-                            <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
-                          );
-                        })()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </>
+          <GamesTable
+            games={games}
+            onCheckBalance={handleCheckBalance}
+          />
         )}
+      </div>
+
+      <StoreBalanceModal
+        isOpen={isBalanceModalOpen}
+        onClose={() => {
+          setIsBalanceModalOpen(false);
+          setSelectedGame(null);
+          setBalanceData(null);
+          setBalanceError(null);
+        }}
+        gameTitle={selectedGame?.title ?? ''}
+        balanceData={balanceData}
+        isLoading={balanceCheckLoading}
+        error={balanceError}
+      />
+    </div>
+  );
+}
+
+interface GameStat {
+  title: string;
+  value: string;
+  helper?: string;
+  variant?: 'default' | 'success' | 'danger' | 'info';
+  icon: React.ReactNode;
+  onClick?: () => void;
+}
+
+function buildGameStats(
+  games: Game[],
+  total: number
+): GameStat[] {
+  const active = games.filter((game) => game.game_status).length;
+  const inactive = games.filter((game) => !game.game_status).length;
+
+  return [
+    {
+      title: 'Total Games',
+      value: total.toLocaleString(),
+      icon: (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6-3 6 3m-12 0v6l6 3m0-6l6-3m-6 3v6" />
+        </svg>
+      ),
+    },
+    {
+      title: 'Active',
+      value: active.toLocaleString(),
+      variant: 'success',
+      icon: (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ),
+    },
+    {
+      title: 'Inactive',
+      value: inactive.toLocaleString(),
+      variant: 'danger',
+      icon: (
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-12.728 12.728" />
+        </svg>
+      ),
+    },
+  ];
+}
+
+interface GamesTableProps {
+  games: Game[];
+  onCheckBalance: (game: Game) => Promise<void>;
+}
+
+function GamesTable({ games, onCheckBalance }: GamesTableProps) {
+  return (
+    <>
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-3 px-3 sm:px-4 py-4">
+        {games.map(game => (
+          <GameCard
+            key={game.id}
+            game={game}
+            onCheckBalance={onCheckBalance}
+          />
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Game</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Dashboard URL</TableHead>
+              <TableHead>Playing URL</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {games.map(game => (
+              <TableRow
+                key={game.id}
+                className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              >
+                <TableCell>
+                  <div className="font-medium text-gray-900 dark:text-gray-100">{game.title}</div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={game.game_status ? 'success' : 'danger'}>
+                    {game.game_status ? 'Active' : 'Inactive'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const dashboardUrl = getGameDashboardUrl(game);
+                    return dashboardUrl ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(dashboardUrl, '_blank', 'noopener,noreferrer')}
+                        title="View dashboard"
+                        className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View
+                      </Button>
+                    ) : (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
+                    );
+                  })()}
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const playingUrl = getGamePlayingUrl(game);
+                    return playingUrl ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(playingUrl, '_blank', 'noopener,noreferrer')}
+                        title="Play game"
+                        className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Play
+                      </Button>
+                    ) : (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
+                    );
+                  })()}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onCheckBalance(game)}
+                      title="Check store balance"
+                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Balance
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
+  );
+}
+
+interface GameCardProps {
+  game: Game;
+  onCheckBalance: (game: Game) => Promise<void>;
+}
+
+function GameCard({ game, onCheckBalance }: GameCardProps) {
+  const dashboardUrl = getGameDashboardUrl(game);
+  const playingUrl = getGamePlayingUrl(game);
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
+      {/* Header Section */}
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+              {game.title}
+            </h3>
+          </div>
+          <Badge
+            variant={game.game_status ? 'success' : 'danger'}
+            className="text-[10px] px-2 py-0.5 shrink-0"
+          >
+            {game.game_status ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
+      </div>
+
+      {/* URLs Section */}
+      {(dashboardUrl || playingUrl) && (
+        <div className="p-3 border-b border-gray-100 dark:border-gray-800 space-y-2.5">
+          {dashboardUrl && (
+            <div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1.5 font-medium">
+                Dashboard URL
+              </div>
+              <a
+                href={dashboardUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline break-all transition-colors"
+                title={dashboardUrl}
+              >
+                {dashboardUrl}
+              </a>
+            </div>
+          )}
+          {playingUrl && (
+            <div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1.5 font-medium">
+                Playing URL
+              </div>
+              <a
+                href={playingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline break-all transition-colors"
+                title={playingUrl}
+              >
+                {playingUrl}
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Actions Section */}
+      <div className="p-3">
+        <div className="grid grid-cols-2 gap-2">
+          {dashboardUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open(dashboardUrl, '_blank', 'noopener,noreferrer')}
+              title="View dashboard"
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors touch-manipulation"
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span className="truncate">View</span>
+            </Button>
+          )}
+          {playingUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open(playingUrl, '_blank', 'noopener,noreferrer')}
+              title="Play game"
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors touch-manipulation"
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="truncate">Play</span>
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onCheckBalance(game)}
+            title="Check store balance"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors touch-manipulation"
+          >
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="truncate">Balance</span>
+          </Button>
+        </div>
       </div>
     </div>
   );
