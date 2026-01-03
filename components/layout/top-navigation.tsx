@@ -15,7 +15,7 @@ interface TopNavigationProps {
 
 export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   const { theme, toggleTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const pathname = usePathname();
   const { 
     counts: processingCounts, 
@@ -26,7 +26,9 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   } = useProcessingWebSocketContext();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Get chat users from shared context
   const { users: chatUsers, isConnected: chatConnected } = useChatUsersContext();
@@ -60,13 +62,16 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
         setIsNotificationOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
     };
 
-    if (isNotificationOpen) {
+    if (isNotificationOpen || isUserMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isNotificationOpen]);
+  }, [isNotificationOpen, isUserMenuOpen]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -484,21 +489,73 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           </svg>
         </button>
 
-        {/* User Profile - Enhanced responsive design */}
-        <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-2.5 pl-1.5 sm:pl-2 md:pl-3 ml-1.5 sm:ml-2 md:ml-3 border-l border-border">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-md ring-2 ring-primary/20">
-            <span className="text-primary-foreground font-semibold text-xs sm:text-sm">
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
-            </span>
-          </div>
-          <div className="hidden sm:flex flex-col">
-            <span className="text-xs md:text-sm font-semibold text-foreground leading-tight">
-              {user?.username || 'User'}
-            </span>
-            <span className="text-[10px] text-muted-foreground capitalize leading-tight hidden lg:block">
-              {user?.role || 'Admin'}
-            </span>
-          </div>
+        {/* User Profile - Enhanced responsive design with mobile logout */}
+        <div className="relative" ref={userMenuRef}>
+          <button
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-2.5 pl-1.5 sm:pl-2 md:pl-3 ml-1.5 sm:ml-2 md:ml-3 border-l border-border hover:opacity-80 transition-opacity"
+          >
+            <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-md ring-2 ring-primary/20">
+              <span className="text-primary-foreground font-semibold text-xs sm:text-sm">
+                {user?.username?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div className="hidden sm:flex flex-col">
+              <span className="text-xs md:text-sm font-semibold text-foreground leading-tight">
+                {user?.username || 'User'}
+              </span>
+              <span className="text-[10px] text-muted-foreground capitalize leading-tight hidden lg:block">
+                {user?.role || 'Admin'}
+              </span>
+            </div>
+            {/* Mobile dropdown indicator */}
+            <svg 
+              className={`lg:hidden w-4 h-4 text-muted-foreground transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Mobile User Menu Dropdown */}
+          {isUserMenuOpen && (
+            <>
+              {/* Backdrop overlay */}
+              <div 
+                className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                onClick={() => setIsUserMenuOpen(false)}
+              />
+              {/* Dropdown menu */}
+              <div className="lg:hidden absolute right-0 top-full mt-2 w-56 bg-background border-2 border-border rounded-lg shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-3 space-y-2">
+                  {/* User info section */}
+                  <div className="px-3 py-2.5 bg-muted/50 rounded-md border-b border-border/50">
+                    <div className="text-sm font-bold text-foreground">
+                      {user?.username || 'User'}
+                    </div>
+                    <div className="text-xs text-muted-foreground capitalize mt-0.5">
+                      {user?.role || 'Admin'}
+                    </div>
+                  </div>
+                  {/* Logout button */}
+                  <button
+                    onClick={() => {
+                      logout();
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-md transition-all duration-200 active:scale-[0.98]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
