@@ -133,6 +133,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
             label: 'Dashboard',
             count: undefined
           },
+          ...(user?.role !== USER_ROLES.AGENT ? [
           { 
             href: '/dashboard/processing/purchase',
             icon: (
@@ -163,6 +164,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
             label: 'Game Activity Processing',
             count: processingCounts.game_activities_count
           },
+          ] : []),
           { 
             href: '/dashboard/chat',
             icon: (

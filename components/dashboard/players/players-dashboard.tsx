@@ -69,6 +69,7 @@ type PlayersPageContext = {
   canAccessAgents: boolean; // Deprecated: use canFilterByAgents for filtering, canAssignAgents for assignment
   canAssignAgents: boolean;
   canFilterByAgents: boolean;
+  user: ReturnType<typeof useAuth>['user'];
 };
 
 export default function PlayersDashboard(): ReactElement {
@@ -84,6 +85,7 @@ export default function PlayersDashboard(): ReactElement {
     canAccessAgents,
     canAssignAgents,
     canFilterByAgents,
+    user,
   } = usePlayersPageContext();
 
   if (dataState.shouldShowLoading) {
@@ -123,8 +125,8 @@ export default function PlayersDashboard(): ReactElement {
             <div className="min-w-full">
               {/* Table Header Skeleton */}
               <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-7 gap-4 px-4 py-3">
-                  {[...Array(7)].map((_, i) => (
+                <div className="grid grid-cols-6 gap-4 px-4 py-3">
+                  {[...Array(6)].map((_, i) => (
                     <Skeleton key={i} className="h-4 w-24" />
                   ))}
                 </div>
@@ -133,7 +135,7 @@ export default function PlayersDashboard(): ReactElement {
               {/* Table Rows Skeleton */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-7 gap-4 px-4 py-4">
+                  <div key={i} className="grid grid-cols-6 gap-4 px-4 py-4">
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-full" />
                       <div className="flex-1">
@@ -146,10 +148,6 @@ export default function PlayersDashboard(): ReactElement {
                     <Skeleton className="h-4 w-24" />
                     <Skeleton className="h-6 w-16 rounded-full" />
                     <Skeleton className="h-4 w-24" />
-                    <div className="flex justify-end gap-2">
-                      <Skeleton className="h-8 w-20 rounded-full" />
-                      <Skeleton className="h-8 w-20 rounded-full" />
-                    </div>
                   </div>
                 ))}
               </div>
@@ -199,7 +197,7 @@ export default function PlayersDashboard(): ReactElement {
           router.push(chatUrl);
         }}
         onPageChange={pagination.setPage}
-        onViewPlayer={(player) => router.push(`/dashboard/players/${player.id}`)}
+        onViewPlayer={user?.role !== USER_ROLES.AGENT ? (player) => router.push(`/dashboard/players/${player.id}`) : undefined}
         page={pagination.page}
         pageSize={pagination.pageSize}
       />
@@ -226,8 +224,8 @@ function usePlayersPageContext(): PlayersPageContext {
   // Read agent username from URL params
   const agentFromUrl = searchParams.get('agent');
 
-  // Check if user can assign agents to players (staff and managers cannot)
-  const canAssignAgents = user?.role !== USER_ROLES.STAFF && user?.role !== USER_ROLES.MANAGER;
+  // Check if user can assign agents to players (staff, managers, and agents cannot)
+  const canAssignAgents = user?.role !== USER_ROLES.STAFF && user?.role !== USER_ROLES.MANAGER && user?.role !== USER_ROLES.AGENT;
   // All users (including staff) can filter by agents
   const canFilterByAgents = true;
 
@@ -307,8 +305,8 @@ function usePlayersPageContext(): PlayersPageContext {
 
         setAgentOptions(mappedOptions);
       } catch (error) {
-        console.error('Failed to load agents for player filters:', error);
-        // Don't log out on error - just log it and continue
+        // Silently handle error - agents filter will just be empty
+        // Error details are available in the error object if needed
       } finally {
         if (isMounted) {
           setIsAgentLoading(false);
@@ -373,6 +371,7 @@ function usePlayersPageContext(): PlayersPageContext {
     canAccessAgents: canAssignAgents, // Keep for backward compatibility
     canAssignAgents,
     canFilterByAgents,
+    user,
   };
 }
 
@@ -980,7 +979,7 @@ type PlayersTableSectionProps = {
   hasActiveFilters: boolean;
   onOpenChat: (player: Player) => void;
   onPageChange: (page: number) => void;
-  onViewPlayer: (player: Player) => void;
+  onViewPlayer?: (player: Player) => void;
   page: number;
   pageSize: number;
 };
@@ -1036,7 +1035,7 @@ function PlayersTableSection({
 
 type PlayersTableProps = {
   onOpenChat: (player: Player) => void;
-  onViewPlayer: (player: Player) => void;
+  onViewPlayer?: (player: Player) => void;
   players: Player[];
 };
 
@@ -1070,7 +1069,9 @@ function PlayersTable({
               <TableHead>Winning</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {onViewPlayer && (
+                <TableHead className="text-right">Actions</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1091,7 +1092,7 @@ function PlayersTable({
 
 type PlayerCardProps = {
   onOpenChat: (player: Player) => void;
-  onViewPlayer: (player: Player) => void;
+  onViewPlayer?: (player: Player) => void;
   player: Player;
 };
 
@@ -1182,7 +1183,7 @@ function PlayerCard({
         </div>
       </div>
 
-      {/* Bottom Section: Date & Actions */}
+      {/* Bottom Section: Date */}
       <div className="p-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1190,6 +1191,7 @@ function PlayerCard({
           </svg>
           <span>{formatDate(player.created)}</span>
         </div>
+        {onViewPlayer && (
         <div className="flex items-center gap-1.5">
           <Button
             size="sm"
@@ -1204,6 +1206,7 @@ function PlayerCard({
             </svg>
           </Button>
         </div>
+        )}
       </div>
     </div>
   );
@@ -1211,7 +1214,7 @@ function PlayerCard({
 
 type PlayersTableRowProps = {
   onOpenChat: (player: Player) => void;
-  onViewPlayer: (player: Player) => void;
+  onViewPlayer?: (player: Player) => void;
   player: Player;
 };
 
@@ -1259,6 +1262,7 @@ function PlayersTableRow({
           {formatDate(player.created)}
         </div>
       </TableCell>
+      {onViewPlayer && (
       <TableCell className="text-right">
         <div className="flex items-center justify-end">
           <Button
@@ -1276,6 +1280,7 @@ function PlayersTableRow({
           </Button>
         </div>
       </TableCell>
+      )}
     </TableRow>
   );
 }

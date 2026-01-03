@@ -2,6 +2,9 @@ import { API_BASE_URL, TOKEN_KEY } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
 import type { ApiError } from '@/types';
 
+// Production mode check
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 interface RequestConfig extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }
@@ -105,15 +108,8 @@ class ApiClient {
         endpoint = 'unknown';
       }
 
-      console.error('🚨 API Error Details:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: response.url || 'unknown',
-        endpoint,
-        errorMessage: errorData.message,
-        errorDetail: errorData.detail,
-        rawError: errorData,
-      });
+      // Error details are available in the thrown error object
+      // No need to log here - errors are handled by the calling code
 
       // Check for invalid token errors
       const errorMessage = errorData.message || errorData.detail || errorData.error || '';
@@ -290,7 +286,9 @@ class ApiClient {
           message: `Cannot connect to server. Please check if the API is running at ${this.baseUrl}`,
           detail: `Failed to fetch ${endpoint}`,
         };
-        console.error('🔴 Network Error:', networkError);
+        if (!IS_PROD) {
+          console.error('🔴 Network Error:', networkError);
+        }
         throw networkError;
       }
       throw error;
@@ -330,7 +328,9 @@ class ApiClient {
           message: `Cannot connect to server. Please check if the API is running at ${this.baseUrl}`,
           detail: `Failed to fetch ${endpoint}`,
         };
-        console.error('🔴 Network Error:', networkError);
+        if (!IS_PROD) {
+          console.error('🔴 Network Error:', networkError);
+        }
         throw networkError;
       }
       throw error;

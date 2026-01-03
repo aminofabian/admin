@@ -308,7 +308,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Processing',
     icon: <ProcessingIcon />,
-    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.AGENT, USER_ROLES.STAFF, USER_ROLES.PLAYER],
+    roles: [USER_ROLES.COMPANY, USER_ROLES.MANAGER, USER_ROLES.STAFF, USER_ROLES.PLAYER],
     submenu: [
       { name: 'Game Activities', href: '/dashboard/processing/game-activities', icon: <GameActivityIcon /> },
       { name: 'Purchase', href: '/dashboard/processing/purchase', icon: <PurchaseIcon /> },

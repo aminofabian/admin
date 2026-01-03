@@ -123,7 +123,8 @@ export default function DashboardPage() {
         </svg>
       ),
     },
-    // Processing
+    // Processing - Hidden for agents
+    ...(user?.role !== USER_ROLES.AGENT ? [
     {
       label: 'Purchase Processing',
       href: '/dashboard/processing/purchase',
@@ -154,6 +155,7 @@ export default function DashboardPage() {
       ),
       count: processingCounts.game_activities_count,
     },
+    ] : []),
     // Bonuses
     {
       label: 'Purchase Bonuses',

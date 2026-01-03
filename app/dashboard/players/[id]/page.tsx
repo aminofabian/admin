@@ -870,6 +870,12 @@ export default function PlayerDetailPage() {
     }
   }, [gameToEdit, isEditingGame, addToast, refreshGames]);
 
+  // If user is agent, redirect to players list (agents cannot view player details)
+  if (user?.role === USER_ROLES.AGENT) {
+    router.push('/dashboard/players');
+    return null;
+  }
+
   // If user is superadmin, render superadmin player detail
   // If user is staff, render staff player detail (no agent assignment)
   // This must come AFTER all hooks are declared (Rules of Hooks)
