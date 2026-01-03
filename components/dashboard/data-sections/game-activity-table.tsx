@@ -91,20 +91,38 @@ function GameActivityRow({
     : 'text-green-600 dark:text-green-400';
   const bonusColorClass = amountColorClass;
 
+  const previousCreditsBalance = useMemo(() => {
+    const previousCredits = activity.data?.previous_credits_balance;
+    if (previousCredits === undefined || previousCredits === null) return null;
+    const creditsValue = typeof previousCredits === 'string' || typeof previousCredits === 'number'
+      ? parseFloat(String(previousCredits))
+      : null;
+    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
+  }, [activity.data?.previous_credits_balance]);
+
   const newCreditsBalance = useMemo(() => {
-    const credits = activity.data?.new_credits_balance;
-    if (credits === undefined || credits === null) return null;
-    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
-      ? parseFloat(String(credits))
+    const newCredits = activity.data?.new_credits_balance;
+    if (newCredits === undefined || newCredits === null) return null;
+    const creditsValue = typeof newCredits === 'string' || typeof newCredits === 'number'
+      ? parseFloat(String(newCredits))
       : null;
     return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
   }, [activity.data?.new_credits_balance]);
 
+  const previousWinningBalance = useMemo(() => {
+    const previousWinnings = activity.data?.previous_winning_balance;
+    if (previousWinnings === undefined || previousWinnings === null) return null;
+    const winningsValue = typeof previousWinnings === 'string' || typeof previousWinnings === 'number'
+      ? parseFloat(String(previousWinnings))
+      : null;
+    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
+  }, [activity.data?.previous_winning_balance]);
+
   const newWinningBalance = useMemo(() => {
-    const winnings = activity.data?.new_winning_balance;
-    if (winnings === undefined || winnings === null) return null;
-    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
-      ? parseFloat(String(winnings))
+    const newWinnings = activity.data?.new_winning_balance;
+    if (newWinnings === undefined || newWinnings === null) return null;
+    const winningsValue = typeof newWinnings === 'string' || typeof newWinnings === 'number'
+      ? parseFloat(String(newWinnings))
       : null;
     return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
   }, [activity.data?.new_winning_balance]);
@@ -133,9 +151,14 @@ function GameActivityRow({
     }
     // For other types that should show blank, return dash
     if (shouldShowBlankBalance) return '—';
-    return newCreditsBalance ?? zeroCurrency;
-  }, [shouldShowBlankBalance, newCreditsBalance, zeroCurrency, activity.type]);
-  
+    // Show previous -> new format if both exist
+    if (previousCreditsBalance && newCreditsBalance) {
+      return `${previousCreditsBalance} → ${newCreditsBalance}`;
+    }
+    // Fallback to new balance or previous balance or zero
+    return newCreditsBalance || previousCreditsBalance || zeroCurrency;
+  }, [shouldShowBlankBalance, previousCreditsBalance, newCreditsBalance, zeroCurrency, activity.type]);
+
   const winningsDisplay = useMemo(() => {
     // For create_game, show the actual balance if it exists, otherwise show dash
     if (activity.type === 'create_game') {
@@ -143,8 +166,13 @@ function GameActivityRow({
     }
     // For other types that should show blank, return dash
     if (shouldShowBlankBalance) return '—';
-    return newWinningBalance ?? zeroCurrency;
-  }, [shouldShowBlankBalance, newWinningBalance, zeroCurrency, activity.type]);
+    // Show previous -> new format if both exist
+    if (previousWinningBalance && newWinningBalance) {
+      return `${previousWinningBalance} → ${newWinningBalance}`;
+    }
+    // Fallback to new balance or previous balance or zero
+    return newWinningBalance || previousWinningBalance || zeroCurrency;
+  }, [shouldShowBlankBalance, previousWinningBalance, newWinningBalance, zeroCurrency, activity.type]);
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
@@ -248,13 +276,13 @@ function GameActivityRow({
         </div>
       </TableCell>
       <TableCell>
-        <div className="space-y-1">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            C: {creditsDisplay}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            W: {winningsDisplay}
-          </div>
+        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+          {creditsDisplay}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm font-medium text-green-600 dark:text-green-400">
+          {winningsDisplay}
         </div>
       </TableCell>
       <TableCell>
@@ -317,7 +345,8 @@ export function GameActivityTable({
               <TableHead>Game</TableHead>
               <TableHead>Game Username</TableHead>
               <TableHead>Amount</TableHead>
-              <TableHead>New Balance</TableHead>
+              <TableHead>Credit</TableHead>
+              <TableHead>Winning</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Dates</TableHead>
             </TableRow>
@@ -373,35 +402,41 @@ const GameActivityCard = memo(function GameActivityCard({
     : 'text-green-600 dark:text-green-400';
   const bonusColorClass = amountColorClass;
 
+  const previousCreditsBalance = useMemo(() => {
+    const previousCredits = activity.data?.previous_credits_balance;
+    if (previousCredits === undefined || previousCredits === null) return null;
+    const creditsValue = typeof previousCredits === 'string' || typeof previousCredits === 'number'
+      ? parseFloat(String(previousCredits))
+      : null;
+    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
+  }, [activity.data?.previous_credits_balance]);
+
   const newCreditsBalance = useMemo(() => {
-    const credits = activity.data?.new_credits_balance;
-    if (credits === undefined || credits === null) return null;
-    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
-      ? parseFloat(String(credits))
+    const newCredits = activity.data?.new_credits_balance;
+    if (newCredits === undefined || newCredits === null) return null;
+    const creditsValue = typeof newCredits === 'string' || typeof newCredits === 'number'
+      ? parseFloat(String(newCredits))
       : null;
     return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
   }, [activity.data?.new_credits_balance]);
 
+  const previousWinningBalance = useMemo(() => {
+    const previousWinnings = activity.data?.previous_winning_balance;
+    if (previousWinnings === undefined || previousWinnings === null) return null;
+    const winningsValue = typeof previousWinnings === 'string' || typeof previousWinnings === 'number'
+      ? parseFloat(String(previousWinnings))
+      : null;
+    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
+  }, [activity.data?.previous_winning_balance]);
+
   const newWinningBalance = useMemo(() => {
-    const winnings = activity.data?.new_winning_balance;
-    if (winnings === undefined || winnings === null) return null;
-    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
-      ? parseFloat(String(winnings))
+    const newWinnings = activity.data?.new_winning_balance;
+    if (newWinnings === undefined || newWinnings === null) return null;
+    const winningsValue = typeof newWinnings === 'string' || typeof newWinnings === 'number'
+      ? parseFloat(String(newWinnings))
       : null;
     return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
   }, [activity.data?.new_winning_balance]);
-
-  const credit = useMemo(() => {
-    const creditValue = activity.data?.credit;
-    if (creditValue === undefined || creditValue === null) return null;
-    return formatCurrency(String(creditValue));
-  }, [activity.data?.credit]);
-
-  const winnings = useMemo(() => {
-    const winningsValue = activity.data?.winnings;
-    if (winningsValue === undefined || winningsValue === null) return null;
-    return formatCurrency(String(winningsValue));
-  }, [activity.data?.winnings]);
 
   const zeroCurrency = formatCurrency('0');
   
@@ -423,30 +458,32 @@ const GameActivityCard = memo(function GameActivityCard({
   const creditsDisplay = useMemo(() => {
     // For create_game, show the actual balance if it exists, otherwise show dash
     if (activity.type === 'create_game') {
-      if (newCreditsBalance) return newCreditsBalance;
-      if (credit) return credit;
-      return '—';
+      return newCreditsBalance ?? '—';
     }
     // For other types that should show blank, return dash
     if (shouldShowBlankBalance) return '—';
-    if (newCreditsBalance) return newCreditsBalance;
-    if (credit) return credit;
-    return zeroCurrency;
-  }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency, activity.type]);
+    // Show previous -> new format if both exist
+    if (previousCreditsBalance && newCreditsBalance) {
+      return `${previousCreditsBalance} → ${newCreditsBalance}`;
+    }
+    // Fallback to new balance or previous balance or zero
+    return newCreditsBalance || previousCreditsBalance || zeroCurrency;
+  }, [shouldShowBlankBalance, previousCreditsBalance, newCreditsBalance, zeroCurrency, activity.type]);
 
   const winningsDisplay = useMemo(() => {
     // For create_game, show the actual balance if it exists, otherwise show dash
     if (activity.type === 'create_game') {
-      if (newWinningBalance) return newWinningBalance;
-      if (winnings) return winnings;
-      return '—';
+      return newWinningBalance ?? '—';
     }
     // For other types that should show blank, return dash
     if (shouldShowBlankBalance) return '—';
-    if (newWinningBalance) return newWinningBalance;
-    if (winnings) return winnings;
-    return zeroCurrency;
-  }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency, activity.type]);
+    // Show previous -> new format if both exist
+    if (previousWinningBalance && newWinningBalance) {
+      return `${previousWinningBalance} → ${newWinningBalance}`;
+    }
+    // Fallback to new balance or previous balance or zero
+    return newWinningBalance || previousWinningBalance || zeroCurrency;
+  }, [shouldShowBlankBalance, previousWinningBalance, newWinningBalance, zeroCurrency, activity.type]);
 
   const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {

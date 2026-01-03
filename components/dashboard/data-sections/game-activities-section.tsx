@@ -680,7 +680,8 @@ function HistoryGameActivitiesTable({
                     <TableHead>Game</TableHead>
                     <TableHead>Game Username</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>New Balance</TableHead>
+                    <TableHead>Credit</TableHead>
+                    <TableHead>Winning</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Dates</TableHead>
                   </TableRow>
@@ -749,29 +750,40 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
   const bonusAmount = bonusValue > 0 ? bonus : null;
   const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
 
-  const creditValue = activity.data?.credit;
-  const credit = creditValue !== undefined && creditValue !== null ? formatCurrency(String(creditValue)) : null;
-
-  const winningsValue = activity.data?.winnings;
-  const winnings = winningsValue !== undefined && winningsValue !== null ? formatCurrency(String(winningsValue)) : null;
-
-  const credits = activity.data?.new_credits_balance;
-  const creditsValue = credits !== undefined && credits !== null
-    ? (typeof credits === 'string' || typeof credits === 'number' ? parseFloat(String(credits)) : null)
+  const previousCredits = activity.data?.previous_credits_balance;
+  const previousCreditsValue = previousCredits !== undefined && previousCredits !== null
+    ? (typeof previousCredits === 'string' || typeof previousCredits === 'number' ? parseFloat(String(previousCredits)) : null)
     : null;
-  const newCreditsBalance = creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
+  const formattedPreviousCredits = previousCreditsValue !== null && !isNaN(previousCreditsValue) ? formatCurrency(String(previousCreditsValue)) : null;
 
-  const winningsBal = activity.data?.new_winning_balance;
-  const winningsBalValue = winningsBal !== undefined && winningsBal !== null
-    ? (typeof winningsBal === 'string' || typeof winningsBal === 'number' ? parseFloat(String(winningsBal)) : null)
+  const newCredits = activity.data?.new_credits_balance;
+  const newCreditsValue = newCredits !== undefined && newCredits !== null
+    ? (typeof newCredits === 'string' || typeof newCredits === 'number' ? parseFloat(String(newCredits)) : null)
     : null;
-  const newWinningBalance = winningsBalValue !== null && !isNaN(winningsBalValue) ? formatCurrency(String(winningsBalValue)) : null;
+  const formattedNewCredits = newCreditsValue !== null && !isNaN(newCreditsValue) ? formatCurrency(String(newCreditsValue)) : null;
+
+  const previousWinnings = activity.data?.previous_winning_balance;
+  const previousWinningsValue = previousWinnings !== undefined && previousWinnings !== null
+    ? (typeof previousWinnings === 'string' || typeof previousWinnings === 'number' ? parseFloat(String(previousWinnings)) : null)
+    : null;
+  const formattedPreviousWinnings = previousWinningsValue !== null && !isNaN(previousWinningsValue) ? formatCurrency(String(previousWinningsValue)) : null;
+
+  const newWinnings = activity.data?.new_winning_balance;
+  const newWinningsValue = newWinnings !== undefined && newWinnings !== null
+    ? (typeof newWinnings === 'string' || typeof newWinnings === 'number' ? parseFloat(String(newWinnings)) : null)
+    : null;
+  const formattedNewWinnings = newWinningsValue !== null && !isNaN(newWinningsValue) ? formatCurrency(String(newWinningsValue)) : null;
 
   const zeroCurrency = formatCurrency('0');
   const shouldShowBlankBalance = typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
 
-  const creditsDisplay = shouldShowBlankBalance ? '—' : (newCreditsBalance || credit || zeroCurrency);
-  const winningsDisplay = shouldShowBlankBalance ? '—' : (newWinningBalance || winnings || zeroCurrency);
+  const creditsDisplay = shouldShowBlankBalance ? '—' :
+    (formattedPreviousCredits && formattedNewCredits ? `${formattedPreviousCredits} → ${formattedNewCredits}` :
+    formattedNewCredits || formattedPreviousCredits || zeroCurrency);
+
+  const winningsDisplay = shouldShowBlankBalance ? '—' :
+    (formattedPreviousWinnings && formattedNewWinnings ? `${formattedPreviousWinnings} → ${formattedNewWinnings}` :
+    formattedNewWinnings || formattedPreviousWinnings || zeroCurrency);
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
@@ -864,13 +876,13 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
         </div>
       </TableCell>
       <TableCell>
-        <div className="space-y-1">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            C: {creditsDisplay}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            W: {winningsDisplay}
-          </div>
+        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+          {creditsDisplay}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-sm font-medium text-green-600 dark:text-green-400">
+          {winningsDisplay}
         </div>
       </TableCell>
       <TableCell>
