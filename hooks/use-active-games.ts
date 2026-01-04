@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useGamesStore } from '@/stores';
+import type { Game } from '@/types';
 
 interface ActiveGamesData {
   activeGamesCount: number;
