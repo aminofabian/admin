@@ -407,7 +407,7 @@ export default function DashboardPage() {
                           <div className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-gradient-to-br ${colors.iconBg} rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1 flex-shrink-0 shadow-sm ${colors.shadow}`}>
                             <div className={`${colors.text} text-xs sm:text-sm`}>{section.icon}</div>
                           </div>
-                          <span className={`text-[8px] sm:text-[9px] font-bold text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 group-hover:${colors.text.split(' ')[0].replace('600', '500').replace('400', '500')}`}>
+                          <span className={`text-[8px] sm:text-[9px] font-medium text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 group-hover:${colors.text.split(' ')[0].replace('600', '500').replace('400', '500')}`}>
                             {section.label}
                           </span>
                           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-10 h-0.5 bg-gradient-to-r from-transparent via-${colors.glow.split('-')[1]}-${colors.glow.split('-')[2]} to-transparent rounded-t-full transition-all duration-300"></div>
