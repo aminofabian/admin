@@ -566,55 +566,179 @@ export default function DashboardPage() {
         </div>
         
         <div className="w-full max-w-5xl px-4 space-y-2">
-          {sectionGroups.map((group, groupIndex) => (
-            <div
-              key={groupIndex}
-              className={`rounded-lg border bg-gradient-to-br ${group.color} p-2 shadow-sm`}
-            >
-              {/* Group Header */}
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <div className={`flex items-center justify-center w-4 h-4 rounded bg-gradient-to-br ${group.color.split(' ')[0]} ${group.color.split(' ')[1]} shadow-sm`}>
-                  <div className="text-foreground/70">
-                    {group.icon}
-                  </div>
-                </div>
-                <h3 className="text-[10px] sm:text-xs font-bold text-foreground uppercase tracking-wide">
-                  {group.title}
-                </h3>
-                <div className="flex-1 h-px bg-border/50"></div>
-              </div>
-
-              {/* Group Items Grid */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
-                {group.sections.map((section, sectionIndex) => (
-                  <Link
-                    key={sectionIndex}
-                    href={section.href}
-                    className="group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm"
+          {(() => {
+            // Combine small groups (1-2 items) with next group
+            const optimizedGroups: Array<{
+              groups: typeof sectionGroups;
+              combined: boolean;
+            }> = [];
+            
+            for (let i = 0; i < sectionGroups.length; i++) {
+              const currentGroup = sectionGroups[i];
+              const nextGroup = sectionGroups[i + 1];
+              
+              // If current group has 1-2 items and there's a next group, combine them
+              if (currentGroup.sections.length <= 2 && nextGroup) {
+                optimizedGroups.push({
+                  groups: [currentGroup, nextGroup],
+                  combined: true,
+                });
+                i++; // Skip next group as it's already included
+              } else {
+                optimizedGroups.push({
+                  groups: [currentGroup],
+                  combined: false,
+                });
+              }
+            }
+            
+            return optimizedGroups.map((optimizedGroup, optimizedIndex) => {
+              if (optimizedGroup.combined && optimizedGroup.groups.length === 2) {
+                // Combined groups - render together with visual distinction
+                const [firstGroup, secondGroup] = optimizedGroup.groups;
+                return (
+                  <div
+                    key={optimizedIndex}
+                    className="rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10 p-2 shadow-sm"
                   >
-                    {/* Count Badge - Corner position */}
-                    {'count' in section && section.count !== undefined && section.count > 0 && (
-                      <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
-                        {section.count > 99 ? '99+' : section.count}
-                      </span>
-                    )}
-
-                    {/* Icon Container - Compact */}
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 rounded-md group-hover:from-primary/20 group-hover:to-primary/10 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm">
-                      <div className="text-primary text-sm sm:text-base">
-                        {section.icon}
+                    {/* Combined Header */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className={`flex items-center justify-center w-4 h-4 rounded bg-gradient-to-br ${firstGroup.color.split(' ')[0]} ${firstGroup.color.split(' ')[1]} shadow-sm`}>
+                          <div className="text-foreground/70">
+                            {firstGroup.icon}
+                          </div>
+                        </div>
+                        <h3 className="text-[10px] sm:text-xs font-bold text-foreground uppercase tracking-wide">
+                          {firstGroup.title}
+                        </h3>
                       </div>
+                      <div className="h-3 w-px bg-border/50"></div>
+                      <div className="flex items-center gap-1.5">
+                        <div className={`flex items-center justify-center w-4 h-4 rounded bg-gradient-to-br ${secondGroup.color.split(' ')[0]} ${secondGroup.color.split(' ')[1]} shadow-sm`}>
+                          <div className="text-foreground/70">
+                            {secondGroup.icon}
+                          </div>
+                        </div>
+                        <h3 className="text-[10px] sm:text-xs font-bold text-foreground uppercase tracking-wide">
+                          {secondGroup.title}
+                        </h3>
+                      </div>
+                      <div className="flex-1 h-px bg-border/50"></div>
                     </div>
 
-                    {/* Label - Compact */}
-                    <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                      {section.label}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
+                    {/* Combined Items Grid */}
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
+                      {firstGroup.sections.map((section, sectionIndex) => (
+                        <Link
+                          key={`first-${sectionIndex}`}
+                          href={section.href}
+                          className={`group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border-2 border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm bg-gradient-to-br ${firstGroup.color.split(' ')[0]}/5`}
+                        >
+                          {/* Count Badge */}
+                          {'count' in section && section.count !== undefined && section.count > 0 && (
+                            <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
+                              {section.count > 99 ? '99+' : section.count}
+                            </span>
+                          )}
+
+                          {/* Icon Container */}
+                          <div className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br ${firstGroup.color.split(' ')[0]} ${firstGroup.color.split(' ')[1]} rounded-md group-hover:opacity-80 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm`}>
+                            <div className="text-white text-sm sm:text-base">
+                              {section.icon}
+                            </div>
+                          </div>
+
+                          {/* Label */}
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                            {section.label}
+                          </span>
+                        </Link>
+                      ))}
+                      {secondGroup.sections.map((section, sectionIndex) => (
+                        <Link
+                          key={`second-${sectionIndex}`}
+                          href={section.href}
+                          className={`group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border-2 border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm bg-gradient-to-br ${secondGroup.color.split(' ')[0]}/5`}
+                        >
+                          {/* Count Badge */}
+                          {'count' in section && section.count !== undefined && section.count > 0 && (
+                            <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
+                              {section.count > 99 ? '99+' : section.count}
+                            </span>
+                          )}
+
+                          {/* Icon Container */}
+                          <div className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br ${secondGroup.color.split(' ')[0]} ${secondGroup.color.split(' ')[1]} rounded-md group-hover:opacity-80 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm`}>
+                            <div className="text-white text-sm sm:text-base">
+                              {section.icon}
+                            </div>
+                          </div>
+
+                          {/* Label */}
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                            {section.label}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              } else {
+                // Single group - render normally
+                const group = optimizedGroup.groups[0];
+                return (
+                  <div
+                    key={optimizedIndex}
+                    className={`rounded-lg border bg-gradient-to-br ${group.color} p-2 shadow-sm`}
+                  >
+                    {/* Group Header */}
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <div className={`flex items-center justify-center w-4 h-4 rounded bg-gradient-to-br ${group.color.split(' ')[0]} ${group.color.split(' ')[1]} shadow-sm`}>
+                        <div className="text-foreground/70">
+                          {group.icon}
+                        </div>
+                      </div>
+                      <h3 className="text-[10px] sm:text-xs font-bold text-foreground uppercase tracking-wide">
+                        {group.title}
+                      </h3>
+                      <div className="flex-1 h-px bg-border/50"></div>
+                    </div>
+
+                    {/* Group Items Grid */}
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
+                      {group.sections.map((section, sectionIndex) => (
+                        <Link
+                          key={sectionIndex}
+                          href={section.href}
+                          className="group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm"
+                        >
+                          {/* Count Badge - Corner position */}
+                          {'count' in section && section.count !== undefined && section.count > 0 && (
+                            <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
+                              {section.count > 99 ? '99+' : section.count}
+                            </span>
+                          )}
+
+                          {/* Icon Container - Compact */}
+                          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 rounded-md group-hover:from-primary/20 group-hover:to-primary/10 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm">
+                            <div className="text-primary text-sm sm:text-base">
+                              {section.icon}
+                            </div>
+                          </div>
+
+                          {/* Label - Compact */}
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                            {section.label}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+            });
+          })()}
         </div>
       </div>
     </div>
