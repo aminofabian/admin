@@ -930,6 +930,42 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
   const bonusAmount = bonusValue > 0 ? bonus : null;
   const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
 
+  // Balance data parsing (same as desktop)
+  const previousCredits = activity.data?.previous_credits_balance;
+  const previousCreditsValue = previousCredits !== undefined && previousCredits !== null
+    ? (typeof previousCredits === 'string' || typeof previousCredits === 'number' ? parseFloat(String(previousCredits)) : null)
+    : null;
+  const formattedPreviousCredits = previousCreditsValue !== null && !isNaN(previousCreditsValue) ? formatCurrency(String(previousCreditsValue)) : null;
+
+  const newCredits = activity.data?.new_credits_balance;
+  const newCreditsValue = newCredits !== undefined && newCredits !== null
+    ? (typeof newCredits === 'string' || typeof newCredits === 'number' ? parseFloat(String(newCredits)) : null)
+    : null;
+  const formattedNewCredits = newCreditsValue !== null && !isNaN(newCreditsValue) ? formatCurrency(String(newCreditsValue)) : null;
+
+  const previousWinnings = activity.data?.previous_winning_balance;
+  const previousWinningsValue = previousWinnings !== undefined && previousWinnings !== null
+    ? (typeof previousWinnings === 'string' || typeof previousWinnings === 'number' ? parseFloat(String(previousWinnings)) : null)
+    : null;
+  const formattedPreviousWinnings = previousWinningsValue !== null && !isNaN(previousWinningsValue) ? formatCurrency(String(previousWinningsValue)) : null;
+
+  const newWinnings = activity.data?.new_winning_balance;
+  const newWinningsValue = newWinnings !== undefined && newWinnings !== null
+    ? (typeof newWinnings === 'string' || typeof newWinnings === 'number' ? parseFloat(String(newWinnings)) : null)
+    : null;
+  const formattedNewWinnings = newWinningsValue !== null && !isNaN(newWinningsValue) ? formatCurrency(String(newWinningsValue)) : null;
+
+  const zeroCurrency = formatCurrency('0');
+  const shouldShowBlankBalance = typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
+
+  const creditsDisplay = shouldShowBlankBalance ? '—' :
+    (formattedPreviousCredits && formattedNewCredits ? `${formattedPreviousCredits} → ${formattedNewCredits}` :
+    formattedNewCredits || formattedPreviousCredits || zeroCurrency);
+
+  const winningsDisplay = shouldShowBlankBalance ? '—' :
+    (formattedPreviousWinnings && formattedNewWinnings ? `${formattedPreviousWinnings} → ${formattedNewWinnings}` :
+    formattedNewWinnings || formattedPreviousWinnings || zeroCurrency);
+
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
     : null;
@@ -1010,6 +1046,46 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
           {formattedCreatedAt}
         </div>
       </div>
+
+      {/* Balance Section - Mobile */}
+      {!shouldShowBlankBalance && (formattedPreviousCredits || formattedNewCredits || formattedPreviousWinnings || formattedNewWinnings) && (
+        <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            {/* Credits */}
+            {(formattedPreviousCredits || formattedNewCredits) && (
+              <div className="flex-1 min-w-0">
+                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credits</div>
+                <div className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                  <span className="truncate">{formattedPreviousCredits || zeroCurrency}</span>
+                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  <span className="font-semibold truncate">{formattedNewCredits || zeroCurrency}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Vertical Divider */}
+            {(formattedPreviousCredits || formattedNewCredits) && (formattedPreviousWinnings || formattedNewWinnings) && (
+              <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 shrink-0" />
+            )}
+
+            {/* Winnings */}
+            {(formattedPreviousWinnings || formattedNewWinnings) && (
+              <div className="flex-1 min-w-0">
+                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winnings</div>
+                <div className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                  <span className="truncate">{formattedPreviousWinnings || zeroCurrency}</span>
+                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  <span className="font-semibold truncate">{formattedNewWinnings || zeroCurrency}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
