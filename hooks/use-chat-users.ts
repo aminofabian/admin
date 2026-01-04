@@ -14,9 +14,9 @@ const IS_PROD = process.env.NODE_ENV === 'production';
  * Extract unread count from various field names consistently
  * Handles both unread_message_count and unread_messages_count fields
  */
-const extractUnreadCount = (data: { unread_message_count?: number; unread_messages_count?: number }): number => {
-  const count1 = data.unread_message_count;
-  const count2 = data.unread_messages_count;
+const extractUnreadCount = (data: Record<string, unknown>): number => {
+  const count1 = data.unread_message_count as number | undefined;
+  const count2 = data.unread_messages_count as number | undefined;
 
   // Validate both are numbers and non-negative
   const validCount1 = typeof count1 === 'number' && count1 >= 0 ? count1 : 0;
@@ -70,14 +70,40 @@ interface UseChatUsersReturn {
  * WebSocket format: chat object with nested player data OR re_arrange format
  */
 function transformChatToUser(chat: {
-  player?: { id?: number | string; username?: string; full_name?: string };
+  player?: {
+    id?: string | number;
+    username?: string;
+    full_name?: string;
+    name?: string;
+    email?: string;
+    profile_pic?: string;
+    profile_image?: string;
+    avatar?: string;
+    is_online?: boolean;
+    isOnline?: boolean;
+    balance?: number | string;
+    winning_balance?: number | string;
+    winningBalance?: number | string;
+    games_played?: number;
+    gamesPlayed?: number;
+    win_rate?: number;
+    winRate?: number;
+    phone_number?: string;
+    mobile_number?: string;
+    phone?: string;
+    mobile?: string;
+    notes?: string;
+  };
   user_id?: number | string;
   username?: string;
   id?: number | string;
+  chat_id?: number | string;
   unread_message_count?: number;
   unread_messages_count?: number;
+  unreadCount?: number;
   updated_at?: string;
   last_message?: string;
+  last_message_time?: string;
 }): ChatUser {
   const player = chat.player || {};
 
@@ -116,31 +142,31 @@ function transformChatToUser(chat: {
  * REST API format: player object from /api/v1/admin/chat/?request_type=all_players
  * This endpoint includes chat context (last message, unread count, chatroom info)
  */
-function transformPlayerToUser(player: any): ChatUser {
+function transformPlayerToUser(player: Record<string, unknown>): ChatUser {
   // Validate timestamp before storing it
-  const rawTimestamp = player.last_message_timestamp;
+  const rawTimestamp = player.last_message_timestamp as string | undefined;
   const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
   return {
     // Use chatroom_id if available (for chat context), otherwise use player.id
     id: String(player.chatroom_id || player.id || ''),
     user_id: Number(player.id || 0),
-    username: player.username || player.full_name || 'Unknown',
-    fullName: player.full_name || player.name || undefined,
-    email: player.email || '',
-    avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
-    isOnline: player.is_online || false,
+    username: (player.username as string | undefined) || (player.full_name as string | undefined) || 'Unknown',
+    fullName: (player.full_name as string | undefined) || (player.name as string | undefined) || undefined,
+    email: (player.email as string | undefined) || '',
+    avatar: (player.profile_pic as string | undefined) || (player.profile_image as string | undefined) || (player.avatar as string | undefined) || undefined,
+    isOnline: (player.is_online as boolean | undefined) || false,
     // Use last_message from API if available (new endpoint provides this)
-    lastMessage: player.last_message || undefined,
+    lastMessage: (player.last_message as string | undefined) || undefined,
     lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
-    gamesPlayed: player.games_played || player.gems || undefined,
-    winRate: player.win_rate || undefined,
-    phone: player.phone_number || player.mobile_number || undefined,
+    gamesPlayed: (player.games_played as number | undefined) || (player.gems as number | undefined) || undefined,
+    winRate: (player.win_rate as number | undefined) || undefined,
+    phone: (player.phone_number as string | undefined) || (player.mobile_number as string | undefined) || undefined,
     // Use unread_messages_count from API if available
     unreadCount: extractUnreadCount(player) || 0,
-    notes: player.notes || undefined,
+    notes: (player.notes as string | undefined) || undefined,
   };
 }
 
@@ -176,6 +202,9 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const chatLastUpdateRef = useRef<Map<string, number>>(new Map());
   const WS_UPDATE_COOLDOWN = 1000; // 1 second cooldown for WebSocket updates per chat
 
+  // Store refreshActiveChats in a ref to avoid circular dependency
+  const refreshActiveChatsRef = useRef<(() => Promise<void>) | undefined>(undefined);
+
   const connect = useCallback(() => {
     if (!enabled || !adminId) return;
 
@@ -184,13 +213,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       const wsUrl = createWebSocketUrl(WEBSOCKET_BASE_URL, '/ws/chatlist/', { user_id: adminId });
       wsUrlRef.current = wsUrl;
 
-      !IS_PROD && console.log('🔌 [Chat Users] Connecting to managed WebSocket:', wsUrl);
+      if (!IS_PROD) console.log('🔌 [Chat Users] Connecting to managed WebSocket:', wsUrl);
       setIsLoading(true);
 
       // Create listeners for this hook
       const listeners: WebSocketListeners = {
         onOpen: () => {
-          !IS_PROD && console.log('✅ [Chat Users] WebSocket connected');
+          if (!IS_PROD) console.log('✅ [Chat Users] WebSocket connected');
           setError(null);
           setIsLoading(false);
           setIsConnected(true);
@@ -203,13 +232,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             chats?: unknown[];
             chat_id?: string;
           };
-          !IS_PROD && console.log('📨 [Chat Users] Received message:', {
+          if (!IS_PROD) console.log('📨 [Chat Users] Received message:', {
             type: messageData.type || messageData.message?.type,
             hasChats: !!messageData.chats || !!messageData.message?.chats,
             chatId: messageData.chat_id || messageData.message?.chat_id,
           });
 
-          handleWebSocketMessage(messageData, refreshActiveChats);
+          handleWebSocketMessage(messageData, refreshActiveChatsRef.current);
         },
         onError: (error) => {
           console.error('❌ [Chat Users] WebSocket error:', error);
@@ -218,7 +247,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           setError('WebSocket connection error');
         },
         onClose: (event) => {
-          !IS_PROD && console.log('🔌 [Chat Users] WebSocket closed:', event.code, event.reason);
+          if (!IS_PROD) console.log('🔌 [Chat Users] WebSocket closed:', event.code, event.reason);
           setIsConnected(false);
           setIsLoading(false);
         },
@@ -240,25 +269,27 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       setIsLoading(false);
       setError('Failed to connect to WebSocket');
     }
-  }, [adminId, enabled]);
+  }, [adminId, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Move the function definition after all dependencies are available
-  const handleWebSocketMessage = useCallback((data: any, refreshCallback?: () => Promise<void>) => {
+  const handleWebSocketMessage = useCallback((data: Record<string, unknown>, refreshCallback?: () => Promise<void>) => {
     try {
-      !IS_PROD && console.log('📨 [Chat Users] Full message data:', data);
+      if (!IS_PROD) console.log('📨 [Chat Users] Full message data:', data);
 
       // IGNORE typing events - they should not update the chat list
-      const messageType = data.type || data.message?.type;
+      const messageWrapper = data.message as Record<string, unknown> | undefined;
+      const messageType = (data.type as string | undefined) || messageWrapper?.type;
       if (messageType === 'typing') {
-        !IS_PROD && console.log('⌨️ [Chat Users] Typing event received - ignoring for chat list');
+        if (!IS_PROD) console.log('⌨️ [Chat Users] Typing event received - ignoring for chat list');
         return;
       }
 
       // Handle "message" type from chat list WebSocket
       if (messageType === 'message' && data.player_id) {
-        !IS_PROD && console.log('💬 [Chat Users] Message event received:', {
+        const messageText = typeof data.message === 'string' ? data.message.substring(0, 30) : String(data.message ?? '').substring(0, 30);
+        if (!IS_PROD) console.log('💬 [Chat Users] Message event received:', {
           playerId: data.player_id,
-          message: data.message?.substring(0, 30),
+          message: messageText,
           isPlayerSender: data.is_player_sender,
         });
 
@@ -273,7 +304,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         const balance = data.balance ?? data.player_bal;
         const winningBalance = data.winning_balance ?? data.player_winning_bal;
 
-        !IS_PROD && console.log('💰 [Chat Users] Balance updated notification received:', {
+        if (!IS_PROD) console.log('💰 [Chat Users] Balance updated notification received:', {
           playerId,
           balance,
           winningBalance,
@@ -283,7 +314,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           setActiveChats((prevChats) => {
             return prevChats.map((chat) => {
               if (chat.user_id === Number(playerId)) {
-                !IS_PROD && console.log(`💰 [Chat Users] Updating balance for player ${playerId}`);
+                if (!IS_PROD) console.log(`💰 [Chat Users] Updating balance for player ${playerId}`);
                 return {
                   ...chat,
                   balance: balance !== undefined ? String(balance) : chat.balance,
@@ -298,14 +329,14 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       // Handle "add_new_chats" message type
-      if (data.message && data.message.type === 'add_new_chats' && Array.isArray(data.message.chats)) {
+      if (messageWrapper && messageWrapper.type === 'add_new_chats' && Array.isArray(messageWrapper.chats)) {
         const timeSinceLastRefresh = Date.now() - lastApiRefreshRef.current;
         if (timeSinceLastRefresh < API_REFRESH_COOLDOWN) {
-          !IS_PROD && console.log(`⏭️ [Chat Users] Skipping add_new_chats - API refresh cooldown active`);
+          if (!IS_PROD) console.log(`⏭️ [Chat Users] Skipping add_new_chats - API refresh cooldown active`);
           return;
         }
 
-        const chatList = data.message.chats;
+        const chatList = messageWrapper.chats;
         const incomingUsers = chatList.map(transformChatToUser);
 
         setActiveChats((prevChats) => {
@@ -348,7 +379,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       // Handle chat updates with debouncing
-      const handleChatUpdate = debounce((updateData: any) => {
+      const handleChatUpdate = debounce((...args: unknown[]) => {
+        const updateData = args[0] as Record<string, unknown>;
         const chatId = String(updateData.chat_id);
         const now = Date.now();
         const lastUpdate = chatLastUpdateRef.current.get(chatId) || 0;
@@ -369,20 +401,20 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
           const updatedChats = [...prevChats];
           const existingChat = updatedChats[chatIndex];
-          const playerData = updateData.player || {};
+          const playerData = (updateData.player as Record<string, unknown>) || {};
           const newBalance = updateData.balance ?? playerData.balance ?? updateData.player_bal;
           const newWinningBalance = updateData.winning_balance ?? playerData.winning_balance ?? updateData.player_winning_bal;
-          
+
           // Extract unread count - handle both 0 and undefined/null cases
           const extractedUnreadCount = extractUnreadCount(updateData);
-          const newUnreadCount = extractedUnreadCount !== undefined && extractedUnreadCount !== null 
-            ? extractedUnreadCount 
+          const newUnreadCount = extractedUnreadCount !== undefined && extractedUnreadCount !== null
+            ? extractedUnreadCount
             : existingChat.unreadCount;
 
           const updatedChat = {
             ...existingChat,
-            lastMessage: updateData.last_message || existingChat.lastMessage,
-            lastMessageTime: isValidTimestamp(updateData.last_message_time) ? updateData.last_message_time : existingChat.lastMessageTime,
+            lastMessage: (updateData.last_message as string | undefined) || existingChat.lastMessage,
+            lastMessageTime: isValidTimestamp(updateData.last_message_time as string | undefined) ? updateData.last_message_time as string : existingChat.lastMessageTime,
             unreadCount: newUnreadCount,
             balance: newBalance !== undefined ? String(newBalance) : existingChat.balance,
             winningBalance: newWinningBalance !== undefined ? String(newWinningBalance) : existingChat.winningBalance,
@@ -391,30 +423,30 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           updatedChats.splice(chatIndex, 1);
           return [updatedChat, ...updatedChats];
         });
-      }, WS_UPDATE_COOLDOWN);
+      }, WS_UPDATE_COOLDOWN) as (...args: unknown[]) => void;
 
-      if ((data.message && (data.message.type === 'update_chat' || data.message.type === 'new_message')) ||
+      if ((messageWrapper && (messageWrapper.type === 'update_chat' || messageWrapper.type === 'new_message')) ||
           (data.type === 'update_chat' || data.type === 'new_message')) {
-        const updateData = data.message || data;
+        const updateData = messageWrapper || data;
         if (updateData.last_message || updateData.message) {
           handleChatUpdate(updateData);
         }
       }
 
       // Handle chat removal
-      if ((data.message && data.message.type === 'remove_chat_from_list') || data.type === 'remove_chat_from_list') {
-        const chatIdToRemove = data.message?.chat_id || data.chat_id;
-        !IS_PROD && console.log(`🗑️ [Chat Users] Removing chat with ID: ${chatIdToRemove}`);
+      if ((messageWrapper && messageWrapper.type === 'remove_chat_from_list') || data.type === 'remove_chat_from_list') {
+        const chatIdToRemove = messageWrapper?.chat_id || data.chat_id;
+        if (!IS_PROD) console.log(`🗑️ [Chat Users] Removing chat with ID: ${chatIdToRemove}`);
         setActiveChats((prevUsers) => prevUsers.filter((user) => user.id !== String(chatIdToRemove)));
       }
 
       // Handle mark_message_as_read - update unread count when messages are marked as read
       if (messageType === 'mark_message_as_read' || messageType === 'read') {
-        const chatId = data.chat_id || data.message?.chat_id;
-        const userId = data.user_id || data.player_id || data.message?.user_id || data.message?.player_id;
+        const chatId = data.chat_id || messageWrapper?.chat_id;
+        const userId = data.user_id || data.player_id || messageWrapper?.user_id || messageWrapper?.player_id;
         
         if (chatId || userId) {
-          !IS_PROD && console.log('✅ [Chat Users] Messages marked as read, updating unread count:', { chatId, userId });
+          if (!IS_PROD) console.log('✅ [Chat Users] Messages marked as read, updating unread count:', { chatId, userId });
           
           setActiveChats((prevChats) => {
             let hasChanges = false;
@@ -460,14 +492,14 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       // Handle update_chat with unread_count = 0 (when messages are marked as read)
-      if ((data.message && data.message.type === 'update_chat') || data.type === 'update_chat') {
-        const updateData = data.message || data;
+      if ((messageWrapper && messageWrapper.type === 'update_chat') || data.type === 'update_chat') {
+        const updateData = messageWrapper || data;
         const chatId = String(updateData.chat_id || updateData.id || '');
         const unreadCount = extractUnreadCount(updateData);
         
         // If unread count is explicitly 0, update immediately (messages marked as read)
         if (unreadCount === 0 && chatId) {
-          !IS_PROD && console.log('✅ [Chat Users] Unread count updated to 0 via WebSocket:', chatId);
+          if (!IS_PROD) console.log('✅ [Chat Users] Unread count updated to 0 via WebSocket:', chatId);
           
           setActiveChats((prevChats) => {
             const chatIndex = prevChats.findIndex((chat) => chat.id === chatId);
@@ -498,7 +530,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       // Handle re_arrange
-      if ((data.message && data.message.type === 're_arrange') || data.type === 're_arrange') {
+      if ((messageWrapper && messageWrapper.type === 're_arrange') || data.type === 're_arrange') {
         refreshCallback?.();
         return;
       }
@@ -552,7 +584,9 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
    * }
    */
   const refreshActiveChats = useCallback(async () => {
-    !IS_PROD && console.log('🔄 [refreshActiveChats] Fetching latest chat list from backend...');
+    // Store the function in the ref so it can be used in connect without circular dependency
+    refreshActiveChatsRef.current = refreshActiveChats;
+    if (!IS_PROD) console.log('🔄 [refreshActiveChats] Fetching latest chat list from backend...');
     
     try {
       const token = storage.get(TOKEN_KEY);
@@ -570,7 +604,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       const data = await response.json();
-      !IS_PROD && console.log('🔄 [refreshActiveChats] Raw API response:', {
+      if (!IS_PROD) console.log('🔄 [refreshActiveChats] Raw API response:', {
         hasPlayer: !!data.player,
         playerCount: data.player?.length,
         hasChats: !!data.chats,
@@ -581,7 +615,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       //  Use the 'player' array - it has complete data including chat context
       if (data.player && Array.isArray(data.player)) {
         const transformedUsers = data.player.map(transformPlayerToUser);
-        !IS_PROD && console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} players with chat data`);
+        if (!IS_PROD) console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} players with chat data`);
         
         // Log raw data for first player to verify unread_messages_count is present
         if (!IS_PROD && data.player.length > 0) {
@@ -598,7 +632,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         
         //  Mark the time of this API refresh to prevent WebSocket from overwriting it
         lastApiRefreshRef.current = Date.now();
-        !IS_PROD && console.log('🕐 [refreshActiveChats] API refresh timestamp set:', lastApiRefreshRef.current);
+        if (!IS_PROD) console.log('🕐 [refreshActiveChats] API refresh timestamp set:', lastApiRefreshRef.current);
         
         // Log chats with unread counts for debugging
         const chatsWithUnread = transformedUsers.filter((c: ChatUser) => (c.unreadCount ?? 0) > 0);
@@ -611,12 +645,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
             }))
           );
         } else {
-          !IS_PROD && console.log('📭 [refreshActiveChats] No unread messages');
+          if (!IS_PROD) console.log('📭 [refreshActiveChats] No unread messages');
         }
       } else if (data.chats && Array.isArray(data.chats)) {
         // Fallback to chats format if player array is not present
         const transformedUsers = data.chats.map(transformChatToUser);
-        !IS_PROD && console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} chats (fallback format)`);
+        if (!IS_PROD) console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} chats (fallback format)`);
         setActiveChats(transformedUsers);
       } else {
         console.warn('⚠️ [refreshActiveChats] Unexpected API response format - no player or chats array');
@@ -633,14 +667,14 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
    */
   const fetchAllPlayers = useCallback(async () => {
     // Set loading state IMMEDIATELY before any checks
-    !IS_PROD && console.log('🚀 fetchAllPlayers - Starting');
+    if (!IS_PROD) console.log('🚀 fetchAllPlayers - Starting');
     setIsLoadingAllPlayers(true);
     
     try {
       //  PERFORMANCE: Check cache first
       const now = Date.now();
       if (playersCacheRef.current && (now - playersCacheRef.current.timestamp) < CACHE_TTL) {
-        !IS_PROD && console.log(' Using cached chats data, count:', playersCacheRef.current.data.length);
+        if (!IS_PROD) console.log(' Using cached chats data, count:', playersCacheRef.current.data.length);
         setAllPlayers(playersCacheRef.current.data);
         // Small delay to show skeleton briefly even with cache
         await new Promise(resolve => setTimeout(resolve, 150));
@@ -648,7 +682,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       setError(null);
-      !IS_PROD && console.log('📥 Fetching all players via REST API (page 1)...');
+      if (!IS_PROD) console.log('📥 Fetching all players via REST API (page 1)...');
 
       const token = storage.get(TOKEN_KEY);
       const response = await fetch(`/api/chat-all-players?page=1&page_size=${pageSize}`, {
@@ -670,8 +704,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       const pagination = data.pagination;
       const totalCount = data.count || pagination?.total_count || playersArray?.length || 0;
       
-      !IS_PROD && console.log(`📊 REST API returned ${playersArray?.length || 0} of ${totalCount} players`);
-      !IS_PROD && console.log(`📄 Pagination:`, pagination);
+      if (!IS_PROD) console.log(`📊 REST API returned ${playersArray?.length || 0} of ${totalCount} players`);
+      if (!IS_PROD) console.log(`📄 Pagination:`, pagination);
 
       if (playersArray && Array.isArray(playersArray)) {
         const transformedUsers = playersArray.map(transformPlayerToUser);
@@ -702,7 +736,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       console.error('❌ Error fetching all players:', errorMessage);
       setError(errorMessage);
     } finally {
-      !IS_PROD && console.log('🏁 fetchAllPlayers - Complete');
+      if (!IS_PROD) console.log('🏁 fetchAllPlayers - Complete');
       setIsLoadingAllPlayers(false); // Use separate loading state
     }
   }, [CACHE_TTL, pageSize]);
@@ -712,12 +746,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
    */
   const loadMorePlayers = useCallback(async () => {
     if (!hasMorePlayers || isLoadingMore || isLoadingAllPlayers) {
-      !IS_PROD && console.log('🚫 Cannot load more:', { hasMorePlayers, isLoadingMore, isLoadingAllPlayers });
+      if (!IS_PROD) console.log('🚫 Cannot load more:', { hasMorePlayers, isLoadingMore, isLoadingAllPlayers });
       return;
     }
 
     const nextPage = currentPage + 1;
-    !IS_PROD && console.log(`🔄 Loading more players - page ${nextPage}...`);
+    if (!IS_PROD) console.log(`🔄 Loading more players - page ${nextPage}...`);
     setIsLoadingMore(true);
 
     try {
@@ -738,8 +772,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       const playersArray = data.player || data.results;
       const pagination = data.pagination;
 
-      !IS_PROD && console.log(`📊 Loaded ${playersArray?.length || 0} more players (page ${nextPage})`);
-      !IS_PROD && console.log(`📄 Pagination:`, pagination);
+      if (!IS_PROD) console.log(`📊 Loaded ${playersArray?.length || 0} more players (page ${nextPage})`);
+      if (!IS_PROD) console.log(`📄 Pagination:`, pagination);
 
       if (playersArray && Array.isArray(playersArray)) {
         const transformedUsers = playersArray.map(transformPlayerToUser);
@@ -765,7 +799,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       // Don't set main error to avoid disrupting the UI
     } finally {
       setIsLoadingMore(false);
-      !IS_PROD && console.log('🏁 loadMorePlayers - Complete');
+      if (!IS_PROD) console.log('🏁 loadMorePlayers - Complete');
     }
   }, [hasMorePlayers, isLoadingMore, isLoadingAllPlayers, currentPage, pageSize, totalPages]);
 
@@ -819,7 +853,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     // Validate timestamp before using it
     const validTimestamp = isValidTimestamp(lastMessageTime) ? lastMessageTime : undefined;
 
-    !IS_PROD && console.log(`📝 [updateChatLastMessage] Called with:`, {
+    if (!IS_PROD) console.log(`📝 [updateChatLastMessage] Called with:`, {
       userId,
       chatId,
       lastMessage: lastMessage.substring(0, 30),
@@ -828,25 +862,25 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     });
     
     setActiveChats((prevChats) => {
-      !IS_PROD && console.log(`📝 [updateChatLastMessage] Current activeChats count: ${prevChats.length}`);
+      if (!IS_PROD) console.log(`📝 [updateChatLastMessage] Current activeChats count: ${prevChats.length}`);
       
       // Find and update the matching chat
       const chatIndex = prevChats.findIndex(
         (chat) => chat.id === chatId || chat.user_id === userId
       );
       
-      !IS_PROD && console.log(`📝 [updateChatLastMessage] Found chat at index: ${chatIndex}`);
+      if (!IS_PROD) console.log(`📝 [updateChatLastMessage] Found chat at index: ${chatIndex}`);
       
       if (chatIndex === -1) {
         // Chat not found in active chats - this could be a new conversation
         // The WebSocket should send an update to add it, but we can log this
-        !IS_PROD && console.warn(`⚠️ [updateChatLastMessage] Chat not found! Looking for chatId: ${chatId} or userId: ${userId}`);
-        !IS_PROD && console.log(`⚠️ [updateChatLastMessage] Available chats:`, prevChats.map(c => ({ id: c.id, user_id: c.user_id, username: c.username })));
+        if (!IS_PROD) console.warn(`⚠️ [updateChatLastMessage] Chat not found! Looking for chatId: ${chatId} or userId: ${userId}`);
+        if (!IS_PROD) console.log(`⚠️ [updateChatLastMessage] Available chats:`, prevChats.map(c => ({ id: c.id, user_id: c.user_id, username: c.username })));
         return prevChats;
       }
       
       const oldChat = prevChats[chatIndex];
-      !IS_PROD && console.log(`📝 [updateChatLastMessage] Updating chat:`, {
+      if (!IS_PROD) console.log(`📝 [updateChatLastMessage] Updating chat:`, {
         username: oldChat.username,
         oldLastMessage: oldChat.lastMessage?.substring(0, 30),
         newLastMessage: lastMessage.substring(0, 30),
@@ -862,7 +896,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       
       // Move updated chat to the top of the list for better UX
       const [updatedChat] = updatedChats.splice(chatIndex, 1);
-      !IS_PROD && console.log(` [updateChatLastMessage] Chat updated and moved to top`);
+      if (!IS_PROD) console.log(` [updateChatLastMessage] Chat updated and moved to top`);
       return [updatedChat, ...updatedChats];
     });
 
