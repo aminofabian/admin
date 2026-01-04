@@ -92,7 +92,7 @@ export default function DashboardPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
         </svg>
       ),
-      color: 'from-purple-500/10 to-purple-600/5 border-purple-500/20',
+      color: 'from-blue-500/10 to-blue-600/5 border-blue-500/20',
       sections: [
         {
           label: 'Games',
@@ -121,7 +121,7 @@ export default function DashboardPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
-      color: 'from-green-500/10 to-green-600/5 border-green-500/20',
+      color: 'from-blue-500/10 to-blue-600/5 border-blue-500/20',
       sections: [
         {
           label: 'Transactions',
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
       ),
-      color: 'from-orange-500/10 to-orange-600/5 border-orange-500/20',
+      color: 'from-blue-500/10 to-blue-600/5 border-blue-500/20',
       sections: [
         {
           label: 'Purchase Processing',
@@ -182,7 +182,7 @@ export default function DashboardPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2v7m0 0v5a2 2 0 11-4 0v-5m4 0H9m3 0h3" />
         </svg>
       ),
-      color: 'from-yellow-500/10 to-yellow-600/5 border-yellow-500/20',
+      color: 'from-blue-500/10 to-blue-600/5 border-blue-500/20',
       sections: [
         {
           label: 'Purchase Bonuses',
@@ -239,7 +239,7 @@ export default function DashboardPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
-      color: 'from-gray-500/10 to-gray-600/5 border-gray-500/20',
+      color: 'from-blue-500/10 to-blue-600/5 border-blue-500/20',
       sections: [
         ...(isSuperAdmin ? [{
           label: 'Company Settings',
@@ -286,7 +286,7 @@ export default function DashboardPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       ),
-      color: 'from-red-500/10 to-red-600/5 border-red-500/20',
+      color: 'from-blue-500/10 to-blue-600/5 border-blue-500/20',
       sections: [
         {
           label: 'Companies',
@@ -384,7 +384,7 @@ export default function DashboardPage() {
                         <Link
                           key={`first-${sectionIndex}`}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center bg-white dark:bg-card backdrop-blur-sm border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${firstGroup.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${firstGroup.color.split(' ')[0]}/5`}
                         >
                           {/* Count Badge */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
@@ -413,7 +413,7 @@ export default function DashboardPage() {
                         <Link
                           key={`second-${sectionIndex}`}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center bg-white dark:bg-card backdrop-blur-sm border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${secondGroup.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${secondGroup.color.split(' ')[0]}/5`}
                         >
                           {/* Count Badge */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
@@ -468,7 +468,7 @@ export default function DashboardPage() {
                         <Link
                           key={sectionIndex}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center bg-white dark:bg-card backdrop-blur-sm border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${group.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${group.color.split(' ')[0]}/5`}
                         >
                           {/* Count Badge - Corner position */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
