@@ -328,7 +328,6 @@ export default function DashboardPage() {
               }>;
             }> = [];
 
-            let currentItemIndex = 0;
             sectionGroups.forEach((group, groupIdx) => {
               group.sections.forEach((section) => {
                 // If current row is full or doesn't exist, create new one
@@ -340,7 +339,6 @@ export default function DashboardPage() {
                   categoryName: group.title,
                   categoryIndex: groupIdx,
                 });
-                currentItemIndex++;
               });
             });
 
@@ -363,7 +361,7 @@ export default function DashboardPage() {
                 <div key={rowIndex} className="rounded-lg border border-gray-300 dark:border-slate-700 bg-background p-1.5 sm:p-2 mb-3 sm:mb-4">
                   {/* Row Header - Show all categories in this row */}
                   <div className="flex items-center gap-2 mb-1.5 overflow-hidden">
-                    {uniqueCategories.map((catIdx, i) => {
+                    {uniqueCategories.map((catIdx) => {
                       const group = sectionGroups[catIdx];
                       const colors = categoryColors[catIdx % categoryColors.length];
                       const isHighlighted = highlightedCategory === catIdx;
@@ -381,7 +379,10 @@ export default function DashboardPage() {
                           </h3>
                         </button>
                       );
-                    }).reduce((acc, elem) => acc ? [...acc, <div key={`sep-${acc.length}`} className="h-2.5 w-px bg-border/50 flex-shrink-0"></div>, elem] : [elem], null as any)}
+                    }).reduce<React.ReactNode[]>((acc, elem, index) => {
+                      if (index === 0) return [elem];
+                      return [...acc, <div key={`sep-${index}`} className="h-2.5 w-px bg-border/50 flex-shrink-0"></div>, elem];
+                    }, [])}
                     <div className="flex-1 h-px bg-border/50 min-w-0"></div>
                   </div>
 
