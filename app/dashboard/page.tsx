@@ -547,10 +547,10 @@ export default function DashboardPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 px-1">
             <div className="h-0.5 w-4 bg-primary rounded-full"></div>
-            <h2 className="text-[9px] sm:text-[10px] font-medium text-foreground">Analytics</h2>
+            <h2 className="text-[8px] sm:text-[9px] font-light text-foreground/70">Analytics</h2>
             <div className="flex-1 h-0.5 bg-border rounded-full"></div>
           </div>
-          <div className="rounded-lg border border-border bg-card/50 p-1.5 shadow-sm">
+          <div className="border border-border bg-card/50 p-1.5 shadow-sm">
             <AdminAnalytics />
           </div>
         </div>
@@ -570,7 +570,7 @@ export default function DashboardPage() {
         <div className="w-full max-w-5xl px-4">
           <div className="flex items-center gap-1.5 px-1">
             <div className="h-0.5 w-4 bg-primary rounded-full"></div>
-            <h2 className="text-[9px] sm:text-[10px] font-medium text-foreground">Quick Access</h2>
+            <h2 className="text-[8px] sm:text-[9px] font-light text-foreground/70">Quick Access</h2>
             <div className="flex-1 h-0.5 bg-border rounded-full"></div>
           </div>
         </div>
@@ -619,7 +619,7 @@ export default function DashboardPage() {
                             {firstGroup.icon}
                           </div>
                         </div>
-                        <h3 className="text-[9px] sm:text-[10px] font-medium text-foreground uppercase tracking-wide">
+                        <h3 className="text-[8px] sm:text-[9px] font-light text-foreground/70 uppercase tracking-wide">
                           {firstGroup.title}
                         </h3>
                       </div>
@@ -630,7 +630,7 @@ export default function DashboardPage() {
                             {secondGroup.icon}
                           </div>
                         </div>
-                        <h3 className="text-[9px] sm:text-[10px] font-medium text-foreground uppercase tracking-wide">
+                        <h3 className="text-[8px] sm:text-[9px] font-light text-foreground/70 uppercase tracking-wide">
                           {secondGroup.title}
                         </h3>
                       </div>
@@ -643,52 +643,58 @@ export default function DashboardPage() {
                         <Link
                           key={`first-${sectionIndex}`}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border-2 border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm bg-gradient-to-br ${firstGroup.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center bg-white dark:bg-card backdrop-blur-sm border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${firstGroup.color.split(' ')[0]}/5`}
                         >
                           {/* Count Badge */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
+                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-[#6366f1] dark:from-[#A855F7] to-[#6366f1]/90 dark:to-[#A855F7]/90 text-white border border-white/80 dark:border-background shadow-md">
                               {section.count > 99 ? '99+' : section.count}
                             </span>
                           )}
 
                           {/* Icon Container */}
-                          <div className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br ${firstGroup.color.split(' ')[0]} ${firstGroup.color.split(' ')[1]} rounded-md group-hover:opacity-80 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm`}>
-                            <div className="text-primary text-sm sm:text-base">
+                          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-[#6366f1]/10 to-[#6366f1]/5 dark:from-[#A855F7]/20 dark:to-[#A855F7]/10 rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1 flex-shrink-0 shadow-sm group-hover:shadow-lg group-hover:shadow-[#6366f1]/20 dark:group-hover:shadow-[#A855F7]/20">
+                            <div className="text-[#6366f1] dark:text-white text-sm sm:text-base">
                               {section.icon}
                             </div>
                           </div>
 
                           {/* Label */}
-                          <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                          <span className="text-[9px] sm:text-[10px] font-bold text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 transition-all duration-300 group-hover:text-[#6366f1] dark:group-hover:text-[#A855F7]">
                             {section.label}
                           </span>
+
+                          {/* Hover indicator line */}
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#6366f1] dark:via-[#A855F7] to-transparent rounded-t-full transition-all duration-300"></div>
                         </Link>
                       ))}
                       {secondGroup.sections.map((section, sectionIndex) => (
                         <Link
                           key={`second-${sectionIndex}`}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border-2 border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm bg-gradient-to-br ${secondGroup.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center bg-white dark:bg-card backdrop-blur-sm border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${secondGroup.color.split(' ')[0]}/5`}
                         >
                           {/* Count Badge */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
+                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-[#6366f1] dark:from-[#A855F7] to-[#6366f1]/90 dark:to-[#A855F7]/90 text-white border border-white/80 dark:border-background shadow-md">
                               {section.count > 99 ? '99+' : section.count}
                             </span>
                           )}
 
                           {/* Icon Container */}
-                          <div className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br ${secondGroup.color.split(' ')[0]} ${secondGroup.color.split(' ')[1]} rounded-md group-hover:opacity-80 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm`}>
-                            <div className="text-primary text-sm sm:text-base">
+                          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-[#6366f1]/10 to-[#6366f1]/5 dark:from-[#A855F7]/20 dark:to-[#A855F7]/10 rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1 flex-shrink-0 shadow-sm group-hover:shadow-lg group-hover:shadow-[#6366f1]/20 dark:group-hover:shadow-[#A855F7]/20">
+                            <div className="text-[#6366f1] dark:text-white text-sm sm:text-base">
                               {section.icon}
                             </div>
                           </div>
 
                           {/* Label */}
-                          <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                          <span className="text-[9px] sm:text-[10px] font-bold text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 transition-all duration-300 group-hover:text-[#6366f1] dark:group-hover:text-[#A855F7]">
                             {section.label}
                           </span>
+
+                          {/* Hover indicator line */}
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#6366f1] dark:via-[#A855F7] to-transparent rounded-t-full transition-all duration-300"></div>
                         </Link>
                       ))}
                     </div>
@@ -700,7 +706,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={optimizedIndex}
-                    className={`rounded-lg border bg-gradient-to-br ${group.color} p-2 shadow-sm`}
+                    className={`border bg-gradient-to-br ${group.color} p-2 shadow-sm`}
                   >
                     {/* Group Header */}
                     <div className="flex items-center gap-1.5 mb-1.5">
@@ -709,7 +715,7 @@ export default function DashboardPage() {
                           {group.icon}
                         </div>
                       </div>
-                      <h3 className="text-[9px] sm:text-[10px] font-medium text-foreground uppercase tracking-wide">
+                      <h3 className="text-[8px] sm:text-[9px] font-light text-foreground/70 uppercase tracking-wide">
                         {group.title}
                       </h3>
                       <div className="flex-1 h-px bg-border/50"></div>
@@ -721,26 +727,29 @@ export default function DashboardPage() {
                         <Link
                           key={sectionIndex}
                           href={section.href}
-                          className="group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm"
+                          className={`group relative flex flex-col items-center justify-center bg-white dark:bg-card backdrop-blur-sm border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${group.color.split(' ')[0]}/5`}
                         >
                           {/* Count Badge - Corner position */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
+                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-[#6366f1] dark:from-[#A855F7] to-[#6366f1]/90 dark:to-[#A855F7]/90 text-white border border-white/80 dark:border-background shadow-md">
                               {section.count > 99 ? '99+' : section.count}
                             </span>
                           )}
 
                           {/* Icon Container - Compact */}
-                          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 rounded-md group-hover:from-primary/20 group-hover:to-primary/10 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm">
-                            <div className="text-primary text-sm sm:text-base">
+                          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-[#6366f1]/10 to-[#6366f1]/5 dark:from-[#A855F7]/20 dark:to-[#A855F7]/10 rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1 flex-shrink-0 shadow-sm group-hover:shadow-lg group-hover:shadow-[#6366f1]/20 dark:group-hover:shadow-[#A855F7]/20">
+                            <div className="text-[#6366f1] dark:text-white text-sm sm:text-base">
                               {section.icon}
                             </div>
                           </div>
 
                           {/* Label - Compact */}
-                          <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                          <span className="text-[9px] sm:text-[10px] font-bold text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 transition-all duration-300 group-hover:text-[#6366f1] dark:group-hover:text-[#A855F7]">
                             {section.label}
                           </span>
+
+                          {/* Hover indicator line */}
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#6366f1] dark:via-[#A855F7] to-transparent rounded-t-full transition-all duration-300"></div>
                         </Link>
                       ))}
                     </div>
