@@ -1273,11 +1273,22 @@ export function ChatComponent() {
         winningBalance: String(response.player_winning_bal),
       } : null);
     } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
+      // Extract error message from ApiError object (thrown by apiClient)
+      // Backend returns: { status: "Failed", message: "You cannot withdraw bonus balance. Max amount you can withdraw: 562.70" }
+      let errorMessage = 'Unknown error';
+      
+      if (error && typeof error === 'object') {
+        // Check for ApiError structure: { message, detail, error, status }
+        const apiError = error as { message?: string; detail?: string; error?: string; status?: string };
+        errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       addToast({
         type: 'error',
         title: 'Failed to update balance',
-        description,
+        description: errorMessage,
       });
     } finally {
       setIsUpdatingBalance(false);
