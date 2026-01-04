@@ -303,11 +303,11 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="w-full flex flex-col items-center justify-center min-h-[calc(100vh-120px)] space-y-2 pb-2">
+    <div className="w-full flex flex-col items-center justify-center min-h-[calc(100vh-120px)] space-y-1.5 pb-1.5">
 
       {/* Quick Access Sections - Mobile App Style with Grouping */}
-      <div className="flex flex-col items-center space-y-2">
-        <div className="w-full max-w-5xl px-4">
+      <div className="flex flex-col items-center space-y-1.5">
+        <div className="w-full max-w-5xl px-3 sm:px-4">
           <div className="flex items-center gap-1.5 px-1">
             <div className="h-0.5 w-4 bg-primary rounded-full"></div>
             <h2 className="text-[8px] sm:text-[9px] font-light text-foreground/70">Quick Access</h2>
@@ -315,187 +315,94 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="w-full max-w-5xl px-4 space-y-4">
+        <div className="w-full max-w-5xl px-3 sm:px-4">
           {(() => {
-            // Combine small groups (1-2 items) with next group
-            const optimizedGroups: Array<{
-              groups: typeof sectionGroups;
-              combined: boolean;
+            // Create rows with exactly 5 items each by combining categories
+            const rows: Array<{
+              items: Array<{
+                section: typeof sectionGroups[0]['sections'][0];
+                categoryName: string;
+                categoryIndex: number;
+              }>;
             }> = [];
 
-            for (let i = 0; i < sectionGroups.length; i++) {
-              const currentGroup = sectionGroups[i];
-              const nextGroup = sectionGroups[i + 1];
-
-              // If current group has 1-2 items and there's a next group, combine them
-              if (currentGroup.sections.length <= 2 && nextGroup) {
-                optimizedGroups.push({
-                  groups: [currentGroup, nextGroup],
-                  combined: true,
+            let currentItemIndex = 0;
+            sectionGroups.forEach((group, groupIdx) => {
+              group.sections.forEach((section) => {
+                // If current row is full or doesn't exist, create new one
+                if (rows.length === 0 || rows[rows.length - 1].items.length >= 5) {
+                  rows.push({ items: [] });
+                }
+                rows[rows.length - 1].items.push({
+                  section,
+                  categoryName: group.title,
+                  categoryIndex: groupIdx,
                 });
-                i++; // Skip next group as it's already included
-              } else {
-                optimizedGroups.push({
-                  groups: [currentGroup],
-                  combined: false,
-                });
-              }
-            }
+                currentItemIndex++;
+              });
+            });
 
-            return optimizedGroups.map((optimizedGroup, optimizedIndex) => {
-              if (optimizedGroup.combined && optimizedGroup.groups.length === 2) {
-                // Combined groups - render together with visual distinction
-                const [firstGroup, secondGroup] = optimizedGroup.groups;
-                return (
-                  <div
-                    key={optimizedIndex}
-                    className="rounded-lg border border-gray-300 dark:border-slate-700 bg-background p-2"
-                  >
-                    {/* Combined Header */}
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className={`flex items-center justify-center w-4 h-4 rounded bg-gradient-to-br ${firstGroup.color.split(' ')[0]} ${firstGroup.color.split(' ')[1]} shadow-sm`}>
-                          <div className="text-foreground/70">
-                            {firstGroup.icon}
+            // Color scheme for categories
+            const categoryColors = [
+              { border: 'border-blue-200/50 dark:border-blue-900/30', hoverBorder: 'hover:border-blue-500/50 dark:hover:border-blue-500/30', bg: 'from-blue-50/50 dark:from-blue-950/20', iconBg: 'from-blue-500/10 to-blue-600/5 dark:from-blue-400/20 dark:to-blue-500/10', text: 'text-blue-600 dark:text-blue-400', badge: 'from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500', shadow: 'group-hover:shadow-blue-500/20', glow: 'via-blue-500 dark:via-blue-400', headerBg: 'from-blue-500/20 to-blue-600/10', headerText: 'text-blue-600/70 dark:text-blue-400/70' },
+              { border: 'border-purple-200/50 dark:border-purple-900/30', hoverBorder: 'hover:border-purple-500/50 dark:hover:border-purple-500/30', bg: 'from-purple-50/50 dark:from-purple-950/20', iconBg: 'from-purple-500/10 to-purple-600/5 dark:from-purple-400/20 dark:to-purple-500/10', text: 'text-purple-600 dark:text-purple-400', badge: 'from-purple-500 to-purple-600 dark:from-purple-400 dark:to-purple-500', shadow: 'group-hover:shadow-purple-500/20', glow: 'via-purple-500 dark:via-purple-400', headerBg: 'from-purple-500/20 to-purple-600/10', headerText: 'text-purple-600/70 dark:text-purple-400/70' },
+              { border: 'border-emerald-200/50 dark:border-emerald-900/30', hoverBorder: 'hover:border-emerald-500/50 dark:hover:border-emerald-500/30', bg: 'from-emerald-50/50 dark:from-emerald-950/20', iconBg: 'from-emerald-500/10 to-emerald-600/5 dark:from-emerald-400/20 dark:to-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', badge: 'from-emerald-500 to-emerald-600 dark:from-emerald-400 dark:to-emerald-500', shadow: 'group-hover:shadow-emerald-500/20', glow: 'via-emerald-500 dark:via-emerald-400', headerBg: 'from-emerald-500/20 to-emerald-600/10', headerText: 'text-emerald-600/70 dark:text-emerald-400/70' },
+              { border: 'border-amber-200/50 dark:border-amber-900/30', hoverBorder: 'hover:border-amber-500/50 dark:hover:border-amber-500/30', bg: 'from-amber-50/50 dark:from-amber-950/20', iconBg: 'from-amber-500/10 to-amber-600/5 dark:from-amber-400/20 dark:to-amber-500/10', text: 'text-amber-600 dark:text-amber-400', badge: 'from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500', shadow: 'group-hover:shadow-amber-500/20', glow: 'via-amber-500 dark:via-amber-400', headerBg: 'from-amber-500/20 to-amber-600/10', headerText: 'text-amber-600/70 dark:text-amber-400/70' },
+              { border: 'border-rose-200/50 dark:border-rose-900/30', hoverBorder: 'hover:border-rose-500/50 dark:hover:border-rose-500/30', bg: 'from-rose-50/50 dark:from-rose-950/20', iconBg: 'from-rose-500/10 to-rose-600/5 dark:from-rose-400/20 dark:to-rose-500/10', text: 'text-rose-600 dark:text-rose-400', badge: 'from-rose-500 to-rose-600 dark:from-rose-400 dark:to-rose-500', shadow: 'group-hover:shadow-rose-500/20', glow: 'via-rose-500 dark:via-rose-400', headerBg: 'from-rose-500/20 to-rose-600/10', headerText: 'text-rose-600/70 dark:text-rose-400/70' },
+              { border: 'border-cyan-200/50 dark:border-cyan-900/30', hoverBorder: 'hover:border-cyan-500/50 dark:hover:border-cyan-500/30', bg: 'from-cyan-50/50 dark:from-cyan-950/20', iconBg: 'from-cyan-500/10 to-cyan-600/5 dark:from-cyan-400/20 dark:to-cyan-500/10', text: 'text-cyan-600 dark:text-cyan-400', badge: 'from-cyan-500 to-cyan-600 dark:from-cyan-400 dark:to-cyan-500', shadow: 'group-hover:shadow-cyan-500/20', glow: 'via-cyan-500 dark:via-cyan-400', headerBg: 'from-cyan-500/20 to-cyan-600/10', headerText: 'text-cyan-600/70 dark:text-cyan-400/70' },
+              { border: 'border-violet-200/50 dark:border-violet-900/30', hoverBorder: 'hover:border-violet-500/50 dark:hover:border-violet-500/30', bg: 'from-violet-50/50 dark:from-violet-950/20', iconBg: 'from-violet-500/10 to-violet-600/5 dark:from-violet-400/20 dark:to-violet-500/10', text: 'text-violet-600 dark:text-violet-400', badge: 'from-violet-500 to-violet-600 dark:from-violet-400 dark:to-violet-500', shadow: 'group-hover:shadow-violet-500/20', glow: 'via-violet-500 dark:via-violet-400', headerBg: 'from-violet-500/20 to-violet-600/10', headerText: 'text-violet-600/70 dark:text-violet-400/70' },
+            ];
+
+            return rows.map((row, rowIndex) => {
+              // Get unique categories in this row
+              const uniqueCategories = Array.from(new Set(row.items.map(item => item.categoryIndex)));
+
+              return (
+                <div key={rowIndex} className="rounded-lg border border-gray-300 dark:border-slate-700 bg-background p-1.5 sm:p-2 mb-3 sm:mb-4">
+                  {/* Row Header - Show all categories in this row */}
+                  <div className="flex items-center gap-2 mb-1.5 overflow-hidden">
+                    {uniqueCategories.map((catIdx, i) => {
+                      const group = sectionGroups[catIdx];
+                      const colors = categoryColors[catIdx % categoryColors.length];
+                      return (
+                        <div key={catIdx} className="flex items-center gap-1 flex-shrink-0">
+                          <div className={`flex items-center justify-center w-3.5 h-3.5 rounded bg-gradient-to-br ${colors.headerBg} shadow-sm`}>
+                            <div className={`${colors.headerText} text-[8px]`}>{group.icon}</div>
                           </div>
+                          <h3 className={`text-[7px] sm:text-[8px] font-light ${colors.headerText} uppercase tracking-wide`}>
+                            {group.title}
+                          </h3>
                         </div>
-                        <h3 className="text-[8px] sm:text-[9px] font-light text-foreground/70 uppercase tracking-wide">
-                          {firstGroup.title}
-                        </h3>
-                      </div>
-                      <div className="h-3 w-px bg-border/50"></div>
-                      <div className="flex items-center gap-1.5">
-                        <div className={`flex items-center justify-center w-4 h-4 rounded bg-gradient-to-br ${secondGroup.color.split(' ')[0]} ${secondGroup.color.split(' ')[1]} shadow-sm`}>
-                          <div className="text-foreground/70">
-                            {secondGroup.icon}
-                          </div>
-                        </div>
-                        <h3 className="text-[8px] sm:text-[9px] font-light text-foreground/70 uppercase tracking-wide">
-                          {secondGroup.title}
-                        </h3>
-                      </div>
-                      <div className="flex-1 h-px bg-border/50"></div>
-                    </div>
-
-                    {/* Combined Items Grid */}
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
-                      {firstGroup.sections.map((section, sectionIndex) => (
-                        <Link
-                          key={`first-${sectionIndex}`}
-                          href={section.href}
-                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-slate-700 rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${firstGroup.color.split(' ')[0]}/5`}
-                        >
-                          {/* Count Badge */}
-                          {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-[#6366f1] dark:from-[#A855F7] to-[#6366f1]/90 dark:to-[#A855F7]/90 text-white border border-white/80 dark:border-background shadow-md">
-                              {section.count > 99 ? '99+' : section.count}
-                            </span>
-                          )}
-
-                          {/* Icon Container */}
-                          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-[#6366f1]/10 to-[#6366f1]/5 dark:from-[#A855F7]/20 dark:to-[#A855F7]/10 rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1 flex-shrink-0 shadow-sm group-hover:shadow-lg group-hover:shadow-[#6366f1]/20 dark:group-hover:shadow-[#A855F7]/20">
-                            <div className="text-[#6366f1] dark:text-white text-sm sm:text-base">
-                              {section.icon}
-                            </div>
-                          </div>
-
-                          {/* Label */}
-                          <span className="text-[9px] sm:text-[10px] font-bold text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 transition-all duration-300 group-hover:text-[#6366f1] dark:group-hover:text-[#A855F7]">
-                            {section.label}
-                          </span>
-
-                          {/* Hover indicator line */}
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#6366f1] dark:via-[#A855F7] to-transparent rounded-t-full transition-all duration-300"></div>
-                        </Link>
-                      ))}
-                      {secondGroup.sections.map((section, sectionIndex) => (
-                        <Link
-                          key={`second-${sectionIndex}`}
-                          href={section.href}
-                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-slate-700 rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${secondGroup.color.split(' ')[0]}/5`}
-                        >
-                          {/* Count Badge */}
-                          {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-[#6366f1] dark:from-[#A855F7] to-[#6366f1]/90 dark:to-[#A855F7]/90 text-white border border-white/80 dark:border-background shadow-md">
-                              {section.count > 99 ? '99+' : section.count}
-                            </span>
-                          )}
-
-                          {/* Icon Container */}
-                          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-[#6366f1]/10 to-[#6366f1]/5 dark:from-[#A855F7]/20 dark:to-[#A855F7]/10 rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1 flex-shrink-0 shadow-sm group-hover:shadow-lg group-hover:shadow-[#6366f1]/20 dark:group-hover:shadow-[#A855F7]/20">
-                            <div className="text-[#6366f1] dark:text-white text-sm sm:text-base">
-                              {section.icon}
-                            </div>
-                          </div>
-
-                          {/* Label */}
-                          <span className="text-[9px] sm:text-[10px] font-bold text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 transition-all duration-300 group-hover:text-[#6366f1] dark:group-hover:text-[#A855F7]">
-                            {section.label}
-                          </span>
-
-                          {/* Hover indicator line */}
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#6366f1] dark:via-[#A855F7] to-transparent rounded-t-full transition-all duration-300"></div>
-                        </Link>
-                      ))}
-                    </div>
+                      );
+                    }).reduce((acc, elem) => acc ? [...acc, <div key={`sep-${acc.length}`} className="h-2.5 w-px bg-border/50 flex-shrink-0"></div>, elem] : [elem], null as any)}
+                    <div className="flex-1 h-px bg-border/50 min-w-0"></div>
                   </div>
-                );
-              } else {
-                // Single group - render normally
-                const group = optimizedGroup.groups[0];
-                return (
-                  <div
-                    key={optimizedIndex}
-                    className={`border border-gray-300 dark:border-slate-700 bg-background p-2`}
-                  >
-                    {/* Group Header */}
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <div className={`flex items-center justify-center w-4 h-4 rounded bg-gradient-to-br ${group.color.split(' ')[0]} ${group.color.split(' ')[1]} shadow-sm`}>
-                        <div className="text-foreground/70">
-                          {group.icon}
-                        </div>
-                      </div>
-                      <h3 className="text-[8px] sm:text-[9px] font-light text-foreground/70 uppercase tracking-wide">
-                        {group.title}
-                      </h3>
-                      <div className="flex-1 h-px bg-border/50"></div>
-                    </div>
 
-                    {/* Group Items Grid */}
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
-                      {group.sections.map((section, sectionIndex) => (
-                        <Link
-                          key={sectionIndex}
-                          href={section.href}
-                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-slate-700 rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${group.color.split(' ')[0]}/5`}
-                        >
-                          {/* Count Badge - Corner position */}
+                  {/* Grid - Always 5 columns */}
+                  <div className="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-5 gap-1 sm:gap-1.5">
+                    {row.items.map((item, itemIdx) => {
+                      const colors = categoryColors[item.categoryIndex % categoryColors.length];
+                      const section = item.section;
+                      return (
+                        <Link key={itemIdx} href={section.href} className={`group relative flex flex-col items-center justify-center border-2 ${colors.border} ${colors.hoverBorder} rounded-xl hover:bg-gradient-to-br active:scale-95 transition-all duration-300 p-2 sm:p-2.5 bg-gradient-to-br ${colors.bg}`}>
                           {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-[#6366f1] dark:from-[#A855F7] to-[#6366f1]/90 dark:to-[#A855F7]/90 text-white border border-white/80 dark:border-background shadow-md">
+                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[9px] font-bold rounded-full bg-gradient-to-br text-white border border-white/80 dark:border-background shadow-md">
                               {section.count > 99 ? '99+' : section.count}
                             </span>
                           )}
-
-                          {/* Icon Container - Compact */}
-                          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-[#6366f1]/10 to-[#6366f1]/5 dark:from-[#A855F7]/20 dark:to-[#A855F7]/10 rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1 flex-shrink-0 shadow-sm group-hover:shadow-lg group-hover:shadow-[#6366f1]/20 dark:group-hover:shadow-[#A855F7]/20">
-                            <div className="text-[#6366f1] dark:text-white text-sm sm:text-base">
-                              {section.icon}
-                            </div>
+                          <div className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-gradient-to-br ${colors.iconBg} rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1 flex-shrink-0 shadow-sm ${colors.shadow}`}>
+                            <div className={`${colors.text} text-xs sm:text-sm`}>{section.icon}</div>
                           </div>
-
-                          {/* Label - Compact */}
-                          <span className="text-[9px] sm:text-[10px] font-bold text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 transition-all duration-300 group-hover:text-[#6366f1] dark:group-hover:text-[#A855F7]">
+                          <span className={`text-[8px] sm:text-[9px] font-bold text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 group-hover:${colors.text.split(' ')[0].replace('600', '500').replace('400', '500')}`}>
                             {section.label}
                           </span>
-
-                          {/* Hover indicator line */}
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#6366f1] dark:via-[#A855F7] to-transparent rounded-t-full transition-all duration-300"></div>
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-10 h-0.5 bg-gradient-to-r from-transparent {colors.glow} to-transparent rounded-t-full transition-all duration-300"></div>
                         </Link>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
-                );
-              }
+                </div>
+              );
             });
           })()}
         </div>
