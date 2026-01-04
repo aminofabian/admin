@@ -1276,39 +1276,44 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
       </div>
 
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
-            <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">Previous Credit</div>
-            <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-              {transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
-                ? formatCurrency(transaction.previous_balance)
-                : formatCurrency('0')}
-            </div>
-          </div>
-          <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
-            <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">Previous Winning</div>
-            <div className="text-sm font-bold text-green-600 dark:text-green-400">
-              {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-                ? formatCurrency(transaction.previous_winning_balance)
-                : formatCurrency('0')}
-            </div>
-          </div>
-          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
-            <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">New Credit</div>
-            <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-              {transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
-                ? formatCurrency(transaction.new_balance)
-                : formatCurrency('0')}
-            </div>
-          </div>
-          <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
-            <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">New Winning</div>
-            <div className="text-sm font-bold text-green-600 dark:text-green-400">
-              {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-                ? formatCurrency(transaction.new_winning_balance)
-                : formatCurrency('0')}
-            </div>
-          </div>
+        <div className="space-y-2.5">
+          {/* Credit Balance with Arrow */}
+          {(() => {
+            const prevCredit = parseFloat(transaction.previous_balance || '0');
+            const newCredit = parseFloat(transaction.new_balance || '0');
+            const creditChanged = prevCredit !== newCredit;
+            const creditColorClass = creditChanged
+              ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+              : 'text-gray-600 dark:text-gray-400';
+
+            return (
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2.5">
+                <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1 font-medium">Credit Balance</div>
+                <div className={`text-sm ${creditColorClass}`}>
+                  {formatCurrency(String(prevCredit))} → {formatCurrency(String(newCredit))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Winning Balance with Arrow */}
+          {(() => {
+            const prevWinning = parseFloat(transaction.previous_winning_balance || '0');
+            const newWinning = parseFloat(transaction.new_winning_balance || '0');
+            const winningChanged = prevWinning !== newWinning;
+            const winningColorClass = winningChanged
+              ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+              : 'text-gray-600 dark:text-gray-400';
+
+            return (
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2.5">
+                <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase mb-1 font-medium">Winning Balance</div>
+                <div className={`text-sm ${winningColorClass}`}>
+                  {formatCurrency(String(prevWinning))} → {formatCurrency(String(newWinning))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
