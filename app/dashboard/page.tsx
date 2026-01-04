@@ -304,27 +304,7 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full space-y-2 pb-2">
-      {/* Page Header - Compact */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30 shadow-sm">
-        <div className="relative flex items-center gap-2 p-2">
-          {/* Icon */}
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
-            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-          </div>
-          
-          {/* Title */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100">
-              Dashboard
-            </h1>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              Manage your platform
-            </p>
-          </div>
-        </div>
-      </div>
+   
 
       {/* Quick Access Sections - Mobile App Style with Grouping */}
       <div className="flex flex-col items-center space-y-2">
