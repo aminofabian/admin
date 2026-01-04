@@ -1295,11 +1295,9 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
                 <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credit</div>
                 <div className={`text-xs ${creditColorClass} flex items-center gap-1`}>
                   <span className="truncate">{formatCurrency(String(prevCredit))}</span>
-                  {creditChanged && (
-                    <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  )}
+                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
                   <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
                 </div>
               </div>
@@ -1327,11 +1325,9 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
                 <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winning</div>
                 <div className={`text-xs ${winningColorClass} flex items-center gap-1`}>
                   <span className="truncate">{formatCurrency(String(prevWinning))}</span>
-                  {winningChanged && (
-                    <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  )}
+                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
                   <span className="font-semibold truncate">{formatCurrency(String(newWinning))}</span>
                 </div>
               </div>
