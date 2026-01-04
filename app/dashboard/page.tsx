@@ -540,7 +540,9 @@ export default function DashboardPage() {
             <h2 className="text-[10px] sm:text-xs font-semibold text-foreground">Analytics</h2>
             <div className="flex-1 h-0.5 bg-border rounded-full"></div>
           </div>
-          <div className="rounded-lg border border-border bg-card/50 p-1.5 shadow-sm">
+          <div className="border border-border bg-card/50 p-1.5 shadow-sm relative overflow-hidden">
+            {/* Subtle gradient background for light theme */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#6366f1]/5 via-transparent to-transparent dark:hidden pointer-events-none" />
             <AdminAnalytics />
           </div>
         </div>
@@ -633,52 +635,178 @@ export default function DashboardPage() {
                         <Link
                           key={`first-${sectionIndex}`}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border-2 border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm bg-gradient-to-br ${firstGroup.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center overflow-hidden transition-all duration-300 ease-out p-2
+                            /* Light theme - sharp corners with strong shadows */
+                            bg-white dark:bg-gray-800/60
+                            shadow-sm hover:shadow-xl
+                            /* Distinct borders for light theme */
+                            border-2 border-gray-300 dark:border-gray-700/60
+                            /* Sharp corners - slightly rounded */
+                            rounded
+
+                            /* Prominent theme color border on hover */
+                            hover:border-[#6366f1] dark:hover:border-[#A855F7]
+                            hover:shadow-[#6366f1]/25 dark:hover:shadow-[#A855F7]/30
+
+                            /* Lift effect for interactivity */
+                            hover:-translate-y-1
+
+                            /* Subtle theme tint on hover */
+                            hover:bg-gradient-to-br hover:from-[#6366f1]/5 hover:to-transparent
+                            dark:hover:from-[#A855F7]/10 dark:hover:to-transparent
+
+                            /* Press state */
+                            active:scale-95 active:shadow-sm
+
+                            /* Focus state */
+                            focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6366f1]/30 dark:focus-visible:ring-[#A855F7]/30
+                          `}
                         >
-                          {/* Count Badge */}
+                          {/* Animated gradient shimmer effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#6366f1]/10 dark:via-[#A855F7]/15 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out pointer-events-none" />
+
+                          {/* Light theme corner accents for distinguishability */}
+                          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-tl-sm transition-all duration-300 dark:hidden" />
+                          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-tr-sm transition-all duration-300 dark:hidden" />
+                          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-bl-sm transition-all duration-300 dark:hidden" />
+                          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-br-sm transition-all duration-300 dark:hidden" />
+
+                          {/* Count Badge - More prominent */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
+                            <span className="absolute -top-1.5 -right-1.5 z-30 flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-bold rounded-full bg-gradient-to-br from-[#6366f1] to-[#6366f1] dark:from-[#A855F7] dark:to-[#A855F7] text-white border-2 border-white dark:border-gray-900 shadow-lg animate-bounce-slow">
                               {section.count > 99 ? '99+' : section.count}
                             </span>
                           )}
 
-                          {/* Icon Container */}
-                          <div className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br ${firstGroup.color.split(' ')[0]} ${firstGroup.color.split(' ')[1]} rounded-md group-hover:opacity-80 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm`}>
-                            <div className="text-white text-sm sm:text-base">
+                          {/* Icon Container - Sharp corners for light theme */}
+                          <div className={`relative w-9 h-9 flex items-center justify-center mb-1.5 flex-shrink-0 overflow-hidden transition-all duration-300
+                            /* Dynamic gradient based on category */
+                            bg-gradient-to-br ${firstGroup.color.split(' ')[0]} ${firstGroup.color.split(' ')[1]}
+
+                            /* Enhanced shadows */
+                            shadow-lg rounded-lg dark:rounded-xl
+                            group-hover:shadow-2xl group-hover:shadow-[#6366f1]/30 dark:group-hover:shadow-[#A855F7]/40
+
+                            /* Scale on hover */
+                            group-hover:scale-110 group-hover:rotate-3
+
+                            /* Press state */
+                            active:scale-100
+
+                            /* Dark mode enhancement */
+                            dark:shadow-xl dark:shadow-[#A855F7]/20
+                          `}>
+                            {/* Animated inner glow */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                            {/* Pulsing ring on hover */}
+                            <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#6366f1]/30 dark:group-hover:border-[#A855F7]/40 transition-all duration-300 rounded-lg dark:rounded-xl" />
+
+                            {/* Icon - Prominent but compact */}
+                            <div className="relative text-[#6366f1] dark:text-white text-base group-hover:scale-125 transition-transform duration-300">
                               {section.icon}
                             </div>
                           </div>
 
-                          {/* Label */}
-                          <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                          {/* Label - Compact but readable */}
+                          <span className="relative text-[10px] font-bold text-gray-800 dark:text-gray-100 text-center leading-tight line-clamp-2 transition-all duration-300
+                            group-hover:text-[#6366f1] dark:group-hover:text-[#A855F7]
+                            group-hover:scale-105
+                          ">
                             {section.label}
                           </span>
+
+                          {/* Hover indicator line */}
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#6366f1] dark:via-[#A855F7] to-transparent rounded-t-full transition-all duration-300" />
                         </Link>
                       ))}
                       {secondGroup.sections.map((section, sectionIndex) => (
                         <Link
                           key={`second-${sectionIndex}`}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border-2 border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm bg-gradient-to-br ${secondGroup.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center overflow-hidden transition-all duration-300 ease-out p-2
+                            /* Light theme - sharp corners with strong shadows */
+                            bg-white dark:bg-gray-800/60
+                            shadow-sm hover:shadow-xl
+                            /* Distinct borders for light theme */
+                            border-2 border-gray-300 dark:border-gray-700/60
+                            /* Sharp corners - slightly rounded */
+                            rounded
+
+                            /* Prominent theme color border on hover */
+                            hover:border-[#6366f1] dark:hover:border-[#A855F7]
+                            hover:shadow-[#6366f1]/25 dark:hover:shadow-[#A855F7]/30
+
+                            /* Lift effect for interactivity */
+                            hover:-translate-y-1
+
+                            /* Subtle theme tint on hover */
+                            hover:bg-gradient-to-br hover:from-[#6366f1]/5 hover:to-transparent
+                            dark:hover:from-[#A855F7]/10 dark:hover:to-transparent
+
+                            /* Press state */
+                            active:scale-95 active:shadow-sm
+
+                            /* Focus state */
+                            focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6366f1]/30 dark:focus-visible:ring-[#A855F7]/30
+                          `}
                         >
-                          {/* Count Badge */}
+                          {/* Animated gradient shimmer effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#6366f1]/10 dark:via-[#A855F7]/15 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out pointer-events-none" />
+
+                          {/* Light theme corner accents for distinguishability */}
+                          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-tl-sm transition-all duration-300 dark:hidden" />
+                          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-tr-sm transition-all duration-300 dark:hidden" />
+                          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-bl-sm transition-all duration-300 dark:hidden" />
+                          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-br-sm transition-all duration-300 dark:hidden" />
+
+                          {/* Count Badge - More prominent */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
+                            <span className="absolute -top-1.5 -right-1.5 z-30 flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-bold rounded-full bg-gradient-to-br from-[#6366f1] to-[#6366f1] dark:from-[#A855F7] dark:to-[#A855F7] text-white border-2 border-white dark:border-gray-900 shadow-lg animate-bounce-slow">
                               {section.count > 99 ? '99+' : section.count}
                             </span>
                           )}
 
-                          {/* Icon Container */}
-                          <div className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br ${secondGroup.color.split(' ')[0]} ${secondGroup.color.split(' ')[1]} rounded-md group-hover:opacity-80 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm`}>
-                            <div className="text-white text-sm sm:text-base">
+                          {/* Icon Container - Sharp corners for light theme */}
+                          <div className={`relative w-9 h-9 flex items-center justify-center mb-1.5 flex-shrink-0 overflow-hidden transition-all duration-300
+                            /* Dynamic gradient based on category */
+                            bg-gradient-to-br ${secondGroup.color.split(' ')[0]} ${secondGroup.color.split(' ')[1]}
+
+                            /* Enhanced shadows */
+                            shadow-lg rounded-lg dark:rounded-xl
+                            group-hover:shadow-2xl group-hover:shadow-[#6366f1]/30 dark:group-hover:shadow-[#A855F7]/40
+
+                            /* Scale on hover */
+                            group-hover:scale-110 group-hover:rotate-3
+
+                            /* Press state */
+                            active:scale-100
+
+                            /* Dark mode enhancement */
+                            dark:shadow-xl dark:shadow-[#A855F7]/20
+                          `}>
+                            {/* Animated inner glow */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                            {/* Pulsing ring on hover */}
+                            <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#6366f1]/30 dark:group-hover:border-[#A855F7]/40 transition-all duration-300 rounded-lg dark:rounded-xl" />
+
+                            {/* Icon - Prominent but compact */}
+                            <div className="relative text-[#6366f1] dark:text-white text-base group-hover:scale-125 transition-transform duration-300">
                               {section.icon}
                             </div>
                           </div>
 
-                          {/* Label */}
-                          <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                          {/* Label - Compact but readable */}
+                          <span className="relative text-[10px] font-bold text-gray-800 dark:text-gray-100 text-center leading-tight line-clamp-2 transition-all duration-300
+                            group-hover:text-[#6366f1] dark:group-hover:text-[#A855F7]
+                            group-hover:scale-105
+                          ">
                             {section.label}
                           </span>
+
+                          {/* Hover indicator line */}
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#6366f1] dark:via-[#A855F7] to-transparent rounded-t-full transition-all duration-300" />
                         </Link>
                       ))}
                     </div>
@@ -711,26 +839,89 @@ export default function DashboardPage() {
                         <Link
                           key={sectionIndex}
                           href={section.href}
-                          className="group relative flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm border border-border/50 rounded-md hover:border-primary/50 hover:shadow-sm active:scale-95 transition-all duration-200 p-2 shadow-sm"
+                          className={`group relative flex flex-col items-center justify-center overflow-hidden transition-all duration-300 ease-out p-2
+                            /* Light theme - sharp corners with strong shadows */
+                            bg-white dark:bg-gray-800/60
+                            shadow-sm hover:shadow-xl
+                            /* Distinct borders for light theme */
+                            border-2 border-gray-300 dark:border-gray-700/60
+                            /* Sharp corners - slightly rounded */
+                            rounded
+
+                            /* Prominent theme color border on hover */
+                            hover:border-[#6366f1] dark:hover:border-[#A855F7]
+                            hover:shadow-[#6366f1]/25 dark:hover:shadow-[#A855F7]/30
+
+                            /* Lift effect for interactivity */
+                            hover:-translate-y-1
+
+                            /* Subtle theme tint on hover */
+                            hover:bg-gradient-to-br hover:from-[#6366f1]/5 hover:to-transparent
+                            dark:hover:from-[#A855F7]/10 dark:hover:to-transparent
+
+                            /* Press state */
+                            active:scale-95 active:shadow-sm
+
+                            /* Focus state */
+                            focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6366f1]/30 dark:focus-visible:ring-[#A855F7]/30
+                          `}
                         >
-                          {/* Count Badge - Corner position */}
+                          {/* Animated gradient shimmer effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#6366f1]/10 dark:via-[#A855F7]/15 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out pointer-events-none" />
+
+                          {/* Light theme corner accents for distinguishability */}
+                          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-tl-sm transition-all duration-300 dark:hidden" />
+                          <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-tr-sm transition-all duration-300 dark:hidden" />
+                          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-bl-sm transition-all duration-300 dark:hidden" />
+                          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#6366f1]/0 group-hover:border-[#6366f1]/30 rounded-br-sm transition-all duration-300 dark:hidden" />
+
+                          {/* Count Badge - More prominent */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border border-background shadow-md">
+                            <span className="absolute -top-1.5 -right-1.5 z-30 flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-bold rounded-full bg-gradient-to-br from-[#6366f1] to-[#6366f1] dark:from-[#A855F7] dark:to-[#A855F7] text-white border-2 border-white dark:border-gray-900 shadow-lg animate-bounce-slow">
                               {section.count > 99 ? '99+' : section.count}
                             </span>
                           )}
 
-                          {/* Icon Container - Compact */}
-                          <div className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 rounded-md group-hover:from-primary/20 group-hover:to-primary/10 transition-all duration-200 mb-1 flex-shrink-0 shadow-sm">
-                            <div className="text-primary text-sm sm:text-base">
+                          {/* Icon Container - Sharp corners for light theme */}
+                          <div className="relative w-9 h-9 flex items-center justify-center mb-1.5 flex-shrink-0 overflow-hidden transition-all duration-300
+                            /* Dynamic gradient based on category */
+                            bg-gradient-to-br from-[#6366f1]/10 to-[#6366f1]/5 dark:from-[#A855F7]/20 dark:to-[#A855F7]/10
+
+                            /* Enhanced shadows */
+                            shadow-lg rounded-lg dark:rounded-xl
+                            group-hover:shadow-2xl group-hover:shadow-[#6366f1]/30 dark:group-hover:shadow-[#A855F7]/40
+
+                            /* Scale on hover */
+                            group-hover:scale-110 group-hover:rotate-3
+
+                            /* Press state */
+                            active:scale-100
+
+                            /* Dark mode enhancement */
+                            dark:shadow-xl dark:shadow-[#A855F7]/20
+                          ">
+                            {/* Animated inner glow */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                            {/* Pulsing ring on hover */}
+                            <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#6366f1]/30 dark:group-hover:border-[#A855F7]/40 transition-all duration-300 rounded-lg dark:rounded-xl" />
+
+                            {/* Icon - Prominent but compact */}
+                            <div className="relative text-[#6366f1] dark:text-white text-base group-hover:scale-125 transition-transform duration-300">
                               {section.icon}
                             </div>
                           </div>
 
-                          {/* Label - Compact */}
-                          <span className="text-[9px] sm:text-[10px] font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                          {/* Label - Compact but readable */}
+                          <span className="relative text-[10px] font-bold text-gray-800 dark:text-gray-100 text-center leading-tight line-clamp-2 transition-all duration-300
+                            group-hover:text-[#6366f1] dark:group-hover:text-[#A855F7]
+                            group-hover:scale-105
+                          ">
                             {section.label}
                           </span>
+
+                          {/* Hover indicator line */}
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#6366f1] dark:via-[#A855F7] to-transparent rounded-t-full transition-all duration-300" />
                         </Link>
                       ))}
                     </div>
