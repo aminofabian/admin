@@ -184,7 +184,7 @@ export function EditBalanceDrawer({
                 isLoading={isUpdating}
                 className="px-6 py-2.5 font-semibold"
               >
-                Withdraw
+                Deduct
               </Button>
               <Button
                 variant="primary"
@@ -193,7 +193,7 @@ export function EditBalanceDrawer({
                 isLoading={isUpdating}
                 className="px-6 py-2.5 font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
               >
-                Topup
+                Add
               </Button>
             </div>
           </div>

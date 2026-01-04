@@ -9,10 +9,12 @@ import { StaffDashboard } from '@/components/staff';
 import { AgentDashboard } from '@/components/agent';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import { useState } from 'react';
+import { useAdminAnalytics } from '@/hooks/use-admin-analytics';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { counts: processingCounts } = useProcessingWebSocketContext();
+  const { data: analyticsData } = useAdminAnalytics();
   const [highlightedCategory, setHighlightedCategory] = useState<number | null>(null);
 
   // If user is superadmin, render superadmin dashboard
@@ -57,6 +59,7 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           ),
+          count: analyticsData?.total_players ?? 0,
         },
         {
           label: 'Managers',
@@ -66,6 +69,7 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           ),
+          count: analyticsData?.total_managers ?? 0,
         },
         {
           label: 'Agents',
@@ -75,6 +79,7 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           ),
+          count: analyticsData?.total_agents ?? 0,
         },
         {
           label: 'Staffs',
@@ -84,6 +89,7 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           ),
+          count: analyticsData?.total_staffs ?? 0,
         },
       ],
     },
@@ -400,7 +406,7 @@ export default function DashboardPage() {
                           className={`group relative flex flex-col items-center justify-center border-2 ${colors.border} ${colors.hoverBorder} rounded-xl hover:bg-gradient-to-br active:scale-95 transition-all duration-300 p-2 sm:p-2.5 bg-gradient-to-br ${colors.bg} ${isDimmed ? 'opacity-30 scale-95' : ''} ${isHighlighted ? 'scale-105 ring-2 ring-offset-2 ' + colors.text.replace('text-', 'ring-') : ''}`}
                         >
                           {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[9px] font-bold rounded-full bg-gradient-to-br text-white border border-white/80 dark:border-background shadow-md">
+                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[0.85rem] h-3 px-0.5 text-[8px] font-medium rounded-full bg-gradient-to-br text-white border border-white/80 dark:border-background shadow-sm">
                               {section.count > 99 ? '99+' : section.count}
                             </span>
                           )}
