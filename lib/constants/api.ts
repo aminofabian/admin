@@ -75,6 +75,9 @@ export const API_ENDPOINTS = {
     // See hooks/use-dashboard-stats.ts - currently using fallback data
     STATS: `${API_PREFIX}/dashboard/stats/`, // NOT IMPLEMENTED
   },
+  ANALYTICS: {
+    DASHBOARD: 'api/admin/analytics', // Using Next.js API route to proxy request
+  },
   PAYMENT_METHODS: {
     LIST: `${API_PREFIX}/payment-methods/`,
     DETAIL: (id: number) => `${API_PREFIX}/payment-methods/${id}/`,

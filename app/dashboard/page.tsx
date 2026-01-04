@@ -7,6 +7,7 @@ import { SuperAdminDashboard } from '@/components/superadmin';
 import { ManagerDashboard } from '@/components/manager';
 import { StaffDashboard } from '@/components/staff';
 import { AgentDashboard } from '@/components/agent';
+import { AdminAnalytics } from '@/components/dashboard/admin-analytics';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import type { ReactNode } from 'react';
 
@@ -44,6 +45,8 @@ export default function DashboardPage() {
 
   // Type guard: check if user role includes superadmin
   const isSuperAdmin = (user?.role as string) === USER_ROLES.SUPERADMIN;
+  // Check if user is admin (company role)
+  const isAdmin = (user?.role as string) === USER_ROLES.COMPANY;
 
   // All sections as mobile app-like buttons
   const sections: SectionItem[] = [
@@ -241,36 +244,91 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center pb-24">
-      {/* Mobile App-style Button Grid - Centered in the middle of the page */}
-      <div className="w-full max-w-5xl px-4">
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-4">
-          {sections.map((section, index) => (
-            <Link
-              key={index}
-              href={section.href}
-              className="group relative flex flex-col items-center justify-center bg-card border border-border/50 rounded-lg hover:border-primary/50 hover:shadow-md active:scale-95 transition-all duration-200 p-4 sm:p-3"
-            >
-              {/* Count Badge - Corner position */}
-              {section.count !== undefined && section.count > 0 && (
-                <span className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1.5 text-[10px] font-semibold rounded-md bg-gradient-to-br from-primary/15 to-primary/10 text-primary border border-primary/20 dark:from-primary/25 dark:to-primary/15 dark:border-primary/30 shadow-sm">
-                  {section.count > 99 ? '99+' : section.count}
-                </span>
-              )}
+    <div className="w-full space-y-3 sm:space-y-4 pb-4">
+      {/* Page Header - Mobile App Style */}
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30 shadow-sm">
+        <div className="relative flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
+          {/* Icon */}
+          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
+            <svg className="h-5 w-5 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+          </div>
+          
+          {/* Title */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Dashboard
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Manage your platform and access all features
+            </p>
+          </div>
+        </div>
+      </div>
 
-              {/* Icon Container - Mobile App Style */}
-              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors mb-2 flex-shrink-0">
-                <div className="text-primary">
-                  {section.icon}
+      {/* Admin Analytics Section - Only for COMPANY (admin) role */}
+      {isAdmin && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <div className="h-0.5 w-6 sm:w-8 bg-primary rounded-full"></div>
+            <h2 className="text-xs sm:text-sm font-semibold text-foreground">Analytics Overview</h2>
+            <div className="flex-1 h-0.5 bg-border rounded-full"></div>
+          </div>
+          <div className="rounded-xl border border-border bg-card/50 p-2 sm:p-3 shadow-sm">
+            <AdminAnalytics />
+          </div>
+        </div>
+      )}
+
+      {/* Divider between sections */}
+      {isAdmin && (
+        <div className="flex items-center gap-3 py-1 sm:py-2">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+          <div className="h-1 w-1 rounded-full bg-muted-foreground/30"></div>
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+        </div>
+      )}
+
+      {/* Quick Access Sections - Mobile App Style */}
+      <div className="flex flex-col items-center space-y-2 sm:space-y-3">
+        <div className="w-full max-w-5xl px-4">
+          <div className="flex items-center gap-2 px-1">
+            <div className="h-0.5 w-6 sm:w-8 bg-primary rounded-full"></div>
+            <h2 className="text-xs sm:text-sm font-semibold text-foreground">Quick Access</h2>
+            <div className="flex-1 h-0.5 bg-border rounded-full"></div>
+          </div>
+        </div>
+        
+        <div className="w-full max-w-5xl px-4">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 sm:gap-3">
+            {sections.map((section, index) => (
+              <Link
+                key={index}
+                href={section.href}
+                className="group relative flex flex-col items-center justify-center bg-card border border-border rounded-xl hover:border-primary/50 hover:shadow-lg active:scale-95 transition-all duration-200 p-4 sm:p-5 shadow-sm"
+              >
+                {/* Count Badge - Corner position */}
+                {section.count !== undefined && section.count > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 z-10 inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1.5 text-[10px] font-bold rounded-full bg-gradient-to-br from-primary to-primary/80 text-white border-2 border-background shadow-lg">
+                    {section.count > 99 ? '99+' : section.count}
+                  </span>
+                )}
+
+                {/* Icon Container - Mobile App Style */}
+                <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl group-hover:from-primary/20 group-hover:to-primary/10 transition-all duration-200 mb-2.5 sm:mb-3 flex-shrink-0 shadow-sm">
+                  <div className="text-primary">
+                    {section.icon}
+                  </div>
                 </div>
-              </div>
 
-              {/* Label - Mobile App Style */}
-              <span className="text-xs sm:text-xs font-medium text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors px-1">
-                {section.label}
-              </span>
-            </Link>
-          ))}
+                {/* Label - Mobile App Style */}
+                <span className="text-xs sm:text-sm font-semibold text-foreground text-center leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                  {section.label}
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>
