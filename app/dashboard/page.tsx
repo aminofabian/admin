@@ -8,10 +8,12 @@ import { ManagerDashboard } from '@/components/manager';
 import { StaffDashboard } from '@/components/staff';
 import { AgentDashboard } from '@/components/agent';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
+import { useState } from 'react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { counts: processingCounts } = useProcessingWebSocketContext();
+  const [highlightedCategory, setHighlightedCategory] = useState<number | null>(null);
 
   // If user is superadmin, render superadmin dashboard
   if (user?.role === USER_ROLES.SUPERADMIN) {
@@ -364,15 +366,20 @@ export default function DashboardPage() {
                     {uniqueCategories.map((catIdx, i) => {
                       const group = sectionGroups[catIdx];
                       const colors = categoryColors[catIdx % categoryColors.length];
+                      const isHighlighted = highlightedCategory === catIdx;
                       return (
-                        <div key={catIdx} className="flex items-center gap-1 flex-shrink-0">
-                          <div className={`flex items-center justify-center w-3.5 h-3.5 rounded bg-gradient-to-br ${colors.headerBg} shadow-sm`}>
+                        <button
+                          key={catIdx}
+                          onClick={() => setHighlightedCategory(isHighlighted ? null : catIdx)}
+                          className={`flex items-center gap-1 flex-shrink-0 transition-all duration-200 ${isHighlighted ? 'scale-105' : 'hover:scale-102'}`}
+                        >
+                          <div className={`flex items-center justify-center w-3.5 h-3.5 rounded bg-gradient-to-br ${colors.headerBg} shadow-sm transition-all duration-200 ${isHighlighted ? 'ring-2 ring-offset-1 ' + colors.text.replace('text-', 'ring-') : ''}`}>
                             <div className={`${colors.headerText} text-[8px]`}>{group.icon}</div>
                           </div>
-                          <h3 className={`text-[7px] sm:text-[8px] font-light ${colors.headerText} uppercase tracking-wide`}>
+                          <h3 className={`text-[7px] sm:text-[8px] font-light ${colors.headerText} uppercase tracking-wide ${isHighlighted ? 'font-bold' : ''}`}>
                             {group.title}
                           </h3>
-                        </div>
+                        </button>
                       );
                     }).reduce((acc, elem) => acc ? [...acc, <div key={`sep-${acc.length}`} className="h-2.5 w-px bg-border/50 flex-shrink-0"></div>, elem] : [elem], null as any)}
                     <div className="flex-1 h-px bg-border/50 min-w-0"></div>
@@ -383,8 +390,14 @@ export default function DashboardPage() {
                     {row.items.map((item, itemIdx) => {
                       const colors = categoryColors[item.categoryIndex % categoryColors.length];
                       const section = item.section;
+                      const isHighlighted = highlightedCategory === item.categoryIndex;
+                      const isDimmed = highlightedCategory !== null && !isHighlighted;
                       return (
-                        <Link key={itemIdx} href={section.href} className={`group relative flex flex-col items-center justify-center border-2 ${colors.border} ${colors.hoverBorder} rounded-xl hover:bg-gradient-to-br active:scale-95 transition-all duration-300 p-2 sm:p-2.5 bg-gradient-to-br ${colors.bg}`}>
+                        <Link
+                          key={itemIdx}
+                          href={section.href}
+                          className={`group relative flex flex-col items-center justify-center border-2 ${colors.border} ${colors.hoverBorder} rounded-xl hover:bg-gradient-to-br active:scale-95 transition-all duration-300 p-2 sm:p-2.5 bg-gradient-to-br ${colors.bg} ${isDimmed ? 'opacity-30 scale-95' : ''} ${isHighlighted ? 'scale-105 ring-2 ring-offset-2 ' + colors.text.replace('text-', 'ring-') : ''}`}
+                        >
                           {'count' in section && section.count !== undefined && section.count > 0 && (
                             <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[1rem] h-4 px-1 text-[9px] font-bold rounded-full bg-gradient-to-br text-white border border-white/80 dark:border-background shadow-md">
                               {section.count > 99 ? '99+' : section.count}
@@ -396,7 +409,7 @@ export default function DashboardPage() {
                           <span className={`text-[8px] sm:text-[9px] font-bold text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 group-hover:${colors.text.split(' ')[0].replace('600', '500').replace('400', '500')}`}>
                             {section.label}
                           </span>
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-10 h-0.5 bg-gradient-to-r from-transparent {colors.glow} to-transparent rounded-t-full transition-all duration-300"></div>
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-10 h-0.5 bg-gradient-to-r from-transparent via-${colors.glow.split('-')[1]}-${colors.glow.split('-')[2]} to-transparent rounded-t-full transition-all duration-300"></div>
                         </Link>
                       );
                     })}
