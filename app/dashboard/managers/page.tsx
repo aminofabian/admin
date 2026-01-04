@@ -4,7 +4,6 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { ManagersList } from '@/components/features';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { ErrorState } from '@/components/features';
 
 export default function ManagersPage() {

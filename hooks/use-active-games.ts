@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useGamesStore } from '@/stores';
 
 interface ActiveGamesData {
@@ -28,8 +28,8 @@ export function useActiveGames() {
     const gamesList = games ?? [];
 
     // Game objects use game_status boolean field
-    const activeGames = gamesList.filter(game => (game as any).game_status === true);
-    const inactiveGames = gamesList.filter(game => (game as any).game_status === false);
+    const activeGames = gamesList.filter(game => 'game_status' in game && (game as Game & { game_status: boolean }).game_status === true);
+    const inactiveGames = gamesList.filter(game => 'game_status' in game && (game as Game & { game_status: boolean }).game_status === false);
 
     // Get today's date in local timezone for accurate filtering
     const today = new Date();

@@ -14,7 +14,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
  * Extract unread count from various field names consistently
  * Handles both unread_message_count and unread_messages_count fields
  */
-const extractUnreadCount = (data: any): number => {
+const extractUnreadCount = (data: { unread_message_count?: number; unread_messages_count?: number }): number => {
   const count1 = data.unread_message_count;
   const count2 = data.unread_messages_count;
 
@@ -69,7 +69,16 @@ interface UseChatUsersReturn {
  * Transform backend chat data to frontend ChatUser format
  * WebSocket format: chat object with nested player data OR re_arrange format
  */
-function transformChatToUser(chat: any): ChatUser {
+function transformChatToUser(chat: {
+  player?: { id?: number | string; username?: string; full_name?: string };
+  user_id?: number | string;
+  username?: string;
+  id?: number | string;
+  unread_message_count?: number;
+  unread_messages_count?: number;
+  updated_at?: string;
+  last_message?: string;
+}): ChatUser {
   const player = chat.player || {};
 
   // Handle re_arrange format where user_id is at top level
@@ -188,7 +197,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         },
         onMessage: (data) => {
           // Type assertion for WebSocket message data (consistent with handleWebSocketMessage)
-          const messageData = data as any;
+          const messageData = data as {
+            type?: string;
+            message?: { type?: string; chats?: unknown[]; chat_id?: string };
+            chats?: unknown[];
+            chat_id?: string;
+          };
           !IS_PROD && console.log('📨 [Chat Users] Received message:', {
             type: messageData.type || messageData.message?.type,
             hasChats: !!messageData.chats || !!messageData.message?.chats,

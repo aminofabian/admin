@@ -5,7 +5,7 @@ import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import {
   DashboardSectionContainer,
 } from '@/components/dashboard/layout';
-import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useToast, Skeleton } from '@/components/ui';
+import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useToast, Skeleton } from '@/components/ui';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';

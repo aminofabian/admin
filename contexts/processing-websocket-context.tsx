@@ -26,7 +26,7 @@ interface ProcessingWebSocketContextValue {
   refreshData: () => Promise<void>; // Manual refresh function
   subscribeToQueueUpdates: (callback: (queue: TransactionQueue, isInitialLoad?: boolean) => void) => () => void;
   subscribeToTransactionUpdates: (callback: (transaction: Transaction, isInitialLoad?: boolean) => void) => () => void;
-  subscribeToMessages: (callback: (message: any) => void) => () => void;
+  subscribeToMessages: (callback: (message: unknown) => void) => () => void;
 }
 
 const ProcessingWebSocketContext = createContext<ProcessingWebSocketContextValue | null>(null);
@@ -34,7 +34,7 @@ const ProcessingWebSocketContext = createContext<ProcessingWebSocketContextValue
 export function ProcessingWebSocketProvider({ children }: { children: ReactNode }) {
   const queueUpdateCallbacksRef = useRef<Set<(queue: TransactionQueue, isInitialLoad?: boolean) => void>>(new Set());
   const transactionUpdateCallbacksRef = useRef<Set<(transaction: Transaction, isInitialLoad?: boolean) => void>>(new Set());
-  const messageCallbacksRef = useRef<Set<(message: any) => void>>(new Set());
+  const messageCallbacksRef = useRef<Set<(message: unknown) => void>>(new Set());
   const fallbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [counts, setCounts] = useState<ProcessingCounts>({
     purchase_count: 0,
@@ -71,7 +71,7 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
     });
   }, []);
 
-  const handleMessage = useCallback((message: any) => {
+  const handleMessage = useCallback((message: unknown) => {
     messageCallbacksRef.current.forEach((callback) => {
       try {
         callback(message);
@@ -365,7 +365,7 @@ export function ProcessingWebSocketProvider({ children }: { children: ReactNode 
   );
 
   const subscribeToMessages = useCallback(
-    (callback: (message: any) => void) => {
+    (callback: (message: unknown) => void) => {
       messageCallbacksRef.current.add(callback);
       return () => {
         messageCallbacksRef.current.delete(callback);

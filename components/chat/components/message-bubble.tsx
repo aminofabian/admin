@@ -11,7 +11,6 @@ import {
   MESSAGE_HTML_CONTENT_CLASS,
   isAutoMessage,
   isPurchaseNotification,
-  removeAutomatedMessageHeading,
   formatTransactionMessage,
 } from '../utils/message-helpers';
 

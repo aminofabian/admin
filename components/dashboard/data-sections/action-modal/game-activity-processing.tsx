@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Badge } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type { TransactionQueue } from '@/types';
 import { playersApi } from '@/lib/api';

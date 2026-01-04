@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
-import { Badge, Button, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
+import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
