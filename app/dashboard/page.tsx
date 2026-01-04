@@ -303,8 +303,8 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="w-full space-y-2 pb-2">
-   
+    <div className="w-full flex flex-col items-center justify-center min-h-[calc(100vh-120px)] space-y-2 pb-2">
+
 
       {/* Quick Access Sections - Mobile App Style with Grouping */}
       <div className="flex flex-col items-center space-y-2">
