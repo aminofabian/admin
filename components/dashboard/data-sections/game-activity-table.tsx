@@ -650,22 +650,44 @@ const GameActivityCard = memo(function GameActivityCard({
       </div>
 
       {/* Balance Section */}
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
-            <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">Credit</div>
-            <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-              {creditsDisplay}
-            </div>
-          </div>
-          <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
-            <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">Winning</div>
-            <div className="text-sm font-bold text-green-600 dark:text-green-400">
-              {winningsDisplay}
-            </div>
+      {!shouldShowBlankBalance && (previousCreditsBalance || newCreditsBalance || previousWinningBalance || newWinningBalance) && (
+        <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            {/* Credits */}
+            {(previousCreditsBalance || newCreditsBalance) && (
+              <div className="flex-1 min-w-0">
+                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credits</div>
+                <div className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                  <span className="truncate">{previousCreditsBalance || zeroCurrency}</span>
+                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  <span className="font-semibold truncate">{newCreditsBalance || zeroCurrency}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Vertical Divider */}
+            {(previousCreditsBalance || newCreditsBalance) && (previousWinningBalance || newWinningBalance) && (
+              <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 shrink-0" />
+            )}
+
+            {/* Winnings */}
+            {(previousWinningBalance || newWinningBalance) && (
+              <div className="flex-1 min-w-0">
+                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winnings</div>
+                <div className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                  <span className="truncate">{previousWinningBalance || zeroCurrency}</span>
+                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  <span className="font-semibold truncate">{newWinningBalance || zeroCurrency}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Bottom Section: Date */}
       <div className="p-3">
