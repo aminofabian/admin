@@ -1152,7 +1152,10 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </Badge>
       </TableCell>
       <TableCell>
-        <Badge variant="info" className="text-xs">
+        <Badge
+          variant={transaction.payment_method?.toLowerCase() === 'manual' ? 'warning' : 'info'}
+          className="text-xs"
+        >
           {transaction.payment_method}
         </Badge>
       </TableCell>
@@ -1251,7 +1254,10 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
               <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
                 {transaction.status}
               </Badge>
-              <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
+              <Badge
+                variant={transaction.payment_method?.toLowerCase() === 'manual' ? 'warning' : 'info'}
+                className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0"
+              >
                 {transaction.payment_method}
               </Badge>
             </div>
