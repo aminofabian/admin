@@ -305,7 +305,6 @@ export default function DashboardPage() {
   return (
     <div className="w-full flex flex-col items-center justify-center min-h-[calc(100vh-120px)] space-y-2 pb-2">
 
-
       {/* Quick Access Sections - Mobile App Style with Grouping */}
       <div className="flex flex-col items-center space-y-2">
         <div className="w-full max-w-5xl px-4">
@@ -315,7 +314,7 @@ export default function DashboardPage() {
             <div className="flex-1 h-0.5 bg-border rounded-full"></div>
           </div>
         </div>
-        
+
         <div className="w-full max-w-5xl px-4 space-y-4">
           {(() => {
             // Combine small groups (1-2 items) with next group
@@ -323,11 +322,11 @@ export default function DashboardPage() {
               groups: typeof sectionGroups;
               combined: boolean;
             }> = [];
-            
+
             for (let i = 0; i < sectionGroups.length; i++) {
               const currentGroup = sectionGroups[i];
               const nextGroup = sectionGroups[i + 1];
-              
+
               // If current group has 1-2 items and there's a next group, combine them
               if (currentGroup.sections.length <= 2 && nextGroup) {
                 optimizedGroups.push({
@@ -342,7 +341,7 @@ export default function DashboardPage() {
                 });
               }
             }
-            
+
             return optimizedGroups.map((optimizedGroup, optimizedIndex) => {
               if (optimizedGroup.combined && optimizedGroup.groups.length === 2) {
                 // Combined groups - render together with visual distinction
@@ -350,7 +349,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={optimizedIndex}
-                    className="rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10 p-2 shadow-sm"
+                    className="rounded-lg border border-gray-300 dark:border-slate-700 bg-background p-2"
                   >
                     {/* Combined Header */}
                     <div className="flex items-center gap-2 mb-1.5">
@@ -384,7 +383,7 @@ export default function DashboardPage() {
                         <Link
                           key={`first-${sectionIndex}`}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${firstGroup.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-slate-700 rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${firstGroup.color.split(' ')[0]}/5`}
                         >
                           {/* Count Badge */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
@@ -413,7 +412,7 @@ export default function DashboardPage() {
                         <Link
                           key={`second-${sectionIndex}`}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${secondGroup.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-slate-700 rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${secondGroup.color.split(' ')[0]}/5`}
                         >
                           {/* Count Badge */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
@@ -447,7 +446,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={optimizedIndex}
-                    className={`border bg-gradient-to-br ${group.color} p-2 shadow-sm`}
+                    className={`border border-gray-300 dark:border-slate-700 bg-background p-2`}
                   >
                     {/* Group Header */}
                     <div className="flex items-center gap-1.5 mb-1.5">
@@ -468,7 +467,7 @@ export default function DashboardPage() {
                         <Link
                           key={sectionIndex}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-border rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${group.color.split(' ')[0]}/5`}
+                          className={`group relative flex flex-col items-center justify-center border-2 border-gray-300 dark:border-slate-700 rounded hover:-translate-y-1 hover:border-[#6366f1] dark:hover:border-[#A855F7] hover:bg-gradient-to-br hover:from-[#6366f1]/8 dark:hover:from-[#A855F7]/10 hover:to-transparent active:scale-95 transition-all duration-300 p-2 bg-gradient-to-br ${group.color.split(' ')[0]}/5`}
                         >
                           {/* Count Badge - Corner position */}
                           {'count' in section && section.count !== undefined && section.count > 0 && (
