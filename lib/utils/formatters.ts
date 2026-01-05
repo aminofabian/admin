@@ -27,10 +27,10 @@ export const formatDate = (dateString: string | null | undefined): string => {
   }
 
   let date: Date;
-  
+
   const ddmmyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/;
   const match = dateString.match(ddmmyyyyPattern);
-  
+
   if (match) {
     const [, day, month, year, hour, minute, second] = match;
     date = new Date(
@@ -55,7 +55,7 @@ export const formatDate = (dateString: string | null | undefined): string => {
       date = new Date(dateString);
     }
   }
-  
+
   if (isNaN(date.getTime())) {
     console.warn('Invalid date string:', dateString);
     return 'N/A';
@@ -70,25 +70,24 @@ export const formatDate = (dateString: string | null | undefined): string => {
       minute: '2-digit',
       second: '2-digit',
       hour12: false,
-      timeZone: 'UTC',
     }).format(date);
-    
+
     if (!formatted || formatted === 'Invalid Date') {
       throw new Error('Intl.DateTimeFormat returned invalid result');
     }
-    
+
     return formatted;
   } catch (error) {
     console.warn('Intl.DateTimeFormat failed, using fallback:', error);
-    
+
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const year = date.getUTCFullYear();
-    const month = months[date.getUTCMonth()];
-    const day = date.getUTCDate();
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-    
+    const year = date.getFullYear();
+    const month = months[date.getMonth()];
+    const day = date.getDate();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
     return `${month} ${day}, ${year}, ${hours}:${minutes}:${seconds}`;
   }
 };
