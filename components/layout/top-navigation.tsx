@@ -183,9 +183,9 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           },
         ]
           .filter((item) => {
-            // @ts-ignore - Dynamic property check
+            // @ts-expect-error - Dynamic property check
             if (item.hideForSuperAdmin && user?.role === USER_ROLES.SUPERADMIN) return false;
-            // @ts-ignore - Dynamic property check
+            // @ts-expect-error - Dynamic property check
             if (item.hiddenRoles && user?.role && item.hiddenRoles.includes(user.role)) return false;
             return true;
           })
@@ -196,16 +196,16 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                 key={item.label}
                 href={item.href}
                 className={`group relative flex flex-col items-center justify-center px-2.5 py-2 rounded-lg transition-all duration-200 ${isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary/10 text-primary'
+                  : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground'
                   }`}
                 title={item.label}
               >
                 {/* Icon Container with Badge */}
                 <div className="relative flex items-center justify-center mb-1.5">
                   <div className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 ${isActive
-                      ? 'bg-primary/20'
-                      : 'bg-transparent'
+                    ? 'bg-primary/20'
+                    : 'bg-transparent'
                     }`}>
                     <div className={`transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                       }`}>
@@ -215,8 +215,8 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                   {/* Count Badge - Positioned outside icon container */}
                   {item.count !== undefined && item.count > 0 && (
                     <span className={`absolute -top-0.5 -right-0.5 z-10 inline-flex items-center justify-center h-4.5 min-w-[1.125rem] px-1 text-[9px] font-bold rounded-full transition-all duration-200 ${isActive
-                        ? 'bg-primary text-primary-foreground shadow-md'
-                        : 'bg-red-500 text-white shadow-lg'
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : 'bg-red-500 text-white shadow-lg'
                       }`}>
                       {item.count > 99 ? '99+' : item.count}
                     </span>
@@ -228,8 +228,8 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                 </div>
                 {/* Label */}
                 <span className={`text-[10px] leading-tight text-center transition-colors whitespace-nowrap ${isActive
-                    ? 'text-primary font-semibold'
-                    : 'text-muted-foreground group-hover:text-foreground'
+                  ? 'text-primary font-semibold'
+                  : 'text-muted-foreground group-hover:text-foreground'
                   }`}>
                   {item.label}
                 </span>
@@ -262,8 +262,8 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           <button
             onClick={toggleTheme}
             className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all duration-200 ${theme === 'light'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
               }`}
           >
             Light
@@ -271,8 +271,8 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           <button
             onClick={toggleTheme}
             className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all duration-200 ${theme === 'dark'
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
               }`}
           >
             Dark
@@ -324,14 +324,14 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500 animate-pulse' :
-                          wsConnecting ? 'bg-yellow-500 animate-pulse' :
-                            'bg-red-500'
+                        wsConnecting ? 'bg-yellow-500 animate-pulse' :
+                          'bg-red-500'
                         }`}></div>
                       <span className="text-xs font-medium text-foreground">Processing WebSocket</span>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${wsConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
-                        wsConnecting ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
-                          'bg-red-500/20 text-red-600 dark:text-red-400'
+                      wsConnecting ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
+                        'bg-red-500/20 text-red-600 dark:text-red-400'
                       }`}>
                       {wsConnected ? 'Connected' : wsConnecting ? 'Connecting...' : wsFallback ? 'Fallback Mode' : 'Disconnected'}
                     </span>
