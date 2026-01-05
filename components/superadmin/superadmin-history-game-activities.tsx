@@ -519,7 +519,7 @@ export function SuperAdminHistoryGameActivities() {
                 map.set(company.username, company);
             }
         });
-        
+
         // Debug logging in development
         if (process.env.NODE_ENV === 'development' && companies.length > 0) {
             console.log('🏢 Company map created:', {
@@ -529,7 +529,7 @@ export function SuperAdminHistoryGameActivities() {
                 sampleCompany: companies[0],
             });
         }
-        
+
         return map;
     }, [companies]);
 
@@ -958,23 +958,55 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         return formatCurrency(String(winningsValue));
     }, [activity.data?.winnings]);
 
-    const newCreditsBalance = useMemo(() => {
-        const credits = activity.data?.new_credits_balance;
+    const previousCreditsBalance = useMemo(() => {
+        const credits = activity.data?.previous_credits_balance;
         if (credits === undefined || credits === null) return null;
         const creditsValue = typeof credits === 'string' || typeof credits === 'number'
             ? parseFloat(String(credits))
             : null;
-        return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
-    }, [activity.data?.new_credits_balance]);
+        return creditsValue;
+    }, [activity.data?.previous_credits_balance]);
 
-    const newWinningBalance = useMemo(() => {
-        const winnings = activity.data?.new_winning_balance;
+    const formattedPreviousCredits = useMemo(() => {
+        return previousCreditsBalance !== null && !isNaN(previousCreditsBalance) ? formatCurrency(String(previousCreditsBalance)) : null;
+    }, [previousCreditsBalance]);
+
+    const prevWinningBalance = useMemo(() => {
+        const winnings = activity.data?.previous_winning_balance;
         if (winnings === undefined || winnings === null) return null;
         const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
             ? parseFloat(String(winnings))
             : null;
-        return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
+        return winningsValue;
+    }, [activity.data?.previous_winning_balance]);
+
+    const formattedPreviousWinnings = useMemo(() => {
+        return prevWinningBalance !== null && !isNaN(prevWinningBalance) ? formatCurrency(String(prevWinningBalance)) : null;
+    }, [prevWinningBalance]);
+
+    const newCreditsBalanceNum = useMemo(() => {
+        const credits = activity.data?.new_credits_balance;
+        if (credits === undefined || credits === null) return null;
+        return typeof credits === 'string' || typeof credits === 'number'
+            ? parseFloat(String(credits))
+            : null;
+    }, [activity.data?.new_credits_balance]);
+
+    const formattedNewCredits = useMemo(() => {
+        return newCreditsBalanceNum !== null && !isNaN(newCreditsBalanceNum) ? formatCurrency(String(newCreditsBalanceNum)) : null;
+    }, [newCreditsBalanceNum]);
+
+    const newWinningBalanceNum = useMemo(() => {
+        const winnings = activity.data?.new_winning_balance;
+        if (winnings === undefined || winnings === null) return null;
+        return typeof winnings === 'string' || typeof winnings === 'number'
+            ? parseFloat(String(winnings))
+            : null;
     }, [activity.data?.new_winning_balance]);
+
+    const formattedNewWinnings = useMemo(() => {
+        return newWinningBalanceNum !== null && !isNaN(newWinningBalanceNum) ? formatCurrency(String(newWinningBalanceNum)) : null;
+    }, [newWinningBalanceNum]);
 
     const zeroCurrency = formatCurrency('0');
 
@@ -983,19 +1015,34 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         return typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
     }, [activity.type]);
 
-    const creditsDisplay = useMemo(() => {
-        if (shouldShowBlankBalance) return '—';
-        if (newCreditsBalance) return newCreditsBalance;
-        if (credit) return credit;
-        return zeroCurrency;
-    }, [shouldShowBlankBalance, newCreditsBalance, credit, zeroCurrency]);
+    /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
+    const previousCreditsNum = previousCreditsBalance ?? 0;
+    const newCreditsNum = newCreditsBalanceNum ?? 0;
+    const creditsChanged = previousCreditsNum !== newCreditsNum;
+    const creditsColorClass = useMemo(() => {
+        return creditsChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
+    }, [creditsChanged]);
 
-    const winningsDisplay = useMemo(() => {
+    const previousWinningsNum = prevWinningBalance ?? 0;
+    const newWinningsNum = newWinningBalanceNum ?? 0;
+    const winningsChanged = previousWinningsNum !== newWinningsNum;
+    const winningsColorClass = useMemo(() => {
+        return winningsChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
+    }, [winningsChanged]);
+
+    const creditsDisplayText = useMemo(() => {
         if (shouldShowBlankBalance) return '—';
-        if (newWinningBalance) return newWinningBalance;
-        if (winnings) return winnings;
-        return zeroCurrency;
-    }, [shouldShowBlankBalance, newWinningBalance, winnings, zeroCurrency]);
+        return formattedPreviousCredits && formattedNewCredits
+            ? `${formattedPreviousCredits} → ${formattedNewCredits}`
+            : (formattedNewCredits || formattedPreviousCredits || zeroCurrency);
+    }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency]);
+
+    const winningsDisplayText = useMemo(() => {
+        if (shouldShowBlankBalance) return '—';
+        return formattedPreviousWinnings && formattedNewWinnings
+            ? `${formattedPreviousWinnings} → ${formattedNewWinnings}`
+            : (formattedNewWinnings || formattedPreviousWinnings || zeroCurrency);
+    }, [shouldShowBlankBalance, formattedPreviousWinnings, formattedNewWinnings, zeroCurrency]);
 
     const websiteUsername = useMemo(() => {
         if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
@@ -1089,11 +1136,11 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
                             });
                         }
                     }
-                    
-                    const activityCompany = activity.company_username 
+
+                    const activityCompany = activity.company_username
                         ? companyMapByUsername.get(activity.company_username)
                         : null;
-                    
+
                     if (activityCompany) {
                         return (
                             <div className="flex items-center gap-2">
@@ -1111,7 +1158,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
                             </div>
                         );
                     }
-                    
+
                     // Fallback: show company_username if available, even if not in map
                     if (activity.company_username) {
                         return (
@@ -1127,7 +1174,7 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
                             </div>
                         );
                     }
-                    
+
                     return <div className="text-gray-500 dark:text-gray-400">—</div>;
                 })()}
             </TableCell>
@@ -1171,10 +1218,10 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
             <TableCell>
                 <div className="space-y-1">
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                        C: {creditsDisplay}
+                        C: <span className={creditsColorClass}>{creditsDisplayText}</span>
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                        W: {winningsDisplay}
+                        W: <span className={winningsColorClass}>{winningsDisplayText}</span>
                     </div>
                 </div>
             </TableCell>
@@ -1325,10 +1372,10 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
                                 </div>
                             )}
                             {(() => {
-                                const activityCompany = activity.company_username 
+                                const activityCompany = activity.company_username
                                     ? companyMapByUsername.get(activity.company_username)
                                     : null;
-                                
+
                                 if (activityCompany) {
                                     return (
                                         <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
@@ -1336,7 +1383,7 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
                                         </div>
                                     );
                                 }
-                                
+
                                 // Fallback: show company_username if available
                                 if (activity.company_username) {
                                     return (
@@ -1345,7 +1392,7 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
                                         </div>
                                     );
                                 }
-                                
+
                                 return null;
                             })()}
                         </div>

@@ -94,7 +94,7 @@ const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
 function buildGameActivityFilterState(advanced: Record<string, string>): HistoryGameActivitiesFiltersState {
   // Map change_password back to reset_password for UI display
   const type = advanced.type === 'change_password' ? 'reset_password' : (advanced.type ?? '');
-  
+
   return {
     username: advanced.username ?? '',
     email: advanced.email ?? '',
@@ -174,23 +174,23 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     if (hasInitializedRef.current) {
       return;
     }
-    
+
     hasInitializedRef.current = true;
-    
+
     // Check if we should preserve filters (from player details page)
     const shouldPreserveFilters = searchParams.get('preserveFilters') === 'true';
-    
+
     // Read current values from store to ensure we have the latest state
     const storeState = getStoreState();
     const currentFilter = storeState.filter;
-    
+
     // Clear filters unless they should be preserved (from player details navigation)
     if (!shouldPreserveFilters) {
       clearAdvancedFiltersWithoutFetch();
       setFilters(DEFAULT_GAME_ACTIVITY_FILTERS);
       setAreFiltersOpen(false);
     }
-    
+
     // Always ensure filter is set to history
     if (currentFilter !== 'history') {
       setFilterWithoutFetch('history');
@@ -777,13 +777,32 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
   const zeroCurrency = formatCurrency('0');
   const shouldShowBlankBalance = typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
 
-  const creditsDisplay = shouldShowBlankBalance ? '—' :
-    (formattedPreviousCredits && formattedNewCredits ? `${formattedPreviousCredits} → ${formattedNewCredits}` :
-    formattedNewCredits || formattedPreviousCredits || zeroCurrency);
+  /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
+  const previousCreditsNum = previousCreditsValue ?? 0;
+  const newCreditsNum = newCreditsValue ?? 0;
+  const creditsChanged = previousCreditsNum !== newCreditsNum;
+  const creditsColorClass = creditsChanged
+    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+    : 'text-gray-600 dark:text-gray-400';
 
-  const winningsDisplay = shouldShowBlankBalance ? '—' :
-    (formattedPreviousWinnings && formattedNewWinnings ? `${formattedPreviousWinnings} → ${formattedNewWinnings}` :
-    formattedNewWinnings || formattedPreviousWinnings || zeroCurrency);
+  const previousWinningsNum = previousWinningsValue ?? 0;
+  const newWinningsNum = newWinningsValue ?? 0;
+  const winningsChanged = previousWinningsNum !== newWinningsNum;
+  const winningsColorClass = winningsChanged
+    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+    : 'text-gray-600 dark:text-gray-400';
+
+  const creditsDisplayText = shouldShowBlankBalance ? '—' : (
+    formattedPreviousCredits && formattedNewCredits
+      ? `${formattedPreviousCredits} → ${formattedNewCredits}`
+      : (formattedNewCredits || formattedPreviousCredits || zeroCurrency)
+  );
+
+  const winningsDisplayText = shouldShowBlankBalance ? '—' : (
+    formattedPreviousWinnings && formattedNewWinnings
+      ? `${formattedPreviousWinnings} → ${formattedNewWinnings}`
+      : (formattedNewWinnings || formattedPreviousWinnings || zeroCurrency)
+  );
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
@@ -876,13 +895,13 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-xs text-gray-600 dark:text-gray-400">
-          {creditsDisplay}
+        <div className={`text-xs ${creditsColorClass}`}>
+          {creditsDisplayText}
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-xs text-gray-600 dark:text-gray-400">
-          {winningsDisplay}
+        <div className={`text-xs ${winningsColorClass}`}>
+          {winningsDisplayText}
         </div>
       </TableCell>
       <TableCell>
@@ -958,13 +977,28 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
   const zeroCurrency = formatCurrency('0');
   const shouldShowBlankBalance = typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
 
+  /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
+  const previousCreditsNum = previousCreditsValue ?? 0;
+  const newCreditsNum = newCreditsValue ?? 0;
+  const creditsChanged = previousCreditsNum !== newCreditsNum;
+  const creditsColorClass = creditsChanged
+    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+    : 'text-gray-600 dark:text-gray-400';
+
+  const previousWinningsNum = previousWinningsValue ?? 0;
+  const newWinningsNum = newWinningsValue ?? 0;
+  const winningsChanged = previousWinningsNum !== newWinningsNum;
+  const winningsColorClass = winningsChanged
+    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+    : 'text-gray-600 dark:text-gray-400';
+
   const creditsDisplay = shouldShowBlankBalance ? '—' :
     (formattedPreviousCredits && formattedNewCredits ? `${formattedPreviousCredits} → ${formattedNewCredits}` :
-    formattedNewCredits || formattedPreviousCredits || zeroCurrency);
+      formattedNewCredits || formattedPreviousCredits || zeroCurrency);
 
   const winningsDisplay = shouldShowBlankBalance ? '—' :
     (formattedPreviousWinnings && formattedNewWinnings ? `${formattedPreviousWinnings} → ${formattedNewWinnings}` :
-    formattedNewWinnings || formattedPreviousWinnings || zeroCurrency);
+      formattedNewWinnings || formattedPreviousWinnings || zeroCurrency);
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
@@ -1055,7 +1089,7 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
             {(formattedPreviousCredits || formattedNewCredits) && (
               <div className="flex-1 min-w-0">
                 <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credits</div>
-                <div className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                <div className={`text-xs flex items-center gap-1 ${creditsColorClass}`}>
                   <span className="truncate">{formattedPreviousCredits || zeroCurrency}</span>
                   <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -1074,7 +1108,7 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
             {(formattedPreviousWinnings || formattedNewWinnings) && (
               <div className="flex-1 min-w-0">
                 <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winnings</div>
-                <div className="text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                <div className={`text-xs flex items-center gap-1 ${winningsColorClass}`}>
                   <span className="truncate">{formattedPreviousWinnings || zeroCurrency}</span>
                   <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
