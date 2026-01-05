@@ -17,12 +17,12 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const pathname = usePathname();
-  const { 
-    counts: processingCounts, 
-    isConnected: wsConnected, 
+  const {
+    counts: processingCounts,
+    isConnected: wsConnected,
     isConnecting: wsConnecting,
     isUsingFallback: wsFallback,
-    error: wsError 
+    error: wsError
   } = useProcessingWebSocketContext();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -82,15 +82,15 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   }, []);
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
+    return date.toLocaleDateString('en-US', {
       weekday: 'long',
       day: 'numeric',
       month: 'short',
@@ -112,7 +112,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        
+
 
         {/* Time and Date - Responsive sizing */}
         <div className="flex flex-col">
@@ -128,113 +128,114 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
       {/* Center - Quick Navigation (hidden on mobile) */}
       <div className="hidden lg:flex items-center space-x-1">
         {[
-          { 
+          {
             href: '/dashboard',
             icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-            ), 
+            ),
             label: 'Dashboard',
             count: undefined
           },
           ...(user?.role !== USER_ROLES.AGENT ? [
-          { 
-            href: '/dashboard/processing/purchase',
-            icon: (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 11H6L5 9z" />
-              </svg>
-            ), 
-            label: 'Purchase Processing',
-            count: processingCounts.purchase_count
-          },
-          { 
-            href: '/dashboard/processing/cashout',
-            icon: (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            ), 
-            label: 'Cashout Processing',
-            count: processingCounts.cashout_count
-          },
-          { 
-            href: '/dashboard/processing/game-activities',
-            icon: (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            ), 
-            label: 'Game Activity Processing',
-            count: processingCounts.game_activities_count
-          },
+            {
+              href: '/dashboard/processing/purchase',
+              icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l-1 11H6L5 9z" />
+                </svg>
+              ),
+              label: 'Purchase Processing',
+              count: processingCounts.purchase_count
+            },
+            {
+              href: '/dashboard/processing/cashout',
+              icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              ),
+              label: 'Cashout Processing',
+              count: processingCounts.cashout_count
+            },
+            {
+              href: '/dashboard/processing/game-activities',
+              icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              ),
+              label: 'Game Activity Processing',
+              count: processingCounts.game_activities_count
+            },
           ] : []),
-          { 
+          {
             href: '/dashboard/chat',
             icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-            ), 
+            ),
             label: 'Chat',
             count: undefined,
-            hideForSuperAdmin: true
+            hiddenRoles: [USER_ROLES.SUPERADMIN, USER_ROLES.STAFF, USER_ROLES.AGENT]
           },
         ]
-        .filter((item) => !(item.hideForSuperAdmin && user?.role === USER_ROLES.SUPERADMIN))
-        .map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`group relative flex flex-col items-center justify-center px-2.5 py-2 rounded-lg transition-all duration-200 ${
-                isActive
-                  ? 'bg-primary/10 text-primary'
-                  : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground'
-              }`}
-              title={item.label}
-            >
-              {/* Icon Container with Badge */}
-              <div className="relative flex items-center justify-center mb-1.5">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 ${
-                  isActive
-                    ? 'bg-primary/20'
-                    : 'bg-transparent'
-                }`}>
-                  <div className={`transition-colors ${
-                    isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
-                  }`}>
-                    {item.icon}
+          .filter((item) => {
+            // @ts-ignore - Dynamic property check
+            if (item.hideForSuperAdmin && user?.role === USER_ROLES.SUPERADMIN) return false;
+            // @ts-ignore - Dynamic property check
+            if (item.hiddenRoles && user?.role && item.hiddenRoles.includes(user.role)) return false;
+            return true;
+          })
+          .map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`group relative flex flex-col items-center justify-center px-2.5 py-2 rounded-lg transition-all duration-200 ${isActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground'
+                  }`}
+                title={item.label}
+              >
+                {/* Icon Container with Badge */}
+                <div className="relative flex items-center justify-center mb-1.5">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-md transition-all duration-200 ${isActive
+                      ? 'bg-primary/20'
+                      : 'bg-transparent'
+                    }`}>
+                    <div className={`transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                      }`}>
+                      {item.icon}
+                    </div>
                   </div>
+                  {/* Count Badge - Positioned outside icon container */}
+                  {item.count !== undefined && item.count > 0 && (
+                    <span className={`absolute -top-0.5 -right-0.5 z-10 inline-flex items-center justify-center h-4.5 min-w-[1.125rem] px-1 text-[9px] font-bold rounded-full transition-all duration-200 ${isActive
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'bg-red-500 text-white shadow-lg'
+                      }`}>
+                      {item.count > 99 ? '99+' : item.count}
+                    </span>
+                  )}
+                  {/* Red dot indicator for chat when there are unread messages */}
+                  {item.href === '/dashboard/chat' && hasUnreadMessages && (
+                    <span className="absolute -top-0.5 -right-0.5 z-10 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-card shadow-sm" />
+                  )}
                 </div>
-                {/* Count Badge - Positioned outside icon container */}
-                {item.count !== undefined && item.count > 0 && (
-                  <span className={`absolute -top-0.5 -right-0.5 z-10 inline-flex items-center justify-center h-4.5 min-w-[1.125rem] px-1 text-[9px] font-bold rounded-full transition-all duration-200 ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-md'
-                      : 'bg-red-500 text-white shadow-lg'
+                {/* Label */}
+                <span className={`text-[10px] leading-tight text-center transition-colors whitespace-nowrap ${isActive
+                    ? 'text-primary font-semibold'
+                    : 'text-muted-foreground group-hover:text-foreground'
                   }`}>
-                    {item.count > 99 ? '99+' : item.count}
-                  </span>
-                )}
-                {/* Red dot indicator for chat when there are unread messages */}
-                {item.href === '/dashboard/chat' && hasUnreadMessages && (
-                  <span className="absolute -top-0.5 -right-0.5 z-10 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-card shadow-sm" />
-                )}
-              </div>
-              {/* Label */}
-              <span className={`text-[10px] leading-tight text-center transition-colors whitespace-nowrap ${
-                isActive
-                  ? 'text-primary font-semibold'
-                  : 'text-muted-foreground group-hover:text-foreground'
-              }`}>
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
       </div>
 
       {/* Right side - User Profile, Notifications, and Theme Toggle */}
@@ -260,21 +261,19 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
         <div className="hidden lg:flex items-center bg-accent/50 rounded-full p-0.5 md:p-1">
           <button
             onClick={toggleTheme}
-            className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all duration-200 ${
-              theme === 'light'
+            className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all duration-200 ${theme === 'light'
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             Light
           </button>
           <button
             onClick={toggleTheme}
-            className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all duration-200 ${
-              theme === 'dark'
+            className={`px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-medium transition-all duration-200 ${theme === 'dark'
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
           >
             Dark
           </button>
@@ -282,7 +281,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
 
         {/* Notifications/Alerts - Responsive sizing with dropdown */}
         <div className="relative" ref={notificationRef}>
-          <button 
+          <button
             onClick={() => setIsNotificationOpen(!isNotificationOpen)}
             className="relative p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
             title="Notifications"
@@ -296,9 +295,8 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                 {totalNotificationCount > 99 ? '99+' : totalNotificationCount}
               </span>
             ) : (
-              <span className={`absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 rounded-full ring-2 ring-card transition-colors ${
-                wsConnected ? 'bg-green-500' : wsConnecting ? 'bg-yellow-500 animate-pulse' : 'bg-gray-400'
-              }`}></span>
+              <span className={`absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-2 h-2 rounded-full ring-2 ring-card transition-colors ${wsConnected ? 'bg-green-500' : wsConnecting ? 'bg-yellow-500 animate-pulse' : 'bg-gray-400'
+                }`}></span>
             )}
           </button>
 
@@ -325,18 +323,16 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                 <div className="p-3 border-b border-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        wsConnected ? 'bg-green-500 animate-pulse' : 
-                        wsConnecting ? 'bg-yellow-500 animate-pulse' : 
-                        'bg-red-500'
-                      }`}></div>
+                      <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500 animate-pulse' :
+                          wsConnecting ? 'bg-yellow-500 animate-pulse' :
+                            'bg-red-500'
+                        }`}></div>
                       <span className="text-xs font-medium text-foreground">Processing WebSocket</span>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      wsConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
-                      wsConnecting ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
-                      'bg-red-500/20 text-red-600 dark:text-red-400'
-                    }`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${wsConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
+                        wsConnecting ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
+                          'bg-red-500/20 text-red-600 dark:text-red-400'
+                      }`}>
                       {wsConnected ? 'Connected' : wsConnecting ? 'Connecting...' : wsFallback ? 'Fallback Mode' : 'Disconnected'}
                     </span>
                   </div>
@@ -349,14 +345,12 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                 <div className="p-3 border-b border-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        chatConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
-                      }`}></div>
+                      <div className={`w-2 h-2 rounded-full ${chatConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+                        }`}></div>
                       <span className="text-xs font-medium text-foreground">Chat WebSocket</span>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      chatConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
-                    }`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${chatConnected ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
+                      }`}>
                       {chatConnected ? 'Connected' : 'Disconnected'}
                     </span>
                   </div>
@@ -394,7 +388,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                 {((processingCounts.purchase_count ?? 0) > 0 || (processingCounts.cashout_count ?? 0) > 0 || (processingCounts.game_activities_count ?? 0) > 0) && (
                   <div className="p-3 border-b border-border">
                     <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Processing Queue</p>
-                    
+
                     {(processingCounts.purchase_count ?? 0) > 0 && (
                       <Link
                         href="/dashboard/processing/purchase"
@@ -480,7 +474,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
         </div>
 
         {/* System Health (hidden on small screens) */}
-        <button 
+        <button
           className="hidden xl:block p-2 rounded-lg hover:bg-accent transition-all duration-200 hover:scale-105 active:scale-95"
           title="System Health"
         >
@@ -509,10 +503,10 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
               </span>
             </div>
             {/* Mobile dropdown indicator */}
-            <svg 
+            <svg
               className={`lg:hidden w-4 h-4 text-muted-foreground transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -523,7 +517,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           {isUserMenuOpen && (
             <>
               {/* Backdrop overlay */}
-              <div 
+              <div
                 className="lg:hidden fixed inset-0 bg-black/50 z-40"
                 onClick={() => setIsUserMenuOpen(false)}
               />

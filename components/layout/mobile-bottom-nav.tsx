@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
 import type { ReactNode } from 'react';
 
 interface NavItem {
@@ -16,6 +18,7 @@ interface NavItem {
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { counts: processingCounts } = useProcessingWebSocketContext();
+  const { user } = useAuth();
 
   const NAV_ITEMS: NavItem[] = [
     {
@@ -78,9 +81,9 @@ export function MobileBottomNav() {
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border">
       {/* Navigation items */}
       <div className="flex items-center justify-around px-2 py-2">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter(item => item.label !== 'Chat' || (user?.role !== USER_ROLES.SUPERADMIN && user?.role !== USER_ROLES.STAFF && user?.role !== USER_ROLES.AGENT)).map((item) => {
           // For processing routes, check if pathname starts with the href
-          const isActive = item.href === '/dashboard' 
+          const isActive = item.href === '/dashboard'
             ? pathname === item.href
             : pathname === item.href || pathname.startsWith(item.href + '/');
           const isCenter = item.isCenter;
@@ -95,15 +98,13 @@ export function MobileBottomNav() {
                 className="relative group"
               >
                 {/* Center button */}
-                <div className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${
-                  isActive
-                    ? 'bg-primary text-white shadow-lg'
-                    : 'bg-muted text-muted-foreground'
-                }`}>
-                  {/* Icon */}
-                  <div className={`transition-all duration-300 ${
-                    isActive ? 'scale-110' : 'scale-100'
+                <div className={`relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isActive
+                  ? 'bg-primary text-white shadow-lg'
+                  : 'bg-muted text-muted-foreground'
                   }`}>
+                  {/* Icon */}
+                  <div className={`transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'
+                    }`}>
                     {item.icon(isActive)}
                   </div>
                 </div>
@@ -119,31 +120,28 @@ export function MobileBottomNav() {
             >
               {/* Icon Container */}
               <div className="relative">
-                <div className={`transition-all duration-300 ${
-                  isActive 
-                    ? 'text-primary scale-110' 
-                    : 'text-muted-foreground group-hover:text-foreground group-hover:scale-105'
-                }`}>
+                <div className={`transition-all duration-300 ${isActive
+                  ? 'text-primary scale-110'
+                  : 'text-muted-foreground group-hover:text-foreground group-hover:scale-105'
+                  }`}>
                   {item.icon(isActive)}
                 </div>
                 {/* Count Badge */}
                 {count !== undefined && count > 0 && (
-                  <span className={`absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full transition-all duration-200 ${
-                    isActive
-                      ? 'bg-white text-primary shadow-md'
-                      : 'bg-red-500 text-white shadow-lg'
-                  }`}>
+                  <span className={`absolute -top-1 -right-1 z-10 inline-flex items-center justify-center h-4 min-w-[1rem] px-1 text-[9px] font-bold rounded-full transition-all duration-200 ${isActive
+                    ? 'bg-white text-primary shadow-md'
+                    : 'bg-red-500 text-white shadow-lg'
+                    }`}>
                     {count > 99 ? '99+' : count}
                   </span>
                 )}
               </div>
 
               {/* Label */}
-              <span className={`text-[10px] font-medium transition-all duration-300 ${
-                isActive 
-                  ? 'text-primary' 
-                  : 'text-muted-foreground'
-              }`}>
+              <span className={`text-[10px] font-medium transition-all duration-300 ${isActive
+                ? 'text-primary'
+                : 'text-muted-foreground'
+                }`}>
                 {item.label}
               </span>
 
