@@ -53,43 +53,43 @@ export const formatMessageDate = (dateString: string): string => {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  
+
   // Reset time to midnight for comparison
   today.setHours(0, 0, 0, 0);
   yesterday.setHours(0, 0, 0, 0);
   date.setHours(0, 0, 0, 0);
-  
+
   if (date.getTime() === today.getTime()) return 'Today';
   if (date.getTime() === yesterday.getTime()) return 'Yesterday';
-  
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined 
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
   });
 };
 
 // Check if a message is a purchase notification (should be displayed centered)
 export const isPurchaseNotification = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
   if (!message.text) return false;
-  
+
   // Strip HTML tags for pattern matching
   const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
   const textWithHtml = message.text.toLowerCase();
-  
+
   // Check for purchase notification patterns
   const purchasePatterns = [
     /you successfully purchased/i,
     /credits:.*winnings:/i,
     /credits.*winnings/i,
   ];
-  
+
   // Check if message type indicates it's a purchase notification
   const messageTypeLower = message.type?.toLowerCase();
   if (messageTypeLower === 'balanceupdated' || messageTypeLower === 'purchase_notification') {
     return true;
   }
-  
+
   // Check if text matches purchase notification patterns (check both HTML and plain text)
   return purchasePatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
 };
@@ -100,38 +100,38 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
  */
 export const removeAutomatedMessageHeading = (text: string): string => {
   if (!text) return text;
-  
+
   let cleanedText = text;
-  
+
   // Remove HTML bold heading tags at the start (e.g., <b>Recharge</b> or <b>Redeem</b>)
   // This handles cases like: <b>Recharge</b><br />You successfully recharged...
   cleanedText = cleanedText.replace(/^<b>(recharge|redeem|balance\s+updated|transaction|system|auto|notification)<\/b>\s*(<br\s*\/?>)?\s*/i, '');
-  
+
   // Remove standalone bold tags at the start (any bold tag on its own line)
   // This handles cases like: <b>Some Heading</b><br />Content...
   cleanedText = cleanedText.replace(/^<b>[^<]*<\/b>\s*(<br\s*\/?>)?\s*/i, '');
-  
+
   // Remove plain text headings at the start of a line (case-insensitive, multiline)
   // This handles cases like: Recharge\nYou successfully recharged...
   cleanedText = cleanedText.replace(/^(recharge|redeem|balance\s+updated|transaction|system|auto|notification):?\s*$/im, '');
-  
+
   // Remove any leading line breaks, whitespace, or HTML breaks
   cleanedText = cleanedText.replace(/^(<br\s*\/?>|\s|\n)+/i, '');
-  
+
   // Clean up any excessive line breaks (more than 2 consecutive)
   cleanedText = cleanedText.replace(/(<br\s*\/?>\s*){3,}/gi, '<br /><br />');
-  
+
   return cleanedText.trim();
 };
 
 // Check if a message is an auto/system message (not sent by staff)
 export const isAutoMessage = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
   if (!message.text) return false;
-  
+
   // Strip HTML tags for pattern matching
   const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
   const textWithHtml = message.text.toLowerCase();
-  
+
   // Check for auto message patterns in the text (works with or without HTML)
   const autoPatterns = [
     /<b>recharge<\/b>/i,
@@ -148,44 +148,44 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
     /manual top-up/i,
     /manual withdraw/i,
   ];
-  
+
   // Don't treat purchase messages as auto messages - they have their own handler
   if (isPurchaseNotification(message)) {
     return false;
   }
-  
+
   // Check if message type indicates it's an auto message
   const autoTypes = ['system', 'auto', 'notification', 'recharge', 'transaction', 'balance_update'];
   const messageTypeLower = message.type?.toLowerCase();
   if (messageTypeLower && autoTypes.includes(messageTypeLower) && messageTypeLower !== 'balanceupdated') {
     return true;
   }
-  
+
   // For balanceUpdated type messages, check if they're manual balance operations
   // (credit or winning balance manual top-up/withdraw)
   if (messageTypeLower === 'balanceupdated' || messageTypeLower === 'balance_updated') {
-    const hasManualBalanceOperation = 
+    const hasManualBalanceOperation =
       textWithoutHtml.includes('added to your credit balance') ||
       textWithoutHtml.includes('deducted from your credit balance') ||
       textWithoutHtml.includes('added to your winning balance') ||
       textWithoutHtml.includes('deducted from your winning balance') ||
       textWithHtml.includes('manual top-up') ||
       textWithHtml.includes('manual withdraw');
-    
+
     // If it's a manual balance operation, treat it as an auto message
     if (hasManualBalanceOperation) {
       return true;
     }
-    
+
     // Otherwise, don't treat balanceUpdated messages as auto messages
     return false;
   }
-  
+
   // Check if userId is 0 or undefined (system messages often have no user ID)
   if (message.userId === 0 || message.userId === undefined) {
     return true;
   }
-  
+
   // Check if text matches auto message patterns (check both HTML and plain text)
   return autoPatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
 };
@@ -202,7 +202,7 @@ interface TransactionDetails {
 }
 
 export const parseTransactionMessage = (
-  text: string, 
+  text: string,
   messageType?: string,
   operationType?: 'increase' | 'decrease' | null
 ): TransactionDetails => {
@@ -215,15 +215,15 @@ export const parseTransactionMessage = (
   };
 
   if (!text) return result;
-  
+
   // Check message type first - if it's a balance update, prioritize manual operations
-  const isBalanceUpdate = messageType?.toLowerCase() === 'balanceupdated' || 
-                          messageType?.toLowerCase() === 'balance_updated';
+  const isBalanceUpdate = messageType?.toLowerCase() === 'balanceupdated' ||
+    messageType?.toLowerCase() === 'balance_updated';
 
   // Strip HTML tags for parsing
   const cleanText = stripHtml(text).toLowerCase();
   const originalText = text;
-  
+
   // Extract amount - look for $X patterns, prioritizing amounts in the main message
   // Handle HTML tags like "<b>$10</b>"
   const amountPatterns = [
@@ -231,7 +231,7 @@ export const parseTransactionMessage = (
     /\$([\d,]+\.?\d*)/g, // $5, $5.00, $1,234.56
     /([\d,]+\.?\d*)\s*(?:credit|dollar|usd)/gi, // 5 credit, 5 dollars
   ];
-  
+
   for (const pattern of amountPatterns) {
     let match;
     if (pattern.global) {
@@ -242,7 +242,7 @@ export const parseTransactionMessage = (
       // Use match for non-global patterns
       match = originalText.match(pattern);
     }
-    
+
     if (match) {
       const value = match[1]?.replace(/,/g, '') || match[0]?.replace(/[$,<>b\/\s]/gi, '');
       if (value && !isNaN(parseFloat(value))) {
@@ -259,7 +259,7 @@ export const parseTransactionMessage = (
     /credits?[:\s]*\$?([\d,]+\.?\d*)/i,
     /credit\s+balance[:\s]*(?:<[^>]+>)*\$?([\d,]+\.?\d*)(?:<\/[^>]+>)*/i,
   ];
-  
+
   for (const pattern of creditsPatterns) {
     const match = originalText.match(pattern);
     if (match && match[1]) {
@@ -278,7 +278,7 @@ export const parseTransactionMessage = (
     /winnings?[:\s]*\$?([\d,]+\.?\d*)/i,
     /winning\s+balance[:\s]*(?:<[^>]+>)*\$?([\d,]+\.?\d*)(?:<\/[^>]+>)*/i,
   ];
-  
+
   for (const pattern of winningsPatterns) {
     const match = originalText.match(pattern);
     if (match && match[1]) {
@@ -292,14 +292,18 @@ export const parseTransactionMessage = (
 
   // Extract game name (for recharge/redeem) - look for "to {Game Name}" or "from {Game Name}"
   const gamePatterns = [
-    /(?:to|from)\s+([^.\n<]+?)(?:\.|$|<br)/i,
+    /(?:to|from)\s+((?:<[^>]+>|[^\n<])+?)(?:\s*(?:\.<br|\.<|<\/|<br|$))/i,
     /(?:to|from)\s+([A-Z][^.\n<]+?)(?:\.|$|<br)/i, // Capitalized game names
   ];
-  
+
   for (const pattern of gamePatterns) {
     const match = originalText.match(pattern);
     if (match && match[1]) {
-      const gameName = stripHtml(match[1]).trim();
+      let gameName = stripHtml(match[1]).trim();
+      // Remove trailing period if captured
+      if (gameName.endsWith('.')) {
+        gameName = gameName.slice(0, -1);
+      }
       // Only accept if it looks like a game name (not just a number or single word)
       if (gameName.length > 1 && !/^\d+$/.test(gameName)) {
         result.gameName = gameName;
@@ -312,22 +316,22 @@ export const parseTransactionMessage = (
   // If it's a balance update type, prioritize manual operations and don't treat as purchase/cashout
   if (isBalanceUpdate) {
     // FIRST: Check for deduction indicators (even if text says "added", backend might send wrong text)
-    const hasDeductionIndicators = 
+    const hasDeductionIndicators =
       cleanText.includes('deducted') ||
       cleanText.includes('withdraw') ||
       cleanText.includes('decrease') ||
       cleanText.includes('minus') ||
       cleanText.includes('remove') ||
       cleanText.includes('subtract');
-    
+
     // Check for explicit manual operation text first
-    if (cleanText.includes('deducted from your winning balance') || 
-        (hasDeductionIndicators && cleanText.includes('winning'))) {
+    if (cleanText.includes('deducted from your winning balance') ||
+      (hasDeductionIndicators && cleanText.includes('winning'))) {
       result.type = 'winning_deducted';
     } else if (cleanText.includes('added to your winning balance') && !hasDeductionIndicators) {
       result.type = 'winning_added';
     } else if (cleanText.includes('deducted from your credit balance') ||
-               (hasDeductionIndicators && cleanText.includes('credit'))) {
+      (hasDeductionIndicators && cleanText.includes('credit'))) {
       result.type = 'credit_deducted';
     } else if (cleanText.includes('added to your credit balance') && !hasDeductionIndicators) {
       result.type = 'credit_added';
@@ -348,19 +352,25 @@ export const parseTransactionMessage = (
     else if (cleanText.includes('cashed out') || cleanText.includes('successfully cashed out')) {
       result.type = 'credit_deducted';
     }
+    // Check for "recharge" and "redeem" explicitly within balanceUpdated to prevent them falling back to credit_added
+    else if (cleanText.includes('recharge')) {
+      result.type = 'recharge';
+    } else if (cleanText.includes('redeem')) {
+      result.type = 'redeem';
+    }
     // For balanceUpdated messages, if text says "purchased" but it's a balance update,
     // it's likely a manual credit operation (backend might send wrong text)
     // Try to determine if it's add or deduct from context
     else if (cleanText.includes('purchased') || cleanText.includes('purchase')) {
       // Check for deduction indicators
-      const hasDeductionIndicators = 
-        cleanText.includes('deducted') || 
-        cleanText.includes('withdraw') || 
+      const hasDeductionIndicators =
+        cleanText.includes('deducted') ||
+        cleanText.includes('withdraw') ||
         cleanText.includes('decrease') ||
         cleanText.includes('minus') ||
         cleanText.includes('remove') ||
         cleanText.includes('subtract');
-      
+
       if (hasDeductionIndicators) {
         result.type = 'credit_deducted';
       } else {
@@ -392,21 +402,21 @@ export const parseTransactionMessage = (
       // Pattern: "$X added to your credit balance.\nCredits: $Y\nWinnings: $Z"
       // If it's a balanceUpdated message with this exact pattern and no other indicators,
       // we can't be 100% sure, but we'll check for any hidden patterns
-      
+
       // For now, if it says "added to your credit balance" in a balanceUpdated message,
       // we'll check if there are any patterns that suggest it's actually a deduction
       // Since backend sends wrong text, we need to be more aggressive
-      
+
       // Check if message has the exact format that backend sends for manual operations
-      const hasManualOperationFormat = 
+      const hasManualOperationFormat =
         cleanText.includes('added to your credit balance') ||
         cleanText.includes('added to your winning balance');
-      
+
       if (hasManualOperationFormat) {
         // CRITICAL BACKEND BUG: Backend sends "added to your credit balance" for BOTH additions AND deductions
         // User confirms: When doing manual withdraw, backend sends "$X added to your credit balance" 
         // but it's actually a deduction (should say "deducted")
-        
+
         // WORKAROUND: Use operationType parameter if provided (from frontend tracking)
         if (operationType === 'decrease') {
           // Frontend knows this is a decrease operation, so treat as deduction
@@ -473,47 +483,47 @@ export const formatTransactionMessage = (
   message: { text: string; userBalance?: string; winningBalance?: string; type?: string; operationType?: 'increase' | 'decrease' | null }
 ): string => {
   const details = parseTransactionMessage(message.text, message.type, message.operationType);
-  
+
   // Even if we can't determine the type, if we found credits and winnings, try to format it
   if (!details.type) {
     // Check if it already has the correct format (has "Credits:" and "Winnings:")
-    const hasCorrectFormat = /credits?[:\s]*(?:<[^>]+>)*\$?[\d,]+\.?\d*/i.test(message.text) && 
-                             /winnings?[:\s]*(?:<[^>]+>)*\$?[\d,]+\.?\d*/i.test(message.text);
-    
+    const hasCorrectFormat = /credits?[:\s]*(?:<[^>]+>)*\$?[\d,]+\.?\d*/i.test(message.text) &&
+      /winnings?[:\s]*(?:<[^>]+>)*\$?[\d,]+\.?\d*/i.test(message.text);
+
     if (hasCorrectFormat && details.credits && details.winnings) {
       // Extract amount from the message
       let amount = details.amount;
       if (!amount) {
-        const amountMatch = message.text.match(/<b>[\s\$]*([\d,]+\.?\d*)[\s\$]*<\/b>/i) || 
-                           message.text.match(/\$([\d,]+\.?\d*)/);
+        const amountMatch = message.text.match(/<b>[\s\$]*([\d,]+\.?\d*)[\s\$]*<\/b>/i) ||
+          message.text.match(/\$([\d,]+\.?\d*)/);
         amount = amountMatch ? amountMatch[1].replace(/,/g, '') : '0';
       }
-      
+
       // Try to determine type from text - prioritize manual operations
       const cleanText = stripHtml(message.text).toLowerCase();
-      const isBalanceUpdate = message.type?.toLowerCase() === 'balanceupdated' || 
-                              message.type?.toLowerCase() === 'balance_updated';
+      const isBalanceUpdate = message.type?.toLowerCase() === 'balanceupdated' ||
+        message.type?.toLowerCase() === 'balance_updated';
       let transactionType = '';
-      
+
       // If it's a balance update type, prioritize manual operations and don't treat as purchase/cashout
       if (isBalanceUpdate) {
         // FIRST: Check for deduction indicators (even if text says "added", backend might send wrong text)
-        const hasDeductionIndicators = 
+        const hasDeductionIndicators =
           cleanText.includes('deducted') ||
           cleanText.includes('withdraw') ||
           cleanText.includes('decrease') ||
           cleanText.includes('minus') ||
           cleanText.includes('remove') ||
           cleanText.includes('subtract');
-        
+
         // Check for explicit manual operation text first
-        if (cleanText.includes('deducted from your winning balance') || 
-            (hasDeductionIndicators && cleanText.includes('winning'))) {
+        if (cleanText.includes('deducted from your winning balance') ||
+          (hasDeductionIndicators && cleanText.includes('winning'))) {
           transactionType = 'winning_deducted';
         } else if (cleanText.includes('added to your winning balance') && !hasDeductionIndicators) {
           transactionType = 'winning_added';
         } else if (cleanText.includes('deducted from your credit balance') ||
-                   (hasDeductionIndicators && cleanText.includes('credit'))) {
+          (hasDeductionIndicators && cleanText.includes('credit'))) {
           transactionType = 'credit_deducted';
         } else if (cleanText.includes('added to your credit balance') && !hasDeductionIndicators) {
           transactionType = 'credit_added';
@@ -538,14 +548,14 @@ export const formatTransactionMessage = (
         // it's likely a manual credit operation (backend might send wrong text)
         else if (cleanText.includes('purchased') || cleanText.includes('purchase')) {
           // Check for deduction indicators
-          const hasDeductionIndicators = 
-            cleanText.includes('deducted') || 
-            cleanText.includes('withdraw') || 
+          const hasDeductionIndicators =
+            cleanText.includes('deducted') ||
+            cleanText.includes('withdraw') ||
             cleanText.includes('decrease') ||
             cleanText.includes('minus') ||
             cleanText.includes('remove') ||
             cleanText.includes('subtract');
-          
+
           if (hasDeductionIndicators) {
             transactionType = 'credit_deducted';
           } else {
@@ -629,13 +639,13 @@ export const formatTransactionMessage = (
       } else if (cleanText.includes('successfully redeemed') || cleanText.includes('redeemed')) {
         transactionType = 'redeem';
       }
-      
+
       if (transactionType) {
         const formattedAmount = amount ? `$${amount}` : '$0';
         const formattedCredits = details.credits ? `$${details.credits}` : '$0';
         const formattedWinnings = details.winnings ? `$${details.winnings}` : '$0';
         const gameName = details.gameName || '';
-        
+
         switch (transactionType) {
           case 'credit_purchase':
             return `You successfully purchased ${formattedAmount} credit.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
@@ -650,13 +660,13 @@ export const formatTransactionMessage = (
           case 'winning_deducted':
             return `${formattedAmount} deducted from your winning balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
           case 'recharge':
-            return `You successfully recharged <b>${formattedAmount}</b>${gameName ? ` to ${gameName}` : ''}.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `Recharge\nYou successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
           case 'redeem':
-            return `You successfully redeemed <b>${formattedAmount}</b>${gameName ? ` from ${gameName}` : ''}.\nCredits: <b>${formattedCredits}</b>\nWinnings: <b>${formattedWinnings}</b>`;
+            return `Redeem\nYou successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
         }
       }
     }
-    
+
     // If not formatted correctly and we can't determine type, return original
     return message.text;
   }
@@ -720,10 +730,10 @@ export const formatTransactionMessage = (
       formattedText = `${formattedAmount} deducted from your winning balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
       break;
     case 'recharge':
-      formattedText = `You successfully recharged <b>${formattedAmount}</b>${gameName ? ` to ${gameName}` : ''}.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `Recharge\nYou successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
       break;
     case 'redeem':
-      formattedText = `You successfully redeemed <b>${formattedAmount}</b>${gameName ? ` from ${gameName}` : ''}.\nCredits: <b>$${formattedCredits}</b>\nWinnings: <b>$${formattedWinnings}</b>`;
+      formattedText = `Redeem\nYou successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
       break;
     default:
       return message.text;
