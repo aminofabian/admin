@@ -3,6 +3,8 @@ import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import { isValidTimestamp } from '@/lib/utils/formatters';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
 
@@ -59,7 +61,7 @@ function transformPlayerToUser(data: any): ChatUser {
       unreadCount: data.unread_messages_count || data.unread_message_count || 0,
       notes: data.player_notes || undefined,
     };
-    
+
     // Log only if notes exist to reduce noise
     if (data.player_notes) {
       !IS_PROD && console.log(' [Transform Format 1] Player with notes:', {
@@ -69,10 +71,10 @@ function transformPlayerToUser(data: any): ChatUser {
         transformed_notes: transformed.notes,
       });
     }
-    
+
     return transformed;
   }
-  
+
   // Format 2 & 3: Chat object with nested player OR direct player object
   const hasNestedPlayer = data.player && typeof data.player === 'object';
   const player = hasNestedPlayer ? data.player : data;
@@ -100,7 +102,7 @@ function transformPlayerToUser(data: any): ChatUser {
     unreadCount: data.unread_message_count || 0,
     notes: player.notes || undefined,
   };
-  
+
   // Log only if notes exist to reduce noise
   if (player.notes) {
     !IS_PROD && console.log(' [Transform Format 2/3] Player with notes:', {
@@ -111,7 +113,7 @@ function transformPlayerToUser(data: any): ChatUser {
       transformed_notes: transformed.notes,
     });
   }
-  
+
   return transformed;
 }
 
@@ -129,29 +131,32 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const { user } = useAuth();
+  const isAgent = user?.role === USER_ROLES.AGENT;
+  const effectiveEnabled = enabled && !isAgent;
 
   // WebSocket management refs
   const wsUrlRef = useRef<string>('');
   const listenersRef = useRef<Set<WebSocketListeners>>(new Set());
   const cacheRef = useRef<{ data: ChatUser[]; timestamp: number } | null>(null);
   const isMountedRef = useRef(true);
-  
+
   /**
    * Fetch online players from REST API
    *  PERFORMANCE: Cached for 2 minutes
    */
   const fetchFromApi = useCallback(async (forceRefresh = false): Promise<ChatUser[]> => {
     const now = Date.now();
-    
+
     // Check cache first (unless force refresh)
     if (!forceRefresh && cacheRef.current && (now - cacheRef.current.timestamp) < CACHE_TTL) {
       !IS_PROD && console.log(' [Online Players] Using cached data');
       return cacheRef.current.data;
     }
-    
+
     try {
       !IS_PROD && console.log('📥 [Online Players] Fetching from REST API...');
-      
+
       const token = storage.get(TOKEN_KEY);
       const response = await fetch('/api/chat-online-players', {
         headers: {
@@ -171,7 +176,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         chatsCount: data.chats?.length || 0,
         playerCount: data.player?.length || 0,
       });
-      
+
       // Log sample player data to see notes field
       if (!IS_PROD && data.player && Array.isArray(data.player) && data.player.length > 0) {
         const playersWithNotes = data.player.filter((p: any) => p.notes);
@@ -198,7 +203,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
             playerDetailsMap.set(p.id, p);
           }
         });
-        
+
         // Merge chat data with player details
         players = data.chats.map((chat: any) => {
           const playerDetails = playerDetailsMap.get(chat.player_id);
@@ -217,7 +222,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
               player_gems: playerDetails.gems,
               player_timezone: playerDetails.timezone,
             };
-            
+
             // Log if notes exist to track the issue
             if (playerDetails.notes) {
               !IS_PROD && console.log(' [Merge] Player with notes:', {
@@ -228,7 +233,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
                 merged_player_notes: merged.player_notes,
               });
             }
-            
+
             return merged;
           }
           return chat;
@@ -251,7 +256,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       }
 
       const transformedPlayers = players.map(transformPlayerToUser);
-      
+
       // Log first player to verify transformation
       if (!IS_PROD && transformedPlayers.length > 0) {
         console.log('🔍 [Online Players] Sample transformed player:', {
@@ -261,11 +266,11 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
           notes: transformedPlayers[0].notes,
           hasNotes: !!transformedPlayers[0].notes,
         });
-        
+
         // Log all players with notes for debugging
         const playersWithNotes = transformedPlayers.filter(p => p.notes);
         if (playersWithNotes.length > 0) {
-          console.log(` [Online Players] Found ${playersWithNotes.length} players with notes:`, 
+          console.log(` [Online Players] Found ${playersWithNotes.length} players with notes:`,
             playersWithNotes.map(p => ({
               username: p.username,
               notes: p.notes?.substring(0, 50),
@@ -275,13 +280,13 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
           console.warn('⚠️ [Online Players] No players have notes in transformed data');
         }
       }
-      
+
       // Update cache
       cacheRef.current = {
         data: transformedPlayers,
         timestamp: now,
       };
-      
+
       !IS_PROD && console.log(` [Online Players] Loaded ${transformedPlayers.length} players from API`);
       return transformedPlayers;
     } catch (err) {
@@ -296,7 +301,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
    *  PERFORMANCE: Only updates player status, doesn't re-fetch entire list
    */
   const connectWebSocket = useCallback(() => {
-    if (!enabled || !adminId) return;
+    if (!effectiveEnabled || !adminId) return;
 
     try {
       // Use the same URL as useChatUsers to share connection
@@ -446,7 +451,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
    * Fetch/refresh online players
    */
   const refetch = useCallback(async () => {
-    if (!enabled) return;
+    if (!effectiveEnabled) return;
 
     setIsLoading(true);
     setError(null);
@@ -472,7 +477,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
    * Initial load and periodic refresh
    */
   useEffect(() => {
-    if (!enabled || !adminId) return;
+    if (!effectiveEnabled || !adminId) return;
 
     // Initial load
     (async () => {
@@ -506,7 +511,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
    * WebSocket connection management
    */
   useEffect(() => {
-    if (enabled && adminId) {
+    if (effectiveEnabled && adminId) {
       connectWebSocket();
     } else {
       disconnectWebSocket();
@@ -515,7 +520,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     return () => {
       disconnectWebSocket();
     };
-  }, [enabled, adminId, connectWebSocket, disconnectWebSocket]);
+  }, [effectiveEnabled, adminId, connectWebSocket, disconnectWebSocket]);
 
   /**
    * Cleanup on unmount

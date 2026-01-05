@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
+import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { TransactionQueue, Transaction } from '@/types';
 
@@ -50,7 +51,7 @@ interface UseProcessingWebSocketReturn {
 function transformPurchaseToTransaction(rawPurchase: any): Transaction {
   const userData = rawPurchase.user && typeof rawPurchase.user === 'object' ? rawPurchase.user : null;
   const nestedData = rawPurchase.data && typeof rawPurchase.data === 'object' ? rawPurchase.data : null;
-  
+
   return {
     id: rawPurchase.id || rawPurchase.transaction_id || nestedData?.id || nestedData?.transaction_id || '',
     user_username: rawPurchase.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawPurchase.username || nestedData?.username || '',
@@ -84,15 +85,15 @@ function transformPurchaseToTransaction(rawPurchase: any): Transaction {
 function transformCashoutToTransaction(rawCashout: any): Transaction {
   const userData = rawCashout.user && typeof rawCashout.user === 'object' ? rawCashout.user : null;
   const nestedData = rawCashout.data && typeof rawCashout.data === 'object' ? rawCashout.data : null;
-  
+
   // Extract payment_details from various possible locations
   // Check rawCashout first, then nestedData, ensuring it's an object if present
-  const paymentDetails = (rawCashout.payment_details && typeof rawCashout.payment_details === 'object') 
-    ? rawCashout.payment_details 
+  const paymentDetails = (rawCashout.payment_details && typeof rawCashout.payment_details === 'object')
+    ? rawCashout.payment_details
     : (nestedData?.payment_details && typeof nestedData.payment_details === 'object')
       ? nestedData.payment_details
       : null;
-  
+
   return {
     id: rawCashout.id || rawCashout.transaction_id || nestedData?.id || nestedData?.transaction_id || '',
     user_username: rawCashout.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawCashout.username || nestedData?.username || '',
@@ -127,14 +128,14 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
 function transformActivityToQueue(rawActivity: any): TransactionQueue {
   // Extract nested data object if it exists, otherwise use the raw activity
   const nestedData = rawActivity.data && typeof rawActivity.data === 'object' ? rawActivity.data : null;
-  
+
   // Merge nested data properties into the main data object for easier access
   // This ensures new_credits_balance and new_winning_balance are accessible at activity.data.new_credits_balance
   const mergedData = {
     ...rawActivity,
     ...(nestedData || {}),
   };
-  
+
   // Normalize amount to string (handle both string and number types)
   let normalizedAmount: string;
   if (typeof rawActivity.amount === 'number') {
@@ -146,7 +147,7 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
   } else {
     normalizedAmount = '0';
   }
-  
+
   // Normalize bonus_amount to string if it exists (handle both string and number types)
   // Check both bonus_amount and bonus fields for compatibility
   let normalizedBonusAmount: string | undefined;
@@ -158,7 +159,7 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
       normalizedBonusAmount = String(bonusValue);
     }
   }
-  
+
   return {
     id: rawActivity.id || rawActivity.transaction_id || '',
     type: rawActivity.operation_type || rawActivity.type || 'recharge_game',
@@ -201,6 +202,8 @@ export function useProcessingWebSocket({
   const shouldReconnectRef = useRef(true);
   const connectionFailedCalledRef = useRef(false);
 
+  const isAgent = user?.role === USER_ROLES.AGENT;
+  const effectiveEnabled = enabled && !isAgent;
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -239,10 +242,10 @@ export function useProcessingWebSocket({
     // Don't reset hasConnectionFailed here - keep it for fallback mode
   }, []);
 
-  
+
   const connect = useCallback(() => {
-    if (!enabled || !isAuthenticated) {
-      console.log('⚠️ WebSocket connection not enabled or user not authenticated');
+    if (!effectiveEnabled || !isAuthenticated) {
+      console.log('⚠️ WebSocket connection not enabled, user not authenticated, or user is an agent');
       return;
     }
 
@@ -401,8 +404,8 @@ export function useProcessingWebSocket({
               } else if (message.data && !message.activity_type) {
                 const data = message.data;
                 if (data.game_title || data.game || data.game_code || data.operation_type ||
-                    data.type === 'recharge_game' || data.type === 'redeem_game' ||
-                    data.type === 'add_user_game' || data.type === 'create_game') {
+                  data.type === 'recharge_game' || data.type === 'redeem_game' ||
+                  data.type === 'add_user_game' || data.type === 'create_game') {
                   const queue = transformActivityToQueue(data);
                   onQueueUpdate?.(queue);
                 } else if (data.type === 'purchase' || data.type === 'cashout') {
@@ -447,7 +450,7 @@ export function useProcessingWebSocket({
           setIsConnected(false);
           setIsConnecting(false);
           onDisconnect?.();
-          
+
           // Check if this was a final close after max reconnection attempts
           // The websocket manager will stop reconnecting after maxReconnectAttempts
           // We track this by checking if we're not reconnecting and wasClean is false
@@ -496,6 +499,7 @@ export function useProcessingWebSocket({
     onConnectionFailed,
     reconnectInterval,
     maxReconnectAttempts,
+    user?.role,
   ]);
 
   const sendMessage = useCallback((message: unknown) => {
@@ -513,7 +517,7 @@ export function useProcessingWebSocket({
   }, []);
 
   useEffect(() => {
-    if (enabled && isAuthenticated) {
+    if (effectiveEnabled && isAuthenticated) {
       console.log('🔌 Initiating WebSocket connection...');
       shouldReconnectRef.current = true;
       connect();
@@ -523,7 +527,7 @@ export function useProcessingWebSocket({
       console.log('🔌 Cleaning up WebSocket connection...');
       disconnect();
     };
-  }, [enabled, isAuthenticated, disconnect]);
+  }, [effectiveEnabled, isAuthenticated, disconnect]);
 
   return {
     isConnected,

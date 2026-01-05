@@ -1,13 +1,24 @@
 import { useState, useEffect } from 'react';
 import { analyticsApi } from '@/lib/api';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
 import type { AdminAnalyticsData } from '@/lib/api/analytics';
 
 export function useAdminAnalytics() {
+  const { user } = useAuth();
   const [data, setData] = useState<AdminAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const isAgent = user?.role === USER_ROLES.AGENT;
+
+    if (isAgent) {
+      setLoading(false);
+      setData(null);
+      return;
+    }
+
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
@@ -38,7 +49,7 @@ export function useAdminAnalytics() {
     };
 
     void fetchAnalytics();
-  }, []);
+  }, [user?.role]);
 
   return { data, loading, error };
 }

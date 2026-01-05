@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { API_BASE_URL, WEBSOCKET_BASE_URL, TOKEN_KEY } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
+import { useAuth } from '@/providers/auth-provider';
+import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatMessage, WebSocketMessage } from '@/types';
 
@@ -124,6 +126,10 @@ export function useChatWebSocket({
   onMessageReceived,
   onBalanceUpdated,
 }: UseChatWebSocketParams): UseChatWebSocketReturn {
+  const { user } = useAuth();
+  const isAgent = user?.role === USER_ROLES.AGENT;
+  const effectiveEnabled = enabled && !isAgent;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -135,7 +141,7 @@ export function useChatWebSocket({
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
   const [historyPagination, setHistoryPagination] = useState({ page: 0, totalPages: 0 });
   const [notes, setNotes] = useState<string>('');
-  
+
   // WebSocket management refs
   const wsRef = useRef<WebSocket | null>(null);
   const wsUrlRef = useRef<string>('');
@@ -146,12 +152,12 @@ export function useChatWebSocket({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
-  
+
   // Message queue for messages sent while connecting
   const messageQueueRef = useRef<Array<{ text: string; timestamp: number }>>([]);
   const connectionWaitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const CONNECTION_WAIT_TIMEOUT = 3000; // Wait 3 seconds for connection before falling back
-  
+
   // Use ref to avoid reconnecting WebSocket when callback changes
   const onMessageReceivedRef = useRef(onMessageReceived);
   useEffect(() => {
@@ -173,10 +179,10 @@ export function useChatWebSocket({
     setHasMoreHistory(false);
     setHistoryPagination({ page: 0, totalPages: 0 });
 
-    if (enabled) {
+    if (effectiveEnabled) {
       setConnectionError(null);
     }
-  }, [chatId, userId, enabled]);
+  }, [chatId, userId, effectiveEnabled]);
 
   const requestHistory = useCallback(async (page: number): Promise<HistoryPayload | null> => {
     if (!chatId && !userId) {
@@ -254,7 +260,7 @@ export function useChatWebSocket({
       !IS_PROD && console.log(
         ` Loaded ${payload.messages.length} of ${data.total_count ?? payload.messages.length} messages (page ${payload.page}/${payload.totalPages})`,
       );
-      
+
       !IS_PROD && console.log('📝 Notes from API:', data.notes);
 
       return payload;
@@ -297,7 +303,7 @@ export function useChatWebSocket({
           totalPages: payload.totalPages,
         });
         setHasMoreHistory(payload.page < payload.totalPages);
-        
+
         // Update notes from the first page response
         if (payload.page === 1 && payload.notes !== undefined) {
           setNotes(payload.notes);
@@ -342,19 +348,19 @@ export function useChatWebSocket({
     try {
       setIsPurchaseHistoryLoading(true);
       !IS_PROD && console.log(`💰 Fetching purchase history...`, { chatId, userId });
-      
+
       const token = storage.get(TOKEN_KEY);
-      
+
       if (!token) {
         console.error('❌ No authentication token found. Please log in again.');
         return;
       }
-      
+
       //  Try chatId first (could be chatroom_id), fallback to userId (player_id)
       const params = new URLSearchParams();
       if (chatId) params.append('chatroom_id', chatId);
       if (userId) params.append('user_id', String(userId));
-      
+
       const response = await fetch(`/api/chat-purchases?${params.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -370,7 +376,7 @@ export function useChatWebSocket({
           statusText: response.statusText,
           error: errorText.substring(0, 200),
         });
-        
+
         if (response.status === 401 || response.status === 403) {
           console.error('🚨 Authentication failed - redirecting to login');
           storage.clear();
@@ -382,16 +388,16 @@ export function useChatWebSocket({
       }
 
       const data = await response.json();
-      
+
       if (data.messages && Array.isArray(data.messages)) {
         //  Transform purchase messages from new JWT endpoint format
         const purchases: ChatMessage[] = data.messages.map((msg: any) => {
           // Determine sender: "company" = admin, "player" = player
-          const sender: 'player' | 'admin' = 
+          const sender: 'player' | 'admin' =
             msg.sender === 'company' || msg.sender === 'admin'
-              ? 'admin' 
+              ? 'admin'
               : 'player';
-          
+
           const timestamp = msg.sent_time || new Date().toISOString();
           const messageDate = new Date(timestamp);
 
@@ -430,7 +436,7 @@ export function useChatWebSocket({
   }, [chatId, userId]); // Include userId in dependency array
 
   const connect = useCallback(() => {
-    if (!userId || !enabled) return;
+    if (!userId || !effectiveEnabled) return;
 
     try {
       const connectionKey = `${userId}:${chatId ?? 'none'}`;
@@ -461,19 +467,19 @@ export function useChatWebSocket({
         setIsConnected(true);
         setConnectionError(null);
         reconnectAttemptsRef.current = 0;
-        
+
         // Clear connection wait timeout
         if (connectionWaitTimeoutRef.current) {
           clearTimeout(connectionWaitTimeoutRef.current);
           connectionWaitTimeoutRef.current = null;
         }
-        
+
         // Process queued messages
         if (messageQueueRef.current.length > 0) {
           !IS_PROD && console.log(`📤 [Chat WS] Processing ${messageQueueRef.current.length} queued messages`);
           const queuedMessages = [...messageQueueRef.current];
           messageQueueRef.current = [];
-          
+
           // Send queued messages via WebSocket
           queuedMessages.forEach(({ text }) => {
             try {
@@ -493,7 +499,7 @@ export function useChatWebSocket({
             }
           });
         }
-        
+
         // Fetch message history after connecting
         !IS_PROD && console.log('📜 [Chat WS] Fetching message history after connection...');
         void fetchMessageHistory(1, 'replace');
@@ -507,13 +513,13 @@ export function useChatWebSocket({
 
         try {
           const rawData = JSON.parse(event.data);
-          
+
           !IS_PROD && console.log('📨 [Chat WS] Raw WebSocket message received:', {
             hasData: !!rawData,
             type: rawData?.type,
             messagePreview: rawData?.message?.substring(0, 30),
           });
-          
+
           // Log ALL websocket messages for debugging balance updates
           !IS_PROD && console.log('📨 [Chat WS] Received WebSocket message (FULL):', {
             type: rawData.type,
@@ -536,14 +542,14 @@ export function useChatWebSocket({
           // Handle 'message' type and 'balanceUpdated' type (if it has message content) as regular messages
           // balanceUpdated messages with content should be displayed as regular messages
           const hasMessageContent = rawData.message || rawData.text;
-          const isMessageType = messageType === 'message' || 
-                               (messageType === 'balanceUpdated' || messageType === 'balance_updated') && hasMessageContent;
+          const isMessageType = messageType === 'message' ||
+            (messageType === 'balanceUpdated' || messageType === 'balance_updated') && hasMessageContent;
 
           if (isMessageType) {
             // Determine sender based on backend fields
             const isPlayerSender = rawData.is_player_sender ?? true;
             const sender: 'player' | 'admin' = isPlayerSender ? 'player' : 'admin';
-            
+
             // Parse timestamp
             const timestamp = rawData.sent_time || rawData.timestamp || new Date().toISOString();
             const messageDate = new Date(timestamp);
@@ -581,7 +587,7 @@ export function useChatWebSocket({
               currentUserId: userId,
               matchesCurrentUser: newMessage.userId === userId,
             });
-            
+
             // Simply append the websocket message to the messages array
             setMessages((prev) => {
               // Quick duplicate check by ID only
@@ -590,13 +596,13 @@ export function useChatWebSocket({
                 !IS_PROD && console.log('⚠️ [Chat WS] Duplicate message by ID, skipping:', newMessage.id);
                 return prev;
               }
-              
+
               // Append new message
               const updated = [...prev, newMessage];
               !IS_PROD && console.log(`✅ [Chat WS] Appended message: ${prev.length} -> ${updated.length} messages`);
               return updated;
             });
-            
+
             // Notify parent component about new message (this updates chat list)
             // Only call once per message to avoid duplicates
             !IS_PROD && console.log('🔔 [Chat WS] Calling onMessageReceived callback for new message...');
@@ -610,21 +616,21 @@ export function useChatWebSocket({
             } else {
               !IS_PROD && console.warn('⚠️ [Chat WS] onMessageReceived callback is not defined');
             }
-            
+
             //  Update user balance if provided in the message
             // This handles balance updates that come embedded in regular messages
             if (rawData.user_balance !== undefined || rawData.balance !== undefined || rawData.player_bal !== undefined) {
               const balance = rawData.user_balance ?? rawData.balance ?? rawData.player_bal;
               const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal;
               const playerId = rawData.player_id || rawData.user_id || userId;
-              
+
               !IS_PROD && console.log('💰 [Chat WS] Balance update detected in message:', {
                 balance,
                 winningBalance,
                 playerId,
                 hasCallback: !!onBalanceUpdatedRef.current,
               });
-              
+
               // Update balance in all existing messages for this player
               if (playerId && String(playerId) === String(userId) && balance !== undefined && balance !== null) {
                 const balanceValue = String(balance);
@@ -645,7 +651,7 @@ export function useChatWebSocket({
                 );
                 !IS_PROD && console.log('✅ [Chat WS] Updated balance in existing messages from embedded balance data');
               }
-              
+
               // Notify parent component about balance update if callback is available
               if (onBalanceUpdatedRef.current && playerId) {
                 onBalanceUpdatedRef.current({
@@ -660,14 +666,14 @@ export function useChatWebSocket({
             setIsTyping(true);
             //  Clear typing indicator after 3 seconds
             setTimeout(() => setIsTyping(false), 3000);
-            
+
             //  IMPORTANT: Do NOT call onMessageReceived for typing events
             // This prevents the chat list from updating when user is just typing
           } else if (messageType === 'mark_message_as_read' || messageType === 'read') {
             const messageId = rawData.message_id || rawData.id;
             const senderId = rawData.sender_id;
             const isPlayerSender = rawData.is_player_sender ?? true;
-            
+
             if (messageId) {
               // Mark specific message as read
               !IS_PROD && console.log(' Message marked as read:', messageId);
@@ -695,9 +701,9 @@ export function useChatWebSocket({
           } else if (messageType === 'live_status') {
             const isActive = rawData.is_active ?? false;
             const playerId = rawData.player_id;
-            
+
             !IS_PROD && console.log(`🟢 Live status: ${rawData.username || `Player ${playerId}`} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
-            
+
             // Update online status if this is the player we're chatting with
             if (String(playerId) === String(userId)) {
               setIsUserOnline(isActive);
@@ -708,14 +714,14 @@ export function useChatWebSocket({
             const playerId = rawData.player_id || rawData.user_id || userId;
             const balance = rawData.balance ?? rawData.player_bal ?? rawData.player?.balance;
             const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal ?? rawData.player?.winning_balance;
-            
+
             !IS_PROD && console.log('💰 [Chat WS] Standalone balance updated notification (no message content):', {
               messageType,
               playerId,
               balance,
               winningBalance,
             });
-            
+
             // Only handle if there's no message content (pure balance update notification)
             if (!rawData.message && playerId) {
               // Update balance in all messages for this player
@@ -738,7 +744,7 @@ export function useChatWebSocket({
                 );
                 !IS_PROD && console.log('✅ [Chat WS] Updated balance in existing messages');
               }
-              
+
               // Notify parent component about balance update
               if (onBalanceUpdatedRef.current) {
                 onBalanceUpdatedRef.current({
@@ -780,10 +786,10 @@ export function useChatWebSocket({
         }
 
         //  PERFORMANCE: Exponential backoff reconnection with max attempts
-        if (enabled && reconnectAttemptsRef.current < maxReconnectAttempts) {
+        if (effectiveEnabled && reconnectAttemptsRef.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           !IS_PROD && console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
-          
+
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttemptsRef.current += 1;
             connect();
@@ -795,11 +801,11 @@ export function useChatWebSocket({
     } catch (error) {
       console.error('❌ Failed to create WebSocket connection:', error);
     }
-  }, [userId, chatId, adminId, enabled, fetchMessageHistory]);
+  }, [userId, chatId, adminId, effectiveEnabled, fetchMessageHistory]);
 
   const sendMessageViaRest = useCallback(async (text: string, retryCount = 0): Promise<boolean> => {
     const MAX_RETRIES = 2;
-    
+
     try {
       const token = storage.get(TOKEN_KEY);
       if (!token) {
@@ -832,19 +838,19 @@ export function useChatWebSocket({
           }
           return false;
         }
-        
+
         // Retry on server errors (5xx) or network errors
         if (retryCount < MAX_RETRIES && (response.status >= 500 || response.status === 0)) {
           !IS_PROD && console.log(`🔄 Retrying REST API send (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
           await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
           return sendMessageViaRest(text, retryCount + 1);
         }
-        
+
         throw new Error(`Failed to send message: ${response.status} ${response.statusText}`);
       }
 
       !IS_PROD && console.log('✅ Message sent successfully via REST API');
-      
+
       // Add the message to local state for instant feedback
       const messageDate = new Date();
       const newMessage: ChatMessage = {
@@ -863,21 +869,21 @@ export function useChatWebSocket({
       };
 
       setMessages((prev) => [...prev, newMessage]);
-      
+
       if (onMessageReceivedRef.current) {
         onMessageReceivedRef.current(newMessage);
       }
-      
+
       return true;
     } catch (error) {
       console.error('❌ Failed to send message via REST API:', error);
-      
+
       if (retryCount < MAX_RETRIES) {
         !IS_PROD && console.log(`🔄 Retrying REST API send (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
         await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
         return sendMessageViaRest(text, retryCount + 1);
       }
-      
+
       setConnectionError('Failed to send message. Please check your connection and try again.');
       return false;
     }
@@ -899,7 +905,7 @@ export function useChatWebSocket({
       !IS_PROD && console.log(`📤 Processing ${messageQueueRef.current.length} queued messages before disconnect...`);
       const queuedMessages = [...messageQueueRef.current];
       messageQueueRef.current = [];
-      
+
       queuedMessages.forEach(({ text }) => {
         void sendMessageViaRest(text);
       });
@@ -946,21 +952,21 @@ export function useChatWebSocket({
     // Case 2: WebSocket is CONNECTING - queue the message and wait
     if (readyState === WebSocket.CONNECTING) {
       !IS_PROD && console.log('⏳ WebSocket connecting, queueing message...');
-      
+
       // Add to queue
       messageQueueRef.current.push({ text, timestamp: Date.now() });
-      
+
       // Set timeout to wait for connection, then fallback to REST API
       if (!connectionWaitTimeoutRef.current) {
         connectionWaitTimeoutRef.current = setTimeout(async () => {
           connectionWaitTimeoutRef.current = null;
-          
+
           // If still connecting after timeout, process queue via REST API
           if (wsRef.current?.readyState === WebSocket.CONNECTING) {
             !IS_PROD && console.log('⏱️ Connection timeout, sending queued messages via REST API...');
             const queuedMessages = [...messageQueueRef.current];
             messageQueueRef.current = [];
-            
+
             // Send all queued messages via REST API
             for (const { text: queuedText } of queuedMessages) {
               await sendMessageViaRest(queuedText);
@@ -971,7 +977,7 @@ export function useChatWebSocket({
           }
         }, CONNECTION_WAIT_TIMEOUT);
       }
-      
+
       return;
     }
 
@@ -1032,7 +1038,7 @@ export function useChatWebSocket({
   // Update balance in all messages for the current user
   const updateMessagesBalance = useCallback((balance: string, winningBalance: string) => {
     if (!userId) return;
-    
+
     !IS_PROD && console.log('💰 [Chat WS] Updating balance in messages:', {
       userId,
       balance,
@@ -1067,7 +1073,7 @@ export function useChatWebSocket({
 
   // Connect/disconnect based on enabled state and userId
   useEffect(() => {
-    if (enabled && userId) {
+    if (effectiveEnabled && userId) {
       connect();
     } else {
       disconnect();
@@ -1076,7 +1082,7 @@ export function useChatWebSocket({
     return () => {
       disconnect();
     };
-  }, [enabled, userId, connect, disconnect]);
+  }, [effectiveEnabled, userId, connect, disconnect]);
 
   return {
     messages,
