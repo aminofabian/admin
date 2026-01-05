@@ -392,8 +392,8 @@ export default function DashboardPage() {
                     <div className="flex-1 h-px bg-border/50 min-w-0"></div>
                   </div>
 
-                  {/* Grid - Always 5 columns */}
-                  <div className="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-5 gap-1 sm:gap-1.5">
+                  {/* Grid - 3 columns on mobile, 5 on larger screens */}
+                  <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-5 gap-1 sm:gap-1.5">
                     {row.items.map((item, itemIdx) => {
                       const colors = categoryColors[item.categoryIndex % categoryColors.length];
                       const section = item.section;
@@ -403,17 +403,17 @@ export default function DashboardPage() {
                         <Link
                           key={itemIdx}
                           href={section.href}
-                          className={`group relative flex flex-col items-center justify-center border-2 ${colors.border} ${colors.hoverBorder} rounded-xl hover:bg-gradient-to-br active:scale-95 transition-all duration-300 p-2 sm:p-2.5 bg-gradient-to-br ${colors.bg} ${isDimmed ? 'opacity-30 scale-95' : ''} ${isHighlighted ? 'scale-105 ring-2 ring-offset-2 ' + colors.text.replace('text-', 'ring-') : ''}`}
+                          className={`group relative flex flex-col items-center justify-center border-2 ${colors.border} ${colors.hoverBorder} rounded-xl hover:bg-gradient-to-br active:scale-95 transition-all duration-300 p-3 sm:p-4 bg-gradient-to-br ${colors.bg} ${isDimmed ? 'opacity-30 scale-95' : ''} ${isHighlighted ? 'scale-105 ring-2 ring-offset-2 ' + colors.text.replace('text-', 'ring-') : ''}`}
                         >
                           {'count' in section && section.count !== undefined && section.count > 0 && (
-                            <span className="absolute top-1 right-1 z-10 inline-flex items-center justify-center min-w-[0.85rem] h-3 px-0.5 text-[8px] font-medium rounded-full bg-gradient-to-br text-white border border-white/80 dark:border-background shadow-sm">
+                            <span className="absolute top-1.5 right-1.5 z-10 inline-flex items-center justify-center min-w-[0.95rem] h-3.5 px-0.5 text-[9px] font-medium rounded-full bg-gradient-to-br text-white border border-white/80 dark:border-background shadow-sm">
                               {section.count > 99 ? '99+' : section.count}
                             </span>
                           )}
-                          <div className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-gradient-to-br ${colors.iconBg} rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1 flex-shrink-0 shadow-sm ${colors.shadow}`}>
-                            <div className={`${colors.text} text-xs sm:text-sm`}>{section.icon}</div>
+                          <div className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-gradient-to-br ${colors.iconBg} rounded group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 mb-1.5 flex-shrink-0 shadow-sm ${colors.shadow}`}>
+                            <div className={`${colors.text} text-sm sm:text-base`}>{section.icon}</div>
                           </div>
-                          <span className={`text-[8px] sm:text-[9px] font-medium text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 group-hover:${colors.text.split(' ')[0].replace('600', '500').replace('400', '500')}`}>
+                          <span className={`text-[9px] sm:text-[10px] font-medium text-gray-700 dark:text-gray-100 text-center leading-tight line-clamp-2 group-hover:${colors.text.split(' ')[0].replace('600', '500').replace('400', '500')}`}>
                             {section.label}
                           </span>
                           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 group-hover:w-10 h-0.5 bg-gradient-to-r from-transparent via-${colors.glow.split('-')[1]}-${colors.glow.split('-')[2]} to-transparent rounded-t-full transition-all duration-300"></div>
