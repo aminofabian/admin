@@ -151,46 +151,30 @@ function GameActivityRow({
   // For create_game, show balances if they exist in data, otherwise show dash
   const shouldShowBlankBalance = useMemo(() => {
     const typeStr = String(activity.type);
-    // For create_game, check if balance data exists
-    if (typeStr === 'create_game') {
-      const hasCredits = activity.data?.new_credits_balance != null;
-      const hasWinnings = activity.data?.new_winning_balance != null;
-      // Only show blank if neither balance exists
-      return !hasCredits && !hasWinnings;
-    }
-    // For other types, use original logic
-    return typeStr === 'change_password' || typeStr === 'add_user_game';
-  }, [activity.type, activity.data?.new_credits_balance, activity.data?.new_winning_balance]);
+    return typeStr === 'create_game' || typeStr === 'add_user_game' || typeStr === 'change_password' || typeStr === 'reset_password';
+  }, [activity.type]);
 
   const creditsDisplayText = useMemo(() => {
-    // For create_game, show the actual balance if it exists, otherwise show dash
-    if (activity.type === 'create_game') {
-      return formattedNewCredits ?? '—';
-    }
-    // For other types that should show blank, return dash
-    if (shouldShowBlankBalance) return '—';
+    // For types that should show blank, return hyphen
+    if (shouldShowBlankBalance) return '-';
     // Show previous -> new format if both exist
     if (formattedPreviousCredits && formattedNewCredits) {
       return `${formattedPreviousCredits} → ${formattedNewCredits}`;
     }
     // Fallback to new balance or previous balance or zero
     return formattedNewCredits || formattedPreviousCredits || zeroCurrency;
-  }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency, activity.type]);
+  }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency]);
 
   const winningsDisplayText = useMemo(() => {
-    // For create_game, show the actual balance if it exists, otherwise show dash
-    if (activity.type === 'create_game') {
-      return formattedNewWinnings ?? '—';
-    }
-    // For other types that should show blank, return dash
-    if (shouldShowBlankBalance) return '—';
+    // For types that should show blank, return empty string
+    if (shouldShowBlankBalance) return '';
     // Show previous -> new format if both exist
     if (formattedPreviousWinnings && formattedNewWinnings) {
       return `${formattedPreviousWinnings} → ${formattedNewWinnings}`;
     }
     // Fallback to new balance or previous balance or zero
     return formattedNewWinnings || formattedPreviousWinnings || zeroCurrency;
-  }, [shouldShowBlankBalance, formattedPreviousWinnings, formattedNewWinnings, zeroCurrency, activity.type]);
+  }, [shouldShowBlankBalance, formattedPreviousWinnings, formattedNewWinnings, zeroCurrency]);
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
@@ -481,46 +465,30 @@ const GameActivityCard = memo(function GameActivityCard({
   // For create_game, show balances if they exist in data, otherwise show dash
   const shouldShowBlankBalance = useMemo(() => {
     const typeStr = String(activity.type);
-    // For create_game, check if balance data exists
-    if (typeStr === 'create_game') {
-      const hasCredits = activity.data?.new_credits_balance != null;
-      const hasWinnings = activity.data?.new_winning_balance != null;
-      // Only show blank if neither balance exists
-      return !hasCredits && !hasWinnings;
-    }
-    // For other types, use original logic
-    return typeStr === 'change_password' || typeStr === 'add_user_game';
-  }, [activity.type, activity.data?.new_credits_balance, activity.data?.new_winning_balance]);
+    return typeStr === 'create_game' || typeStr === 'add_user_game' || typeStr === 'change_password' || typeStr === 'reset_password';
+  }, [activity.type]);
 
   const creditsDisplayText = useMemo(() => {
-    // For create_game, show the actual balance if it exists, otherwise show dash
-    if (activity.type === 'create_game') {
-      return formattedNewCredits ?? '—';
-    }
-    // For other types that should show blank, return dash
-    if (shouldShowBlankBalance) return '—';
+    // For types that should show blank, return empty string
+    if (shouldShowBlankBalance) return '';
     // Show previous -> new format if both exist
     if (formattedPreviousCredits && formattedNewCredits) {
       return `${formattedPreviousCredits} → ${formattedNewCredits}`;
     }
     // Fallback to new balance or previous balance or zero
     return formattedNewCredits || formattedPreviousCredits || zeroCurrency;
-  }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency, activity.type]);
+  }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency]);
 
   const winningsDisplayText = useMemo(() => {
-    // For create_game, show the actual balance if it exists, otherwise show dash
-    if (activity.type === 'create_game') {
-      return formattedNewWinnings ?? '—';
-    }
-    // For other types that should show blank, return dash
-    if (shouldShowBlankBalance) return '—';
+    // For types that should show blank, return empty string
+    if (shouldShowBlankBalance) return '';
     // Show previous -> new format if both exist
     if (formattedPreviousWinnings && formattedNewWinnings) {
       return `${formattedPreviousWinnings} → ${formattedNewWinnings}`;
     }
     // Fallback to new balance or previous balance or zero
     return formattedNewWinnings || formattedPreviousWinnings || zeroCurrency;
-  }, [shouldShowBlankBalance, formattedPreviousWinnings, formattedNewWinnings, zeroCurrency, activity.type]);
+  }, [shouldShowBlankBalance, formattedPreviousWinnings, formattedNewWinnings, zeroCurrency]);
 
   const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
