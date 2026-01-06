@@ -40,7 +40,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   const router = useRouter();
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const { addToast } = useToast();
-  
+
   // Games section is hidden - removed usePlayerGames hook to prevent unnecessary API calls
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
@@ -69,11 +69,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   const { activities: allActivities, isLoading: isLoadingActivities } = usePlayerGameActivities(selectedPlayer.user_id || null);
 
   // Filter cashouts and activities to only show data for the selected player
-  const cashouts = allCashouts.filter(cashout => 
+  const cashouts = allCashouts.filter(cashout =>
     cashout.user_id === selectedPlayer.user_id
   );
-  
-  const activities = allActivities.filter(activity => 
+
+  const activities = allActivities.filter(activity =>
     activity.user_id === selectedPlayer.user_id
   );
 
@@ -114,9 +114,9 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
       // Toggle the game status
       // API requires username, so we send the current username along with status
       const newStatus = gameToChange.status === 'active' ? 'inactive' : 'active';
-      await playersApi.updateGame(gameToChange.id, { 
+      await playersApi.updateGame(gameToChange.id, {
         username: gameToChange.username,
-        status: newStatus 
+        status: newStatus
       });
       // Games section is hidden - refreshGames removed
       addToast({
@@ -150,7 +150,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           </svg>
           <span className="text-xs">Back</span>
         </button>
-        
+
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             <button
@@ -164,7 +164,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card shadow-sm" />
             )}
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <button
               onClick={onNavigateToPlayer}
@@ -197,7 +197,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {/* Financial Summary - Compact */}
         <div className="rounded-lg border border-border/50 bg-card/50 p-2.5">
-          
+
           <div className="grid grid-cols-2 gap-2">
             {/* Credits */}
             <div className="rounded-md bg-blue-500/5 border border-blue-500/20 p-2">
@@ -229,8 +229,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
 
         {/* Action Buttons */}
         <div className="w-full">
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             className="w-full text-xs py-1.5 h-8"
             onClick={onOpenEditBalance}
           >
@@ -270,12 +270,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   </p>
                 </div>
               </div>
-              <svg 
-                className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all ${
-                  expandedSection === 'purchases' ? 'rotate-90' : ''
-                }`} 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all ${expandedSection === 'purchases' ? 'rotate-90' : ''
+                  }`}
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -297,10 +296,10 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 ) : (
                   purchases.map((purchase) => {
                     // Parse bonus amount - handle both string and number formats
-                    const bonusAmount = purchase.bonus_amount 
-                      ? (typeof purchase.bonus_amount === 'string' 
-                          ? parseFloat(purchase.bonus_amount) 
-                          : purchase.bonus_amount)
+                    const bonusAmount = purchase.bonus_amount
+                      ? (typeof purchase.bonus_amount === 'string'
+                        ? parseFloat(purchase.bonus_amount)
+                        : purchase.bonus_amount)
                       : null;
                     const hasBonus = bonusAmount !== null && !isNaN(bonusAmount) && bonusAmount > 0;
 
@@ -321,22 +320,20 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                             )}
                           </div>
                           <span
-                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
-                              purchase.status === 'completed'
-                                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                                : purchase.status === 'pending'
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${purchase.status === 'completed'
+                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                              : purchase.status === 'pending'
                                 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                                 : 'bg-red-500/10 text-red-600 dark:text-red-400'
-                            }`}
+                              }`}
                           >
                             <span
-                              className={`w-1 h-1 rounded-full ${
-                                purchase.status === 'completed'
-                                  ? 'bg-green-500'
-                                  : purchase.status === 'pending'
+                              className={`w-1 h-1 rounded-full ${purchase.status === 'completed'
+                                ? 'bg-green-500'
+                                : purchase.status === 'pending'
                                   ? 'bg-amber-500'
                                   : 'bg-red-500'
-                              }`}
+                                }`}
                             />
                             {purchase.status}
                           </span>
@@ -372,12 +369,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   </p>
                 </div>
               </div>
-              <svg 
-                className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all ${
-                  expandedSection === 'cashouts' ? 'rotate-90' : ''
-                }`} 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all ${expandedSection === 'cashouts' ? 'rotate-90' : ''
+                  }`}
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -414,22 +410,20 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                           )}
                         </div>
                         <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
-                            cashout.status === 'completed'
-                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                              : cashout.status === 'pending'
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${cashout.status === 'completed'
+                            ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                            : cashout.status === 'pending'
                               ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                               : 'bg-red-500/10 text-red-600 dark:text-red-400'
-                          }`}
+                            }`}
                         >
                           <span
-                            className={`w-1 h-1 rounded-full ${
-                              cashout.status === 'completed'
-                                ? 'bg-green-500'
-                                : cashout.status === 'pending'
+                            className={`w-1 h-1 rounded-full ${cashout.status === 'completed'
+                              ? 'bg-green-500'
+                              : cashout.status === 'pending'
                                 ? 'bg-amber-500'
                                 : 'bg-red-500'
-                            }`}
+                              }`}
                           />
                           {cashout.status}
                         </span>
@@ -464,12 +458,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                   </p>
                 </div>
               </div>
-              <svg 
-                className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all ${
-                  expandedSection === 'activities' ? 'rotate-90' : ''
-                }`} 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all ${expandedSection === 'activities' ? 'rotate-90' : ''
+                  }`}
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -495,12 +488,12 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                     const isRechargeActivity = activityType === 'recharge_game';
                     const isRedeemActivity = activityType === 'redeem_game';
                     const isResetActivity = activityType.includes('reset') || activityType.includes('clear');
-                    
+
                     // Parse bonus amount - handle both string and number formats
-                    const bonusAmount = activity.bonus_amount 
-                      ? (typeof activity.bonus_amount === 'string' 
-                          ? parseFloat(activity.bonus_amount) 
-                          : activity.bonus_amount)
+                    const bonusAmount = activity.bonus_amount
+                      ? (typeof activity.bonus_amount === 'string'
+                        ? parseFloat(activity.bonus_amount)
+                        : activity.bonus_amount)
                       : null;
                     const hasBonus = bonusAmount !== null && !isNaN(bonusAmount) && bonusAmount > 0;
 
@@ -524,7 +517,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                             <p className="text-xs font-bold text-foreground truncate">
                               {activity.game_title || 'Unknown Game'}
                             </p>
-                            {gameCode && (
+                            {gameCode && gameCode.toLowerCase() !== (activity.game_title || '').toLowerCase() && (
                               <p className="text-[9px] text-muted-foreground truncate">
                                 {gameCode}
                               </p>
@@ -533,26 +526,24 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
 
                           {/* Status badge - always shown */}
                           <span
-                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${
-                              activity.status === 'completed'
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${activity.status === 'completed'
                                 ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                                 : activity.status === 'pending'
-                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                : activity.status === 'failed'
-                                ? 'bg-red-500/10 text-red-600 dark:text-red-400'
-                                : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
-                            }`}
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                  : activity.status === 'failed'
+                                    ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                    : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
+                              }`}
                           >
                             <span
-                              className={`w-1 h-1 rounded-full ${
-                                activity.status === 'completed'
+                              className={`w-1 h-1 rounded-full ${activity.status === 'completed'
                                   ? 'bg-green-500'
                                   : activity.status === 'pending'
-                                  ? 'bg-amber-500'
-                                  : activity.status === 'failed'
-                                  ? 'bg-red-500'
-                                  : 'bg-gray-500'
-                              }`}
+                                    ? 'bg-amber-500'
+                                    : activity.status === 'failed'
+                                      ? 'bg-red-500'
+                                      : 'bg-gray-500'
+                                }`}
                             />
                             {activity.status}
                           </span>
@@ -563,11 +554,13 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                           <p className="text-[10px] text-muted-foreground capitalize">
                             {formattedActivityType}
                           </p>
-                          {(isRechargeActivity || isRedeemActivity || isResetActivity) && gameUsername && (
-                            <p className="text-[10px] text-muted-foreground">
-                              • {gameUsername}
-                            </p>
-                          )}
+                          {(isRechargeActivity || isRedeemActivity || isResetActivity) &&
+                            gameUsername &&
+                            gameUsername.toLowerCase() !== (activity.game_title || '').toLowerCase() && (
+                              <p className="text-[10px] text-muted-foreground">
+                                • {gameUsername}
+                              </p>
+                            )}
                         </div>
 
                         {/* Row 3: Amount/Bonus (only for Recharge and Redeem) */}

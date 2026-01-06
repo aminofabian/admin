@@ -269,7 +269,7 @@ function GameActivityRow({
           <div className="font-medium text-gray-900 dark:text-gray-100">
             —
           </div>
-        ) : gameUsername ? (
+        ) : (gameUsername && gameUsername.toLowerCase() !== gameName.toLowerCase()) ? (
           <div className="font-medium text-gray-900 dark:text-gray-100">
             {gameUsername}
           </div>
@@ -649,16 +649,7 @@ const GameActivityCard = memo(function GameActivityCard({
         </div>
 
         {/* Game Username */}
-        {isAddUserAction ? (
-          <div className="flex items-center gap-2">
-            <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">
-              —
-            </span>
-          </div>
-        ) : gameUsername && (
+        {!isAddUserAction && gameUsername && gameUsername.toLowerCase() !== (activity.game || '').toLowerCase() && (
           <div className="flex items-center gap-2">
             <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
