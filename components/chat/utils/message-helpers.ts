@@ -648,21 +648,21 @@ export const formatTransactionMessage = (
 
         switch (transactionType) {
           case 'credit_purchase':
-            return `<b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedAmount}</b> added to your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b> added to your credit balance.\nCredits: <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedWinnings}</b>`;
           case 'cashout':
-            return `<b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedAmount}</b> deducted from your balance.\n<b>Credits:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b> deducted from your balance.\nCredits: <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedWinnings}</b>`;
           case 'credit_added':
-            return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your credit balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
           case 'credit_deducted':
-            return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your credit balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
           case 'winning_added':
-            return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your winning balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your winning balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
           case 'winning_deducted':
-            return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your winning balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your winning balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
           case 'recharge':
-            return `You successfully recharged <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedAmount}</b>${gameName ? ` to <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${gameName}</b>` : ''}.\n<b>Credits:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedWinnings}</b>`;
+            return `You successfully recharged <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b>${gameName ? ` to <b class="text-[0.92em] text-green-600 dark:text-green-400">${gameName}</b>` : ''}.\nCredits: <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedWinnings}</b>`;
           case 'redeem':
-            return `You successfully redeemed <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedAmount}</b>${gameName ? ` from <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${gameName}</b>` : ''}.\n<b>Credits:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedWinnings}</b>`;
+            return `You successfully redeemed <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b>${gameName ? ` from <b class="text-[0.92em] text-red-600 dark:text-red-400">${gameName}</b>` : ''}.\nCredits: <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedWinnings}</b>`;
         }
       }
     }
@@ -712,28 +712,28 @@ export const formatTransactionMessage = (
 
   switch (details.type) {
     case 'credit_purchase':
-      formattedText = `<b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedAmount}</b> added to your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b> added to your credit balance.\nCredits: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedWinnings}</b>`;
       break;
     case 'cashout':
-      formattedText = `<b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedAmount}</b> deducted from your balance.\n<b>Credits:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b> deducted from your balance.\nCredits: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedWinnings}</b>`;
       break;
     case 'credit_added':
-      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your credit balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
       break;
     case 'credit_deducted':
-      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your credit balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
       break;
     case 'winning_added':
-      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your winning balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your winning balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
       break;
     case 'winning_deducted':
-      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your winning balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your winning balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
       break;
     case 'recharge':
-      formattedText = `You successfully recharged <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedAmount}</b>${gameName ? ` to <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${gameName}</b>` : ''}.\n<b>Credits:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">$${formattedWinnings}</b>`;
+      formattedText = `You successfully recharged <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b>${gameName ? ` to <b class="text-[0.92em] text-green-600 dark:text-green-400">${gameName}</b>` : ''}.\nCredits: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedWinnings}</b>`;
       break;
     case 'redeem':
-      formattedText = `You successfully redeemed <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedAmount}</b>${gameName ? ` from <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${gameName}</b>` : ''}.\n<b>Credits:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">$${formattedWinnings}</b>`;
+      formattedText = `You successfully redeemed <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b>${gameName ? ` from <b class="text-[0.92em] text-red-600 dark:text-red-400">${gameName}</b>` : ''}.\nCredits: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedWinnings}</b>`;
       break;
     default:
       return message.text;

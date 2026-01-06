@@ -66,14 +66,14 @@ export const MessageBubble = memo(function MessageBubble({
     return (
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-200 my-4">
         <div className="max-w-[85%] md:max-w-[75%]">
-          <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${(isPurchase || isRecharge) ? 'bg-blue-500/10 border-blue-500/30' :
-              (isRedeem || isCashout) ? 'bg-emerald-500/10 border-emerald-500/30' :
-                details.type ? 'bg-indigo-500/10 border-indigo-500/30' : ''
+          <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${(isPurchase || isRecharge) ? 'bg-green-500/10 border-green-500/30' :
+            (isRedeem || isCashout) ? 'bg-red-500/10 border-red-500/30' :
+              details.type ? 'bg-indigo-500/10 border-indigo-500/30' : ''
             }`}>
             <div
               className={`text-center text-[13px] md:text-sm leading-relaxed break-words space-y-1 ${(isPurchase || isRecharge || isRedeem || isCashout || details.type)
-                  ? 'text-foreground [&_b]:not-italic [&_b]:font-bold'
-                  : 'text-foreground/90 italic [&_b]:not-italic [&_b]:font-bold'
+                ? 'text-foreground [&_b]:not-italic [&_b]:font-bold'
+                : 'text-foreground/90 italic [&_b]:not-italic [&_b]:font-bold'
                 }`}
               dangerouslySetInnerHTML={{ __html: formattedText }}
             />
