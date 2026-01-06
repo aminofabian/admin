@@ -660,9 +660,9 @@ export const formatTransactionMessage = (
           case 'winning_deducted':
             return `${formattedAmount} deducted from your winning balance.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
           case 'recharge':
-            return `Recharge\nYou successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `You successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
           case 'redeem':
-            return `Redeem\nYou successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
+            return `You successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: ${formattedCredits}\nWinnings: ${formattedWinnings}`;
         }
       }
     }
@@ -730,10 +730,10 @@ export const formatTransactionMessage = (
       formattedText = `${formattedAmount} deducted from your winning balance.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
       break;
     case 'recharge':
-      formattedText = `Recharge\nYou successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `You successfully recharged ${formattedAmount}${gameName ? ` to ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
       break;
     case 'redeem':
-      formattedText = `Redeem\nYou successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
+      formattedText = `You successfully redeemed ${formattedAmount}${gameName ? ` from ${gameName}` : ''}.\nCredits: $${formattedCredits}\nWinnings: $${formattedWinnings}`;
       break;
     default:
       return message.text;
