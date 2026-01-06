@@ -5,6 +5,11 @@ import { Input } from '@/components/ui';
 import { PlayerListSkeleton } from '../skeletons';
 import { formatChatTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
+import {
+  isAutoMessage,
+  isPurchaseNotification,
+  formatTransactionMessage,
+} from '../utils/message-helpers';
 
 // Strip HTML tags for preview text
 const stripHtml = (html: string): string => {
@@ -74,80 +79,95 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
     <button
       ref={itemRef}
       onClick={() => onSelect(player)}
-      className={`w-full p-3 md:p-3.5 rounded-xl transition-all duration-300 group relative ${
-        isSelected
-          ? 'bg-primary/10 shadow-md ring-2 ring-primary/20' 
-          : 'hover:bg-muted/50 active:scale-[0.98]'
-      } ${
-        isNewMessage ? 'bg-primary/5 ring-2 ring-primary/30 animate-new-message-pulse' : ''
-      }`}
+      className={`w-full p-3 md:p-3.5 rounded-xl transition-all duration-300 group relative ${isSelected
+        ? 'bg-primary/10 shadow-md ring-2 ring-primary/20'
+        : 'hover:bg-muted/50 active:scale-[0.98]'
+        } ${isNewMessage ? 'bg-primary/5 ring-2 ring-primary/30 animate-new-message-pulse' : ''
+        }`}
     >
       {/* New Message Indicator - Glowing bar on the left */}
       {isNewMessage && (
         <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full animate-message-glow shadow-lg shadow-primary/50" />
       )}
-        
-        <div className="flex items-center gap-3">
-          {/* Avatar */}
-          <div className="relative flex-shrink-0">
-            <div className={`w-11 h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-300 ${
-              isSelected
-                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' 
-                : 'group-hover:scale-105'
-            } ${
-              isNewMessage ? 'ring-2 ring-primary/50 scale-110' : ''
+
+      <div className="flex items-center gap-3">
+        {/* Avatar */}
+        <div className="relative flex-shrink-0">
+          <div className={`w-11 h-11 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-300 ${isSelected
+            ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105'
+            : 'group-hover:scale-105'
+            } ${isNewMessage ? 'ring-2 ring-primary/50 scale-110' : ''
             }`}>
-              {player.avatar || player.username.charAt(0).toUpperCase()}
-            </div>
-            {player.isOnline && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse shadow-sm" />
-            )}
+            {player.avatar || player.username.charAt(0).toUpperCase()}
           </div>
-          
-          {/* Player Info */}
-          <div className="flex-1 min-w-0 text-left">
-            <div className="flex items-center justify-between gap-2">
-              <p className={`text-sm font-semibold truncate transition-colors duration-200 ${
-                isSelected ? 'text-primary' : 'text-foreground'
-              } ${
-                isNewMessage ? 'text-primary font-bold' : ''
-              }`}>
-                {player.username}
-              </p>
-              {player.lastMessageTime && (
-                <span className={`text-[10px] shrink-0 transition-colors duration-200 ${
-                  isNewMessage ? 'text-primary font-semibold' : 'text-muted-foreground'
-                }`}>
-                  {formatChatTimestamp(player.lastMessageTime)}
-                </span>
-              )}
-            </div>
-            
-            {player.lastMessage && (
-              <p className={`text-xs truncate mt-0.5 transition-all duration-200 ${
-                isNewMessage 
-                  ? 'text-foreground font-medium' 
-                  : 'text-muted-foreground'
-              }`}>
-                {stripHtml(player.lastMessage)}
-              </p>
-            )}
-          </div>
-          
-          {/* Unread Badge */}
-          {unreadCount > 0 && (
-            <div className="flex-shrink-0 ml-auto">
-              <span 
-                className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full shadow-lg transition-all duration-300 ${
-                  isNewMessage ? 'animate-badge-pop' : ''
-                }`}
-              >
-                {unreadBadgeValue}
-              </span>
-            </div>
+          {player.isOnline && (
+            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse shadow-sm" />
           )}
         </div>
-      </button>
+
+        {/* Player Info */}
+        <div className="flex-1 min-w-0 text-left">
+          <div className="flex items-center justify-between gap-2">
+            <p className={`text-sm font-semibold truncate transition-colors duration-200 ${isSelected ? 'text-primary' : 'text-foreground'
+              } ${isNewMessage ? 'text-primary font-bold' : ''
+              }`}>
+              {player.username}
+            </p>
+            {player.lastMessageTime && (
+              <span className={`text-[10px] shrink-0 transition-colors duration-200 ${isNewMessage ? 'text-primary font-semibold' : 'text-muted-foreground'
+                }`}>
+                {formatChatTimestamp(player.lastMessageTime)}
+              </span>
+            )}
+          </div>
+
+          {player.lastMessage && (() => {
+            const mockMessage = { text: player.lastMessage };
+            const isAuto = isAutoMessage(mockMessage);
+            const isPurchase = isPurchaseNotification(mockMessage);
+
+            if (isAuto || isPurchase) {
+              // Format the transaction message
+              let formatted = formatTransactionMessage(mockMessage as any);
+
+              // For preview, we only want the first line (the action itself)
+              // Split by newline or <br> tags to be safe
+              const previewText = formatted.split(/\n|<br\s*\/?>/i)[0];
+
+              return (
+                <p
+                  className={`text-xs truncate mt-0.5 transition-all duration-200 ${isNewMessage ? 'text-foreground font-medium' : 'text-muted-foreground'
+                    }`}
+                  dangerouslySetInnerHTML={{ __html: previewText }}
+                />
+              );
+            }
+
+            const plainText = stripHtml(player.lastMessage);
+            return (
+              <p className={`text-xs truncate mt-0.5 transition-all duration-200 ${isNewMessage
+                  ? 'text-foreground font-medium'
+                  : 'text-muted-foreground'
+                }`}>
+                {plainText}
+              </p>
+            );
+          })()}
+        </div>
+
+        {/* Unread Badge */}
+        {unreadCount > 0 && (
+          <div className="flex-shrink-0 ml-auto">
+            <span
+              className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full shadow-lg transition-all duration-300 ${isNewMessage ? 'animate-badge-pop' : ''
+                }`}
+            >
+              {unreadBadgeValue}
+            </span>
+          </div>
+        )}
+      </div>
+    </button>
   );
 }, (prevProps, nextProps) => {
   // Enhanced comparison: only re-render if critical fields changed
@@ -209,7 +229,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   // Refs for infinite scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
-  
+
   // Intersection Observer for infinite scroll
   useEffect(() => {
     // Only observe when on all-chats tab and there's more to load
@@ -260,14 +280,12 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
             </span>
             <button
               onClick={() => setAvailability(!availability)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 shadow-inner ${
-                availability ? 'bg-green-500' : 'bg-muted'
-              }`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 shadow-inner ${availability ? 'bg-green-500' : 'bg-muted'
+                }`}
             >
               <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
-                  availability ? 'translate-x-6' : 'translate-x-0.5'
-                }`}
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${availability ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
               />
             </button>
           </div>
@@ -300,11 +318,10 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
         <div className="flex gap-2 p-1 bg-muted/30 rounded-xl">
           <button
             onClick={() => setActiveTab('online')}
-            className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
-              activeTab === 'online'
-                ? 'bg-primary text-primary-foreground shadow-md'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
+            className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === 'online'
+              ? 'bg-primary text-primary-foreground shadow-md'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
           >
             <div className="flex items-center justify-center gap-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'online' ? 'bg-white' : 'bg-green-500'}`} />
@@ -313,11 +330,10 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
           </button>
           <button
             onClick={() => setActiveTab('all-chats')}
-            className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${
-              activeTab === 'all-chats'
-                ? 'bg-primary text-primary-foreground shadow-md'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-            }`}
+            className={`flex-1 px-2 md:px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === 'all-chats'
+              ? 'bg-primary text-primary-foreground shadow-md'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
           >
             All Chats
           </button>
@@ -346,9 +362,8 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
             title="Refresh online players"
           >
             <svg
-              className={`w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ${
-                isLoadingApiOnlinePlayers ? 'animate-spin' : ''
-              }`}
+              className={`w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ${isLoadingApiOnlinePlayers ? 'animate-spin' : ''
+                }`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -404,7 +419,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
                 />
               </div>
             ))}
-            
+
             {/* Infinite scroll trigger */}
             {activeTab === 'all-chats' && hasMorePlayers && (
               <div ref={loadMoreTriggerRef} className="py-4">

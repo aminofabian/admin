@@ -648,9 +648,9 @@ export const formatTransactionMessage = (
 
         switch (transactionType) {
           case 'credit_purchase':
-            return `You successfully purchased <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedAmount}</b> credit.\n<b>Credits:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedAmount}</b> added to your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedWinnings}</b>`;
           case 'cashout':
-            return `You successfully cashed out <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedAmount}</b>.\n<b>Credits:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedAmount}</b> deducted from your balance.\n<b>Credits:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedWinnings}</b>`;
           case 'credit_added':
             return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
           case 'credit_deducted':
@@ -712,10 +712,10 @@ export const formatTransactionMessage = (
 
   switch (details.type) {
     case 'credit_purchase':
-      formattedText = `You successfully purchased <b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedAmount}</b> credit.\n<b>Credits:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-blue-600 dark:text-blue-400">${formattedAmount}</b> added to your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-blue-600 dark:text-blue-400">$${formattedWinnings}</b>`;
       break;
     case 'cashout':
-      formattedText = `You successfully cashed out <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedAmount}</b>.\n<b>Credits:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">${formattedAmount}</b> deducted from your balance.\n<b>Credits:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-emerald-600 dark:text-emerald-400">$${formattedWinnings}</b>`;
       break;
     case 'credit_added':
       formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your credit balance.\n<b>Credits:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\n<b>Winnings:</b> <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
