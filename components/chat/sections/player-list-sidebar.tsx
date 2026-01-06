@@ -128,7 +128,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
 
             if (isAuto || isPurchase) {
               // Format the transaction message
-              let formatted = formatTransactionMessage(mockMessage as any);
+              const formatted = formatTransactionMessage(mockMessage as { text: string; type?: string });
 
               // For preview, we only want the first line (the action itself)
               // Split by newline or <br> tags to be safe
@@ -146,8 +146,8 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
             const plainText = stripHtml(player.lastMessage);
             return (
               <p className={`text-xs truncate mt-0.5 transition-all duration-200 ${isNewMessage
-                  ? 'text-foreground font-medium'
-                  : 'text-muted-foreground'
+                ? 'text-foreground font-medium'
+                : 'text-muted-foreground'
                 }`}>
                 {plainText}
               </p>

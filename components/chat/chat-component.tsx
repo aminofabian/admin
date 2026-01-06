@@ -314,7 +314,6 @@ export function ChatComponent() {
     }
 
     const lastOp = lastManualPaymentRef.current;
-    const now = Date.now();
     const FIVE_SECONDS = 5000; // Match messages within 5 seconds of operation
 
     return wsMessages.map((msg) => {
@@ -326,7 +325,7 @@ export function ChatComponent() {
       // Check if message matches last operation (same player, recent timestamp)
       const messageTime = new Date(msg.timestamp).getTime();
       const timeDiff = Math.abs(messageTime - lastOp.timestamp);
-      
+
       if (
         msg.userId === lastOp.playerId &&
         timeDiff < FIVE_SECONDS &&
@@ -1276,7 +1275,7 @@ export function ChatComponent() {
       // Extract error message from ApiError object (thrown by apiClient)
       // Backend returns: { status: "Failed", message: "You cannot withdraw bonus balance. Max amount you can withdraw: 562.70" }
       let errorMessage = 'Unknown error';
-      
+
       if (error && typeof error === 'object') {
         // Check for ApiError structure: { message, detail, error, status }
         const apiError = error as { message?: string; detail?: string; error?: string; status?: string };
@@ -1284,7 +1283,7 @@ export function ChatComponent() {
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       addToast({
         type: 'error',
         title: 'Failed to update balance',
@@ -1779,7 +1778,7 @@ export function ChatComponent() {
         clearTimeout(scrollTimeout3);
       };
     }
-  }, [queryPlayerId, selectedPlayer, wsMessages.length, isHistoryLoadingMessages, scrollToBottom]);
+  }, [queryUsername, queryPlayerId, selectedPlayer, wsMessages.length, isHistoryLoadingMessages, scrollToBottom]);
 
   // Removed auto-selection of first player - users should manually select a player to chat with
 
