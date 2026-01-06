@@ -12,6 +12,7 @@ import {
   isAutoMessage,
   isPurchaseNotification,
   formatTransactionMessage,
+  parseTransactionMessage,
 } from '../utils/message-helpers';
 
 interface MessageBubbleProps {
@@ -45,13 +46,18 @@ export const MessageBubble = memo(function MessageBubble({
 
   // Render purchase notifications and auto messages in a centered, neutral style
   if (isAuto || isPurchase) {
+    const details = parseTransactionMessage(message.text, message.type, message.operationType);
+    const isRecharge = details.type === 'recharge';
+    const isRedeem = details.type === 'redeem';
+    const isCashout = details.type === 'cashout';
+
     // Format transaction messages according to the specified format
     // Pass operationType if available (workaround for backend bug)
     const formattedMessage = formatTransactionMessage({
       ...message,
       operationType: message.operationType,
     });
-    
+
     // Convert line breaks to <br> tags for HTML rendering
     const formattedText = formattedMessage
       .replace(/\n/g, '<br />')
@@ -60,23 +66,22 @@ export const MessageBubble = memo(function MessageBubble({
     return (
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-200 my-4">
         <div className="max-w-[85%] md:max-w-[75%]">
-          <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${
-            isPurchase ? 'bg-blue-500/10 border-blue-500/30' : ''
-          }`}>
-            <div 
-              className={`text-center text-[13px] md:text-sm leading-relaxed break-words space-y-1 ${
-                isPurchase 
-                  ? 'text-foreground [&_b]:not-italic [&_b]:font-semibold' 
-                  : 'text-muted-foreground italic [&_b]:not-italic [&_b]:font-semibold'
-              }`}
+          <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${(isPurchase || isRecharge) ? 'bg-blue-500/10 border-blue-500/30' :
+              (isRedeem || isCashout) ? 'bg-emerald-500/10 border-emerald-500/30' :
+                details.type ? 'bg-indigo-500/10 border-indigo-500/30' : ''
+            }`}>
+            <div
+              className={`text-center text-[13px] md:text-sm leading-relaxed break-words space-y-1 ${(isPurchase || isRecharge || isRedeem || isCashout || details.type)
+                  ? 'text-foreground [&_b]:not-italic [&_b]:font-bold'
+                  : 'text-foreground/90 italic [&_b]:not-italic [&_b]:font-bold'
+                }`}
               dangerouslySetInnerHTML={{ __html: formattedText }}
             />
-            
+
             {message.time && (
               <div className="flex items-center justify-center gap-1.5 mt-2.5 pt-2 border-t border-border/30">
-                <span className={`text-[10px] md:text-xs font-medium ${
-                  isPurchase ? 'text-muted-foreground' : 'text-muted-foreground/70 italic'
-                }`}>
+                <span className={`text-[10px] md:text-xs font-medium ${isPurchase ? 'text-muted-foreground' : 'text-muted-foreground/70 italic'
+                  }`}>
                   {message.time}
                 </span>
               </div>
@@ -101,17 +106,15 @@ export const MessageBubble = memo(function MessageBubble({
         ) : (
           <div className="w-7 md:w-8 shrink-0" />
         )}
-        
+
         {/* Message Bubble */}
         <div className="relative group flex flex-col min-w-0">
           <div
-            className={`rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 shadow-md transition-all duration-200 ${
-              isAdmin
-                ? 'bg-card border border-border/50 text-foreground shadow-black/5 dark:shadow-black/20'
-                : 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/25'
-            } ${
-              isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
-            } ${message.isPinned ? 'ring-2 ring-amber-400/60' : ''}`}
+            className={`rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 shadow-md transition-all duration-200 ${isAdmin
+              ? 'bg-card border border-border/50 text-foreground shadow-black/5 dark:shadow-black/20'
+              : 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/25'
+              } ${isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
+              } ${message.isPinned ? 'ring-2 ring-amber-400/60' : ''}`}
           >
             {/* Image or File */}
             <MessageAttachment
@@ -119,12 +122,12 @@ export const MessageBubble = memo(function MessageBubble({
               isAdmin={isAdmin}
               onExpandImage={onExpandImage}
             />
-            
+
             {/* Comment badge */}
             {message.isComment && (
               <CommentBadge isAdmin={isAdmin} />
             )}
-            
+
             {/* Message Text */}
             <MessageText
               message={message}
@@ -132,13 +135,13 @@ export const MessageBubble = memo(function MessageBubble({
               messageHasHtml={messageHasHtml}
             />
           </div>
-          
+
           {/* Message Meta */}
           <MessageMeta
             message={message}
             isAdmin={isAdmin}
           />
-          
+
           {/* Pin Button */}
           <PinButton
             messageId={message.id}
@@ -165,13 +168,13 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
   if (isImage) {
     return (
       <div className="mb-2 space-y-2">
-        <div 
+        <div
           className="relative rounded-lg overflow-hidden cursor-pointer group/image hover:opacity-90 transition-opacity"
           onClick={() => onExpandImage(fileUrl)}
           title="Click to expand"
         >
-          <Image 
-            src={fileUrl} 
+          <Image
+            src={fileUrl}
             alt="Uploaded image"
             width={800}
             height={600}
@@ -199,9 +202,8 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
             href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-opacity hover:opacity-70 ${
-              isAdmin ? 'text-muted-foreground' : 'text-white/50'
-            }`}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-opacity hover:opacity-70 ${isAdmin ? 'text-muted-foreground' : 'text-white/50'
+              }`}
           >
             <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -212,9 +214,8 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
           <a
             href={fileUrl}
             download
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-opacity hover:opacity-70 ${
-              isAdmin ? 'text-muted-foreground' : 'text-white/50'
-            }`}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-opacity hover:opacity-70 ${isAdmin ? 'text-muted-foreground' : 'text-white/50'
+              }`}
           >
             <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -228,9 +229,8 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
 
   if (message.isFile && fileUrl) {
     return (
-      <div className={`flex items-center justify-between gap-2 mb-2 pb-2 border-b ${
-        isAdmin ? 'border-border/50' : 'border-white/20'
-      }`}>
+      <div className={`flex items-center justify-between gap-2 mb-2 pb-2 border-b ${isAdmin ? 'border-border/50' : 'border-white/20'
+        }`}>
         <div className="flex items-center gap-1.5">
           <svg className={`w-4 h-4 ${isAdmin ? 'text-primary' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -243,9 +243,8 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
           href={fileUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className={`text-xs font-medium hover:underline flex items-center gap-1 ${
-            isAdmin ? 'text-primary hover:text-primary/80' : 'text-white hover:text-white/80'
-          }`}
+          className={`text-xs font-medium hover:underline flex items-center gap-1 ${isAdmin ? 'text-primary hover:text-primary/80' : 'text-white hover:text-white/80'
+            }`}
         >
           Download
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,9 +260,8 @@ function MessageAttachment({ message, isAdmin, onExpandImage }: {
 
 function CommentBadge({ isAdmin }: { isAdmin: boolean }) {
   return (
-    <div className={`flex items-center gap-1.5 mb-2 pb-2 border-b ${
-      isAdmin ? 'border-border/50' : 'border-white/20'
-    }`}>
+    <div className={`flex items-center gap-1.5 mb-2 pb-2 border-b ${isAdmin ? 'border-border/50' : 'border-white/20'
+      }`}>
       <svg className={`w-4 h-4 ${isAdmin ? 'text-amber-500' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
       </svg>
@@ -306,9 +304,8 @@ function MessageText({ message, isAdmin, messageHasHtml }: {
     />
   ) : (
     <p
-      className={`text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words ${
-        isAdmin ? 'text-foreground' : 'text-white'
-      }`}
+      className={`text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words ${isAdmin ? 'text-foreground' : 'text-white'
+        }`}
     >
       {displayText}
     </p>
@@ -320,9 +317,8 @@ function MessageMeta({ message, isAdmin }: {
   isAdmin: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-1.5 mt-1 px-1 ${
-      isAdmin ? 'justify-end' : 'justify-start'
-    }`}>
+    <div className={`flex items-center gap-1.5 mt-1 px-1 ${isAdmin ? 'justify-end' : 'justify-start'
+      }`}>
       <span className="text-[10px] md:text-xs text-muted-foreground font-medium">
         {message.time || message.timestamp}
       </span>
@@ -335,13 +331,12 @@ function MessageMeta({ message, isAdmin }: {
         </span>
       )}
       {isAdmin && (
-        <svg 
-          className={`w-3.5 h-3.5 ${
-            message.isRead 
-              ? 'text-blue-500 dark:text-blue-400' 
-              : 'text-muted-foreground/50'
-          }`} 
-          fill="currentColor" 
+        <svg
+          className={`w-3.5 h-3.5 ${message.isRead
+            ? 'text-blue-500 dark:text-blue-400'
+            : 'text-muted-foreground/50'
+            }`}
+          fill="currentColor"
           viewBox="0 0 20 20"
         >
           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -388,13 +383,12 @@ function PinButton({ messageId, isPinned, isPinning, onTogglePin }: {
           />
         </svg>
       ) : (
-        <svg 
-          className={`h-3.5 w-3.5 transition-colors ${
-            isPinned 
-              ? 'text-amber-500/70 dark:text-amber-400/70 hover:text-amber-600 dark:hover:text-amber-400' 
-              : 'text-muted-foreground/50 hover:text-muted-foreground'
-          }`} 
-          viewBox="0 0 20 20" 
+        <svg
+          className={`h-3.5 w-3.5 transition-colors ${isPinned
+            ? 'text-amber-500/70 dark:text-amber-400/70 hover:text-amber-600 dark:hover:text-amber-400'
+            : 'text-muted-foreground/50 hover:text-muted-foreground'
+            }`}
+          viewBox="0 0 20 20"
           fill="currentColor"
         >
           <path d="M8.5 2a1.5 1.5 0 0 1 3 0v1.382a3 3 0 0 0 1.076 2.308l.12.1a2 2 0 0 1 .68 1.5V8a2 2 0 0 1-2 2h-.25L11 13.75a1.25 1.25 0 0 1-2.5 0L8.874 10H8.625a2 2 0 0 1-2-2v-.71a2 2 0 0 1 .68-1.5l.12-.1A3 3 0 0 0 8.5 3.382V2Z" />
