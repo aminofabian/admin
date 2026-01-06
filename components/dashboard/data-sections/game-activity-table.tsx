@@ -155,8 +155,8 @@ function GameActivityRow({
   }, [activity.type]);
 
   const creditsDisplayText = useMemo(() => {
-    // For types that should show blank, return hyphen
-    if (shouldShowBlankBalance) return '-';
+    // For types that should show blank, return dash
+    if (shouldShowBlankBalance) return '—';
     // Show previous -> new format if both exist
     if (formattedPreviousCredits && formattedNewCredits) {
       return `${formattedPreviousCredits} → ${formattedNewCredits}`;
@@ -166,8 +166,8 @@ function GameActivityRow({
   }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency]);
 
   const winningsDisplayText = useMemo(() => {
-    // For types that should show blank, return empty string
-    if (shouldShowBlankBalance) return '';
+    // For types that should show blank, return dash
+    if (shouldShowBlankBalance) return '—';
     // Show previous -> new format if both exist
     if (formattedPreviousWinnings && formattedNewWinnings) {
       return `${formattedPreviousWinnings} → ${formattedNewWinnings}`;
@@ -278,12 +278,12 @@ function GameActivityRow({
         </div>
       </TableCell>
       <TableCell>
-        <div className={`text-xs ${creditsColorClass}`}>
+        <div className={shouldShowBlankBalance ? 'font-medium text-gray-900 dark:text-gray-100' : `text-xs ${creditsColorClass}`}>
           {creditsDisplayText}
         </div>
       </TableCell>
       <TableCell>
-        <div className={`text-xs ${winningsColorClass}`}>
+        <div className={shouldShowBlankBalance ? 'font-medium text-gray-900 dark:text-gray-100' : `text-xs ${winningsColorClass}`}>
           {winningsDisplayText}
         </div>
       </TableCell>
@@ -469,8 +469,8 @@ const GameActivityCard = memo(function GameActivityCard({
   }, [activity.type]);
 
   const creditsDisplayText = useMemo(() => {
-    // For types that should show blank, return empty string
-    if (shouldShowBlankBalance) return '';
+    // For types that should show blank, return dash
+    if (shouldShowBlankBalance) return '—';
     // Show previous -> new format if both exist
     if (formattedPreviousCredits && formattedNewCredits) {
       return `${formattedPreviousCredits} → ${formattedNewCredits}`;
@@ -480,8 +480,8 @@ const GameActivityCard = memo(function GameActivityCard({
   }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency]);
 
   const winningsDisplayText = useMemo(() => {
-    // For types that should show blank, return empty string
-    if (shouldShowBlankBalance) return '';
+    // For types that should show blank, return dash
+    if (shouldShowBlankBalance) return '—';
     // Show previous -> new format if both exist
     if (formattedPreviousWinnings && formattedNewWinnings) {
       return `${formattedPreviousWinnings} → ${formattedNewWinnings}`;
