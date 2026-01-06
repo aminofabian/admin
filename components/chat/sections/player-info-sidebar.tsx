@@ -517,32 +517,27 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                             <p className="text-xs font-bold text-foreground truncate">
                               {activity.game_title || 'Unknown Game'}
                             </p>
-                            {gameCode && gameCode.toLowerCase() !== (activity.game_title || '').toLowerCase() && (
-                              <p className="text-[9px] text-muted-foreground truncate">
-                                {gameCode}
-                              </p>
-                            )}
                           </div>
 
                           {/* Status badge - always shown */}
                           <span
                             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${activity.status === 'completed'
-                                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                                : activity.status === 'pending'
-                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                  : activity.status === 'failed'
-                                    ? 'bg-red-500/10 text-red-600 dark:text-red-400'
-                                    : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
+                              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                              : activity.status === 'pending'
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                : activity.status === 'failed'
+                                  ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                  : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
                               }`}
                           >
                             <span
                               className={`w-1 h-1 rounded-full ${activity.status === 'completed'
-                                  ? 'bg-green-500'
-                                  : activity.status === 'pending'
-                                    ? 'bg-amber-500'
-                                    : activity.status === 'failed'
-                                      ? 'bg-red-500'
-                                      : 'bg-gray-500'
+                                ? 'bg-green-500'
+                                : activity.status === 'pending'
+                                  ? 'bg-amber-500'
+                                  : activity.status === 'failed'
+                                    ? 'bg-red-500'
+                                    : 'bg-gray-500'
                                 }`}
                             />
                             {activity.status}
