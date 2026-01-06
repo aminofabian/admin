@@ -660,9 +660,9 @@ export const formatTransactionMessage = (
           case 'winning_deducted':
             return `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your winning balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedWinnings}</b>`;
           case 'recharge':
-            return `You successfully recharged <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b>${gameName ? ` to <b class="text-[0.92em] text-green-600 dark:text-green-400">${gameName}</b>` : ''}.\nCredits: <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b> recharged${gameName ? ` to <b class="text-[0.92em] text-green-600 dark:text-green-400">${gameName}</b>` : ''}\nCredits: <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedWinnings}</b>`;
           case 'redeem':
-            return `You successfully redeemed <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b>${gameName ? ` from <b class="text-[0.92em] text-red-600 dark:text-red-400">${gameName}</b>` : ''}.\nCredits: <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedWinnings}</b>`;
+            return `<b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b> redeemed${gameName ? ` from <b class="text-[0.92em] text-red-600 dark:text-red-400">${gameName}</b>` : ''}\nCredits: <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedWinnings}</b>`;
         }
       }
     }
@@ -730,10 +730,10 @@ export const formatTransactionMessage = (
       formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your winning balance.\nCredits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
       break;
     case 'recharge':
-      formattedText = `You successfully recharged <b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b>${gameName ? ` to <b class="text-[0.92em] text-green-600 dark:text-green-400">${gameName}</b>` : ''}.\nCredits: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b> recharged${gameName ? ` to <b class="text-[0.92em] text-green-600 dark:text-green-400">${gameName}</b>` : ''}\nCredits: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedWinnings}</b>`;
       break;
     case 'redeem':
-      formattedText = `You successfully redeemed <b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b>${gameName ? ` from <b class="text-[0.92em] text-red-600 dark:text-red-400">${gameName}</b>` : ''}.\nCredits: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b> redeemed${gameName ? ` from <b class="text-[0.92em] text-red-600 dark:text-red-400">${gameName}</b>` : ''}\nCredits: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedCredits}</b>\nWinnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedWinnings}</b>`;
       break;
     default:
       return message.text;
