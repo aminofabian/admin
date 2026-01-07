@@ -574,6 +574,7 @@ export function useChatReset({
 
           // Handle different message types from backend
           const messageType = rawData.type;
+          const hasMessageContent = !!(rawData.message || rawData.text || rawData.is_file);
 
           if (messageType === 'message') {
             // Determine sender based on backend fields
@@ -591,7 +592,7 @@ export function useChatReset({
 
             const newMessage: ChatMessage = {
               id: rawData.id || rawData.message_id || Date.now().toString(),
-              text: rawData.message || '',
+              text: rawData.message || rawData.text || '',
               sender,
               timestamp: messageDate.toISOString(),
               date: messageDate.toISOString().split('T')[0],
@@ -616,44 +617,49 @@ export function useChatReset({
                 : undefined,
             };
 
-            if (!IS_PROD) {
-              console.log(' Parsed message and adding to state:', {
-                id: newMessage.id,
-                text: newMessage.text.substring(0, 50),
-                sender: newMessage.sender,
-                time: newMessage.time,
-                isFile: newMessage.isFile,
-                userBalance: rawData.user_balance,
-              });
-            }
-            
-            //  Check for duplicate messages before adding
-            setMessages((prev) => {
-              // Prevent duplicate messages by checking if message with same ID exists
-              const isDuplicate = prev.some(msg => msg.id === newMessage.id);
-              if (isDuplicate) {
-                if (!IS_PROD) console.log('⚠️ Duplicate message detected, skipping:', newMessage.id);
-                return prev;
+            // Only add to messages list and notify if there is actual content
+            if (hasMessageContent) {
+              if (!IS_PROD) {
+                console.log(' Parsed message and adding to state:', {
+                  id: newMessage.id,
+                  text: newMessage.text.substring(0, 50),
+                  sender: newMessage.sender,
+                  time: newMessage.time,
+                  isFile: newMessage.isFile,
+                  userBalance: rawData.user_balance,
+                });
               }
               
-              const updated = [...prev, newMessage];
-              if (!IS_PROD) console.log(`📝 Messages state updated: ${prev.length} -> ${updated.length} messages`);
-              return updated;
-            });
+              //  Check for duplicate messages before adding
+              setMessages((prev) => {
+                // Prevent duplicate messages by checking if message with same ID exists
+                const isDuplicate = prev.some(msg => msg.id === newMessage.id);
+                if (isDuplicate) {
+                  if (!IS_PROD) console.log('⚠️ Duplicate message detected, skipping:', newMessage.id);
+                  return prev;
+                }
+                
+                const updated = [...prev, newMessage];
+                if (!IS_PROD) console.log(`📝 Messages state updated: ${prev.length} -> ${updated.length} messages`);
+                return updated;
+              });
+              
+              // Notify parent component to update chat list
+              if (!IS_PROD) console.log('🔔 Calling onMessageReceived callback...');
+              if (onMessageReceivedRef.current) {
+                onMessageReceivedRef.current(newMessage);
+                if (!IS_PROD) console.log(' onMessageReceived callback executed');
+              } else {
+                if (!IS_PROD) console.warn('⚠️ onMessageReceived callback is not defined');
+              }
+            } else {
+              if (!IS_PROD) console.log('ℹ️ Message has no content, skipping UI update but checking for balance info');
+            }
             
             //  Update user balance if provided in the message
             if (rawData.user_balance !== undefined) {
               if (!IS_PROD) console.log('💰 User balance update:', rawData.user_balance);
               // You can emit this to a balance update callback if needed
-            }
-            
-            // Notify parent component to update chat list (ONLY for actual messages, not typing)
-            if (!IS_PROD) console.log('🔔 Calling onMessageReceived callback...');
-            if (onMessageReceivedRef.current) {
-              onMessageReceivedRef.current(newMessage);
-              if (!IS_PROD) console.log(' onMessageReceived callback executed');
-            } else {
-              if (!IS_PROD) console.warn('⚠️ onMessageReceived callback is not defined');
             }
           } else if (messageType === 'typing') {
             if (!IS_PROD) console.log('⌨️ User is typing...');

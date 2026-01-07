@@ -80,13 +80,25 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
   // Check for purchase notification patterns
   const purchasePatterns = [
     /you successfully purchased/i,
+    /purchased via/i,
+    /purchased \(credited by admin\)/i,
+    /credited by admin/i,
+    /cashed out/i,
+    /recharged to/i,
+    /redeemed from/i,
+    /added to your (credit|winning) balance/i,
+    /deducted from your (credit|winning) balance/i,
     /credits:.*winnings:/i,
     /credits.*winnings/i,
   ];
 
   // Check if message type indicates it's a purchase notification
   const messageTypeLower = message.type?.toLowerCase();
-  if (messageTypeLower === 'purchase_notification') {
+  if (messageTypeLower === 'purchase_notification' || messageTypeLower === 'balanceupdated') {
+    // For balanceupdated, check if it looks like a purchase or balance display
+    if (messageTypeLower === 'balanceupdated') {
+      return purchasePatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
+    }
     return true;
   }
 
@@ -182,7 +194,8 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
   }
 
   // Check if userId is 0 or undefined (system messages often have no user ID)
-  if (message.userId === 0 || message.userId === undefined) {
+  // But ONLY if it's not a purchase notification
+  if ((message.userId === 0 || message.userId === undefined) && !isPurchaseNotification(message)) {
     return true;
   }
 
@@ -293,6 +306,24 @@ export const parseTransactionMessage = (
     }
   }
 
+  // Extract bonus amount
+  const bonusPatterns = [
+    /with\s+[\s\$]*([\d,]+\.?\d*)\s*bonus/i,
+    /bonus[:\s]*[\s\$]*([\d,]+\.?\d*)/i,
+    /<b>[\s\$]*([\d,]+\.?\d*)[\s\$]*<\/b>\s*bonus/i,
+  ];
+
+  for (const pattern of bonusPatterns) {
+    const match = originalText.match(pattern);
+    if (match && match[1]) {
+      const value = match[1].replace(/,/g, '');
+      if (value && !isNaN(parseFloat(value))) {
+        result.bonusAmount = value;
+        break;
+      }
+    }
+  }
+
   // Extract game name (for recharge/redeem) - look for "to {Game Name}" or "from {Game Name}"
   const gamePatterns = [
     /(?:to|from)\s+((?:<[^>]+>|[^\n<])+?)(?:\s*(?:\.<br|\.<|<\/|<br|$))/i,
@@ -390,6 +421,17 @@ export const formatTransactionMessage = (
   if (message.bonusAmount) details.bonusAmount = message.bonusAmount;
   if (message.paymentMethod) details.paymentMethod = message.paymentMethod;
 
+  // Identify the color based on transaction type
+  // Green: Recharge, Purchase
+  // Red: Redeem, Cashout
+  // Indigo: Manual additions/deductions
+  let colorClass = 'text-indigo-600 dark:text-indigo-400';
+  if (details.type === 'recharge' || details.type === 'credit_purchase') {
+    colorClass = 'text-green-600 dark:text-green-400';
+  } else if (details.type === 'redeem' || details.type === 'cashout') {
+    colorClass = 'text-red-600 dark:text-red-400';
+  }
+
   // Use parsed values, or try to extract from original text if parsing failed
   let amount = details.amount;
   if (!amount) {
@@ -409,37 +451,52 @@ export const formatTransactionMessage = (
 
   const gameName = details.gameName || '';
 
+  const boldClass = `text-[0.92em] font-bold ${colorClass}`;
+
   let formattedText = '';
 
   switch (details.type) {
     case 'credit_purchase':
-      const bonus_main = details.bonusAmount ? ` with <b class="text-[0.92em] text-green-600 dark:text-green-400">$${details.bonusAmount}</b> bonus` : '';
-      const payment_main = details.paymentMethod ? ` via <b class="text-[0.92em] text-green-600 dark:text-green-400">${details.paymentMethod}</b>` : '';
-      formattedText = `<b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b> purchased${payment_main}${bonus_main}.<br />Credits: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedCredits}</b><br />Winnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedWinnings}</b>`;
+      const bonus_purchase = details.bonusAmount ? ` with <b class="${boldClass}">$${details.bonusAmount}</b> bonus` : '';
+      const payment_purchase = details.paymentMethod ? ` via ${details.paymentMethod}` : '';
+      // User-friendly wording: "added to your credit balance" (Green)
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> added to your credit balance${payment_purchase}${bonus_purchase}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'cashout':
-      const payment_cashout_main = details.paymentMethod ? ` via <b class="text-[0.92em] text-red-600 dark:text-red-400">${details.paymentMethod}</b>` : '';
-      formattedText = `<b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b> cashed out${payment_cashout_main}.<br />Credits: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedCredits}</b><br />Winnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedWinnings}</b>`;
+      const payment_cashout = details.paymentMethod ? ` via ${details.paymentMethod}` : '';
+      // User-friendly wording: "deducted from your credit balance" (Red)
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> deducted from your credit balance${payment_cashout}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'credit_added':
-      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your credit balance.<br />Credits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b><br />Winnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
+      // Manual Addition (Indigo)
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> added to your credit balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'credit_deducted':
-      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your credit balance.<br />Credits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b><br />Winnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
+      // Manual Deduction (Indigo)
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> deducted from your credit balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'winning_added':
-      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> added to your winning balance.<br />Credits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b><br />Winnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> added to your winning balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'winning_deducted':
-      formattedText = `<b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">${formattedAmount}</b> deducted from your winning balance.<br />Credits: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedCredits}</b><br />Winnings: <b class="text-[0.92em] text-indigo-600 dark:text-indigo-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> deducted from your winning balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'recharge':
-      formattedText = `<b class="text-[0.92em] text-green-600 dark:text-green-400">${formattedAmount}</b> recharged${gameName ? ` to <b class="text-[0.92em] text-green-600 dark:text-green-400">${gameName}</b>` : ''}.<br />Credits: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedCredits}</b><br />Winnings: <b class="text-[0.92em] text-green-600 dark:text-green-400">$${formattedWinnings}</b>`;
+      const bonus_recharge = details.bonusAmount ? ` with <b class="${boldClass}">$${details.bonusAmount}</b> bonus` : '';
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> recharged${gameName ? ` to <b class="${boldClass}">${gameName}</b>` : ''}${bonus_recharge}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'redeem':
-      formattedText = `<b class="text-[0.92em] text-red-600 dark:text-red-400">${formattedAmount}</b> redeemed${gameName ? ` from <b class="text-[0.92em] text-red-600 dark:text-red-400">${gameName}</b>` : ''}.<br />Credits: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedCredits}</b><br />Winnings: <b class="text-[0.92em] text-red-600 dark:text-red-400">$${formattedWinnings}</b>`;
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> redeemed${gameName ? ` from <b class="${boldClass}">${gameName}</b>` : ''}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     default:
+      // If we couldn't parse it as a specific type, but it is a transaction (has balances),
+      // we still apply the "indigo" styling to amounts if it has the Credits/Winnings pattern
+      if (message.text.includes('Credits:') || message.text.includes('Winnings:')) {
+        return message.text
+          .replace(/<b>(.*?)<\/b>/g, `<b class="${boldClass}">$1</b>`)
+          // Ensure Credits/Winnings labels themselves are NOT bold if they were bold in source
+          .replace(/<b>(Credits:|Winnings:)<\/b>/gi, '$1');
+      }
       return message.text;
   }
 

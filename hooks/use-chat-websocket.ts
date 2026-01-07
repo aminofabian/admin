@@ -541,9 +541,9 @@ export function useChatWebSocket({
 
           // Handle 'message' type and 'balanceUpdated' type (if it has message content) as regular messages
           // balanceUpdated messages with content should be displayed as regular messages
-          const hasMessageContent = rawData.message || rawData.text;
+          const hasMessageContent = !!(rawData.message || rawData.text || rawData.is_file);
           const isMessageType = messageType === 'message' ||
-            (messageType === 'balanceUpdated' || messageType === 'balance_updated') && hasMessageContent;
+            ((messageType === 'balanceUpdated' || messageType === 'balance_updated') && hasMessageContent);
 
           if (isMessageType) {
             // Determine sender based on backend fields
@@ -556,7 +556,7 @@ export function useChatWebSocket({
 
             const newMessage: ChatMessage = {
               id: rawData.id || rawData.message_id || `temp-${Date.now()}-${Math.random()}`,
-              text: rawData.message || '',
+              text: rawData.message || rawData.text || '',
               sender,
               timestamp: messageDate.toISOString(),
               date: messageDate.toISOString().split('T')[0],
@@ -576,49 +576,54 @@ export function useChatWebSocket({
               userBalance: rawData.user_balance ? String(rawData.user_balance) : undefined,
             };
 
-            !IS_PROD && console.log('✅ [Chat WS] Parsed message and adding to state:', {
-              id: newMessage.id,
-              text: newMessage.text.substring(0, 50),
-              sender: newMessage.sender,
-              time: newMessage.time,
-              isFile: newMessage.isFile,
-              userBalance: newMessage.userBalance,
-              userId: newMessage.userId,
-              currentUserId: userId,
-              matchesCurrentUser: newMessage.userId === userId,
-            });
+            // Only add to messages list and notify if there is actual content
+            if (hasMessageContent) {
+              !IS_PROD && console.log('✅ [Chat WS] Parsed message and adding to state:', {
+                id: newMessage.id,
+                text: newMessage.text.substring(0, 50),
+                sender: newMessage.sender,
+                time: newMessage.time,
+                isFile: newMessage.isFile,
+                userBalance: newMessage.userBalance,
+                userId: newMessage.userId,
+                currentUserId: userId,
+                matchesCurrentUser: newMessage.userId === userId,
+              });
 
-            // Simply append the websocket message to the messages array
-            setMessages((prev) => {
-              // Quick duplicate check by ID only
-              const isDuplicate = prev.some(msg => msg.id === newMessage.id);
-              if (isDuplicate) {
-                !IS_PROD && console.log('⚠️ [Chat WS] Duplicate message by ID, skipping:', newMessage.id);
-                return prev;
-              }
+              // Simply append the websocket message to the messages array
+              setMessages((prev) => {
+                // Quick duplicate check by ID only
+                const isDuplicate = prev.some(msg => msg.id === newMessage.id);
+                if (isDuplicate) {
+                  !IS_PROD && console.log('⚠️ [Chat WS] Duplicate message by ID, skipping:', newMessage.id);
+                  return prev;
+                }
 
-              // Append new message
-              const updated = [...prev, newMessage];
-              !IS_PROD && console.log(`✅ [Chat WS] Appended message: ${prev.length} -> ${updated.length} messages`);
-              return updated;
-            });
+                // Append new message
+                const updated = [...prev, newMessage];
+                !IS_PROD && console.log(`✅ [Chat WS] Appended message: ${prev.length} -> ${updated.length} messages`);
+                return updated;
+              });
 
-            // Notify parent component about new message (this updates chat list)
-            // Only call once per message to avoid duplicates
-            !IS_PROD && console.log('🔔 [Chat WS] Calling onMessageReceived callback for new message...');
-            if (onMessageReceivedRef.current) {
-              try {
-                onMessageReceivedRef.current(newMessage);
-                !IS_PROD && console.log('✅ [Chat WS] onMessageReceived callback executed successfully');
-              } catch (error) {
-                console.error('❌ [Chat WS] Error in onMessageReceived callback:', error);
+              // Notify parent component about new message (this updates chat list)
+              // Only call once per message to avoid duplicates
+              !IS_PROD && console.log('🔔 [Chat WS] Calling onMessageReceived callback for new message...');
+              if (onMessageReceivedRef.current) {
+                try {
+                  onMessageReceivedRef.current(newMessage);
+                  !IS_PROD && console.log('✅ [Chat WS] onMessageReceived callback executed successfully');
+                } catch (error) {
+                  console.error('❌ [Chat WS] Error in onMessageReceived callback:', error);
+                }
+              } else {
+                !IS_PROD && console.warn('⚠️ [Chat WS] onMessageReceived callback is not defined');
               }
             } else {
-              !IS_PROD && console.warn('⚠️ [Chat WS] onMessageReceived callback is not defined');
+              !IS_PROD && console.log('ℹ️ [Chat WS] Message has no content, skipping UI update but checking for balance info');
             }
 
             //  Update user balance if provided in the message
-            // This handles balance updates that come embedded in regular messages
+            // This handles balance updates that come embedded in regular messages (or empty messages with balance)
             if (rawData.user_balance !== undefined || rawData.balance !== undefined || rawData.player_bal !== undefined) {
               const balance = rawData.user_balance ?? rawData.balance ?? rawData.player_bal;
               const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal;

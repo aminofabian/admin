@@ -66,8 +66,8 @@ export const MessageBubble = memo(function MessageBubble({
     return (
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-200 my-4">
         <div className="max-w-[85%] md:max-w-[75%]">
-          <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${(isPurchase || isRecharge) ? 'bg-green-500/10 border-green-500/30' :
-            (isRedeem || isCashout) ? 'bg-red-500/10 border-red-500/30' :
+          <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${details.type === 'recharge' || details.type === 'credit_purchase' ? 'bg-green-500/10 border-green-500/30' :
+            details.type === 'redeem' || details.type === 'cashout' ? 'bg-red-500/10 border-red-500/30' :
               details.type ? 'bg-indigo-500/10 border-indigo-500/30' : ''
             }`}>
             <div
@@ -79,8 +79,8 @@ export const MessageBubble = memo(function MessageBubble({
             />
 
             {message.time && (
-              <div className="flex items-center justify-center gap-1.5 mt-2.5 pt-2 border-t border-border/30">
-                <span className={`text-[10px] md:text-xs font-medium ${isPurchase ? 'text-muted-foreground' : 'text-muted-foreground/70 italic'
+              <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                <span className={`text-[10px] md:text-xs font-medium ${isPurchase || isRecharge || isRedeem || isCashout ? 'text-muted-foreground/80' : 'text-muted-foreground/60 italic'
                   }`}>
                   {message.time}
                 </span>
