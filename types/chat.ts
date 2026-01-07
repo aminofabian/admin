@@ -35,6 +35,8 @@ export interface ChatMessage {
   winningBalance?: string; // User winning balance at the time of message
   isPinned?: boolean;
   operationType?: 'increase' | 'decrease' | null; // Operation type for manual balance operations (workaround for backend bug)
+  bonusAmount?: string | null;
+  paymentMethod?: string | null;
 }
 
 export interface ChatListResponse {

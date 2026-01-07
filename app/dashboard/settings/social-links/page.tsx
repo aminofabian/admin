@@ -16,7 +16,6 @@ import {
   Drawer,
 } from '@/components/ui';
 import { useToast } from '@/components/ui/toast';
-import { formatDate } from '@/lib/utils/formatters';
 import type { ChatLink, UpdateChatLinkRequest } from '@/types';
 
 function ChatLinksHeader() {
@@ -190,16 +189,6 @@ function ChatLinkRow({ chatLink, onEdit, onToggleDashboard, onToggleLandingPage 
         </div>
       </TableCell>
       <TableCell className="py-4">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {formatDate(chatLink.modified)}
-          </span>
-        </div>
-      </TableCell>
-      <TableCell className="py-4">
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             {chatLink.link_url ? (
@@ -280,7 +269,6 @@ function ChatLinksTable({
           <TableRow className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Platform</TableHead>
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Toggle Status</TableHead>
-            <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Last Modified</TableHead>
             <TableHead className="font-semibold text-gray-700 dark:text-gray-300 py-3">Link URL</TableHead>
           </TableRow>
         </TableHeader>

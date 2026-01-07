@@ -14,7 +14,7 @@ import type { ChatUser, ChatMessage } from '@/types';
 import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
-import { isAutoMessage, isPurchaseNotification } from './utils/message-helpers';
+import { isAutoMessage, isPurchaseNotification, parseTransactionMessage } from './utils/message-helpers';
 import { MessageHistorySkeleton } from './skeletons';
 import { useScrollManagement } from './hooks/use-scroll-management';
 
@@ -306,47 +306,128 @@ export function ChatComponent() {
   //   viewportBuffer: 10, // Show 10 extra messages above/below viewport
   // });
 
-  //  TEMPORARY: Show all messages without viewport optimization
-  // Process messages to add operationType for balanceUpdated messages (workaround for backend bug)
   const visibleMessages = useMemo(() => {
-    if (!lastManualPaymentRef.current) {
-      return wsMessages;
+    let messages = wsMessages;
+    const FIVE_SECONDS = 5000;
+
+    // Pass 1: Handle operationType attribution (workaround for backend bug)
+    if (lastManualPaymentRef.current) {
+      const lastOp = lastManualPaymentRef.current;
+      messages = messages.map((msg) => {
+        if (msg.type?.toLowerCase() !== 'balanceupdated' && msg.type?.toLowerCase() !== 'balance_updated') {
+          return msg;
+        }
+
+        const messageTime = new Date(msg.timestamp).getTime();
+        const timeDiff = Math.abs(messageTime - lastOp.timestamp);
+        const effectiveUserId = msg.userId || selectedPlayer?.id;
+
+        if (effectiveUserId === lastOp.playerId && timeDiff < FIVE_SECONDS && !msg.operationType) {
+          const amountMatch = msg.text.match(/\$([\d,]+\.?\d*)/);
+          if (amountMatch) {
+            const messageAmount = parseFloat(amountMatch[1].replace(/,/g, ''));
+            if (Math.abs(messageAmount - lastOp.amount) < 0.01) {
+              return { ...msg, operationType: lastOp.operation };
+            }
+          }
+        }
+        return msg;
+      });
     }
 
-    const lastOp = lastManualPaymentRef.current;
-    const FIVE_SECONDS = 5000; // Match messages within 5 seconds of operation
+    // Pass 2: Consolidate purchase notifications and calculate bonuses
+    const processedMessages: Message[] = [];
+    const hiddenMessageIds = new Set<string>();
+    const enhancements = new Map<string, Partial<Message>>();
+    const lastBalanceByPlayer = new Map<number, number>();
+    const balanceBeforeIntent = new Map<string, number>();
 
-    return wsMessages.map((msg) => {
-      // Only process balanceUpdated messages that might match our last operation
-      if (msg.type?.toLowerCase() !== 'balanceupdated' && msg.type?.toLowerCase() !== 'balance_updated') {
-        return msg;
-      }
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      const details = parseTransactionMessage(msg.text, msg.type, msg.operationType);
+      const effectiveUserId = msg.userId || selectedPlayer?.id;
 
-      // Check if message matches last operation (same player, recent timestamp)
-      const messageTime = new Date(msg.timestamp).getTime();
-      const timeDiff = Math.abs(messageTime - lastOp.timestamp);
+      if (isPurchaseNotification(msg)) {
+        const amount = parseFloat(details.amount || '0');
+        const currentCredits = parseFloat(details.credits || '0');
 
-      if (
-        msg.userId === lastOp.playerId &&
-        timeDiff < FIVE_SECONDS &&
-        !msg.operationType // Only set if not already set
-      ) {
-        // Extract amount from message text to verify it matches
-        const amountMatch = msg.text.match(/\$([\d,]+\.?\d*)/);
-        if (amountMatch) {
-          const messageAmount = parseFloat(amountMatch[1].replace(/,/g, ''));
-          // If amounts match (within small tolerance), it's likely the same operation
-          if (Math.abs(messageAmount - lastOp.amount) < 0.01) {
-            return {
-              ...msg,
-              operationType: lastOp.operation,
-            };
+        if (amount > 0 && typeof effectiveUserId === 'number') {
+          // Store the balance from BEFORE this purchase intent
+          const prevBal = lastBalanceByPlayer.get(effectiveUserId);
+          if (prevBal !== undefined) {
+            balanceBeforeIntent.set(msg.id, prevBal);
+          }
+        }
+
+        // If this is a $0 update following an actual purchase
+        if (amount === 0 && details.credits && typeof effectiveUserId === 'number') {
+          // Look back for the intent message
+          let intentMsgIndex = -1;
+          for (let j = processedMessages.length - 1; j >= 0; j--) {
+            const prevMsg = processedMessages[j];
+            const prevEffectiveUserId = prevMsg.userId || selectedPlayer?.id;
+
+            if (prevEffectiveUserId === effectiveUserId && isPurchaseNotification(prevMsg)) {
+              const prevDetails = parseTransactionMessage(prevMsg.text, prevMsg.type, prevMsg.operationType);
+              if (parseFloat(prevDetails.amount || '0') > 0) {
+                intentMsgIndex = j;
+                break;
+              }
+            }
+          }
+
+          if (intentMsgIndex !== -1) {
+            const intentMsg = processedMessages[intentMsgIndex];
+            const intentDetails = parseTransactionMessage(intentMsg.text, intentMsg.type, intentMsg.operationType);
+            const intentAmount = parseFloat(intentDetails.amount || '0');
+
+            // Find balance BEFORE the intent message to calculate bonus
+            const prevBalance = balanceBeforeIntent.get(intentMsg.id);
+
+            if (prevBalance !== undefined) {
+              const intentCredits = parseFloat(intentDetails.credits || '0');
+              let bonus = 0;
+
+              if (intentCredits > 0) {
+                // More robust: use the difference between the two purchase messages
+                bonus = currentCredits - intentCredits;
+              } else {
+                // Fallback: total increase minus purchase amount
+                bonus = currentCredits - prevBalance - intentAmount;
+              }
+
+              // Update the intent message with the data from the confirmation message
+              // use currentCredits (from $0 msg) and details (from $0 msg)
+              enhancements.set(intentMsg.id, {
+                bonusAmount: bonus > 1 ? bonus.toFixed(2) : undefined,
+                userBalance: currentCredits.toFixed(2),
+                winningBalance: details.winnings ? parseFloat(details.winnings).toFixed(2) : intentMsg.winningBalance,
+                paymentMethod: intentDetails.paymentMethod || details.paymentMethod
+              });
+
+              // Mark current ($0) message to be hidden
+              hiddenMessageIds.add(msg.id);
+            }
           }
         }
       }
 
-      return msg;
-    });
+      // Track balance for bonus calculation (use effectiveUserId)
+      if (typeof effectiveUserId === 'number') {
+        if (details.credits) {
+          lastBalanceByPlayer.set(effectiveUserId, parseFloat(details.credits));
+        } else if (msg.userBalance) {
+          lastBalanceByPlayer.set(effectiveUserId, parseFloat(String(msg.userBalance).replace(/[$,]/g, '')));
+        }
+      }
+
+      processedMessages.push(msg);
+    }
+
+    // Final Pass: Filter and apply enhancements
+    return messages
+      .filter(m => !hiddenMessageIds.has(m.id))
+      .map(m => enhancements.has(m.id) ? { ...m, ...enhancements.get(m.id) } : m);
   }, [wsMessages]);
 
   const groupedMessages = useMemo(() => groupMessagesByDate(visibleMessages), [visibleMessages]);
