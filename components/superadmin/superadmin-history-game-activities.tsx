@@ -1187,13 +1187,13 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
                 <div className="font-medium">{activity.game}</div>
             </TableCell>
             <TableCell>
-                {isAddUserAction ? (
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                        —
-                    </div>
-                ) : gameUsername ? (
+                {gameUsername ? (
                     <div className="font-medium text-gray-900 dark:text-gray-100">
                         {gameUsername}
+                    </div>
+                ) : isAddUserAction ? (
+                    <div className="font-medium text-gray-500 dark:text-gray-400 italic text-sm">
+                        New user added
                     </div>
                 ) : activity.status === 'cancelled' ? (
                     <Badge variant="default" className="text-xs">
@@ -1413,7 +1413,7 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
                         <span className="text-gray-600 dark:text-gray-400">Game:</span>
                         <span className="font-medium text-gray-900 dark:text-gray-100">{activity.game}</span>
                     </div>
-                    {!isAddUserAction && gameUsername && (
+                    {gameUsername && (
                         <div className="flex items-center justify-between">
                             <span className="text-gray-600 dark:text-gray-400">Game Username:</span>
                             <span className="font-medium text-gray-900 dark:text-gray-100">{gameUsername}</span>

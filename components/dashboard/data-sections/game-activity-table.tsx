@@ -185,7 +185,10 @@ function GameActivityRow({
     : null;
 
   const gameName = activity.game || 'Unknown Game';
-  const gameUsername = activity.game_username || null;
+  const gameUsername = activity.game_username || 
+    (activity.data && typeof activity.data === 'object' && activity.data !== null && typeof activity.data.username === 'string' && activity.data.username.trim()
+      ? activity.data.username.trim()
+      : null);
 
   // Check if this is an "Add user" action - should show hyphen for game username
   const isAddUserAction = useMemo(() => {
@@ -249,13 +252,13 @@ function GameActivityRow({
         <div className="font-medium">{gameName}</div>
       </TableCell>
       <TableCell>
-        {isAddUserAction ? (
-          <div className="font-medium text-gray-900 dark:text-gray-100">
-            —
-          </div>
-        ) : (gameUsername && gameUsername.toLowerCase() !== gameName.toLowerCase()) ? (
+        {gameUsername ? (
           <div className="font-medium text-gray-900 dark:text-gray-100">
             {gameUsername}
+          </div>
+        ) : isAddUserAction ? (
+          <div className="font-medium text-gray-500 dark:text-gray-400 italic text-sm">
+            New user added
           </div>
         ) : activity.status === 'cancelled' ? (
           <Badge variant="default" className="text-xs">
@@ -617,7 +620,7 @@ const GameActivityCard = memo(function GameActivityCard({
         </div>
 
         {/* Game Username */}
-        {!isAddUserAction && gameUsername && gameUsername.toLowerCase() !== (activity.game || '').toLowerCase() && (
+        {gameUsername && (
           <div className="flex items-center gap-2">
             <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

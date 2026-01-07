@@ -876,11 +876,7 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
         <div className="font-medium">{activity.game}</div>
       </TableCell>
       <TableCell>
-        {isAddUserAction ? (
-          <span className="text-gray-500 dark:text-gray-400 italic text-sm">New user added</span>
-        ) : (
-          <div className="font-medium">{gameUsername || '—'}</div>
-        )}
+        <div className="font-medium">{gameUsername || (isAddUserAction ? 'New user added' : '—')}</div>
       </TableCell>
       <TableCell>
         <div className="space-y-1">
@@ -1058,7 +1054,7 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{activity.game}</span>
       </div>
 
-      {!isAddUserAction && gameUsername && (
+      {gameUsername && (
         <div className="text-sm">
           <span className="text-gray-500 dark:text-gray-400">Game Username:</span>{' '}
           <span className="font-medium text-gray-900 dark:text-gray-100">{gameUsername}</span>
