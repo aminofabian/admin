@@ -400,11 +400,11 @@ export const formatTransactionMessage = (
   const formattedAmount = amount ? `$${amount}` : '$0';
 
   // Extract credits - prioritize: message object (most reliable) > parsed from text > fallback to '0'
-  let credits = message.userBalance ? String(message.userBalance).replace(/[$,]/g, '') : details.credits;
+  const credits = message.userBalance ? String(message.userBalance).replace(/[$,]/g, '') : details.credits;
   const formattedCredits = credits || '0';
 
   // Extract winnings - prioritize: message object (most reliable) > parsed from text > fallback to '0'
-  let winnings = message.winningBalance ? String(message.winningBalance).replace(/[$,]/g, '') : details.winnings;
+  const winnings = message.winningBalance ? String(message.winningBalance).replace(/[$,]/g, '') : details.winnings;
   const formattedWinnings = winnings || '0';
 
   const gameName = details.gameName || '';

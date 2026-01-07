@@ -428,7 +428,7 @@ export function ChatComponent() {
     return messages
       .filter(m => !hiddenMessageIds.has(m.id))
       .map(m => enhancements.has(m.id) ? { ...m, ...enhancements.get(m.id) } : m);
-  }, [wsMessages]);
+  }, [wsMessages, selectedPlayer?.id]);
 
   const groupedMessages = useMemo(() => groupMessagesByDate(visibleMessages), [visibleMessages]);
 

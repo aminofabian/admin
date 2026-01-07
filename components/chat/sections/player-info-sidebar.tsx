@@ -503,7 +503,6 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                     // Extract additional data from new structure
                     const activityData = activity.data || {};
                     const gameUsername = activity.game_username || activityData.username;
-                    const gameCode = activity.game_code || '';
 
                     return (
                       <div
