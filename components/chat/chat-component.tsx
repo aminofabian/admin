@@ -187,6 +187,7 @@ export function ChatComponent() {
     fetchAllPlayers,
     loadMorePlayers,
     hasMorePlayers,
+    refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
     markChatAsReadDebounced,
@@ -222,10 +223,21 @@ export function ChatComponent() {
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
     adminId: adminUserId,
     enabled: !!selectedPlayer && hasValidAdminUser,
-    onMessageReceived: useCallback(async () => {
-      // No need to refresh chat list - websocket updates handle this in real-time
-      // Only update chat list if needed for unread counts (handled by chat list websocket)
-    }, []),
+    onMessageReceived: useCallback(async (message: ChatMessage) => {
+      // 🔄 Refresh the chat list from the API to get latest unread counts and sorting
+      // This ensures the sidebar is always in sync with the backend
+      refreshActiveChats();
+
+      // ⚡ Update the local state immediately for the specific player for instant UI feedback
+      if (message.userId) {
+        updateChatLastMessage(
+          message.userId,
+          selectedPlayer?.id || '',
+          message.text,
+          message.timestamp
+        );
+      }
+    }, [refreshActiveChats, updateChatLastMessage, selectedPlayer?.id]),
     onBalanceUpdated: useCallback((data: { playerId: number; balance: string; winningBalance: string }) => {
       if (!IS_PROD) {
         console.log('💰 [Chat Component] Balance updated via WebSocket callback:', {
