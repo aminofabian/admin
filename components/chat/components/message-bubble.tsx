@@ -58,6 +58,14 @@ export const MessageBubble = memo(function MessageBubble({
       operationType: message.operationType,
     });
 
+    // Identify the color class for the text
+    let textColorClass = 'text-indigo-600 dark:text-indigo-400';
+    if (details.type === 'recharge' || details.type === 'credit_purchase') {
+      textColorClass = 'text-green-600 dark:text-green-400';
+    } else if (details.type === 'redeem' || details.type === 'cashout') {
+      textColorClass = 'text-red-600 dark:text-red-400';
+    }
+
     // Convert line breaks to <br> tags for HTML rendering
     const formattedText = formattedMessage
       .replace(/\n/g, '<br />')
@@ -71,10 +79,7 @@ export const MessageBubble = memo(function MessageBubble({
               details.type ? 'bg-indigo-500/10 border-indigo-500/30' : ''
             }`}>
             <div
-              className={`text-center text-[13px] md:text-sm leading-relaxed break-words space-y-1 ${(isPurchase || isRecharge || isRedeem || isCashout || details.type)
-                ? 'text-foreground [&_b]:not-italic [&_b]:font-bold'
-                : 'text-foreground/90 italic [&_b]:not-italic [&_b]:font-bold'
-                }`}
+              className={`text-[13px] md:text-sm leading-relaxed break-words space-y-1 ${textColorClass} [&_b]:not-italic [&_b]:font-bold`}
               dangerouslySetInnerHTML={{ __html: formattedText }}
             />
 

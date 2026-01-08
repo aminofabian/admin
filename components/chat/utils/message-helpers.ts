@@ -404,7 +404,9 @@ export const parseTransactionMessage = (
 };
 
 /**
- * Formats a transaction message according to the specified format
+ * Formats a transaction message according to the specified format.
+ * Now simplified to show the message as it appears from the source,
+ * only applying color to bolded elements.
  */
 export const formatTransactionMessage = (
   message: {
@@ -417,11 +419,9 @@ export const formatTransactionMessage = (
     paymentMethod?: string | null;
   }
 ): string => {
-  const details = parseTransactionMessage(message.text, message.type, message.operationType);
+  if (!message.text) return '';
 
-  // Allow overriding details with explicitly passed values (for message merging/bonus calculation)
-  if (message.bonusAmount) details.bonusAmount = message.bonusAmount;
-  if (message.paymentMethod) details.paymentMethod = message.paymentMethod;
+  const details = parseTransactionMessage(message.text, message.type, message.operationType);
 
   // Identify the color based on transaction type
   // Green: Recharge, Purchase
@@ -434,71 +434,13 @@ export const formatTransactionMessage = (
     colorClass = 'text-red-600 dark:text-red-400';
   }
 
-  // Use parsed values, or try to extract from original text if parsing failed
-  let amount = details.amount;
-  if (!amount) {
-    // Try to extract amount from original text
-    const amountMatch = message.text.match(/\$?([\d,]+\.?\d*)/);
-    amount = amountMatch ? amountMatch[1].replace(/,/g, '') : '0';
-  }
-  const formattedAmount = amount ? `$${amount}` : '$0';
-
-  // Extract credits - prioritize: message object (most reliable) > parsed from text > fallback to '0'
-  const credits = message.userBalance ? String(message.userBalance).replace(/[$,]/g, '') : details.credits;
-  const formattedCredits = credits || '0';
-
-  // Extract winnings - prioritize: message object (most reliable) > parsed from text > fallback to '0'
-  const winnings = message.winningBalance ? String(message.winningBalance).replace(/[$,]/g, '') : details.winnings;
-  const formattedWinnings = winnings || '0';
-
-  const gameName = details.gameName || '';
-
   const boldClass = `text-[0.92em] font-bold ${colorClass}`;
 
-  let formattedText = '';
-
-  switch (details.type) {
-    case 'credit_purchase':
-      const bonus_purchase = details.bonusAmount ? ` with <b class="${boldClass}">$${details.bonusAmount}</b> bonus` : '';
-      const payment_purchase = details.paymentMethod ? ` via <b class="${boldClass}">${details.paymentMethod}</b>` : '';
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> purchased${payment_purchase}${bonus_purchase}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
-      break;
-    case 'cashout':
-      const payment_cashout = details.paymentMethod ? ` via <b class="${boldClass}">${details.paymentMethod}</b>` : '';
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> cashed out${payment_cashout}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
-      break;
-    case 'credit_added':
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> added to your credit balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
-      break;
-    case 'credit_deducted':
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> deducted from your credit balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
-      break;
-    case 'winning_added':
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> added to your winning balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
-      break;
-    case 'winning_deducted':
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> deducted from your winning balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
-      break;
-    case 'recharge':
-      const bonus_recharge = details.bonusAmount ? ` with <b class="${boldClass}">$${details.bonusAmount}</b> bonus` : '';
-      const recharge_target = gameName ? ` to <b class="${boldClass}">${gameName}</b>` : '';
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> recharged${recharge_target}${bonus_recharge}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
-      break;
-    case 'redeem':
-      const redeem_source = gameName ? ` from <b class="${boldClass}">${gameName}</b>` : '';
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> redeemed${redeem_source}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
-      break;
-    default:
-      // If we couldn't parse it as a specific type, but it is a transaction (has balances),
-      // we still apply the "indigo" styling to amounts if it has the Credits/Winnings pattern
-      if (message.text.includes('Credits:') || message.text.includes('Winnings:')) {
-        return message.text
-          .replace(/<b>(.*?)<\/b>/g, `<b class="${boldClass}">$1</b>`)
-          // Ensure Credits/Winnings labels themselves are NOT bold if they were bold in source
-          .replace(/<b>(Credits:|Winnings:)<\/b>/gi, '$1');
-      }
-      return message.text;
-  }
-
-  return formattedText;
+  // Just return the original text but apply the transaction-specific color 
+  // to any bolded elements (which usually contain the amounts/balances)
+  return message.text
+    .replace(/<b>(.*?)<\/b>/g, `<b class="${boldClass}">$1</b>`)
+    // Remove bold from labels if they were bolded in source to keep it clean,
+    // as requested to "remove formatting" while keeping color on values
+    .replace(/<b>(Credits:|Winnings:)<\/b>/gi, '$1');
 };
