@@ -303,9 +303,9 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
 
             {/* Notification Dropdown Panel */}
             {isNotificationOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-card border border-border rounded-lg shadow-xl z-50 max-h-[80vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-zinc-950 border border-border rounded-lg shadow-xl z-50 max-h-[80vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+                <div className="flex items-center justify-between p-4 border-b border-border bg-muted/50">
                   <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
                   <button
                     onClick={() => setIsNotificationOpen(false)}
@@ -460,7 +460,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
 
                 {/* Footer */}
                 {totalNotificationCount > 0 && (
-                  <div className="p-3 border-t border-border bg-muted/30">
+                  <div className="p-3 border-t border-border bg-muted/50">
                     <Link
                       href="/dashboard"
                       onClick={() => setIsNotificationOpen(false)}
