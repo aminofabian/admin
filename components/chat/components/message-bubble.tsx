@@ -58,14 +58,6 @@ export const MessageBubble = memo(function MessageBubble({
       operationType: message.operationType,
     });
 
-    // Identify the color class for the text
-    let textColorClass = 'text-indigo-600 dark:text-indigo-400';
-    if (details.type === 'recharge' || details.type === 'credit_purchase') {
-      textColorClass = 'text-green-600 dark:text-green-400';
-    } else if (details.type === 'redeem' || details.type === 'cashout') {
-      textColorClass = 'text-red-600 dark:text-red-400';
-    }
-
     // Convert line breaks to <br> tags for HTML rendering
     const formattedText = formattedMessage
       .replace(/\n/g, '<br />')
@@ -75,11 +67,10 @@ export const MessageBubble = memo(function MessageBubble({
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-200 my-4">
         <div className="max-w-[85%] md:max-w-[75%]">
           <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${details.type === 'recharge' || details.type === 'credit_purchase' ? 'bg-green-500/10 border-green-500/30' :
-            details.type === 'redeem' || details.type === 'cashout' ? 'bg-red-500/10 border-red-500/30' :
-              details.type ? 'bg-indigo-500/10 border-indigo-500/30' : ''
+            details.type ? 'bg-purple-500/10 border-purple-500/30' : ''
             }`}>
             <div
-              className={`text-[13px] md:text-sm leading-relaxed break-words space-y-1 ${textColorClass} [&_b]:not-italic [&_b]:font-bold`}
+              className={`text-center text-[13px] md:text-sm leading-relaxed break-words space-y-1 text-foreground [&_b]:not-italic [&_b]:font-bold`}
               dangerouslySetInnerHTML={{ __html: formattedText }}
             />
 

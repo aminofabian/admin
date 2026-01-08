@@ -425,13 +425,10 @@ export const formatTransactionMessage = (
 
   // Identify the color based on transaction type
   // Green: Recharge, Purchase
-  // Red: Redeem, Cashout
-  // Indigo: Manual additions/deductions
-  let colorClass = 'text-indigo-600 dark:text-indigo-400';
+  // Purple: All other transactions (Redeem, Cashout, Manual)
+  let colorClass = 'text-purple-600 dark:text-purple-400';
   if (details.type === 'recharge' || details.type === 'credit_purchase') {
     colorClass = 'text-green-600 dark:text-green-400';
-  } else if (details.type === 'redeem' || details.type === 'cashout') {
-    colorClass = 'text-red-600 dark:text-red-400';
   }
 
   const boldClass = `text-[0.92em] font-bold ${colorClass}`;
