@@ -783,8 +783,10 @@ export function SuperAdminHistoryTransactions() {
                                             const username = transaction.user_username || `User ${transaction.id}`;
                                             const transactionType = transaction.type || '—';
                                             const isPurchase = transactionType === 'purchase';
-                                            const typeVariant = isPurchase ? 'success' : 'danger';
-                                            const amountColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                                            const isTransfer = transactionType?.toLowerCase().includes('transfer') || transaction.payment_method?.toLowerCase().includes('transfer');
+                                            
+                                            const typeVariant = isPurchase ? 'success' : (isTransfer ? 'default' : 'danger');
+                                            const amountColorClass = isPurchase || isTransfer ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
                                             
                                             const bonusAmount = parseFloat(transaction.bonus_amount || '0');
                                             const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;
@@ -864,7 +866,10 @@ export function SuperAdminHistoryTransactions() {
                                                         })()}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge variant={typeVariant} className="text-xs uppercase">
+                                                        <Badge 
+                                                            variant={typeVariant} 
+                                                            className={`text-xs uppercase ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
+                                                        >
                                                             {transactionType}
                                                         </Badge>
                                                     </TableCell>
@@ -955,8 +960,10 @@ export function SuperAdminHistoryTransactions() {
                                     const username = transaction.user_username || `User ${transaction.id}`;
                                     const transactionType = transaction.type || '—';
                                     const isPurchase = transactionType === 'purchase';
-                                    const typeVariant = isPurchase ? 'success' : 'danger';
-                                    const amountColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                                    const isTransfer = transactionType?.toLowerCase().includes('transfer') || transaction.payment_method?.toLowerCase().includes('transfer');
+                                    
+                                    const typeVariant = isPurchase ? 'success' : (isTransfer ? 'default' : 'danger');
+                                    const amountColorClass = isPurchase || isTransfer ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
                                     
                                     const bonusAmount = parseFloat(transaction.bonus_amount || '0');
                                     const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;
@@ -984,7 +991,10 @@ export function SuperAdminHistoryTransactions() {
                                                                     {transaction.user_email || '—'}
                                                                 </p>
                                                             </div>
-                                                            <Badge variant={typeVariant} className="text-[10px] px-2 py-0.5 uppercase shrink-0">
+                                                            <Badge 
+                                                                variant={typeVariant} 
+                                                                className={`text-[10px] px-2 py-0.5 uppercase shrink-0 ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
+                                                            >
                                                                 {transactionType}
                                                             </Badge>
                                                         </div>

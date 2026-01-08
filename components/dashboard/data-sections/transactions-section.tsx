@@ -1013,10 +1013,27 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
   const router = useRouter();
   const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
-  const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
+  const isTransfer = useMemo(() => {
+    const type = (transaction.type || '').toLowerCase();
+    const method = (transaction.payment_method || '').toLowerCase();
+    return type.includes('transfer') || method.includes('transfer');
+  }, [transaction.type, transaction.payment_method]);
+  
+  const typeVariant = useMemo(() => {
+    if (isTransfer) return 'default'; // We'll use custom indigo classes
+    return isPurchase ? 'success' : 'danger';
+  }, [isPurchase, isTransfer]);
+
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
-  const amountColorClass = useMemo(() => (isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase]);
-  const bonusColorClass = useMemo(() => (isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase]);
+  const amountColorClass = useMemo(() => {
+    if (isTransfer) return 'text-green-600 dark:text-green-400';
+    return isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+  }, [isPurchase, isTransfer]);
+
+  const bonusColorClass = useMemo(() => {
+    if (isTransfer) return 'text-green-600 dark:text-green-400';
+    return isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+  }, [isPurchase, isTransfer]);
 
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
@@ -1122,7 +1139,10 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </div>
       </TableCell>
       <TableCell>
-        <Badge variant={typeVariant} className="text-xs uppercase">
+        <Badge 
+          variant={typeVariant} 
+          className={`text-xs uppercase ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
+        >
           {transaction.type}
         </Badge>
       </TableCell>
@@ -1192,9 +1212,10 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
   const router = useRouter();
   const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
-  const typeVariant = useMemo(() => isPurchase ? 'success' : 'danger', [isPurchase]);
+  const isTransfer = useMemo(() => transaction.type?.toLowerCase().includes('transfer') || transaction.payment_method?.toLowerCase().includes('transfer'), [transaction.type, transaction.payment_method]);
+  const typeVariant = useMemo(() => isPurchase ? 'success' : (isTransfer ? 'default' : 'danger'), [isPurchase, isTransfer]);
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
-  const amountColorClass = useMemo(() => (isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase]);
+  const amountColorClass = useMemo(() => (isPurchase || isTransfer ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase, isTransfer]);
 
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
@@ -1246,7 +1267,10 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
                   {transaction.user_email}
                 </p>
               </div>
-              <Badge variant={typeVariant} className="text-[10px] px-2 py-0.5 uppercase shrink-0">
+              <Badge 
+                variant={typeVariant} 
+                className={`text-[10px] px-2 py-0.5 uppercase shrink-0 ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
+              >
                 {transaction.type}
               </Badge>
             </div>
