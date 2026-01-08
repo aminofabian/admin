@@ -366,10 +366,12 @@ export const parseTransactionMessage = (
   // Determine transaction type based on text patterns (order matters - more specific first)
 
   // Rule 1: Always check for specific automated transaction keywords first
-  if (cleanText.includes('successfully purchased') || (cleanText.includes('purchased') && cleanText.includes('credit'))) {
-    result.type = 'credit_purchase';
+  if (cleanText.includes('credited by admin')) {
+    result.type = 'credit_added';
   } else if (cleanText.includes('successfully cashed out') || cleanText.includes('cashed out')) {
-    result.type = 'cashout';
+    result.type = 'credit_deducted';
+  } else if (cleanText.includes('successfully purchased') || (cleanText.includes('purchased') && cleanText.includes('credit'))) {
+    result.type = 'credit_purchase';
   } else if (cleanText.includes('successfully recharged') || cleanText.includes('recharged')) {
     result.type = 'recharge';
   } else if (cleanText.includes('successfully redeemed') || cleanText.includes('redeemed')) {
@@ -458,21 +460,17 @@ export const formatTransactionMessage = (
   switch (details.type) {
     case 'credit_purchase':
       const bonus_purchase = details.bonusAmount ? ` with <b class="${boldClass}">$${details.bonusAmount}</b> bonus` : '';
-      const payment_purchase = details.paymentMethod ? ` via ${details.paymentMethod}` : '';
-      // User-friendly wording: "added to your credit balance" (Green)
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> added to your credit balance${payment_purchase}${bonus_purchase}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
+      const payment_purchase = details.paymentMethod ? ` via <b class="${boldClass}">${details.paymentMethod}</b>` : '';
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> purchased${payment_purchase}${bonus_purchase}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'cashout':
-      const payment_cashout = details.paymentMethod ? ` via ${details.paymentMethod}` : '';
-      // User-friendly wording: "deducted from your credit balance" (Red)
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> deducted from your credit balance${payment_cashout}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
+      const payment_cashout = details.paymentMethod ? ` via <b class="${boldClass}">${details.paymentMethod}</b>` : '';
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> cashed out${payment_cashout}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'credit_added':
-      // Manual Addition (Indigo)
       formattedText = `<b class="${boldClass}">${formattedAmount}</b> added to your credit balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'credit_deducted':
-      // Manual Deduction (Indigo)
       formattedText = `<b class="${boldClass}">${formattedAmount}</b> deducted from your credit balance.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'winning_added':
@@ -483,10 +481,12 @@ export const formatTransactionMessage = (
       break;
     case 'recharge':
       const bonus_recharge = details.bonusAmount ? ` with <b class="${boldClass}">$${details.bonusAmount}</b> bonus` : '';
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> recharged${gameName ? ` to <b class="${boldClass}">${gameName}</b>` : ''}${bonus_recharge}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
+      const recharge_target = gameName ? ` to <b class="${boldClass}">${gameName}</b>` : '';
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> recharged${recharge_target}${bonus_recharge}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     case 'redeem':
-      formattedText = `<b class="${boldClass}">${formattedAmount}</b> redeemed${gameName ? ` from <b class="${boldClass}">${gameName}</b>` : ''}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
+      const redeem_source = gameName ? ` from <b class="${boldClass}">${gameName}</b>` : '';
+      formattedText = `<b class="${boldClass}">${formattedAmount}</b> redeemed${redeem_source}.<br />Credits: <b class="${boldClass}">$${formattedCredits}</b><br />Winnings: <b class="${boldClass}">$${formattedWinnings}</b>`;
       break;
     default:
       // If we couldn't parse it as a specific type, but it is a transaction (has balances),
