@@ -421,6 +421,9 @@ export const formatTransactionMessage = (
 ): string => {
   if (!message.text) return '';
 
+  // Remove automated headings like "Recharge" or "Redeem" as requested
+  const textWithoutHeading = removeAutomatedMessageHeading(message.text);
+
   const details = parseTransactionMessage(message.text, message.type, message.operationType);
 
   // Identify the color based on transaction type
@@ -435,7 +438,7 @@ export const formatTransactionMessage = (
 
   // Just return the original text but apply the transaction-specific color 
   // to any bolded elements (which usually contain the amounts/balances)
-  return message.text
+  return textWithoutHeading
     .replace(/<b>(.*?)<\/b>/g, `<b class="${boldClass}">$1</b>`)
     // Remove bold from labels if they were bolded in source to keep it clean,
     // as requested to "remove formatting" while keeping color on values
