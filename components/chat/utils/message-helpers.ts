@@ -117,11 +117,12 @@ export const removeAutomatedMessageHeading = (text: string): string => {
 
   // Remove HTML bold heading tags at the start (e.g., <b>Recharge</b> or <b>Redeem</b>)
   // This handles cases like: <b>Recharge</b><br />You successfully recharged...
+  // We only remove it if it matches known keywords or is followed by a line break AND doesn't look like an amount
   cleanedText = cleanedText.replace(/^<b>(recharge|redeem|balance\s+updated|transaction|system|auto|notification)<\/b>\s*(<br\s*\/?>)?\s*/i, '');
 
-  // Remove standalone bold tags at the start (any bold tag on its own line)
-  // This handles cases like: <b>Some Heading</b><br />Content...
-  cleanedText = cleanedText.replace(/^<b>[^<]*<\/b>\s*(<br\s*\/?>)?\s*/i, '');
+  // Remove standalone bold tags at the start ONLY if followed by a line break
+  // This ensures we don't remove <b>$5</b> at the start of a sentence
+  cleanedText = cleanedText.replace(/^<b>[^<]+<\/b>\s*(<br\s*\/?>)+\s*/i, '');
 
   // Remove plain text headings at the start of a line (case-insensitive, multiline)
   // This handles cases like: Recharge\nYou successfully recharged...
