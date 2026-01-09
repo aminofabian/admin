@@ -92,6 +92,24 @@ export const formatDate = (dateString: string | null | undefined): string => {
   }
 };
 
+export const formatPaymentMethod = (method: string | null | undefined): string => {
+  if (!method || method.trim() === '') {
+    return '—';
+  }
+
+  // Handle common methods that should be fully capitalized
+  const upperCaseMethods = ['manual', 'bot', 'crypto'];
+  if (upperCaseMethods.includes(method.toLowerCase())) {
+    return method.charAt(0).toUpperCase() + method.slice(1).toLowerCase();
+  }
+
+  // Generic formatting: replace underscores with spaces and capitalize each word
+  return method
+    .split(/[_\s]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export const formatPercentage = (value: string | number): string => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   return `${numValue.toFixed(2)}%`;

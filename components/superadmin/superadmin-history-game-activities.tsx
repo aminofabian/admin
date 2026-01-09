@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout';
 import { Badge, Button, Card, CardContent, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
 import { gamesApi, paymentMethodsApi, staffsApi, managersApi, agentsApi } from '@/lib/api';
 import type { TransactionQueue, Game, Company, Staff, Manager, Agent, PaymentMethod } from '@/types';
@@ -293,7 +293,7 @@ export function SuperAdminHistoryGameActivities() {
 
                 methods.forEach((method: PaymentMethod) => {
                     if (method?.payment_method) {
-                        uniqueMethods.set(method.payment_method, method.payment_method_display || method.payment_method);
+                        uniqueMethods.set(method.payment_method, method.payment_method_display || formatPaymentMethod(method.payment_method));
                     }
                 });
 

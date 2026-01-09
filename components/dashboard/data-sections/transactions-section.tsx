@@ -7,7 +7,7 @@ import {
 } from '@/components/dashboard/layout';
 import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useToast, Skeleton } from '@/components/ui';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
 import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
@@ -440,7 +440,7 @@ export function TransactionsSection() {
             return;
           }
 
-          const label = method.payment_method_display?.trim() || value;
+          const label = method.payment_method_display?.trim() || formatPaymentMethod(value);
           uniqueMethods.set(value, label);
         });
 
@@ -1176,7 +1176,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
           variant={transaction.payment_method?.toLowerCase() === 'manual' ? 'warning' : 'info'}
           className="text-xs"
         >
-          {transaction.payment_method}
+          {formatPaymentMethod(transaction.payment_method)}
         </Badge>
       </TableCell>
       <TableCell>
@@ -1282,7 +1282,7 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
                 variant={transaction.payment_method?.toLowerCase() === 'manual' ? 'warning' : 'info'}
                 className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0"
               >
-                {transaction.payment_method}
+                {formatPaymentMethod(transaction.payment_method)}
               </Badge>
             </div>
           </div>

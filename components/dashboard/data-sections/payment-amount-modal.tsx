@@ -5,6 +5,7 @@ import { Drawer } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { PaymentMethod, PaymentMethodAction } from '@/types';
+import { formatPaymentMethod } from '@/lib/utils/formatters';
 
 type AmountScope = 'admin' | 'superadmin';
 
@@ -238,7 +239,7 @@ export function PaymentAmountModal({
             </svg>
             <div>
               <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                {paymentMethod.payment_method_display} - {actionLabel}{' '}
+                {formatPaymentMethod(paymentMethod.payment_method_display || paymentMethod.payment_method)} - {actionLabel}{' '}
                 {scope === 'superadmin' ? 'Superadmin Limits' : 'Amount Limits'}
               </p>
               {scope === 'superadmin' ? (

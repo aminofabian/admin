@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/toast';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Skeleton } from '@/components/ui';
 import { PaymentAmountModal } from '@/components/dashboard/data-sections/payment-amount-modal';
 import type { PaymentMethod, PaymentMethodAction } from '@/types';
+import { formatPaymentMethod } from '@/lib/utils/formatters';
 
 // Get payment method initials
 const getPaymentMethodInitials = (paymentMethodDisplay: string): string => {
@@ -303,11 +304,11 @@ export function ManagerPaymentSettingsSection() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-sm">
-                          {getPaymentMethodInitials(method.payment_method_display)}
+                          {getPaymentMethodInitials(method.payment_method_display || formatPaymentMethod(method.payment_method))}
                         </div>
                         <div>
                           <div className="font-medium text-gray-900 dark:text-gray-100">
-                            {method.payment_method_display}
+                            {formatPaymentMethod(method.payment_method_display || method.payment_method)}
                           </div>
                         </div>
                       </div>
@@ -428,11 +429,11 @@ export function ManagerPaymentSettingsSection() {
                     {/* Left: Icon + Info */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-md">
-                        {getPaymentMethodInitials(method.payment_method_display)}
+                        {getPaymentMethodInitials(method.payment_method_display || formatPaymentMethod(method.payment_method))}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-gray-900 dark:text-gray-100 leading-tight truncate">
-                          {method.payment_method_display}
+                          {formatPaymentMethod(method.payment_method_display || method.payment_method)}
                         </h3>
                       </div>
                     </div>

@@ -21,6 +21,7 @@ import { EmptyState, LoadingState, ErrorState } from '@/components/features';
 import { paymentMethodsApi } from '@/lib/api';
 import type { Company, PaymentMethod, PaymentMethodAction } from '@/types';
 import { PaymentAmountModal } from '@/components/dashboard/data-sections/payment-amount-modal';
+import { formatPaymentMethod } from '@/lib/utils/formatters';
 
 type SortField = 'name' | 'type' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -809,7 +810,7 @@ export function SuperAdminPaymentSettings() {
                                                                 </svg>
                                                             </div>
                                                             <div>
-                                                                <div>{method.payment_method_display}</div>
+                                                                <div>{formatPaymentMethod(method.payment_method_display || method.payment_method)}</div>
                                                                 <div className="text-xs text-muted-foreground">{method.payment_method}</div>
                                                             </div>
                                                         </div>
@@ -941,7 +942,7 @@ export function SuperAdminPaymentSettings() {
                                                         </svg>
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className="font-semibold text-base leading-tight mb-1">{method.payment_method_display}</h3>
+                                                        <h3 className="font-semibold text-base leading-tight mb-1">{formatPaymentMethod(method.payment_method_display || method.payment_method)}</h3>
                                                         <p className="text-xs text-muted-foreground mb-2">{method.payment_method}</p>
                                                         <div className="flex flex-wrap items-center gap-2">
                                                             <Badge variant="info" className="text-xs px-2 py-0.5">{method.method_type || 'N/A'}</Badge>

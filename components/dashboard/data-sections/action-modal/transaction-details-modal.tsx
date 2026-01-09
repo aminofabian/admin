@@ -3,7 +3,7 @@
 import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
 import type { Transaction } from '@/types';
 import { PROJECT_DOMAIN } from '@/lib/constants/api';
 import { playersApi } from '@/lib/api';
@@ -201,6 +201,9 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
             <DetailsRow>
               <DetailsField label="User" value={transaction.user_username} />
               <DetailsField label="Email" value={transaction.user_email} />
+            </DetailsRow>
+            <DetailsRow>
+              <DetailsField label="Payment Method" value={formatPaymentMethod(transaction.payment_method)} />
             </DetailsRow>
             {/* <DetailsRow>
               <DetailsField label="Operator" value={transaction.operator || '—'} />

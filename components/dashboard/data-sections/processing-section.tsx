@@ -30,7 +30,7 @@ import {
   useTransactionQueuesStore 
 } from '@/stores';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
@@ -384,7 +384,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
     <TableCell>
       <div className="space-y-1">
         <Badge variant="info" className="text-xs">
-          {paymentMethod}
+          {formatPaymentMethod(paymentMethod)}
         </Badge>
         {transaction.payment_details && typeof transaction.payment_details === 'object' && Object.keys(transaction.payment_details).length > 0 && (
           <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
@@ -1178,7 +1178,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                             {transaction.status}
                           </Badge>
                           <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
-                            {transaction.payment_method ?? '—'}
+                            {formatPaymentMethod(transaction.payment_method)}
                           </Badge>
                         </div>
                         {transaction.payment_details && typeof transaction.payment_details === 'object' && Object.keys(transaction.payment_details).length > 0 && (

@@ -5,7 +5,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { DashboardSectionContainer } from '@/components/dashboard/layout';
 import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination, Button } from '@/components/ui';
 import { useTransactionsStore } from '@/stores';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
@@ -318,7 +318,7 @@ export function SuperAdminHistoryTransactions() {
                         return;
                     }
 
-                    const label = method.payment_method_display?.trim() || value;
+                    const label = method.payment_method_display?.trim() || formatPaymentMethod(value);
                     uniqueMethods.set(value, label);
                 });
 
@@ -921,7 +921,7 @@ export function SuperAdminHistoryTransactions() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge variant="info" className="text-xs">
-                                                            {transaction.payment_method || '—'}
+                                                            {formatPaymentMethod(transaction.payment_method)}
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>
@@ -1010,7 +1010,7 @@ export function SuperAdminHistoryTransactions() {
                                                                 {transaction.status}
                                                             </Badge>
                                                             <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
-                                                                {transaction.payment_method || '—'}
+                                                                {formatPaymentMethod(transaction.payment_method)}
                                                             </Badge>
                                                         </div>
                                                     </div>

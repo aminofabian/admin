@@ -2,6 +2,7 @@
 
 import { Button, Select } from '@/components/ui';
 import { useTheme } from '@/providers/theme-provider';
+import { formatPaymentMethod } from '@/lib/utils/formatters';
 
 export interface HistoryTransactionsFiltersState {
   agent: string;
@@ -199,7 +200,7 @@ export function HistoryTransactionsFilters({
                 { value: '', label: 'All Methods' },
                 ...(paymentMethodOptions || []),
                 ...(filters.payment_method && paymentMethodOptions && !paymentMethodOptions.some((option) => option.value === filters.payment_method)
-                  ? [{ value: filters.payment_method, label: filters.payment_method }]
+                  ? [{ value: filters.payment_method, label: formatPaymentMethod(filters.payment_method) }]
                   : []),
               ]}
               placeholder="All Methods"

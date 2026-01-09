@@ -3,7 +3,7 @@
 import { useState, memo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, ConfirmModal, useToast } from '@/components/ui';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, formatPaymentMethod } from '@/lib/utils/formatters';
 import { usePlayerPurchases } from '@/hooks/use-player-purchases';
 import { usePlayerCashouts } from '@/hooks/use-player-cashouts';
 import { usePlayerGameActivities } from '@/hooks/use-player-game-activities';
@@ -340,7 +340,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                         </div>
                         {/* Payment method row */}
                         <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                          <span>{purchase.payment_method || '—'}</span>
+                          <span>{formatPaymentMethod(purchase.payment_method)}</span>
                         </div>
                       </div>
                     );
@@ -430,7 +430,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                       </div>
                       {/* Payment method row */}
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                        <span>{cashout.payment_method || cashout.operator}</span>
+                        <span>{formatPaymentMethod(cashout.payment_method || cashout.operator)}</span>
                       </div>
                     </div>
                   ))
