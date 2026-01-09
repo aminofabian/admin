@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import type { Transaction, TransactionQueue } from '@/types';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, formatPaymentMethod } from '@/lib/utils/formatters';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 
 interface ActivityItem {
@@ -167,7 +167,7 @@ export function LiveActivityTicker({ maxItems = 5 }: LiveActivityTickerProps) {
     const unsubscribeQueue = subscribeToQueueUpdates((queue: TransactionQueue, isInitialLoad = false) => {
       if (isInitialLoad) return;
 
-      const activityType = queue.type?.replace(/_/g, ' ').toUpperCase() || 'GAME ACTIVITY';
+      const activityType = formatPaymentMethod(queue.type).toUpperCase() || 'GAME ACTIVITY';
       const userName = queue.user_username || 'Unknown User';
       const gameName = queue.game || 'Unknown Game';
       const amount = formatCurrency(queue.amount || '0');

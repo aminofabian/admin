@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
 import type { CreatePurchaseBonusRequest, PurchaseBonus } from '@/types';
+import { formatPaymentMethod } from '@/lib/utils/formatters';
 
 interface PurchaseBonusFormProps {
   onSubmit: (data: CreatePurchaseBonusRequest & { is_enabled?: boolean }) => Promise<void>;
@@ -163,7 +164,7 @@ export function PurchaseBonusForm({
               Payment Method
             </label>
             <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-              {formData.topup_method ? topupMethods.find(m => m.value === formData.topup_method)?.label || formData.topup_method.replace('_', ' ') : 'N/A'}
+              {formatPaymentMethod(formData.topup_method)}
             </div>
           </div>
         )}
@@ -209,7 +210,7 @@ export function PurchaseBonusForm({
               <option value="">Select payment method</option>
               {topupMethods.map((method) => (
                 <option key={method.value} value={method.value}>
-                  {method.label}
+                  {formatPaymentMethod(method.value)}
                 </option>
               ))}
             </select>

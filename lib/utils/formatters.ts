@@ -103,9 +103,9 @@ export const formatPaymentMethod = (method: string | null | undefined): string =
     return method.charAt(0).toUpperCase() + method.slice(1).toLowerCase();
   }
 
-  // Generic formatting: replace underscores with spaces and capitalize each word
+  // Generic formatting: replace underscores and hyphens with spaces and capitalize each word
   return method
-    .split(/[_\s]+/)
+    .split(/[_\-\s]+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 };

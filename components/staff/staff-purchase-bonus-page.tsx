@@ -13,7 +13,7 @@ import {
 } from '@/components/ui';
 import { ErrorState, EmptyState } from '@/components/features';
 import { Skeleton } from '@/components/ui';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, formatPaymentMethod } from '@/lib/utils/formatters';
 
 export function StaffPurchaseBonusPage() {
   const { 
@@ -139,22 +139,12 @@ export function StaffPurchaseBonusPage() {
               </TableHeader>
               <TableBody>
                 {purchaseBonuses?.results.map((bonus) => {
-                  // Format payment method name consistently
-                  const topupMethods = [
-                    { value: 'bitcoin', label: 'Bitcoin' },
-                    { value: 'creditcard', label: 'Credit Card' },
-                    { value: 'paypal', label: 'PayPal' },
-                    { value: 'bank_transfer', label: 'Bank Transfer' },
-                    { value: 'crypto', label: 'Cryptocurrency' },
-                    { value: 'e_wallet', label: 'E-Wallet' },
-                  ];
-                  const paymentMethodLabel = topupMethods.find(m => m.value === bonus.topup_method)?.label 
-                    || bonus.topup_method.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                  const paymentMethodLabel = formatPaymentMethod(bonus.topup_method);
                   
                   return (
                   <TableRow key={bonus.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <TableCell>
-                      <Badge variant="info" className="capitalize">
+                      <Badge variant="info">
                         {paymentMethodLabel}
                       </Badge>
                     </TableCell>
