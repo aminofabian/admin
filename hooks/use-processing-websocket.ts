@@ -5,6 +5,9 @@ import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { TransactionQueue, Transaction } from '@/types';
 
+// Production mode check
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 export interface ProcessingCounts {
   purchase_count?: number;
   cashout_count?: number;
@@ -515,6 +518,46 @@ export function useProcessingWebSocket({
       console.warn('⚠️ Cannot send message: WebSocket not connected');
     }
   }, []);
+
+  /**
+   * Heartbeat ping for online status - sent continuously from notification websocket
+   * Simple signal with no dependencies - just keeps the connection alive
+   */
+  useEffect(() => {
+    if (!isConnected || !wsUrlRef.current) {
+      return;
+    }
+
+    // Send heartbeat every 30 seconds
+    const HEARTBEAT_INTERVAL = 30000;
+    
+    // Send initial heartbeat immediately when connected
+    const heartbeatMessage = { type: 'ping' };
+    const initialSuccess = websocketManager.send(wsUrlRef.current, heartbeatMessage);
+    if (initialSuccess) {
+      !IS_PROD && console.log('💓 [Notification WS] Initial heartbeat ping sent');
+    }
+    
+    const heartbeatInterval = setInterval(() => {
+      if (!wsUrlRef.current) {
+        return;
+      }
+
+      // Check if websocket is still connected via manager
+      if (websocketManager.isConnected(wsUrlRef.current)) {
+        // Simple heartbeat signal - just a ping
+        const heartbeatMessage = { type: 'ping' };
+        const success = websocketManager.send(wsUrlRef.current, heartbeatMessage);
+        if (success) {
+          !IS_PROD && console.log('💓 [Notification WS] Heartbeat ping sent');
+        }
+      }
+    }, HEARTBEAT_INTERVAL);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+    };
+  }, [isConnected]);
 
   useEffect(() => {
     if (effectiveEnabled && isAuthenticated) {
