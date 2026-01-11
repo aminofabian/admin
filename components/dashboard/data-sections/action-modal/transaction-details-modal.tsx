@@ -205,9 +205,9 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
             <DetailsRow>
               <DetailsField label="Payment Method" value={formatPaymentMethod(transaction.payment_method)} />
             </DetailsRow>
-            {/* <DetailsRow>
+            <DetailsRow>
               <DetailsField label="Operator" value={transaction.operator || '—'} />
-            </DetailsRow> */}
+            </DetailsRow>
 
             {/* Action Buttons for Player */}
             <div className="pt-2 flex flex-col gap-2 sm:flex-row">
