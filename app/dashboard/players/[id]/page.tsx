@@ -1197,6 +1197,18 @@ export default function PlayerDetailPage() {
                   <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Phone</p>
                   <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.mobile_number || '—'}</p>
                 </div>
+                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
+                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Created Date</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                    {selectedPlayer.created ? formatDate(selectedPlayer.created) : '—'}
+                  </p>
+                </div>
+                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
+                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Created By</p>
+                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                    {selectedPlayer.created_by?.username || '—'}
+                  </p>
+                </div>
               </div>
             </section>
           </div>
