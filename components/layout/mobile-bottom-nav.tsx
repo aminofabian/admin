@@ -81,7 +81,7 @@ export function MobileBottomNav() {
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border">
       {/* Navigation items */}
       <div className="flex items-center justify-around px-2 py-2">
-        {NAV_ITEMS.filter(item => item.label !== 'Chat' || (user?.role !== USER_ROLES.SUPERADMIN && user?.role !== USER_ROLES.STAFF && user?.role !== USER_ROLES.AGENT)).map((item) => {
+        {NAV_ITEMS.filter(item => item.label !== 'Chat' || (user?.role !== USER_ROLES.SUPERADMIN && user?.role !== USER_ROLES.AGENT)).map((item) => {
           // For processing routes, check if pathname starts with the href
           const isActive = item.href === '/dashboard'
             ? pathname === item.href

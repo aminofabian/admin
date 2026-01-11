@@ -179,7 +179,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
             ),
             label: 'Chat',
             count: undefined,
-            hiddenRoles: [USER_ROLES.SUPERADMIN, USER_ROLES.STAFF, USER_ROLES.AGENT]
+            hiddenRoles: [USER_ROLES.SUPERADMIN, USER_ROLES.AGENT]
           },
         ]
           .filter((item) => {

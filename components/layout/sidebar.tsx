@@ -751,10 +751,9 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
       {/* Footer */}
       {!isCollapsed && (
         <div className="border-t border-border/50 p-6 space-y-3">
-          {/* Chat Link - Hidden for superadmin, agent, and staff */}
+          {/* Chat Link - Hidden for superadmin and agent */}
           {user?.role !== USER_ROLES.SUPERADMIN &&
-           user?.role !== USER_ROLES.AGENT &&
-           user?.role !== USER_ROLES.STAFF && (
+           user?.role !== USER_ROLES.AGENT && (
             <Link
               href="/dashboard/chat"
               onClick={onClose}
