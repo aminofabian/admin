@@ -521,43 +521,40 @@ export function useProcessingWebSocket({
 
   /**
    * Heartbeat ping for online status - sent continuously from notification websocket
-   * Simple signal with no dependencies - just keeps the connection alive
+   * Simple signal with no dependencies - just keeps sending pings every 30 seconds
+   * The websocket manager handles the case where connection is not established
    */
   useEffect(() => {
-    if (!isConnected || !wsUrlRef.current) {
+    // Only run heartbeat when user is authenticated and enabled
+    if (!effectiveEnabled || !isAuthenticated) {
       return;
     }
 
     // Send heartbeat every 30 seconds
     const HEARTBEAT_INTERVAL = 30000;
     
-    // Send initial heartbeat immediately when connected
-    const heartbeatMessage = { type: 'ping' };
-    const initialSuccess = websocketManager.send(wsUrlRef.current, heartbeatMessage);
-    if (initialSuccess) {
-      !IS_PROD && console.log('💓 [Notification WS] Initial heartbeat ping sent');
-    }
-    
-    const heartbeatInterval = setInterval(() => {
-      if (!wsUrlRef.current) {
-        return;
-      }
-
-      // Check if websocket is still connected via manager
-      if (websocketManager.isConnected(wsUrlRef.current)) {
-        // Simple heartbeat signal - just a ping
+    // Simple heartbeat signal - just a ping message
+    const sendHeartbeat = () => {
+      if (wsUrlRef.current) {
         const heartbeatMessage = { type: 'ping' };
-        const success = websocketManager.send(wsUrlRef.current, heartbeatMessage);
-        if (success) {
-          !IS_PROD && console.log('💓 [Notification WS] Heartbeat ping sent');
-        }
+        websocketManager.send(wsUrlRef.current, heartbeatMessage);
+        !IS_PROD && console.log('💓 [Notification WS] Heartbeat ping sent');
       }
-    }, HEARTBEAT_INTERVAL);
+    };
+
+    // Send initial heartbeat after a short delay to allow connection to establish
+    const initialDelay = setTimeout(() => {
+      sendHeartbeat();
+    }, 2000);
+    
+    // Then send heartbeat at regular intervals - no connection state checks
+    const heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
 
     return () => {
+      clearTimeout(initialDelay);
       clearInterval(heartbeatInterval);
     };
-  }, [isConnected]);
+  }, [effectiveEnabled, isAuthenticated]);
 
   useEffect(() => {
     if (effectiveEnabled && isAuthenticated) {
