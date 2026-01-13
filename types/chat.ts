@@ -8,6 +8,7 @@ export interface ChatUser {
   isOnline: boolean;
   lastMessage?: string;
   lastMessageTime?: string;
+  playerLastSeenAt?: string; // Timestamp of when player was last seen online
   balance?: string;
   winningBalance?: string;
   gamesPlayed?: number;

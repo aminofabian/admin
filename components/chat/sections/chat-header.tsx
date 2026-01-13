@@ -12,6 +12,7 @@ interface ChatHeaderProps {
   setMobileView: (view: 'list' | 'chat' | 'info') => void;
   onNavigateToPlayer: () => void;
   onOpenNotesDrawer: () => void;
+  playerLastSeenAt?: string | null;
 }
 
 export const ChatHeader = memo(function ChatHeader({
@@ -21,7 +22,10 @@ export const ChatHeader = memo(function ChatHeader({
   setMobileView,
   onNavigateToPlayer,
   onOpenNotesDrawer,
+  playerLastSeenAt,
 }: ChatHeaderProps) {
+  // Use playerLastSeenAt if available, fallback to lastMessageTime
+  const lastSeenTime = playerLastSeenAt || selectedPlayer.playerLastSeenAt || selectedPlayer.lastMessageTime;
   return (
     <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border/50 flex items-center justify-between bg-gradient-to-r from-card via-card/95 to-card/90 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
       {/* Back button for mobile */}
@@ -70,7 +74,7 @@ export const ChatHeader = memo(function ChatHeader({
             )}
           </div>
           <p className="text-xs text-muted-foreground truncate">
-            {connectionError ? `Error: ${connectionError}` : selectedPlayer.isOnline ? 'Active now' : `Last seen ${selectedPlayer.lastMessageTime ? formatChatTimestamp(selectedPlayer.lastMessageTime) : 'recently'}`}
+            {connectionError ? `Error: ${connectionError}` : selectedPlayer.isOnline ? 'Active now' : `Last seen ${lastSeenTime ? formatChatTimestamp(lastSeenTime) : 'recently'}`}
           </p>
         </div>
       </div>

@@ -218,6 +218,7 @@ export function ChatComponent() {
     updateMessagePinnedState,
     markAllAsRead,
     notes,
+    playerLastSeenAt,
   } = useChatWebSocket({
     userId: selectedPlayer?.user_id ?? null,
     chatId: selectedPlayer?.id ?? null, // id field contains chat_id
@@ -2090,6 +2091,7 @@ export function ChatComponent() {
               setMobileView={setMobileView}
               onNavigateToPlayer={handleNavigateToPlayer}
               onOpenNotesDrawer={() => setIsNotesDrawerOpen(true)}
+              playerLastSeenAt={playerLastSeenAt}
             />
 
             {/* Pinned Messages Section */}

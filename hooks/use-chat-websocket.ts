@@ -32,6 +32,7 @@ interface HistoryPayload {
   page: number;
   totalPages: number;
   notes?: string;
+  playerLastSeenAt?: string;
 }
 
 const mapHistoryMessage = (msg: any): ChatMessage => {
@@ -127,6 +128,7 @@ interface UseChatWebSocketReturn {
   refreshMessages: () => Promise<void>;
   updateMessagesBalance: (balance: string, winningBalance: string) => void;
   notes: string;
+  playerLastSeenAt: string | null;
 }
 
 export function useChatWebSocket({
@@ -152,6 +154,7 @@ export function useChatWebSocket({
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
   const [historyPagination, setHistoryPagination] = useState({ page: 0, totalPages: 0 });
   const [notes, setNotes] = useState<string>('');
+  const [playerLastSeenAt, setPlayerLastSeenAt] = useState<string | null>(null);
 
   // WebSocket management refs
   const wsRef = useRef<WebSocket | null>(null);
@@ -185,6 +188,7 @@ export function useChatWebSocket({
     setPurchaseHistory([]);
     setIsTyping(false);
     setNotes('');
+    setPlayerLastSeenAt(null);
     setIsUserOnline(false);
     setIsHistoryLoading(false);
     setHasMoreHistory(false);
@@ -266,6 +270,7 @@ export function useChatWebSocket({
         page: resolvedPage,
         totalPages: resolvedTotalPages,
         notes: data.notes ?? '',
+        playerLastSeenAt: data.player_last_seen_at ?? undefined,
       };
 
       !IS_PROD && console.log(
@@ -273,6 +278,7 @@ export function useChatWebSocket({
       );
 
       !IS_PROD && console.log('📝 Notes from API:', data.notes);
+      !IS_PROD && console.log('👁️ Player last seen at:', data.player_last_seen_at);
 
       return payload;
     } catch (error) {
@@ -315,9 +321,14 @@ export function useChatWebSocket({
         });
         setHasMoreHistory(payload.page < payload.totalPages);
 
-        // Update notes from the first page response
-        if (payload.page === 1 && payload.notes !== undefined) {
-          setNotes(payload.notes);
+        // Update notes and player last seen from the first page response
+        if (payload.page === 1) {
+          if (payload.notes !== undefined) {
+            setNotes(payload.notes);
+          }
+          if (payload.playerLastSeenAt !== undefined) {
+            setPlayerLastSeenAt(payload.playerLastSeenAt);
+          }
         }
 
         return added;
@@ -1130,6 +1141,7 @@ export function useChatWebSocket({
     refreshMessages,
     updateMessagesBalance,
     notes,
+    playerLastSeenAt,
   };
 }
 
