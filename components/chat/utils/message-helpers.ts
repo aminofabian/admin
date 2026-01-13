@@ -370,7 +370,7 @@ export const parseTransactionMessage = (
   if (cleanText.includes('credited by admin')) {
     result.type = 'credit_added';
   } else if (cleanText.includes('successfully cashed out') || cleanText.includes('cashed out')) {
-    result.type = 'credit_deducted';
+    result.type = 'cashout';
   } else if (cleanText.includes('successfully purchased') || (cleanText.includes('purchased') && cleanText.includes('credit'))) {
     result.type = 'credit_purchase';
   } else if (cleanText.includes('successfully recharged') || cleanText.includes('recharged')) {
@@ -427,13 +427,20 @@ export const formatTransactionMessage = (
 
   const details = parseTransactionMessage(message.text, message.type, message.operationType);
 
-  // Identify the color based on transaction type
-  // Green: Recharge, Purchase
-  // Purple: All other transactions (Redeem, Cashout, Manual)
-  let colorClass = 'text-purple-600 dark:text-purple-400';
+  // Identify the color based on transaction type:
+  // Red: Cashout, Redeem (money leaving the system)
+  // Green: Purchase, Recharge (money entering the system)
+  // Purple: Manual transactions from chat (add/deduct credit & add/deduct winnings)
+  let colorClass = 'text-purple-600 dark:text-purple-400'; // Default: manual transactions
+
   if (details.type === 'recharge' || details.type === 'credit_purchase') {
+    // Green for purchase and recharge
     colorClass = 'text-green-600 dark:text-green-400';
+  } else if (details.type === 'cashout' || details.type === 'redeem') {
+    // Red for cashout and redeem
+    colorClass = 'text-red-600 dark:text-red-400';
   }
+  // Purple is default for: credit_added, credit_deducted, winning_added, winning_deducted (manual operations)
 
   const boldClass = `text-[0.92em] font-bold ${colorClass}`;
 

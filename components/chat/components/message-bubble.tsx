@@ -63,12 +63,28 @@ export const MessageBubble = memo(function MessageBubble({
       .replace(/\n/g, '<br />')
       .replace(/<br\s*\/?>/gi, '<br />');
 
+    // Determine background color based on transaction type:
+    // Red: Cashout, Redeem (money leaving the system)
+    // Green: Purchase, Recharge (money entering the system)  
+    // Purple: Manual transactions from chat (add/deduct credit & add/deduct winnings)
+    const getTransactionBgClass = () => {
+      if (details.type === 'recharge' || details.type === 'credit_purchase') {
+        return 'bg-green-500/10 border-green-500/30';
+      }
+      if (details.type === 'cashout' || details.type === 'redeem') {
+        return 'bg-red-500/10 border-red-500/30';
+      }
+      // Purple for manual operations: credit_added, credit_deducted, winning_added, winning_deducted
+      if (details.type) {
+        return 'bg-purple-500/10 border-purple-500/30';
+      }
+      return '';
+    };
+
     return (
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-200 my-4">
         <div className="max-w-[85%] md:max-w-[75%]">
-          <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${details.type === 'recharge' || details.type === 'credit_purchase' ? 'bg-green-500/10 border-green-500/30' :
-            details.type ? 'bg-purple-500/10 border-purple-500/30' : ''
-            }`}>
+          <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${getTransactionBgClass()}`}>
             <div
               className={`text-center text-[13px] md:text-sm leading-relaxed break-words space-y-1 text-foreground [&_b]:not-italic [&_b]:font-bold`}
               dangerouslySetInnerHTML={{ __html: formattedText }}
