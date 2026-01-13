@@ -17,6 +17,14 @@ export interface ChatUser {
   notes?: string;
 }
 
+export interface ChatMessageSender {
+  id: number;
+  username: string;
+  fullName?: string | null;
+  role?: string;
+  profilePic?: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   text: string;
@@ -37,6 +45,8 @@ export interface ChatMessage {
   operationType?: 'increase' | 'decrease' | null; // Operation type for manual balance operations (workaround for backend bug)
   bonusAmount?: string | null;
   paymentMethod?: string | null;
+  senderId?: number; // The sender's user ID
+  sentBy?: ChatMessageSender; // Full sender info for group chat display
 }
 
 export interface ChatListResponse {

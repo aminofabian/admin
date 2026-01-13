@@ -41,6 +41,15 @@ const mapHistoryMessage = (msg: any): ChatMessage => {
   const timestamp = msg.sent_time ?? msg.timestamp ?? new Date().toISOString();
   const messageDate = new Date(timestamp);
 
+  // Map sent_by data if available
+  const sentBy = msg.sent_by ? {
+    id: msg.sent_by.id,
+    username: msg.sent_by.username,
+    fullName: msg.sent_by.full_name ?? null,
+    role: msg.sent_by.role,
+    profilePic: msg.sent_by.profile_pic ?? null,
+  } : undefined;
+
   return {
     id: String(msg.id ?? msg.message_id ?? Date.now()),
     text: msg.message ?? '',
@@ -60,6 +69,8 @@ const mapHistoryMessage = (msg: any): ChatMessage => {
     fileUrl: msg.file || msg.file_url || undefined,
     userBalance: msg.user_balance ?? msg.balance,
     isPinned: msg.is_pinned ?? msg.isPinned ?? false,
+    senderId: msg.sender_id ?? msg.sender,
+    sentBy,
   };
 };
 
@@ -554,6 +565,15 @@ export function useChatWebSocket({
             const timestamp = rawData.sent_time || rawData.timestamp || new Date().toISOString();
             const messageDate = new Date(timestamp);
 
+            // Map sent_by data if available from WebSocket
+            const sentBy = rawData.sent_by ? {
+              id: rawData.sent_by.id,
+              username: rawData.sent_by.username,
+              fullName: rawData.sent_by.full_name ?? null,
+              role: rawData.sent_by.role,
+              profilePic: rawData.sent_by.profile_pic ?? null,
+            } : undefined;
+
             const newMessage: ChatMessage = {
               id: rawData.id || rawData.message_id || `temp-${Date.now()}-${Math.random()}`,
               text: rawData.message || rawData.text || '',
@@ -574,6 +594,8 @@ export function useChatWebSocket({
               isComment: rawData.is_comment || false,
               isPinned: rawData.is_pinned ?? false,
               userBalance: rawData.user_balance ? String(rawData.user_balance) : undefined,
+              senderId: rawData.sender_id,
+              sentBy,
             };
 
             // Only add to messages list and notify if there is actual content
