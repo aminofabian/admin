@@ -330,27 +330,14 @@ function MessageMeta({ message, isAdmin }: {
 }) {
   // Get sender display name for group chat context
   const senderName = message.sentBy?.username || message.sentBy?.fullName;
-  const senderRole = message.sentBy?.role;
-
-  // Format role for display (capitalize first letter)
-  const formattedRole = senderRole
-    ? senderRole.charAt(0).toUpperCase() + senderRole.slice(1).toLowerCase()
-    : null;
-
+  
   return (
     <div className={`flex items-center gap-1.5 mt-1 px-1 ${isAdmin ? 'justify-end' : 'justify-start'
       }`}>
-      {/* Show sender name and role for admin messages (staff members) - helps distinguish in group chat */}
+      {/* Show sender name for admin messages (staff members) */}
       {isAdmin && senderName && (
-        <span className="inline-flex items-center gap-1">
-          <span className="text-[10px] md:text-xs text-primary/70 font-medium">
-            {senderName}
-          </span>
-          {formattedRole && formattedRole !== 'Player' && (
-            <span className="text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary/60 font-medium">
-              {formattedRole}
-            </span>
-          )}
+        <span className="text-[10px] md:text-xs text-primary/70 font-medium">
+          {senderName}
         </span>
       )}
       {isAdmin && senderName && (
