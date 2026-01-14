@@ -943,17 +943,36 @@ export function ChatComponent() {
     // Check if we're selecting a different player
     const isPlayerChange = previousPlayerIdRef.current !== player.user_id;
 
+    // Load notes from localStorage as fallback if player doesn't have notes yet
+    let playerWithNotes = player;
+    if (player.user_id && (!player.notes || !player.notes.trim())) {
+      const storageKey = `player_notes_${player.user_id}`;
+      const storedNotes = storage.get(storageKey);
+      if (storedNotes && storedNotes.trim()) {
+        playerWithNotes = {
+          ...player,
+          notes: storedNotes,
+        };
+        if (!IS_PROD) {
+          console.log('📝 [Player Select] Loaded notes from localStorage:', {
+            playerId: player.user_id,
+            notesLength: storedNotes.length,
+          });
+        }
+      }
+    }
+
     // Debug: Log player selection to verify IDs and notes
     if (!IS_PROD) {
       console.log('👤 [Player Select]', {
-        username: player.username,
-        chatId: player.id,
-        userId: player.user_id,
+        username: playerWithNotes.username,
+        chatId: playerWithNotes.id,
+        userId: playerWithNotes.user_id,
         tab: activeTab,
-        notes: player.notes,
-        hasNotes: !!player.notes,
+        notes: playerWithNotes.notes,
+        hasNotes: !!playerWithNotes.notes,
         isPlayerChange,
-        fullPlayer: player,
+        fullPlayer: playerWithNotes,
       });
     }
 
@@ -967,12 +986,12 @@ export function ChatComponent() {
 
     if (shouldMarkAsRead) {
       markChatAsReadDebounced({
-        chatId: player.id,
-        userId: player.user_id,
+        chatId: playerWithNotes.id,
+        userId: playerWithNotes.user_id,
       });
     }
 
-    setSelectedPlayer(player);
+    setSelectedPlayer(playerWithNotes);
     setPendingPinMessageId(null);
     setMobileView('chat');
 
@@ -1185,9 +1204,35 @@ export function ChatComponent() {
     }
   }, [selectedPlayer, pendingPinMessageId, addToast, updateMessagePinnedState]);
 
-  const handleNotesSaved = useCallback(async () => {
-    // Notes are updated via websocket in real-time, no refresh needed
-  }, []);
+  const handleNotesSaved = useCallback((savedNotes: string) => {
+    if (!selectedPlayer) return;
+
+    // Update selectedPlayer state immediately with the saved notes
+    setSelectedPlayer(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        notes: savedNotes,
+      };
+    });
+
+    // Also update the displayedPlayers list so the notes persist when switching tabs
+    // This ensures notes are available in the player list
+    const storageKey = `player_notes_${selectedPlayer.user_id}`;
+    if (savedNotes.trim()) {
+      storage.set(storageKey, savedNotes);
+    } else {
+      storage.remove(storageKey);
+    }
+
+    // Notes will eventually be updated via websocket, but this provides immediate feedback
+    if (!IS_PROD) {
+      console.log('📝 Notes saved and updated locally:', {
+        playerId: selectedPlayer.user_id,
+        notesLength: savedNotes.length,
+      });
+    }
+  }, [selectedPlayer]);
 
   const handleOpenEditProfile = useCallback(() => {
     if (!selectedPlayer) return;

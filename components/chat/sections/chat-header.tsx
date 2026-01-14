@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { formatChatTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 
@@ -26,6 +26,20 @@ export const ChatHeader = memo(function ChatHeader({
 }: ChatHeaderProps) {
   // Use playerLastSeenAt if available, fallback to lastMessageTime
   const lastSeenTime = playerLastSeenAt || selectedPlayer.playerLastSeenAt || selectedPlayer.lastMessageTime;
+
+  // Check for notes in selectedPlayer or localStorage as fallback
+  const hasNotes = useMemo(() => {
+    if (selectedPlayer?.notes && selectedPlayer.notes.trim()) {
+      return true;
+    }
+    // Fallback: check localStorage
+    if (selectedPlayer?.user_id && typeof window !== 'undefined') {
+      const storageKey = `player_notes_${selectedPlayer.user_id}`;
+      const storedNotes = localStorage.getItem(storageKey);
+      return !!(storedNotes && storedNotes.trim());
+    }
+    return false;
+  }, [selectedPlayer?.notes, selectedPlayer?.user_id]);
   return (
     <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border/50 flex items-center justify-between bg-gradient-to-r from-card via-card/95 to-card/90 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
       {/* Back button for mobile */}
@@ -98,7 +112,7 @@ export const ChatHeader = memo(function ChatHeader({
           <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
-          {selectedPlayer.notes && selectedPlayer.notes.trim() && (
+          {hasNotes && (
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-card shadow-sm" />
           )}
         </button>

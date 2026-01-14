@@ -11,7 +11,7 @@ interface NotesDrawerProps {
   onClose: () => void;
   selectedPlayer: ChatUser | null;
   notes: string;
-  onNotesSaved?: () => void;
+  onNotesSaved?: (savedNotes: string) => void;
 }
 
 export function NotesDrawer({
@@ -28,11 +28,29 @@ export function NotesDrawer({
   const lastToastRef = useRef<{ type: string; title: string; timestamp: number } | null>(null);
 
   // Sync editedNotes with notes from props when drawer opens or notes change
+  // Priority: selectedPlayer.notes > localStorage > notes prop (WebSocket)
   useEffect(() => {
-    if (isOpen) {
-      setEditedNotes(notes);
+    if (isOpen && selectedPlayer) {
+      // First check selectedPlayer.notes (most up-to-date)
+      let notesToUse = selectedPlayer.notes;
+      
+      // Fallback to localStorage if selectedPlayer doesn't have notes
+      if (!notesToUse || !notesToUse.trim()) {
+        const storageKey = `player_notes_${selectedPlayer.user_id}`;
+        const storedNotes = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+        if (storedNotes) {
+          notesToUse = storedNotes;
+        }
+      }
+      
+      // Final fallback to notes prop from WebSocket
+      if (!notesToUse || !notesToUse.trim()) {
+        notesToUse = notes;
+      }
+      
+      setEditedNotes(notesToUse || '');
     }
-  }, [isOpen, notes]);
+  }, [isOpen, notes, selectedPlayer?.notes, selectedPlayer?.user_id]);
 
   const handleSaveNotes = useCallback(async () => {
     // Prevent double calls
@@ -91,10 +109,25 @@ export function NotesDrawer({
         lastToastRef.current = { type: toastKey, title: 'You have successfully saved your note', timestamp: now };
       }
       
-      // Notify parent component to refresh notes
-      if (onNotesSaved) {
-        onNotesSaved();
+      // Store notes in localStorage as fallback (or remove if empty)
+      if (selectedPlayer?.user_id) {
+        const storageKey = `player_notes_${selectedPlayer.user_id}`;
+        if (editedNotes.trim()) {
+          storage.set(storageKey, editedNotes);
+        } else {
+          storage.remove(storageKey);
+        }
       }
+
+      // Notify parent component to refresh notes with the saved notes
+      // This will update selectedPlayer.notes immediately
+      if (onNotesSaved) {
+        onNotesSaved(editedNotes);
+      }
+
+      // Force a re-sync of editedNotes to ensure UI reflects the saved state
+      // This handles the case where selectedPlayer.notes hasn't updated yet
+      setEditedNotes(editedNotes);
     } catch (error) {
       const description = error instanceof Error ? error.message : 'Unknown error';
       addToast({
