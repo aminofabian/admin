@@ -68,7 +68,7 @@ export interface GameByGame {
 }
 
 // Filter Types
-export interface AnalyticsFilters {
+export interface AnalyticsFilters extends Record<string, string | number | boolean | undefined> {
   start_date?: string;
   end_date?: string;
   username?: string;
