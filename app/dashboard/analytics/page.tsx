@@ -472,30 +472,40 @@ export default function AnalyticsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {paymentMethods.map((method, idx) => (
-                        <tr key={idx} className="border-b">
-                          <td className="p-2 font-medium">{method.payment_method}</td>
-                          <td className="p-2 text-right">{formatCurrency(method.purchase ?? 0)}</td>
-                          <td className="p-2 text-right">{formatCurrency(method.bonus ?? 0)}</td>
-                          <td className="p-2 text-right">
-                            {method.average_bonus_percent != null
-                              ? `${method.average_bonus_percent.toFixed(2)}%`
-                              : '0.00%'}
-                          </td>
-                          <td className="p-2 text-right">{formatCurrency(method.cashout ?? 0)}</td>
-                          <td className="p-2 text-right">
-                            {method.success_rate != null
-                              ? `${method.success_rate.toFixed(2)}%`
-                              : '0.00%'}
-                          </td>
-                          <td className="p-2 text-right">{formatCurrency(method.average_transaction_size ?? 0)}</td>
-                          <td className="p-2 text-right">
-                            {method.usage_distribution != null
-                              ? `${method.usage_distribution.toFixed(2)}%`
-                              : '0.00%'}
-                          </td>
-                        </tr>
-                      ))}
+                      {paymentMethods.map((method, idx) => {
+                        // Format payment method name for display
+                        const formatPaymentMethodName = (name: string): string => {
+                          return name
+                            .split('_')
+                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+                        };
+
+                        return (
+                          <tr key={idx} className="border-b">
+                            <td className="p-2 font-medium">{formatPaymentMethodName(method.payment_method)}</td>
+                            <td className="p-2 text-right">{formatCurrency(method.purchase ?? 0)}</td>
+                            <td className="p-2 text-right">{formatCurrency(method.bonus ?? 0)}</td>
+                            <td className="p-2 text-right">
+                              {method.average_bonus_pct != null
+                                ? `${method.average_bonus_pct.toFixed(2)}%`
+                                : '0.00%'}
+                            </td>
+                            <td className="p-2 text-right">{formatCurrency(method.cashout ?? 0)}</td>
+                            <td className="p-2 text-right">
+                              {method.success_rate != null
+                                ? `${method.success_rate.toFixed(2)}%`
+                                : '0.00%'}
+                            </td>
+                            <td className="p-2 text-right">{formatCurrency(method.average_transaction_size ?? 0)}</td>
+                            <td className="p-2 text-right">
+                              {method.usage_distribution_pct != null
+                                ? `${method.usage_distribution_pct.toFixed(2)}%`
+                                : '0.00%'}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

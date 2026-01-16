@@ -51,7 +51,14 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
         setError(null);
         const response = await analyticsApi.getPaymentMethods(filters);
         if (response.status === 'success' && response.data) {
-          setData(response.data);
+          // Transform object response into array
+          const paymentMethodsArray: PaymentMethodBreakdown[] = Object.entries(response.data).map(
+            ([paymentMethod, metrics]) => ({
+              payment_method: paymentMethod,
+              ...metrics,
+            }),
+          );
+          setData(paymentMethodsArray);
         } else {
           throw new Error(response.message || 'Failed to fetch payment methods');
         }
