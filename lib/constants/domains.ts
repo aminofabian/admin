@@ -4,6 +4,7 @@
  */
 export const PERMITTED_SUPERADMIN_DOMAINS = [
   'sa.bruii.com',
+  'sa.serverhub.biz',
   'localhost',
   '127.0.0.1',
 ] as const;
