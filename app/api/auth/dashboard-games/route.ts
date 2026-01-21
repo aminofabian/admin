@@ -10,13 +10,17 @@ export async function POST(request: Request) {
 
     // Determine host from request headers
     const host = request.headers.get('host') ?? '';
+    console.log('🔎 Host header:', host);
+    console.log('🔎 Incoming project_domain:', incomingProjectDomain);
 
     // Map host to canonical project domain if needed
     let projectDomain: string | undefined = incomingProjectDomain;
 
     // For bitslot.serverhub.biz we always proxy as https://serverhub.biz
-    if (host === 'bitslot.serverhub.biz') {
+    // Use .includes() to handle ports or subdomains
+    if (host.includes('bitslot.serverhub.biz') || incomingProjectDomain?.includes('bitslot.serverhub.biz')) {
       projectDomain = 'https://serverhub.biz';
+      console.log('✅ Mapped to:', projectDomain);
     }
 
     if (!projectDomain || typeof projectDomain !== 'string') {
