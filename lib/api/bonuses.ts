@@ -16,7 +16,7 @@ import type { AffiliateDefaults, UpdateAffiliateDefaultsRequest } from '@/types/
 export const bonusesApi = {
   purchase: {
     list: () => 
-      apiClient.get<PaginatedResponse<PurchaseBonus>>(API_ENDPOINTS.BONUSES.PURCHASE),
+      apiClient.get<PaginatedResponse<PurchaseBonus>>('api/admin/purchase-bonuses'),
 
     create: (data: CreatePurchaseBonusRequest) => 
       apiClient.post<PurchaseBonus>(API_ENDPOINTS.BONUSES.PURCHASE, data),
@@ -30,7 +30,7 @@ export const bonusesApi = {
 
   recharge: {
     list: () => 
-      apiClient.get<PaginatedResponse<RechargeBonus>>(API_ENDPOINTS.BONUSES.RECHARGE),
+      apiClient.get<PaginatedResponse<RechargeBonus>>('api/admin/recharge-bonuses'),
 
     get: (id: number) =>
       apiClient.get<RechargeBonus>(`${API_ENDPOINTS.BONUSES.RECHARGE}${id}/`),
@@ -41,7 +41,7 @@ export const bonusesApi = {
 
   transfer: {
     list: () => 
-      apiClient.get<PaginatedResponse<TransferBonus>>(API_ENDPOINTS.BONUSES.TRANSFER),
+      apiClient.get<PaginatedResponse<TransferBonus>>('api/admin/transfer-bonuses'),
 
     get: (id: number) =>
       apiClient.get<TransferBonus>(`${API_ENDPOINTS.BONUSES.TRANSFER}${id}/`),
@@ -52,7 +52,7 @@ export const bonusesApi = {
 
   signup: {
     list: () => 
-      apiClient.get<PaginatedResponse<SignupBonus>>(API_ENDPOINTS.BONUSES.SIGNUP),
+      apiClient.get<PaginatedResponse<SignupBonus>>('api/admin/signup-bonuses'),
 
     get: (id: number) =>
       apiClient.get<SignupBonus>(`${API_ENDPOINTS.BONUSES.SIGNUP}${id}/`),
@@ -63,7 +63,7 @@ export const bonusesApi = {
 
   firstPurchase: {
     list: () => 
-      apiClient.get<PaginatedResponse<FirstPurchaseBonus>>(API_ENDPOINTS.BONUSES.FIRST_PURCHASE),
+      apiClient.get<PaginatedResponse<FirstPurchaseBonus>>('api/admin/first-purchase-bonuses'),
 
     get: (id: number) =>
       apiClient.get<FirstPurchaseBonus>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`),

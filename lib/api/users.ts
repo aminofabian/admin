@@ -25,7 +25,7 @@ interface UserFilters {
 
 export const managersApi = {
   list: (filters?: UserFilters) => 
-    apiClient.get<PaginatedResponse<Manager>>(API_ENDPOINTS.MANAGERS.LIST, {
+    apiClient.get<PaginatedResponse<Manager>>('api/admin/managers', {
       params: filters,
     }),
 
@@ -38,7 +38,7 @@ export const managersApi = {
 
 export const agentsApi = {
   list: (filters?: UserFilters) => 
-    apiClient.get<PaginatedResponse<Agent>>(API_ENDPOINTS.AGENTS.LIST, {
+    apiClient.get<PaginatedResponse<Agent>>('api/admin/agents', {
       params: filters,
     }),
 
@@ -61,7 +61,7 @@ export const agentsApi = {
 
 export const staffsApi = {
   list: (filters?: UserFilters) => 
-    apiClient.get<PaginatedResponse<Staff>>(API_ENDPOINTS.STAFFS.LIST, {
+    apiClient.get<PaginatedResponse<Staff>>('api/admin/staffs', {
       params: filters,
     }),
 
@@ -74,7 +74,7 @@ export const staffsApi = {
 
 export const playersApi = {
   list: (filters?: UserFilters) => 
-    apiClient.get<PaginatedResponse<Player>>(API_ENDPOINTS.PLAYERS.LIST, {
+    apiClient.get<PaginatedResponse<Player>>('api/admin/players', {
       params: filters,
     }),
 

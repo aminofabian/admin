@@ -47,7 +47,7 @@ interface DisableAllCashoutRequest {
 
 export const paymentMethodsApi = {
   list: () => {
-    return apiClient.get<PaymentMethodsListResponse>(API_ENDPOINTS.PAYMENT_METHODS.LIST);
+    return apiClient.get<PaymentMethodsListResponse>('api/admin/payment-methods');
   },
 
   get: (id: number) =>

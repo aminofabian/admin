@@ -91,7 +91,7 @@ export const transactionsApi = {
   // New separate endpoints for history and processing
   listHistory: async (filters?: Omit<TransactionFilters, 'type'>) => {
     const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
-      API_ENDPOINTS.TRANSACTIONS.HISTORY, 
+      'api/admin/transactions-history', 
       { params: filters }
     );
     return normalizePaginatedResponse(response);
@@ -99,7 +99,7 @@ export const transactionsApi = {
 
   listPurchases: async (filters?: Omit<TransactionFilters, 'type' | 'txn' | 'txn_type'>) => {
     const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
-      API_ENDPOINTS.TRANSACTIONS.PURCHASES, 
+      'api/admin/transaction-purchases', 
       { params: filters }
     );
     return normalizePaginatedResponse(response);
@@ -107,7 +107,7 @@ export const transactionsApi = {
 
   listCashouts: async (filters?: Omit<TransactionFilters, 'type' | 'txn' | 'txn_type'>) => {
     const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
-      API_ENDPOINTS.TRANSACTIONS.CASHOUTS, 
+      'api/admin/transaction-cashouts', 
       { params: filters }
     );
     return normalizePaginatedResponse(response);
@@ -115,7 +115,7 @@ export const transactionsApi = {
 
   queuesHistory: async (filters?: QueueFilters) => {
     const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
-      API_ENDPOINTS.TRANSACTIONS.QUEUES_HISTORY, 
+      'api/admin/transaction-queues-history', 
       { params: filters }
     );
     return normalizePaginatedResponse(response);
@@ -123,7 +123,7 @@ export const transactionsApi = {
 
   queuesProcessing: async (filters?: QueueFilters) => {
     const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
-      API_ENDPOINTS.TRANSACTIONS.QUEUES_PROCESSING, 
+      'api/admin/transaction-queues-processing', 
       { params: filters }
     );
     return normalizePaginatedResponse(response);

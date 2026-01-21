@@ -31,8 +31,8 @@ export const bannersApi = {
     
     const queryString = params.toString();
     const url = queryString 
-      ? `${API_ENDPOINTS.BANNERS.LIST}?${queryString}`
-      : API_ENDPOINTS.BANNERS.LIST;
+      ? `api/admin/admin-banners?${queryString}`
+      : 'api/admin/admin-banners';
     
     return apiClient.get<PaginatedResponse<Banner>>(url);
   },

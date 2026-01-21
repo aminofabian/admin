@@ -65,7 +65,7 @@ interface UpdateMinimumRedeemMultiplierResponse {
 
 export const gamesApi = {
   list: (filters?: GameFilters) => 
-    apiClient.get<GamesListResponse | Game[]>(API_ENDPOINTS.GAMES.LIST, {
+    apiClient.get<GamesListResponse | Game[]>('api/admin/games', {
       params: filters,
     }),
 
