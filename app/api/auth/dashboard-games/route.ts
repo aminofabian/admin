@@ -3,6 +3,40 @@ import { NextResponse } from 'next/server';
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
 const DASHBOARD_GAMES_URL = `${BACKEND_URL}/users/dashboard-games/`;
 
+/**
+ * Domain mapping: admin panel hostname -> project domain for backend
+ * This is the server-side backup mapping (client should already map via getCurrentDomain)
+ */
+const DOMAIN_MAPPINGS: Record<string, string> = {
+  'bitslot.serverhub.biz': 'https://staging.bitslot.cc',
+};
+
+/**
+ * Maps an incoming domain to the correct project domain
+ */
+function mapToProjectDomain(incomingDomain: string | undefined, host: string): string | undefined {
+  // Check if the host matches any mapping
+  for (const [adminDomain, projectDomain] of Object.entries(DOMAIN_MAPPINGS)) {
+    if (host.includes(adminDomain)) {
+      console.log(`✅ Host mapped: ${host} -> ${projectDomain}`);
+      return projectDomain;
+    }
+  }
+  
+  // Check if incoming domain matches any mapping
+  if (incomingDomain) {
+    for (const [adminDomain, projectDomain] of Object.entries(DOMAIN_MAPPINGS)) {
+      if (incomingDomain.includes(adminDomain)) {
+        console.log(`✅ Domain mapped: ${incomingDomain} -> ${projectDomain}`);
+        return projectDomain;
+      }
+    }
+  }
+  
+  // No mapping found, return as-is
+  return incomingDomain;
+}
+
 export async function POST(request: Request) {
   try {
     // Parse request body to get project_domain (optional override)
@@ -14,15 +48,8 @@ export async function POST(request: Request) {
     console.log('🔎 Host header:', host);
     console.log('🔎 Incoming project_domain:', incomingProjectDomain);
 
-    // Map host to canonical project domain if needed
-    let projectDomain: string | undefined = incomingProjectDomain;
-
-    // For bitslot.serverhub.biz we always proxy as https://staging.bitslot.cc/
-    // Use .includes() to handle ports or subdomains
-    if (host.includes('bitslot.serverhub.biz') || incomingProjectDomain?.includes('bitslot.serverhub.biz')) {
-      projectDomain = 'https://staging.bitslot.cc/';
-      console.log('✅ Mapped to:', projectDomain);
-    }
+    // Map to correct project domain
+    const projectDomain = mapToProjectDomain(incomingProjectDomain, host);
 
     if (!projectDomain || typeof projectDomain !== 'string') {
       return NextResponse.json(
