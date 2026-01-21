@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsFetchingUuid(true);
       setUuidFetchError(null);
       
-      console.log('🔄 Fetching project UUID from https://serverhub.biz/users/dashboard-games/');
+      console.log('🔄 Fetching project UUID via /api/auth/dashboard-games proxy...');
       const response = await authApi.fetchProjectUuid();
       
       console.log('📦 Response received:', response);
