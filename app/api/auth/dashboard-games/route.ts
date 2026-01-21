@@ -4,9 +4,20 @@ const DASHBOARD_GAMES_URL = 'https://api.bruii.com/users/dashboard-games/';
 
 export async function POST(request: Request) {
   try {
-    // Parse request body to get project_domain
+    // Parse request body to get project_domain (optional override)
     const body = await request.json();
-    const projectDomain = body.project_domain;
+    const incomingProjectDomain = body.project_domain;
+
+    // Determine host from request headers
+    const host = request.headers.get('host') ?? '';
+
+    // Map host to canonical project domain if needed
+    let projectDomain: string | undefined = incomingProjectDomain;
+
+    // For bitslot.serverhub.biz we always proxy as https://serverhub.biz
+    if (host === 'bitslot.serverhub.biz') {
+      projectDomain = 'https://serverhub.biz';
+    }
 
     if (!projectDomain || typeof projectDomain !== 'string') {
       return NextResponse.json(
