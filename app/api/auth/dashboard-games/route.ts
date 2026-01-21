@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const DASHBOARD_GAMES_URL = 'https://api.bruii.com/users/dashboard-games/';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
+const DASHBOARD_GAMES_URL = `${BACKEND_URL}/users/dashboard-games/`;
 
 export async function POST(request: Request) {
   try {
@@ -16,10 +17,10 @@ export async function POST(request: Request) {
     // Map host to canonical project domain if needed
     let projectDomain: string | undefined = incomingProjectDomain;
 
-    // For bitslot.serverhub.biz we always proxy as https://serverhub.biz
+    // For bitslot.serverhub.biz we always proxy as https://staging.bitslot.cc/
     // Use .includes() to handle ports or subdomains
     if (host.includes('bitslot.serverhub.biz') || incomingProjectDomain?.includes('bitslot.serverhub.biz')) {
-      projectDomain = 'https://serverhub.biz';
+      projectDomain = 'https://staging.bitslot.cc/';
       console.log('✅ Mapped to:', projectDomain);
     }
 
