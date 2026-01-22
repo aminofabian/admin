@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
+const RAW_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
+const BACKEND_URL = RAW_BACKEND_URL.replace(/\/$/, '');
 
 /**
  * API Proxy for fetching full player details
@@ -13,47 +14,45 @@ export async function GET(
 ) {
     try {
         const { id: playerId } = await params;
-
-        // Get the authorization token from the request headers
         const authHeader = request.headers.get('authorization');
 
-        // Forward to the players detail endpoint (NOT view-player!)
         const backendUrl = `${BACKEND_URL}/api/v1/players/${playerId}/`;
 
-        console.log('🔷 Player Details Proxy Configuration:');
-        console.log('  - BACKEND_URL:', BACKEND_URL);
-        console.log('  - Full backend URL:', backendUrl);
-        console.log('  - Player ID:', playerId);
-        console.log('  - Auth header:', authHeader ? authHeader.substring(0, 30) + '...' : 'Missing');
+        console.log('🔷 Proxying GET player-details request:', {
+            backendUrl,
+            playerId,
+            hasAuth: !!authHeader,
+        });
 
-        // Forward the GET request with Bearer token
         const response = await fetch(backendUrl, {
             method: 'GET',
             headers: {
-                'Authorization': authHeader || '',
                 'Content-Type': 'application/json',
+                ...(authHeader ? { Authorization: authHeader } : {}),
             },
         });
 
-        console.log('📥 Backend response status:', response.status);
+        const text = await response.text();
+        let data: unknown;
 
-        // Get the response data as JSON
-        const data = await response.json();
-        console.log('📥 Backend response data keys:', Object.keys(data));
+        try {
+            data = text ? JSON.parse(text) : null;
+        } catch {
+            data = { raw: text || null };
+        }
 
-        // Return the response with the backend's status code
-        return NextResponse.json(data, {
-            status: response.status,
-        });
+        console.log('📥 Player-details response status:', response.status);
+
+        return NextResponse.json(data, { status: response.status });
     } catch (error) {
-        console.error('❌ Proxy error details:', error);
+        console.error('❌ Player-details proxy (GET) error:', error);
 
         return NextResponse.json(
             {
                 status: 'error',
                 message: error instanceof Error ? error.message : 'Failed to fetch player details',
             },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }

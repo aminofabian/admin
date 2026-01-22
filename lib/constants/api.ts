@@ -28,14 +28,14 @@ export const API_ENDPOINTS = {
   },
   PLAYERS: {
     LIST: `${API_PREFIX}/players/`,
-    DETAIL: (id: number) => `${API_PREFIX}/players/${id}/`,
+    DETAIL: (id: number) => `api/player-details/${id}`, // Using Next.js API route to proxy request
     CHECK_GAME_BALANCE: 'api/check-player-game-balance', // Using Next.js API route to proxy request
   },
   GAMES: {
     LIST: `${API_PREFIX}/games/`,
     DETAIL: (id: number) => `${API_PREFIX}/games/${id}/`,
     USER_GAMES: `${API_PREFIX}/user-games/`,
-    PLAYER_GAMES: `${API_PREFIX}/admin/user-games/`, // Player's game activities
+    PLAYER_GAMES: 'api/admin/user-games', // Player's game activities - Using Next.js API route to proxy request
     CHECK_STORE_BALANCE: 'api/check-store-balance', // Using Next.js API route to proxy request
     UPDATE_MINIMUM_REDEEM_MULTIPLIER: `${API_PREFIX}/games/update-minimum-redeem-multiplier/`,
     OFFMARKET_MANAGEMENT: `${API_PREFIX}/offmarket-games-management/`,
