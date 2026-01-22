@@ -244,8 +244,8 @@ const MENU_CATEGORIES: MenuCategory[] = [
     icon: <AnalyticsIcon />,
     roles: [USER_ROLES.COMPANY],
     submenu: [
-      { name: 'Transaction Analytics', href: '/dashboard/analytics/transactions', icon: <TransactionAnalyticsIcon /> },
-      { name: 'Game Activity Analytics', href: '/dashboard/analytics/game-activities', icon: <GameActivityAnalyticsIcon /> },
+      { name: 'Transactions', href: '/dashboard/analytics/transactions', icon: <TransactionAnalyticsIcon /> },
+      { name: 'Game Activities', href: '/dashboard/analytics/game-activities', icon: <GameActivityAnalyticsIcon /> },
     ],
   },
   {
