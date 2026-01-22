@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { Logo } from '@/components/ui';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import { useChatUsersContext } from '@/contexts/chat-users-context';
 
@@ -220,6 +220,18 @@ const AnalyticsIcon = () => (
   </svg>
 );
 
+const TransactionAnalyticsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const GameActivityAnalyticsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 01-.657.643 48.39 48.39 0 01-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 01-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 00-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 01-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 00.657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 01-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 005.427-.63 48.05 48.05 0 00.582-4.717.532.532 0 00-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 00.658-.663 48.422 48.422 0 00-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 01-.61-.58v0z" />
+  </svg>
+);
+
 const MENU_CATEGORIES: MenuCategory[] = [
   {
     name: 'Dashboard',
@@ -231,7 +243,10 @@ const MENU_CATEGORIES: MenuCategory[] = [
     name: 'Analytics',
     icon: <AnalyticsIcon />,
     roles: [USER_ROLES.COMPANY],
-    href: '/dashboard/analytics',
+    submenu: [
+      { name: 'Transaction Analytics', href: '/dashboard/analytics/transactions', icon: <TransactionAnalyticsIcon /> },
+      { name: 'Game Activity Analytics', href: '/dashboard/analytics/game-activities', icon: <GameActivityAnalyticsIcon /> },
+    ],
   },
   {
     name: 'Company',
@@ -417,7 +432,8 @@ function SubMenuItemComponent({
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasSubmenu = item.submenu && item.submenu.length > 0;
-  const isActive = item.href && pathname === item.href;
+  // Check if pathname matches or starts with the href (for nested routes)
+  const isActive = item.href && (pathname === item.href || pathname.startsWith(item.href + '/'));
 
   // Render link if it has href and no submenu
   if (!hasSubmenu && item.href) {
@@ -510,8 +526,6 @@ function MenuItem({
   processingCounts?: { purchase_count?: number; cashout_count?: number; game_activities_count?: number };
   userRole?: string;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  
   // Filter submenu items based on user role
   const filteredSubmenu = category.submenu?.filter((item) => {
     if (!item.roles) return true; // If no roles specified, show for all
@@ -520,6 +534,23 @@ function MenuItem({
   
   const hasSubmenu = filteredSubmenu && filteredSubmenu.length > 0;
   const isActive = category.href && pathname === category.href;
+  
+  // Check if any submenu item is active
+  const hasActiveSubmenu = filteredSubmenu?.some((item) => {
+    if (!item.href) return false;
+    // Check if pathname matches or starts with the submenu href (for nested routes)
+    return pathname === item.href || pathname.startsWith(item.href + '/');
+  });
+  
+  // Auto-expand if a submenu item is active
+  const [isExpanded, setIsExpanded] = useState(hasActiveSubmenu || false);
+  
+  // Update expanded state when pathname changes
+  useEffect(() => {
+    if (hasActiveSubmenu) {
+      setIsExpanded(true);
+    }
+  }, [hasActiveSubmenu]);
 
   // Get count for a specific submenu item
   const getCountForItem = (itemName: string): number | undefined => {

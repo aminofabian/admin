@@ -1,5 +1,5 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
-export const WEBSOCKET_BASE_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'wss://ws.bruii.com';
+export const WEBSOCKET_BASE_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL|| 'wss://ws.bruii.com';
 export const API_VERSION = 'v1';
 export const API_PREFIX = `/api/${API_VERSION}`;
 
