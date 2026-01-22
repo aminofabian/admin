@@ -978,27 +978,19 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
   const newCreditsNum = newCreditsValue ?? 0;
   const creditsChanged = previousCreditsNum !== newCreditsNum;
   const creditsColorClass = creditsChanged
-    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
-    : 'text-gray-600 dark:text-gray-400';
+    ? 'text-indigo-600 dark:text-indigo-400'
+    : 'text-gray-500 dark:text-gray-400';
 
   const previousWinningsNum = previousWinningsValue ?? 0;
   const newWinningsNum = newWinningsValue ?? 0;
   const winningsChanged = previousWinningsNum !== newWinningsNum;
   const winningsColorClass = winningsChanged
-    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
-    : 'text-gray-600 dark:text-gray-400';
-
-  const creditsDisplay = shouldShowBlankBalance ? '—' :
-    (formattedPreviousCredits && formattedNewCredits ? `${formattedPreviousCredits} → ${formattedNewCredits}` :
-      formattedNewCredits || formattedPreviousCredits || zeroCurrency);
-
-  const winningsDisplay = shouldShowBlankBalance ? '—' :
-    (formattedPreviousWinnings && formattedNewWinnings ? `${formattedPreviousWinnings} → ${formattedNewWinnings}` :
-      formattedNewWinnings || formattedPreviousWinnings || zeroCurrency);
+    ? 'text-indigo-600 dark:text-indigo-400'
+    : 'text-gray-500 dark:text-gray-400';
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
-    : null;
+    : `User ${activity.user_id}`;
 
   const websiteEmail = typeof activity.user_email === 'string' && activity.user_email.trim()
     ? activity.user_email.trim()
@@ -1010,112 +1002,139 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
       ? activity.data.username.trim()
       : null);
 
-  const isAddUserAction = typeStr === 'add_user_game' || typeStr === 'create_game';
-
   const formattedCreatedAt = formatDate(activity.created_at);
 
-  const handleOpenDetails = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleOpenDetails = useCallback(() => {
     onView(activity);
   }, [activity, onView]);
 
   const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
 
+  const userInitial = websiteUsername.charAt(0).toUpperCase();
+
+  // Calculate balance values for display
+  const prevCredit = previousCreditsValue ?? 0;
+  const newCredit = newCreditsValue ?? 0;
+  const prevWinning = previousWinningsValue ?? 0;
+  const newWinning = newWinningsValue ?? 0;
+
   return (
-    <div
-      className="border rounded-lg p-4 space-y-3 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-start gap-3">
           <button
             type="button"
             onClick={handleOpenDetails}
-            className="text-left w-full touch-manipulation"
+            className="flex-shrink-0 touch-manipulation"
             title="View activity details"
           >
-            <div className="font-semibold text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-              {websiteUsername || `User ${activity.user_id}`}
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md cursor-pointer hover:opacity-80 transition-opacity">
+              {userInitial}
             </div>
           </button>
-          {websiteEmail && (
-            <div className="text-xs text-gray-500 dark:text-gray-400">{websiteEmail}</div>
-          )}
-        </div>
-        <Badge variant={statusVariant} className="capitalize text-xs">
-          {activity.status}
-        </Badge>
-      </div>
-
-      <div className="flex items-center gap-2 flex-wrap">
-        <Badge variant={typeVariant} className="capitalize text-xs">
-          {typeLabel}
-        </Badge>
-        <span className="text-sm text-gray-600 dark:text-gray-400">•</span>
-        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{activity.game}</span>
-      </div>
-
-      {gameUsername && (
-        <div className="text-sm">
-          <span className="text-gray-500 dark:text-gray-400">Game Username:</span>{' '}
-          <span className="font-medium text-gray-900 dark:text-gray-100">{gameUsername}</span>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-        <div>
-          <div className={`text-lg font-bold ${amountColorClass}`}>
-            {shouldShowDash ? '—' : formattedAmount}
-          </div>
-          {formattedBonus && (
-            <div className="text-xs text-green-600 dark:text-green-400">
-              +{formattedBonus} bonus
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={handleOpenDetails}
+                  className="text-left w-full touch-manipulation"
+                  title="View activity details"
+                >
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                    {websiteUsername}
+                  </h3>
+                </button>
+                {websiteEmail && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                    {websiteEmail}
+                  </p>
+                )}
+              </div>
+              <Badge 
+                variant={typeVariant} 
+                className="text-[10px] px-2 py-0.5 uppercase shrink-0"
+              >
+                {typeLabel}
+              </Badge>
             </div>
-          )}
-        </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          {formattedCreatedAt}
-        </div>
-      </div>
-
-      {/* Balance Section - Mobile */}
-      {!shouldShowBlankBalance && (formattedPreviousCredits || formattedNewCredits || formattedPreviousWinnings || formattedNewWinnings) && (
-        <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            {/* Credits */}
-            {(formattedPreviousCredits || formattedNewCredits) && (
-              <div className="flex-1 min-w-0">
-                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credits</div>
-                <div className={`text-xs flex items-center gap-1 ${creditsColorClass}`}>
-                  <span className="truncate">{formattedPreviousCredits || zeroCurrency}</span>
-                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  <span className="font-semibold truncate">{formattedNewCredits || zeroCurrency}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Vertical Divider */}
-            {(formattedPreviousCredits || formattedNewCredits) && (formattedPreviousWinnings || formattedNewWinnings) && (
-              <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 shrink-0" />
-            )}
-
-            {/* Winnings */}
-            {(formattedPreviousWinnings || formattedNewWinnings) && (
-              <div className="flex-1 min-w-0">
-                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winnings</div>
-                <div className={`text-xs flex items-center gap-1 ${winningsColorClass}`}>
-                  <span className="truncate">{formattedPreviousWinnings || zeroCurrency}</span>
-                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  <span className="font-semibold truncate">{formattedNewWinnings || zeroCurrency}</span>
-                </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
+                {activity.status}
+              </Badge>
+              {activity.game && (
+                <Badge
+                  variant="info"
+                  className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0"
+                >
+                  {activity.game}
+                </Badge>
+              )}
+            </div>
+            {gameUsername && (
+              <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">
+                Game Username: <span className="font-medium text-gray-700 dark:text-gray-300">{gameUsername}</span>
               </div>
             )}
           </div>
         </div>
-      )}
+      </div>
+
+      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
+          <div className="text-right">
+            <div className={`text-base font-bold ${amountColorClass}`}>
+              {shouldShowDash ? '—' : formattedAmount}
+            </div>
+            {formattedBonus && (
+              <div className={`text-xs font-semibold mt-0.5 ${amountColorClass}`}>
+                +{formattedBonus} bonus
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center gap-3">
+          {/* Credit Balance */}
+          <div className="flex-1 min-w-0">
+            <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credit</div>
+            <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
+              <span className="truncate">{formatCurrency(String(prevCredit))}</span>
+              <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
+            </div>
+          </div>
+
+          {/* Vertical Divider */}
+          <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 shrink-0" />
+
+          {/* Winning Balance */}
+          <div className="flex-1 min-w-0">
+            <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winning</div>
+            <div className={`text-xs ${winningsColorClass} flex items-center gap-1`}>
+              <span className="truncate">{formatCurrency(String(prevWinning))}</span>
+              <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              <span className="font-semibold truncate">{formatCurrency(String(newWinning))}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-3">
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>{formattedCreatedAt}</span>
+        </div>
+      </div>
     </div>
   );
 }
