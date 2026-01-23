@@ -10,7 +10,7 @@ import type {
 } from '@/types';
 
 // Company Settings API
-interface CompanyListFilters {
+interface CompanyListFilters extends Record<string, string | number | boolean | undefined> {
   page?: number;
   page_size?: number;
   search?: string;
