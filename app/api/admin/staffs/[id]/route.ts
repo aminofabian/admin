@@ -4,7 +4,7 @@ type RouteContextParams = {
   params: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const RAW_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
+const RAW_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
 const BACKEND_URL = RAW_BACKEND_URL.replace(/\/$/, '');
 
 export async function PATCH(request: NextRequest, context: RouteContextParams) {

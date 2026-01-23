@@ -10,9 +10,9 @@ export async function GET(request: NextRequest) {
 
     // Build query string from search params
     const queryString = searchParams.toString();
-    const backendUrl = `${BACKEND_URL}/api/v1/transaction-queues-processing/${queryString ? `?${queryString}` : ''}`;
+    const backendUrl = `${BACKEND_URL}/api/v1/analytics/transactions/bonus/${queryString ? `?${queryString}` : ''}`;
 
-    console.log('🔷 Proxying GET transaction-queues-processing request:', {
+    console.log('🔷 Proxying GET analytics transactions bonus request:', {
       backendUrl,
       hasAuth: !!authHeader,
       queryParams: Object.fromEntries(searchParams.entries()),
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'application/json',
         ...(authHeader ? { Authorization: authHeader } : {}),
       },
+      credentials: 'include',
     });
 
     const text = await response.text();
@@ -35,16 +36,16 @@ export async function GET(request: NextRequest) {
       data = { raw: text || null };
     }
 
-    console.log('📥 Transaction-queues-processing response status:', response.status);
+    console.log('📥 Analytics transactions bonus response status:', response.status);
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('❌ Transaction-queues-processing proxy (GET) error:', error);
+    console.error('❌ Analytics transactions bonus proxy (GET) error:', error);
 
     return NextResponse.json(
       {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to fetch transaction queues processing',
+        message: error instanceof Error ? error.message : 'Failed to fetch analytics transactions bonus',
       },
       { status: 500 },
     );

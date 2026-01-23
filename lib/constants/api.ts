@@ -77,9 +77,9 @@ export const API_ENDPOINTS = {
   },
   ANALYTICS: {
     DASHBOARD: 'api/admin/analytics', // Using Next.js API route to proxy request
-    TRANSACTIONS_SUMMARY: `${API_PREFIX}/analytics/transactions/summary/`,
-    TRANSACTIONS_PAYMENT_METHODS: `${API_PREFIX}/analytics/transactions/payment-methods/`,
-    TRANSACTIONS_BONUS: `${API_PREFIX}/analytics/transactions/bonus/`,
+    TRANSACTIONS_SUMMARY: 'api/admin/analytics/transactions/summary', // Using Next.js API route to proxy request
+    TRANSACTIONS_PAYMENT_METHODS: 'api/admin/analytics/transactions/payment-methods', // Using Next.js API route to proxy request
+    TRANSACTIONS_BONUS: 'api/admin/analytics/transactions/bonus', // Using Next.js API route to proxy request
     GAMES_SUMMARY: `${API_PREFIX}/analytics/games/summary/`,
     GAMES_BY_GAME: `${API_PREFIX}/analytics/games/by-game/`,
   },

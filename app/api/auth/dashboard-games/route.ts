@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
 const DASHBOARD_GAMES_URL = `${BACKEND_URL}/users/dashboard-games/`;
 
 /**

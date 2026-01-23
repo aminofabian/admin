@@ -6,7 +6,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
     const apiUrl = `${backendUrl}/api/v1/chat-links/${id}/`;
 
     const authHeader = request.headers.get('Authorization');
