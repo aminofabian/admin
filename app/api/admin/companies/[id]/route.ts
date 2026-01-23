@@ -73,7 +73,7 @@ export async function PUT(request: NextRequest, context: RouteContextParams) {
     const isFormData = contentType.includes('multipart/form-data');
     
     let body: FormData | string;
-    let headers: HeadersInit = {
+    const headers: HeadersInit = {
       ...(authHeader ? { Authorization: authHeader } : {}),
     };
 
@@ -146,7 +146,7 @@ export async function PATCH(request: NextRequest, context: RouteContextParams) {
     const isFormData = contentType.includes('multipart/form-data');
     
     let body: FormData | string;
-    let headers: HeadersInit = {
+    const headers: HeadersInit = {
       ...(authHeader ? { Authorization: authHeader } : {}),
     };
 

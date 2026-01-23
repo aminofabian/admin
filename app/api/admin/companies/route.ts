@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const isFormData = contentType.includes('multipart/form-data');
     
     let body: FormData | string;
-    let headers: HeadersInit = {
+    const headers: HeadersInit = {
       ...(authHeader ? { Authorization: authHeader } : {}),
     };
 
