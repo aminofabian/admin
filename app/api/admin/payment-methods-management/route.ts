@@ -10,9 +10,9 @@ export async function GET(request: NextRequest) {
 
     // Build query string from search params
     const queryString = searchParams.toString();
-    const backendUrl = `${BACKEND_URL}/api/v1/companies/${queryString ? `?${queryString}` : ''}`;
+    const backendUrl = `${BACKEND_URL}/api/v1/payment-methods-management/${queryString ? `?${queryString}` : ''}`;
 
-    console.log('🔷 Proxying GET companies request:', {
+    console.log('🔷 Proxying GET payment-methods-management request:', {
       backendUrl,
       hasAuth: !!authHeader,
       queryParams: Object.fromEntries(searchParams.entries()),
@@ -35,16 +35,16 @@ export async function GET(request: NextRequest) {
       data = { raw: text || null };
     }
 
-    console.log('📥 Companies response status:', response.status);
+    console.log('📥 Payment-methods-management response status:', response.status);
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('❌ Company proxy (GET) error:', error);
+    console.error('❌ Payment-methods-management proxy (GET) error:', error);
 
     return NextResponse.json(
       {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to fetch companies',
+        message: error instanceof Error ? error.message : 'Failed to fetch payment methods management',
       },
       { status: 500 },
     );
@@ -53,31 +53,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
     const authHeader = request.headers.get('authorization');
-    const contentType = request.headers.get('content-type') || '';
 
-    // Check if it's FormData (multipart/form-data) or JSON
-    const isFormData = contentType.includes('multipart/form-data');
-    
-    let body: FormData | string;
-    let headers: HeadersInit = {
-      ...(authHeader ? { Authorization: authHeader } : {}),
-    };
+    const backendUrl = `${BACKEND_URL}/api/v1/payment-methods-management/`;
 
-    if (isFormData) {
-      // For FormData, pass it directly (don't set Content-Type, browser will set it with boundary)
-      body = await request.formData();
-    } else {
-      // For JSON, parse and stringify
-      const jsonBody = await request.json();
-      body = JSON.stringify(jsonBody);
-      headers['Content-Type'] = 'application/json';
-    }
+    console.log('🔷 Proxying POST payment-methods-management request:', {
+      backendUrl,
+      hasAuth: !!authHeader,
+      body,
+    });
 
-    const response = await fetch(`${BACKEND_URL}/api/v1/companies/`, {
+    const response = await fetch(backendUrl, {
       method: 'POST',
-      headers,
-      body: body as BodyInit,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
       credentials: 'include',
     });
 
@@ -90,26 +83,18 @@ export async function POST(request: NextRequest) {
       data = { raw: text || null };
     }
 
-    // Log error details for debugging
-    if (!response.ok) {
-      console.error('❌ Company creation failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: data,
-      });
-    }
+    console.log('📥 Payment-methods-management response status:', response.status);
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('❌ Company proxy (POST) error:', error);
+    console.error('❌ Payment-methods-management proxy (POST) error:', error);
 
     return NextResponse.json(
       {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to create company',
+        message: error instanceof Error ? error.message : 'Failed to process payment methods management',
       },
       { status: 500 },
     );
   }
 }
-

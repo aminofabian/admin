@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, context: RouteContextParams) {
 
   if (!id) {
     return NextResponse.json(
-      { status: 'error', message: 'Company ID is required' },
+      { status: 'error', message: 'Payment method ID is required' },
       { status: 400 },
     );
   }
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, context: RouteContextParams) {
   try {
     const authHeader = request.headers.get('authorization');
 
-    const response = await fetch(`${BACKEND_URL}/api/v1/companies/${id}/`, {
+    const response = await fetch(`${BACKEND_URL}/api/v1/payment-methods/${id}/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -41,12 +41,12 @@ export async function GET(request: NextRequest, context: RouteContextParams) {
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('❌ Company proxy (GET) error:', error);
+    console.error('❌ Payment method proxy (GET) error:', error);
 
     return NextResponse.json(
       {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to fetch company',
+        message: error instanceof Error ? error.message : 'Failed to fetch payment method',
       },
       { status: 500 },
     );
@@ -60,37 +60,22 @@ export async function PUT(request: NextRequest, context: RouteContextParams) {
 
   if (!id) {
     return NextResponse.json(
-      { status: 'error', message: 'Company ID is required' },
+      { status: 'error', message: 'Payment method ID is required' },
       { status: 400 },
     );
   }
 
   try {
+    const body = await request.json();
     const authHeader = request.headers.get('authorization');
-    const contentType = request.headers.get('content-type') || '';
 
-    // Check if it's FormData (multipart/form-data) or JSON
-    const isFormData = contentType.includes('multipart/form-data');
-    
-    let body: FormData | string;
-    let headers: HeadersInit = {
-      ...(authHeader ? { Authorization: authHeader } : {}),
-    };
-
-    if (isFormData) {
-      // For FormData, pass it directly (don't set Content-Type, browser will set it with boundary)
-      body = await request.formData();
-    } else {
-      // For JSON, parse and stringify
-      const jsonBody = await request.json();
-      body = JSON.stringify(jsonBody);
-      headers['Content-Type'] = 'application/json';
-    }
-
-    const response = await fetch(`${BACKEND_URL}/api/v1/companies/${id}/`, {
+    const response = await fetch(`${BACKEND_URL}/api/v1/payment-methods/${id}/`, {
       method: 'PUT',
-      headers,
-      body: body as BodyInit,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
       credentials: 'include',
     });
 
@@ -103,9 +88,8 @@ export async function PUT(request: NextRequest, context: RouteContextParams) {
       data = { raw: text || null };
     }
 
-    // Log error details for debugging
     if (!response.ok) {
-      console.error('❌ Company update failed:', {
+      console.error('❌ Payment method update failed:', {
         status: response.status,
         statusText: response.statusText,
         body: data,
@@ -114,12 +98,12 @@ export async function PUT(request: NextRequest, context: RouteContextParams) {
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('❌ Company proxy (PUT) error:', error);
+    console.error('❌ Payment method proxy (PUT) error:', error);
 
     return NextResponse.json(
       {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to update company',
+        message: error instanceof Error ? error.message : 'Failed to update payment method',
       },
       { status: 500 },
     );
@@ -133,37 +117,22 @@ export async function PATCH(request: NextRequest, context: RouteContextParams) {
 
   if (!id) {
     return NextResponse.json(
-      { status: 'error', message: 'Company ID is required' },
+      { status: 'error', message: 'Payment method ID is required' },
       { status: 400 },
     );
   }
 
   try {
+    const body = await request.json();
     const authHeader = request.headers.get('authorization');
-    const contentType = request.headers.get('content-type') || '';
 
-    // Check if it's FormData (multipart/form-data) or JSON
-    const isFormData = contentType.includes('multipart/form-data');
-    
-    let body: FormData | string;
-    let headers: HeadersInit = {
-      ...(authHeader ? { Authorization: authHeader } : {}),
-    };
-
-    if (isFormData) {
-      // For FormData, pass it directly (don't set Content-Type, browser will set it with boundary)
-      body = await request.formData();
-    } else {
-      // For JSON, parse and stringify
-      const jsonBody = await request.json();
-      body = JSON.stringify(jsonBody);
-      headers['Content-Type'] = 'application/json';
-    }
-
-    const response = await fetch(`${BACKEND_URL}/api/v1/companies/${id}/`, {
+    const response = await fetch(`${BACKEND_URL}/api/v1/payment-methods/${id}/`, {
       method: 'PATCH',
-      headers,
-      body: body as BodyInit,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
       credentials: 'include',
     });
 
@@ -178,15 +147,14 @@ export async function PATCH(request: NextRequest, context: RouteContextParams) {
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('❌ Company proxy (PATCH) error:', error);
+    console.error('❌ Payment method proxy (PATCH) error:', error);
 
     return NextResponse.json(
       {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Failed to update company',
+        message: error instanceof Error ? error.message : 'Failed to update payment method',
       },
       { status: 500 },
     );
   }
 }
-

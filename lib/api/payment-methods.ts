@@ -51,56 +51,56 @@ export const paymentMethodsApi = {
   },
 
   get: (id: number) =>
-    apiClient.get<PaymentMethod>(API_ENDPOINTS.PAYMENT_METHODS.DETAIL(id)),
+    apiClient.get<PaymentMethod>(`api/admin/payment-methods/${id}`),
 
   update: (id: number, data: UpdatePaymentMethodRequest) =>
-    apiClient.put<PaymentMethod>(API_ENDPOINTS.PAYMENT_METHODS.DETAIL(id), data),
+    apiClient.put<PaymentMethod>(`api/admin/payment-methods/${id}`, data),
 
   patch: (id: number, data: UpdatePaymentMethodRequest) =>
-    apiClient.patch<PaymentMethod>(API_ENDPOINTS.PAYMENT_METHODS.DETAIL(id), data),
+    apiClient.patch<PaymentMethod>(`api/admin/payment-methods/${id}`, data),
 
   // Payment Methods Management (Superadmin)
   getManagementCompanies: () =>
-    apiClient.get<PaymentMethodManagementResponse>(API_ENDPOINTS.PAYMENT_METHODS.MANAGEMENT),
+    apiClient.get<PaymentMethodManagementResponse>('api/admin/payment-methods-management'),
 
   getManagementCompanyPaymentMethods: (companyId: number) =>
-    apiClient.get<PaymentMethodManagementResponse>(API_ENDPOINTS.PAYMENT_METHODS.MANAGEMENT, {
+    apiClient.get<PaymentMethodManagementResponse>('api/admin/payment-methods-management', {
       params: { company_id: companyId },
     }),
 
   toggleCashout: (paymentMethodId: number) =>
     apiClient.post<{ status: string; message?: string }>(
-      API_ENDPOINTS.PAYMENT_METHODS.MANAGEMENT,
+      'api/admin/payment-methods-management',
       { type: 'toggle_cashout_by_superadmin', payment_method_id: paymentMethodId } as ToggleCashoutRequest
     ),
 
   togglePurchase: (paymentMethodId: number) =>
     apiClient.post<{ status: string; message?: string }>(
-      API_ENDPOINTS.PAYMENT_METHODS.MANAGEMENT,
+      'api/admin/payment-methods-management',
       { type: 'toggle_purchase_by_superadmin', payment_method_id: paymentMethodId } as TogglePurchaseRequest
     ),
 
   enableAllPurchase: (companyId: number) =>
     apiClient.post<{ status: string; message?: string }>(
-      API_ENDPOINTS.PAYMENT_METHODS.MANAGEMENT,
+      'api/admin/payment-methods-management',
       { type: 'enable_all_purchase', company_id: companyId } as EnableAllPurchaseRequest
     ),
 
   enableAllCashout: (companyId: number) =>
     apiClient.post<{ status: string; message?: string }>(
-      API_ENDPOINTS.PAYMENT_METHODS.MANAGEMENT,
+      'api/admin/payment-methods-management',
       { type: 'enable_all_cashout', company_id: companyId } as EnableAllCashoutRequest
     ),
 
   disableAllPurchase: (companyId: number) =>
     apiClient.post<{ status: string; message?: string }>(
-      API_ENDPOINTS.PAYMENT_METHODS.MANAGEMENT,
+      'api/admin/payment-methods-management',
       { type: 'disable_all_purchase', company_id: companyId } as DisableAllPurchaseRequest
     ),
 
   disableAllCashout: (companyId: number) =>
     apiClient.post<{ status: string; message?: string }>(
-      API_ENDPOINTS.PAYMENT_METHODS.MANAGEMENT,
+      'api/admin/payment-methods-management',
       { type: 'disable_all_cashout', company_id: companyId } as DisableAllCashoutRequest
     ),
 };

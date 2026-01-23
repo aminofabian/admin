@@ -38,7 +38,7 @@ export const API_ENDPOINTS = {
     PLAYER_GAMES: 'api/admin/user-games', // Player's game activities - Using Next.js API route to proxy request
     CHECK_STORE_BALANCE: 'api/check-store-balance', // Using Next.js API route to proxy request
     UPDATE_MINIMUM_REDEEM_MULTIPLIER: `${API_PREFIX}/games/update-minimum-redeem-multiplier/`,
-    OFFMARKET_MANAGEMENT: `${API_PREFIX}/offmarket-games-management/`,
+    OFFMARKET_MANAGEMENT: 'api/admin/offmarket-games-management', // Using Next.js API route to proxy request
   },
   TRANSACTIONS: {
     LIST: `${API_PREFIX}/transactions/`,

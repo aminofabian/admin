@@ -18,30 +18,13 @@ interface CompanyListFilters {
 
 export const companySettingsApi = {
   list: (filters?: CompanyListFilters) => {
-    const params = new URLSearchParams();
-    
-    if (filters?.page) {
-      params.append('page', String(filters.page));
-    }
-    
-    if (filters?.page_size) {
-      params.append('page_size', String(filters.page_size));
-    }
-    
-    if (filters?.search) {
-      params.append('search', filters.search);
-    }
-    
-    const queryString = params.toString();
-    const url = queryString 
-      ? `${API_ENDPOINTS.COMPANIES.LIST}?${queryString}`
-      : API_ENDPOINTS.COMPANIES.LIST;
-    
-    return apiClient.get<PaginatedResponse<CompanySettings>>(url);
+    return apiClient.get<PaginatedResponse<CompanySettings>>('api/admin/companies', {
+      params: filters,
+    });
   },
 
   get: (id: number) =>
-    apiClient.get<CompanySettings>(API_ENDPOINTS.COMPANIES.DETAIL(id)),
+    apiClient.get<CompanySettings>(`api/admin/companies/${id}`),
 
   create: (data: CreateCompanyRequest) => {
     const formData = new FormData();
@@ -89,7 +72,7 @@ export const companySettingsApi = {
       formData.append('is_active', String(data.is_active));
     }
     
-    return apiClient.post<CompanyCreateResponse>(API_ENDPOINTS.COMPANIES.LIST, formData);
+    return apiClient.post<CompanyCreateResponse>('api/admin/companies', formData);
   },
 
   update: (id: number, data: UpdateCompanyRequest) => {
@@ -109,11 +92,11 @@ export const companySettingsApi = {
         }
       });
       
-      return apiClient.put<CompanyUpdateResponse>(API_ENDPOINTS.COMPANIES.DETAIL(id), formData);
+      return apiClient.put<CompanyUpdateResponse>(`api/admin/companies/${id}`, formData);
     }
     
     // For simple updates without files, use JSON
-    return apiClient.put<CompanyUpdateResponse>(API_ENDPOINTS.COMPANIES.DETAIL(id), data);
+    return apiClient.put<CompanyUpdateResponse>(`api/admin/companies/${id}`, data);
   },
 
   patch: (id: number, data: UpdateCompanyRequest) => {
@@ -133,10 +116,10 @@ export const companySettingsApi = {
         }
       });
       
-      return apiClient.patch<CompanyUpdateResponse>(API_ENDPOINTS.COMPANIES.DETAIL(id), formData);
+      return apiClient.patch<CompanyUpdateResponse>(`api/admin/companies/${id}`, formData);
     }
     
     // For simple updates without files, use JSON
-    return apiClient.patch<CompanyUpdateResponse>(API_ENDPOINTS.COMPANIES.DETAIL(id), data);
+    return apiClient.patch<CompanyUpdateResponse>(`api/admin/companies/${id}`, data);
   },
 };

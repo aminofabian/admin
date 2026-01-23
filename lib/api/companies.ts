@@ -59,7 +59,7 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
 
 export const companiesApi = {
   list: (filters?: CompanyFilters) => 
-    apiClient.get<PaginatedResponse<Company>>(API_ENDPOINTS.COMPANIES.LIST, {
+    apiClient.get<PaginatedResponse<Company>>('api/admin/companies', {
       params: filters,
     }),
 
@@ -70,7 +70,7 @@ export const companiesApi = {
 
   update: (id: number, data: UpdateCompanyRequest) => {
     const cleanedData = cleanCompanyData(data);
-    return apiClient.put<Company>(API_ENDPOINTS.COMPANIES.DETAIL(id), cleanedData);
+    return apiClient.put<Company>(`api/admin/companies/${id}`, cleanedData);
   },
 
   partialUpdate: (id: number, data: Partial<UpdateCompanyRequest>) => {
