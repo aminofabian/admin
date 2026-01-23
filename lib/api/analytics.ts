@@ -32,10 +32,26 @@ export interface PaymentMethodBreakdown {
   success_rate: number;
   average_transaction_size: number;
   usage_distribution_pct: number;
+  type?: 'purchase' | 'cashout'; // Added to distinguish between purchase and cashout rows
+}
+
+export interface PaymentMethodMetrics {
+  purchase: number;
+  bonus: number;
+  average_bonus_pct: number;
+  cashout: number;
+  success_rate: number;
+  average_transaction_size: number;
+  usage_distribution_pct: number;
 }
 
 export interface PaymentMethodsResponseData {
-  [key: string]: Omit<PaymentMethodBreakdown, 'payment_method'>;
+  purchases: {
+    [key: string]: PaymentMethodMetrics;
+  };
+  cashouts: {
+    [key: string]: PaymentMethodMetrics;
+  };
 }
 
 export interface BonusAnalytics {

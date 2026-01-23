@@ -84,8 +84,14 @@ export default function TransactionAnalyticsPage() {
   const hasActiveFilters = username || state || gender || datePreset !== 'last_3_months';
 
   // Format payment method name
-  const formatPaymentMethodName = (name: string): string => {
-    return name.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  const formatPaymentMethodName = (name: string, type?: 'purchase' | 'cashout'): string => {
+    const formatted = name.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    if (type === 'purchase') {
+      return `P ${formatted}`;
+    } else if (type === 'cashout') {
+      return `C ${formatted}`;
+    }
+    return formatted;
   };
 
   // Loading state
@@ -128,6 +134,10 @@ export default function TransactionAnalyticsPage() {
   // Calculate max values for progress bars
   const maxPaymentPurchase = paymentMethods.length > 0
     ? Math.max(...paymentMethods.map(m => m.purchase ?? 0))
+    : 0;
+  
+  const maxPaymentCashout = paymentMethods.length > 0
+    ? Math.max(...paymentMethods.map(m => m.cashout ?? 0))
     : 0;
 
   return (
@@ -384,13 +394,15 @@ export default function TransactionAnalyticsPage() {
                     </thead>
                     <tbody className="divide-y divide-border/50">
                       {paymentMethods.map((method, idx) => (
-                        <tr key={idx} className="hover:bg-muted/20 transition-colors">
+                        <tr key={`${method.payment_method}-${method.type}-${idx}`} className="hover:bg-muted/20 transition-colors">
                           <td className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
-                                {formatPaymentMethodName(method.payment_method).charAt(0)}
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-primary font-semibold text-xs ${
+                                method.type === 'purchase' ? 'bg-emerald-500/10' : method.type === 'cashout' ? 'bg-rose-500/10' : 'bg-primary/10'
+                              }`}>
+                                {formatPaymentMethodName(method.payment_method, method.type).charAt(0)}
                               </div>
-                              <span className="font-medium">{formatPaymentMethodName(method.payment_method)}</span>
+                              <span className="font-medium">{formatPaymentMethodName(method.payment_method, method.type)}</span>
                             </div>
                           </td>
                           <td className="p-4 text-right font-semibold text-emerald-500">
