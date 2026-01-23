@@ -84,15 +84,13 @@ export default function TransactionAnalyticsPage() {
   const hasActiveFilters = username || state || gender || datePreset !== 'last_3_months';
 
   // Format payment method name
-  const formatPaymentMethodName = (name: string, type?: 'purchase' | 'cashout'): string => {
-    const formatted = name.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    if (type === 'purchase') {
-      return `P ${formatted}`;
-    } else if (type === 'cashout') {
-      return `C ${formatted}`;
-    }
-    return formatted;
+  const formatPaymentMethodName = (name: string): string => {
+    return name.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
+
+  // Filter payment methods by type
+  const purchaseMethods = paymentMethods.filter(m => m.type === 'purchase');
+  const cashoutMethods = paymentMethods.filter(m => m.type === 'cashout');
 
   // Loading state
   if (loadingDashboard) {
@@ -131,14 +129,6 @@ export default function TransactionAnalyticsPage() {
     );
   }
 
-  // Calculate max values for progress bars
-  const maxPaymentPurchase = paymentMethods.length > 0
-    ? Math.max(...paymentMethods.map(m => m.purchase ?? 0))
-    : 0;
-  
-  const maxPaymentCashout = paymentMethods.length > 0
-    ? Math.max(...paymentMethods.map(m => m.cashout ?? 0))
-    : 0;
 
   return (
     <div className="space-y-3 sm:space-y-4 md:space-y-6">
@@ -364,83 +354,149 @@ export default function TransactionAnalyticsPage() {
             </div>
           </div>
 
-          {/* Payment Method Breakdown */}
+          {/* Payment Method Breakdown - Two Column Layout */}
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Payment Method Breakdown</h4>
-            <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
-              {loadingPaymentMethods ? (
-                <div className="p-6 space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-muted/50 rounded w-32 mb-2" />
-                      <div className="h-3 bg-muted/30 rounded" />
-                    </div>
-                  ))}
-                </div>
-              ) : paymentMethods.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/30">
-                      <tr>
-                        <th className="text-left p-4 font-medium">Payment Method</th>
-                        <th className="text-right p-4 font-medium">Purchase</th>
-                        <th className="text-right p-4 font-medium">Bonus</th>
-                        <th className="text-right p-4 font-medium">Avg Bonus %</th>
-                        <th className="text-right p-4 font-medium">Cashout</th>
-                        <th className="text-right p-4 font-medium">Success Rate</th>
-                        <th className="text-right p-4 font-medium">Avg Tx Size</th>
-                        <th className="text-right p-4 font-medium">Usage %</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                      {paymentMethods.map((method, idx) => (
-                        <tr key={`${method.payment_method}-${method.type}-${idx}`} className="hover:bg-muted/20 transition-colors">
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-primary font-semibold text-xs ${
-                                method.type === 'purchase' ? 'bg-emerald-500/10' : method.type === 'cashout' ? 'bg-rose-500/10' : 'bg-primary/10'
-                              }`}>
-                                {formatPaymentMethodName(method.payment_method, method.type).charAt(0)}
-                              </div>
-                              <span className="font-medium">{formatPaymentMethodName(method.payment_method, method.type)}</span>
-                            </div>
-                          </td>
-                          <td className="p-4 text-right font-semibold text-emerald-500">
-                            {formatCurrency(method.purchase ?? 0)}
-                          </td>
-                          <td className="p-4 text-right text-amber-500">
-                            {formatCurrency(method.bonus ?? 0)}
-                          </td>
-                          <td className="p-4 text-right">
-                            {method.average_bonus_pct?.toFixed(1) ?? 0}%
-                          </td>
-                          <td className="p-4 text-right text-rose-500">
-                            {formatCurrency(method.cashout ?? 0)}
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className={method.success_rate && method.success_rate >= 90 ? 'text-emerald-500' : method.success_rate && method.success_rate >= 70 ? 'text-amber-500' : 'text-rose-500'}>
-                              {method.success_rate?.toFixed(1) ?? 0}%
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            {formatCurrency(method.average_transaction_size ?? 0)}
-                          </td>
-                          <td className="p-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <div className="w-16 h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary rounded-full" style={{ width: `${method.usage_distribution_pct ?? 0}%` }} />
-                              </div>
-                              <span className="text-xs w-10">{method.usage_distribution_pct?.toFixed(1) ?? 0}%</span>
-                            </div>
-                          </td>
-                        </tr>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {/* Purchase Analytics Table (Left Half) */}
+              <div className="space-y-2">
+                <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Purchase Analytics</h5>
+                <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
+                  {loadingPaymentMethods ? (
+                    <div className="p-6 space-y-4">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-4 bg-muted/50 rounded w-32 mb-2" />
+                          <div className="h-3 bg-muted/30 rounded" />
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  ) : purchaseMethods.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/30">
+                          <tr>
+                            <th className="text-left p-3 font-medium">Payment Method</th>
+                            <th className="text-right p-3 font-medium">Purchase</th>
+                            <th className="text-right p-3 font-medium">Bonus</th>
+                            <th className="text-right p-3 font-medium">Avg Bonus %</th>
+                            <th className="text-right p-3 font-medium">Success Rate</th>
+                            <th className="text-right p-3 font-medium">Avg Size</th>
+                            <th className="text-right p-3 font-medium">Usage %</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/50">
+                          {purchaseMethods.map((method, idx) => (
+                            <tr key={`purchase-${method.payment_method}-${idx}`} className="hover:bg-muted/20 transition-colors">
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
+                                    {formatPaymentMethodName(method.payment_method).charAt(0)}
+                                  </div>
+                                  <span className="font-medium text-xs">{formatPaymentMethodName(method.payment_method)}</span>
+                                </div>
+                              </td>
+                              <td className="p-3 text-right font-semibold text-emerald-500 text-xs">
+                                {formatCurrency(method.purchase ?? 0)}
+                              </td>
+                              <td className="p-3 text-right text-amber-500 text-xs">
+                                {method.bonus && method.bonus > 0 ? formatCurrency(method.bonus) : '-'}
+                              </td>
+                              <td className="p-3 text-right text-xs">
+                                {method.average_bonus_pct && method.average_bonus_pct > 0 ? `${method.average_bonus_pct.toFixed(1)}%` : '-'}
+                              </td>
+                              <td className="p-3 text-right text-xs">
+                                <span className={method.success_rate && method.success_rate >= 90 ? 'text-emerald-500' : method.success_rate && method.success_rate >= 70 ? 'text-amber-500' : 'text-rose-500'}>
+                                  {method.success_rate?.toFixed(1) ?? 0}%
+                                </span>
+                              </td>
+                              <td className="p-3 text-right text-xs">
+                                {formatCurrency(method.average_transaction_size ?? 0)}
+                              </td>
+                              <td className="p-3 text-right text-xs">
+                                <div className="flex items-center justify-end gap-2">
+                                  <div className="w-12 h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full" style={{ width: `${method.usage_distribution_pct ?? 0}%` }} />
+                                  </div>
+                                  <span className="w-8">{method.usage_distribution_pct?.toFixed(1) ?? 0}%</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-muted-foreground text-xs">No purchase data available</div>
+                  )}
                 </div>
-              ) : (
-                <div className="p-8 text-center text-muted-foreground">No payment method data available</div>
-              )}
+              </div>
+
+              {/* Cashout Analytics Table (Right Half) */}
+              <div className="space-y-2">
+                <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Cashout Analytics</h5>
+                <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
+                  {loadingPaymentMethods ? (
+                    <div className="p-6 space-y-4">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-4 bg-muted/50 rounded w-32 mb-2" />
+                          <div className="h-3 bg-muted/30 rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : cashoutMethods.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/30">
+                          <tr>
+                            <th className="text-left p-3 font-medium">Payment Method</th>
+                            <th className="text-right p-3 font-medium">Cashout</th>
+                            <th className="text-right p-3 font-medium">Success Rate</th>
+                            <th className="text-right p-3 font-medium">Avg Size</th>
+                            <th className="text-right p-3 font-medium">Usage %</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/50">
+                          {cashoutMethods.map((method, idx) => (
+                            <tr key={`cashout-${method.payment_method}-${idx}`} className="hover:bg-muted/20 transition-colors">
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-semibold text-xs">
+                                    {formatPaymentMethodName(method.payment_method).charAt(0)}
+                                  </div>
+                                  <span className="font-medium text-xs">{formatPaymentMethodName(method.payment_method)}</span>
+                                </div>
+                              </td>
+                              <td className="p-3 text-right font-semibold text-rose-500 text-xs">
+                                {formatCurrency(method.cashout ?? 0)}
+                              </td>
+                              <td className="p-3 text-right text-xs">
+                                <span className={method.success_rate && method.success_rate >= 90 ? 'text-emerald-500' : method.success_rate && method.success_rate >= 70 ? 'text-amber-500' : 'text-rose-500'}>
+                                  {method.success_rate?.toFixed(1) ?? 0}%
+                                </span>
+                              </td>
+                              <td className="p-3 text-right text-xs">
+                                {formatCurrency(method.average_transaction_size ?? 0)}
+                              </td>
+                              <td className="p-3 text-right text-xs">
+                                <div className="flex items-center justify-end gap-2">
+                                  <div className="w-12 h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full" style={{ width: `${method.usage_distribution_pct ?? 0}%` }} />
+                                  </div>
+                                  <span className="w-8">{method.usage_distribution_pct?.toFixed(1) ?? 0}%</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-muted-foreground text-xs">No cashout data available</div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
