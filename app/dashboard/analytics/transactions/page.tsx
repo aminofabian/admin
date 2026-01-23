@@ -13,7 +13,6 @@ import { formatCurrency } from '@/lib/utils/formatters';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import type { AnalyticsFilters } from '@/lib/api/analytics';
-import { AnalyticsTabs } from '@/components/dashboard/layout/analytics-tabs';
 
 // Import shared utilities
 import { US_STATES, getDateRange } from '../analytics-utils';
@@ -306,9 +305,6 @@ export default function TransactionAnalyticsPage() {
           </div>
         </div>
       )}
-
-      {/* Analytics Tabs */}
-      <AnalyticsTabs />
 
       {/* Transaction Analytics */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
