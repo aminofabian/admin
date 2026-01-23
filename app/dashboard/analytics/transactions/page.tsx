@@ -522,7 +522,7 @@ export default function TransactionAnalyticsPage() {
                 </div>
                 <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
                   <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Avg Purchase Bonus %</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{bonusAnalytics.average_purchase_bonus_percent?.toFixed(2) ?? 0}%</div>
+                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{bonusAnalytics.average_purchase_bonus_pct?.toFixed(2) ?? 0}%</div>
                   <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">(Purchase Bonus / Total Purchase) × 100</div>
                 </div>
                 <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
@@ -542,7 +542,7 @@ export default function TransactionAnalyticsPage() {
                 </div>
                 <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
                   <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Avg Transfer Bonus %</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{bonusAnalytics.average_transfer_bonus_percent?.toFixed(2) ?? 0}%</div>
+                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{bonusAnalytics.average_transfer_bonus_pct?.toFixed(2) ?? 0}%</div>
                   <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">(Transfer Bonus / Total Transfer) × 100</div>
                 </div>
               </div>

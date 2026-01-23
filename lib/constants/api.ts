@@ -80,8 +80,8 @@ export const API_ENDPOINTS = {
     TRANSACTIONS_SUMMARY: 'api/admin/analytics/transactions/summary', // Using Next.js API route to proxy request
     TRANSACTIONS_PAYMENT_METHODS: 'api/admin/analytics/transactions/payment-methods', // Using Next.js API route to proxy request
     TRANSACTIONS_BONUS: 'api/admin/analytics/transactions/bonus', // Using Next.js API route to proxy request
-    GAMES_SUMMARY: `${API_PREFIX}/analytics/games/summary/`,
-    GAMES_BY_GAME: `${API_PREFIX}/analytics/games/by-game/`,
+    GAMES_SUMMARY: 'api/admin/analytics/games/summary', // Using Next.js API route to proxy request
+    GAMES_BY_GAME: 'api/admin/analytics/games/by-game', // Using Next.js API route to proxy request
   },
   PAYMENT_METHODS: {
     LIST: `${API_PREFIX}/payment-methods/`,

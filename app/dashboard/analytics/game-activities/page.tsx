@@ -338,7 +338,7 @@ export default function GameActivityAnalyticsPage() {
                   </div>
                   <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
                     <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Average Bonus %</div>
-                    <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{gameSummary.average_bonus_percent?.toFixed(2) ?? 0}%</div>
+                    <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{gameSummary.average_bonus_pct?.toFixed(2) ?? 0}%</div>
                     <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">(Total Bonus / Total Recharge) × 100</div>
                   </div>
                   <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
@@ -407,7 +407,7 @@ export default function GameActivityAnalyticsPage() {
                             {formatCurrency(game.bonus)}
                           </td>
                           <td className="p-4 text-right">
-                            {game.average_bonus_percent?.toFixed(1) ?? 0}%
+                            {game.average_bonus_pct?.toFixed(1) ?? 0}%
                           </td>
                           <td className="p-4 text-right text-rose-500">
                             {formatCurrency(game.redeem)}

@@ -57,18 +57,18 @@ export interface PaymentMethodsResponseData {
 export interface BonusAnalytics {
   total_bonus: number;
   purchase_bonus: number;
-  average_purchase_bonus_percent: number;
+  average_purchase_bonus_pct: number;
   signup_bonus: number;
   first_deposit_bonus: number;
   transfer_bonus: number;
-  average_transfer_bonus_percent: number;
+  average_transfer_bonus_pct: number;
 }
 
 // Game Analytics Types
 export interface GameSummary {
   total_recharge: number;
   total_bonus: number;
-  average_bonus_percent: number;
+  average_bonus_pct: number;
   total_redeem: number;
   net_game_activity: number;
 }
@@ -78,7 +78,7 @@ export interface GameByGame {
   game_title: string;
   recharge: number;
   bonus: number;
-  average_bonus_percent: number;
+  average_bonus_pct: number;
   redeem: number;
   net_game_activity: number;
 }
