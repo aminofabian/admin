@@ -29,6 +29,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     btcpay_api_key: company?.btcpay_api_key ?? '',
     btcpay_store_id: company?.btcpay_store_id ?? '',
     btcpay_webhook_secret: company?.btcpay_webhook_secret ?? '',
+    brenzi_merchant_slug: company?.brenzi_merchant_slug ?? '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -117,6 +118,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           btcpay_api_key: formData.btcpay_api_key || undefined,
           btcpay_store_id: formData.btcpay_store_id || undefined,
           btcpay_webhook_secret: formData.btcpay_webhook_secret || undefined,
+          brenzi_merchant_slug: formData.brenzi_merchant_slug || undefined,
         };
         
         await onSubmit(updateData as CreateCompanyRequest | UpdateCompanyRequest);
@@ -283,6 +285,21 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
             placeholder="BTC Pay Webhook Secret"
             disabled={isLoading}
             className="md:col-span-2"
+          />
+        </div>
+      </div>
+
+      {/* Brenzi Payment Configuration */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Brenzi Payment Configuration</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Brenzi Merchant Slug"
+            type="text"
+            value={formData.brenzi_merchant_slug}
+            onChange={(e) => handleChange('brenzi_merchant_slug', e.target.value)}
+            placeholder="e.g., tastey"
+            disabled={isLoading}
           />
         </div>
       </div>
