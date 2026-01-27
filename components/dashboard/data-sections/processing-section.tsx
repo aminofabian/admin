@@ -1028,7 +1028,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                 {wsConnected && !wsConnecting && (
                   <>
                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
+                    <span className="text-xs font-medium text-green-600 dark:text-green-400">Live</span>
                   </>
                 )}
                 {isUsingFallback && !wsConnected && !wsConnecting && (
@@ -1390,7 +1390,7 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
                   {wsConnected && !wsConnecting && (
                     <>
                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <span className="text-xs font-medium text-green-600 dark:text-green-400">Live Updates Active</span>
+                      <span className="text-xs font-medium text-green-600 dark:text-green-400">Live</span>
                     </>
                   )}
                   {isUsingFallback && !wsConnected && !wsConnecting && (
