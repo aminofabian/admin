@@ -1003,6 +1003,7 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
       : null);
 
   const formattedCreatedAt = formatDate(activity.created_at);
+  const formattedUpdatedAt = formatDate(activity.updated_at);
 
   const handleOpenDetails = useCallback(() => {
     onView(activity);
@@ -1128,11 +1129,19 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
       </div>
 
       <div className="p-3">
-        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
-          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span>{formattedCreatedAt}</span>
+        <div className="flex items-center justify-between gap-3 text-[10px] text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-1.5">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>{formattedCreatedAt}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{formattedUpdatedAt}</span>
+          </div>
         </div>
       </div>
     </div>
