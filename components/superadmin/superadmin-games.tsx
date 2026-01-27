@@ -44,7 +44,7 @@ export function SuperAdminGames() {
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
-        action: 'toggle' | 'enableAll' | 'disableAll';
+        action: 'toggle';
         gameId?: number;
         isLoading: boolean;
     }>({
@@ -148,21 +148,6 @@ export function SuperAdminGames() {
         });
     };
 
-    const handleEnableAll = () => {
-        setConfirmModal({
-            isOpen: true,
-            action: 'enableAll',
-            isLoading: false,
-        });
-    };
-
-    const handleDisableAll = () => {
-        setConfirmModal({
-            isOpen: true,
-            action: 'disableAll',
-            isLoading: false,
-        });
-    };
 
     const handleConfirmAction = async () => {
         if (!selectedCompanyId) return;
@@ -176,20 +161,6 @@ export function SuperAdminGames() {
                     type: 'success',
                     title: 'Game Status Updated',
                     description: 'Game status has been toggled successfully.',
-                });
-            } else if (confirmModal.action === 'enableAll') {
-                await gamesApi.enableAllGames(selectedCompanyId);
-                addToast({
-                    type: 'success',
-                    title: 'All Games Enabled',
-                    description: 'All games have been enabled successfully.',
-                });
-            } else if (confirmModal.action === 'disableAll') {
-                await gamesApi.disableAllGames(selectedCompanyId);
-                addToast({
-                    type: 'success',
-                    title: 'All Games Disabled',
-                    description: 'All games have been disabled successfully.',
                 });
             }
 
@@ -465,55 +436,6 @@ export function SuperAdminGames() {
                                 />
                             </div>
 
-                            {/* Action Buttons - Organized by Type */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {/* Enable All Card */}
-                                <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/30 dark:from-green-950/20 dark:to-emerald-950/10 border border-green-200 dark:border-green-800/50 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="p-1.5 bg-green-500/10 rounded-md">
-                                            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </div>
-                                        <span className="text-sm font-semibold text-green-900 dark:text-green-100">Enable All Games</span>
-                                    </div>
-                                    <Button
-                                        variant="secondary"
-                                        onClick={handleEnableAll}
-                                        disabled={isLoadingGames || games.length === 0}
-                                        className="w-full bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 active:scale-[0.98] transition-all"
-                                    >
-                                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        Enable All
-                                    </Button>
-                                </div>
-
-                                {/* Disable All Card */}
-                                <div className="bg-gradient-to-br from-red-50/50 to-orange-50/30 dark:from-red-950/20 dark:to-orange-950/10 border border-red-200 dark:border-red-800/50 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="p-1.5 bg-red-500/10 rounded-md">
-                                            <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                            </svg>
-                                        </div>
-                                        <span className="text-sm font-semibold text-red-900 dark:text-red-100">Disable All Games</span>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={handleDisableAll}
-                                        disabled={isLoadingGames || games.length === 0}
-                                        className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 active:scale-[0.98] transition-all"
-                                    >
-                                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                        </svg>
-                                        Disable All
-                                    </Button>
-                                </div>
-                            </div>
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -742,29 +664,11 @@ export function SuperAdminGames() {
                 isOpen={confirmModal.isOpen}
                 onClose={handleCancelAction}
                 onConfirm={handleConfirmAction}
-                title={
-                    confirmModal.action === 'toggle'
-                        ? 'Toggle Game Status'
-                        : confirmModal.action === 'enableAll'
-                            ? 'Enable All Games'
-                            : 'Disable All Games'
-                }
-                description={
-                    confirmModal.action === 'toggle'
-                        ? 'Are you sure you want to toggle this game\'s status?'
-                        : confirmModal.action === 'enableAll'
-                            ? `Are you sure you want to enable all games for ${selectedCompany?.project_name || 'this company'}?`
-                            : `Are you sure you want to disable all games for ${selectedCompany?.project_name || 'this company'}?`
-                }
-                confirmText={
-                    confirmModal.action === 'toggle'
-                        ? 'Yes, Toggle'
-                        : confirmModal.action === 'enableAll'
-                            ? 'Yes, Enable All'
-                            : 'Yes, Disable All'
-                }
+                title="Toggle Game Status"
+                description="Are you sure you want to toggle this game's status?"
+                confirmText="Yes, Toggle"
                 cancelText="Cancel"
-                variant={confirmModal.action === 'disableAll' ? 'warning' : 'info'}
+                variant="info"
                 isLoading={confirmModal.isLoading}
             />
         </div >

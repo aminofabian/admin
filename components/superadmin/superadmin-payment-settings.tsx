@@ -41,7 +41,7 @@ export function SuperAdminPaymentSettings() {
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
-        action: 'toggleCashout' | 'togglePurchase' | 'enableAllPurchase' | 'enableAllCashout' | 'disableAllPurchase' | 'disableAllCashout';
+        action: 'toggleCashout' | 'togglePurchase';
         paymentMethodId?: number;
         isLoading: boolean;
     }>({
@@ -165,37 +165,6 @@ export function SuperAdminPaymentSettings() {
         });
     };
 
-    const handleEnableAllPurchase = () => {
-        setConfirmModal({
-            isOpen: true,
-            action: 'enableAllPurchase',
-            isLoading: false,
-        });
-    };
-
-    const handleEnableAllCashout = () => {
-        setConfirmModal({
-            isOpen: true,
-            action: 'enableAllCashout',
-            isLoading: false,
-        });
-    };
-
-    const handleDisableAllPurchase = () => {
-        setConfirmModal({
-            isOpen: true,
-            action: 'disableAllPurchase',
-            isLoading: false,
-        });
-    };
-
-    const handleDisableAllCashout = () => {
-        setConfirmModal({
-            isOpen: true,
-            action: 'disableAllCashout',
-            isLoading: false,
-        });
-    };
 
     const formatAmount = (amount: string | null | undefined): string => {
         if (!amount) return 'No limit';
@@ -289,34 +258,6 @@ export function SuperAdminPaymentSettings() {
                     type: 'success',
                     title: 'Purchase Status Updated',
                     description: 'Payment method purchase status has been toggled successfully.',
-                });
-            } else if (confirmModal.action === 'enableAllPurchase') {
-                await paymentMethodsApi.enableAllPurchase(selectedCompanyId);
-                addToast({
-                    type: 'success',
-                    title: 'All Purchases Enabled',
-                    description: 'All payment methods have been enabled for purchase.',
-                });
-            } else if (confirmModal.action === 'enableAllCashout') {
-                await paymentMethodsApi.enableAllCashout(selectedCompanyId);
-                addToast({
-                    type: 'success',
-                    title: 'All Cashouts Enabled',
-                    description: 'All payment methods have been enabled for cashout.',
-                });
-            } else if (confirmModal.action === 'disableAllPurchase') {
-                await paymentMethodsApi.disableAllPurchase(selectedCompanyId);
-                addToast({
-                    type: 'success',
-                    title: 'All Purchases Disabled',
-                    description: 'All payment methods have been disabled for purchase.',
-                });
-            } else if (confirmModal.action === 'disableAllCashout') {
-                await paymentMethodsApi.disableAllCashout(selectedCompanyId);
-                addToast({
-                    type: 'success',
-                    title: 'All Cashouts Disabled',
-                    description: 'All payment methods have been disabled for cashout.',
                 });
             }
 
@@ -644,64 +585,6 @@ export function SuperAdminPaymentSettings() {
                                 />
                             </div>
 
-                            {/* Action Buttons - Organized by Type */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {/* Enable Actions Card */}
-                                <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/30 dark:from-green-950/20 dark:to-emerald-950/10 border border-green-200 dark:border-green-800/50 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="p-1.5 bg-green-500/10 rounded-md">
-                                            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </div>
-                                        <span className="text-sm font-semibold text-green-900 dark:text-green-100">Enable All</span>
-                                    </div>
-                                    <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        onClick={viewMode === 'purchase' ? handleEnableAllPurchase : handleEnableAllCashout}
-                                        disabled={isLoadingMethods || paymentMethods.length === 0}
-                                        className="w-full bg-white dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-950/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 active:scale-[0.98] transition-all"
-                                    >
-                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            {viewMode === 'purchase' ? (
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            ) : (
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            )}
-                                        </svg>
-                                        {viewMode === 'purchase' ? 'Enable All Purchase' : 'Enable All Cashout'}
-                                    </Button>
-                                </div>
-
-                                {/* Disable Actions Card */}
-                                <div className="bg-gradient-to-br from-red-50/50 to-orange-50/30 dark:from-red-950/20 dark:to-orange-950/10 border border-red-200 dark:border-red-800/50 rounded-lg p-3">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="p-1.5 bg-red-500/10 rounded-md">
-                                            <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                            </svg>
-                                        </div>
-                                        <span className="text-sm font-semibold text-red-900 dark:text-red-100">Disable All</span>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={viewMode === 'purchase' ? handleDisableAllPurchase : handleDisableAllCashout}
-                                        disabled={isLoadingMethods || paymentMethods.length === 0}
-                                        className="w-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200 active:scale-[0.98] transition-all"
-                                    >
-                                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            {viewMode === 'purchase' ? (
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            ) : (
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                            )}
-                                        </svg>
-                                        {viewMode === 'purchase' ? 'Disable All Purchase' : 'Disable All Cashout'}
-                                    </Button>
-                                </div>
-                            </div>
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -1059,38 +942,16 @@ export function SuperAdminPaymentSettings() {
                 title={
                     confirmModal.action === 'toggleCashout'
                         ? 'Toggle Cashout Status'
-                        : confirmModal.action === 'togglePurchase'
-                            ? 'Toggle Purchase Status'
-                            : confirmModal.action === 'enableAllPurchase'
-                                ? 'Enable All Purchases'
-                                : confirmModal.action === 'enableAllCashout'
-                                    ? 'Enable All Cashouts'
-                                    : confirmModal.action === 'disableAllPurchase'
-                                        ? 'Disable All Purchases'
-                                        : 'Disable All Cashouts'
+                        : 'Toggle Purchase Status'
                 }
                 description={
                     confirmModal.action === 'toggleCashout'
                         ? 'Are you sure you want to toggle this payment method\'s cashout status?'
-                        : confirmModal.action === 'togglePurchase'
-                            ? 'Are you sure you want to toggle this payment method\'s purchase status?'
-                            : confirmModal.action === 'enableAllPurchase'
-                                ? `Are you sure you want to enable all payment methods for purchase for ${selectedCompany?.project_name || 'this company'}?`
-                                : confirmModal.action === 'enableAllCashout'
-                                    ? `Are you sure you want to enable all payment methods for cashout for ${selectedCompany?.project_name || 'this company'}?`
-                                    : confirmModal.action === 'disableAllPurchase'
-                                        ? `Are you sure you want to disable all payment methods for purchase for ${selectedCompany?.project_name || 'this company'}?`
-                                        : `Are you sure you want to disable all payment methods for cashout for ${selectedCompany?.project_name || 'this company'}?`
+                        : 'Are you sure you want to toggle this payment method\'s purchase status?'
                 }
-                confirmText={
-                    confirmModal.action === 'toggleCashout' || confirmModal.action === 'togglePurchase'
-                        ? 'Yes, Toggle'
-                        : confirmModal.action === 'enableAllPurchase' || confirmModal.action === 'enableAllCashout'
-                            ? 'Yes, Enable All'
-                            : 'Yes, Disable All'
-                }
+                confirmText="Yes, Toggle"
                 cancelText="Cancel"
-                variant={confirmModal.action === 'disableAllPurchase' || confirmModal.action === 'disableAllCashout' ? 'warning' : 'info'}
+                variant="info"
                 isLoading={confirmModal.isLoading}
             />
             {/* Superadmin Limits Modal */}
