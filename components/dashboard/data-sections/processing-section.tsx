@@ -25,6 +25,10 @@ import {
 } from '@/components/features';
 import { ActionModal } from './action-modal/game-activity-history';
 import { GameActivityTable } from './game-activity-table';
+import {
+  HistoryGameActivitiesFilters,
+  type HistoryGameActivitiesFiltersState,
+} from '@/components/dashboard/history/history-game-activities-filters';
 import { 
   useTransactionsStore, 
   useTransactionQueuesStore 
@@ -32,6 +36,8 @@ import {
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
 import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
+import { gamesApi, staffsApi, managersApi } from '@/lib/api';
+import { storage } from '@/lib/utils/storage';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
@@ -487,6 +493,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     currentPage: queuePage,
     pageSize: queuePageSize,
     setPage: setQueuePage,
+    advancedFilters,
+    setAdvancedFiltersWithoutFetch,
+    clearAdvancedFiltersWithoutFetch,
   } = useTransactionQueuesStore();
 
   const { 
@@ -1349,6 +1358,318 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
     />
   );
 
+  // Game activity filters state (match history view design)
+  const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
+    username: '',
+    email: '',
+    transaction_id: '',
+    operator: '',
+    type: '',
+    game: '',
+    game_username: '',
+    status: '',
+    date_from: '',
+    date_to: '',
+  };
+
+  const [gameFilters, setGameFilters] = useState<HistoryGameActivitiesFiltersState>(DEFAULT_GAME_ACTIVITY_FILTERS);
+  const [areGameFiltersOpen, setAreGameFiltersOpen] = useState(false);
+  const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [isGameLoading, setIsGameLoading] = useState(false);
+  const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [isOperatorLoading, setIsOperatorLoading] = useState(false);
+
+  // Sync filters from store advancedFilters for game activities
+  useEffect(() => {
+    if (!isGameActivitiesView) {
+      return;
+    }
+
+    const buildGameActivityFilterState = (advanced: Record<string, string>): HistoryGameActivitiesFiltersState => {
+      const type = advanced.type === 'change_password' ? 'reset_password' : (advanced.type ?? '');
+
+      return {
+        username: advanced.username ?? '',
+        email: advanced.email ?? '',
+        transaction_id: advanced.transaction_id ?? '',
+        operator: advanced.operator ?? '',
+        type,
+        game: advanced.game ?? '',
+        game_username: advanced.game_username ?? '',
+        status: advanced.status ?? '',
+        date_from: advanced.date_from ?? '',
+        date_to: advanced.date_to ?? '',
+      };
+    };
+
+    const filterState = buildGameActivityFilterState(advancedFilters);
+
+    // Normalize date formats for HTML date inputs
+    if (filterState.date_from) {
+      const dateFromValue = filterState.date_from.trim();
+      if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
+        const parsedDate = new Date(dateFromValue);
+        if (!isNaN(parsedDate.getTime())) {
+          filterState.date_from = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    }
+
+    if (filterState.date_to) {
+      const dateToValue = filterState.date_to.trim();
+      if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
+        const parsedDate = new Date(dateToValue);
+        if (!isNaN(parsedDate.getTime())) {
+          filterState.date_to = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    }
+
+    setGameFilters(filterState);
+
+    if (Object.keys(advancedFilters).length > 0) {
+      setAreGameFiltersOpen(true);
+    }
+  }, [advancedFilters, isGameActivitiesView]);
+
+  // Lazy-load games when filters are opened (match history view behavior)
+  useEffect(() => {
+    if (!isGameActivitiesView) {
+      return;
+    }
+    if (!areGameFiltersOpen || gameOptions.length > 0 || isGameLoading) {
+      return;
+    }
+
+    let isMounted = true;
+    setIsGameLoading(true);
+
+    const loadGames = async () => {
+      try {
+        const data = await gamesApi.list();
+
+        if (!isMounted) return;
+
+        const games = Array.isArray(data)
+          ? data
+          : (data && typeof data === 'object' && 'results' in data && Array.isArray((data as any).results))
+            ? (data as any).results
+            : [];
+
+        const uniqueGames = new Map<string, string>();
+
+        games.forEach((game: any) => {
+          if (game?.title) {
+            uniqueGames.set(game.title, game.title);
+          }
+        });
+
+        const mappedOptions = Array.from(uniqueGames.entries())
+          .map(([value, label]) => ({ value, label }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+        setGameOptions(mappedOptions);
+      } catch (error) {
+        console.error('Failed to load games for game activity filters (processing view):', error);
+      } finally {
+        if (isMounted) {
+          setIsGameLoading(false);
+        }
+      }
+    };
+
+    void loadGames();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [areGameFiltersOpen, gameOptions.length, isGameLoading, isGameActivitiesView]);
+
+  // Load operators (staff + managers) for operator filter in processing view
+  useEffect(() => {
+    if (!isGameActivitiesView) {
+      return;
+    }
+    if (operatorOptions.length > 0 || isOperatorLoading) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadOperators = async () => {
+      setIsOperatorLoading(true);
+
+      try {
+        // Determine company name from hostname (same logic as history view)
+        let companyName = 'bitslot';
+        if (typeof window !== 'undefined') {
+          const hostname = window.location.hostname;
+          if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            companyName = 'bitslot';
+          } else if (hostname.includes('.bruii.com')) {
+            companyName = hostname.split('.bruii.com')[0] ?? 'bitslot';
+          } else {
+            const parts = hostname.split('.');
+            if (parts.length > 1) {
+              companyName = parts[0] ?? 'bitslot';
+            }
+          }
+        }
+
+        // Read user role and username from local storage
+        let userRole: string | undefined;
+        let username: string | undefined;
+        const userData = storage.get('user');
+        if (userData) {
+          try {
+            const user = JSON.parse(userData);
+            if (user?.role) {
+              userRole = user.role;
+            }
+            if (user?.username) {
+              username = user.username;
+            }
+          } catch (error) {
+            console.warn('Failed to parse user data from localStorage (processing view):', error);
+          }
+        }
+
+        const operatorMap = new Map<string, { value: string; label: string }>();
+
+        // "Bot"
+        operatorMap.set('bot', { value: 'bot', label: 'Bot' });
+
+        // Company
+        operatorMap.set(companyName, { value: companyName, label: companyName });
+
+        // Current user (for managers/staff)
+        if ((userRole === 'manager' || userRole === 'staff') && username) {
+          operatorMap.set(username, { value: username, label: username });
+        }
+
+        // Staff (skip for staff users due to permissions)
+        if (userRole !== 'staff') {
+          try {
+            const staffResponse = await staffsApi.list({ page_size: 100 });
+            const activeStaff = (staffResponse?.results || []).filter((staff: any) => staff.is_active);
+            activeStaff.forEach((staff: any) => {
+              if (staff?.username) {
+                operatorMap.set(staff.username, { value: staff.username, label: staff.username });
+              }
+            });
+          } catch (error) {
+            console.debug('Cannot load staff list for operator filter (processing view) - likely permission issue:', error);
+          }
+        }
+
+        // Managers (skip for managers themselves)
+        if (userRole !== 'manager') {
+          try {
+            const managersResponse = await managersApi.list({ page_size: 100 });
+            const activeManagers = (managersResponse?.results || []).filter((manager: any) => manager.is_active);
+            activeManagers.forEach((manager: any) => {
+              if (manager?.username) {
+                operatorMap.set(manager.username, { value: manager.username, label: manager.username });
+              }
+            });
+          } catch (error) {
+            console.debug('Cannot load managers list for operator filter (processing view) - likely permission issue:', error);
+          }
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        const sortedEntries = Array.from(operatorMap.entries()).sort((a, b) => {
+          const aValue = a[1].value;
+          const bValue = b[1].value;
+          const aLabel = a[1].label;
+          const bLabel = b[1].label;
+
+          if (aValue === 'bot') return -1;
+          if (bValue === 'bot') return 1;
+          if (aValue === companyName) return -1;
+          if (bValue === companyName) return 1;
+          return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+        });
+
+        const mappedOptions = sortedEntries.map(([, option]) => option);
+
+        if (isMounted) {
+          setOperatorOptions(mappedOptions);
+        }
+      } catch (error) {
+        console.error('Failed to load operators for game activity filters (processing view):', error);
+      } finally {
+        if (isMounted) {
+          setIsOperatorLoading(false);
+        }
+      }
+    };
+
+    void loadOperators();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isGameActivitiesView, operatorOptions.length, isOperatorLoading]);
+
+  const handleGameFilterChange = useCallback(
+    (key: keyof HistoryGameActivitiesFiltersState, value: string) => {
+      setGameFilters((previous) => ({ ...previous, [key]: value }));
+    },
+    [],
+  );
+
+  const handleApplyGameFilters = useCallback(() => {
+    const sanitized = Object.fromEntries(
+      Object.entries(gameFilters).filter(([, value]) => {
+        if (typeof value === 'string') {
+          return value.trim() !== '';
+        }
+        return Boolean(value);
+      }),
+    ) as Record<string, string>;
+
+    // Map reset_password back to change_password for API
+    if (sanitized.type === 'reset_password') {
+      sanitized.type = 'change_password';
+    }
+
+    // Normalize date formats
+    if (sanitized.date_from) {
+      const dateFromValue = sanitized.date_from.trim();
+      if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
+        const parsedDate = new Date(dateFromValue);
+        if (!isNaN(parsedDate.getTime())) {
+          sanitized.date_from = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    }
+
+    if (sanitized.date_to) {
+      const dateToValue = sanitized.date_to.trim();
+      if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
+        const parsedDate = new Date(dateToValue);
+        if (!isNaN(parsedDate.getTime())) {
+          sanitized.date_to = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    }
+
+    setAdvancedFiltersWithoutFetch(sanitized);
+  }, [gameFilters, setAdvancedFiltersWithoutFetch]);
+
+  const handleClearGameFilters = useCallback(() => {
+    setGameFilters(DEFAULT_GAME_ACTIVITY_FILTERS);
+    clearAdvancedFiltersWithoutFetch();
+  }, [clearAdvancedFiltersWithoutFetch]);
+
+  const handleToggleGameFilters = useCallback(() => {
+    setAreGameFiltersOpen((previous) => !previous);
+  }, []);
+
   return (
     <>
       <DashboardSectionContainer
@@ -1439,6 +1760,23 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
               <p className="text-sm text-muted-foreground">{metadata.hint}</p>
             </DashboardActionBar>
           )}
+          {/* Game activity filters - match history design */}
+          <HistoryGameActivitiesFilters
+            queueFilter="processing"
+            // Queue filter switching is handled elsewhere; this UI currently only exposes advanced filters
+            onQueueFilterChange={() => {}}
+            filters={gameFilters}
+            onFilterChange={handleGameFilterChange}
+            onApply={handleApplyGameFilters}
+            onClear={handleClearGameFilters}
+            isOpen={areGameFiltersOpen}
+            onToggle={handleToggleGameFilters}
+            gameOptions={gameOptions}
+            isGameLoading={isGameLoading}
+            operatorOptions={operatorOptions}
+            isOperatorLoading={isOperatorLoading}
+            isLoading={queuesLoading}
+          />
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             {(!queues || queues.length === 0) ? (
               <div className="py-12">
