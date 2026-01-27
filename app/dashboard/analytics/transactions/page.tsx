@@ -187,11 +187,10 @@ export default function TransactionAnalyticsPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
               {/* Date Filter */}
               <div className="space-y-2 lg:col-span-2 relative">
-                <label className="text-sm font-medium flex items-center gap-2">
+              <label className="text-sm font-medium flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                   </svg>
-                  <span className="text-xs text-muted-foreground">3.1</span>
                   Date Range
                 </label>
                 <div className="grid gap-2 md:grid-cols-3">
@@ -236,7 +235,6 @@ export default function TransactionAnalyticsPage() {
               {/* Username Filter */}
               <div className="space-y-2 relative">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">3.2</span>
                   Username
                 </label>
                 <input
@@ -251,7 +249,6 @@ export default function TransactionAnalyticsPage() {
               {/* State Filter */}
               <div className="space-y-2 relative">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">3.3</span>
                   State
                 </label>
                 <Select
@@ -265,7 +262,6 @@ export default function TransactionAnalyticsPage() {
               {/* Gender Filter */}
               <div className="space-y-2 relative">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">3.4</span>
                   Gender
                 </label>
                 <Select
