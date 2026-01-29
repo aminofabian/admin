@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
 import type { 
   Banner,
   CreateBannerRequest,
@@ -38,60 +37,56 @@ export const bannersApi = {
   },
 
   get: (id: number) =>
-    apiClient.get<Banner>(API_ENDPOINTS.BANNERS.DETAIL(id)),
+    apiClient.get<Banner>(`api/admin/admin-banners/${id}`),
 
   create: (data: CreateBannerRequest) => {
     const formData = new FormData();
-    
-    // Append text fields
+
     formData.append('title', data.title);
     formData.append('banner_type', data.banner_type);
-    
+
     if (data.banner_category) {
       formData.append('banner_category', data.banner_category);
     }
-    
+
     if (data.redirect_url) {
       formData.append('redirect_url', data.redirect_url);
     }
-    
+
     if (data.is_active !== undefined) {
       formData.append('is_active', String(data.is_active));
     }
-    
-    // Append file fields
+
     if (data.web_banner) {
       formData.append('web_banner', data.web_banner);
     }
-    
+
     if (data.mobile_banner) {
       formData.append('mobile_banner', data.mobile_banner);
     }
-    
+
     if (data.banner_thumbnail) {
       formData.append('banner_thumbnail', data.banner_thumbnail);
     }
-    
-    return apiClient.post<Banner>(API_ENDPOINTS.BANNERS.LIST, formData);
+
+    return apiClient.post<Banner>('api/admin/admin-banners', formData);
   },
 
   update: (id: number, data: UpdateBannerRequest) => {
-    // Check if we have file uploads (File objects)
-    const hasFileUploads = 
-      (data.web_banner instanceof File) || 
-      (data.mobile_banner instanceof File) || 
+    const hasFileUploads =
+      (data.web_banner instanceof File) ||
+      (data.mobile_banner instanceof File) ||
       (data.banner_thumbnail instanceof File);
-    
+
     if (hasFileUploads) {
       const formData = new FormData();
-      
+
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          // Skip empty strings for optional fields
           if (typeof value === 'string' && value.trim() === '' && key !== 'title') {
-            return; // Skip empty strings (except title which is required)
+            return;
           }
-          
+
           if (value instanceof File) {
             formData.append(key, value);
           } else if (typeof value === 'boolean') {
@@ -101,7 +96,7 @@ export const bannersApi = {
           }
         }
       });
-      
+
       console.log('🔄 Banner API Update (with files):', {
         id,
         hasFileUploads: true,
@@ -110,28 +105,25 @@ export const bannersApi = {
         webBannerType: data.web_banner instanceof File ? 'File' : typeof data.web_banner,
         mobileBannerType: data.mobile_banner instanceof File ? 'File' : typeof data.mobile_banner,
       });
-      
-      return apiClient.patch<Banner>(API_ENDPOINTS.BANNERS.DETAIL(id), formData);
+
+      return apiClient.patch<Banner>(`api/admin/admin-banners/${id}`, formData);
     }
-    
-    // For simple updates without any file uploads, use JSON
+
     const jsonData: Record<string, unknown> = {};
     Object.entries(data).forEach(([key, value]) => {
-      // Include null values (for clearing fields like redirect_url)
       if (value === null) {
         jsonData[key] = null;
         return;
       }
-      
+
       if (value !== undefined) {
-        // Skip empty strings for optional fields (like redirect_url) - but allow null
         if (typeof value === 'string' && value.trim() === '' && key !== 'title') {
-          return; // Skip empty strings (except title which is required)
+          return;
         }
         jsonData[key] = value;
       }
     });
-    
+
     console.log('🔄 Banner API Update (JSON):', {
       id,
       hasFileUploads: false,
@@ -139,11 +131,11 @@ export const bannersApi = {
       isActive: jsonData.is_active,
       isActiveType: typeof jsonData.is_active,
     });
-    
-    return apiClient.patch<Banner>(API_ENDPOINTS.BANNERS.DETAIL(id), jsonData);
+
+    return apiClient.patch<Banner>(`api/admin/admin-banners/${id}`, jsonData);
   },
 
-  delete: (id: number) => 
-    apiClient.delete<void>(API_ENDPOINTS.BANNERS.DETAIL(id)),
+  delete: (id: number) =>
+    apiClient.delete<void>(`api/admin/admin-banners/${id}`),
 };
 

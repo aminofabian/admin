@@ -69,11 +69,57 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
     return Object.keys(newErrors).length === 0;
   };
 
+  /** Resize image to fit within maxWidth x maxHeight (preserves aspect ratio). Returns a new File. */
+  const resizeImageToFit = (
+    img: HTMLImageElement,
+    maxWidth: number,
+    maxHeight: number,
+    fileName: string,
+    mimeType: string
+  ): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      if (!w || !h) {
+        reject(new Error('Invalid image dimensions'));
+        return;
+      }
+      const scale = Math.min(maxWidth / w, maxHeight / h, 1);
+      if (scale >= 1) {
+        reject(new Error('Image already fits'));
+        return;
+      }
+      const outW = Math.round(w * scale);
+      const outH = Math.round(h * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas not supported'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, outW, outH);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Failed to create resized image'));
+            return;
+          }
+          const resizedFile = new File([blob], fileName, { type: mimeType });
+          resolve(resizedFile);
+        },
+        mimeType === 'image/png' ? 'image/png' : 'image/jpeg',
+        0.92
+      );
+    });
+  };
+
   const validateImageDimensions = (
     file: File,
     field: 'web_banner' | 'mobile_banner',
     bannerType: 'HOMEPAGE' | 'PROMOTIONAL' = formData.banner_type
-  ): Promise<{ valid: boolean; error?: string }> => {
+  ): Promise<{ valid: boolean; error?: string; resizedFile?: File }> => {
     return new Promise((resolve) => {
       // Use browser's native Image constructor, not Next.js Image component
       // The imported Image from 'next/image' shadows the global Image, so we use HTMLImageElement
@@ -101,38 +147,43 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         if (field === 'web_banner') {
           if (bannerType === 'HOMEPAGE') {
             // HOMEPAGE: Nearly 3/4 screen height, nearly full width
-            // Flexible range to accommodate various screen sizes
-            // Width: 1280-2560px (allows smaller widths like 1280px)
-            // Height: 600-1080px (nearly 3/4 viewport height range)
-            // Aspect ratio: ~1.5:1 to ~3:1 (flexible landscape)
+            // Width: 1000-2560px, Height: 350-950px (aligned with requirement)
             const minWidth = 1000;
             const maxWidth = 2560;
-            const minHeight = 500;
-            const maxHeight = 1080;
-            const minRatio = 1.2; // More lenient - allow slightly narrower
-            const maxRatio = 4.0; // More lenient - allow wider banners
+            const minHeight = 350;
+            const maxHeight = 950;
+            const minRatio = 1.2;
+            const maxRatio = 4.0;
 
-            if (width < minWidth || width > maxWidth) {
-              const widthIssue = width < minWidth ? 'too narrow' : 'too wide';
+            if (width < minWidth) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to between ${minWidth} and ${maxWidth}px.`,
+                error: `Your image is ${width}x${height}px. The width is too narrow (${width}px). Kindly adjust the width to between ${minWidth} and ${maxWidth}px.`,
               });
               return;
             }
-            if (height < minHeight || height > maxHeight) {
-              const heightIssue = height < minHeight ? 'too short' : 'too tall';
+            if (height < minHeight) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The height is ${heightIssue} (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
+                error: `Your image is ${width}x${height}px. The height is too short (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
               });
               return;
             }
-            // Validate aspect ratio is reasonable landscape (1.2:1 to 4:1) - more lenient
+            if (width > maxWidth || height > maxHeight) {
+              resizeImageToFit(img, maxWidth, maxHeight, file.name, file.type)
+                .then((resizedFile) => resolve({ valid: true, resizedFile }))
+                .catch(() =>
+                  resolve({
+                    valid: false,
+                    error: `Your image is ${width}x${height}px. Kindly adjust the height to between ${minHeight} and ${maxHeight}px and width to between ${minWidth} and ${maxWidth}px.`,
+                  })
+                );
+              return;
+            }
             if (aspectRatio < minRatio || aspectRatio > maxRatio) {
               const ratioIssue = aspectRatio < minRatio ? 'too narrow (portrait-like)' : 'too wide';
-              const suggestedWidth = Math.round(height * 2.5); // Suggest a good width based on current height
-              const suggestedHeight = Math.round(width / 2.5); // Suggest a good height based on current width
+              const suggestedWidth = Math.round(height * 2.5);
+              const suggestedHeight = Math.round(width / 2.5);
               resolve({
                 valid: false,
                 error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). The aspect ratio is ${ratioIssue}. Kindly adjust to: width ${minWidth}-${maxWidth}px and height ${minHeight}-${maxHeight}px. Suggested: ${suggestedWidth}x${height}px or ${width}x${suggestedHeight}px.`,
@@ -140,39 +191,43 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               return;
             }
           } else if (bannerType === 'PROMOTIONAL') {
-            // PROMOTIONAL: 1/3 screen height, full width (Facebook cover photo spec)
-            // Flexible range to accommodate various screen sizes
-            // Width: 1280-2560px (allows smaller widths like 1280px)
-            // Height: 400-950px (1/3 viewport height range)
-            // Aspect ratio: ~1.5:1 to ~3:1 (flexible landscape, Facebook-like)
+            // PROMOTIONAL: Height 350-950px (1/3 viewport height range)
             const minWidth = 1000;
             const maxWidth = 2560;
             const minHeight = 350;
             const maxHeight = 950;
-            const minRatio = 1.2; // More lenient - allow slightly narrower
-            const maxRatio = 4.0; // More lenient - allow wider banners
+            const minRatio = 1.2;
+            const maxRatio = 4.0;
 
-            if (width < minWidth || width > maxWidth) {
-              const widthIssue = width < minWidth ? 'too narrow' : 'too wide';
+            if (width < minWidth) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to between ${minWidth} and ${maxWidth}px.`,
+                error: `Your image is ${width}x${height}px. The width is too narrow (${width}px). Kindly adjust the width to between ${minWidth} and ${maxWidth}px.`,
               });
               return;
             }
-            if (height < minHeight || height > maxHeight) {
-              const heightIssue = height < minHeight ? 'too short' : 'too tall';
+            if (height < minHeight) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The height is ${heightIssue} (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
+                error: `Your image is ${width}x${height}px. The height is too short (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
               });
               return;
             }
-            // Validate aspect ratio is reasonable landscape (1.2:1 to 4:1) - more lenient
+            if (width > maxWidth || height > maxHeight) {
+              resizeImageToFit(img, maxWidth, maxHeight, file.name, file.type)
+                .then((resizedFile) => resolve({ valid: true, resizedFile }))
+                .catch(() =>
+                  resolve({
+                    valid: false,
+                    error: `Your image is ${width}x${height}px. The height is too tall (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
+                  })
+                );
+              return;
+            }
             if (aspectRatio < minRatio || aspectRatio > maxRatio) {
               const ratioIssue = aspectRatio < minRatio ? 'too narrow (portrait-like)' : 'too wide';
-              const suggestedWidth = Math.round(height * 2.5); // Suggest a good width based on current height
-              const suggestedHeight = Math.round(width / 2.5); // Suggest a good height based on current width
+              const suggestedWidth = Math.round(height * 2.5);
+              const suggestedHeight = Math.round(width / 2.5);
               resolve({
                 valid: false,
                 error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). The aspect ratio is ${ratioIssue}. Kindly adjust to: width ${minWidth}-${maxWidth}px and height ${minHeight}-${maxHeight}px. Suggested: ${suggestedWidth}x${height}px or ${width}x${suggestedHeight}px.`,
@@ -182,49 +237,67 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           }
         } else if (field === 'mobile_banner') {
           if (bannerType === 'HOMEPAGE') {
-            // HOMEPAGE mobile: Nearly 3/4 screen height
-            // Mobile viewports: 375x667 to 414x896
-            // 3/4 of 667 = 500px, 3/4 of 896 = 672px
-            // Width: 375-414px (nearly full width)
-            // Height: 500-672px (nearly 3/4 viewport height)
-            if (width < 375 || width > 414) {
-              const widthIssue = width < 375 ? 'too narrow' : 'too wide';
+            const minWidth = 375;
+            const maxWidth = 414;
+            const minHeight = 500;
+            const maxHeight = 672;
+            if (width < minWidth || width > maxWidth) {
+              const widthIssue = width < minWidth ? 'too narrow' : 'too wide';
               resolve({
                 valid: false,
                 error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to between 375 and 414px.`,
               });
               return;
             }
-            if (height < 500 || height > 672) {
-              const heightIssue = height < 500 ? 'too short' : 'too tall';
+            if (height < minHeight) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The height is ${heightIssue} (${height}px). Kindly adjust the height to between 500 and 672px.`,
+                error: `Your image is ${width}x${height}px. The height is too short (${height}px). Kindly adjust the height to between 500 and 672px.`,
               });
               return;
             }
+            if (height > maxHeight) {
+              resizeImageToFit(img, maxWidth, maxHeight, file.name, file.type)
+                .then((resizedFile) => resolve({ valid: true, resizedFile }))
+                .catch(() =>
+                  resolve({
+                    valid: false,
+                    error: `Your image is ${width}x${height}px. The height is too tall (${height}px). Kindly adjust the height to between 500 and 672px.`,
+                  })
+                );
+              return;
+            }
           } else if (bannerType === 'PROMOTIONAL') {
-            // PROMOTIONAL mobile: Facebook spec 640x360
-            // Width: 640px (standard mobile width, allow small range)
-            // Height: 360px (1/3 viewport height, allow small range)
-            // Aspect ratio: ~1.78:1
-            if (width < 600 || width > 680) {
-              const widthIssue = width < 600 ? 'too narrow' : 'too wide';
+            const minWidth = 600;
+            const maxWidth = 680;
+            const minHeight = 340;
+            const maxHeight = 380;
+            if (width < minWidth || width > maxWidth) {
+              const widthIssue = width < minWidth ? 'too narrow' : 'too wide';
               resolve({
                 valid: false,
                 error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to approximately 640px (600-680px range, Facebook spec).`,
               });
               return;
             }
-            if (height < 340 || height > 380) {
-              const heightIssue = height < 340 ? 'too short' : 'too tall';
+            if (height < minHeight) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The height is ${heightIssue} (${height}px). Kindly adjust the height to approximately 360px (340-380px range, Facebook spec).`,
+                error: `Your image is ${width}x${height}px. The height is too short (${height}px). Kindly adjust the height to approximately 360px (340-380px range, Facebook spec).`,
               });
               return;
             }
-            // Validate aspect ratio is approximately 1.78:1 (Facebook spec)
+            if (height > maxHeight) {
+              resizeImageToFit(img, maxWidth, maxHeight, file.name, file.type)
+                .then((resizedFile) => resolve({ valid: true, resizedFile }))
+                .catch(() =>
+                  resolve({
+                    valid: false,
+                    error: `Your image is ${width}x${height}px. The height is too tall (${height}px). Kindly adjust the height to approximately 360px (340-380px range, Facebook spec).`,
+                  })
+                );
+              return;
+            }
             const expectedRatio = 1.78;
             const ratioTolerance = 0.1;
             if (Math.abs(aspectRatio - expectedRatio) > ratioTolerance) {
@@ -337,7 +410,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         return;
       }
 
-      // Validate image dimensions (pass current banner type)
+      // Validate image dimensions (pass current banner type); may return a resized file if image was too large
       const dimensionValidation = await validateImageDimensions(file, field, formData.banner_type);
       if (!dimensionValidation.valid) {
         console.log('Validation failed:', {
@@ -351,6 +424,8 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         return;
       }
 
+      const fileToUse = dimensionValidation.resizedFile ?? file;
+
       // All validations passed - create preview and set file
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -362,9 +437,9 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
         clearFile();
         setValidating((prev) => ({ ...prev, [field]: false }));
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileToUse);
 
-      setFiles((prev) => ({ ...prev, [field]: file }));
+      setFiles((prev) => ({ ...prev, [field]: fileToUse }));
     } catch (error) {
       console.error('Error validating image:', error);
       const errorMessage = error instanceof Error 
