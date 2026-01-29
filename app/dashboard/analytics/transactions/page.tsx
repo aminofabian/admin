@@ -311,9 +311,6 @@ export default function TransactionAnalyticsPage() {
           {/* Summary Metrics */}
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Summary Metrics</h4>
-            <p className="text-xs text-muted-foreground dark:text-slate-400">
-              Excludes manual and bonus transactions
-            </p>
             <div className="grid gap-3 md:grid-cols-3">
               {loadingSummary ? (
                 [...Array(3)].map((_, i) => (

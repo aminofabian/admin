@@ -22,6 +22,9 @@ type CleanableFields = {
   btcpay_api_key?: string;
   btcpay_store_id?: string;
   btcpay_webhook_secret?: string;
+  binpay_api_key?: string;
+  binpay_secret_key?: string;
+  binpay_deposit_secret_key?: string;
 };
 
 const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>(
@@ -39,6 +42,9 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
     'btcpay_api_key',
     'btcpay_store_id',
     'btcpay_webhook_secret',
+    'binpay_api_key',
+    'binpay_secret_key',
+    'binpay_deposit_secret_key',
   ];
   optionalFields.forEach(field => {
     if (field in cleaned && cleaned[field] === '') {

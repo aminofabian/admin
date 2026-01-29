@@ -29,6 +29,9 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     btcpay_api_key: company?.btcpay_api_key ?? '',
     btcpay_store_id: company?.btcpay_store_id ?? '',
     btcpay_webhook_secret: company?.btcpay_webhook_secret ?? '',
+    binpay_api_key: company?.binpay_api_key ?? '',
+    binpay_secret_key: company?.binpay_secret_key ?? '',
+    binpay_deposit_secret_key: company?.binpay_deposit_secret_key ?? '',
     brenzi_merchant_slug: company?.brenzi_merchant_slug ?? '',
   });
 
@@ -118,6 +121,9 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           btcpay_api_key: formData.btcpay_api_key || undefined,
           btcpay_store_id: formData.btcpay_store_id || undefined,
           btcpay_webhook_secret: formData.btcpay_webhook_secret || undefined,
+          binpay_api_key: formData.binpay_api_key || undefined,
+          binpay_secret_key: formData.binpay_secret_key || undefined,
+          binpay_deposit_secret_key: formData.binpay_deposit_secret_key || undefined,
           brenzi_merchant_slug: formData.brenzi_merchant_slug || undefined,
         };
         
@@ -283,6 +289,40 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
             value={formData.btcpay_webhook_secret}
             onChange={(e) => handleChange('btcpay_webhook_secret', e.target.value)}
             placeholder="BTC Pay Webhook Secret"
+            disabled={isLoading}
+            className="md:col-span-2"
+          />
+        </div>
+      </div>
+
+      {/* Binpay Configuration */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Binpay Configuration</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Binpay API Key"
+            type="text"
+            value={formData.binpay_api_key}
+            onChange={(e) => handleChange('binpay_api_key', e.target.value)}
+            placeholder="Binpay API Key"
+            disabled={isLoading}
+          />
+
+          <Input
+            label="Binpay Secret Key"
+            type="text"
+            value={formData.binpay_secret_key}
+            onChange={(e) => handleChange('binpay_secret_key', e.target.value)}
+            placeholder="Binpay Secret Key"
+            disabled={isLoading}
+          />
+
+          <Input
+            label="Binpay Deposit Secret Key"
+            type="text"
+            value={formData.binpay_deposit_secret_key}
+            onChange={(e) => handleChange('binpay_deposit_secret_key', e.target.value)}
+            placeholder="Binpay Deposit Secret Key"
             disabled={isLoading}
             className="md:col-span-2"
           />

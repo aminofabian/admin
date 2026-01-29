@@ -13,6 +13,9 @@ export interface Company {
   btcpay_api_key?: string | null;
   btcpay_store_id?: string | null;
   btcpay_webhook_secret?: string | null;
+  binpay_api_key?: string | null;
+  binpay_secret_key?: string | null;
+  binpay_deposit_secret_key?: string | null;
   brenzi_merchant_slug?: string | null;
   created: string;
   modified?: string;
@@ -33,6 +36,9 @@ export interface CreateCompanyRequest {
   btcpay_api_key?: string;
   btcpay_store_id?: string;
   btcpay_webhook_secret?: string;
+  binpay_api_key?: string;
+  binpay_secret_key?: string;
+  binpay_deposit_secret_key?: string;
   brenzi_merchant_slug?: string;
   logo?: File;
 }
@@ -51,6 +57,9 @@ export interface UpdateCompanyRequest {
   btcpay_api_key?: string;
   btcpay_store_id?: string;
   btcpay_webhook_secret?: string;
+  binpay_api_key?: string;
+  binpay_secret_key?: string;
+  binpay_deposit_secret_key?: string;
   brenzi_merchant_slug?: string;
 }
 
