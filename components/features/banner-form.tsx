@@ -69,52 +69,6 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
     return Object.keys(newErrors).length === 0;
   };
 
-  /** Resize image to fit within maxWidth x maxHeight (preserves aspect ratio). Returns a new File. */
-  const resizeImageToFit = (
-    img: HTMLImageElement,
-    maxWidth: number,
-    maxHeight: number,
-    fileName: string,
-    mimeType: string
-  ): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const w = img.naturalWidth || img.width;
-      const h = img.naturalHeight || img.height;
-      if (!w || !h) {
-        reject(new Error('Invalid image dimensions'));
-        return;
-      }
-      const scale = Math.min(maxWidth / w, maxHeight / h, 1);
-      if (scale >= 1) {
-        reject(new Error('Image already fits'));
-        return;
-      }
-      const outW = Math.round(w * scale);
-      const outH = Math.round(h * scale);
-      const canvas = document.createElement('canvas');
-      canvas.width = outW;
-      canvas.height = outH;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Canvas not supported'));
-        return;
-      }
-      ctx.drawImage(img, 0, 0, outW, outH);
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error('Failed to create resized image'));
-            return;
-          }
-          const resizedFile = new File([blob], fileName, { type: mimeType });
-          resolve(resizedFile);
-        },
-        mimeType === 'image/png' ? 'image/png' : 'image/jpeg',
-        0.92
-      );
-    });
-  };
-
   const validateImageDimensions = (
     file: File,
     field: 'web_banner' | 'mobile_banner',
@@ -171,14 +125,10 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               return;
             }
             if (width > maxWidth || height > maxHeight) {
-              resizeImageToFit(img, maxWidth, maxHeight, file.name, file.type)
-                .then((resizedFile) => resolve({ valid: true, resizedFile }))
-                .catch(() =>
-                  resolve({
-                    valid: false,
-                    error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Homepage).`,
-                  })
-                );
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Homepage).`,
+              });
               return;
             }
             if (aspectRatio < minRatio || aspectRatio > maxRatio) {
@@ -214,14 +164,10 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               return;
             }
             if (width > maxWidth || height > maxHeight) {
-              resizeImageToFit(img, maxWidth, maxHeight, file.name, file.type)
-                .then((resizedFile) => resolve({ valid: true, resizedFile }))
-                .catch(() =>
-                  resolve({
-                    valid: false,
-                    error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Promotional).`,
-                  })
-                );
+              resolve({
+                valid: false,
+                error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Promotional).`,
+              });
               return;
             }
             if (aspectRatio < minRatio || aspectRatio > maxRatio) {
