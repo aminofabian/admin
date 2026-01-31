@@ -146,26 +146,27 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
 
         if (field === 'web_banner') {
           if (bannerType === 'HOMEPAGE') {
-            // HOMEPAGE: Nearly 3/4 screen height, nearly full width
-            // Width: 1000-2560px, Height: 350-950px (aligned with requirement)
-            const minWidth = 1000;
-            const maxWidth = 2560;
-            const minHeight = 350;
-            const maxHeight = 950;
-            const minRatio = 1.2;
-            const maxRatio = 4.0;
+            // HOMEPAGE: 1550 × 1025px (tolerance ±50px)
+            const targetWidth = 1550;
+            const targetHeight = 1025;
+            const minWidth = 1500;
+            const maxWidth = 1600;
+            const minHeight = 975;
+            const maxHeight = 1075;
+            const minRatio = 1.4;
+            const maxRatio = 1.6;
 
             if (width < minWidth) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The width is too narrow (${width}px). Kindly adjust the width to between ${minWidth} and ${maxWidth}px.`,
+                error: `Your image is ${width}x${height}px. The width is too narrow. Required: ${targetWidth} × ${targetHeight}px.`,
               });
               return;
             }
             if (height < minHeight) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The height is too short (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
+                error: `Your image is ${width}x${height}px. The height is too short. Required: ${targetWidth} × ${targetHeight}px.`,
               });
               return;
             }
@@ -175,41 +176,40 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
                 .catch(() =>
                   resolve({
                     valid: false,
-                    error: `Your image is ${width}x${height}px. Kindly adjust the height to between ${minHeight} and ${maxHeight}px and width to between ${minWidth} and ${maxWidth}px.`,
+                    error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Homepage).`,
                   })
                 );
               return;
             }
             if (aspectRatio < minRatio || aspectRatio > maxRatio) {
-              const ratioIssue = aspectRatio < minRatio ? 'too narrow (portrait-like)' : 'too wide';
-              const suggestedWidth = Math.round(height * 2.5);
-              const suggestedHeight = Math.round(width / 2.5);
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). The aspect ratio is ${ratioIssue}. Kindly adjust to: width ${minWidth}-${maxWidth}px and height ${minHeight}-${maxHeight}px. Suggested: ${suggestedWidth}x${height}px or ${width}x${suggestedHeight}px.`,
+                error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). Required: ${targetWidth} × ${targetHeight}px (Homepage).`,
               });
               return;
             }
           } else if (bannerType === 'PROMOTIONAL') {
-            // PROMOTIONAL: Height 350-950px (1/3 viewport height range)
-            const minWidth = 1000;
-            const maxWidth = 2560;
-            const minHeight = 350;
-            const maxHeight = 950;
-            const minRatio = 1.2;
-            const maxRatio = 4.0;
+            // PROMOTIONAL: 1150 × 400px (tolerance ±50px)
+            const targetWidth = 1150;
+            const targetHeight = 400;
+            const minWidth = 1100;
+            const maxWidth = 1200;
+            const minHeight = 375;
+            const maxHeight = 425;
+            const minRatio = 2.6;
+            const maxRatio = 3.2;
 
             if (width < minWidth) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The width is too narrow (${width}px). Kindly adjust the width to between ${minWidth} and ${maxWidth}px.`,
+                error: `Your image is ${width}x${height}px. The width is too narrow. Required: ${targetWidth} × ${targetHeight}px.`,
               });
               return;
             }
             if (height < minHeight) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The height is too short (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
+                error: `Your image is ${width}x${height}px. The height is too short. Required: ${targetWidth} × ${targetHeight}px.`,
               });
               return;
             }
@@ -219,93 +219,61 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
                 .catch(() =>
                   resolve({
                     valid: false,
-                    error: `Your image is ${width}x${height}px. The height is too tall (${height}px). Kindly adjust the height to between ${minHeight} and ${maxHeight}px.`,
+                    error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Promotional).`,
                   })
                 );
               return;
             }
             if (aspectRatio < minRatio || aspectRatio > maxRatio) {
-              const ratioIssue = aspectRatio < minRatio ? 'too narrow (portrait-like)' : 'too wide';
-              const suggestedWidth = Math.round(height * 2.5);
-              const suggestedHeight = Math.round(width / 2.5);
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). The aspect ratio is ${ratioIssue}. Kindly adjust to: width ${minWidth}-${maxWidth}px and height ${minHeight}-${maxHeight}px. Suggested: ${suggestedWidth}x${height}px or ${width}x${suggestedHeight}px.`,
+                error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). Required: ${targetWidth} × ${targetHeight}px (Promotional).`,
               });
               return;
             }
           }
         } else if (field === 'mobile_banner') {
           if (bannerType === 'HOMEPAGE') {
-            const minWidth = 375;
-            const maxWidth = 414;
-            const minHeight = 500;
-            const maxHeight = 672;
+            // HOMEPAGE mobile: 670 × 414px (exact, ±5px tolerance)
+            const targetWidth = 670;
+            const targetHeight = 414;
+            const minWidth = 665;
+            const maxWidth = 675;
+            const minHeight = 409;
+            const maxHeight = 419;
             if (width < minWidth || width > maxWidth) {
-              const widthIssue = width < minWidth ? 'too narrow' : 'too wide';
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to between 375 and 414px.`,
+                error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Homepage mobile).`,
               });
               return;
             }
-            if (height < minHeight) {
+            if (height < minHeight || height > maxHeight) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The height is too short (${height}px). Kindly adjust the height to between 500 and 672px.`,
+                error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Homepage mobile).`,
               });
-              return;
-            }
-            if (height > maxHeight) {
-              resizeImageToFit(img, maxWidth, maxHeight, file.name, file.type)
-                .then((resizedFile) => resolve({ valid: true, resizedFile }))
-                .catch(() =>
-                  resolve({
-                    valid: false,
-                    error: `Your image is ${width}x${height}px. The height is too tall (${height}px). Kindly adjust the height to between 500 and 672px.`,
-                  })
-                );
               return;
             }
           } else if (bannerType === 'PROMOTIONAL') {
-            const minWidth = 600;
-            const maxWidth = 680;
-            const minHeight = 340;
-            const maxHeight = 380;
+            // PROMOTIONAL mobile: 680 × 380px (exact, ±5px tolerance)
+            const targetWidth = 680;
+            const targetHeight = 380;
+            const minWidth = 675;
+            const maxWidth = 685;
+            const minHeight = 375;
+            const maxHeight = 385;
             if (width < minWidth || width > maxWidth) {
-              const widthIssue = width < minWidth ? 'too narrow' : 'too wide';
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The width is ${widthIssue} (${width}px). Kindly adjust the width to approximately 640px (600-680px range, Facebook spec).`,
+                error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Promotional mobile).`,
               });
               return;
             }
-            if (height < minHeight) {
+            if (height < minHeight || height > maxHeight) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. The height is too short (${height}px). Kindly adjust the height to approximately 360px (340-380px range, Facebook spec).`,
-              });
-              return;
-            }
-            if (height > maxHeight) {
-              resizeImageToFit(img, maxWidth, maxHeight, file.name, file.type)
-                .then((resizedFile) => resolve({ valid: true, resizedFile }))
-                .catch(() =>
-                  resolve({
-                    valid: false,
-                    error: `Your image is ${width}x${height}px. The height is too tall (${height}px). Kindly adjust the height to approximately 360px (340-380px range, Facebook spec).`,
-                  })
-                );
-              return;
-            }
-            const expectedRatio = 1.78;
-            const ratioTolerance = 0.1;
-            if (Math.abs(aspectRatio - expectedRatio) > ratioTolerance) {
-              const suggestedWidth = Math.round(height * 1.78);
-              const suggestedHeight = Math.round(width / 1.78);
-              resolve({
-                valid: false,
-                error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). The aspect ratio doesn't match Facebook spec (1.78:1). Kindly adjust to approximately 640x360px. Suggested: ${suggestedWidth}x${height}px or ${width}x${suggestedHeight}px.`,
+                error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Promotional mobile).`,
               });
               return;
             }
@@ -768,13 +736,11 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           </label>
           {formData.banner_type === 'HOMEPAGE' ? (
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Required: Width 1280-2560px, Height 600-1080px (aspect ratio 1.2:1 to 4:1). 
-              Designed for nearly full-width, nearly 3/4 viewport height display. Displays at max 85vh height on desktop.
+              Required: 1550 × 1025px (Homepage web banner).
             </p>
           ) : (
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Required: Width 1280-2560px, Height 400-950px (aspect ratio 1.2:1 to 4:1). 
-              Designed for full-width, 1/3 viewport height display. Displays at max 85vh height on desktop.
+              Required: 1150 × 400px (Promotional web banner).
             </p>
           )}
           <input
@@ -830,13 +796,11 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           </label>
           {formData.banner_type === 'HOMEPAGE' ? (
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Required: Width 375-414px, Height 500-672px. 
-              Designed for nearly full-width, nearly 3/4 viewport height on mobile. Displays at max 65vh height on mobile (≤640px).
+              Required: 670 × 414px (Homepage mobile banner).
             </p>
           ) : (
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Required: Width ~640px (600-680px), Height ~360px (340-380px) (Facebook spec). 
-              Designed for full-width, 1/3 viewport height on mobile. Displays at max 65vh height on mobile (≤640px).
+              Required: 680 × 380px (Promotional mobile banner).
             </p>
           )}
           <input

@@ -163,7 +163,7 @@ export function BannersSection() {
               File formats: PNG, JPEG, JPG (max 5MB each)
             </div>
             <div>
-              <strong className="text-primary">Dimensions:</strong> Web banners display at 85vh max-height on desktop, mobile banners at 65vh max-height on mobile (≤640px)
+              <strong className="text-primary">Dimensions:</strong> Web: Promotional 1150 × 400px, Homepage 1550 × 1025px. Mobile: Promotional 680 × 380px, Homepage 670 × 414px
             </div>
           </div>
         </div>
