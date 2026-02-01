@@ -2,6 +2,7 @@
 
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { playersApi, agentsApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
@@ -1069,9 +1070,6 @@ function PlayersTable({
               <TableHead>Winning</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
-              {onViewPlayer && (
-                <TableHead className="text-right">Actions</TableHead>
-              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1106,32 +1104,59 @@ function PlayerCard({
       {/* Top Section: Avatar, Name, Status */}
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
-          <button
-            type="button"
-            onClick={() => onOpenChat(player)}
-            className="flex-shrink-0 touch-manipulation"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-base font-semibold text-white shadow-md">
-              {player.username.charAt(0).toUpperCase()}
-            </div>
-          </button>
+          {onViewPlayer ? (
+            <Link
+              href={`/dashboard/players/${player.id}`}
+              className="flex-shrink-0 touch-manipulation block"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-base font-semibold text-white shadow-md hover:opacity-90 transition-opacity">
+                {player.username.charAt(0).toUpperCase()}
+              </div>
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onOpenChat(player)}
+              className="flex-shrink-0 touch-manipulation"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-base font-semibold text-white shadow-md">
+                {player.username.charAt(0).toUpperCase()}
+              </div>
+            </button>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => onOpenChat(player)}
-                  className="text-left w-full touch-manipulation"
-                >
-                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                    {player.username}
-                  </h3>
-                  {player.full_name && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
-                      {player.full_name}
-                    </p>
-                  )}
-                </button>
+                {onViewPlayer ? (
+                  <Link
+                    href={`/dashboard/players/${player.id}`}
+                    className="text-left w-full block touch-manipulation group"
+                  >
+                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {player.username}
+                    </h3>
+                    {player.full_name && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
+                        {player.full_name}
+                      </p>
+                    )}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onOpenChat(player)}
+                    className="text-left w-full touch-manipulation"
+                  >
+                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                      {player.username}
+                    </h3>
+                    {player.full_name && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
+                        {player.full_name}
+                      </p>
+                    )}
+                  </button>
+                )}
               </div>
               <Badge
                 variant={player.is_active ? 'success' : 'danger'}
@@ -1191,22 +1216,6 @@ function PlayerCard({
           </svg>
           <span>{formatDate(player.created)}</span>
         </div>
-        {onViewPlayer && (
-        <div className="flex items-center gap-1.5">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onViewPlayer(player)}
-            title="View Details"
-            className="p-1.5 touch-manipulation"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </Button>
-        </div>
-        )}
       </div>
     </div>
   );
@@ -1224,20 +1233,41 @@ function PlayersTableRow({
   onViewPlayer,
   player,
 }: PlayersTableRowProps): ReactElement {
+  const playerLink = onViewPlayer ? (
+    <Link
+      href={`/dashboard/players/${player.id}`}
+      className="flex items-center gap-3 group cursor-pointer"
+    >
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm group-hover:opacity-90 transition-opacity">
+        {player.username.charAt(0).toUpperCase()}
+      </div>
+      <div>
+        <div className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          {player.username}
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
+          {player.full_name || '—'}
+        </div>
+      </div>
+    </Link>
+  ) : (
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
+        {player.username.charAt(0).toUpperCase()}
+      </div>
+      <div>
+        <div className="font-medium text-gray-900 dark:text-gray-100">
+          {player.username}
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">{player.full_name || '—'}</div>
+      </div>
+    </div>
+  );
+
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
-            {player.username.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <div className="font-medium text-gray-900 dark:text-gray-100">
-              {player.username}
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">{player.full_name || '—'}</div>
-          </div>
-        </div>
+        {playerLink}
       </TableCell>
       <TableCell>
         <div className="text-sm text-gray-700 dark:text-gray-300">{player.email}</div>
@@ -1262,25 +1292,6 @@ function PlayersTableRow({
           {formatDate(player.created)}
         </div>
       </TableCell>
-      {onViewPlayer && (
-      <TableCell className="text-right">
-        <div className="flex items-center justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onViewPlayer(player)}
-            title="View player"
-            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            View
-          </Button>
-        </div>
-      </TableCell>
-      )}
     </TableRow>
   );
 }
