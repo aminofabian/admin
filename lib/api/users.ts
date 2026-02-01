@@ -99,7 +99,7 @@ export const playersApi = {
       status: string; 
       player_bal: number; 
       player_winning_bal: number 
-    }>('/api/v1/admin/manual-payment/', data),
+    }>('api/admin/manual-payment', data),
 
   games: (playerId: number) =>
     apiClient.get<PlayerGame[]>(API_ENDPOINTS.GAMES.PLAYER_GAMES, {
