@@ -50,3 +50,75 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    const body = await request.json();
+    const backendUrl = `${BACKEND_URL}/api/v1/signup-bonuses/`;
+
+    const response = await fetch(backendUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { raw: text || null };
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error('❌ Signup-bonuses proxy (PUT) error:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update signup bonuses',
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    const body = await request.json();
+    const backendUrl = `${BACKEND_URL}/api/v1/signup-bonuses/`;
+
+    const response = await fetch(backendUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { raw: text || null };
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error('❌ Signup-bonuses proxy (PATCH) error:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update signup bonuses',
+      },
+      { status: 500 },
+    );
+  }
+}

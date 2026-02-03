@@ -56,6 +56,52 @@ export async function GET(request: NextRequest, context: RouteContextParams) {
   }
 }
 
+export async function PUT(request: NextRequest, context: RouteContextParams) {
+  const params = await context.params;
+  const id = getId(params);
+
+  if (!id) {
+    return NextResponse.json(
+      { status: 'error', message: 'Recharge bonus ID is required' },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const authHeader = request.headers.get('authorization');
+    const backendUrl = `${BACKEND_URL}/api/v1/recharge-bonuses/${id}/`;
+
+    const response = await fetch(backendUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { raw: text || null };
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error('❌ Recharge-bonuses proxy (PUT) error:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update recharge bonus',
+      },
+      { status: 500 },
+    );
+  }
+}
+
 export async function PATCH(request: NextRequest, context: RouteContextParams) {
   const params = await context.params;
   const id = getId(params);

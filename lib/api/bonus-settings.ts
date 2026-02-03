@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
 import type { 
   RechargeBonusSettings,
   TransferBonusSettings,
@@ -11,7 +10,7 @@ import type {
   PaginatedResponse 
 } from '@/types';
 
-// Bonus Settings API
+// Bonus Settings API – all calls go through Next.js proxy (same origin, no CORS)
 interface BonusListFilters {
   page?: number;
   page_size?: number;
@@ -20,122 +19,86 @@ interface BonusListFilters {
 // Purchase Bonuses API (Full CRUD)
 export const purchaseBonusSettingsApi = {
   list: (filters?: BonusListFilters) => {
-    const params = new URLSearchParams();
-    
-    if (filters?.page) {
-      params.append('page', String(filters.page));
-    }
-    
-    if (filters?.page_size) {
-      params.append('page_size', String(filters.page_size));
-    }
-    
-    const queryString = params.toString();
-    const url = queryString 
-      ? `${API_ENDPOINTS.BONUSES.PURCHASE}?${queryString}`
-      : API_ENDPOINTS.BONUSES.PURCHASE;
-    
-    return apiClient.get<PaginatedResponse<PurchaseBonusSettings>>(url);
+    const params: Record<string, string | number> = {};
+    if (filters?.page) params.page = filters.page;
+    if (filters?.page_size) params.page_size = filters.page_size;
+    return apiClient.get<PaginatedResponse<PurchaseBonusSettings>>('api/admin/purchase-bonuses', { params });
   },
 
   get: (id: number) =>
-    apiClient.get<PurchaseBonusSettings>(`${API_ENDPOINTS.BONUSES.PURCHASE}${id}/`),
+    apiClient.get<PurchaseBonusSettings>(`api/admin/purchase-bonuses/${id}/`),
 
   create: (data: CreatePurchaseBonusRequest) =>
-    apiClient.post<PurchaseBonusSettings>(API_ENDPOINTS.BONUSES.PURCHASE, data),
+    apiClient.post<PurchaseBonusSettings>('api/admin/purchase-bonuses', data),
 
   update: (id: number, data: CreatePurchaseBonusRequest) =>
-    apiClient.put<PurchaseBonusSettings>(`${API_ENDPOINTS.BONUSES.PURCHASE}${id}/`, data),
+    apiClient.put<PurchaseBonusSettings>(`api/admin/purchase-bonuses/${id}/`, data),
 
   patch: (id: number, data: UpdateBonusSettingsRequest) =>
-    apiClient.patch<PurchaseBonusSettings>(`${API_ENDPOINTS.BONUSES.PURCHASE}${id}/`, data),
+    apiClient.patch<PurchaseBonusSettings>(`api/admin/purchase-bonuses/${id}/`, data),
 
   delete: (id: number) =>
-    apiClient.delete<void>(`${API_ENDPOINTS.BONUSES.PURCHASE}${id}/`),
+    apiClient.delete<void>(`api/admin/purchase-bonuses/${id}/`),
 };
 
 // Recharge Bonuses API (GET, PUT, PATCH only)
 export const rechargeBonusSettingsApi = {
   list: (filters?: BonusListFilters) => {
-    const params = new URLSearchParams();
-    
-    if (filters?.page) {
-      params.append('page', String(filters.page));
-    }
-    
-    if (filters?.page_size) {
-      params.append('page_size', String(filters.page_size));
-    }
-    
-    const queryString = params.toString();
-    const url = queryString 
-      ? `${API_ENDPOINTS.BONUSES.RECHARGE}?${queryString}`
-      : API_ENDPOINTS.BONUSES.RECHARGE;
-    
-    return apiClient.get<PaginatedResponse<RechargeBonusSettings>>(url);
+    const params: Record<string, string | number> = {};
+    if (filters?.page) params.page = filters.page;
+    if (filters?.page_size) params.page_size = filters.page_size;
+    return apiClient.get<PaginatedResponse<RechargeBonusSettings>>('api/admin/recharge-bonuses', { params });
   },
 
   get: (id: number) =>
-    apiClient.get<RechargeBonusSettings>(`${API_ENDPOINTS.BONUSES.RECHARGE}${id}/`),
+    apiClient.get<RechargeBonusSettings>(`api/admin/recharge-bonuses/${id}/`),
 
   update: (id: number, data: UpdateBonusSettingsRequest) =>
-    apiClient.put<RechargeBonusSettings>(`${API_ENDPOINTS.BONUSES.RECHARGE}${id}/`, data),
+    apiClient.put<RechargeBonusSettings>(`api/admin/recharge-bonuses/${id}/`, data),
 
   patch: (id: number, data: UpdateBonusSettingsRequest) =>
-    apiClient.patch<RechargeBonusSettings>(`${API_ENDPOINTS.BONUSES.RECHARGE}${id}/`, data),
+    apiClient.patch<RechargeBonusSettings>(`api/admin/recharge-bonuses/${id}/`, data),
 };
 
 // Transfer Bonuses API (GET, PUT, PATCH only)
 export const transferBonusSettingsApi = {
   get: () =>
-    apiClient.get<TransferBonusSettings>(API_ENDPOINTS.BONUSES.TRANSFER),
+    apiClient.get<TransferBonusSettings>('api/admin/transfer-bonuses'),
 
   update: (data: UpdateBonusSettingsRequest) =>
-    apiClient.put<TransferBonusSettings>(API_ENDPOINTS.BONUSES.TRANSFER, data),
+    apiClient.put<TransferBonusSettings>('api/admin/transfer-bonuses', data),
 
   patch: (data: UpdateBonusSettingsRequest) =>
-    apiClient.patch<TransferBonusSettings>(API_ENDPOINTS.BONUSES.TRANSFER, data),
+    apiClient.patch<TransferBonusSettings>('api/admin/transfer-bonuses', data),
 };
 
 // Signup Bonuses API (GET, PUT, PATCH only)
 export const signupBonusSettingsApi = {
   get: () =>
-    apiClient.get<SignupBonusSettings>(API_ENDPOINTS.BONUSES.SIGNUP),
+    apiClient.get<SignupBonusSettings>('api/admin/signup-bonuses'),
 
   update: (data: UpdateBonusSettingsRequest) =>
-    apiClient.put<SignupBonusSettings>(API_ENDPOINTS.BONUSES.SIGNUP, data),
+    apiClient.put<SignupBonusSettings>('api/admin/signup-bonuses', data),
 
   patch: (data: UpdateBonusSettingsRequest) =>
-    apiClient.patch<SignupBonusSettings>(API_ENDPOINTS.BONUSES.SIGNUP, data),
+    apiClient.patch<SignupBonusSettings>('api/admin/signup-bonuses', data),
 };
 
 // First Purchase Bonuses API (GET, PUT, PATCH only)
 export const firstPurchaseBonusSettingsApi = {
   list: (filters?: BonusListFilters) => {
-    const params = new URLSearchParams();
-    
-    if (filters?.page) {
-      params.append('page', String(filters.page));
-    }
-    
-    if (filters?.page_size) {
-      params.append('page_size', String(filters.page_size));
-    }
-    
-    const queryString = params.toString();
-    const url = queryString 
-      ? `${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}?${queryString}`
-      : API_ENDPOINTS.BONUSES.FIRST_PURCHASE;
-    
-    return apiClient.get<PaginatedResponse<FirstPurchaseBonusSettings>>(url);
+    const params: Record<string, string | number> = {};
+    if (filters?.page) params.page = filters.page;
+    if (filters?.page_size) params.page_size = filters.page_size;
+    return apiClient.get<PaginatedResponse<FirstPurchaseBonusSettings>>('api/admin/first-purchase-bonuses', { params });
   },
 
   get: (id: number) =>
-    apiClient.get<FirstPurchaseBonusSettings>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`),
+    apiClient.get<FirstPurchaseBonusSettings>(`api/admin/first-purchase-bonuses/${id}/`),
 
   update: (id: number, data: UpdateBonusSettingsRequest) =>
-    apiClient.put<FirstPurchaseBonusSettings>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`, data),
+    apiClient.put<FirstPurchaseBonusSettings>(`api/admin/first-purchase-bonuses/${id}/`, data),
 
   patch: (id: number, data: UpdateBonusSettingsRequest) =>
-    apiClient.patch<FirstPurchaseBonusSettings>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`, data),
+    apiClient.patch<FirstPurchaseBonusSettings>(`api/admin/first-purchase-bonuses/${id}/`, data),
 };
