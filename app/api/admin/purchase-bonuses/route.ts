@@ -50,3 +50,39 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    const body = await request.json();
+    const backendUrl = `${BACKEND_URL}/api/v1/purchase-bonuses/`;
+
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { raw: text || null };
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error('❌ Purchase-bonuses proxy (POST) error:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to create purchase bonus',
+      },
+      { status: 500 },
+    );
+  }
+}

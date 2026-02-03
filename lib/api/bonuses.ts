@@ -15,17 +15,17 @@ import type { AffiliateDefaults, UpdateAffiliateDefaultsRequest } from '@/types/
 
 export const bonusesApi = {
   purchase: {
-    list: () => 
+    list: () =>
       apiClient.get<PaginatedResponse<PurchaseBonus>>('api/admin/purchase-bonuses'),
 
-    create: (data: CreatePurchaseBonusRequest) => 
-      apiClient.post<PurchaseBonus>(API_ENDPOINTS.BONUSES.PURCHASE, data),
+    create: (data: CreatePurchaseBonusRequest) =>
+      apiClient.post<PurchaseBonus>('api/admin/purchase-bonuses', data),
 
-    update: (id: number, data: UpdatePurchaseBonusRequest) => 
-      apiClient.patch<PurchaseBonus>(`${API_ENDPOINTS.BONUSES.PURCHASE}${id}/`, data),
+    update: (id: number, data: UpdatePurchaseBonusRequest) =>
+      apiClient.patch<PurchaseBonus>(`api/admin/purchase-bonuses/${id}/`, data),
 
     delete: (id: number) =>
-      apiClient.delete<void>(`${API_ENDPOINTS.BONUSES.PURCHASE}${id}/`),
+      apiClient.delete<void>(`api/admin/purchase-bonuses/${id}/`),
   },
 
   recharge: {
