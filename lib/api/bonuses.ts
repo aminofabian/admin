@@ -29,47 +29,47 @@ export const bonusesApi = {
   },
 
   recharge: {
-    list: () => 
+    list: () =>
       apiClient.get<PaginatedResponse<RechargeBonus>>('api/admin/recharge-bonuses'),
 
     get: (id: number) =>
-      apiClient.get<RechargeBonus>(`${API_ENDPOINTS.BONUSES.RECHARGE}${id}/`),
+      apiClient.get<RechargeBonus>(`api/admin/recharge-bonuses/${id}/`),
 
-    update: (id: number, data: UpdateBonusRequest) => 
-      apiClient.patch<RechargeBonus>(`${API_ENDPOINTS.BONUSES.RECHARGE}${id}/`, data),
+    update: (id: number, data: UpdateBonusRequest) =>
+      apiClient.patch<RechargeBonus>(`api/admin/recharge-bonuses/${id}/`, data),
   },
 
   transfer: {
-    list: () => 
+    list: () =>
       apiClient.get<PaginatedResponse<TransferBonus>>('api/admin/transfer-bonuses'),
 
     get: (id: number) =>
-      apiClient.get<TransferBonus>(`${API_ENDPOINTS.BONUSES.TRANSFER}${id}/`),
+      apiClient.get<TransferBonus>(`api/admin/transfer-bonuses/${id}/`),
 
-    update: (id: number, data: UpdateBonusRequest) => 
-      apiClient.patch<TransferBonus>(`${API_ENDPOINTS.BONUSES.TRANSFER}${id}/`, data),
+    update: (id: number, data: UpdateBonusRequest) =>
+      apiClient.patch<TransferBonus>(`api/admin/transfer-bonuses/${id}/`, data),
   },
 
   signup: {
-    list: () => 
+    list: () =>
       apiClient.get<PaginatedResponse<SignupBonus>>('api/admin/signup-bonuses'),
 
     get: (id: number) =>
-      apiClient.get<SignupBonus>(`${API_ENDPOINTS.BONUSES.SIGNUP}${id}/`),
+      apiClient.get<SignupBonus>(`api/admin/signup-bonuses/${id}/`),
 
-    update: (id: number, data: UpdateBonusRequest) => 
-      apiClient.patch<SignupBonus>(`${API_ENDPOINTS.BONUSES.SIGNUP}${id}/`, data),
+    update: (id: number, data: UpdateBonusRequest) =>
+      apiClient.patch<SignupBonus>(`api/admin/signup-bonuses/${id}/`, data),
   },
 
   firstPurchase: {
-    list: () => 
+    list: () =>
       apiClient.get<PaginatedResponse<FirstPurchaseBonus>>('api/admin/first-purchase-bonuses'),
 
     get: (id: number) =>
-      apiClient.get<FirstPurchaseBonus>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`),
+      apiClient.get<FirstPurchaseBonus>(`api/admin/first-purchase-bonuses/${id}/`),
 
-    update: (id: number, data: UpdateBonusRequest) => 
-      apiClient.patch<FirstPurchaseBonus>(`${API_ENDPOINTS.BONUSES.FIRST_PURCHASE}${id}/`, data),
+    update: (id: number, data: UpdateBonusRequest) =>
+      apiClient.patch<FirstPurchaseBonus>(`api/admin/first-purchase-bonuses/${id}/`, data),
   },
 
   affiliateDefaults: {
