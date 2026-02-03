@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS, API_PREFIX } from '@/lib/constants/api';
 import type { 
   Agent,
   Manager,
@@ -49,12 +48,12 @@ export const agentsApi = {
     apiClient.patch<Agent>(`api/admin/agents/${id}`, data),
 
   getDashboard: (params?: { date_from?: string; date_to?: string }) =>
-    apiClient.get<AgentDashboardResponse>(API_ENDPOINTS.AGENTS.DASHBOARD, {
+    apiClient.get<AgentDashboardResponse>('api/admin/agent-dashboard', {
       params,
     }),
 
   getStats: (agentId: number) =>
-    apiClient.get<AgentDashboardResponse>(API_ENDPOINTS.AGENTS.STATS, {
+    apiClient.get<AgentDashboardResponse>('api/admin/agent-stats', {
       params: { agent_id: agentId },
     }),
 };
@@ -102,7 +101,7 @@ export const playersApi = {
     }>('api/admin/manual-payment', data),
 
   games: (playerId: number) =>
-    apiClient.get<PlayerGame[]>(API_ENDPOINTS.GAMES.PLAYER_GAMES, {
+    apiClient.get<PlayerGame[]>('api/admin/user-games', {
       params: { player_id: playerId },
     }),
 
@@ -114,16 +113,16 @@ export const playersApi = {
       game_url: string | null;
       username: string;
       password: string;
-    }>(API_ENDPOINTS.GAMES.PLAYER_GAMES, data),
+    }>('api/admin/user-games', data),
 
   purchases: (chatroomId: string | number) => {
-    return apiClient.get<{ pending_cashout: ChatPurchase[] }>(API_ENDPOINTS.CHAT.PURCHASES, {
+    return apiClient.get<{ pending_cashout: ChatPurchase[] }>('api/chat-purchases', {
       params: { chatroom_id: chatroomId },
     }).then(response => response.pending_cashout || []);
   },
 
   cashouts: (chatroomId: string | number) => {
-    return apiClient.get<{ cashouts: ChatPurchase[] }>(API_ENDPOINTS.CHAT.CASHOUTS, {
+    return apiClient.get<{ cashouts: ChatPurchase[] }>('api/chat-cashouts', {
       params: { chatroom_id: chatroomId },
     }).then(response => response.cashouts || []);
   },
@@ -132,7 +131,7 @@ export const playersApi = {
     const params: Record<string, string | number> = {};
     if (userId) params.user_id = userId;
     return apiClient.get<{ status: string; results: GameActivity[]; count: number; game_activities?: GameActivity[] }>(
-      API_ENDPOINTS.CHAT.GAME_ACTIVITIES,
+      'api/chat-game-activities',
       Object.keys(params).length ? { params } : undefined
     ).then(response => {
       if (response.status === 'success' && Array.isArray(response.results)) {
@@ -155,17 +154,17 @@ export const playersApi = {
         agent_id: number | null;
         agent_username: string | null;
       };
-    }>(`${API_PREFIX}/assign-player-to-agent/`, data),
+    }>('api/admin/assign-player-to-agent', data),
 
   checkGameBalance: (data: CheckPlayerGameBalanceRequest) =>
     apiClient.post<CheckPlayerGameBalanceResponse>(
-      API_ENDPOINTS.PLAYERS.CHECK_GAME_BALANCE,
+      'api/check-player-game-balance',
       data
     ),
 
   deleteGame: (gameId: number) =>
     apiClient.delete<{ status: string; message: string }>(
-      API_ENDPOINTS.GAMES.PLAYER_GAMES,
+      'api/admin/user-games',
       {
         params: { id: gameId },
       }
@@ -173,7 +172,7 @@ export const playersApi = {
 
   updateGame: (gameId: number, data: { username?: string; password?: string; status?: 'active' | 'inactive' }) =>
     apiClient.patch<PlayerGame>(
-      API_ENDPOINTS.GAMES.PLAYER_GAMES,
+      'api/admin/user-games',
       data,
       {
         params: { id: gameId },

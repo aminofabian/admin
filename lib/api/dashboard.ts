@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
 
 export interface DashboardStats {
   totalPlayers: number;
@@ -23,7 +22,9 @@ export interface DashboardStats {
   totalCompanies?: number; // Optional for superadmin dashboard
 }
 
+// NOTE: Dashboard stats endpoint is not implemented on the backend yet
+// See hooks/use-dashboard-stats.ts - currently using fallback data
 export const dashboardApi = {
   getStats: () =>
-    apiClient.get<DashboardStats>(API_ENDPOINTS.DASHBOARD.STATS),
+    apiClient.get<DashboardStats>('api/admin/dashboard-stats'),
 };

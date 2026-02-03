@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
 import type { 
   Transaction,
   TransactionQueue,
@@ -50,7 +49,7 @@ export const transactionsApi = {
     // Log filters before sending (especially username/email for partial search)
     if (filters?.username || filters?.email || filters?.agent || filters?.agent_id) {
       console.log('📤 Sending to transactionsApi.list:', {
-        endpoint: API_ENDPOINTS.TRANSACTIONS.LIST,
+        endpoint: 'api/admin/transactions',
         filters,
         username: filters.username,
         email: filters.email,
@@ -60,7 +59,7 @@ export const transactionsApi = {
     }
     
     const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
-      API_ENDPOINTS.TRANSACTIONS.LIST, 
+      'api/admin/transactions', 
       { params: filters }
     );
     
@@ -82,7 +81,7 @@ export const transactionsApi = {
 
   queues: async (filters?: QueueFilters) => {
     const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
-      API_ENDPOINTS.TRANSACTIONS.QUEUES, 
+      'api/admin/transaction-queues', 
       { params: filters }
     );
     return normalizePaginatedResponse(response);
@@ -131,7 +130,7 @@ export const transactionsApi = {
 
   updateStatus: (id: string, payload: { status: string }) =>
     apiClient.patch<Transaction>(
-      API_ENDPOINTS.TRANSACTIONS.DETAIL(id),
+      `api/admin/transactions/${id}/`,
       payload
     ),
 
@@ -161,7 +160,7 @@ export const transactionsApi = {
     // The proxy route will forward the request to the Django backend
     // Note: The proxy expects FormData and converts it to URLSearchParams
     const response = await apiClient.post<GameActionResponse>(
-      API_ENDPOINTS.TRANSACTIONS.HANDLE_GAME_ACTION,
+      'api/handle-game-action',
       formData
     );
     
@@ -183,7 +182,7 @@ export const transactionsApi = {
     formData.append('type', type);
 
     const response = await apiClient.post<{ status: string; message: string }>(
-      API_ENDPOINTS.TRANSACTIONS.ACTION,
+      'api/transaction-action',
       formData
     );
     

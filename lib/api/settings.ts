@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
 import type { 
   CompanySettings,
   CreateCompanyRequest,

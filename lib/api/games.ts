@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
 import type {
   Game,
   UserGame,
@@ -70,49 +69,49 @@ export const gamesApi = {
     }),
 
   update: (id: number, data: UpdateGameRequest) => 
-    apiClient.patch<Game>(API_ENDPOINTS.GAMES.DETAIL(id), data),
+    apiClient.patch<Game>(`api/admin/games/${id}`, data),
 
   userGames: (filters?: UserGameFilters) => 
-    apiClient.get<UserGame[]>(API_ENDPOINTS.GAMES.USER_GAMES, {
+    apiClient.get<UserGame[]>('api/admin/user-games-list', {
       params: filters,
     }),
 
   checkStoreBalance: (data: CheckStoreBalanceRequest) => 
     apiClient.post<CheckStoreBalanceResponse>(
-      API_ENDPOINTS.GAMES.CHECK_STORE_BALANCE, 
+      'api/check-store-balance', 
       data
     ),
 
   updateMinimumRedeemMultiplier: (data: UpdateMinimumRedeemMultiplierRequest) =>
     apiClient.post<UpdateMinimumRedeemMultiplierResponse>(
-      API_ENDPOINTS.GAMES.UPDATE_MINIMUM_REDEEM_MULTIPLIER,
+      'api/admin/update-minimum-redeem-multiplier',
       data
     ),
 
   // Offmarket Games Management
   getOffmarketCompanies: () =>
-    apiClient.get<OffmarketGamesManagementResponse>(API_ENDPOINTS.GAMES.OFFMARKET_MANAGEMENT),
+    apiClient.get<OffmarketGamesManagementResponse>('api/admin/offmarket-games-management'),
 
   getOffmarketCompanyGames: (companyId: number) =>
-    apiClient.get<OffmarketGamesManagementResponse>(API_ENDPOINTS.GAMES.OFFMARKET_MANAGEMENT, {
+    apiClient.get<OffmarketGamesManagementResponse>('api/admin/offmarket-games-management', {
       params: { company_id: companyId },
     }),
 
   toggleGameStatus: (gameId: number) =>
     apiClient.post<{ status: string; message?: string }>(
-      API_ENDPOINTS.GAMES.OFFMARKET_MANAGEMENT,
+      'api/admin/offmarket-games-management',
       { type: 'toggle_enabled_by_superadmin', game_id: gameId } as ToggleGameStatusRequest
     ),
 
   enableAllGames: (companyId: number) =>
     apiClient.post<{ status: string; message?: string }>(
-      API_ENDPOINTS.GAMES.OFFMARKET_MANAGEMENT,
+      'api/admin/offmarket-games-management',
       { type: 'enable_all_games', company_id: companyId } as EnableAllGamesRequest
     ),
 
   disableAllGames: (companyId: number) =>
     apiClient.post<{ status: string; message?: string }>(
-      API_ENDPOINTS.GAMES.OFFMARKET_MANAGEMENT,
+      'api/admin/offmarket-games-management',
       { type: 'disable_all_games', company_id: companyId } as DisableAllGamesRequest
     ),
 };

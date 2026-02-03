@@ -1,5 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
+    const apiUrl = `${backendUrl}/api/v1/chat-links/${id}/`;
+
+    const authHeader = request.headers.get('Authorization');
+
+    if (!authHeader) {
+      return NextResponse.json(
+        { status: 'error', message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authHeader,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return NextResponse.json(
+        {
+          status: 'error',
+          message: `Backend error: ${response.status} ${response.statusText}`,
+          detail: errorText.substring(0, 200),
+        },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('❌ Error proxying chat link GET request:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to fetch chat link',
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

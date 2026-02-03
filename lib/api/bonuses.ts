@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
 import type { 
   PurchaseBonus,
   RechargeBonus,
@@ -74,13 +73,13 @@ export const bonusesApi = {
 
   affiliateDefaults: {
     list: () =>
-      apiClient.get<PaginatedResponse<AffiliateDefaults>>(API_ENDPOINTS.AFFILIATES.DEFAULTS),
+      apiClient.get<PaginatedResponse<AffiliateDefaults>>('api/admin/affiliate-defaults'),
 
     get: (id: number) =>
-      apiClient.get<AffiliateDefaults>(`${API_ENDPOINTS.AFFILIATES.DEFAULTS}${id}/`),
+      apiClient.get<AffiliateDefaults>(`api/admin/affiliate-defaults/${id}/`),
 
     update: (id: number, data: UpdateAffiliateDefaultsRequest) =>
-      apiClient.patch<AffiliateDefaults>(`${API_ENDPOINTS.AFFILIATES.DEFAULTS}${id}/`, data),
+      apiClient.patch<AffiliateDefaults>(`api/admin/affiliate-defaults/${id}/`, data),
   },
 };
 

@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
 import type { 
   AffiliateDefaultSettings,
   UpdateAffiliateDefaultsRequest
@@ -8,11 +7,11 @@ import type {
 // Affiliate Default Settings API (GET, PUT, PATCH only)
 export const affiliateSettingsApi = {
   get: () =>
-    apiClient.get<AffiliateDefaultSettings>(API_ENDPOINTS.AFFILIATES.DEFAULTS),
+    apiClient.get<AffiliateDefaultSettings>('api/admin/affiliate-defaults'),
 
   update: (data: UpdateAffiliateDefaultsRequest) =>
-    apiClient.put<AffiliateDefaultSettings>(API_ENDPOINTS.AFFILIATES.DEFAULTS, data),
+    apiClient.put<AffiliateDefaultSettings>('api/admin/affiliate-defaults', data),
 
   patch: (data: UpdateAffiliateDefaultsRequest) =>
-    apiClient.patch<AffiliateDefaultSettings>(API_ENDPOINTS.AFFILIATES.DEFAULTS, data),
+    apiClient.patch<AffiliateDefaultSettings>('api/admin/affiliate-defaults', data),
 };

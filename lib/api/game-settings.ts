@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { API_ENDPOINTS } from '@/lib/constants/api';
 import type { 
   GameSettings,
   UpdateGameSettingsRequest
@@ -8,5 +7,5 @@ import type {
 // Game Settings API (PATCH only)
 export const gameSettingsApi = {
   patch: (id: number, data: UpdateGameSettingsRequest) =>
-    apiClient.patch<GameSettings>(API_ENDPOINTS.GAMES.DETAIL(id), data),
+    apiClient.patch<GameSettings>(`api/admin/games/${id}`, data),
 };
