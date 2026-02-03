@@ -90,8 +90,10 @@ export const API_ENDPOINTS = {
   },
   CHAT: {
     MESSAGES: 'api/chat-messages', // Chat messages history
-    PURCHASES: 'api/chat-purchases', // Purchase history
-    ADMIN_CHAT: `${API_PREFIX}/admin/chat/`, // New JWT-authenticated endpoint
+    PURCHASES: 'api/chat-purchases', // Purchase history (proxy – avoids CORS)
+    CASHOUTS: 'api/chat-cashouts', // Cashouts list (proxy – avoids CORS)
+    GAME_ACTIVITIES: 'api/chat-game-activities', // Game activities (proxy – avoids CORS)
+    ADMIN_CHAT: `${API_PREFIX}/admin/chat/`, // Backend direct (use proxy endpoints above from browser)
     WEBSOCKET_BASE: '/ws/cschat/', // WebSocket endpoint base (backend)
   },
   CHAT_LINKS: {

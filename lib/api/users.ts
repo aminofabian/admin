@@ -117,50 +117,28 @@ export const playersApi = {
     }>(API_ENDPOINTS.GAMES.PLAYER_GAMES, data),
 
   purchases: (chatroomId: string | number) => {
-    console.log('🔍 Fetching purchases for chatroom_id:', chatroomId);
-    return apiClient.get<{ pending_cashout: ChatPurchase[] }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
-      params: { 
-        request_type: 'purchases_list',
-        chatroom_id: chatroomId 
-      },
-    }).then(response => {
-      console.log('📦 Purchases response:', response);
-      return response.pending_cashout || [];
-    });
+    return apiClient.get<{ pending_cashout: ChatPurchase[] }>(API_ENDPOINTS.CHAT.PURCHASES, {
+      params: { chatroom_id: chatroomId },
+    }).then(response => response.pending_cashout || []);
   },
 
   cashouts: (chatroomId: string | number) => {
-    console.log('🔍 Fetching cashouts for chatroom_id:', chatroomId);
-    return apiClient.get<{ cashouts: ChatPurchase[] }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
-      params: { 
-        request_type: 'cashouts_list',
-        chatroom_id: chatroomId 
-      },
-    }).then(response => {
-      console.log('💰 Cashouts response:', response);
-      return response.cashouts || [];
-    });
+    return apiClient.get<{ cashouts: ChatPurchase[] }>(API_ENDPOINTS.CHAT.CASHOUTS, {
+      params: { chatroom_id: chatroomId },
+    }).then(response => response.cashouts || []);
   },
 
   gameActivities: (userId?: number) => {
-    console.log('🔍 Fetching game activities for user_id:', userId);
-    const params: Record<string, string | number> = { 
-      request_type: 'game_activities'
-    };
-    // Add user_id filter if provided
-    if (userId) {
-      params.user_id = userId;
-    }
-    return apiClient.get<{ status: string; results: GameActivity[]; count: number }>(API_ENDPOINTS.CHAT.ADMIN_CHAT, {
-      params,
-    }).then(response => {
-      console.log('🎮 Game activities response:', response);
-      // Handle new response structure: { status, results, count }
+    const params: Record<string, string | number> = {};
+    if (userId) params.user_id = userId;
+    return apiClient.get<{ status: string; results: GameActivity[]; count: number; game_activities?: GameActivity[] }>(
+      API_ENDPOINTS.CHAT.GAME_ACTIVITIES,
+      Object.keys(params).length ? { params } : undefined
+    ).then(response => {
       if (response.status === 'success' && Array.isArray(response.results)) {
         return response.results;
       }
-      // Fallback for old structure
-      return (response as { game_activities?: GameActivity[] }).game_activities || [];
+      return response.game_activities || [];
     });
   },
 

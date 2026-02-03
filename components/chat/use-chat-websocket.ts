@@ -37,7 +37,8 @@ interface RawHistoryMessage {
   id?: string | number;
   message_id?: string | number;
   message?: string;
-  sender?: 'player' | 'admin' | 'company';
+  /** Backend can send: 'player' | 'company' | 'admin' | 'staff' | 'manager'. Only 'player' = player side; all others = admin side. */
+  sender?: string;
   sender_id?: number;
   sent_time?: string;
   timestamp?: string;
@@ -55,11 +56,57 @@ interface RawHistoryMessage {
   player_winning_bal?: string | number;
   is_pinned?: boolean;
   isPinned?: boolean;
+  /** Primary field from backend: true = player sent it, false = admin/staff/manager/company sent it */
+  is_player_sender?: boolean;
 }
 
-const mapHistoryMessage = (msg: RawHistoryMessage): ChatMessage => {
-  const sender: 'player' | 'admin' =
-    msg.sender === 'company' || msg.sender === 'admin' ? 'admin' : 'player';
+/**
+ * Determine UI sender side from backend data.
+ * MOST RELIABLE: Compare sender_id with player's user_id
+ * - If sender_id === playerId → player sent it
+ * - If sender_id !== playerId → staff/admin sent it
+ * Fallback: is_player_sender boolean, then sender string
+ */
+const resolveUiSender = (
+  senderId: number | undefined,
+  playerId: number | null,
+  isPlayerSender: boolean | undefined,
+  senderStr: string | undefined
+): 'player' | 'admin' => {
+  // MOST RELIABLE: If sender_id matches player's user_id, it's from player
+  // If sender_id doesn't match, it's from staff/admin
+  if (senderId !== undefined && playerId !== null && playerId > 0) {
+    return senderId === playerId ? 'player' : 'admin';
+  }
+  
+  // Fallback 1: explicit boolean from backend
+  if (typeof isPlayerSender === 'boolean') {
+    return isPlayerSender ? 'player' : 'admin';
+  }
+  
+  // Fallback 2: string sender - only 'player' is player side
+  if (senderStr === 'player') {
+    return 'player';
+  }
+  
+  // Default: admin side (company, admin, staff, manager, undefined)
+  return 'admin';
+};
+
+/**
+ * Create a message mapper with access to the player's user ID
+ * This allows reliable sender detection by comparing sender_id with player_id
+ */
+const createMapHistoryMessage = (playerId: number | null) => (msg: RawHistoryMessage): ChatMessage => {
+  const sender: 'player' | 'admin' = resolveUiSender(
+    msg.sender_id,
+    playerId,
+    msg.is_player_sender,
+    msg.sender
+  );
+  
+  // FORCED DEBUG: Always log to see sender resolution (remove after fixing)
+  console.log(`📩 MSG ${msg.id}: sender_id=${msg.sender_id}, playerId=${playerId}, is_player_sender=${msg.is_player_sender}, sender="${msg.sender}" → ${sender}`);
 
   const timestamp = msg.sent_time ?? msg.timestamp ?? new Date().toISOString();
   const messageDate = new Date(timestamp);
@@ -96,8 +143,11 @@ const mapHistoryMessage = (msg: RawHistoryMessage): ChatMessage => {
   };
 };
 
-const normalizeHistoryMessages = (rawMessages: RawHistoryMessage[]): ChatMessage[] =>
-  rawMessages.map(mapHistoryMessage).reverse();
+/**
+ * Normalize history messages with player ID for reliable sender detection
+ */
+const normalizeHistoryMessages = (rawMessages: RawHistoryMessage[], playerId: number | null): ChatMessage[] =>
+  rawMessages.map(createMapHistoryMessage(playerId)).reverse();
 
 const mergeMessageLists = (
   incoming: ChatMessage[],
@@ -275,6 +325,27 @@ export function useChatReset({
       }
 
       const data = await response.json();
+      
+      // DEBUG: Log raw message data to verify is_player_sender field
+      if (!IS_PROD && Array.isArray(data.messages) && data.messages.length > 0) {
+        console.log('🔍 Raw message sample from backend:', {
+          firstMsg: {
+            id: data.messages[0].id,
+            is_player_sender: data.messages[0].is_player_sender,
+            sender: data.messages[0].sender,
+            sender_id: data.messages[0].sender_id,
+            message: data.messages[0].message?.substring(0, 30),
+          },
+          lastMsg: data.messages.length > 1 ? {
+            id: data.messages[data.messages.length - 1].id,
+            is_player_sender: data.messages[data.messages.length - 1].is_player_sender,
+            sender: data.messages[data.messages.length - 1].sender,
+            sender_id: data.messages[data.messages.length - 1].sender_id,
+            message: data.messages[data.messages.length - 1].message?.substring(0, 30),
+          } : 'N/A',
+        });
+      }
+      
       const requestedPage = ensurePositiveInteger(page, 1);
       const resolvedPage = ensurePositiveInteger(
         data.page ?? data.current_page,
@@ -287,7 +358,7 @@ export function useChatReset({
       );
 
       const payload: HistoryPayload = {
-        messages: Array.isArray(data.messages) ? normalizeHistoryMessages(data.messages) : [],
+        messages: Array.isArray(data.messages) ? normalizeHistoryMessages(data.messages, userId) : [],
         page: resolvedPage,
         totalPages: resolvedTotalPages,
         notes: data.notes ?? '',
@@ -480,11 +551,13 @@ export function useChatReset({
       if (data.messages && Array.isArray(data.messages)) {
         //  Transform purchase messages from new JWT endpoint format
         const purchases: ChatMessage[] = data.messages.map((msg: RawHistoryMessage) => {
-          // Determine sender: "company" = admin, "player" = player
-          const sender: 'player' | 'admin' = 
-            msg.sender === 'company' || msg.sender === 'admin'
-              ? 'admin' 
-              : 'player';
+          // Most reliable: compare sender_id with player's userId
+          const sender: 'player' | 'admin' = resolveUiSender(
+            msg.sender_id,
+            userId,
+            msg.is_player_sender,
+            msg.sender
+          );
           
           const timestamp = msg.sent_time || new Date().toISOString();
           const messageDate = new Date(timestamp);
@@ -577,9 +650,13 @@ export function useChatReset({
           const hasMessageContent = !!(rawData.message || rawData.text || rawData.is_file);
 
           if (messageType === 'message') {
-            // Determine sender based on backend fields
-            const isPlayerSender = rawData.is_player_sender ?? true;
-            const sender: 'player' | 'admin' = isPlayerSender ? 'player' : 'admin';
+            // Most reliable: compare sender_id with player's userId
+            const sender: 'player' | 'admin' = resolveUiSender(
+              rawData.sender_id || rawData.player_id,
+              userId,
+              rawData.is_player_sender,
+              rawData.sender !== undefined ? String(rawData.sender) : undefined
+            );
             
             // Parse timestamp
             const timestamp = rawData.sent_time || rawData.timestamp || new Date().toISOString();

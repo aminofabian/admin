@@ -89,6 +89,47 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     console.log(` Received ${data.messages?.length || 0} messages from backend`);
     
+    // Get the player ID from the request (user_id parameter is the player we're chatting with)
+    const playerIdNum = userId ? parseInt(userId, 10) : null;
+    
+    // DEBUG: Log first few messages to see exact structure from backend
+    if (data.messages && data.messages.length > 0) {
+      console.log('🔍 BACKEND MESSAGE STRUCTURE - First 3 messages:');
+      data.messages.slice(0, 3).forEach((msg: Record<string, unknown>, i: number) => {
+        console.log(`  Message ${i + 1}:`, {
+          id: msg.id,
+          sender_id: msg.sender_id,
+          is_player_sender: msg.is_player_sender,
+          sender: msg.sender,
+          message: typeof msg.message === 'string' ? msg.message.substring(0, 30) : msg.message,
+        });
+      });
+      
+      // FIX: Correct is_player_sender AND sender based on sender_id comparison with player's user_id
+      // This fixes the backend bug where staff/manager messages appear on wrong side
+      if (playerIdNum && playerIdNum > 0) {
+        console.log(`🔧 Fixing message sender fields for player_id=${playerIdNum}`);
+        data.messages = data.messages.map((msg: Record<string, unknown>) => {
+          const senderId = typeof msg.sender_id === 'number' ? msg.sender_id : null;
+          // If sender_id matches player_id, it's from player; otherwise it's from staff/admin
+          const isFromPlayer = senderId === playerIdNum;
+          
+          // Set both is_player_sender AND sender field to ensure compatibility
+          const correctedSender = isFromPlayer ? 'player' : 'admin';
+          
+          if (msg.sender !== correctedSender) {
+            console.log(`  📝 Correcting msg ${msg.id}: sender_id=${senderId}, was sender="${msg.sender}", now="${correctedSender}"`);
+          }
+          
+          return {
+            ...msg,
+            is_player_sender: isFromPlayer,
+            sender: correctedSender, // Also fix sender field for cached client code
+          };
+        });
+      }
+    }
+    
     return NextResponse.json(data);
   } catch (error) {
     console.error('❌ Error proxying chat messages request:', error);
