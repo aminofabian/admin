@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { Download, X } from 'lucide-react';
 
 interface ExpandedImageModalProps {
   imageUrl: string | null;
@@ -12,6 +13,32 @@ export function ExpandedImageModal({
   imageUrl,
   onClose,
 }: ExpandedImageModalProps) {
+  const handleDownload = useCallback(async () => {
+    if (!imageUrl) return;
+    const filename = `chat-image-${Date.now()}.png`;
+    try {
+      const res = await fetch(imageUrl, { mode: 'cors' });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      link.download = filename;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }, [imageUrl]);
+
   // Handle ESC key to close modal
   useEffect(() => {
     if (!imageUrl) return;
@@ -35,16 +62,29 @@ export function ExpandedImageModal({
       className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={onClose}
     >
-      {/* Close button */}
-      <button
-        className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-        onClick={onClose}
-        title="Close (ESC)"
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      {/* Action buttons */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <button
+          className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDownload();
+          }}
+          title="Download image"
+        >
+          <Download className="w-6 h-6" />
+        </button>
+        <button
+          className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          title="Close (ESC)"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
 
       {/* Expanded image */}
       <Image
