@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { Input, Select, PasswordInput, ConfirmPasswordInput } from '@/components/ui';
+import { DateOfBirthSelect } from './date-of-birth-select';
 import { validatePassword } from '@/lib/utils/password-validation';
 import type { Player, CreatePlayerRequest, UpdateUserRequest } from '@/types';
 
@@ -277,17 +278,13 @@ export const PlayerForm = ({ player, onSubmit, isLoading }: PlayerFormProps) => 
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Date of Birth *"
-              type="date"
+            <DateOfBirthSelect
               value={formData.dob}
-              onChange={(e) => handleChange('dob', e.target.value)}
+              onChange={(value) => handleChange('dob', value)}
               error={errors.dob}
-              placeholder="YYYY-MM-DD"
               disabled={isLoading}
-              className="transition-all duration-200"
+              label="Date of Birth"
             />
-
             <div></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
