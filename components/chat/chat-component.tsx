@@ -307,17 +307,7 @@ export function ChatComponent() {
     addToast,
   });
 
-  //  TEMPORARY FIX: Disable viewport rendering to test core functionality
-  //  VIEWPORT RENDERING: Only show messages that fill viewport, reveal more as user scrolls
-  // const {
-  //   visibleMessages,
-  //   topSpacerHeight,
-  //   bottomSpacerHeight,
-  // } = useViewportMessages({
-  //   messages: wsMessages,
-  //   messagesContainerRef,
-  //   viewportBuffer: 10, // Show 10 extra messages above/below viewport
-  // });
+  
 
   const visibleMessages = useMemo(() => {
     let messages = wsMessages;
