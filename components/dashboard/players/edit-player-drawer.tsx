@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Input, Select, Switch } from '@/components/ui';
+import { Button, Input, Select, Switch, DateSelect } from '@/components/ui';
 
 // All 50 US States
 const US_STATES = [
@@ -174,19 +174,11 @@ export function EditPlayerDetailsDrawer({
 
             {/* Date of Birth */}
             <div className="group">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Date of Birth
-              </label>
-              <Input
-                type="date"
+              <DateSelect
+                label="Date of Birth"
                 value={editableFields.dob}
-                onChange={(e) => setEditableFields(prev => ({ ...prev, dob: e.target.value }))}
-                className="w-full transition-all focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                onChange={(value) => setEditableFields(prev => ({ ...prev, dob: value }))}
                 disabled={isSaving}
-                autoComplete="off"
               />
             </div>
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { agentsApi } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { Button } from '@/components/ui';
+import { Button, DateSelect } from '@/components/ui';
 import type { AgentDashboardResponse } from '@/types';
 
 export function AgentDashboard() {
@@ -75,19 +75,16 @@ export function AgentDashboard() {
               Range:
             </label>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 flex-1 sm:flex-initial">
-              <input
-                type="date"
+              <DateSelect
+                label="From"
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full sm:w-auto rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all hover:border-primary/50"
+                onChange={setDateFrom}
               />
               <span className="text-muted-foreground text-sm whitespace-nowrap text-center hidden sm:inline">to</span>
-              <input
-                type="date"
+              <DateSelect
+                label="To"
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                min={dateFrom || undefined}
-                className="w-full sm:w-auto rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all hover:border-primary/50"
+                onChange={setDateTo}
               />
             </div>
           </div>

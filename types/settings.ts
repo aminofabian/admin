@@ -13,6 +13,12 @@ export interface CompanySettings {
   btcpay_api_key?: string | null;
   btcpay_store_id?: string | null;
   btcpay_webhook_secret?: string | null;
+  binpay_withdrawal_secret_key?: string | null;
+  tierlock_merchant_id?: string | null;
+  tierlock_merchant_secret?: string | null;
+  tierlock_webhook_secret?: string | null;
+  tierlock_payout_shared_secret?: string | null;
+  tierlock_payout_client_secret?: string | null;
   created: string;
   modified: string;
 }

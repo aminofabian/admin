@@ -32,7 +32,13 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     binpay_api_key: company?.binpay_api_key ?? '',
     binpay_secret_key: company?.binpay_secret_key ?? '',
     binpay_deposit_secret_key: company?.binpay_deposit_secret_key ?? '',
+    binpay_withdrawal_secret_key: company?.binpay_withdrawal_secret_key ?? '',
     brenzi_merchant_slug: company?.brenzi_merchant_slug ?? '',
+    tierlock_merchant_id: company?.tierlock_merchant_id ?? '',
+    tierlock_merchant_secret: company?.tierlock_merchant_secret ?? '',
+    tierlock_webhook_secret: company?.tierlock_webhook_secret ?? '',
+    tierlock_payout_shared_secret: company?.tierlock_payout_shared_secret ?? '',
+    tierlock_payout_client_secret: company?.tierlock_payout_client_secret ?? '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -124,7 +130,13 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           binpay_api_key: formData.binpay_api_key || undefined,
           binpay_secret_key: formData.binpay_secret_key || undefined,
           binpay_deposit_secret_key: formData.binpay_deposit_secret_key || undefined,
+          binpay_withdrawal_secret_key: formData.binpay_withdrawal_secret_key || undefined,
           brenzi_merchant_slug: formData.brenzi_merchant_slug || undefined,
+          tierlock_merchant_id: formData.tierlock_merchant_id || undefined,
+          tierlock_merchant_secret: formData.tierlock_merchant_secret || undefined,
+          tierlock_webhook_secret: formData.tierlock_webhook_secret || undefined,
+          tierlock_payout_shared_secret: formData.tierlock_payout_shared_secret || undefined,
+          tierlock_payout_client_secret: formData.tierlock_payout_client_secret || undefined,
         };
         
         await onSubmit(updateData as CreateCompanyRequest | UpdateCompanyRequest);
@@ -323,6 +335,68 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
             value={formData.binpay_deposit_secret_key}
             onChange={(e) => handleChange('binpay_deposit_secret_key', e.target.value)}
             placeholder="Binpay Deposit Secret Key"
+            disabled={isLoading}
+          />
+
+          <Input
+            label="Binpay Withdrawal Secret Key"
+            type="text"
+            value={formData.binpay_withdrawal_secret_key}
+            onChange={(e) => handleChange('binpay_withdrawal_secret_key', e.target.value)}
+            placeholder="Binpay Withdrawal Secret Key"
+            disabled={isLoading}
+            className="md:col-span-2"
+          />
+        </div>
+      </div>
+
+      {/* Tierlock Configuration */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Tierlock Configuration</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Tierlock Merchant ID"
+            type="text"
+            value={formData.tierlock_merchant_id}
+            onChange={(e) => handleChange('tierlock_merchant_id', e.target.value)}
+            placeholder="Tierlock Merchant ID"
+            disabled={isLoading}
+          />
+
+          <Input
+            label="Tierlock Merchant Secret"
+            type="text"
+            value={formData.tierlock_merchant_secret}
+            onChange={(e) => handleChange('tierlock_merchant_secret', e.target.value)}
+            placeholder="Tierlock Merchant Secret"
+            disabled={isLoading}
+          />
+
+          <Input
+            label="Tierlock Webhook Secret"
+            type="text"
+            value={formData.tierlock_webhook_secret}
+            onChange={(e) => handleChange('tierlock_webhook_secret', e.target.value)}
+            placeholder="Tierlock Webhook Secret"
+            disabled={isLoading}
+            className="md:col-span-2"
+          />
+
+          <Input
+            label="Tierlock Payout Shared Secret"
+            type="text"
+            value={formData.tierlock_payout_shared_secret}
+            onChange={(e) => handleChange('tierlock_payout_shared_secret', e.target.value)}
+            placeholder="Tierlock Payout Shared Secret"
+            disabled={isLoading}
+          />
+
+          <Input
+            label="Tierlock Payout Client Secret"
+            type="text"
+            value={formData.tierlock_payout_client_secret}
+            onChange={(e) => handleChange('tierlock_payout_client_secret', e.target.value)}
+            placeholder="Tierlock Payout Client Secret"
             disabled={isLoading}
             className="md:col-span-2"
           />

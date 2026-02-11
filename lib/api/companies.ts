@@ -24,6 +24,12 @@ type CleanableFields = {
   binpay_api_key?: string;
   binpay_secret_key?: string;
   binpay_deposit_secret_key?: string;
+  binpay_withdrawal_secret_key?: string;
+  tierlock_merchant_id?: string;
+  tierlock_merchant_secret?: string;
+  tierlock_webhook_secret?: string;
+  tierlock_payout_shared_secret?: string;
+  tierlock_payout_client_secret?: string;
 };
 
 const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>(
@@ -44,6 +50,12 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
     'binpay_api_key',
     'binpay_secret_key',
     'binpay_deposit_secret_key',
+    'binpay_withdrawal_secret_key',
+    'tierlock_merchant_id',
+    'tierlock_merchant_secret',
+    'tierlock_webhook_secret',
+    'tierlock_payout_shared_secret',
+    'tierlock_payout_client_secret',
   ];
   optionalFields.forEach(field => {
     if (field in cleaned && cleaned[field] === '') {

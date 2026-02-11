@@ -1,10 +1,9 @@
 'use client';
 
-import { Button, Select } from '@/components/ui';
-import { useTheme } from '@/providers/theme-provider';
+import { Button, Select, DateSelect } from '@/components/ui';
 
-// All 50 US States
-const US_STATES = [
+// All 50 US States (exported for reuse in superadmin etc.)
+export const US_STATES = [
     { value: 'AL', label: 'Alabama' },
     { value: 'AK', label: 'Alaska' },
     { value: 'AZ', label: 'Arizona' },
@@ -107,16 +106,18 @@ export function PlayersFilters({
     isLoading = false,
     showAgentFilter = true,
 }: PlayersFiltersProps) {
-    const { theme } = useTheme();
     const inputClasses =
-        'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
+        'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
     const labelClasses =
-        'block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300';
+        'block text-xs font-medium text-muted-foreground mb-1.5 transition-colors dark:text-slate-400';
+    const sectionHeadingClasses =
+        'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2 dark:text-slate-400';
 
     return (
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-md shadow-black/5 backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-slate-900/40">
-            <div className="flex items-center justify-between text-foreground">
-                <h3 className="flex items-center gap-3 text-base font-semibold text-foreground transition-colors">
+        <div className="rounded-xl border border-border bg-card shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900/50">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-slate-700/80">
+                <h3 className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
                     {FILTER_ICON}
                     Filters
                 </h3>
@@ -124,173 +125,164 @@ export function PlayersFilters({
                     variant="ghost"
                     size="sm"
                     onClick={onToggle}
-                    className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground dark:hover:bg-slate-800/70"
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground dark:hover:bg-slate-800"
                 >
                     {isOpen ? (
                         <>
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                             </svg>
-                            Hide Filters
+                            Hide
                         </>
                     ) : (
                         <>
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
-                            Show Filters
+                            Show
                         </>
                     )}
                 </Button>
             </div>
 
             {isOpen && (
-                <div className="pt-5 text-foreground transition-colors">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
-                        {/* Player Username */}
-                        <div className="min-w-0">
-                            <label className={labelClasses}>Player Username</label>
-                            <input
-                                type="text"
-                                value={filters.username}
-                                onChange={(event) => onFilterChange('username', event.target.value)}
-                                placeholder="Enter username..."
-                                className={inputClasses}
-                            />
+                <div className="p-4 text-foreground space-y-6">
+                    {/* Search */}
+                    <section>
+                        <h4 className={sectionHeadingClasses}>
+                            <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+                            Search
+                        </h4>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            <div>
+                                <label className={labelClasses}>Username</label>
+                                <input
+                                    type="text"
+                                    value={filters.username}
+                                    onChange={(e) => onFilterChange('username', e.target.value)}
+                                    placeholder="Enter username..."
+                                    className={inputClasses}
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClasses}>Full name</label>
+                                <input
+                                    type="text"
+                                    value={filters.full_name}
+                                    onChange={(e) => onFilterChange('full_name', e.target.value)}
+                                    placeholder="Enter full name..."
+                                    className={inputClasses}
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClasses}>Email</label>
+                                <input
+                                    type="email"
+                                    value={filters.email}
+                                    onChange={(e) => onFilterChange('email', e.target.value)}
+                                    placeholder="Filter by email"
+                                    className={inputClasses}
+                                />
+                            </div>
                         </div>
+                    </section>
 
-                        {/* Full Name */}
-                        <div className="min-w-0">
-                            <label className={labelClasses}>Full Name</label>
-                            <input
-                                type="text"
-                                value={filters.full_name}
-                                onChange={(event) => onFilterChange('full_name', event.target.value)}
-                                placeholder="Enter full name..."
-                                className={inputClasses}
-                            />
+                    {/* Filters (dropdowns) */}
+                    <section>
+                        <h4 className={sectionHeadingClasses}>
+                            <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+                            Filters
+                        </h4>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {showAgentFilter && (
+                                <div>
+                                    <label className={labelClasses}>Agent</label>
+                                    <Select
+                                        value={filters.agent}
+                                        onChange={(v) => onFilterChange('agent', v)}
+                                        options={[
+                                            { value: '', label: 'All Agents' },
+                                            ...(agentOptions || []),
+                                            ...(filters.agent && agentOptions && !agentOptions.some((o) => o.value === filters.agent)
+                                                ? [{ value: filters.agent, label: filters.agent }]
+                                                : []),
+                                        ]}
+                                        placeholder="All Agents"
+                                        isLoading={isAgentLoading}
+                                        disabled={isAgentLoading}
+                                    />
+                                </div>
+                            )}
+                            <div>
+                                <label className={labelClasses}>Status</label>
+                                <Select
+                                    value={filters.status}
+                                    onChange={(v) => onFilterChange('status', v)}
+                                    options={[
+                                        { value: 'all', label: 'All Statuses' },
+                                        { value: 'active', label: 'Active' },
+                                        { value: 'inactive', label: 'Inactive' },
+                                    ]}
+                                    placeholder="All Statuses"
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClasses}>State</label>
+                                <Select
+                                    value={filters.state}
+                                    onChange={(v) => onFilterChange('state', v)}
+                                    options={[
+                                        { value: 'all', label: 'All States' },
+                                        ...US_STATES,
+                                    ]}
+                                    placeholder="All States"
+                                />
+                            </div>
                         </div>
+                    </section>
 
-                        {/* Email */}
-                        <div className="min-w-0">
-                            <label className={labelClasses}>Email</label>
-                            <input
-                                type="email"
-                                value={filters.email}
-                                onChange={(event) => onFilterChange('email', event.target.value)}
-                                placeholder="Filter by email"
-                                className={inputClasses}
-                            />
-                        </div>
-
-                        {/* Agent - Only show if user has access to agents */}
-                        {showAgentFilter && (
-                        <div className="min-w-0">
-                            <label className={labelClasses}>Agent</label>
-                            <Select
-                                value={filters.agent}
-                                onChange={(value: string) => onFilterChange('agent', value)}
-                                options={[
-                                    { value: '', label: 'All Agents' },
-                                    ...(agentOptions || []),
-                                    ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
-                                        ? [{ value: filters.agent, label: filters.agent }]
-                                        : []),
-                                ]}
-                                placeholder="All Agents"
-                                isLoading={isAgentLoading}
-                                disabled={isAgentLoading}
-                            />
-                        </div>
-                        )}
-
-                        {/* Status */}
-                        <div className="min-w-0">
-                            <label className={labelClasses}>Status</label>
-                            <Select
-                                value={filters.status}
-                                onChange={(value: string) => onFilterChange('status', value)}
-                                options={[
-                                    { value: 'all', label: 'All Statuses' },
-                                    { value: 'active', label: 'Active' },
-                                    { value: 'inactive', label: 'Inactive' },
-                                ]}
-                                placeholder="All Statuses"
-                            />
-                        </div>
-
-                        {/* State */}
-                        <div className="min-w-0">
-                            <label className={labelClasses}>State</label>
-                            <Select
-                                value={filters.state}
-                                onChange={(value: string) => onFilterChange('state', value)}
-                                options={[
-                                    { value: 'all', label: 'All States' },
-                                    ...US_STATES,
-                                ]}
-                                placeholder="All States"
-                            />
-                        </div>
-
-                        {/* From Date */}
-                        <div className="min-w-0">
-                            <label className={labelClasses}>From Date</label>
-                            <input
-                                type="date"
+                    {/* Date range */}
+                    <section>
+                        <h4 className={sectionHeadingClasses}>
+                            <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+                            Date range
+                        </h4>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <DateSelect
+                                label="From date"
                                 value={filters.date_from}
-                                onChange={(event) => onFilterChange('date_from', event.target.value)}
-                                max={filters.date_to || undefined}
-                                className={inputClasses}
-                                style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
+                                onChange={(v) => onFilterChange('date_from', v)}
                             />
-                        </div>
-
-                        {/* To Date */}
-                        <div className="min-w-0">
-                            <label className={labelClasses}>To Date</label>
-                            <input
-                                type="date"
+                            <DateSelect
+                                label="To date"
                                 value={filters.date_to}
-                                onChange={(event) => onFilterChange('date_to', event.target.value)}
-                                min={filters.date_from || undefined}
-                                className={inputClasses}
-                                style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
+                                onChange={(v) => onFilterChange('date_to', v)}
                             />
                         </div>
+                    </section>
 
-                        <div className="col-span-full flex flex-wrap justify-end gap-2 mt-4 pt-4 border-t border-border">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={onClear}
-                                type="button"
-                                disabled={isLoading}
-                                className="hover:bg-muted/80 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Clear Filters
-                            </Button>
-                            <Button
-                                size="sm"
-                                onClick={onApply}
-                                type="button"
-                                isLoading={isLoading}
-                                disabled={isLoading}
-                                className="hover:opacity-90 active:scale-95 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                                            <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                                        </svg>
-                                        Applying...
-                                    </>
-                                ) : (
-                                    'Apply Filters'
-                                )}
-                            </Button>
-                        </div>
+                    {/* Actions */}
+                    <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border dark:border-slate-700/80">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={onClear}
+                            type="button"
+                            disabled={isLoading}
+                            className="text-muted-foreground hover:text-foreground disabled:opacity-50"
+                        >
+                            Clear
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={onApply}
+                            type="button"
+                            isLoading={isLoading}
+                            disabled={isLoading}
+                            className="min-w-[100px] disabled:opacity-50"
+                        >
+                            {isLoading ? 'Applying…' : 'Apply'}
+                        </Button>
                     </div>
                 </div>
             )}

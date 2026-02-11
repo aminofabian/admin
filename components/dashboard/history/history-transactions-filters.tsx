@@ -1,7 +1,6 @@
 'use client';
 
-import { Button, Select } from '@/components/ui';
-import { useTheme } from '@/providers/theme-provider';
+import { Button, Select, DateSelect } from '@/components/ui';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
 
 export interface HistoryTransactionsFiltersState {
@@ -86,11 +85,12 @@ export function HistoryTransactionsFilters({
   isOperatorLoading = false,
   isLoading = false,
 }: HistoryTransactionsFiltersProps) {
-  const { theme } = useTheme();
   const inputClasses =
-    'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
+    'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
   const labelClasses =
-    'block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300';
+    'block text-xs font-medium text-muted-foreground mb-1.5 transition-colors dark:text-slate-400';
+  const sectionHeadingClasses =
+    'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2 dark:text-slate-400';
   const effectiveStatusOptions = statusOptions ?? [
     { value: '', label: 'All Statuses' },
     { value: 'completed', label: 'Completed' },
@@ -98,11 +98,10 @@ export function HistoryTransactionsFilters({
     { value: 'failed', label: 'Failed' },
   ];
 
-
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-md shadow-black/5 backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-slate-900/40">
-      <div className="flex items-center justify-between text-foreground">
-        <h3 className="flex items-center gap-3 text-base font-semibold text-foreground transition-colors">
+    <div className="rounded-xl border border-border bg-card shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900/50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-slate-700/80">
+        <h3 className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
           {FILTER_ICON}
           Filters
         </h3>
@@ -110,232 +109,206 @@ export function HistoryTransactionsFilters({
           variant="ghost"
           size="sm"
           onClick={onToggle}
-          className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground dark:hover:bg-slate-800/70"
+          className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground dark:hover:bg-slate-800"
         >
           {isOpen ? (
             <>
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
-              Hide Filters
+              Hide
             </>
           ) : (
             <>
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              Show Filters
+              Show
             </>
           )}
         </Button>
       </div>
 
       {isOpen && (
-        <div className="pt-5 text-foreground transition-colors">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
-          {/* 1. Username */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Player Username</label>
-            <input
-              type="text"
-              value={filters.username}
-              onChange={(event) => onFilterChange('username', event.target.value)}
-              placeholder="Enter username..."
-              className={inputClasses}
-            />
-          </div>
-
-          {/* 2. Email */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Email</label>
-            <input
-              type="email"
-              value={filters.email}
-              onChange={(event) => onFilterChange('email', event.target.value)}
-              placeholder="Filter by email"
-              className={inputClasses}
-            />
-          </div>
-
-          {/* 3. Transaction ID */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Transaction ID</label>
-            <input
-              type="text"
-              value={filters.transaction_id}
-              onChange={(event) => onFilterChange('transaction_id', event.target.value)}
-              placeholder="Enter transaction ID"
-              className={inputClasses}
-            />
-          </div>
-
-          {/* 4. Agent - Hide if agentOptions is explicitly an empty array (superadmin) */}
-          {!(Array.isArray(agentOptions) && agentOptions.length === 0) && (
-            <div className="min-w-0">
-              <label className={labelClasses}>Agent</label>
-              <Select
-                value={filters.agent}
-                onChange={(value: string) => onFilterChange('agent', value)}
-                options={[
-                  { value: '', label: 'All Agents' },
-                  ...(agentOptions || []),
-                  ...(filters.agent && agentOptions && !agentOptions.some((option) => option.value === filters.agent)
-                    ? [{ value: filters.agent, label: filters.agent }]
-                    : []),
-                ]}
-                placeholder="All Agents"
-                isLoading={isAgentLoading}
-                disabled={isAgentLoading}
-              />
+        <div className="p-4 text-foreground space-y-6">
+          <section>
+            <h4 className={sectionHeadingClasses}>
+              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+              Search
+            </h4>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className={labelClasses}>Username</label>
+                <input
+                  type="text"
+                  value={filters.username}
+                  onChange={(e) => onFilterChange('username', e.target.value)}
+                  placeholder="Enter username..."
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Email</label>
+                <input
+                  type="email"
+                  value={filters.email}
+                  onChange={(e) => onFilterChange('email', e.target.value)}
+                  placeholder="Filter by email"
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Transaction ID</label>
+                <input
+                  type="text"
+                  value={filters.transaction_id}
+                  onChange={(e) => onFilterChange('transaction_id', e.target.value)}
+                  placeholder="Enter transaction ID"
+                  className={inputClasses}
+                />
+              </div>
             </div>
-          )}
+          </section>
 
-          {/* 5. Payment Method */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Payment Method</label>
-            <Select
-              value={filters.payment_method}
-              onChange={(value: string) => onFilterChange('payment_method', value)}
-              options={[
-                { value: '', label: 'All Methods' },
-                ...(paymentMethodOptions || []),
-                ...(filters.payment_method && paymentMethodOptions && !paymentMethodOptions.some((option) => option.value === filters.payment_method)
-                  ? [{ value: filters.payment_method, label: formatPaymentMethod(filters.payment_method) }]
-                  : []),
-              ]}
-              placeholder="All Methods"
-              isLoading={isPaymentMethodLoading}
-              disabled={isPaymentMethodLoading}
-            />
-          </div>
-
-          {/* 6. Transaction Type */}
-          {BASE_SELECT_FIELDS.map(({ key, label, options }) => (
-            <div key={key} className="min-w-0">
-              <label className={labelClasses}>{label}</label>
-              <Select
-                value={filters[key]}
-                onChange={(value: string) => onFilterChange(key, value)}
-                options={options}
-                placeholder={options[0]?.label || 'Select...'}
-              />
-            </div>
-          ))}
-
-          {/* 7. Operator - Always show for staff portal */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Operator</label>
-            <Select
-              value={filters.operator}
-              onChange={(value: string) => onFilterChange('operator', value)}
-              options={[
-                { value: '', label: 'All Operators' },
-                ...(operatorOptions || []),
-                ...(filters.operator && operatorOptions && !operatorOptions.some((option) => option.value === filters.operator)
-                  ? [{ value: filters.operator, label: filters.operator }]
-                  : []),
-              ]}
-              placeholder="All Operators"
-              isLoading={isOperatorLoading}
-              disabled={isOperatorLoading}
-            />
-          </div>
-
-          {/* 8. Status */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Status</label>
-            <Select
-              value={filters.status}
-              onChange={(value: string) => onFilterChange('status', value)}
-              options={effectiveStatusOptions}
-              placeholder={effectiveStatusOptions[0]?.label || 'All Statuses'}
-            />
-          </div>
-
-          {/* 9. From Date */}
-          <div className="min-w-0">
-            <label className={labelClasses}>From Date</label>
-            <input
-              type="date"
-              value={filters.date_from}
-              onChange={(event) => onFilterChange('date_from', event.target.value)}
-              max={filters.date_to || undefined}
-              className={inputClasses}
-              style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
-            />
-          </div>
-
-          {/* 10. To Date */}
-          <div className="min-w-0">
-            <label className={labelClasses}>To Date</label>
-            <input
-              type="date"
-              value={filters.date_to}
-              onChange={(event) => onFilterChange('date_to', event.target.value)}
-              min={filters.date_from || undefined}
-              className={inputClasses}
-              style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
-            />
-          </div>
-
-          {/* 11. Min Amount */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Min Amount</label>
-            <input
-              type="number"
-              value={filters.amount_min}
-              onChange={(event) => onFilterChange('amount_min', event.target.value)}
-              placeholder="0.00"
-              step="0.01"
-              className={inputClasses}
-            />
-          </div>
-
-          {/* 12. Max Amount */}
-          <div className="min-w-0">
-            <label className={labelClasses}>Max Amount</label>
-            <input
-              type="number"
-              value={filters.amount_max}
-              onChange={(event) => onFilterChange('amount_max', event.target.value)}
-              placeholder="999999.99"
-              step="0.01"
-              className={inputClasses}
-            />
-          </div>
-
-          <div className="col-span-full flex flex-wrap justify-end gap-2 mt-4 pt-4 border-t border-border">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onClear}
-              type="button"
-              disabled={isLoading}
-              className="hover:bg-muted/80 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Clear Filters
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={onApply}
-              type="button"
-              isLoading={isLoading}
-              disabled={isLoading}
-              className="hover:opacity-90 active:scale-95 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <>
-                  <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                  </svg>
-                  Applying...
-                </>
-              ) : (
-                'Apply Filters'
+          <section>
+            <h4 className={sectionHeadingClasses}>
+              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+              Filters
+            </h4>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {!(Array.isArray(agentOptions) && agentOptions.length === 0) && (
+                <div>
+                  <label className={labelClasses}>Agent</label>
+                  <Select
+                    value={filters.agent}
+                    onChange={(v) => onFilterChange('agent', v)}
+                    options={[
+                      { value: '', label: 'All Agents' },
+                      ...(agentOptions || []),
+                      ...(filters.agent && agentOptions && !agentOptions.some((o) => o.value === filters.agent)
+                        ? [{ value: filters.agent, label: filters.agent }]
+                        : []),
+                    ]}
+                    placeholder="All Agents"
+                    isLoading={isAgentLoading}
+                    disabled={isAgentLoading}
+                  />
+                </div>
               )}
+              <div>
+                <label className={labelClasses}>Payment method</label>
+                <Select
+                  value={filters.payment_method}
+                  onChange={(v) => onFilterChange('payment_method', v)}
+                  options={[
+                    { value: '', label: 'All Methods' },
+                    ...(paymentMethodOptions || []),
+                    ...(filters.payment_method && paymentMethodOptions && !paymentMethodOptions.some((o) => o.value === filters.payment_method)
+                      ? [{ value: filters.payment_method, label: formatPaymentMethod(filters.payment_method) }]
+                      : []),
+                  ]}
+                  placeholder="All Methods"
+                  isLoading={isPaymentMethodLoading}
+                  disabled={isPaymentMethodLoading}
+                />
+              </div>
+              {BASE_SELECT_FIELDS.map(({ key, label: fieldLabel, options }) => (
+                <div key={key}>
+                  <label className={labelClasses}>{fieldLabel}</label>
+                  <Select
+                    value={filters[key]}
+                    onChange={(v) => onFilterChange(key, v)}
+                    options={options}
+                    placeholder={options[0]?.label || 'Select...'}
+                  />
+                </div>
+              ))}
+              <div>
+                <label className={labelClasses}>Operator</label>
+                <Select
+                  value={filters.operator}
+                  onChange={(v) => onFilterChange('operator', v)}
+                  options={[
+                    { value: '', label: 'All Operators' },
+                    ...(operatorOptions || []),
+                    ...(filters.operator && operatorOptions && !operatorOptions.some((o) => o.value === filters.operator)
+                      ? [{ value: filters.operator, label: filters.operator }]
+                      : []),
+                  ]}
+                  placeholder="All Operators"
+                  isLoading={isOperatorLoading}
+                  disabled={isOperatorLoading}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Status</label>
+                <Select
+                  value={filters.status}
+                  onChange={(v) => onFilterChange('status', v)}
+                  options={effectiveStatusOptions}
+                  placeholder={effectiveStatusOptions[0]?.label || 'All Statuses'}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h4 className={sectionHeadingClasses}>
+              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+              Date range
+            </h4>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <DateSelect
+                label="From date"
+                value={filters.date_from}
+                onChange={(v) => onFilterChange('date_from', v)}
+              />
+              <DateSelect
+                label="To date"
+                value={filters.date_to}
+                onChange={(v) => onFilterChange('date_to', v)}
+              />
+            </div>
+          </section>
+
+          <section>
+            <h4 className={sectionHeadingClasses}>
+              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+              Amount
+            </h4>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className={labelClasses}>Min amount</label>
+                <input
+                  type="number"
+                  value={filters.amount_min}
+                  onChange={(e) => onFilterChange('amount_min', e.target.value)}
+                  placeholder="0.00"
+                  step="0.01"
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Max amount</label>
+                <input
+                  type="number"
+                  value={filters.amount_max}
+                  onChange={(e) => onFilterChange('amount_max', e.target.value)}
+                  placeholder="999999.99"
+                  step="0.01"
+                  className={inputClasses}
+                />
+              </div>
+            </div>
+          </section>
+
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border dark:border-slate-700/80">
+            <Button variant="ghost" size="sm" onClick={onClear} type="button" disabled={isLoading} className="text-muted-foreground hover:text-foreground disabled:opacity-50">
+              Clear
             </Button>
-          </div>
+            <Button size="sm" onClick={onApply} type="button" isLoading={isLoading} disabled={isLoading} className="min-w-[100px] disabled:opacity-50">
+              {isLoading ? 'Applying…' : 'Apply'}
+            </Button>
           </div>
         </div>
       )}

@@ -9,6 +9,7 @@ import { usePagination } from '@/lib/hooks';
 import {
   Badge,
   Button,
+  DateSelect,
   Pagination,
   Table,
   TableBody,
@@ -24,6 +25,7 @@ import {
   ErrorState,
 } from '@/components/features';
 import type { PlayersFiltersState } from '@/components/dashboard/players/players-filters';
+import { US_STATES } from '@/components/dashboard/players/players-filters';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import type {
   Agent,
@@ -651,11 +653,18 @@ function SuperAdminPlayersFiltersWrapper({
     ];
   }, [companies]);
 
+  const inputClasses =
+    'w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30';
+  const labelClasses =
+    'block text-xs font-medium text-muted-foreground mb-1.5 transition-colors dark:text-slate-400';
+  const sectionHeadingClasses =
+    'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2 dark:text-slate-400';
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-md shadow-black/5 backdrop-blur-sm transition-colors dark:border-slate-800 dark:bg-slate-950 dark:shadow-slate-900/40">
-      <div className="flex items-center justify-between text-foreground">
-        <h3 className="flex items-center gap-3 text-base font-semibold text-foreground transition-colors">
-          <svg className="w-5 h-5 text-muted-foreground transition-colors dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="rounded-xl border border-border bg-card shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900/50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-slate-700/80">
+        <h3 className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
+          <svg className="w-5 h-5 text-muted-foreground dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
           </svg>
           Filters
@@ -664,219 +673,138 @@ function SuperAdminPlayersFiltersWrapper({
           variant="ghost"
           size="sm"
           onClick={() => setIsOpen(!isOpen)}
-          className="rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground dark:hover:bg-slate-800/70"
+          className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground dark:hover:bg-slate-800"
         >
           {isOpen ? (
             <>
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
-              Hide Filters
+              Hide
             </>
           ) : (
             <>
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              Show Filters
+              Show
             </>
           )}
         </Button>
       </div>
 
       {isOpen && (
-        <div className="pt-5 text-foreground transition-colors">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 w-full">
-            {/* Company Filter */}
-            <div className="min-w-0">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">
-                Company
-              </label>
-              <Select
-                value={filters.company || 'all'}
-                onChange={(value: string) => onFilterChange('company', value)}
-                options={companyOptions}
-                placeholder="All Companies"
-                isLoading={isLoadingCompanies}
-                disabled={isLoadingCompanies}
-              />
+        <div className="p-4 text-foreground space-y-6">
+          <section>
+            <h4 className={sectionHeadingClasses}>
+              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+              Search
+            </h4>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label className={labelClasses}>Company</label>
+                <Select
+                  value={filters.company || 'all'}
+                  onChange={(v) => onFilterChange('company', v)}
+                  options={companyOptions}
+                  placeholder="All Companies"
+                  isLoading={isLoadingCompanies}
+                  disabled={isLoadingCompanies}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Username</label>
+                <input
+                  type="text"
+                  value={filters.username}
+                  onChange={(e) => onFilterChange('username', e.target.value)}
+                  placeholder="Enter username..."
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Full name</label>
+                <input
+                  type="text"
+                  value={filters.full_name}
+                  onChange={(e) => onFilterChange('full_name', e.target.value)}
+                  placeholder="Enter full name..."
+                  className={inputClasses}
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>Email</label>
+                <input
+                  type="email"
+                  value={filters.email}
+                  onChange={(e) => onFilterChange('email', e.target.value)}
+                  placeholder="Filter by email"
+                  className={inputClasses}
+                />
+              </div>
             </div>
+          </section>
 
-            {/* Player Username */}
-            <div className="min-w-0">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">
-                Player Username
-              </label>
-              <input
-                type="text"
-                value={filters.username}
-                onChange={(event) => onFilterChange('username', event.target.value)}
-                placeholder="Enter username..."
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30"
-              />
+          <section>
+            <h4 className={sectionHeadingClasses}>
+              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+              Filters
+            </h4>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className={labelClasses}>Status</label>
+                <Select
+                  value={filters.status}
+                  onChange={(v) => onFilterChange('status', v)}
+                  options={[
+                    { value: 'all', label: 'All Statuses' },
+                    { value: 'active', label: 'Active' },
+                    { value: 'inactive', label: 'Inactive' },
+                  ]}
+                  placeholder="All Statuses"
+                />
+              </div>
+              <div>
+                <label className={labelClasses}>State</label>
+                <Select
+                  value={filters.state}
+                  onChange={(v) => onFilterChange('state', v)}
+                  options={[
+                    { value: 'all', label: 'All States' },
+                    ...US_STATES,
+                  ]}
+                  placeholder="All States"
+                />
+              </div>
             </div>
+          </section>
 
-            {/* Full Name */}
-            <div className="min-w-0">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={filters.full_name}
-                onChange={(event) => onFilterChange('full_name', event.target.value)}
-                placeholder="Enter full name..."
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30"
-              />
-            </div>
-
-            {/* Email */}
-            <div className="min-w-0">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">
-                Email
-              </label>
-              <input
-                type="email"
-                value={filters.email}
-                onChange={(event) => onFilterChange('email', event.target.value)}
-                placeholder="Filter by email"
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30"
-              />
-            </div>
-
-            {/* Agent - Hidden in superadmin */}
-            {/* Status */}
-            <div className="min-w-0">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">
-                Status
-              </label>
-              <Select
-                value={filters.status}
-                onChange={(value: string) => onFilterChange('status', value)}
-                options={[
-                  { value: 'all', label: 'All Statuses' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' },
-                ]}
-                placeholder="All Statuses"
-              />
-            </div>
-
-            {/* State */}
-            <div className="min-w-0">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">
-                State
-              </label>
-              <Select
-                value={filters.state}
-                onChange={(value: string) => onFilterChange('state', value)}
-                options={[
-                  { value: 'all', label: 'All States' },
-                  { value: 'AL', label: 'Alabama' },
-                  { value: 'AK', label: 'Alaska' },
-                  { value: 'AZ', label: 'Arizona' },
-                  { value: 'AR', label: 'Arkansas' },
-                  { value: 'CA', label: 'California' },
-                  { value: 'CO', label: 'Colorado' },
-                  { value: 'CT', label: 'Connecticut' },
-                  { value: 'DE', label: 'Delaware' },
-                  { value: 'FL', label: 'Florida' },
-                  { value: 'GA', label: 'Georgia' },
-                  { value: 'HI', label: 'Hawaii' },
-                  { value: 'ID', label: 'Idaho' },
-                  { value: 'IL', label: 'Illinois' },
-                  { value: 'IN', label: 'Indiana' },
-                  { value: 'IA', label: 'Iowa' },
-                  { value: 'KS', label: 'Kansas' },
-                  { value: 'KY', label: 'Kentucky' },
-                  { value: 'LA', label: 'Louisiana' },
-                  { value: 'ME', label: 'Maine' },
-                  { value: 'MD', label: 'Maryland' },
-                  { value: 'MA', label: 'Massachusetts' },
-                  { value: 'MI', label: 'Michigan' },
-                  { value: 'MN', label: 'Minnesota' },
-                  { value: 'MS', label: 'Mississippi' },
-                  { value: 'MO', label: 'Missouri' },
-                  { value: 'MT', label: 'Montana' },
-                  { value: 'NE', label: 'Nebraska' },
-                  { value: 'NV', label: 'Nevada' },
-                  { value: 'NH', label: 'New Hampshire' },
-                  { value: 'NJ', label: 'New Jersey' },
-                  { value: 'NM', label: 'New Mexico' },
-                  { value: 'NY', label: 'New York' },
-                  { value: 'NC', label: 'North Carolina' },
-                  { value: 'ND', label: 'North Dakota' },
-                  { value: 'OH', label: 'Ohio' },
-                  { value: 'OK', label: 'Oklahoma' },
-                  { value: 'OR', label: 'Oregon' },
-                  { value: 'PA', label: 'Pennsylvania' },
-                  { value: 'RI', label: 'Rhode Island' },
-                  { value: 'SC', label: 'South Carolina' },
-                  { value: 'SD', label: 'South Dakota' },
-                  { value: 'TN', label: 'Tennessee' },
-                  { value: 'TX', label: 'Texas' },
-                  { value: 'UT', label: 'Utah' },
-                  { value: 'VT', label: 'Vermont' },
-                  { value: 'VA', label: 'Virginia' },
-                  { value: 'WA', label: 'Washington' },
-                  { value: 'WV', label: 'West Virginia' },
-                  { value: 'WI', label: 'Wisconsin' },
-                  { value: 'WY', label: 'Wyoming' },
-                ]}
-                placeholder="All States"
-              />
-            </div>
-
-            {/* From Date */}
-            <div className="min-w-0">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">
-                From Date
-              </label>
-              <input
-                type="date"
+          <section>
+            <h4 className={sectionHeadingClasses}>
+              <span className="w-1 h-4 rounded-full bg-primary/60" aria-hidden />
+              Date range
+            </h4>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <DateSelect
+                label="From date"
                 value={filters.date_from}
-                onChange={(event) => onFilterChange('date_from', event.target.value)}
-                max={filters.date_to || undefined}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30"
+                onChange={(v) => onFilterChange('date_from', v)}
               />
-            </div>
-
-            {/* To Date */}
-            <div className="min-w-0">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 transition-colors dark:text-slate-300">
-                To Date
-              </label>
-              <input
-                type="date"
+              <DateSelect
+                label="To date"
                 value={filters.date_to}
-                onChange={(event) => onFilterChange('date_to', event.target.value)}
-                min={filters.date_from || undefined}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground shadow-sm transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-primary/30"
+                onChange={(v) => onFilterChange('date_to', v)}
               />
             </div>
+          </section>
 
-            <div className="col-span-full flex flex-wrap justify-end gap-2 mt-4 pt-4 border-t border-border">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClear}
-                type="button"
-                disabled={isLoading}
-                className="hover:bg-muted/80 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Clear Filters
-              </Button>
-              <Button
-                size="sm"
-                onClick={onApply}
-                type="button"
-                isLoading={isLoading}
-                disabled={isLoading}
-                className="hover:opacity-90 active:scale-95 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Applying...' : 'Apply Filters'}
-              </Button>
-            </div>
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border dark:border-slate-700/80">
+            <Button variant="ghost" size="sm" onClick={onClear} type="button" disabled={isLoading} className="text-muted-foreground hover:text-foreground disabled:opacity-50">
+              Clear
+            </Button>
+            <Button size="sm" onClick={onApply} type="button" isLoading={isLoading} disabled={isLoading} className="min-w-[100px] disabled:opacity-50">
+              {isLoading ? 'Applying…' : 'Apply'}
+            </Button>
           </div>
         </div>
       )}

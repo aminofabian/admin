@@ -6,7 +6,7 @@ import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, agentsApi } from '@/lib/api';
-import { Badge, Button, Input } from '@/components/ui';
+import { Badge, Button, Input, DateSelect } from '@/components/ui';
 import type { UpdateUserRequest } from '@/types';
 
 interface PlayerDetailViewProps {
@@ -466,11 +466,11 @@ export function PlayerDetailView({
                   Date of Birth
                 </label>
                 {isEditing ? (
-                  <Input
-                    type="date"
+                  <DateSelect
+                    label="Date of Birth"
                     value={editableFields.dob}
-                    onChange={(e) => handleFieldChange('dob', e.target.value)}
-                    className="w-full text-sm sm:text-base"
+                    onChange={(value) => handleFieldChange('dob', value)}
+                    disabled={false}
                   />
                 ) : (
                   <p className="text-xs font-medium text-gray-900 dark:text-gray-100 sm:text-sm">

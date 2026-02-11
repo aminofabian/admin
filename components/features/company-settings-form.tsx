@@ -28,6 +28,12 @@ export function CompanySettingsForm({ onSubmit, onCancel, initialData }: Company
     game_api_key: '',
     service_creds: '',
     is_active: initialData?.is_active ?? true,
+    binpay_withdrawal_secret_key: initialData?.binpay_withdrawal_secret_key ?? '',
+    tierlock_merchant_id: initialData?.tierlock_merchant_id ?? '',
+    tierlock_merchant_secret: initialData?.tierlock_merchant_secret ?? '',
+    tierlock_webhook_secret: initialData?.tierlock_webhook_secret ?? '',
+    tierlock_payout_shared_secret: initialData?.tierlock_payout_shared_secret ?? '',
+    tierlock_payout_client_secret: initialData?.tierlock_payout_client_secret ?? '',
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -334,7 +340,89 @@ export function CompanySettingsForm({ onSubmit, onCancel, initialData }: Company
             placeholder="Enter game API authentication key"
           />
         </div>
+      </div>
 
+      {/* Payment Configuration */}
+      <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Payment Configuration
+        </h3>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Binpay Withdrawal Secret Key
+          </label>
+          <Input
+            type="text"
+            value={formData.binpay_withdrawal_secret_key}
+            onChange={(e) => setFormData({ ...formData, binpay_withdrawal_secret_key: e.target.value })}
+            placeholder="Binpay Withdrawal Secret Key"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Tierlock Merchant ID
+          </label>
+          <Input
+            type="text"
+            value={formData.tierlock_merchant_id}
+            onChange={(e) => setFormData({ ...formData, tierlock_merchant_id: e.target.value })}
+            placeholder="Tierlock Merchant ID"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Tierlock Merchant Secret
+          </label>
+          <Input
+            type="text"
+            value={formData.tierlock_merchant_secret}
+            onChange={(e) => setFormData({ ...formData, tierlock_merchant_secret: e.target.value })}
+            placeholder="Tierlock Merchant Secret"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Tierlock Webhook Secret
+          </label>
+          <Input
+            type="text"
+            value={formData.tierlock_webhook_secret}
+            onChange={(e) => setFormData({ ...formData, tierlock_webhook_secret: e.target.value })}
+            placeholder="Tierlock Webhook Secret"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Tierlock Payout Shared Secret
+          </label>
+          <Input
+            type="text"
+            value={formData.tierlock_payout_shared_secret}
+            onChange={(e) => setFormData({ ...formData, tierlock_payout_shared_secret: e.target.value })}
+            placeholder="Tierlock Payout Shared Secret"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Tierlock Payout Client Secret
+          </label>
+          <Input
+            type="text"
+            value={formData.tierlock_payout_client_secret}
+            onChange={(e) => setFormData({ ...formData, tierlock_payout_client_secret: e.target.value })}
+            placeholder="Tierlock Payout Client Secret"
+          />
+        </div>
+      </div>
+
+      {/* Company Logo */}
+      <div className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
         <div>
           <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
             Company Logo

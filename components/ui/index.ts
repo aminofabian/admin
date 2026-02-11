@@ -2,6 +2,7 @@ export * from './badge';
 export * from './button';
 export * from './card';
 export * from './confirm-modal';
+export * from './date-select';
 export * from './drawer';
 export * from './dropdown-menu';
 export * from './input';

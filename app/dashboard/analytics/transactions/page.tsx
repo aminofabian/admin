@@ -8,7 +8,7 @@ import {
   usePaymentMethods,
   useBonusAnalytics,
 } from '@/hooks/use-analytics-transactions';
-import { Button, Select } from '@/components/ui';
+import { Button, Select, DateSelect } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
@@ -210,21 +210,17 @@ export default function TransactionAnalyticsPage() {
                   {datePreset === 'custom' && (
                     <>
                       <div className="date-input-wrapper">
-                        <input
-                          type="date"
+                        <DateSelect
+                          label="Start Date"
                           value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          max={endDate || undefined}
-                          className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          onChange={setStartDate}
                         />
                       </div>
                       <div className="date-input-wrapper">
-                        <input
-                          type="date"
+                        <DateSelect
+                          label="End Date"
                           value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          min={startDate || undefined}
-                          className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          onChange={setEndDate}
                         />
                       </div>
                     </>

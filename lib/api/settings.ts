@@ -62,6 +62,30 @@ export const companySettingsApi = {
     if (data.btcpay_webhook_secret) {
       formData.append('btcpay_webhook_secret', data.btcpay_webhook_secret);
     }
+
+    if (data.binpay_withdrawal_secret_key) {
+      formData.append('binpay_withdrawal_secret_key', data.binpay_withdrawal_secret_key);
+    }
+
+    if (data.tierlock_merchant_id) {
+      formData.append('tierlock_merchant_id', data.tierlock_merchant_id);
+    }
+
+    if (data.tierlock_merchant_secret) {
+      formData.append('tierlock_merchant_secret', data.tierlock_merchant_secret);
+    }
+
+    if (data.tierlock_webhook_secret) {
+      formData.append('tierlock_webhook_secret', data.tierlock_webhook_secret);
+    }
+
+    if (data.tierlock_payout_shared_secret) {
+      formData.append('tierlock_payout_shared_secret', data.tierlock_payout_shared_secret);
+    }
+
+    if (data.tierlock_payout_client_secret) {
+      formData.append('tierlock_payout_client_secret', data.tierlock_payout_client_secret);
+    }
     
     if (data.logo) {
       formData.append('logo', data.logo);
