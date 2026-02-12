@@ -876,13 +876,13 @@ function EditGameDrawerContent({
   });
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && game) {
       setFormData({
-        username: '',
+        username: game.username ?? '',
         password: '',
       });
     }
-  }, [isOpen]);
+  }, [isOpen, game]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
