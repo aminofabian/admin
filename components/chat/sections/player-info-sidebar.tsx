@@ -173,20 +173,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             >
               {selectedPlayer.fullName || selectedPlayer.username}
             </button>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <p className="text-[10px] text-muted-foreground truncate">@{selectedPlayer.username}</p>
-              {isConnected ? (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded text-[9px] font-medium shrink-0">
-                  <span className="w-1 h-1 bg-green-500 rounded-full" />
-                  Online
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded text-[9px] font-medium shrink-0">
-                  <span className="w-1 h-1 bg-amber-500 rounded-full" />
-                  Offline
-                </span>
-              )}
-            </div>
+            <p className="text-[10px] text-muted-foreground truncate mt-0.5">@{selectedPlayer.username}</p>
             <p className="text-[10px] text-muted-foreground truncate mt-0.5">
               {selectedPlayer.email || 'No email'}
             </p>
