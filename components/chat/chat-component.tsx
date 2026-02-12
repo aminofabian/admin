@@ -216,6 +216,7 @@ export function ChatComponent() {
     isHistoryLoading: isHistoryLoadingMessages,
     updateMessagePinnedState,
     markAllAsRead,
+    refreshMessages,
     notes,
     playerLastSeenAt,
   } = useChatWebSocket({
@@ -924,6 +925,11 @@ export function ChatComponent() {
   const handleAttachClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
+
+  const handleOpenNotesDrawer = useCallback(() => {
+    void refreshMessages();
+    setIsNotesDrawerOpen(true);
+  }, [refreshMessages]);
 
   const handlePlayerSelect = useCallback((player: Player, options?: { markAsRead?: boolean }) => {
     const { markAsRead } = options ?? {};
@@ -2122,7 +2128,7 @@ export function ChatComponent() {
               mobileView={mobileView}
               setMobileView={setMobileView}
               onNavigateToPlayer={handleNavigateToPlayer}
-              onOpenNotesDrawer={() => setIsNotesDrawerOpen(true)}
+              onOpenNotesDrawer={handleOpenNotesDrawer}
               playerLastSeenAt={playerLastSeenAt}
             />
 
@@ -2360,7 +2366,7 @@ export function ChatComponent() {
           onNavigateToPlayer={handleNavigateToPlayer}
           onOpenEditBalance={handleOpenEditBalance}
           onOpenEditProfile={handleOpenEditProfile}
-          onOpenNotesDrawer={() => setIsNotesDrawerOpen(true)}
+          onOpenNotesDrawer={handleOpenNotesDrawer}
         />
       )}
 
