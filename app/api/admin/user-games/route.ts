@@ -50,3 +50,128 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    const body = await request.json();
+    const backendUrl = `${BACKEND_URL}/api/v1/admin/user-games/`;
+
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { raw: text || null };
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error('❌ User-games proxy (POST) error:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to create user game',
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const authHeader = request.headers.get('authorization');
+    const body = await request.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { status: 'error', message: 'Missing id query parameter' },
+        { status: 400 },
+      );
+    }
+
+    const backendUrl = `${BACKEND_URL}/api/v1/admin/user-games/${id}/`;
+
+    const response = await fetch(backendUrl, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { raw: text || null };
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error('❌ User-games proxy (PATCH) error:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to update user game',
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const authHeader = request.headers.get('authorization');
+
+    if (!id) {
+      return NextResponse.json(
+        { status: 'error', message: 'Missing id query parameter' },
+        { status: 400 },
+      );
+    }
+
+    const backendUrl = `${BACKEND_URL}/api/v1/admin/user-games/${id}/`;
+
+    const response = await fetch(backendUrl, {
+      method: 'DELETE',
+      headers: {
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+    });
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { raw: text || null };
+    }
+
+    return NextResponse.json(data ?? { status: 'success', message: 'Deleted' }, { status: response.status });
+  } catch (error) {
+    console.error('❌ User-games proxy (DELETE) error:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to delete user game',
+      },
+      { status: 500 },
+    );
+  }
+}
