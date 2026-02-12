@@ -107,7 +107,6 @@ export function ChatComponent() {
   const [activeTab, setActiveTab] = useState<'online' | 'all-chats'>('online');
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
-  const [availability, setAvailability] = useState(true);
   const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
   const [isPinnedMessagesExpanded, setIsPinnedMessagesExpanded] = useState(false);
@@ -2089,8 +2088,6 @@ export function ChatComponent() {
       {/* Left Column - Player List */}
       <PlayerListSidebar
         mobileView={mobileView}
-        availability={availability}
-        setAvailability={setAvailability}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         activeTab={activeTab}

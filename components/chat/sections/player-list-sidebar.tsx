@@ -185,8 +185,6 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
 
 interface PlayerListSidebarProps {
   mobileView: 'list' | 'chat' | 'info';
-  availability: boolean;
-  setAvailability: (value: boolean) => void;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   activeTab: 'online' | 'all-chats';
@@ -207,8 +205,6 @@ interface PlayerListSidebarProps {
 
 export const PlayerListSidebar = memo(function PlayerListSidebar({
   mobileView,
-  availability,
-  setAvailability,
   searchQuery,
   setSearchQuery,
   activeTab,
@@ -263,35 +259,6 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   }, [activeTab, hasMorePlayers, isLoadingMore, isCurrentTabLoading, onLoadMore]);
   return (
     <div className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-56 lg:w-64 flex-shrink-0 border-r border-border/50 bg-gradient-to-b from-card to-card/50 flex-col`}>
-      {/* Availability Toggle */}
-      <div className="p-4 md:p-5 border-b border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg className={`w-4 h-4 transition-colors ${availability ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span className="text-sm font-semibold text-foreground">Availability</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-medium ${availability ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
-              {availability ? 'Available' : 'Away'}
-            </span>
-            <button
-              onClick={() => setAvailability(!availability)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 shadow-inner ${availability ? 'bg-green-500' : 'bg-muted'
-                }`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${availability ? 'translate-x-6' : 'translate-x-0.5'
-                  }`}
-              />
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Search Bar */}
       <div className="p-4 md:p-5 border-b border-border/50">
         <div className="relative">
