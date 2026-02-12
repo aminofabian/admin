@@ -105,7 +105,7 @@ export const ChatHeader = memo(function ChatHeader({
         </button>
         <button 
           onClick={onOpenNotesDrawer}
-          className="hidden md:flex relative p-2 hover:bg-muted rounded-lg transition-colors" 
+          className="relative p-2 hover:bg-muted rounded-lg transition-colors" 
           aria-label="View Notes"
           title="View player notes"
         >
