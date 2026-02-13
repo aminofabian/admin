@@ -1671,8 +1671,18 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           onClose={handleCloseViewModal}
           onComplete={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('completed') : undefined}
           onCancel={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('cancelled') : undefined}
-          onSendToBinpay={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('send_to_binpay') : undefined}
-          onSendToTierlock={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('send_to_tierlock') : undefined}
+          onSendToBinpay={
+            selectedTransaction.status === 'pending' &&
+            /binpay/i.test(selectedTransaction.payment_method ?? '')
+              ? () => handleTransactionDetailsAction('send_to_binpay')
+              : undefined
+          }
+          onSendToTierlock={
+            selectedTransaction.status === 'pending' &&
+            /tierlock/i.test(selectedTransaction.payment_method ?? '')
+              ? () => handleTransactionDetailsAction('send_to_tierlock')
+              : undefined
+          }
           isActionLoading={pendingTransactionId === selectedTransaction.id}
         />
       )}
