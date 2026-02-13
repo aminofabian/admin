@@ -973,9 +973,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   }, [viewType, queueFilter, setTransactionsFilter, setQueuesFilter]);
 
 
+  type TransactionActionType = 'completed' | 'cancelled' | 'send_to_binpay' | 'send_to_tierlock';
+
   const handleTransactionAction = async (
     transactionId: string, 
-    action: 'completed' | 'cancelled',
+    action: TransactionActionType,
     internalId?: string,
     transactionStatus?: string
   ) => {
@@ -993,21 +995,40 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
     // Check if transaction is pending
     if (transactionStatus && transactionStatus !== 'pending') {
+      const actionLabel = action === 'completed' ? 'complete' : action === 'cancelled' ? 'cancel' : action;
       console.error('❌ Transaction is not pending:', { transactionId, status: transactionStatus });
       addToast({
         type: 'error',
         title: 'Invalid Action',
-        description: `Cannot ${action === 'completed' ? 'complete' : 'cancel'} a transaction that is already ${transactionStatus}.`,
+        description: `Cannot ${actionLabel} a transaction that is already ${transactionStatus}.`,
         duration: 5000,
       });
       return;
     }
 
+    const apiActionMap: Record<TransactionActionType, 'complete' | 'cancel' | 'send_to_binpay' | 'send_to_tierlock'> = {
+      completed: 'complete',
+      cancelled: 'cancel',
+      send_to_binpay: 'send_to_binpay',
+      send_to_tierlock: 'send_to_tierlock',
+    };
+    const apiAction = apiActionMap[action];
+    const successTitleMap: Record<TransactionActionType, string> = {
+      completed: 'Transaction Completed',
+      cancelled: 'Transaction Cancelled',
+      send_to_binpay: 'Sent to Binpay',
+      send_to_tierlock: 'Sent to Tierlock',
+    };
+    const successDescriptionMap: Record<TransactionActionType, string> = {
+      completed: 'Transaction completed successfully',
+      cancelled: 'Transaction cancelled successfully',
+      send_to_binpay: 'Transaction sent to Binpay successfully',
+      send_to_tierlock: 'Transaction sent to Tierlock successfully',
+    };
+
     try {
       // Use internal ID for tracking if provided, otherwise use transactionId
       setPendingTransactionId(internalId ?? transactionId);
-      // Convert status to API action type
-      const apiAction = action === 'completed' ? 'complete' : 'cancel';
       
       console.log('🔄 Transaction Action - About to call API:', { transactionId, action: apiAction });
       const response = await transactionsApi.transactionAction(transactionId, apiAction);
@@ -1019,8 +1040,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       // Show success toast
       addToast({
         type: 'success',
-        title: `Transaction ${action === 'completed' ? 'Completed' : 'Cancelled'}`,
-        description: `Transaction ${action} successfully`,
+        title: successTitleMap[action],
+        description: successDescriptionMap[action],
         duration: 3000,
       });
 
@@ -1142,13 +1163,23 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     setSelectedTransaction(null);
   };
 
-const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
-  if (!selectedTransaction) {
-    return;
-  }
+  const handleTransactionDetailsAction = (action: TransactionActionType) => {
+    if (!selectedTransaction) {
+      return;
+    }
 
-  handleTransactionActionClick(selectedTransaction, action);
-};
+    if (action === 'send_to_binpay' || action === 'send_to_tierlock') {
+      void handleTransactionAction(
+        selectedTransaction.id,
+        action,
+        selectedTransaction.id,
+        selectedTransaction.status
+      );
+      return;
+    }
+
+    handleTransactionActionClick(selectedTransaction, action);
+  };
 
   const handleQuickAction = useCallback(async (queue: TransactionQueue, action: string) => {
     if (action === 'view') {
@@ -1640,6 +1671,8 @@ const handleTransactionDetailsAction = (action: 'completed' | 'cancelled') => {
           onClose={handleCloseViewModal}
           onComplete={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('completed') : undefined}
           onCancel={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('cancelled') : undefined}
+          onSendToBinpay={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('send_to_binpay') : undefined}
+          onSendToTierlock={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('send_to_tierlock') : undefined}
           isActionLoading={pendingTransactionId === selectedTransaction.id}
         />
       )}

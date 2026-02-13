@@ -47,6 +47,8 @@ interface TransactionDetailsModalProps {
   onClose: () => void;
   onComplete?: () => void;
   onCancel?: () => void;
+  onSendToBinpay?: () => void;
+  onSendToTierlock?: () => void;
   isActionLoading?: boolean;
 }
 
@@ -56,6 +58,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   onClose,
   onComplete,
   onCancel,
+  onSendToBinpay,
+  onSendToTierlock,
   isActionLoading = false,
 }: TransactionDetailsModalProps) {
   const router = useRouter();
@@ -95,6 +99,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   const isPending = useMemo(() => transaction.status === 'pending', [transaction.status]);
   const hasComplete = typeof onComplete === 'function';
   const hasCancel = typeof onCancel === 'function';
+  const hasSendToBinpay = typeof onSendToBinpay === 'function';
+  const hasSendToTierlock = typeof onSendToTierlock === 'function';
 
   const bonusAmount = useMemo(() => {
     const parsedBonus = parseNumericValue(transaction.bonus_amount);
@@ -172,9 +178,11 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   }, [router, playerId, transaction.user_username, onClose]);
 
   const statusColor = transaction.status === 'completed' ? 'green' : transaction.status === 'failed' || transaction.status === 'cancelled' ? 'red' : 'yellow';
-  const showActions = isPending && (hasComplete || hasCancel);
+  const showActions = isPending && (hasComplete || hasCancel || hasSendToBinpay || hasSendToTierlock);
   const disableComplete = isActionLoading || !isPending;
   const disableCancel = isActionLoading || !isPending;
+  const disableSendToBinpay = isActionLoading || !isPending;
+  const disableSendToTierlock = isActionLoading || !isPending;
 
   return (
     <DetailsModalWrapper isOpen={isOpen} onClose={onClose} title="Transaction Details">
@@ -321,28 +329,56 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
           {/* Action Buttons */}
           {showActions && (
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex flex-col gap-2 sm:flex-row">
-              {hasComplete && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className={hasCancel ? 'flex-1 font-semibold' : 'w-full font-semibold'}
-                  disabled={disableComplete}
-                  onClick={onComplete}
-                >
-                  {isActionLoading ? 'Processing...' : 'Complete Transaction'}
-                </Button>
-              )}
-              {hasCancel && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  className={hasComplete ? 'flex-1 font-semibold' : 'w-full font-semibold'}
-                  disabled={disableCancel}
-                  onClick={onCancel}
-                >
-                  {isActionLoading ? 'Processing...' : 'Cancel Transaction'}
-                </Button>
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {hasComplete && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className={hasCancel ? 'flex-1 font-semibold' : 'flex-1 font-semibold'}
+                    disabled={disableComplete}
+                    onClick={onComplete}
+                  >
+                    {isActionLoading ? 'Processing...' : 'Complete Transaction'}
+                  </Button>
+                )}
+                {hasCancel && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className={hasComplete ? 'flex-1 font-semibold' : 'flex-1 font-semibold'}
+                    disabled={disableCancel}
+                    onClick={onCancel}
+                  >
+                    {isActionLoading ? 'Processing...' : 'Cancel Transaction'}
+                  </Button>
+                )}
+              </div>
+              {(hasSendToBinpay || hasSendToTierlock) && (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  {hasSendToBinpay && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1 font-semibold"
+                      disabled={disableSendToBinpay}
+                      onClick={onSendToBinpay}
+                    >
+                      {isActionLoading ? 'Processing...' : 'Send to Binpay'}
+                    </Button>
+                  )}
+                  {hasSendToTierlock && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1 font-semibold"
+                      disabled={disableSendToTierlock}
+                      onClick={onSendToTierlock}
+                    >
+                      {isActionLoading ? 'Processing...' : 'Send to Tierlock'}
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           )}

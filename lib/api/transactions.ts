@@ -175,7 +175,7 @@ export const transactionsApi = {
     return response;
   },
 
-  transactionAction: async (txnId: string, type: 'cancel' | 'complete') => {
+  transactionAction: async (txnId: string, type: 'cancel' | 'complete' | 'send_to_binpay' | 'send_to_tierlock') => {
     // Create form-data for the transaction action request
     const formData = new FormData();
     formData.append('txn_id', txnId);
