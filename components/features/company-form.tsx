@@ -34,6 +34,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     binpay_deposit_secret_key: company?.binpay_deposit_secret_key ?? '',
     binpay_withdrawal_secret_key: company?.binpay_withdrawal_secret_key ?? '',
     brenzi_merchant_slug: company?.brenzi_merchant_slug ?? '',
+    taparcaida_vendor_id: company?.taparcaida_vendor_id ?? '',
     tierlock_merchant_id: company?.tierlock_merchant_id ?? '',
     tierlock_merchant_secret: company?.tierlock_merchant_secret ?? '',
     tierlock_webhook_secret: company?.tierlock_webhook_secret ?? '',
@@ -132,6 +133,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           binpay_deposit_secret_key: formData.binpay_deposit_secret_key || undefined,
           binpay_withdrawal_secret_key: formData.binpay_withdrawal_secret_key || undefined,
           brenzi_merchant_slug: formData.brenzi_merchant_slug || undefined,
+          taparcaida_vendor_id: formData.taparcaida_vendor_id || undefined,
           tierlock_merchant_id: formData.tierlock_merchant_id || undefined,
           tierlock_merchant_secret: formData.tierlock_merchant_secret || undefined,
           tierlock_webhook_secret: formData.tierlock_webhook_secret || undefined,
@@ -403,9 +405,9 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
         </div>
       </div>
 
-      {/* Brenzi Payment Configuration */}
+      {/* Brenzi & Taparcaida Payment Configuration */}
       <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Brenzi Payment Configuration</h3>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Brenzi & Taparcaida Payment Configuration</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Brenzi Merchant Slug"
@@ -413,6 +415,14 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
             value={formData.brenzi_merchant_slug}
             onChange={(e) => handleChange('brenzi_merchant_slug', e.target.value)}
             placeholder="e.g., tastey"
+            disabled={isLoading}
+          />
+          <Input
+            label="Taparcaida Vendor ID"
+            type="text"
+            value={formData.taparcaida_vendor_id}
+            onChange={(e) => handleChange('taparcaida_vendor_id', e.target.value)}
+            placeholder="Taparcaida Vendor ID"
             disabled={isLoading}
           />
         </div>
