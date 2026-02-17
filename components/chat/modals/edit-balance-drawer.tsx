@@ -1,10 +1,13 @@
 'use client';
 
 import { Button, Input } from '@/components/ui';
+import { formatCurrency } from '@/lib/utils/formatters';
 
 interface EditBalanceDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  credits?: string;
+  winnings?: string;
   balanceValue: number;
   setBalanceValue: React.Dispatch<React.SetStateAction<number>>;
   balanceType: 'main' | 'winning';
@@ -13,9 +16,13 @@ interface EditBalanceDrawerProps {
   onUpdate: (operation: 'increase' | 'decrease') => void;
 }
 
+const QUICK_AMOUNTS = [2, 3, 5, 10];
+
 export function EditBalanceDrawer({
   isOpen,
   onClose,
+  credits = '0',
+  winnings = '0',
   balanceValue,
   setBalanceValue,
   balanceType,
@@ -35,167 +42,209 @@ export function EditBalanceDrawer({
       />
       
       {/* Drawer Panel */}
-      <div 
-        className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-lg bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+      <div
+        className={`fixed inset-y-0 right-0 z-[60] w-full sm:max-w-[420px] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex h-full flex-col">
-          {/* Drawer Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-b border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-between z-10 backdrop-blur-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          {/* Header — compact */}
+          <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/50">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="shrink-0 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white">
+                <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Edit Balance</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">Adjust player balance</p>
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">Edit Balance</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Adjust player balance</p>
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-xl transition-all duration-200 hover:rotate-90 disabled:opacity-50"
+              className="shrink-0 p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-200/80 dark:hover:bg-gray-700/50 transition-colors disabled:opacity-50"
               disabled={isUpdating}
-              aria-label="Close drawer"
+              aria-label="Close"
             >
-              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24 md:pb-6">
-          {/* Balance Display with +/- Buttons */}
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => setBalanceValue(prev => Math.max(0, prev - 1))}
-              className="w-14 h-14 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-foreground text-2xl font-semibold transition-colors"
-              disabled={isUpdating}
-            >
-              -
-            </button>
-            <div className="text-5xl font-bold text-primary min-w-[120px] text-center">
-              {balanceValue}
-            </div>
-            <button
-              onClick={() => setBalanceValue(prev => prev + 1)}
-              className="w-14 h-14 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-foreground text-2xl font-semibold transition-colors"
-              disabled={isUpdating}
-            >
-              +
-            </button>
-          </div>
+          {/* Body — sections with consistent spacing */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 pb-28">
+            {/* Current balances */}
+            <section className="space-y-2">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current balance</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/80 p-3 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Credits</span>
+                  </div>
+                  <p className="text-base font-bold text-blue-600 dark:text-blue-400 tabular-nums">{formatCurrency(credits)}</p>
+                </div>
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/80 p-3 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Winnings</span>
+                  </div>
+                  <p className="text-base font-bold text-amber-600 dark:text-amber-400 tabular-nums">{formatCurrency(winnings)}</p>
+                </div>
+              </div>
+            </section>
 
-          {/* Quick Amount Buttons */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">
-              Quick Amounts
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[5, 10, 15, 20].map((amount) => (
+            {/* Amount to adjust — stepper */}
+            <section className="space-y-2">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount to adjust</p>
+              <div className="flex items-center justify-center gap-3 py-2">
                 <button
-                  key={amount}
-                  onClick={() => setBalanceValue(amount)}
-                  className="py-3 px-4 border-2 border-primary/20 hover:border-primary rounded-lg text-primary font-semibold transition-colors"
+                  type="button"
+                  onClick={() => setBalanceValue((prev) => Math.max(0, prev - 1))}
+                  className="h-10 w-10 shrink-0 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300 text-lg font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none"
                   disabled={isUpdating}
+                  aria-label="Decrease"
                 >
-                  ${amount}
+                  −
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Manual Amount Entry */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-2">
-              Manual Amount
-            </label>
-            <Input
-              type="number"
-              value={balanceValue === 0 ? '' : balanceValue}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === '') {
-                  setBalanceValue(0);
-                } else {
-                  setBalanceValue(Math.max(0, parseFloat(val) || 0));
-                }
-              }}
-              placeholder="Enter amount"
-              className="w-full"
-              disabled={isUpdating}
-              min="0"
-              step="1"
-              autoComplete="off"
-            />
-          </div>
-
-          {/* Balance Type Selection */}
-          <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">
-              Balance Type
-            </label>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border-2 rounded-lg transition-colors hover:bg-muted/50" 
-                style={{ borderColor: balanceType === 'main' ? 'rgb(34, 197, 94)' : 'transparent' }}>
-                <input
-                  type="radio"
-                  name="balanceType"
-                  checked={balanceType === 'main'}
-                  onChange={() => setBalanceType('main')}
-                  className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-500"
+                <div className="min-w-[4rem] text-center">
+                  <span className="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">${balanceValue}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBalanceValue((prev) => prev + 1)}
+                  className="h-10 w-10 shrink-0 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300 text-lg font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none"
                   disabled={isUpdating}
-                />
-                <span className="text-sm font-medium text-foreground">Credit Balance</span>
+                  aria-label="Increase"
+                >
+                  +
+                </button>
+              </div>
+            </section>
+
+            {/* Quick amounts */}
+            <section className="space-y-2">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quick amounts</p>
+              <div className="grid grid-cols-4 gap-2">
+                {QUICK_AMOUNTS.map((amount) => (
+                  <button
+                    type="button"
+                    key={amount}
+                    onClick={() => setBalanceValue(amount)}
+                    className="h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors disabled:opacity-50"
+                    disabled={isUpdating}
+                  >
+                    ${amount}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Manual amount */}
+            <section className="space-y-2">
+              <label htmlFor="edit-balance-manual" className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+                Manual amount
               </label>
-              <label className="flex items-center gap-2 cursor-pointer flex-1 p-3 border-2 rounded-lg transition-colors hover:bg-muted/50"
-                style={{ borderColor: balanceType === 'winning' ? 'rgb(234, 179, 8)' : 'transparent' }}>
-                <input
-                  type="radio"
-                  name="balanceType"
-                  checked={balanceType === 'winning'}
-                  onChange={() => setBalanceType('winning')}
-                  className="w-4 h-5 text-yellow-500 border-gray-300 focus:ring-yellow-500"
-                  disabled={isUpdating}
-                />
-                <span className="text-sm font-medium text-foreground">Winning Balance</span>
-              </label>
-            </div>
+              <Input
+                id="edit-balance-manual"
+                type="number"
+                value={balanceValue === 0 ? '' : balanceValue}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') setBalanceValue(0);
+                  else setBalanceValue(Math.max(0, parseFloat(val) || 0));
+                }}
+                placeholder="0"
+                className="h-9 text-sm"
+                disabled={isUpdating}
+                min={0}
+                step={1}
+                autoComplete="off"
+              />
+            </section>
+
+            {/* Balance type */}
+            <section className="space-y-2">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Apply to</p>
+              <div className="grid grid-cols-2 gap-2">
+                <label
+                  className={`flex items-center gap-2 cursor-pointer rounded-lg border-2 p-3 transition-colors ${
+                    balanceType === 'main'
+                      ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
+                      : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="balanceType"
+                    checked={balanceType === 'main'}
+                    onChange={() => setBalanceType('main')}
+                    className="h-4 w-4 text-green-500 border-gray-300 focus:ring-green-500 focus:ring-offset-0"
+                    disabled={isUpdating}
+                  />
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Credits</span>
+                </label>
+                <label
+                  className={`flex items-center gap-2 cursor-pointer rounded-lg border-2 p-3 transition-colors ${
+                    balanceType === 'winning'
+                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
+                      : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="balanceType"
+                    checked={balanceType === 'winning'}
+                    onChange={() => setBalanceType('winning')}
+                    className="h-4 w-4 text-amber-500 border-gray-300 focus:ring-amber-500 focus:ring-offset-0"
+                    disabled={isUpdating}
+                  />
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Winnings</span>
+                </label>
+              </div>
+            </section>
           </div>
 
-          </div>
-
-          {/* Drawer Footer */}
-          <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-end gap-3 shadow-lg">
+          {/* Footer — compact actions */}
+          <div className="shrink-0 flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
             <Button
               variant="ghost"
+              size="sm"
               onClick={onClose}
               disabled={isUpdating}
-              className="px-6 py-2.5 font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="px-4 py-2 text-sm font-medium"
             >
               Cancel
             </Button>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => onUpdate('decrease')}
-                disabled={isUpdating || balanceValue <= 0}
-                isLoading={isUpdating}
-                className="px-6 py-2.5 font-semibold"
-              >
-                Deduct
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => onUpdate('increase')}
-                disabled={isUpdating || balanceValue <= 0}
-                isLoading={isUpdating}
-                className="px-6 py-2.5 font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
-              >
-                Add
-              </Button>
-            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onUpdate('decrease')}
+              disabled={isUpdating || balanceValue <= 0}
+              isLoading={isUpdating}
+              className="px-4 py-2 text-sm font-semibold"
+            >
+              Deduct
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => onUpdate('increase')}
+              disabled={isUpdating || balanceValue <= 0}
+              isLoading={isUpdating}
+              className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+            >
+              Add
+            </Button>
           </div>
         </div>
       </div>

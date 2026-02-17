@@ -2383,6 +2383,8 @@ export function ChatComponent() {
       <EditBalanceDrawer
         isOpen={isEditBalanceModalOpen}
         onClose={() => setIsEditBalanceModalOpen(false)}
+        credits={selectedPlayer?.balance ?? '0'}
+        winnings={selectedPlayer?.winningBalance ?? '0'}
         balanceValue={balanceValue}
         setBalanceValue={setBalanceValue}
         balanceType={balanceType}
