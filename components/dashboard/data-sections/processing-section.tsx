@@ -49,8 +49,8 @@ interface ProcessingSectionProps {
   type: ViewType;
 }
 
-/** Keys to show for Binpay payment details (only Binpay Sent status and Binpay Player IP Address). Case-insensitive. */
-const BINPAY_PAYMENT_DETAIL_KEYS_LOWER = ['binpay_sent', 'binpay_player_ip_address'];
+/** Keys to show for Binpay payment details (Binpay Sent, Binpay Status, Binpay Player IP Address). Case-insensitive. */
+const BINPAY_PAYMENT_DETAIL_KEYS_LOWER = ['binpay_sent', 'binpay_status', 'binpay_player_ip_address'];
 
 function getFilteredPaymentDetailEntries(
   paymentDetails: Record<string, unknown> | null | undefined,
