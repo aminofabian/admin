@@ -49,6 +49,20 @@ interface ProcessingSectionProps {
   type: ViewType;
 }
 
+/** Keys to show for Binpay payment details (only Binpay Sent status and Player IP Address). */
+const BINPAY_PAYMENT_DETAIL_KEYS = ['binpay_sent', 'binpay_player_ip_address', 'player_ip_address'] as const;
+
+function getFilteredPaymentDetailEntries(
+  paymentDetails: Record<string, unknown> | null | undefined,
+  paymentMethod: string
+): [string, unknown][] {
+  if (!paymentDetails || typeof paymentDetails !== 'object') return [];
+  const entries = Object.entries(paymentDetails);
+  const isBinpay = /binpay/i.test(paymentMethod ?? '');
+  if (!isBinpay) return entries;
+  return entries.filter(([key]) => BINPAY_PAYMENT_DETAIL_KEYS.includes(key as (typeof BINPAY_PAYMENT_DETAIL_KEYS)[number]));
+}
+
 // Skeleton loaders for better UX
 function ProcessingTransactionTableSkeleton() {
   return (
@@ -405,18 +419,21 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
         <Badge variant="info" className="text-xs">
           {formatPaymentMethod(paymentMethod)}
         </Badge>
-        {transaction.payment_details && typeof transaction.payment_details === 'object' && Object.keys(transaction.payment_details).length > 0 && (
-          <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
-            {Object.entries(transaction.payment_details).map(([key, value]) => (
-              <div key={key} className="truncate" title={`${key.replace(/_/g, ' ')}: ${typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}`}>
-                <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
-                <span className="text-gray-700 dark:text-gray-300">
-                  {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        {(() => {
+          const entries = getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, paymentMethod);
+          return entries.length > 0 ? (
+            <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
+              {entries.map(([key, value]) => (
+                <div key={key} className="truncate" title={`${key.replace(/_/g, ' ')}: ${typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}`}>
+                  <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null;
+        })()}
       </div>
     </TableCell>
   );
@@ -1577,19 +1594,22 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                             {formatPaymentMethod(transaction.payment_method)}
                           </Badge>
                         </div>
-                        {transaction.payment_details && typeof transaction.payment_details === 'object' && Object.keys(transaction.payment_details).length > 0 && (
-                          <div className="mt-2 bg-gray-50 dark:bg-gray-800/50 rounded-md p-2 space-y-1">
-                            <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Payment Details</div>
-                            {Object.entries(transaction.payment_details).map(([key, value]) => (
-                              <div key={key} className="text-[10px] text-gray-700 dark:text-gray-300">
-                                <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
-                                <span className="break-all">
-                                  {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {(() => {
+                          const entries = getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, transaction.payment_method ?? '');
+                          return entries.length > 0 ? (
+                            <div className="mt-2 bg-gray-50 dark:bg-gray-800/50 rounded-md p-2 space-y-1">
+                              <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Payment Details</div>
+                              {entries.map(([key, value]) => (
+                                <div key={key} className="text-[10px] text-gray-700 dark:text-gray-300">
+                                  <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                                  <span className="break-all">
+                                    {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                   </div>

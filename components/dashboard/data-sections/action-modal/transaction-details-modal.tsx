@@ -21,6 +21,20 @@ import {
 
 const CRYPTO_PAYMENT_METHODS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'];
 
+/** Keys to show for Binpay payment details (only Binpay Sent status and Player IP Address). */
+const BINPAY_PAYMENT_DETAIL_KEYS = ['binpay_sent', 'binpay_player_ip_address', 'player_ip_address'] as const;
+
+function getFilteredPaymentDetailEntries(
+  paymentDetails: Record<string, unknown> | null | undefined,
+  paymentMethod: string
+): [string, unknown][] {
+  if (!paymentDetails || typeof paymentDetails !== 'object') return [];
+  const entries = Object.entries(paymentDetails);
+  const isBinpay = /binpay/i.test(paymentMethod ?? '');
+  if (!isBinpay) return entries;
+  return entries.filter(([key]) => BINPAY_PAYMENT_DETAIL_KEYS.includes(key as (typeof BINPAY_PAYMENT_DETAIL_KEYS)[number]));
+}
+
 const parseNumericValue = (value: string | number | null | undefined): number | null => {
   if (value === null || value === undefined) {
     return null;
@@ -246,23 +260,26 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           </div>
 
           {/* Payment Details */}
-          {transaction.payment_details && typeof transaction.payment_details === 'object' && Object.keys(transaction.payment_details).length > 0 && (
-            <div className="space-y-2">
-              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Payment Details</div>
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-md p-3 space-y-2">
-                {Object.entries(transaction.payment_details).map(([key, value]) => (
-                  <div key={key} className="flex items-start justify-between gap-3">
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300 capitalize min-w-0 flex-shrink-0">
-                      {key.replace(/_/g, ' ')}:
-                    </span>
-                    <span className="text-xs text-gray-900 dark:text-gray-100 text-right break-all min-w-0">
-                      {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
-                    </span>
-                  </div>
-                ))}
+          {(() => {
+            const entries = getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, transaction.payment_method ?? '');
+            return entries.length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Payment Details</div>
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-md p-3 space-y-2">
+                  {entries.map(([key, value]) => (
+                    <div key={key} className="flex items-start justify-between gap-3">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300 capitalize min-w-0 flex-shrink-0">
+                        {key.replace(/_/g, ' ')}:
+                      </span>
+                      <span className="text-xs text-gray-900 dark:text-gray-100 text-right break-all min-w-0">
+                        {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            ) : null;
+          })()}
 
           {/* Financial Information */}
           <div className="space-y-3">
