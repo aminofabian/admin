@@ -49,8 +49,8 @@ interface ProcessingSectionProps {
   type: ViewType;
 }
 
-/** Keys to show for Binpay payment details (only Binpay Sent status and Player IP Address). */
-const BINPAY_PAYMENT_DETAIL_KEYS = ['binpay_sent', 'binpay_player_ip_address', 'player_ip_address'] as const;
+/** Keys to show for Binpay payment details (only Binpay Sent status and Player IP Address). Case-insensitive. */
+const BINPAY_PAYMENT_DETAIL_KEYS_LOWER = ['binpay_sent', 'binpay_player_ip_address', 'player_ip_address'];
 
 function getFilteredPaymentDetailEntries(
   paymentDetails: Record<string, unknown> | null | undefined,
@@ -58,9 +58,13 @@ function getFilteredPaymentDetailEntries(
 ): [string, unknown][] {
   if (!paymentDetails || typeof paymentDetails !== 'object') return [];
   const entries = Object.entries(paymentDetails);
-  const isBinpay = /binpay/i.test(paymentMethod ?? '');
+  const isBinpayByMethod = /binpay/i.test(paymentMethod ?? '');
+  const hasBinpayKeys = entries.some(([key]) => BINPAY_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase()));
+  const isBinpay = isBinpayByMethod || hasBinpayKeys;
   if (!isBinpay) return entries;
-  return entries.filter(([key]) => BINPAY_PAYMENT_DETAIL_KEYS.includes(key as (typeof BINPAY_PAYMENT_DETAIL_KEYS)[number]));
+  return entries.filter(([key]) =>
+    BINPAY_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase())
+  );
 }
 
 // Skeleton loaders for better UX
