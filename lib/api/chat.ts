@@ -1,4 +1,5 @@
-import { API_BASE_URL, TOKEN_KEY } from '@/lib/constants/api';
+import { apiClient } from './client';
+import { TOKEN_KEY } from '@/lib/constants/api';
 import { storage } from '@/lib/utils/storage';
 
 const ADMIN_STORAGE_KEY = 'user';
@@ -31,33 +32,19 @@ export async function sendChatMessageToPlayer(
     return false;
   }
 
-  const token = storage.get(TOKEN_KEY);
-  if (!token) {
+  if (!storage.get(TOKEN_KEY)) {
     console.error('Cannot send chat message: no auth token');
     return false;
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/chat/send/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        sender_id: adminId,
-        receiver_id: receiverUserId,
-        message,
-        is_player_sender: false,
-        sent_time: new Date().toISOString(),
-      }),
+    await apiClient.post<unknown>('api/chat-send', {
+      sender_id: adminId,
+      receiver_id: receiverUserId,
+      message,
+      is_player_sender: false,
+      sent_time: new Date().toISOString(),
     });
-
-    if (!response.ok) {
-      console.error('Failed to send chat message:', response.status, response.statusText);
-      return false;
-    }
-
     return true;
   } catch (error) {
     console.error('Failed to send chat message:', error);

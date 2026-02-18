@@ -1100,12 +1100,26 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         const txn = transactions?.results?.find((t: Transaction) => t.id === transactionId);
         const username = txn?.user_username ?? selectedTransaction?.user_username;
 
-        if (username) {
+        if (!username) {
+          addToast({
+            type: 'warning',
+            title: 'KYC Link Not Sent',
+            description: 'Could not identify user. Please send the link manually via chat.',
+            duration: 8000,
+          });
+        } else {
           try {
             const playerRes = await playersApi.list({ username, page_size: 1 });
             const playerId = playerRes?.results?.[0]?.id;
 
-            if (playerId) {
+            if (!playerId) {
+              addToast({
+                type: 'warning',
+                title: 'KYC Link Not Sent',
+                description: `Player not found for ${username}. Please send the link manually via chat.`,
+                duration: 8000,
+              });
+            } else {
               const chatMessage = `Please complete your KYC verification to proceed with your withdrawal:\n${kycLink}`;
               const sent = await sendChatMessageToPlayer(playerId, chatMessage);
               if (sent) {
@@ -1123,11 +1137,15 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                   duration: 8000,
                 });
               }
-            } else {
-              console.error('Could not find player ID for username:', username);
             }
           } catch (lookupError) {
             console.error('Failed to send KYC link to chat:', lookupError);
+            addToast({
+              type: 'warning',
+              title: 'Could Not Send KYC Link',
+              description: 'An error occurred. Please send the link manually via chat.',
+              duration: 8000,
+            });
           }
         }
       }
