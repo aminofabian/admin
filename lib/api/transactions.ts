@@ -181,7 +181,7 @@ export const transactionsApi = {
     formData.append('txn_id', txnId);
     formData.append('type', type);
 
-    const response = await apiClient.post<{ status: string; message: string }>(
+    const response = await apiClient.post<{ status: string; message: string; kyc_link?: string }>(
       'api/transaction-action',
       formData
     );
@@ -191,6 +191,7 @@ export const transactionsApi = {
       throw {
         status: 'error',
         message: response.message || 'Failed to process transaction action',
+        kyc_link: response.kyc_link,
       };
     }
     

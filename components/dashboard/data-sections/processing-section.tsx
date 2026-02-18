@@ -36,7 +36,7 @@ import {
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
 import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
-import { gamesApi, staffsApi, managersApi } from '@/lib/api';
+import { gamesApi, staffsApi, managersApi, playersApi, sendChatMessageToPlayer } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
@@ -1052,16 +1052,19 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     } catch (error) {
       // Extract error message from ApiError object
       let errorMessage = 'Failed to update transaction status';
+      let kycLink: string | undefined;
       
       if (error && typeof error === 'object') {
         const apiError = error as ApiError;
         errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
+        kycLink = apiError.kyc_link;
         
         console.error('❌ Transaction Action Error:', {
           message: apiError.message,
           detail: apiError.detail,
           error: apiError.error,
           status: apiError.status,
+          kyc_link: apiError.kyc_link,
           fullError: JSON.stringify(error, null, 2),
         });
       } else if (error instanceof Error) {
@@ -1069,6 +1072,43 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         console.error('❌ Transaction Action Error:', error.message);
       } else {
         console.error('❌ Transaction Action Error:', error);
+      }
+
+      // If KYC link is present, send it to the user's chat
+      if (kycLink) {
+        const txn = transactions?.results?.find((t: Transaction) => t.id === transactionId);
+        const username = txn?.user_username ?? selectedTransaction?.user_username;
+
+        if (username) {
+          try {
+            const playerRes = await playersApi.list({ username, page_size: 1 });
+            const playerId = playerRes?.results?.[0]?.id;
+
+            if (playerId) {
+              const chatMessage = `Please complete your KYC verification to proceed with your withdrawal:\n${kycLink}`;
+              const sent = await sendChatMessageToPlayer(playerId, chatMessage);
+              if (sent) {
+                addToast({
+                  type: 'info',
+                  title: 'KYC Link Sent',
+                  description: `KYC verification link has been sent to ${username}'s chat.`,
+                  duration: 5000,
+                });
+              } else {
+                addToast({
+                  type: 'warning',
+                  title: 'Could Not Send KYC Link',
+                  description: 'Failed to send KYC link to chat. Please send it manually.',
+                  duration: 8000,
+                });
+              }
+            } else {
+              console.error('Could not find player ID for username:', username);
+            }
+          } catch (lookupError) {
+            console.error('Failed to send KYC link to chat:', lookupError);
+          }
+        }
       }
       
       // Display error to user using toast notification

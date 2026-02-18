@@ -513,17 +513,38 @@ export const useBonusesStore = create<BonusesStore>((set, get) => ({
 
 function extractErrorMessage(err: unknown, defaultMessage: string): string {
   let errorMessage = defaultMessage;
-  
-  if (err && typeof err === 'object' && 'detail' in err) {
-    errorMessage = String(err.detail);
-    
-    if (errorMessage.toLowerCase().includes('permission')) {
-      errorMessage = 'Access Denied: You need admin-level privileges to manage bonuses.';
-    }
-  } else if (err instanceof Error) {
+
+  if (err instanceof Error) {
     errorMessage = err.message;
+  } else if (err && typeof err === 'object') {
+    const obj = err as Record<string, unknown>;
+    // Field-specific validation errors
+    if (obj.errors && typeof obj.errors === 'object') {
+      const parts: string[] = [];
+      Object.entries(obj.errors).forEach(([field, messages]) => {
+        if (Array.isArray(messages) && messages.length > 0) {
+          const name = field.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+          parts.push(`${name}: ${messages.join(', ')}`);
+        }
+      });
+      if (parts.length > 0) return parts.join('; ');
+    }
+    // Prefer: detail (string) > message > error
+    const detail = obj.detail;
+    const message = obj.message;
+    const error = obj.error;
+    if (typeof detail === 'string' && detail) {
+      errorMessage = detail;
+    } else if (typeof message === 'string' && message) {
+      errorMessage = message;
+    } else if (typeof error === 'string' && error) {
+      errorMessage = error;
+    }
   }
-  
+
+  if (errorMessage.toLowerCase().includes('permission')) {
+    return 'Access Denied: You need admin-level privileges to manage bonuses.';
+  }
   return errorMessage;
 }
 

@@ -160,9 +160,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             >
               {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
             </button>
-            {isConnected && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card shadow-sm" />
-            )}
+            <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card shadow-sm ${selectedPlayer.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
           </div>
 
           <div className="flex-1 min-w-0">

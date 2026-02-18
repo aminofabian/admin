@@ -61,10 +61,12 @@ export function FirstPurchaseBonusPageContent() {
         setEditingBonus(null);
       } catch (err) {
         console.error('Error updating bonus:', err);
+        const message =
+          err instanceof Error ? err.message : 'An error occurred while processing your request. Please try again.';
         addToast({
           type: 'error',
           title: 'Failed to Update Bonus',
-          description: 'An error occurred while processing your request. Please try again.',
+          description: message,
         });
       } finally {
         setIsSubmitting(false);

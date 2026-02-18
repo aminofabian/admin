@@ -100,9 +100,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
             }`}>
             {player.avatar || player.username.charAt(0).toUpperCase()}
           </div>
-          {player.isOnline && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse shadow-sm" />
-          )}
+          <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background shadow-sm ${player.isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
         </div>
 
         {/* Player Info */}

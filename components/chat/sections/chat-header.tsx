@@ -62,9 +62,7 @@ export const ChatHeader = memo(function ChatHeader({
           >
             {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
           </button>
-          {selectedPlayer.isOnline && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-card animate-pulse shadow-sm" />
-          )}
+          <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card shadow-sm ${selectedPlayer.isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
