@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
 
 /**
- * Proxy for sending a chat message. Tries backend endpoints in order:
- * 1. POST /api/v1/admin/chat/?request_type=send_message (admin chat pattern)
- * 2. POST /api/v1/admin/chat/?request_type=send
- * 3. POST /api/v1/chat/send/ (standalone send endpoint from Postman)
+ * Proxy for sending a chat message. Uses the same endpoint and body as the chat
+ * component's REST fallback in use-chat-websocket.ts:
+ *   POST /api/v1/chat/send/
+ *   Body: { sender_id, receiver_id, message, is_player_sender, sent_time }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -23,41 +23,49 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
       'Authorization': authHeader,
     };
+    const backendUrl = `${BACKEND_URL}/api/v1/chat/send/`;
 
-    const tryEndpoint = async (url: string): Promise<Response> =>
-      fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    // 1. Same body as chat REST fallback: sender_id, receiver_id, message, is_player_sender, sent_time
+    let response = await fetch(backendUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
 
-    // 1. Try admin chat with request_type=send_message
-    let res = await tryEndpoint(`${BACKEND_URL}/api/v1/admin/chat/?request_type=send_message`);
-    if (res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return NextResponse.json(data);
+    // 2. If 400, try Postman format: chatroom_id + message (backend may expect chatroom_id)
+    if (response.status === 400 && body.receiver_id != null && body.message != null) {
+      const postmanBody = {
+        chatroom_id: body.receiver_id,
+        message: body.message,
+      };
+      response = await fetch(backendUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(postmanBody),
+      });
     }
 
-    // 2. Try admin chat with request_type=send
-    if (res.status === 404) {
-      res = await tryEndpoint(`${BACKEND_URL}/api/v1/admin/chat/?request_type=send`);
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        return NextResponse.json(data);
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('❌ Chat send backend error:', response.status, text);
+      let errorPayload: { status: string; message: string; detail?: string } = {
+        status: 'error',
+        message: `Failed to send message: ${response.status}`,
+      };
+      try {
+        const parsed = JSON.parse(text) as { message?: string; detail?: string; error?: string };
+        if (parsed.message || parsed.detail || parsed.error) {
+          errorPayload.message = parsed.message || parsed.detail || parsed.error || errorPayload.message;
+          errorPayload.detail = text;
+        }
+      } catch {
+        errorPayload.detail = text;
       }
+      return NextResponse.json(errorPayload, { status: response.status });
     }
 
-    // 3. Try standalone /api/v1/chat/send/
-    if (res.status === 404) {
-      res = await tryEndpoint(`${BACKEND_URL}/api/v1/chat/send/`);
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        return NextResponse.json(data);
-      }
-    }
-
-    const text = await res.text();
-    console.error('❌ Chat send backend error:', res.status, text);
-    return NextResponse.json(
-      { status: 'error', message: `Failed to send message: ${res.status}` },
-      { status: res.status }
-    );
+    const data = await response.json().catch(() => ({}));
+    return NextResponse.json(data);
   } catch (error) {
     console.error('❌ Chat send proxy error:', error);
     return NextResponse.json(
