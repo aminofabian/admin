@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const text = await response.text();
       console.error('❌ Chat send backend error:', response.status, text);
-      let errorPayload: { status: string; message: string; detail?: string } = {
+      const errorPayload: { status: string; message: string; detail?: string } = {
         status: 'error',
         message: `Failed to send message: ${response.status}`,
       };
