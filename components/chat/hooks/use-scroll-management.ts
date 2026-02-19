@@ -200,7 +200,7 @@ export function useScrollManagement({
   }, []);
 
   // Scroll to bottom function
-  const scrollToBottom = useCallback((force = false, instant = false) => {
+  const scrollToBottom = useCallback((force = false, _instant?: boolean) => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
@@ -231,57 +231,21 @@ export function useScrollManagement({
 
     isAutoScrollingRef.current = true;
 
-    //  TARGETED LATEST MESSAGE: Only use aggressive approach for specific cases
-    if (instant && (force || !hasScrolledToInitialLoadRef.current)) {
-      //  ONLY for initial load and player switching - use aggressive approach
-      const targetScrollTop = container.scrollHeight;
+    const targetScrollTop = container.scrollHeight;
+    container.scrollTop = targetScrollTop;
+    container.scrollTo({ top: targetScrollTop, behavior: 'auto' });
+    void container.offsetHeight;
 
-      // Multiple approaches for guaranteed latest message visibility
-      container.scrollTop = targetScrollTop;
-      container.scrollTo({
-        top: targetScrollTop,
-        behavior: 'instant' as ScrollBehavior
-      });
-      void container.offsetHeight; // Force reflow
-      container.scrollTop = targetScrollTop;
-
-      // RequestAnimationFrame verification
-      requestAnimationFrame(() => {
-        container.scrollTop = targetScrollTop;
-      });
-
-      // Mark that we've scrolled to initial load
+    if (force || !hasScrolledToInitialLoadRef.current) {
       hasScrolledToInitialLoadRef.current = true;
-      
-      // Reset flag quickly
-      setTimeout(() => {
-        isAutoScrollingRef.current = false;
-        evaluateScrollPosition();
-      }, 10);
-    } else {
-      //  NATURAL SCROLL: Use smooth scrolling for normal interactions
-      const targetScrollTop = container.scrollHeight;
-
-      if (instant) {
-        // Direct instant scroll for other cases
-        container.scrollTop = targetScrollTop;
-        setTimeout(() => {
-          isAutoScrollingRef.current = false;
-          evaluateScrollPosition();
-        }, 0);
-      } else {
-        //  SMOOTH SCROLL: Use custom smooth animation for regular use
-        smoothScrollToPosition(targetScrollTop, SCROLL_ANIMATION_DURATION);
-
-        // Reset auto-scroll flag after animation
-        setTimeout(() => {
-          isAutoScrollingRef.current = false;
-          evaluateScrollPosition();
-        }, SCROLL_ANIMATION_DURATION + 50);
-      }
     }
+
+    setTimeout(() => {
+      isAutoScrollingRef.current = false;
+      evaluateScrollPosition();
+    }, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkIfAtBottom, checkCooldown, clearCooldown, evaluateScrollPosition, smoothScrollToPosition]);
+  }, [checkIfAtBottom, checkCooldown, clearCooldown, evaluateScrollPosition]);
 
   //  INCREMENTAL LOADING: Check if viewport needs more content above
   const checkIfViewportNeedsMoreContent = useCallback(() => {

@@ -2181,17 +2181,10 @@ export function ChatComponent() {
                     </div>
                   </div>
                 )}
-                {Object.entries(groupedMessages).map(([date, dateMessages], groupIndex) => {
-                  const dateGroups = Object.entries(groupedMessages);
-                  const isLastGroup = groupIndex === dateGroups.length - 1;
-                  const isFirstGroup = groupIndex === 0;
-                  const hasNewInGroup = dateMessages.some(m => !displayedMessageIdsRef.current.has(m.id));
-                  const isChapterReveal = isFirstGroup && hasNewInGroup; /* Book-like: new "page" header */
-                  // Only animate new messages in the most recent (bottom) group - pagination uses page-reveal
-                  return (
+                {Object.entries(groupedMessages).map(([date, dateMessages]) => (
                   <div key={date} className="space-y-3">
-                    {/* Date Separator - chapter-style reveal when new page loads */}
-                    <div className={`flex items-center justify-center my-8 first:mt-0 ${isChapterReveal ? 'animate-page-reveal-chapter' : ''}`}>
+                    {/* Date Separator */}
+                    <div className="flex items-center justify-center my-8 first:mt-0">
                       <div className="relative">
                         <div className="absolute inset-0 flex items-center" aria-hidden="true">
                           <div className="w-full border-t border-border/50" />
@@ -2220,27 +2213,12 @@ export function ChatComponent() {
                       const isAdmin = !isSystemMessage && message.sender === 'admin';
                       const isPinning = pendingPinMessageId === message.id;
 
-                      //  ANIMATION: Last group = slide for new messages. Pagination = subtle fade (usher in). Old = none.
-                      const isNewMessage = !displayedMessageIdsRef.current.has(message.id);
-                      if (isNewMessage) {
+                      if (!displayedMessageIdsRef.current.has(message.id)) {
                         displayedMessageIdsRef.current.add(message.id);
                       }
-                      const shouldSlide = isNewMessage && hasScrolledToInitialLoadRef.current && isLastGroup;
-                      const shouldPageReveal = isNewMessage && !isLastGroup; // Pagination: book-like page reveal
 
                       return (
-                        <div
-                          key={message.id}
-                          data-message-id={message.id}
-                          className={`${shouldSlide ?
-                            'animate-slide-in-from-bottom-2 message-animation-optimized' :
-                            'message-animation-optimized'
-                            }`}
-                          style={{
-                            willChange: shouldSlide ? 'transform, opacity' : 'auto',
-                            backfaceVisibility: 'hidden',
-                          }}
-                        >
+                        <div key={message.id} data-message-id={message.id}>
                           <MessageBubble
                             message={message}
                             selectedPlayer={selectedPlayer}
@@ -2248,8 +2226,6 @@ export function ChatComponent() {
                             showAvatar={Boolean(showAvatar)}
                             isConsecutive={Boolean(isConsecutive)}
                             isPinning={isPinning}
-                            entranceAnimation={shouldSlide ? 'slide' : shouldPageReveal ? 'subtle' : 'none'}
-                            entranceDelay={shouldPageReveal ? idx * 0.018 : undefined}
                             onExpandImage={setExpandedImage}
                             onTogglePin={handleTogglePin}
                           />
@@ -2257,15 +2233,14 @@ export function ChatComponent() {
                       );
                     })}
                   </div>
-                  );
-                })}
+                ))}
               </div>
               {/* End content wrapper */}
 
               {/* Rule 10 & 11: Scroll-to-bottom button - show when away from bottom, hide when at bottom */}
               {!isUserAtBottom && (
                 <div className="pointer-events-none sticky bottom-12 sm:bottom-16 z-20 flex justify-end pr-0">
-                  <div className="pointer-events-auto mr-2 sm:mr-4 animate-bounce-in-smooth">
+                  <div className="pointer-events-auto mr-2 sm:mr-4">
                     <button
                       type="button"
                       onClick={() => {
@@ -2273,8 +2248,8 @@ export function ChatComponent() {
                         setHasNewMessagesWhileScrolled(false); // Clear indicator
                       }}
                       aria-label="Jump to latest messages"
-                      className={`group relative flex w-12 flex-col items-center gap-1.5 px-0 py-1.5 text-xs font-semibold transition-all duration-200 hover:-translate-x-0.5 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 animate-scroll-indicator ${hasNewMessagesWhileScrolled
-                        ? 'text-primary animate-new-message-pulse'
+                      className={`group relative flex w-12 flex-col items-center gap-1.5 px-0 py-1.5 text-xs font-semibold transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 ${hasNewMessagesWhileScrolled
+                        ? 'text-primary'
                         : 'text-slate-700 dark:text-slate-100'
                         }`}
                     >
@@ -2292,7 +2267,7 @@ export function ChatComponent() {
 
                         {/* Pulsing ring */}
                         <span
-                          className="absolute inset-0 rounded-full border-2 border-primary/30 opacity-0 transition-all duration-500 group-hover:opacity-100 animate-ping"
+                          className="absolute inset-0 rounded-full border-2 border-primary/30 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
                           aria-hidden="true"
                         />
 
@@ -2330,7 +2305,7 @@ export function ChatComponent() {
               {/* Typing Indicator */}
               {remoteTyping && (
                 <div
-                  className="flex justify-start animate-fade-in-smooth message-animation-optimized"
+                  className="flex justify-start"
                   style={{ willChange: 'transform, opacity' }}
                 >
                   <div className="flex items-end gap-2 max-w-[85%] md:max-w-[75%]">
