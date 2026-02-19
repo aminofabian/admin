@@ -2184,11 +2184,14 @@ export function ChatComponent() {
                 {Object.entries(groupedMessages).map(([date, dateMessages], groupIndex) => {
                   const dateGroups = Object.entries(groupedMessages);
                   const isLastGroup = groupIndex === dateGroups.length - 1;
-                  // Only animate new messages in the most recent (bottom) group - avoids flicker when loading older messages via pagination
+                  const isFirstGroup = groupIndex === 0;
+                  const hasNewInGroup = dateMessages.some(m => !displayedMessageIdsRef.current.has(m.id));
+                  const isChapterReveal = isFirstGroup && hasNewInGroup; /* Book-like: new "page" header */
+                  // Only animate new messages in the most recent (bottom) group - pagination uses page-reveal
                   return (
                   <div key={date} className="space-y-3">
-                    {/* Date Separator */}
-                    <div className="flex items-center justify-center my-8 first:mt-0">
+                    {/* Date Separator - chapter-style reveal when new page loads */}
+                    <div className={`flex items-center justify-center my-8 first:mt-0 ${isChapterReveal ? 'animate-page-reveal-chapter' : ''}`}>
                       <div className="relative">
                         <div className="absolute inset-0 flex items-center" aria-hidden="true">
                           <div className="w-full border-t border-border/50" />
@@ -2223,7 +2226,7 @@ export function ChatComponent() {
                         displayedMessageIdsRef.current.add(message.id);
                       }
                       const shouldSlide = isNewMessage && hasScrolledToInitialLoadRef.current && isLastGroup;
-                      const shouldFadeSubtle = isNewMessage && !isLastGroup; // Pagination: gentle usher-in, zero bounce
+                      const shouldPageReveal = isNewMessage && !isLastGroup; // Pagination: book-like page reveal
 
                       return (
                         <div
@@ -2245,7 +2248,8 @@ export function ChatComponent() {
                             showAvatar={Boolean(showAvatar)}
                             isConsecutive={Boolean(isConsecutive)}
                             isPinning={isPinning}
-                            entranceAnimation={shouldSlide ? 'slide' : shouldFadeSubtle ? 'subtle' : 'none'}
+                            entranceAnimation={shouldSlide ? 'slide' : shouldPageReveal ? 'subtle' : 'none'}
+                            entranceDelay={shouldPageReveal ? idx * 0.018 : undefined}
                             onExpandImage={setExpandedImage}
                             onTogglePin={handleTogglePin}
                           />

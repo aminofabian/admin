@@ -619,18 +619,36 @@ select {
   animation: slide-in-from-bottom-1 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* Subtle usher-in for pagination - gentle fade, no slide (zero bounce) */
-@keyframes fade-in-subtle {
+/* Book-like page reveal - content settles into view like turning a page */
+@keyframes page-reveal {
   from {
-    opacity: 0.96;
+    opacity: 0.92;
+    transform: translateY(-6px) translateZ(0);
   }
   to {
     opacity: 1;
+    transform: translateY(0) translateZ(0);
   }
 }
 
-.animate-fade-in-subtle {
-  animation: fade-in-subtle 0.12s ease-out forwards;
+.animate-page-reveal {
+  animation: page-reveal 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Chapter header reveal - date separator appearing like a new page top */
+@keyframes page-reveal-chapter {
+  from {
+    opacity: 0.88;
+    transform: translateY(-4px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+.animate-page-reveal-chapter {
+  animation: page-reveal-chapter 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Enhanced scroll performance for message container */
@@ -777,7 +795,8 @@ select {
   .animate-slide-in-from-bottom-4,
   .animate-slide-in-from-bottom-2,
   .animate-slide-in-from-bottom-1,
-  .animate-fade-in-subtle,
+  .animate-page-reveal,
+  .animate-page-reveal-chapter,
   .animate-fade-in-smooth,
   .animate-bounce-in-smooth,
   .animate-scroll-indicator,
