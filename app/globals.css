@@ -619,6 +619,20 @@ select {
   animation: slide-in-from-bottom-1 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
+/* Subtle usher-in for pagination - gentle fade, no slide (zero bounce) */
+@keyframes fade-in-subtle {
+  from {
+    opacity: 0.96;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in-subtle {
+  animation: fade-in-subtle 0.12s ease-out forwards;
+}
+
 /* Enhanced scroll performance for message container */
 .scroll-smooth-optimized {
   scroll-behavior: smooth;
@@ -763,6 +777,7 @@ select {
   .animate-slide-in-from-bottom-4,
   .animate-slide-in-from-bottom-2,
   .animate-slide-in-from-bottom-1,
+  .animate-fade-in-subtle,
   .animate-fade-in-smooth,
   .animate-bounce-in-smooth,
   .animate-scroll-indicator,

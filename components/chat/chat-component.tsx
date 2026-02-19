@@ -2217,23 +2217,24 @@ export function ChatComponent() {
                       const isAdmin = !isSystemMessage && message.sender === 'admin';
                       const isPinning = pendingPinMessageId === message.id;
 
-                      //  ANIMATION: Only animate new messages in the last (most recent) group - pagination-loaded messages render without animation for smooth scroll
+                      //  ANIMATION: Last group = slide for new messages. Pagination = subtle fade (usher in). Old = none.
                       const isNewMessage = !displayedMessageIdsRef.current.has(message.id);
                       if (isNewMessage) {
                         displayedMessageIdsRef.current.add(message.id);
                       }
-                      const shouldAnimate = isNewMessage && hasScrolledToInitialLoadRef.current && isLastGroup;
+                      const shouldSlide = isNewMessage && hasScrolledToInitialLoadRef.current && isLastGroup;
+                      const shouldFadeSubtle = isNewMessage && !isLastGroup; // Pagination: gentle usher-in, zero bounce
 
                       return (
                         <div
                           key={message.id}
-                          className={`${shouldAnimate ?
+                          data-message-id={message.id}
+                          className={`${shouldSlide ?
                             'animate-slide-in-from-bottom-2 message-animation-optimized' :
                             'message-animation-optimized'
                             }`}
                           style={{
-                            //  SMOOTH SCROLL: Enhanced hardware acceleration for ultra-smooth animations
-                            willChange: shouldAnimate ? 'transform, opacity' : 'auto',
+                            willChange: shouldSlide ? 'transform, opacity' : 'auto',
                             backfaceVisibility: 'hidden',
                           }}
                         >
@@ -2244,6 +2245,7 @@ export function ChatComponent() {
                             showAvatar={Boolean(showAvatar)}
                             isConsecutive={Boolean(isConsecutive)}
                             isPinning={isPinning}
+                            entranceAnimation={shouldSlide ? 'slide' : shouldFadeSubtle ? 'subtle' : 'none'}
                             onExpandImage={setExpandedImage}
                             onTogglePin={handleTogglePin}
                           />

@@ -15,6 +15,8 @@ import {
   parseTransactionMessage,
 } from '../utils/message-helpers';
 
+type EntranceAnimation = 'none' | 'subtle' | 'slide';
+
 interface MessageBubbleProps {
   message: ChatMessage;
   selectedPlayer: ChatUser;
@@ -22,6 +24,8 @@ interface MessageBubbleProps {
   showAvatar: boolean;
   isConsecutive: boolean;
   isPinning: boolean;
+  /** 'none' = no animation, 'subtle' = gentle fade (pagination), 'slide' = slide-in (new bottom messages) */
+  entranceAnimation?: EntranceAnimation;
   onExpandImage: (url: string) => void;
   onTogglePin: (messageId: string, isPinned: boolean) => void;
 }
@@ -30,6 +34,12 @@ interface MessageBubbleProps {
  * MessageBubble - Renders a single message with all its features
  * Memoized for performance optimization
  */
+const getEntranceClass = (type: EntranceAnimation): string => {
+  if (type === 'none') return '';
+  if (type === 'subtle') return 'animate-fade-in-subtle';
+  return 'animate-in fade-in slide-in-from-bottom-2 duration-200';
+};
+
 export const MessageBubble = memo(function MessageBubble({
   message,
   selectedPlayer,
@@ -37,6 +47,7 @@ export const MessageBubble = memo(function MessageBubble({
   showAvatar,
   isConsecutive,
   isPinning,
+  entranceAnimation = 'none',
   onExpandImage,
   onTogglePin,
 }: MessageBubbleProps) {
@@ -81,8 +92,10 @@ export const MessageBubble = memo(function MessageBubble({
       return '';
     };
 
+    const systemEntranceClass = entranceAnimation === 'slide' ? 'animate-in fade-in slide-in-from-bottom-2 duration-200' : getEntranceClass(entranceAnimation);
+
     return (
-      <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2 duration-200 my-4">
+      <div className={`flex justify-center ${systemEntranceClass} my-4`}>
         <div className="max-w-[85%] md:max-w-[75%]">
           <div className={`bg-muted/50 border border-border/30 rounded-lg px-4 py-3 shadow-sm ${getTransactionBgClass()}`}>
             <div
@@ -104,10 +117,12 @@ export const MessageBubble = memo(function MessageBubble({
     );
   }
 
+  const entranceClass = getEntranceClass(entranceAnimation);
+
   return (
     <div
-      className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200 ${isConsecutive ? 'mt-1' : 'mt-4'}`}
-      style={{ willChange: 'transform, opacity' }}
+      className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} ${entranceClass} ${isConsecutive ? 'mt-1' : 'mt-4'}`}
+      style={{ willChange: entranceAnimation ? 'opacity' : 'auto' }}
     >
       <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] min-w-0 ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
         {/* Avatar */}

@@ -376,7 +376,8 @@ export function useScrollManagement({
 
           if (finalDelta <= 0) return;
 
-          let newScrollTop = beforeLoad.scrollTop + finalDelta;
+          // Pixel-perfect scroll preservation - round to avoid sub-pixel bounce
+          let newScrollTop = Math.round(beforeLoad.scrollTop + finalDelta);
 
           const wasAtTop = beforeLoad.scrollTop <= SPACER_HEIGHT + 50;
           if (wasAtTop) {
@@ -388,10 +389,10 @@ export function useScrollManagement({
 
           const maxScrollTop = finalHeight - currentContainer.clientHeight;
           if (newScrollTop > maxScrollTop) {
-            newScrollTop = Math.max(maxScrollTop - 100, 0);
+            newScrollTop = Math.max(Math.round(maxScrollTop) - 100, 0);
           }
 
-          // Apply scroll synchronously - same frame as content, zero perceived latency
+          // Apply scroll - use scrollTop directly for zero perceived latency
           currentContainer.scrollTop = newScrollTop;
           void currentContainer.offsetHeight; // Force layout before next paint
 
@@ -407,11 +408,13 @@ export function useScrollManagement({
           const newHeight = currentContainer.scrollHeight;
           if (newHeight <= beforeLoad.scrollHeight) return;
 
-          // rAF: runs before next paint, after layout - ensures we have final scrollHeight
+          // Double rAF: wait for layout to fully settle (images, fonts) - prevents bounce from async layout
           if (newHeight !== pendingHeight) {
             pendingHeight = newHeight;
             requestAnimationFrame(() => {
-              if (!resolved) tryApplyScroll();
+              requestAnimationFrame(() => {
+                if (!resolved) tryApplyScroll();
+              });
             });
           }
         });
