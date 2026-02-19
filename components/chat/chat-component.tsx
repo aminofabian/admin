@@ -2278,13 +2278,13 @@ export function ChatComponent() {
                 aria-hidden="true"
               /> */}
 
-                        {/* Main circle */}
-                        <span className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-background via-card to-muted/40 border border-border/80 group-hover:border-primary/50 transition-colors">
+                        {/* Main circle - visible in both light and dark themes */}
+                        <span className="relative flex h-full w-full items-center justify-center rounded-full bg-slate-200/90 dark:bg-slate-700/90 border-2 border-slate-300 dark:border-slate-600 shadow-md group-hover:border-primary/50 group-hover:bg-primary/10 dark:group-hover:bg-primary/20 transition-colors">
                           {/* Stacked chevrons */}
                           <span className="flex flex-col -space-y-2 -translate-x-4">
 
                             <ArrowDownNarrowWide
-                              className="h-4 w-4 text-slate-50 opacity-80 transition-all group-hover:translate-y-0.5"
+                              className="h-4 w-4 text-slate-700 dark:text-slate-100 transition-all group-hover:translate-y-0.5 group-hover:text-primary"
                               strokeWidth={2.5}
                             />
                           </span>
