@@ -16,7 +16,7 @@ interface EditBalanceDrawerProps {
   onUpdate: (operation: 'increase' | 'decrease') => void;
 }
 
-const QUICK_AMOUNTS = [2, 3, 5, 10];
+const QUICK_AMOUNTS = [2, 3, 5, 7];
 
 export function EditBalanceDrawer({
   isOpen,

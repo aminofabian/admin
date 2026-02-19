@@ -6,7 +6,7 @@ const SCROLL_THROTTLE_MS = 16; // ~60fps - optimized for performance with long h
 const SPACER_HEIGHT = 500; // Top spacer height for buffer
 const TOP_BUFFER = 200; // Minimum buffer space at top when loading older messages
 const MOMENTUM_SCROLL_DETECTION_MS = 150; // Time to wait after scroll ends to detect momentum
-const INCREMENTAL_LOAD_DELAY_MS = 50; // Reduced delay for faster incremental loading
+const INCREMENTAL_LOAD_DELAY_MS = 16; // One frame - near-instant next batch for seamless scroll
 const VIEWPORT_FILL_THRESHOLD = 1.0; // Load until viewport is 100% filled with content above
 const SCROLLBAR_RESET_THRESHOLD = 50; // When scrollTop <= this, reset scrollbar to buffer
 const SCROLLBAR_BUFFER_POSITION = SPACER_HEIGHT + TOP_BUFFER; // Position to reset scrollbar to
@@ -67,10 +67,10 @@ export function useScrollManagement({
   const scrollStartTimeRef = useRef<number>(0);
   const scrollStartTopRef = useRef<number>(0);
   
-  // Load management
+  // Load management - tuned for seamless infinite scroll (user can't tell they're on next page)
   const lastLoadTimeRef = useRef<number>(0);
-  const LOAD_COOLDOWN_MS = 1000;
-  const LOAD_DEBOUNCE_MS = 300;
+  const LOAD_COOLDOWN_MS = 350; // Short cooldown so fast scrollers get continuous loading
+  const LOAD_DEBOUNCE_MS = 80; // Quick reaction when user scrolls toward top
   const loadDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasShownEndOfHistoryToastRef = useRef(false);
   
@@ -289,21 +289,19 @@ export function useScrollManagement({
     if (!container) return false;
 
     const scrollTop = container.scrollTop;
-    const clientHeight = container.clientHeight;
+    const viewportHeight = container.clientHeight;
     
     // Calculate how much content is visible above current scroll position
     // Account for transform offset if scrollbar was reset
     const effectiveScrollTop = scrollTop - contentTransformRef.current;
     const contentAbove = Math.max(0, effectiveScrollTop);
-    const viewportHeight = clientHeight;
     
     // Check if we have enough content above to fill the viewport
     // We want at least VIEWPORT_FILL_THRESHOLD (80%) of viewport height as content above
     const minContentAbove = viewportHeight * VIEWPORT_FILL_THRESHOLD;
     
-    // Also check if we're near the top (within load threshold)
-    // Use a more generous threshold to trigger loading earlier
-    const LOAD_THRESHOLD = SPACER_HEIGHT + 300;
+    // Preload 1.5 viewports before top - content ready before user scrolls there (seamless page transition)
+    const LOAD_THRESHOLD = SPACER_HEIGHT + Math.round(viewportHeight * 1.5);
     const isNearTop = effectiveScrollTop <= LOAD_THRESHOLD;
     
     // Need more content if: near top AND not enough content above
@@ -354,135 +352,97 @@ export function useScrollManagement({
       }
 
       // Wait for DOM to update and adjust scroll position
+      // Synchronous scroll in same frame as content - user never sees a "jump" between pages
       return new Promise<{ added: number; needsMore: boolean }>((resolve) => {
-        let observerDisconnected = false;
-        let fallbackTimeout: NodeJS.Timeout | null = null;
-        
-        const observer = new MutationObserver(() => {
-          if (observerDisconnected) return;
-          
-          const updatedContainer = messagesContainerRef.current;
-          if (!updatedContainer) {
-            observer.disconnect();
-            observerDisconnected = true;
-            isLoadingOlderMessagesRef.current = false;
-            container.style.scrollBehavior = originalBehavior;
-            resolve({ added: 0, needsMore: false });
-            return;
+        let resolved = false;
+        let pendingHeight = 0;
+
+        const applyScrollAndFinalize = (currentContainer: HTMLDivElement, stillNeedsMore: boolean) => {
+          if (resolved) return;
+          resolved = true;
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.style.scrollBehavior = originalBehavior;
           }
+          isLoadingOlderMessagesRef.current = false;
+          resolve({ added: result.added, needsMore: stillNeedsMore });
+        };
 
-          const afterLoad = {
-            scrollHeight: updatedContainer.scrollHeight,
-            clientHeight: updatedContainer.clientHeight,
-          };
+        const tryApplyScroll = () => {
+          const currentContainer = messagesContainerRef.current;
+          if (!currentContainer || resolved) return;
 
-          const heightDelta = afterLoad.scrollHeight - beforeLoad.scrollHeight;
+          const finalHeight = currentContainer.scrollHeight;
+          const finalDelta = finalHeight - beforeLoad.scrollHeight;
 
-          if (heightDelta <= 0) {
-            return;
-          }
+          if (finalDelta <= 0) return;
 
-          observer.disconnect();
-          observerDisconnected = true;
-          
-          if (fallbackTimeout) {
-            clearTimeout(fallbackTimeout);
-          }
+          let newScrollTop = beforeLoad.scrollTop + finalDelta;
 
-          requestAnimationFrame(() => {
-            const currentContainer = messagesContainerRef.current;
-            if (!currentContainer) {
-              isLoadingOlderMessagesRef.current = false;
-              container.style.scrollBehavior = originalBehavior;
-              resolve({ added: result.added, needsMore: false });
-              return;
+          const wasAtTop = beforeLoad.scrollTop <= SPACER_HEIGHT + 50;
+          if (wasAtTop) {
+            const minScrollTop = SPACER_HEIGHT + TOP_BUFFER;
+            if (newScrollTop < minScrollTop) {
+              newScrollTop = minScrollTop;
             }
+          }
 
-            const finalHeight = currentContainer.scrollHeight;
-            const finalDelta = finalHeight - beforeLoad.scrollHeight;
+          const maxScrollTop = finalHeight - currentContainer.clientHeight;
+          if (newScrollTop > maxScrollTop) {
+            newScrollTop = Math.max(maxScrollTop - 100, 0);
+          }
 
-            if (finalDelta > 0) {
-              let newScrollTop = beforeLoad.scrollTop + finalDelta;
+          // Apply scroll synchronously - same frame as content, zero perceived latency
+          currentContainer.scrollTop = newScrollTop;
+          void currentContainer.offsetHeight; // Force layout before next paint
 
-              const wasAtTop = beforeLoad.scrollTop <= SPACER_HEIGHT + 50;
-              if (wasAtTop) {
-                const minScrollTop = SPACER_HEIGHT + TOP_BUFFER;
-                if (newScrollTop < minScrollTop) {
-                  newScrollTop = minScrollTop;
-                }
-              }
+          const stillNeedsMore = checkIfViewportNeedsMoreContent() && hasMoreHistory;
+          applyScrollAndFinalize(currentContainer, stillNeedsMore);
+        };
 
-              const maxScrollTop = finalHeight - currentContainer.clientHeight;
-              if (newScrollTop > maxScrollTop) {
-                newScrollTop = Math.max(maxScrollTop - 100, 0);
-              }
+        const mutationObserver = new MutationObserver(() => {
+          if (resolved) return;
+          const currentContainer = messagesContainerRef.current;
+          if (!currentContainer) return;
 
-              currentContainer.scrollTop = newScrollTop;
-              void currentContainer.offsetHeight;
+          const newHeight = currentContainer.scrollHeight;
+          if (newHeight <= beforeLoad.scrollHeight) return;
 
-              // Check if viewport still needs more content
-              const stillNeedsMore = checkIfViewportNeedsMoreContent() && hasMoreHistory;
-
-              requestAnimationFrame(() => {
-                const verifyContainer = messagesContainerRef.current;
-                if (verifyContainer) {
-                  const currentScroll = verifyContainer.scrollTop;
-                  const expectedScroll = newScrollTop;
-                  if (Math.abs(currentScroll - expectedScroll) > 10) {
-                    verifyContainer.scrollTop = expectedScroll;
-                    void verifyContainer.offsetHeight;
-                  }
-                }
-              });
-
-              setTimeout(() => {
-                if (messagesContainerRef.current) {
-                  messagesContainerRef.current.style.scrollBehavior = originalBehavior;
-                }
-                isLoadingOlderMessagesRef.current = false;
-                resolve({ added: result.added, needsMore: stillNeedsMore });
-              }, 50);
-            } else {
-              isLoadingOlderMessagesRef.current = false;
-              container.style.scrollBehavior = originalBehavior;
-              resolve({ added: result.added, needsMore: false });
-            }
-          });
+          // rAF: runs before next paint, after layout - ensures we have final scrollHeight
+          if (newHeight !== pendingHeight) {
+            pendingHeight = newHeight;
+            requestAnimationFrame(() => {
+              if (!resolved) tryApplyScroll();
+            });
+          }
         });
 
-        observer.observe(container, {
+        mutationObserver.observe(container, {
           childList: true,
           subtree: true,
-          attributes: false,
         });
 
-        fallbackTimeout = setTimeout(() => {
-          if (!observerDisconnected) {
-            observer.disconnect();
-            observerDisconnected = true;
-            
+        // Fallback: rAF in case microtask runs before layout is complete
+        requestAnimationFrame(() => {
+          if (!resolved) tryApplyScroll();
+        });
+
+        // Timeout fallback - ensure we never hang
+        setTimeout(() => {
+          if (!resolved) {
+            mutationObserver.disconnect();
             const updatedContainer = messagesContainerRef.current;
-            if (updatedContainer) {
-              const afterLoad = {
-                scrollHeight: updatedContainer.scrollHeight,
-                clientHeight: updatedContainer.clientHeight,
-              };
-              const heightDelta = afterLoad.scrollHeight - beforeLoad.scrollHeight;
-              
-              if (heightDelta > 0) {
-                const newScrollTop = beforeLoad.scrollTop + heightDelta;
-                updatedContainer.scrollTop = newScrollTop;
-                void updatedContainer.offsetHeight;
+            if (updatedContainer && updatedContainer.scrollHeight > beforeLoad.scrollHeight) {
+              tryApplyScroll();
+            } else {
+              resolved = true;
+              if (messagesContainerRef.current) {
+                messagesContainerRef.current.style.scrollBehavior = originalBehavior;
               }
+              isLoadingOlderMessagesRef.current = false;
+              resolve({ added: result.added, needsMore: false });
             }
-            
-            isLoadingOlderMessagesRef.current = false;
-            if (messagesContainerRef.current) {
-              messagesContainerRef.current.style.scrollBehavior = originalBehavior;
-            }
-            resolve({ added: result.added, needsMore: false });
           }
-        }, 2000);
+        }, 1200);
       });
     } catch (error) {
       console.error('❌ Failed to load older messages:', error);
@@ -544,9 +504,9 @@ export function useScrollManagement({
       return;
     }
 
-    // Load when near top (accounting for spacer and transform)
-    // Use a more generous threshold to trigger loading earlier
-    const LOAD_THRESHOLD = SPACER_HEIGHT + 300;
+    // Preload 1.5 viewports before top - same as checkIfViewportNeedsMoreContent
+    const viewportHeight = container.clientHeight;
+    const LOAD_THRESHOLD = SPACER_HEIGHT + Math.round(viewportHeight * 1.5);
     const shouldLoad = effectiveScrollTop <= LOAD_THRESHOLD && hasMoreHistory;
 
     if (!shouldLoad) {

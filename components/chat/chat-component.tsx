@@ -1905,23 +1905,18 @@ export function ChatComponent() {
         });
       }
 
-      // Use multiple timeouts to ensure scroll happens after DOM updates
-      const scrollTimeout1 = setTimeout(() => {
+      // Single scroll + one verification - avoids bouncing from multiple scroll calls
+      const scrollTimeout = setTimeout(() => {
         scrollToBottom(true, true); // Force + instant scroll
       }, 100);
 
-      const scrollTimeout2 = setTimeout(() => {
-        scrollToBottom(true, true); // Verification scroll
-      }, 300);
-
-      const scrollTimeout3 = setTimeout(() => {
-        scrollToBottom(true, true); // Final verification
-      }, 500);
+      const verifyTimeout = setTimeout(() => {
+        scrollToBottom(true, true); // One verification after layout settles
+      }, 250);
 
       return () => {
-        clearTimeout(scrollTimeout1);
-        clearTimeout(scrollTimeout2);
-        clearTimeout(scrollTimeout3);
+        clearTimeout(scrollTimeout);
+        clearTimeout(verifyTimeout);
       };
     }
   }, [queryUsername, queryPlayerId, selectedPlayer, wsMessages.length, isHistoryLoadingMessages, scrollToBottom]);
@@ -2156,11 +2151,12 @@ export function ChatComponent() {
             {/* Messages / Purchase History */}
             <div
               ref={messagesContainerRef}
-              className="relative flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-background/50 to-background scroll-smooth-optimized scrollbar-smooth"
+              className="relative flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-background/50 to-background scrollbar-smooth"
               style={{
-                //  SMOOTH SCROLL: Optimized for buttery smooth scrolling
-                // Hardware acceleration and optimal scroll performance handled by CSS classes
-                scrollBehavior: 'auto', // Let the hook handle smooth scrolling
+                // scrollBehavior: auto - avoids conflict with programmatic scroll during pagination (no bounce)
+                scrollBehavior: 'auto',
+                overscrollBehavior: 'contain',
+                WebkitOverflowScrolling: 'touch',
               }}
               onScroll={handleScroll}
             >
@@ -2173,8 +2169,8 @@ export function ChatComponent() {
                 }}
               >
 
-                {/* Loading indicator for message history */}
-                {isHistoryLoadingMessages && <MessageHistorySkeleton />}
+                {/* Loading indicator - only on initial load (no messages yet). Pagination loads inline without skeleton to avoid layout bounce. */}
+                {isHistoryLoadingMessages && wsMessages.length === 0 && <MessageHistorySkeleton />}
                 {/* Empty state when no messages - only show after WebSocket has connected and loading is complete */}
                 {!isHistoryLoadingMessages && wsMessages.length === 0 && isConnected && (
                   <div className="flex items-center justify-center h-full min-h-[200px]">
@@ -2185,7 +2181,11 @@ export function ChatComponent() {
                     </div>
                   </div>
                 )}
-                {Object.entries(groupedMessages).map(([date, dateMessages]) => (
+                {Object.entries(groupedMessages).map(([date, dateMessages], groupIndex) => {
+                  const dateGroups = Object.entries(groupedMessages);
+                  const isLastGroup = groupIndex === dateGroups.length - 1;
+                  // Only animate new messages in the most recent (bottom) group - avoids flicker when loading older messages via pagination
+                  return (
                   <div key={date} className="space-y-3">
                     {/* Date Separator */}
                     <div className="flex items-center justify-center my-8 first:mt-0">
@@ -2217,22 +2217,23 @@ export function ChatComponent() {
                       const isAdmin = !isSystemMessage && message.sender === 'admin';
                       const isPinning = pendingPinMessageId === message.id;
 
-                      //  ANIMATION: Check if this is a new message (not seen before)
+                      //  ANIMATION: Only animate new messages in the last (most recent) group - pagination-loaded messages render without animation for smooth scroll
                       const isNewMessage = !displayedMessageIdsRef.current.has(message.id);
                       if (isNewMessage) {
                         displayedMessageIdsRef.current.add(message.id);
                       }
+                      const shouldAnimate = isNewMessage && hasScrolledToInitialLoadRef.current && isLastGroup;
 
                       return (
                         <div
                           key={message.id}
-                          className={`${isNewMessage && hasScrolledToInitialLoadRef.current ?
+                          className={`${shouldAnimate ?
                             'animate-slide-in-from-bottom-2 message-animation-optimized' :
                             'message-animation-optimized'
                             }`}
                           style={{
                             //  SMOOTH SCROLL: Enhanced hardware acceleration for ultra-smooth animations
-                            willChange: isNewMessage && hasScrolledToInitialLoadRef.current ? 'transform, opacity' : 'auto',
+                            willChange: shouldAnimate ? 'transform, opacity' : 'auto',
                             backfaceVisibility: 'hidden',
                           }}
                         >
@@ -2250,7 +2251,8 @@ export function ChatComponent() {
                       );
                     })}
                   </div>
-                ))}
+                  );
+                })}
               </div>
               {/* End content wrapper */}
 
