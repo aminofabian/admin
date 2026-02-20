@@ -85,22 +85,37 @@ const groupMessagesByDate = (messages: Message[]) => {
 };
 
 const ONE_MINUTE_MS = 60 * 1000;
+const ONE_HOUR_MS = 60 * ONE_MINUTE_MS;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+const SEVEN_DAYS_MS = 7 * ONE_DAY_MS;
 
 const formatMessageDate = (date: string, latestMessageTimestampMs?: number) => {
-  const now = new Date();
+  const now = Date.now();
+  const nowDate = new Date(now);
   const messageDate = new Date(date);
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const messageDayStart = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
-  const diffTime = todayStart.getTime() - messageDayStart.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const refMs = latestMessageTimestampMs ?? new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate()).getTime();
+  const refDate = new Date(refMs);
+  const ageMs = now - refMs;
 
-  if (diffDays === 0 && latestMessageTimestampMs != null && now.getTime() - latestMessageTimestampMs < ONE_MINUTE_MS) {
-    return 'Just now';
+  if (ageMs < ONE_MINUTE_MS) return 'just now';
+  if (ageMs < ONE_HOUR_MS) {
+    const mins = Math.floor(ageMs / ONE_MINUTE_MS);
+    return `${mins} min ago`;
   }
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
-  return messageDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const nowStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime();
+  const refStart = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()).getTime();
+  const diffDays = Math.floor((nowStart - refStart) / ONE_DAY_MS);
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'yesterday';
+  if (ageMs < SEVEN_DAYS_MS) {
+    const days = Math.floor(ageMs / ONE_DAY_MS);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  }
+  const sameYear = refDate.getFullYear() === nowDate.getFullYear();
+  if (sameYear) {
+    return refDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  return refDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 const DEFAULT_MARK_AS_READ = true;
