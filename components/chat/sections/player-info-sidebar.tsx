@@ -137,9 +137,9 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
     }
   }, [gameToChange, addToast]);
   return (
-    <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-72 lg:w-80 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
+    <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-64 lg:w-72 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
       {/* Header with Player Avatar - Compact */}
-      <div className="p-3 border-b border-border/50 bg-card/50">
+      <div className="p-2 border-b border-border/50 bg-card/50">
         {/* Back button for mobile */}
         <button
           onClick={() => setMobileView('chat')}
@@ -151,46 +151,46 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           <span className="text-xs">Back</span>
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 rounded-lg border border-border/70 dark:border-transparent bg-muted/20 dark:bg-transparent p-2">
           <div className="relative shrink-0">
             <button
               onClick={onNavigateToPlayer}
-              className="relative w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm hover:shadow transition-all cursor-pointer"
+              className="relative w-7 h-7 rounded-md bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-semibold shadow-sm hover:shadow transition-all cursor-pointer"
               title="View player profile"
             >
               {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
             </button>
-            <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card shadow-sm ${selectedPlayer.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-card shadow-sm ${selectedPlayer.isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
           </div>
 
           <div className="flex-1 min-w-0">
             <button
               onClick={onNavigateToPlayer}
-              className="text-sm font-semibold text-foreground hover:text-primary transition-colors cursor-pointer truncate block w-full text-left"
+              className="text-xs font-semibold text-foreground hover:text-primary transition-colors cursor-pointer truncate block w-full text-left capitalize"
               title="View player profile"
             >
               {selectedPlayer.fullName || selectedPlayer.username}
             </button>
-            <p className="text-[10px] text-muted-foreground truncate mt-0.5">@{selectedPlayer.username}</p>
-            <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+            <p className="text-[9px] text-muted-foreground truncate mt-0.5 capitalize">@{selectedPlayer.username}</p>
+            <p className="text-[9px] text-muted-foreground truncate mt-0.5">
               {selectedPlayer.email || 'No email'}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {/* Financial Summary - Compact */}
-        <div className="rounded-lg border border-border/50 bg-card/50 p-2.5">
+        <div className="rounded-lg border border-border/50 bg-card/50 p-2">
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5">
             {/* Credits */}
-            <div className="rounded-md bg-blue-500/5 border border-blue-500/20 p-2">
+            <div className="rounded-md bg-blue-500/5 border border-blue-500/20 p-1.5">
               <div className="flex items-center gap-1 mb-1">
                 <svg className="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-[9px] font-medium text-muted-foreground uppercase">Credits</span>
+                <span className="text-[9px] font-medium text-muted-foreground uppercase">CREDITS</span>
               </div>
               <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
                 {formatCurrency(selectedPlayer.balance || '0')}
@@ -198,12 +198,12 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
             </div>
 
             {/* Winnings */}
-            <div className="rounded-md bg-yellow-500/5 border border-yellow-500/20 p-2">
+            <div className="rounded-md bg-yellow-500/5 border border-yellow-500/20 p-1.5">
               <div className="flex items-center gap-1 mb-1">
                 <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                <span className="text-[9px] font-medium text-muted-foreground uppercase">Winnings</span>
+                <span className="text-[9px] font-medium text-muted-foreground uppercase">WINNINGS</span>
               </div>
               <p className="text-sm font-bold text-yellow-600 dark:text-yellow-500">
                 {formatCurrency(selectedPlayer.winningBalance || '0')}
@@ -234,7 +234,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h4 className="font-semibold text-sm text-foreground">Activity</h4>
+            <h4 className="font-semibold text-sm text-foreground">ACTIVITY</h4>
           </div>
           {/* Purchases Section - Expandable */}
           <div className="w-full">
@@ -320,7 +320,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                                   : 'bg-red-500'
                                 }`}
                             />
-                            {purchase.status}
+                            {purchase.status.toUpperCase()}
                           </span>
                         </div>
                         {/* Payment method row */}
@@ -410,11 +410,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                                 : 'bg-red-500'
                               }`}
                           />
-                          {cashout.status}
+                          {cashout.status.toUpperCase()}
                         </span>
                       </div>
                       {/* Payment method row */}
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <div className="flex items-center justify-between text-[10px] text-[#64748b]">
                         <span>{formatPaymentMethod(cashout.payment_method || cashout.operator)}</span>
                       </div>
                     </div>
@@ -524,7 +524,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
                                     : 'bg-gray-500'
                                 }`}
                             />
-                            {activity.status}
+                            {activity.status.toUpperCase()}
                           </span>
                         </div>
 

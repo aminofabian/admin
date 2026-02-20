@@ -200,3 +200,34 @@ export const formatChatTimestamp = (timestamp: string | null | undefined): strin
   }
 };
 
+/** Compact format for chat list: "now", "2m", "2h", "2d", "1w", "2w", "1mo", "1y" */
+export const formatChatTimestampCompact = (timestamp: string | null | undefined): string => {
+  if (!timestamp || timestamp.trim() === '') {
+    return '';
+  }
+
+  try {
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return '';
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffWeeks = Math.floor(diffDays / 7);
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
+
+    if (diffMins < 1) return 'now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    if (diffWeeks < 4) return `${diffWeeks}w`;
+    if (diffMonths < 12) return `${diffMonths}mo`;
+    return `${diffYears}y`;
+  } catch {
+    return '';
+  }
+};
+

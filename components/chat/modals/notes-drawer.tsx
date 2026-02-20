@@ -189,14 +189,14 @@ export function NotesDrawer({
           {selectedPlayer ? (
             <div className="space-y-4">
               {/* Player Info */}
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg font-bold text-primary">
+              <div className="flex items-center gap-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border/70 dark:border-transparent">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-bold text-primary">
                     {selectedPlayer.username.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{selectedPlayer.username}</p>
+                  <p className="font-semibold truncate capitalize">{selectedPlayer.username}</p>
                   <p className="text-xs text-muted-foreground truncate">{selectedPlayer.email}</p>
                 </div>
               </div>

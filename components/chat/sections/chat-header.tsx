@@ -42,11 +42,11 @@ export const ChatHeader = memo(function ChatHeader({
     return false;
   }, [selectedPlayer?.notes, selectedPlayer?.user_id]);
   return (
-    <div className="px-4 py-3 md:px-6 md:py-4 border-b border-border/50 flex items-center justify-between bg-gradient-to-r from-card via-card/95 to-card/90 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
+    <div className="px-3 py-2 md:px-4 md:py-3 border-b border-border/40 flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
       {/* Back button for mobile */}
       <button
         onClick={() => setMobileView('list')}
-        className="md:hidden p-2 -ml-2 hover:bg-muted rounded-lg transition-colors mr-1"
+        className="md:hidden p-2 -ml-2 hover:bg-muted/80 rounded-lg transition-colors duration-200 mr-1 active:scale-95"
         aria-label="Back to list"
       >
         <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,39 +54,39 @@ export const ChatHeader = memo(function ChatHeader({
         </svg>
       </button>
       
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex items-center gap-2 flex-1 min-w-0 rounded-lg border border-border/70 dark:border-transparent bg-muted/20 dark:bg-transparent px-2 py-1.5">
         <div className="relative flex-shrink-0">
           <button
             onClick={onNavigateToPlayer}
-            className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-sm md:text-base font-bold shadow-md ring-2 ring-primary/10 hover:ring-4 hover:ring-primary/20 transition-all cursor-pointer"
+            className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] md:text-xs font-bold shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10 hover:ring-2 hover:ring-primary/40 transition-all duration-200 cursor-pointer active:scale-95"
             title="View player profile"
           >
             {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
           </button>
-          <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card shadow-sm ${selectedPlayer.isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+          <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-card shadow-sm ${selectedPlayer.isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <button
               onClick={onNavigateToPlayer}
-              className="font-semibold text-foreground text-sm md:text-base truncate hover:text-primary transition-colors cursor-pointer"
+              className="font-semibold text-foreground text-xs md:text-sm truncate hover:text-primary transition-colors cursor-pointer"
               title="View player profile"
             >
-              {selectedPlayer.username}
+              <span className="capitalize">{selectedPlayer.username}</span>
             </button>
             {isConnected ? (
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-xs font-medium">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                Connected
+              <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-px bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-[8px] font-semibold uppercase tracking-wide">
+                <span className="w-1 h-1 bg-green-500 rounded-full shrink-0" />
+                CONNECTED
               </span>
             ) : (
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-xs font-medium">
-                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
-                Connecting...
+              <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-px bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-[8px] font-semibold uppercase tracking-wide">
+                <span className="w-1 h-1 bg-amber-500 rounded-full shrink-0" />
+                CONNECTING
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground truncate min-h-[1rem] flex items-center">
+          <p className="text-[10px] text-muted-foreground truncate min-h-[1rem] flex items-center">
             {connectionError
               ? `Error: ${connectionError}`
               : selectedPlayer.isOnline
@@ -101,7 +101,7 @@ export const ChatHeader = memo(function ChatHeader({
       <div className="flex items-center gap-1 flex-shrink-0">
         <button 
           onClick={() => setMobileView('info')}
-          className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+          className="md:hidden p-2 hover:bg-muted/80 rounded-lg transition-colors duration-200 active:scale-95"
           aria-label="View info"
         >
           <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +110,7 @@ export const ChatHeader = memo(function ChatHeader({
         </button>
         <button 
           onClick={onOpenNotesDrawer}
-          className="relative p-2 hover:bg-muted rounded-lg transition-colors" 
+          className="relative p-2 hover:bg-muted/80 rounded-lg transition-colors duration-200 active:scale-95" 
           aria-label="View Notes"
           title="View player notes"
         >

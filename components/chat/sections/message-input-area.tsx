@@ -43,7 +43,7 @@ export const MessageInputArea = memo(function MessageInputArea({
   toggleEmojiPicker,
 }: MessageInputAreaProps) {
   return (
-    <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/50 bg-gradient-to-t from-card via-card/95 to-card/90 backdrop-blur-sm sticky bottom-0 shadow-lg">
+    <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/40 bg-card/95 backdrop-blur-md sticky bottom-0 shadow-[0_-4px_20px_-8px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.35)]">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -55,7 +55,7 @@ export const MessageInputArea = memo(function MessageInputArea({
 
       {/* Image Preview */}
       {imagePreviewUrl && (
-        <div className="mb-3 p-3 bg-muted/30 rounded-xl border-2 border-primary/20">
+        <div className="mb-3 p-3 bg-muted/40 dark:bg-muted/60 rounded-xl border border-primary/20 dark:border-primary/30 shadow-sm">
           <div className="flex items-start gap-3">
             <div className="relative group">
               <Image
@@ -68,7 +68,7 @@ export const MessageInputArea = memo(function MessageInputArea({
               />
               <button
                 onClick={onClearImage}
-                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-lg"
                 aria-label="Remove image"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +81,7 @@ export const MessageInputArea = memo(function MessageInputArea({
               <p className="text-xs text-muted-foreground">
                 {selectedImage && (selectedImage.size / 1024).toFixed(1)} KB
               </p>
-              <p className="text-xs text-primary mt-1">Ready to send</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wide text-primary mt-1">READY TO SEND</p>
             </div>
           </div>
         </div>
@@ -103,7 +103,8 @@ export const MessageInputArea = memo(function MessageInputArea({
             }}
             onKeyDown={onKeyPress}
             rows={1}
-            className="w-full min-h-[80px] md:min-h-[140px] lg:min-h-[160px] max-h-[200px] md:max-h-[300px] rounded-2xl bg-background/80 dark:bg-background border-2 border-border/50 focus:border-primary transition-all text-sm md:text-base lg:text-lg py-3 md:py-4 lg:py-5 px-4 md:px-5 lg:px-6 pr-16 md:pr-20 pb-14 md:pb-16 shadow-md resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50 text-foreground leading-relaxed"
+            className="w-full min-h-[44px] md:min-h-[100px] lg:min-h-[120px] max-h-[200px] md:max-h-[300px] rounded-2xl bg-background/90 dark:bg-input border border-border/50 dark:border-border/70 focus:border-primary/60 transition-all duration-200 text-sm md:text-base lg:text-lg py-2.5 md:py-4 lg:py-5 px-4 md:px-5 lg:px-6 pr-16 md:pr-20 pb-12 md:pb-14 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/25 placeholder:text-muted-foreground/50 dark:placeholder:text-muted-foreground/70 text-foreground leading-relaxed"
+            aria-label="Type a message"
           />
           
           {/* Action Bar - Inside Textarea at Bottom */}
@@ -136,10 +137,10 @@ export const MessageInputArea = memo(function MessageInputArea({
                 {showEmojiPicker && (
                   <div 
                     ref={emojiPickerRef}
-                    className="absolute bottom-full left-0 mb-2 bg-card border border-border rounded-xl shadow-xl p-3 z-50 w-64 animate-in fade-in zoom-in-95 duration-200"
+                    className="absolute bottom-full left-0 mb-2 bg-card/95 backdrop-blur-md border border-border/60 rounded-xl shadow-xl p-3 z-50 w-64 max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95 duration-200"
                   >
                     <div className="flex items-center justify-between mb-2 pb-2 border-b border-border">
-                      <span className="text-sm font-semibold text-foreground">Pick an emoji</span>
+                      <span className="text-[9px] font-semibold uppercase tracking-wide text-foreground">PICK AN EMOJI</span>
                       <button 
                         onClick={() => setShowEmojiPicker(false)}
                         className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
@@ -181,7 +182,7 @@ export const MessageInputArea = memo(function MessageInputArea({
             <button
               onClick={onSendMessage}
               disabled={(!messageInput.trim() && !selectedImage) || isUploadingImage}
-              className="rounded-xl px-4 md:px-5 lg:px-6 py-2 md:py-2.5 transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground font-semibold text-sm md:text-base"
+              className="rounded-xl px-4 md:px-5 lg:px-6 py-2 md:py-2.5 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md shadow-primary/15 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground font-semibold text-sm md:text-base"
               aria-label="Send message"
             >
               {isUploadingImage ? (
@@ -194,7 +195,7 @@ export const MessageInputArea = memo(function MessageInputArea({
                 </>
               ) : (
                 <>
-                  <span className="hidden sm:inline">Send</span>
+                  <span className="hidden sm:inline">SEND</span>
                   <svg className="w-4.5 h-4.5 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>

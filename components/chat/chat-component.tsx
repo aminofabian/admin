@@ -97,19 +97,19 @@ const formatMessageDate = (date: string, latestMessageTimestampMs?: number) => {
   const refDate = new Date(refMs);
   const ageMs = now - refMs;
 
-  if (ageMs < ONE_MINUTE_MS) return 'just now';
+  if (ageMs < ONE_MINUTE_MS) return 'JUST NOW';
   if (ageMs < ONE_HOUR_MS) {
     const mins = Math.floor(ageMs / ONE_MINUTE_MS);
-    return `${mins} min ago`;
+    return `${mins} MIN AGO`;
   }
   const nowStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime();
   const refStart = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()).getTime();
   const diffDays = Math.floor((nowStart - refStart) / ONE_DAY_MS);
-  if (diffDays === 0) return 'today';
-  if (diffDays === 1) return 'yesterday';
+  if (diffDays === 0) return 'TODAY';
+  if (diffDays === 1) return 'YESTERDAY';
   if (ageMs < SEVEN_DAYS_MS) {
     const days = Math.floor(ageMs / ONE_DAY_MS);
-    return `${days} day${days === 1 ? '' : 's'} ago`;
+    return `${days} DAY${days === 1 ? '' : 'S'} AGO`;
   }
   const sameYear = refDate.getFullYear() === nowDate.getFullYear();
   if (sameYear) {
@@ -315,9 +315,10 @@ export function ChatComponent() {
     }, [selectedPlayer]),
   });
 
-  // Use scroll management hook
   const {
     isUserAtBottom,
+    isLoadingOlder,
+    sentinelRef,
     scrollToBottom,
     handleScroll,
   } = useScrollManagement({
@@ -1920,25 +1921,12 @@ export function ChatComponent() {
       // Mark that we've scrolled for this query param combination
       hasScrolledForQueryParamsRef.current = queryKey;
 
-      if (!IS_PROD) {
-        console.log('📍 Scrolling to bottom for query param navigation:', {
-          playerId: queryPlayerId,
-          messagesCount: wsMessages.length,
-        });
-      }
-
-      // Single scroll + one verification - avoids bouncing from multiple scroll calls
       const scrollTimeout = setTimeout(() => {
-        scrollToBottom(true, true); // Force + instant scroll
+        scrollToBottom(true);
       }, 100);
-
-      const verifyTimeout = setTimeout(() => {
-        scrollToBottom(true, true); // One verification after layout settles
-      }, 250);
 
       return () => {
         clearTimeout(scrollTimeout);
-        clearTimeout(verifyTimeout);
       };
     }
   }, [queryUsername, queryPlayerId, selectedPlayer, wsMessages.length, isHistoryLoadingMessages, scrollToBottom]);
@@ -1951,39 +1939,14 @@ export function ChatComponent() {
       return;
     }
 
-    //  FIXED: Check if we're actually switching to a different player
-    // If it's the same player (e.g., remounting after navigation), preserve scroll position
     const isActualPlayerChange = previousPlayerIdRef.current !== selectedPlayer.user_id;
-
-    if (!IS_PROD) {
-      console.log('👤 Player change effect fired:', {
-        currentPlayerId: selectedPlayer.user_id,
-        previousPlayerId: previousPlayerIdRef.current,
-        isActualPlayerChange,
-      });
-    }
-
     previousPlayerIdRef.current = selectedPlayer.user_id;
 
-    if (!isActualPlayerChange) {
-      if (!IS_PROD) console.log('⏭️  Same player detected, preserving scroll position');
-      return;
-    }
+    if (!isActualPlayerChange) return;
 
-    if (!IS_PROD) console.log('🔄 Player changed - resetting scroll state');
-
-    //  CLEAN RESET: Reset scroll-related state for new player
     latestMessageIdRef.current = null;
-    wasHistoryLoadingRef.current = false; // Reset to allow initial history load
-    hasScrolledToInitialLoadRef.current = false; // Reset for new player
-
-    if (!IS_PROD) {
-      console.log('🔄 Scroll state reset complete:', {
-        hasScrolledToInitial: hasScrolledToInitialLoadRef.current,
-        latestMessageId: latestMessageIdRef.current,
-        currentMessagesCount: wsMessages.length,
-      });
-    }
+    wasHistoryLoadingRef.current = false;
+    hasScrolledToInitialLoadRef.current = false;
   }, [selectedPlayer, wsMessages.length]);
 
   useEffect(() => {
@@ -1995,21 +1958,7 @@ export function ChatComponent() {
 
     const hasNewLatest = latestMessageIdRef.current !== lastMessage.id;
 
-    if (!IS_PROD) {
-      console.log('📝 wsMessages effect:', {
-        hasNewLatest,
-        hasScrolledToInitial: hasScrolledToInitialLoadRef.current,
-        messagesLength: wsMessages.length,
-        isHistoryLoading: isHistoryLoadingMessages,
-        lastMessageId: lastMessage.id,
-        isRefreshing: isRefreshingMessagesRef.current,
-      });
-    }
-
-    //  FIX: If we're refreshing, just update the ref without scrolling
-    // The ID changed from temporary to real, but it's not a "new" message
     if (isRefreshingMessagesRef.current) {
-      if (!IS_PROD) console.log('⏭️ Refreshing in progress, updating ID ref without scroll');
       latestMessageIdRef.current = lastMessage.id;
       return;
     }
@@ -2020,57 +1969,18 @@ export function ChatComponent() {
       return;
     }
 
-    //  TARGETED LATEST MESSAGE: Enhanced initial load logic
-    // Only use aggressive approach for initial load, preserve natural behavior otherwise
     if (!hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
-      if (!IS_PROD) console.log('📍 Initial load condition met - scrolling to latest message');
       hasScrolledToInitialLoadRef.current = true;
 
-      //  CLEAN INITIAL SCROLL: Single force + instant scroll for initial load only
-      scrollToBottom(true, true); // Force + instant initial scroll
-
-      //  LIGHTWEIGHT VERIFICATION: Single verification for async content
-      setTimeout(() => {
-        if (!isRefreshingMessagesRef.current) {
-          scrollToBottom(true, true); // One verification scroll
-        }
-      }, 100);
-
+      scrollToBottom(true);
       return;
     }
 
-    //  ENHANCED NEW MESSAGE HANDLING: More aggressive about showing new messages
-    // Multiple conditions to ensure new messages are visible
-    const shouldAutoScroll =
-      !isRefreshingMessagesRef.current && (
-        // Condition 1: User is at bottom (original logic)
-        isUserAtBottom ||
-        // Condition 2: Very close to bottom (more generous threshold)
-        (messagesContainerRef.current && (() => {
-          const container = messagesContainerRef.current;
-          const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-          return distanceFromBottom <= 150; // More generous threshold
-        })())
-      );
+    const shouldAutoScroll = !isRefreshingMessagesRef.current && isUserAtBottom;
 
     if (shouldAutoScroll) {
-      if (!IS_PROD) {
-        console.log(' Auto-scrolling to new message (enhanced detection)', {
-          isUserAtBottom,
-          messagesLength: wsMessages.length,
-        });
-      }
-
-      // Clear new message indicator since we're scrolling to bottom
       setHasNewMessagesWhileScrolled(false);
-
-      // Immediate scroll with multiple verifications
-      scrollToBottom(true, true); // Force + instant for immediate visibility
-
-      // Multiple verification attempts to ensure we reach bottom with new content
-      setTimeout(() => scrollToBottom(true, true), 50);
-      setTimeout(() => scrollToBottom(true, true), 150);
-      setTimeout(() => scrollToBottom(true, true), 300);
+      scrollToBottom(true);
     } else {
       //  NEW MESSAGE INDICATOR: Show indicator when new messages arrive and user is scrolled up
       if (!isRefreshingMessagesRef.current && hasNewLatest && !isUserAtBottom) {
@@ -2091,20 +2001,9 @@ export function ChatComponent() {
     //  TARGETED LATEST: History load completion → Only scroll to latest if we haven't scrolled yet
     // This preserves natural behavior while ensuring latest message for initial scenarios
     if (wasLoading && !isHistoryLoadingMessages && !hasScrolledToInitialLoadRef.current && wsMessages.length > 0) {
-      if (!IS_PROD) console.log('📍 History loading complete - scrolling to latest message');
-
-      // Only scroll to latest if we haven't already scrolled for this conversation
       hasScrolledToInitialLoadRef.current = true;
 
-      //  CLEAN HISTORY SCROLL: Single force scroll
-      scrollToBottom(true, true); // Force + instant scroll
-
-      //  LIGHTWEIGHT VERIFICATION: Single verification for async content
-      setTimeout(() => {
-        if (!isRefreshingMessagesRef.current) {
-          scrollToBottom(true, true); // One verification scroll
-        }
-      }, 100);
+      scrollToBottom(true);
     }
   }, [isHistoryLoadingMessages, wsMessages.length, scrollToBottom]);
 
@@ -2146,7 +2045,7 @@ export function ChatComponent() {
       />
 
       {/* Middle Column - Chat Conversation */}
-      <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 min-w-0 flex-col border-r border-border bg-card w-full md:w-auto overflow-hidden`}>
+      <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 min-w-0 flex-col border-r border-border bg-card w-full md:w-auto overflow-hidden shadow-sm`}>
         {selectedPlayer ? (
           <>
             {/* Chat Header */}
@@ -2161,6 +2060,19 @@ export function ChatComponent() {
               playerLastSeenAt={playerLastSeenAt}
             />
 
+            {/* Connection Status Banner */}
+            {!isConnected && (
+              <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-700 dark:text-amber-400 animate-in fade-in slide-in-from-top-1 duration-300">
+                <svg className="w-3.5 h-3.5 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="3" />
+                  <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                <span className="text-[11px] font-medium">
+                  {connectionError ? `Connection lost: ${connectionError}` : 'Reconnecting...'}
+                </span>
+              </div>
+            )}
+
             {/* Pinned Messages Section */}
             <PinnedMessagesSection
               messages={wsMessages}
@@ -2170,30 +2082,42 @@ export function ChatComponent() {
               pendingPinMessageId={pendingPinMessageId}
             />
 
-            {/* Messages / Purchase History */}
             <div
               ref={messagesContainerRef}
-              className="relative flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-background/50 to-background scrollbar-smooth"
+              role="log"
+              aria-live="polite"
+              aria-label="Chat messages"
+              className="relative flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-muted/10 via-transparent to-background scrollbar-smooth"
               style={{
-                // scrollBehavior: auto - avoids conflict with programmatic scroll during pagination (no bounce)
-                scrollBehavior: 'auto',
                 overscrollBehavior: 'contain',
                 WebkitOverflowScrolling: 'touch',
               }}
               onScroll={handleScroll}
             >
-              {/*  SCROLLBAR RESET: Content wrapper for transform during scrollbar reset */}
-              <div
-                className="px-4 py-4 md:px-6 md:py-6 space-y-6"
-                style={{
-                  // This wrapper allows us to apply transform during scrollbar reset
-                  // without affecting the scroll container itself
-                }}
-              >
+              <div className="px-4 py-6 md:px-8 md:py-8 space-y-6">
 
-                {/* Loading indicator - only on initial load (no messages yet). Pagination loads inline without skeleton to avoid layout bounce. */}
+                {/* Sentinel for IntersectionObserver-based infinite scroll */}
+                <div ref={sentinelRef} className="h-px w-full shrink-0" aria-hidden="true" />
+
+                {/* Inline loading shimmer for older messages */}
+                {isLoadingOlder && (
+                  <div className="flex justify-center py-1">
+                    <div className="h-0.5 w-20 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full w-1/2 rounded-full bg-primary/30 animate-scroll-load" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Beginning of conversation marker */}
+                {!hasMoreHistory && wsMessages.length > 0 && !isHistoryLoadingMessages && (
+                  <div className="flex items-center justify-center py-2">
+                    <span className="text-[10px] text-muted-foreground/40 uppercase tracking-widest font-medium">
+                      Beginning of conversation
+                    </span>
+                  </div>
+                )}
+
                 {isHistoryLoadingMessages && wsMessages.length === 0 && <MessageHistorySkeleton />}
-                {/* Empty state when no messages - only show after WebSocket has connected and loading is complete */}
                 {!isHistoryLoadingMessages && wsMessages.length === 0 && isConnected && (
                   <div className="flex items-center justify-center h-full min-h-[200px]">
                     <div className="text-center space-y-2">
@@ -2211,12 +2135,12 @@ export function ChatComponent() {
                   <div key={date} className="space-y-3">
                     {/* Date Separator */}
                     <div className="flex items-center justify-center my-8 first:mt-0">
-                      <div className="relative">
+                      <div className="relative w-full">
                         <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                          <div className="w-full border-t border-border/50" />
+                          <div className="w-full border-t border-border/40" />
                         </div>
                         <div className="relative flex justify-center">
-                          <span className="px-4 py-1.5 bg-muted/80 backdrop-blur-sm text-xs font-medium text-muted-foreground rounded-full border border-border/50 shadow-sm">
+                          <span className="px-3 py-1 bg-card/90 backdrop-blur-sm text-[8px] font-semibold uppercase tracking-wide text-muted-foreground rounded-full border border-border/40 shadow-sm">
                             {formatMessageDate(date, latestTs)}
                           </span>
                         </div>
@@ -2275,12 +2199,12 @@ export function ChatComponent() {
                         setHasNewMessagesWhileScrolled(false); // Clear indicator
                       }}
                       aria-label="Jump to latest messages"
-                      className={`group relative flex w-12 flex-col items-center gap-1.5 px-0 py-1.5 text-xs font-semibold transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 ${hasNewMessagesWhileScrolled
+                      className={`group relative flex w-12 flex-col items-center gap-1.5 px-0 py-1.5 text-xs font-semibold transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${hasNewMessagesWhileScrolled
                         ? 'text-primary'
-                        : 'text-slate-700 dark:text-slate-100'
+                        : 'text-muted-foreground'
                         }`}
                     >
-                      <span className="absolute right-full mr-3 hidden translate-x-2 items-center gap-2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-lg opacity-0 transition-all duration-200 group-hover:flex group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:flex group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
+                      <span className="absolute right-full mr-3 hidden translate-x-2 items-center gap-2 rounded-full bg-primary px-3 py-1 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-lg opacity-0 transition-all duration-200 group-hover:flex group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:flex group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
@@ -2306,12 +2230,12 @@ export function ChatComponent() {
               /> */}
 
                         {/* Main circle - visible in both light and dark themes */}
-                        <span className="relative flex h-full w-full items-center justify-center rounded-full bg-slate-200/90 dark:bg-slate-700/90 border-2 border-slate-300 dark:border-slate-600 shadow-md group-hover:border-primary/50 group-hover:bg-primary/10 dark:group-hover:bg-primary/20 transition-colors">
+                        <span className="relative flex h-full w-full items-center justify-center rounded-full bg-card/95 backdrop-blur-sm border border-border/60 shadow-md group-hover:border-primary/40 group-hover:bg-primary/10 transition-all duration-200">
                           {/* Stacked chevrons */}
                           <span className="flex flex-col -space-y-2 -translate-x-4">
 
                             <ArrowDownNarrowWide
-                              className="h-4 w-4 text-slate-700 dark:text-slate-100 transition-all group-hover:translate-y-0.5 group-hover:text-primary"
+                              className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-y-0.5 group-hover:text-primary"
                               strokeWidth={2.5}
                             />
                           </span>
@@ -2329,21 +2253,17 @@ export function ChatComponent() {
                 </div>
               )}
 
-              {/* Typing Indicator */}
               {remoteTyping && (
-                <div
-                  className="flex justify-start"
-                  style={{ willChange: 'transform, opacity' }}
-                >
+                <div className="flex justify-start mt-2">
                   <div className="flex items-end gap-2 max-w-[85%] md:max-w-[75%]">
-                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-md ring-2 ring-blue-500/20 message-animation-optimized">
+                    <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10">
                       {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
                     </div>
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl rounded-bl-sm px-4 py-3 shadow-md shadow-blue-500/25 message-animation-optimized">
+                    <div className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl rounded-bl-sm px-4 py-3 shadow-lg shadow-blue-500/20">
                       <div className="flex gap-1.5">
-                        <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
-                        <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
-                        <div className="w-2 h-2 bg-white/80 rounded-full typing-indicator-smooth"></div>
+                        <div className="w-1.5 h-1.5 bg-white/80 rounded-full typing-indicator-smooth" />
+                        <div className="w-1.5 h-1.5 bg-white/80 rounded-full typing-indicator-smooth" />
+                        <div className="w-1.5 h-1.5 bg-white/80 rounded-full typing-indicator-smooth" />
                       </div>
                     </div>
                   </div>
