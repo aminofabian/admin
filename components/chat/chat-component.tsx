@@ -85,15 +85,17 @@ const groupMessagesByDate = (messages: Message[]) => {
 };
 
 const formatMessageDate = (date: string) => {
-  const today = new Date();
+  const now = new Date();
   const messageDate = new Date(date);
-  const diffTime = today.getTime() - messageDate.getTime();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const messageDayStart = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
+  const diffTime = todayStart.getTime() - messageDayStart.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
+  return messageDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 const DEFAULT_MARK_AS_READ = true;
