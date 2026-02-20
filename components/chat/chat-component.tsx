@@ -1496,18 +1496,6 @@ export function ChatComponent() {
 
   const queryPlayerId = searchParams.get('playerId');
   const queryUsername = searchParams.get('username');
-  const queryMessage = searchParams.get('message');
-
-  // Pre-fill message from URL (e.g. when navigating from "send KYC link")
-  useEffect(() => {
-    if (queryMessage) {
-      setMessageInput(decodeURIComponent(queryMessage));
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete('message');
-      const newUrl = params.toString() ? `/dashboard/chat?${params}` : '/dashboard/chat';
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [queryMessage, router, searchParams]);
 
   // Effect to handle query param player selection - runs only when queryPlayerId changes
   useEffect(() => {

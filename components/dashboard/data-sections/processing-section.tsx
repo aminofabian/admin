@@ -1073,13 +1073,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     } catch (error) {
       // Extract error message from ApiError object
       let errorMessage = 'Failed to update transaction status';
-      let kycLink: string | undefined;
-      
+
       if (error && typeof error === 'object') {
         const apiError = error as ApiError;
         errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
-        kycLink = apiError.kyc_link;
-        
+
         console.error('❌ Transaction Action Error:', {
           message: apiError.message,
           detail: apiError.detail,
@@ -1095,30 +1093,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         console.error('❌ Transaction Action Error:', error);
       }
 
-      // If KYC link is present, open chat with link pre-filled
-      if (kycLink) {
-        const txn = transactions?.results?.find((t: Transaction) => t.id === transactionId);
-        const username = txn?.user_username ?? selectedTransaction?.user_username;
-
-        if (!username) {
-          addToast({
-            type: 'warning',
-            title: 'KYC Link',
-            description: 'Could not identify user. Please send the link manually via chat.',
-            duration: 8000,
-          });
-        } else {
-          const chatMessage = `Please complete your KYC verification to proceed with your withdrawal:\n${kycLink}`;
-          router.push(`/dashboard/chat?username=${encodeURIComponent(username)}&message=${encodeURIComponent(chatMessage)}`);
-          addToast({
-            type: 'info',
-            title: 'Open chat to send KYC link',
-            description: 'Chat opened with message ready to send.',
-            duration: 5000,
-          });
-        }
-      }
-      
       // Display error to user using toast notification
       addToast({
         type: 'error',
