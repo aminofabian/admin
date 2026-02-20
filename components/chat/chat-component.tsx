@@ -12,6 +12,7 @@ import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
 import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
+import { isReasonValidForAction } from './modals/edit-balance-drawer';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
 import { isAutoMessage, isPurchaseNotification, parseTransactionMessage } from './utils/message-helpers';
@@ -146,6 +147,8 @@ export function ChatComponent() {
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   const [balanceValue, setBalanceValue] = useState(0);
   const [balanceType, setBalanceType] = useState<'main' | 'winning'>('main');
+  const [balanceReason, setBalanceReason] = useState('');
+  const [balanceRemarks, setBalanceRemarks] = useState('');
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -1356,10 +1359,12 @@ export function ChatComponent() {
     if (!selectedPlayer) return;
     setBalanceValue(0);
     setBalanceType('main');
+    setBalanceReason('');
+    setBalanceRemarks('');
     setIsEditBalanceModalOpen(true);
   }, [selectedPlayer]);
 
-  const handleUpdateBalance = useCallback(async (operation: 'increase' | 'decrease') => {
+  const handleUpdateBalance = useCallback(async (operation: 'increase' | 'decrease', reason: string, remarks: string) => {
     if (!selectedPlayer || isUpdatingBalance || balanceValue <= 0) {
       if (balanceValue <= 0) {
         addToast({
@@ -1368,6 +1373,16 @@ export function ChatComponent() {
           description: 'Please enter a valid amount greater than 0.',
         });
       }
+      return;
+    }
+
+    const action = operation === 'increase' ? 'add' : 'deduct';
+    if (!isReasonValidForAction(balanceType, action, reason)) {
+      addToast({
+        type: 'error',
+        title: 'Invalid reason',
+        description: `Please select a valid reason for ${action === 'add' ? 'Add' : 'Deduct'}.`,
+      });
       return;
     }
 
@@ -1380,6 +1395,8 @@ export function ChatComponent() {
         value: balanceValue,
         type: operation,
         balanceType: balanceType,
+        reason,
+        remarks: remarks.trim() || undefined,
       });
 
       // Track the last manual payment operation to help determine message type
@@ -1421,6 +1438,8 @@ export function ChatComponent() {
 
       setIsEditBalanceModalOpen(false);
       setBalanceValue(0);
+      setBalanceReason('');
+      setBalanceRemarks('');
 
       // Update the selected player balance
       setSelectedPlayer(prev => prev ? {
@@ -2331,6 +2350,10 @@ export function ChatComponent() {
         setBalanceValue={setBalanceValue}
         balanceType={balanceType}
         setBalanceType={setBalanceType}
+        reason={balanceReason}
+        setReason={setBalanceReason}
+        remarks={balanceRemarks}
+        setRemarks={setBalanceRemarks}
         isUpdating={isUpdatingBalance}
         onUpdate={handleUpdateBalance}
       />

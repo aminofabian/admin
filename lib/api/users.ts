@@ -93,6 +93,8 @@ export const playersApi = {
     value: number;
     type: 'increase' | 'decrease';
     balanceType: 'main' | 'winning';
+    reason: string;
+    remarks?: string;
   }) =>
     apiClient.post<{ 
       status: string; 

@@ -1,7 +1,57 @@
 'use client';
 
-import { Button, Input } from '@/components/ui';
+import { useEffect } from 'react';
+import { Button, Input, Select } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
+
+/** Reason options per balance type and action (credit = main, winning = winning). */
+export const REASON_OPTIONS = {
+  credit: {
+    add: {
+      free_play: 'Free Play',
+      bonus_adjustment: 'Bonus Adjustment',
+      credit_adjustment: 'Credit Adjustment',
+    },
+    deduct: {
+      credit_adjustment: 'Credit Adjustment',
+    },
+  },
+  winning: {
+    add: {
+      winning_adjustment: 'Winning Adjustment',
+    },
+    deduct: {
+      winning_adjustment: 'Winning Adjustment',
+      normal_flow: 'Normal Flow',
+    },
+  },
+} as const;
+
+type BalanceTypeKey = keyof typeof REASON_OPTIONS;
+type ActionKey = 'add' | 'deduct';
+
+/** Returns dropdown options for the current balance type (merged add + deduct, unique by key). */
+function getReasonOptionsForBalanceType(
+  balanceType: 'main' | 'winning',
+): { value: string; label: string }[] {
+  const key: BalanceTypeKey = balanceType === 'main' ? 'credit' : 'winning';
+  const add = REASON_OPTIONS[key].add as Record<string, string>;
+  const deduct = REASON_OPTIONS[key].deduct as Record<string, string>;
+  const merged = { ...add, ...deduct };
+  return Object.entries(merged).map(([value, label]) => ({ value, label }));
+}
+
+/** Returns whether the selected reason is valid for the given action. */
+export function isReasonValidForAction(
+  balanceType: 'main' | 'winning',
+  action: 'add' | 'deduct',
+  reason: string,
+): boolean {
+  if (!reason) return false;
+  const key: BalanceTypeKey = balanceType === 'main' ? 'credit' : 'winning';
+  const options = REASON_OPTIONS[key][action as ActionKey] as Record<string, string>;
+  return Object.prototype.hasOwnProperty.call(options, reason);
+}
 
 interface EditBalanceDrawerProps {
   isOpen: boolean;
@@ -12,8 +62,12 @@ interface EditBalanceDrawerProps {
   setBalanceValue: React.Dispatch<React.SetStateAction<number>>;
   balanceType: 'main' | 'winning';
   setBalanceType: React.Dispatch<React.SetStateAction<'main' | 'winning'>>;
+  reason: string;
+  setReason: React.Dispatch<React.SetStateAction<string>>;
+  remarks: string;
+  setRemarks: React.Dispatch<React.SetStateAction<string>>;
   isUpdating: boolean;
-  onUpdate: (operation: 'increase' | 'decrease') => void;
+  onUpdate: (operation: 'increase' | 'decrease', reason: string, remarks: string) => void;
 }
 
 const QUICK_AMOUNTS = [2, 3, 5, 7];
@@ -27,9 +81,20 @@ export function EditBalanceDrawer({
   setBalanceValue,
   balanceType,
   setBalanceType,
+  reason,
+  setReason,
+  remarks,
+  setRemarks,
   isUpdating,
   onUpdate,
 }: EditBalanceDrawerProps) {
+  const reasonOptions = getReasonOptionsForBalanceType(balanceType);
+
+  // Clear reason when balance type changes so user must pick a reason valid for the new type
+  useEffect(() => {
+    setReason('');
+  }, [balanceType, setReason]);
+
   if (!isOpen) return null;
 
   return (
@@ -212,6 +277,38 @@ export function EditBalanceDrawer({
                 </label>
               </div>
             </section>
+
+            {/* Reason */}
+            <section className="space-y-2">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+                Reason
+              </span>
+              <Select
+                value={reason}
+                onChange={setReason}
+                options={reasonOptions}
+                placeholder="Select reason"
+                disabled={isUpdating}
+                className="h-9 text-sm"
+              />
+            </section>
+
+            {/* Remarks */}
+            <section className="space-y-2">
+              <label htmlFor="edit-balance-remarks" className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+                Remarks
+              </label>
+              <textarea
+                id="edit-balance-remarks"
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="Optional notes"
+                rows={4}
+                disabled={isUpdating}
+                autoComplete="off"
+                className="w-full min-h-[6rem] resize-y px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed"
+              />
+            </section>
           </div>
 
           {/* Footer — compact actions */}
@@ -228,7 +325,7 @@ export function EditBalanceDrawer({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => onUpdate('decrease')}
+              onClick={() => onUpdate('decrease', reason, remarks)}
               disabled={isUpdating || balanceValue <= 0}
               isLoading={isUpdating}
               className="px-4 py-2 text-sm font-semibold"
@@ -238,7 +335,7 @@ export function EditBalanceDrawer({
             <Button
               variant="primary"
               size="sm"
-              onClick={() => onUpdate('increase')}
+              onClick={() => onUpdate('increase', reason, remarks)}
               disabled={isUpdating || balanceValue <= 0}
               isLoading={isUpdating}
               className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
