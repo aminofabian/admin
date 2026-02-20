@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useMemo } from 'react';
+import { Skeleton } from '@/components/ui';
 import { formatChatTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 
@@ -24,8 +25,8 @@ export const ChatHeader = memo(function ChatHeader({
   onOpenNotesDrawer,
   playerLastSeenAt,
 }: ChatHeaderProps) {
-  // Use playerLastSeenAt if available, fallback to lastMessageTime
-  const lastSeenTime = playerLastSeenAt || selectedPlayer.playerLastSeenAt || selectedPlayer.lastMessageTime;
+  // Use only actual last-seen data; do not show last message time as "last seen"
+  const lastSeenTime = playerLastSeenAt ?? selectedPlayer.playerLastSeenAt ?? null;
 
   // Check for notes in selectedPlayer or localStorage as fallback
   const hasNotes = useMemo(() => {
@@ -85,8 +86,14 @@ export const ChatHeader = memo(function ChatHeader({
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground truncate">
-            {connectionError ? `Error: ${connectionError}` : selectedPlayer.isOnline ? 'Active now' : `Last seen ${lastSeenTime ? formatChatTimestamp(lastSeenTime) : 'recently'}`}
+          <p className="text-xs text-muted-foreground truncate min-h-[1rem] flex items-center">
+            {connectionError
+              ? `Error: ${connectionError}`
+              : selectedPlayer.isOnline
+                ? 'Active now'
+                : lastSeenTime != null
+                  ? `Last seen ${formatChatTimestamp(lastSeenTime)}`
+                  : <Skeleton className="h-3 w-24" />}
           </p>
         </div>
       </div>
