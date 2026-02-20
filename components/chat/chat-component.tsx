@@ -84,7 +84,9 @@ const groupMessagesByDate = (messages: Message[]) => {
   return grouped;
 };
 
-const formatMessageDate = (date: string) => {
+const ONE_MINUTE_MS = 60 * 1000;
+
+const formatMessageDate = (date: string, latestMessageTimestampMs?: number) => {
   const now = new Date();
   const messageDate = new Date(date);
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -92,6 +94,9 @@ const formatMessageDate = (date: string) => {
   const diffTime = todayStart.getTime() - messageDayStart.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+  if (diffDays === 0 && latestMessageTimestampMs != null && now.getTime() - latestMessageTimestampMs < ONE_MINUTE_MS) {
+    return 'Just now';
+  }
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
   if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago`;
@@ -2183,7 +2188,11 @@ export function ChatComponent() {
                     </div>
                   </div>
                 )}
-                {Object.entries(groupedMessages).map(([date, dateMessages]) => (
+                {Object.entries(groupedMessages).map(([date, dateMessages]) => {
+                  const latestTs = dateMessages.length
+                    ? Math.max(...dateMessages.map((m) => new Date(m.timestamp).getTime()))
+                    : undefined;
+                  return (
                   <div key={date} className="space-y-3">
                     {/* Date Separator */}
                     <div className="flex items-center justify-center my-8 first:mt-0">
@@ -2193,7 +2202,7 @@ export function ChatComponent() {
                         </div>
                         <div className="relative flex justify-center">
                           <span className="px-4 py-1.5 bg-muted/80 backdrop-blur-sm text-xs font-medium text-muted-foreground rounded-full border border-border/50 shadow-sm">
-                            {formatMessageDate(date)}
+                            {formatMessageDate(date, latestTs)}
                           </span>
                         </div>
                       </div>
@@ -2235,7 +2244,8 @@ export function ChatComponent() {
                       );
                     })}
                   </div>
-                ))}
+                  );
+                })}
               </div>
               {/* End content wrapper */}
 
