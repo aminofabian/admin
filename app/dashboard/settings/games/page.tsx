@@ -91,6 +91,9 @@ export default function GameSettingsPage() {
             <div className="mt-1 text-2xl font-semibold text-foreground dark:text-white">
               {minimumRedeemMultiplier || 'Not set'}
             </div>
+            <p className="mt-2 text-sm text-muted-foreground dark:text-slate-400">
+              Users can redeem only when winning balance ≥ deposit × this multiplier. Example: 2 means $100 deposit → redeem at $200.
+            </p>
           </div>
           <Button
             variant="ghost"
@@ -181,6 +184,9 @@ export default function GameSettingsPage() {
             placeholder="e.g., 1.00"
             disabled={isUpdatingMultiplier}
           />
+          <p className="text-sm text-muted-foreground dark:text-slate-400">
+            Users can redeem only when winning balance ≥ deposit × this multiplier. Example: 2 means $100 deposit → redeem at $200.
+          </p>
         </div>
       </Modal>
     </div>
