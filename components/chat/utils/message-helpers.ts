@@ -141,7 +141,7 @@ export const parseKycMessage = (message: { text: string }): KycMessageParsed => 
   }
 
   // Body: strip <a> tags (keep text between tags), then strip other HTML for display
-  let body = message.text
+  const body = message.text
     .replace(/<a\s+href=["'][^"']*["'][^>]*>([^<]*)<\/a>/gi, '') // Remove anchor but we show button instead
     .replace(/<br\s*\/?>/gi, ' ')
     .trim();
