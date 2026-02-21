@@ -11,6 +11,8 @@ import {
   MESSAGE_HTML_CONTENT_CLASS,
   isAutoMessage,
   isPurchaseNotification,
+  isKycVerificationMessage,
+  parseKycMessage,
   formatTransactionMessage,
   parseTransactionMessage,
 } from '../utils/message-helpers';
@@ -37,9 +39,13 @@ export const MessageBubble = memo(function MessageBubble({
   onTogglePin,
 }: MessageBubbleProps) {
   const messageHasHtml = hasHtmlContent(message.text);
+  const isKyc = isKycVerificationMessage(message);
   const isAuto = isAutoMessage(message);
   const isPurchase = isPurchaseNotification(message);
 
+  if (isKyc) {
+    return <KycVerificationMessage message={message} />;
+  }
   if (isAuto || isPurchase) {
     return (
       <TransactionMessage message={message} isPurchase={isPurchase} />
@@ -144,6 +150,47 @@ function TransactionMessage({ message, isPurchase }: {
           {message.time && (
             <div className="flex items-center justify-center gap-1.5 mt-1.5">
               <span className={`text-[10px] md:text-xs font-medium ${isPurchase || isRecharge || isRedeem || isCashout ? 'text-muted-foreground/80' : 'text-muted-foreground/60 italic'}`}>
+                {message.time}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KycVerificationMessage({ message }: { message: ChatMessage }) {
+  const { link, bodyText } = parseKycMessage(message);
+
+  return (
+    <div className="flex justify-center my-4">
+      <div className="max-w-[85%] md:max-w-[75%]">
+        <div className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 dark:border-amber-500/40 rounded-xl px-4 py-4 shadow-sm backdrop-blur-sm">
+          <p className="text-center text-[13px] md:text-sm font-bold text-amber-800 dark:text-amber-200 mb-1.5">
+            Binpay KYC verification
+          </p>
+          <p className="text-center text-[13px] md:text-sm leading-relaxed break-words text-foreground/90">
+            {bodyText || 'Please complete your KYC verification to proceed with your cashout.'}
+          </p>
+          {link && (
+            <div className="flex justify-center mt-4">
+              <a
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 min-h-[40px] px-5 py-2.5 rounded-lg font-semibold text-sm bg-primary text-primary-foreground shadow-md hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Verify KYC
+              </a>
+            </div>
+          )}
+          {message.time && (
+            <div className="flex items-center justify-center gap-1.5 mt-3">
+              <span className="text-[10px] md:text-xs font-medium text-muted-foreground/80">
                 {message.time}
               </span>
             </div>

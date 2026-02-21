@@ -8,6 +8,7 @@ import type { ChatUser } from '@/types';
 import {
   isAutoMessage,
   isPurchaseNotification,
+  isKycVerificationMessage,
   formatTransactionMessage,
 } from '../utils/message-helpers';
 
@@ -128,7 +129,18 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
             const mockMessage = { text: player.lastMessage };
             const isAuto = isAutoMessage(mockMessage);
             const isPurchase = isPurchaseNotification(mockMessage);
+            const isKyc = isKycVerificationMessage(mockMessage);
 
+            if (isKyc) {
+              return (
+                <p
+                  className={`text-[10px] truncate mt-0 transition-all duration-200 ${isNewMessage ? 'text-foreground font-medium' : 'text-muted-foreground group-hover:text-muted-foreground/90'
+                    }`}
+                >
+                  Binpay KYC verification
+                </p>
+              );
+            }
             if (isAuto || isPurchase) {
               // Format the transaction message
               const formatted = formatTransactionMessage(mockMessage as { text: string; type?: string });

@@ -106,6 +106,49 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
   return purchasePatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
 };
 
+// Check if a message is a Binpay KYC verification prompt (display as auto message with button)
+export const isKycVerificationMessage = (message: { text: string; type?: string }): boolean => {
+  if (!message.text) return false;
+  const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
+  const textWithHtml = message.text.toLowerCase();
+  const kycPatterns = [
+    /binpay.*kyc|kyc.*binpay/i,
+    /complete your kyc verification/i,
+    /kyc verification.*cashout|cashout.*kyc verification/i,
+    /verify kyc/i,
+  ];
+  return kycPatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
+};
+
+export interface KycMessageParsed {
+  link: string | null;
+  bodyText: string;
+}
+
+// Extract KYC link and body text (without the link) for Binpay KYC messages
+export const parseKycMessage = (message: { text: string }): KycMessageParsed => {
+  const result: KycMessageParsed = { link: null, bodyText: '' };
+  if (!message.text) return result;
+
+  // Extract first <a href="..."> from HTML
+  const hrefMatch = message.text.match(/<a\s+href=["']([^"']+)["'][^>]*>/i);
+  if (hrefMatch?.[1]) {
+    result.link = hrefMatch[1].trim();
+  } else {
+    // Fallback: first https URL in text
+    const urlMatch = message.text.match(/https?:\/\/[^\s<>"']+/i);
+    if (urlMatch) result.link = urlMatch[0].trim();
+  }
+
+  // Body: strip <a> tags (keep text between tags), then strip other HTML for display
+  let body = message.text
+    .replace(/<a\s+href=["'][^"']*["'][^>]*>([^<]*)<\/a>/gi, '') // Remove anchor but we show button instead
+    .replace(/<br\s*\/?>/gi, ' ')
+    .trim();
+  result.bodyText = stripHtml(body).replace(/\s+/g, ' ').trim();
+  return result;
+};
+
 /**
  * Remove heading from automated messages (e.g., "Recharge", "Redeem")
  * Removes the first line or bold tag that contains common automated message headings

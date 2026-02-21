@@ -15,7 +15,7 @@ import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal }
 import { isReasonValidForAction } from './modals/edit-balance-drawer';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
-import { isAutoMessage, isPurchaseNotification, parseTransactionMessage } from './utils/message-helpers';
+import { isAutoMessage, isPurchaseNotification, isKycVerificationMessage, parseTransactionMessage } from './utils/message-helpers';
 import { MessageHistorySkeleton } from './skeletons';
 import { useScrollManagement } from './hooks/use-scroll-management';
 
@@ -2159,14 +2159,15 @@ export function ChatComponent() {
                       const prevMessage = idx > 0 ? dateMessages[idx - 1] : null;
                       const isAuto = isAutoMessage(message);
                       const isPurchase = isPurchaseNotification(message);
-                      const isSystemMessage = isAuto || isPurchase;
+                      const isKyc = isKycVerificationMessage(message);
+                      const isSystemMessage = isAuto || isPurchase || isKyc;
                       const showAvatar = !isSystemMessage && message.sender === 'player' && (
                         !prevMessage || prevMessage.sender !== message.sender ||
                         (prevMessage.time && message.time &&
                           Math.abs(new Date(`2000-01-01 ${prevMessage.time}`).getTime() -
                             new Date(`2000-01-01 ${message.time || ''}`).getTime()) > 5 * 60 * 1000)
                       );
-                      const isConsecutive = !isSystemMessage && prevMessage && !isAutoMessage(prevMessage) && !isPurchaseNotification(prevMessage) && prevMessage.sender === message.sender;
+                      const isConsecutive = !isSystemMessage && prevMessage && !isAutoMessage(prevMessage) && !isPurchaseNotification(prevMessage) && !isKycVerificationMessage(prevMessage) && prevMessage.sender === message.sender;
                       const isAdmin = !isSystemMessage && message.sender === 'admin';
                       const isPinning = pendingPinMessageId === message.id;
 
