@@ -36,6 +36,7 @@ const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
       { value: '', label: 'All Types' },
       { value: 'purchase', label: 'Purchase' },
       { value: 'cashout', label: 'Cashout' },
+      { value: 'transfer', label: 'Transfer' },
     ],
   },
 ];

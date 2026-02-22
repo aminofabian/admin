@@ -686,19 +686,19 @@ export function TransactionsSection() {
       }
     }
 
-    // Transaction type filter: keep purchase/cashout as type parameter
+    // Transaction type filter: keep purchase/cashout/transfer as type parameter
     // The store will respect this when filter is 'history' or 'all'
-    if (sanitized.type && sanitized.type !== 'purchase' && sanitized.type !== 'cashout') {
+    if (sanitized.type && sanitized.type !== 'purchase' && sanitized.type !== 'cashout' && sanitized.type !== 'transfer') {
       // For other types, remove it (not supported in advanced filters)
       delete sanitized.type;
     }
-    // If type is purchase or cashout, keep it as-is - the store will use it
+    // If type is purchase, cashout, or transfer, keep it as-is - the store will use it
 
     console.log('🔍 Applying advanced filters - type filter:', {
       originalType: filters.type,
       sanitizedType: sanitized.type,
       mainFilter: filter,
-      willPreserveType: sanitized.type === 'purchase' || sanitized.type === 'cashout',
+      willPreserveType: sanitized.type === 'purchase' || sanitized.type === 'cashout' || sanitized.type === 'transfer',
     });
 
     if (sanitized.agent && !sanitized.agent_id) {
