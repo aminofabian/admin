@@ -93,6 +93,10 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     return activity.type === 'recharge_game' || activity.type === 'redeem_game';
   }, [formattedBalance, activity.type]);
 
+  // Remarks + optional game balance (passed separately so DetailsRemarks can style them)
+  const remarksText = useMemo(() => activity.remarks?.trim() ?? '', [activity.remarks]);
+  const showRemarksBlock = remarksText.length > 0 || (showNewGameBalance && formattedBalance);
+
   const amountVariant: 'positive' | 'negative' = activity.type === 'redeem_game' ? 'negative' : 'positive';
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -249,7 +253,7 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
             />
 
             {/* Balance Information */}
-            {(newCreditsBalance || newWinningBalance || showNewGameBalance) && (
+            {(newCreditsBalance || newWinningBalance) && (
               <DetailsRow>
                 {newCreditsBalance && (
                   <DetailsHighlightBox
@@ -265,13 +269,6 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
                     variant="green"
                   />
                 )}
-                {showNewGameBalance && formattedBalance && (
-                  <DetailsHighlightBox
-                    label="New Game Balance"
-                    value={formattedBalance}
-                    variant="purple"
-                  />
-                )}
               </DetailsRow>
             )}
           </div>
@@ -285,8 +282,13 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
               )}
             </DetailsRow>
 
-            {/* Remarks */}
-            {activity.remarks && <DetailsRemarks remarks={activity.remarks} />}
+            {/* Remarks (game balance shown as second line for recharge/redeem) */}
+            {showRemarksBlock && (
+              <DetailsRemarks
+                remarks={remarksText}
+                gameBalance={showNewGameBalance ? formattedBalance : null}
+              />
+            )}
           </div>
         </div>
       </DetailsCard>

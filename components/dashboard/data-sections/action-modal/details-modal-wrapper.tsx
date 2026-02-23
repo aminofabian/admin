@@ -167,14 +167,31 @@ export function DetailsAmountBox({ amount, bonus, variant = 'positive' }: Detail
 
 interface DetailsRemarksProps {
   remarks: string;
+  /** Optional second line: "New game balance: {value}" — shown below remarks for recharge/redeem */
+  gameBalance?: string | null;
 }
 
-export function DetailsRemarks({ remarks }: DetailsRemarksProps) {
+export function DetailsRemarks({ remarks, gameBalance }: DetailsRemarksProps) {
+  const hasRemarks = remarks.trim().length > 0;
+  const hasBalance = gameBalance != null && String(gameBalance).trim().length > 0;
+  if (!hasRemarks && !hasBalance) return null;
+
   return (
     <div className="mt-2 pt-2 border-t border-border">
-      <div className="p-1.5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded">
-        <h4 className="text-[10px] font-semibold text-amber-900 dark:text-amber-200 mb-0.5">Remarks</h4>
-        <p className="text-[10px] text-amber-800 dark:text-amber-300">{remarks}</p>
+      <div className="p-2.5 bg-amber-50/80 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-md space-y-1.5">
+        <h4 className="text-[10px] font-semibold text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+          Remarks
+        </h4>
+        {hasRemarks && (
+          <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+            {remarks.trim()}
+          </p>
+        )}
+        {hasBalance && (
+          <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
+            New game balance: <span className="font-semibold tabular-nums">{gameBalance}</span>
+          </p>
+        )}
       </div>
     </div>
   );
