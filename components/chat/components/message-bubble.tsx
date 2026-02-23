@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, type ReactNode } from 'react';
 import Image from 'next/image';
 import type { ChatMessage, ChatUser } from '@/types';
 import {
@@ -160,37 +160,78 @@ function TransactionMessage({ message, isPurchase }: {
   );
 }
 
+// Normalize KYC message to design copy: "Complete your KYC to proceed with your [Purchase|Cashout]." (action bolded)
+function formatKycBodyWithBoldAction(text: string): ReactNode {
+  const lower = (text || '').toLowerCase();
+  const isPurchase = /purchase|deposit|recharge|buy|top.?up/i.test(lower);
+  const action = isPurchase ? 'Purchase' : 'Cashout';
+  return (
+    <>
+      Complete your KYC to proceed with your <b>{action}</b>.
+    </>
+  );
+}
+
 function KycVerificationMessage({ message }: { message: ChatMessage }) {
   const { link, bodyText } = parseKycMessage(message);
 
   return (
     <div className="flex justify-center my-4">
-      <div className="max-w-[85%] md:max-w-[75%]">
-        <div className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 dark:border-amber-500/40 rounded-xl px-4 py-4 shadow-sm backdrop-blur-sm">
-          <p className="text-center text-[13px] md:text-sm font-bold text-amber-800 dark:text-amber-200 mb-1.5">
-            Binpay KYC verification
+      <div className="max-w-[85%] md:max-w-[75%] w-full">
+        <div
+          className="rounded-2xl border"
+          style={{
+            backgroundColor: '#fbf2e3',
+            borderColor: '#F0E6D7',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+            paddingLeft: '38px',
+            paddingRight: '38px',
+            paddingTop: '44px',
+            paddingBottom: '44px',
+          }}
+        >
+          <p
+            className="text-center font-bold mb-3"
+            style={{ color: '#B3672C', fontSize: '1.0625rem' }}
+          >
+            Binpay
           </p>
-          <p className="text-center text-[13px] md:text-sm leading-relaxed break-words text-foreground/90">
-            {bodyText || 'Please complete your KYC verification to proceed with your cashout.'}
+          <p
+            className="text-center leading-relaxed break-words mb-5"
+            style={{ color: '#333333', fontSize: '0.9375rem' }}
+          >
+            <span className="[&_b]:font-bold [&_b]:text-[#333333]">
+              {formatKycBodyWithBoldAction(bodyText)}
+            </span>
           </p>
           {link && (
-            <div className="flex justify-center mt-4">
+            <div className="flex justify-center mb-4">
               <a
                 href={link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 min-h-[40px] px-5 py-2.5 rounded-lg font-semibold text-sm bg-primary text-primary-foreground shadow-md hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 transition-colors"
+                className="inline-flex items-center justify-center gap-2.5 min-h-[44px] px-6 py-3 rounded-2xl font-semibold text-white hover:opacity-95 focus-visible:ring-2 focus-visible:ring-offset-2 transition-opacity"
+                style={{
+                  backgroundColor: '#6E5DEB',
+                  fontSize: '0.9375rem',
+                  boxShadow: '0 4px 14px rgba(110, 93, 235, 0.4)',
+                }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <span className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-white flex-shrink-0">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
                 Verify KYC
               </a>
             </div>
           )}
           {message.time && (
-            <div className="flex items-center justify-center gap-1.5 mt-3">
-              <span className="text-[10px] md:text-xs font-medium text-muted-foreground/80">
+            <div className="flex justify-center">
+              <span
+                className="text-center"
+                style={{ color: '#333333', fontSize: '0.8125rem' }}
+              >
                 {message.time}
               </span>
             </div>

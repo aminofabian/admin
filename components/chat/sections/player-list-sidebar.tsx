@@ -137,7 +137,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
                   className={`text-[10px] truncate mt-0 transition-all duration-200 ${isNewMessage ? 'text-foreground font-medium' : 'text-muted-foreground group-hover:text-muted-foreground/90'
                     }`}
                 >
-                  Binpay KYC verification
+                  Binpay
                 </p>
               );
             }
