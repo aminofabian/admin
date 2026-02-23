@@ -85,38 +85,12 @@ const groupMessagesByDate = (messages: Message[]) => {
   return grouped;
 };
 
-const ONE_MINUTE_MS = 60 * 1000;
-const ONE_HOUR_MS = 60 * ONE_MINUTE_MS;
-const ONE_DAY_MS = 24 * ONE_HOUR_MS;
-const SEVEN_DAYS_MS = 7 * ONE_DAY_MS;
-
-const formatMessageDate = (date: string, latestMessageTimestampMs?: number) => {
-  const now = Date.now();
-  const nowDate = new Date(now);
-  const messageDate = new Date(date);
-  const refMs = latestMessageTimestampMs ?? new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate()).getTime();
-  const refDate = new Date(refMs);
-  const ageMs = now - refMs;
-
-  if (ageMs < ONE_MINUTE_MS) return 'JUST NOW';
-  if (ageMs < ONE_HOUR_MS) {
-    const mins = Math.floor(ageMs / ONE_MINUTE_MS);
-    return `${mins} MIN AGO`;
-  }
-  const nowStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()).getTime();
-  const refStart = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()).getTime();
-  const diffDays = Math.floor((nowStart - refStart) / ONE_DAY_MS);
-  if (diffDays === 0) return 'TODAY';
-  if (diffDays === 1) return 'YESTERDAY';
-  if (ageMs < SEVEN_DAYS_MS) {
-    const days = Math.floor(ageMs / ONE_DAY_MS);
-    return `${days} DAY${days === 1 ? '' : 'S'} AGO`;
-  }
-  const sameYear = refDate.getFullYear() === nowDate.getFullYear();
-  if (sameYear) {
-    return refDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  }
-  return refDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const formatMessageDate = (date: string) => {
+  const d = new Date(date);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return sameYear
+    ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: undefined })
+    : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 const DEFAULT_MARK_AS_READ = true;
@@ -2134,11 +2108,7 @@ export function ChatComponent() {
                     </div>
                   </div>
                 )}
-                {Object.entries(groupedMessages).map(([date, dateMessages]) => {
-                  const latestTs = dateMessages.length
-                    ? Math.max(...dateMessages.map((m) => new Date(m.timestamp).getTime()))
-                    : undefined;
-                  return (
+                {Object.entries(groupedMessages).map(([date, dateMessages]) => (
                   <div key={date} className="space-y-3">
                     {/* Date Separator */}
                     <div className="flex items-center justify-center my-8 first:mt-0">
@@ -2148,7 +2118,7 @@ export function ChatComponent() {
                         </div>
                         <div className="relative flex justify-center">
                           <span className="px-3 py-1 bg-card/90 backdrop-blur-sm text-[8px] font-semibold uppercase tracking-wide text-muted-foreground rounded-full border border-border/40 shadow-sm">
-                            {formatMessageDate(date, latestTs)}
+                            {formatMessageDate(date)}
                           </span>
                         </div>
                       </div>
@@ -2191,8 +2161,7 @@ export function ChatComponent() {
                       );
                     })}
                   </div>
-                  );
-                })}
+                ))}
               </div>
               {/* End content wrapper */}
 

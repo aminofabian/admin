@@ -47,25 +47,14 @@ export const MESSAGE_HTML_CONTENT_CLASS = {
   player: 'text-[13px] md:text-sm leading-relaxed break-words [&_a]:text-white [&_a]:underline hover:[&_a]:text-white/80 text-white [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4'
 };
 
-// Format a date for display (e.g., "Today", "Yesterday", "Jan 15, 2025")
+// Format a date for display (actual date only, e.g., "Jan 15, 2025")
 export const formatMessageDate = (dateString: string): string => {
   const date = new Date(dateString);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  // Reset time to midnight for comparison
-  today.setHours(0, 0, 0, 0);
-  yesterday.setHours(0, 0, 0, 0);
-  date.setHours(0, 0, 0, 0);
-
-  if (date.getTime() === today.getTime()) return 'Today';
-  if (date.getTime() === yesterday.getTime()) return 'Yesterday';
-
+  const sameYear = date.getFullYear() === new Date().getFullYear();
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+    year: sameYear ? undefined : 'numeric'
   });
 };
 
