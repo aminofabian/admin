@@ -37,7 +37,8 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     taparcaida_vendor_id: company?.taparcaida_vendor_id ?? '',
     tierlock_merchant_id: company?.tierlock_merchant_id ?? '',
     tierlock_merchant_secret: company?.tierlock_merchant_secret ?? '',
-    tierlock_webhook_secret: company?.tierlock_webhook_secret ?? '',
+    tierlock_deposit_secret: company?.tierlock_deposit_secret ?? '',
+    tierlock_withdrawal_secret: company?.tierlock_withdrawal_secret ?? '',
     tierlock_payout_shared_secret: company?.tierlock_payout_shared_secret ?? '',
     tierlock_payout_client_secret: company?.tierlock_payout_client_secret ?? '',
   });
@@ -136,7 +137,8 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           taparcaida_vendor_id: formData.taparcaida_vendor_id || undefined,
           tierlock_merchant_id: formData.tierlock_merchant_id || undefined,
           tierlock_merchant_secret: formData.tierlock_merchant_secret || undefined,
-          tierlock_webhook_secret: formData.tierlock_webhook_secret || undefined,
+          tierlock_deposit_secret: formData.tierlock_deposit_secret || undefined,
+          tierlock_withdrawal_secret: formData.tierlock_withdrawal_secret || undefined,
           tierlock_payout_shared_secret: formData.tierlock_payout_shared_secret || undefined,
           tierlock_payout_client_secret: formData.tierlock_payout_client_secret || undefined,
         };
@@ -375,13 +377,21 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           />
 
           <Input
-            label="Tierlock Webhook Secret"
+            label="Tierlock Deposit Secret"
             type="text"
-            value={formData.tierlock_webhook_secret}
-            onChange={(e) => handleChange('tierlock_webhook_secret', e.target.value)}
-            placeholder="Tierlock Webhook Secret"
+            value={formData.tierlock_deposit_secret}
+            onChange={(e) => handleChange('tierlock_deposit_secret', e.target.value)}
+            placeholder="Tierlock Deposit Secret"
             disabled={isLoading}
-            className="md:col-span-2"
+          />
+
+          <Input
+            label="Tierlock Withdrawal Secret"
+            type="text"
+            value={formData.tierlock_withdrawal_secret}
+            onChange={(e) => handleChange('tierlock_withdrawal_secret', e.target.value)}
+            placeholder="Tierlock Withdrawal Secret"
+            disabled={isLoading}
           />
 
           <Input

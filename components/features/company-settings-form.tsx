@@ -31,7 +31,8 @@ export function CompanySettingsForm({ onSubmit, onCancel, initialData }: Company
     binpay_withdrawal_secret_key: initialData?.binpay_withdrawal_secret_key ?? '',
     tierlock_merchant_id: initialData?.tierlock_merchant_id ?? '',
     tierlock_merchant_secret: initialData?.tierlock_merchant_secret ?? '',
-    tierlock_webhook_secret: initialData?.tierlock_webhook_secret ?? '',
+    tierlock_deposit_secret: initialData?.tierlock_deposit_secret ?? '',
+    tierlock_withdrawal_secret: initialData?.tierlock_withdrawal_secret ?? '',
     tierlock_payout_shared_secret: initialData?.tierlock_payout_shared_secret ?? '',
     tierlock_payout_client_secret: initialData?.tierlock_payout_client_secret ?? '',
   });
@@ -386,13 +387,25 @@ export function CompanySettingsForm({ onSubmit, onCancel, initialData }: Company
 
         <div>
           <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-            Tierlock Webhook Secret
+            Tierlock Deposit Secret
           </label>
           <Input
             type="text"
-            value={formData.tierlock_webhook_secret}
-            onChange={(e) => setFormData({ ...formData, tierlock_webhook_secret: e.target.value })}
-            placeholder="Tierlock Webhook Secret"
+            value={formData.tierlock_deposit_secret}
+            onChange={(e) => setFormData({ ...formData, tierlock_deposit_secret: e.target.value })}
+            placeholder="Tierlock Deposit Secret"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+            Tierlock Withdrawal Secret
+          </label>
+          <Input
+            type="text"
+            value={formData.tierlock_withdrawal_secret}
+            onChange={(e) => setFormData({ ...formData, tierlock_withdrawal_secret: e.target.value })}
+            placeholder="Tierlock Withdrawal Secret"
           />
         </div>
 

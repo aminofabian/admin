@@ -16,7 +16,8 @@ export interface CompanySettings {
   binpay_withdrawal_secret_key?: string | null;
   tierlock_merchant_id?: string | null;
   tierlock_merchant_secret?: string | null;
-  tierlock_webhook_secret?: string | null;
+  tierlock_deposit_secret?: string | null;
+  tierlock_withdrawal_secret?: string | null;
   tierlock_payout_shared_secret?: string | null;
   tierlock_payout_client_secret?: string | null;
   created: string;

@@ -75,8 +75,12 @@ export const companySettingsApi = {
       formData.append('tierlock_merchant_secret', data.tierlock_merchant_secret);
     }
 
-    if (data.tierlock_webhook_secret) {
-      formData.append('tierlock_webhook_secret', data.tierlock_webhook_secret);
+    if (data.tierlock_deposit_secret) {
+      formData.append('tierlock_deposit_secret', data.tierlock_deposit_secret);
+    }
+
+    if (data.tierlock_withdrawal_secret) {
+      formData.append('tierlock_withdrawal_secret', data.tierlock_withdrawal_secret);
     }
 
     if (data.tierlock_payout_shared_secret) {

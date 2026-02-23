@@ -21,7 +21,8 @@ export interface Company {
   taparcaida_vendor_id?: string | null;
   tierlock_merchant_id?: string | null;
   tierlock_merchant_secret?: string | null;
-  tierlock_webhook_secret?: string | null;
+  tierlock_deposit_secret?: string | null;
+  tierlock_withdrawal_secret?: string | null;
   tierlock_payout_shared_secret?: string | null;
   tierlock_payout_client_secret?: string | null;
   created: string;
@@ -51,7 +52,8 @@ export interface CreateCompanyRequest {
   taparcaida_vendor_id?: string;
   tierlock_merchant_id?: string;
   tierlock_merchant_secret?: string;
-  tierlock_webhook_secret?: string;
+  tierlock_deposit_secret?: string;
+  tierlock_withdrawal_secret?: string;
   tierlock_payout_shared_secret?: string;
   tierlock_payout_client_secret?: string;
   logo?: File;
@@ -79,7 +81,8 @@ export interface UpdateCompanyRequest {
   taparcaida_vendor_id?: string;
   tierlock_merchant_id?: string;
   tierlock_merchant_secret?: string;
-  tierlock_webhook_secret?: string;
+  tierlock_deposit_secret?: string;
+  tierlock_withdrawal_secret?: string;
   tierlock_payout_shared_secret?: string;
   tierlock_payout_client_secret?: string;
 }
