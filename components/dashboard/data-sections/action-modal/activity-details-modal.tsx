@@ -78,10 +78,20 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
   }, [bonusAmount]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formattedBalance = useMemo(() => {
-    return formatCurrency(String(activity.data?.balance ?? '0'));
+    const balance = activity.data?.balance;
+    if (balance === undefined || balance === null) return null;
+    const value = typeof balance === 'string' || typeof balance === 'number'
+      ? parseFloat(String(balance))
+      : NaN;
+    return !isNaN(value) ? formatCurrency(String(value)) : null;
   }, [activity.data?.balance]);
+
+  // Show new game balance only for recharge and redeem
+  const showNewGameBalance = useMemo(() => {
+    if (!formattedBalance) return false;
+    return activity.type === 'recharge_game' || activity.type === 'redeem_game';
+  }, [formattedBalance, activity.type]);
 
   const amountVariant: 'positive' | 'negative' = activity.type === 'redeem_game' ? 'negative' : 'positive';
 
@@ -239,7 +249,7 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
             />
 
             {/* Balance Information */}
-            {(newCreditsBalance || newWinningBalance) && (
+            {(newCreditsBalance || newWinningBalance || showNewGameBalance) && (
               <DetailsRow>
                 {newCreditsBalance && (
                   <DetailsHighlightBox
@@ -253,6 +263,13 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
                     label="New Winnings"
                     value={newWinningBalance}
                     variant="green"
+                  />
+                )}
+                {showNewGameBalance && formattedBalance && (
+                  <DetailsHighlightBox
+                    label="New Game Balance"
+                    value={formattedBalance}
+                    variant="purple"
                   />
                 )}
               </DetailsRow>
