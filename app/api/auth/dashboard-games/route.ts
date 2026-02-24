@@ -1,22 +1,14 @@
 import { NextResponse } from 'next/server';
 
-const PROD_API_BASE = 'https://api.bruii.com';
-
-/** In production, always use api.bruii.com; otherwise use env or fallback. */
-function getBackendBaseUrl(): string {
-  if (process.env.NODE_ENV === 'production') {
-    return PROD_API_BASE;
-  }
-  return process.env.NEXT_PUBLIC_API_URL || PROD_API_BASE;
-}
-
-const DASHBOARD_GAMES_URL = `${getBackendBaseUrl()}/users/dashboard-games/`;
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
+const DASHBOARD_GAMES_URL = `${BACKEND_URL}/users/dashboard-games/`;
 
 /**
  * Domain mapping: admin panel hostname -> project domain for backend
- * This is the server-side backup mapping (client should already map via getCurrentDomain)
+ * Ensures we send the project domain (e.g. https://spincash.cc) not the admin host (e.g. admin.spincash.cc).
  */
 const DOMAIN_MAPPINGS: Record<string, string> = {
+  'admin.spincash.cc': 'https://spincash.cc',
   'bitslot.serverhub.biz': 'https://staging.bitslot.cc',
 };
 
