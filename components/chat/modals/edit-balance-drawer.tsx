@@ -8,7 +8,6 @@ import { formatCurrency } from '@/lib/utils/formatters';
 export const REASON_OPTIONS = {
   credit: {
     add: {
-      free_play: 'Free Play',
       bonus_adjustment: 'Bonus Adjustment',
       credit_adjustment: 'Credit Adjustment',
     },
@@ -22,7 +21,7 @@ export const REASON_OPTIONS = {
     },
     deduct: {
       winning_adjustment: 'Winning Adjustment',
-      normal_flow: 'Normal Flow',
+      normal_flow: 'Tips/Sieze',
     },
   },
 } as const;
