@@ -177,48 +177,34 @@ function KycVerificationMessage({ message }: { message: ChatMessage }) {
 
   return (
     <div className="flex justify-center my-4">
-      <div className="max-w-[85%] md:max-w-[75%] w-full">
+      <div className="max-w-[85%] md:max-w-[75%]">
         <div
-          className="rounded-2xl border"
+          className="rounded-xl border px-4 py-3 shadow-sm bg-muted/40 backdrop-blur-sm border-border/40"
           style={{
             backgroundColor: '#fbf2e3',
             borderColor: '#F0E6D7',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
-            paddingLeft: '38px',
-            paddingRight: '38px',
-            paddingTop: '44px',
-            paddingBottom: '44px',
           }}
         >
-          <p
-            className="text-center font-bold mb-3"
-            style={{ color: '#B3672C', fontSize: '1.0625rem' }}
-          >
+          <p className="text-center font-bold mb-1.5 text-[13px] md:text-sm" style={{ color: '#B3672C' }}>
             Binpay
           </p>
-          <p
-            className="text-center leading-relaxed break-words mb-5"
-            style={{ color: '#333333', fontSize: '0.9375rem' }}
-          >
-            <span className="[&_b]:font-bold [&_b]:text-[#333333]">
-              {formatKycBodyWithBoldAction(bodyText)}
-            </span>
+          <p className="text-center leading-relaxed break-words mb-3 text-[13px] md:text-sm text-foreground [&_b]:font-bold [&_b]:text-foreground">
+            {formatKycBodyWithBoldAction(bodyText)}
           </p>
           {link && (
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-2">
               <a
                 href={link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2.5 min-h-[44px] px-6 py-3 rounded-2xl font-semibold text-white hover:opacity-95 focus-visible:ring-2 focus-visible:ring-offset-2 transition-opacity"
+                className="inline-flex items-center justify-center gap-2 min-h-9 px-4 py-2 rounded-xl font-semibold text-white hover:opacity-95 focus-visible:ring-2 focus-visible:ring-offset-2 transition-opacity text-[13px] md:text-sm"
                 style={{
                   backgroundColor: '#6E5DEB',
-                  fontSize: '0.9375rem',
-                  boxShadow: '0 4px 14px rgba(110, 93, 235, 0.4)',
+                  boxShadow: '0 2px 8px rgba(110, 93, 235, 0.35)',
                 }}
               >
-                <span className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-white flex-shrink-0">
-                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="flex items-center justify-center w-5 h-5 rounded-full border-2 border-white flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                 </span>
@@ -227,11 +213,8 @@ function KycVerificationMessage({ message }: { message: ChatMessage }) {
             </div>
           )}
           {message.time && (
-            <div className="flex justify-center">
-              <span
-                className="text-center"
-                style={{ color: '#333333', fontSize: '0.8125rem' }}
-              >
+            <div className="flex items-center justify-center gap-1.5 mt-1.5">
+              <span className="text-[10px] md:text-xs font-medium text-muted-foreground/80">
                 {message.time}
               </span>
             </div>
