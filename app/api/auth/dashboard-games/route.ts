@@ -4,37 +4,38 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
 const DASHBOARD_GAMES_URL = `${BACKEND_URL}/users/dashboard-games/`;
 
 /**
- * Domain mapping: admin panel hostname -> project domain for backend
- * Ensures we send the project domain (e.g. https://spincash.cc) not the admin host (e.g. admin.spincash.cc).
+ * Explicit overrides for hosts that don't follow admin.<project> pattern
+ * (e.g. staging servers like bitslot.serverhub.biz)
  */
-const DOMAIN_MAPPINGS: Record<string, string> = {
-  'admin.spincash.cc': 'https://spincash.cc',
+const DOMAIN_OVERRIDES: Record<string, string> = {
   'bitslot.serverhub.biz': 'https://staging.bitslot.cc',
 };
 
 /**
- * Maps an incoming domain to the correct project domain
+ * Derives project domain from host.
+ * - admin.spincash.cc -> https://spincash.cc
+ * - admin.bitslot.cc -> https://bitslot.cc
+ * - etc.
  */
 function mapToProjectDomain(incomingDomain: string | undefined, host: string): string | undefined {
-  // Check if the host matches any mapping
-  for (const [adminDomain, projectDomain] of Object.entries(DOMAIN_MAPPINGS)) {
-    if (host.includes(adminDomain)) {
+  const hostname = host.split(':')[0];
+
+  // Check explicit overrides first
+  for (const [adminHost, projectDomain] of Object.entries(DOMAIN_OVERRIDES)) {
+    if (hostname.includes(adminHost)) {
       console.log(`✅ Host mapped: ${host} -> ${projectDomain}`);
       return projectDomain;
     }
   }
-  
-  // Check if incoming domain matches any mapping
-  if (incomingDomain) {
-    for (const [adminDomain, projectDomain] of Object.entries(DOMAIN_MAPPINGS)) {
-      if (incomingDomain.includes(adminDomain)) {
-        console.log(`✅ Domain mapped: ${incomingDomain} -> ${projectDomain}`);
-        return projectDomain;
-      }
-    }
+
+  // Generic rule: admin.<project> -> https://<project>
+  if (hostname.startsWith('admin.')) {
+    const project = hostname.slice(7);
+    const projectDomain = `https://${project}`;
+    console.log(`✅ Host mapped: ${host} -> ${projectDomain}`);
+    return projectDomain;
   }
-  
-  // No mapping found, return as-is
+
   return incomingDomain;
 }
 
