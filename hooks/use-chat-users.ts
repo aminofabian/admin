@@ -210,6 +210,54 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   // Store refreshActiveChats in a ref to avoid circular dependency
   const refreshActiveChatsRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
+  // FIX #3: Single debounced function instance for chat updates (not recreated per message)
+  const debouncedChatUpdateRef = useRef(
+    debounce((...args: unknown[]) => {
+      const updateData = args[0] as Record<string, unknown>;
+      const chatId = String(updateData.chat_id);
+      const now = Date.now();
+      const lastUpdate = chatLastUpdateRef.current.get(chatId) || 0;
+
+      if (now - lastUpdate < WS_UPDATE_COOLDOWN) {
+        return;
+      }
+
+      chatLastUpdateRef.current.set(chatId, now);
+
+      setActiveChats((prevChats) => {
+        const chatIndex = prevChats.findIndex((chat) => chat.id === chatId);
+
+        if (chatIndex === -1) {
+          const newChat = transformChatToUser(updateData);
+          return [newChat, ...prevChats];
+        }
+
+        const updatedChats = [...prevChats];
+        const existingChat = updatedChats[chatIndex];
+        const playerData = (updateData.player as Record<string, unknown>) || {};
+        const newBalance = updateData.balance ?? playerData.balance ?? updateData.player_bal;
+        const newWinningBalance = updateData.winning_balance ?? playerData.winning_balance ?? updateData.player_winning_bal;
+
+        const extractedUnreadCount = extractUnreadCount(updateData);
+        const newUnreadCount = extractedUnreadCount !== undefined && extractedUnreadCount !== null
+          ? extractedUnreadCount
+          : existingChat.unreadCount;
+
+        const updatedChat = {
+          ...existingChat,
+          lastMessage: (updateData.last_message as string | undefined) || existingChat.lastMessage,
+          lastMessageTime: isValidTimestamp(updateData.last_message_time as string | undefined) ? updateData.last_message_time as string : existingChat.lastMessageTime,
+          unreadCount: newUnreadCount,
+          balance: newBalance !== undefined ? String(newBalance) : existingChat.balance,
+          winningBalance: newWinningBalance !== undefined ? String(newWinningBalance) : existingChat.winningBalance,
+        };
+
+        updatedChats.splice(chatIndex, 1);
+        return [updatedChat, ...updatedChats];
+      });
+    }, WS_UPDATE_COOLDOWN) as (...args: unknown[]) => void
+  );
+
   const connect = useCallback(() => {
     if (!effectiveEnabled || !adminId) return;
 
@@ -383,58 +431,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         setIsLoading(false);
       }
 
-      // Handle chat updates with debouncing
-      const handleChatUpdate = debounce((...args: unknown[]) => {
-        const updateData = args[0] as Record<string, unknown>;
-        const chatId = String(updateData.chat_id);
-        const now = Date.now();
-        const lastUpdate = chatLastUpdateRef.current.get(chatId) || 0;
-
-        if (now - lastUpdate < WS_UPDATE_COOLDOWN) {
-          return;
-        }
-
-        chatLastUpdateRef.current.set(chatId, now);
-
-        setActiveChats((prevChats) => {
-          const chatIndex = prevChats.findIndex((chat) => chat.id === chatId);
-
-          if (chatIndex === -1) {
-            const newChat = transformChatToUser(updateData);
-            return [newChat, ...prevChats];
-          }
-
-          const updatedChats = [...prevChats];
-          const existingChat = updatedChats[chatIndex];
-          const playerData = (updateData.player as Record<string, unknown>) || {};
-          const newBalance = updateData.balance ?? playerData.balance ?? updateData.player_bal;
-          const newWinningBalance = updateData.winning_balance ?? playerData.winning_balance ?? updateData.player_winning_bal;
-
-          // Extract unread count - handle both 0 and undefined/null cases
-          const extractedUnreadCount = extractUnreadCount(updateData);
-          const newUnreadCount = extractedUnreadCount !== undefined && extractedUnreadCount !== null
-            ? extractedUnreadCount
-            : existingChat.unreadCount;
-
-          const updatedChat = {
-            ...existingChat,
-            lastMessage: (updateData.last_message as string | undefined) || existingChat.lastMessage,
-            lastMessageTime: isValidTimestamp(updateData.last_message_time as string | undefined) ? updateData.last_message_time as string : existingChat.lastMessageTime,
-            unreadCount: newUnreadCount,
-            balance: newBalance !== undefined ? String(newBalance) : existingChat.balance,
-            winningBalance: newWinningBalance !== undefined ? String(newWinningBalance) : existingChat.winningBalance,
-          };
-
-          updatedChats.splice(chatIndex, 1);
-          return [updatedChat, ...updatedChats];
-        });
-      }, WS_UPDATE_COOLDOWN) as (...args: unknown[]) => void;
-
       if ((messageWrapper && (messageWrapper.type === 'update_chat' || messageWrapper.type === 'new_message')) ||
         (data.type === 'update_chat' || data.type === 'new_message')) {
         const updateData = messageWrapper || data;
         if (updateData.last_message || updateData.message) {
-          handleChatUpdate(updateData);
+          debouncedChatUpdateRef.current(updateData);
         }
       }
 
@@ -589,8 +590,6 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
    * }
    */
   const refreshActiveChats = useCallback(async () => {
-    // Store the function in the ref so it can be used in connect without circular dependency
-    refreshActiveChatsRef.current = refreshActiveChats;
     if (!IS_PROD) console.log('🔄 [refreshActiveChats] Fetching latest chat list from backend...');
 
     try {
@@ -664,6 +663,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       console.error('❌ [refreshActiveChats] Error:', error);
     }
   }, []);
+
+  // FIX #4: Keep refreshActiveChats ref in sync via useEffect (not self-referencing)
+  useEffect(() => {
+    refreshActiveChatsRef.current = refreshActiveChats;
+  }, [refreshActiveChats]);
 
   /**
    * Fetch ALL players from REST API endpoint (First page)

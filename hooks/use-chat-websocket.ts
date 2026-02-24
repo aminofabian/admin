@@ -35,7 +35,46 @@ interface HistoryPayload {
   playerLastSeenAt?: string;
 }
 
-const mapHistoryMessage = (msg: any): ChatMessage => {
+interface RawChatMessage {
+  id?: string | number;
+  message_id?: string | number;
+  message?: string;
+  sender?: string;
+  sender_id?: number;
+  is_player_sender?: boolean;
+  sent_time?: string;
+  timestamp?: string;
+  is_read?: boolean;
+  type?: string;
+  is_comment?: boolean;
+  is_file?: boolean;
+  file_extension?: string;
+  file?: string;
+  file_url?: string;
+  user_balance?: string | number;
+  balance?: string | number;
+  player_bal?: string | number;
+  winning_balance?: string | number;
+  player_winning_bal?: string | number;
+  is_pinned?: boolean;
+  isPinned?: boolean;
+  text?: string;
+  player_id?: number;
+  user_id?: number;
+  is_active?: boolean;
+  username?: string;
+  error?: string;
+  sent_by?: {
+    id: number;
+    username: string;
+    full_name?: string | null;
+    role?: string;
+    profile_pic?: string | null;
+  };
+  operationType?: 'increase' | 'decrease' | null;
+}
+
+const mapHistoryMessage = (msg: RawChatMessage): ChatMessage => {
   const sender: 'player' | 'admin' =
     msg.sender === 'company' || msg.sender === 'admin' ? 'admin' : 'player';
 
@@ -68,14 +107,14 @@ const mapHistoryMessage = (msg: any): ChatMessage => {
     isFile: msg.is_file ?? false,
     fileExtension: msg.file_extension ?? undefined,
     fileUrl: msg.file || msg.file_url || undefined,
-    userBalance: msg.user_balance ?? msg.balance,
+    userBalance: msg.user_balance !== undefined ? String(msg.user_balance) : (msg.balance !== undefined ? String(msg.balance) : undefined),
     isPinned: msg.is_pinned ?? msg.isPinned ?? false,
-    senderId: msg.sender_id ?? msg.sender,
+    senderId: typeof msg.sender_id === 'number' ? msg.sender_id : undefined,
     sentBy,
   };
 };
 
-const normalizeHistoryMessages = (rawMessages: any[]): ChatMessage[] =>
+const normalizeHistoryMessages = (rawMessages: RawChatMessage[]): ChatMessage[] =>
   rawMessages.map(mapHistoryMessage).reverse();
 
 const mergeMessageLists = (
@@ -157,15 +196,16 @@ export function useChatWebSocket({
   const [playerLastSeenAt, setPlayerLastSeenAt] = useState<string | null>(null);
 
   // WebSocket management refs
-  const wsRef = useRef<WebSocket | null>(null);
   const wsUrlRef = useRef<string>('');
-  const listenersRef = useRef<Set<WebSocketListeners>>(new Set());
+  const listenersRef = useRef<WebSocketListeners | null>(null);
   const historyRequestRef = useRef(0);
   const purchaseRequestRef = useRef(0);
   const activeConnectionKeyRef = useRef('');
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 5;
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Connection state for message sending decisions
+  const connectionStateRef = useRef<'disconnected' | 'connecting' | 'connected'>('disconnected');
 
   // Message queue for messages sent while connecting
   const messageQueueRef = useRef<Array<{ text: string; timestamp: number }>>([]);
@@ -412,9 +452,7 @@ export function useChatWebSocket({
       const data = await response.json();
 
       if (data.messages && Array.isArray(data.messages)) {
-        //  Transform purchase messages from new JWT endpoint format
-        const purchases: ChatMessage[] = data.messages.map((msg: any) => {
-          // Determine sender: "company" = admin, "player" = player
+        const purchases: ChatMessage[] = data.messages.map((msg: RawChatMessage) => {
           const sender: 'player' | 'admin' =
             msg.sender === 'company' || msg.sender === 'admin'
               ? 'admin'
@@ -457,6 +495,41 @@ export function useChatWebSocket({
     }
   }, [chatId, userId]); // Include userId in dependency array
 
+  // FIX #8: Centralized balance update handler (single source of truth)
+  const handleBalanceUpdate = useCallback((rawData: RawChatMessage) => {
+    const playerId = rawData.player_id || rawData.user_id || userId;
+    const balance = rawData.user_balance ?? rawData.balance ?? rawData.player_bal;
+    const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal;
+
+    if (!playerId) return;
+
+    !IS_PROD && console.log('💰 [Chat WS] Processing balance update:', { playerId, balance, winningBalance });
+
+    if (String(playerId) === String(userId) && balance !== undefined && balance !== null) {
+      const balanceStr = String(balance);
+      const winningBalanceStr = winningBalance !== undefined && winningBalance !== null
+        ? String(winningBalance)
+        : undefined;
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          (msg.userId === Number(playerId) || msg.sender === 'player')
+            ? { ...msg, userBalance: balanceStr, winningBalance: winningBalanceStr }
+            : msg
+        ),
+      );
+    }
+
+    if (onBalanceUpdatedRef.current) {
+      onBalanceUpdatedRef.current({
+        playerId: Number(playerId),
+        balance: balance !== undefined && balance !== null ? String(balance) : '0',
+        winningBalance: winningBalance !== undefined && winningBalance !== null ? String(winningBalance) : '0',
+      });
+    }
+  }, [userId]);
+
+  // FIX #1: Use websocketManager instead of raw WebSocket
   const connect = useCallback(() => {
     if (!userId || !effectiveEnabled) return;
 
@@ -464,119 +537,79 @@ export function useChatWebSocket({
       const connectionKey = `${userId}:${chatId ?? 'none'}`;
       activeConnectionKeyRef.current = connectionKey;
 
-      // Build WebSocket URL
       const roomName = `P${userId}Chat`;
-      const wsUrl = `${WEBSOCKET_BASE_URL}/ws/cschat/${roomName}/?user_id=${adminId}`;
+      const wsUrl = createWebSocketUrl(WEBSOCKET_BASE_URL, `/ws/cschat/${roomName}/`, { user_id: adminId });
+      wsUrlRef.current = wsUrl;
 
-      !IS_PROD && console.log('🔌 Connecting to chat WebSocket:', wsUrl);
+      !IS_PROD && console.log('🔌 Connecting to chat WebSocket via manager:', wsUrl);
+      connectionStateRef.current = 'connecting';
 
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
+      const listeners: WebSocketListeners = {
+        onOpen: () => {
+          if (activeConnectionKeyRef.current !== connectionKey) {
+            !IS_PROD && console.log('⚠️ Stale WebSocket open event ignored');
+            websocketManager.disconnect(wsUrl, listeners);
+            return;
+          }
 
-      ws.onopen = () => {
-        if (activeConnectionKeyRef.current !== connectionKey) {
-          !IS_PROD && console.log('⚠️ Stale WebSocket open event ignored');
-          ws.close();
-          return;
-        }
+          !IS_PROD && console.log('✅ [Chat WS] WebSocket connected successfully');
+          connectionStateRef.current = 'connected';
+          if (isMountedRef.current) {
+            setIsConnected(true);
+            setConnectionError(null);
+          }
 
-        !IS_PROD && console.log('✅ [Chat WS] WebSocket connected successfully:', {
-          userId,
-          chatId,
-          connectionKey,
-          readyState: ws.readyState,
-        });
-        setIsConnected(true);
-        setConnectionError(null);
-        reconnectAttemptsRef.current = 0;
+          if (connectionWaitTimeoutRef.current) {
+            clearTimeout(connectionWaitTimeoutRef.current);
+            connectionWaitTimeoutRef.current = null;
+          }
 
-        // Clear connection wait timeout
-        if (connectionWaitTimeoutRef.current) {
-          clearTimeout(connectionWaitTimeoutRef.current);
-          connectionWaitTimeoutRef.current = null;
-        }
+          // Process queued messages
+          if (messageQueueRef.current.length > 0) {
+            !IS_PROD && console.log(`📤 [Chat WS] Processing ${messageQueueRef.current.length} queued messages`);
+            const queuedMessages = [...messageQueueRef.current];
+            messageQueueRef.current = [];
 
-        // Process queued messages
-        if (messageQueueRef.current.length > 0) {
-          !IS_PROD && console.log(`📤 [Chat WS] Processing ${messageQueueRef.current.length} queued messages`);
-          const queuedMessages = [...messageQueueRef.current];
-          messageQueueRef.current = [];
-
-          // Send queued messages via WebSocket
-          queuedMessages.forEach(({ text }) => {
-            try {
-              const message = {
+            queuedMessages.forEach(({ text }) => {
+              const sent = websocketManager.send(wsUrl, {
                 type: 'message',
                 sender_id: adminId,
                 is_player_sender: false,
                 message: text,
                 sent_time: new Date().toISOString(),
-              };
-              ws.send(JSON.stringify(message));
-              !IS_PROD && console.log('✅ [Chat WS] Sent queued message:', text.substring(0, 50));
-            } catch (error) {
-              console.error('❌ [Chat WS] Failed to send queued message:', error);
-              // Re-queue failed message for REST API fallback
-              messageQueueRef.current.push({ text, timestamp: Date.now() });
-            }
-          });
-        }
+              });
+              if (!sent) {
+                messageQueueRef.current.push({ text, timestamp: Date.now() });
+              }
+            });
+          }
 
-        // Fetch message history after connecting
-        !IS_PROD && console.log('📜 [Chat WS] Fetching message history after connection...');
-        void fetchMessageHistory(1, 'replace');
-      };
+          !IS_PROD && console.log('📜 [Chat WS] Fetching message history after connection...');
+          void fetchMessageHistory(1, 'replace');
+        },
 
-      ws.onmessage = (event) => {
-        if (activeConnectionKeyRef.current !== connectionKey) {
-          !IS_PROD && console.log('⚠️ [Chat WS] Ignoring message from stale WebSocket connection');
-          return;
-        }
+        onMessage: (data) => {
+          if (activeConnectionKeyRef.current !== connectionKey) return;
 
-        try {
-          const rawData = JSON.parse(event.data);
-
-          !IS_PROD && console.log('📨 [Chat WS] Raw WebSocket message received:', {
-            hasData: !!rawData,
-            type: rawData?.type,
-            messagePreview: rawData?.message?.substring(0, 30),
-          });
-
-          // Log ALL websocket messages for debugging balance updates
-          !IS_PROD && console.log('📨 [Chat WS] Received WebSocket message (FULL):', {
-            type: rawData.type,
-            message: rawData.message?.substring(0, 50),
-            sender: rawData.is_player_sender ? 'player' : 'admin',
-            timestamp: rawData.sent_time,
-            userBalance: rawData.user_balance,
-            balance: rawData.balance,
-            player_bal: rawData.player_bal,
-            winning_balance: rawData.winning_balance,
-            player_winning_bal: rawData.player_winning_bal,
-            player_id: rawData.player_id,
-            user_id: rawData.user_id,
-            fullData: rawData,
-          });
-
-          // Handle different message types from backend
+          const rawData = data as RawChatMessage;
           const messageType = rawData.type;
 
-          // Handle 'message' type and 'balanceUpdated' type (if it has message content) as regular messages
-          // balanceUpdated messages with content should be displayed as regular messages
+          !IS_PROD && console.log('📨 [Chat WS] Received:', {
+            type: messageType,
+            messagePreview: rawData.message?.substring(0, 30),
+            sender: rawData.is_player_sender ? 'player' : 'admin',
+          });
+
           const hasMessageContent = !!(rawData.message || rawData.text || rawData.is_file);
           const isMessageType = messageType === 'message' ||
             ((messageType === 'balanceUpdated' || messageType === 'balance_updated') && hasMessageContent);
 
           if (isMessageType) {
-            // Determine sender based on backend fields
             const isPlayerSender = rawData.is_player_sender ?? true;
             const sender: 'player' | 'admin' = isPlayerSender ? 'player' : 'admin';
-
-            // Parse timestamp
             const timestamp = rawData.sent_time || rawData.timestamp || new Date().toISOString();
             const messageDate = new Date(timestamp);
 
-            // Map sent_by data if available from WebSocket
             const sentBy = rawData.sent_by ? {
               id: rawData.sent_by.id,
               username: rawData.sent_by.username,
@@ -585,20 +618,17 @@ export function useChatWebSocket({
               profilePic: rawData.sent_by.profile_pic ?? null,
             } : undefined;
 
+            const hasRealId = !!(rawData.id || rawData.message_id);
             const newMessage: ChatMessage = {
-              id: rawData.id || rawData.message_id || `temp-${Date.now()}-${Math.random()}`,
+              id: String(rawData.id || rawData.message_id || `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`),
               text: rawData.message || rawData.text || '',
               sender,
               timestamp: messageDate.toISOString(),
               date: messageDate.toISOString().split('T')[0],
-              time: messageDate.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
+              time: messageDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
               isRead: false,
               userId: rawData.sender_id || rawData.player_id,
-              type: rawData.type, // Preserve the message type (e.g., 'balanceUpdated')
-              // Include additional metadata from the backend
+              type: rawData.type,
               isFile: rawData.is_file || false,
               fileExtension: rawData.file_extension || undefined,
               fileUrl: rawData.file || rawData.file_url || undefined,
@@ -609,237 +639,125 @@ export function useChatWebSocket({
               sentBy,
             };
 
-            // Only add to messages list and notify if there is actual content
-            if (hasMessageContent) {
-              !IS_PROD && console.log('✅ [Chat WS] Parsed message and adding to state:', {
-                id: newMessage.id,
-                text: newMessage.text.substring(0, 50),
-                sender: newMessage.sender,
-                time: newMessage.time,
-                isFile: newMessage.isFile,
-                userBalance: newMessage.userBalance,
-                userId: newMessage.userId,
-                currentUserId: userId,
-                matchesCurrentUser: newMessage.userId === userId,
-              });
-
-              // Simply append the websocket message to the messages array
+            if (hasMessageContent && isMountedRef.current) {
               setMessages((prev) => {
-                // Quick duplicate check by ID only
-                const isDuplicate = prev.some(msg => msg.id === newMessage.id);
-                if (isDuplicate) {
-                  !IS_PROD && console.log('⚠️ [Chat WS] Duplicate message by ID, skipping:', newMessage.id);
+                // FIX #6: Check by ID first, then by content+timestamp for temp ID dedup
+                if (prev.some(msg => msg.id === newMessage.id)) {
+                  !IS_PROD && console.log('⚠️ [Chat WS] Duplicate by ID, skipping:', newMessage.id);
                   return prev;
                 }
 
-                // Append new message
-                const updated = [...prev, newMessage];
-                !IS_PROD && console.log(`✅ [Chat WS] Appended message: ${prev.length} -> ${updated.length} messages`);
-                return updated;
+                if (hasRealId) {
+                  // Remove any temp-ID message with matching content and similar timestamp (within 5s)
+                  const msgTime = messageDate.getTime();
+                  const filtered = prev.filter((msg) => {
+                    if (!msg.id.startsWith('temp-')) return true;
+                    const timeDiff = Math.abs(new Date(msg.timestamp).getTime() - msgTime);
+                    return !(msg.text === newMessage.text && timeDiff < 5000);
+                  });
+                  return [...filtered, newMessage];
+                }
+
+                return [...prev, newMessage];
               });
 
-              // Notify parent component about new message (this updates chat list)
-              // Only call once per message to avoid duplicates
-              !IS_PROD && console.log('🔔 [Chat WS] Calling onMessageReceived callback for new message...');
               if (onMessageReceivedRef.current) {
                 try {
                   onMessageReceivedRef.current(newMessage);
-                  !IS_PROD && console.log('✅ [Chat WS] onMessageReceived callback executed successfully');
                 } catch (error) {
                   console.error('❌ [Chat WS] Error in onMessageReceived callback:', error);
                 }
-              } else {
-                !IS_PROD && console.warn('⚠️ [Chat WS] onMessageReceived callback is not defined');
               }
-            } else {
-              !IS_PROD && console.log('ℹ️ [Chat WS] Message has no content, skipping UI update but checking for balance info');
             }
 
-            //  Update user balance if provided in the message
-            // This handles balance updates that come embedded in regular messages (or empty messages with balance)
+            // FIX #8: Single balance handler call
             if (rawData.user_balance !== undefined || rawData.balance !== undefined || rawData.player_bal !== undefined) {
-              const balance = rawData.user_balance ?? rawData.balance ?? rawData.player_bal;
-              const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal;
-              const playerId = rawData.player_id || rawData.user_id || userId;
-
-              !IS_PROD && console.log('💰 [Chat WS] Balance update detected in message:', {
-                balance,
-                winningBalance,
-                playerId,
-                hasCallback: !!onBalanceUpdatedRef.current,
-              });
-
-              // Update balance in all existing messages for this player
-              if (playerId && String(playerId) === String(userId) && balance !== undefined && balance !== null) {
-                const balanceValue = String(balance);
-                const winningBalanceValue = winningBalance !== undefined && winningBalance !== null
-                  ? String(winningBalance)
-                  : undefined;
-                setMessages((prev) =>
-                  prev.map((msg) => {
-                    if (msg.userId === Number(playerId) || msg.sender === 'player') {
-                      return {
-                        ...msg,
-                        userBalance: balanceValue,
-                        winningBalance: winningBalanceValue,
-                      };
-                    }
-                    return msg;
-                  }),
-                );
-                !IS_PROD && console.log('✅ [Chat WS] Updated balance in existing messages from embedded balance data');
-              }
-
-              // Notify parent component about balance update if callback is available
-              if (onBalanceUpdatedRef.current && playerId) {
-                onBalanceUpdatedRef.current({
-                  playerId: Number(playerId),
-                  balance: balance !== undefined && balance !== null ? String(balance) : '0',
-                  winningBalance: winningBalance !== undefined && winningBalance !== null ? String(winningBalance) : '0',
-                });
-              }
+              handleBalanceUpdate(rawData);
             }
           } else if (messageType === 'typing') {
-            !IS_PROD && console.log('⌨️ User is typing...');
-            setIsTyping(true);
-            //  Clear typing indicator after 3 seconds
-            setTimeout(() => setIsTyping(false), 3000);
-
-            //  IMPORTANT: Do NOT call onMessageReceived for typing events
-            // This prevents the chat list from updating when user is just typing
+            // FIX #2: Clear previous timeout before setting new one
+            if (typingTimeoutRef.current) {
+              clearTimeout(typingTimeoutRef.current);
+            }
+            if (isMountedRef.current) setIsTyping(true);
+            typingTimeoutRef.current = setTimeout(() => {
+              if (isMountedRef.current) setIsTyping(false);
+              typingTimeoutRef.current = null;
+            }, 3000);
           } else if (messageType === 'mark_message_as_read' || messageType === 'read') {
             const messageId = rawData.message_id || rawData.id;
             const senderId = rawData.sender_id;
             const isPlayerSender = rawData.is_player_sender ?? true;
 
+            if (!isMountedRef.current) return;
+
             if (messageId) {
-              // Mark specific message as read
-              !IS_PROD && console.log(' Message marked as read:', messageId);
               setMessages((prev) =>
                 prev.map((msg) =>
-                  msg.id === messageId ? { ...msg, isRead: true } : msg
+                  msg.id === String(messageId) ? { ...msg, isRead: true } : msg
                 )
               );
             } else if (senderId) {
-              // When a user reads messages, mark all messages from the OTHER side as read
-              // If admin (is_player_sender: false) read, mark all player messages as read
-              // If player (is_player_sender: true) read, mark all admin messages as read
               const targetSender: 'player' | 'admin' = isPlayerSender ? 'admin' : 'player';
-              !IS_PROD && console.log(` Marking all ${targetSender} messages as read (read by ${isPlayerSender ? 'player' : 'admin'} with sender_id: ${senderId})`);
               setMessages((prev) =>
-                prev.map((msg) => {
-                  // Mark messages from the opposite sender as read
-                  if (msg.sender === targetSender) {
-                    return { ...msg, isRead: true };
-                  }
-                  return msg;
-                })
+                prev.map((msg) =>
+                  msg.sender === targetSender ? { ...msg, isRead: true } : msg
+                )
               );
             }
           } else if (messageType === 'live_status') {
             const isActive = rawData.is_active ?? false;
-            const playerId = rawData.player_id;
-
-            !IS_PROD && console.log(`🟢 Live status: ${rawData.username || `Player ${playerId}`} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
-
-            // Update online status if this is the player we're chatting with
-            if (String(playerId) === String(userId)) {
+            if (String(rawData.player_id) === String(userId) && isMountedRef.current) {
               setIsUserOnline(isActive);
             }
           } else if (messageType === 'balanceUpdated' || messageType === 'balance_updated') {
-            // balanceUpdated messages are already handled in the main message block above
-            // This block is for standalone balance update notifications without message content
-            const playerId = rawData.player_id || rawData.user_id || userId;
-            const balance = rawData.balance ?? rawData.player_bal ?? rawData.player?.balance;
-            const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal ?? rawData.player?.winning_balance;
-
-            !IS_PROD && console.log('💰 [Chat WS] Standalone balance updated notification (no message content):', {
-              messageType,
-              playerId,
-              balance,
-              winningBalance,
-            });
-
-            // Only handle if there's no message content (pure balance update notification)
-            if (!rawData.message && playerId) {
-              // Update balance in all messages for this player
-              if (String(playerId) === String(userId) && balance !== undefined && balance !== null) {
-                const balanceValue = String(balance);
-                const winningBalanceValue = winningBalance !== undefined && winningBalance !== null
-                  ? String(winningBalance)
-                  : undefined;
-                setMessages((prev) =>
-                  prev.map((message) => {
-                    if (message.userId === Number(playerId) || message.sender === 'player') {
-                      return {
-                        ...message,
-                        userBalance: balanceValue,
-                        winningBalance: winningBalanceValue,
-                      };
-                    }
-                    return message;
-                  }),
-                );
-                !IS_PROD && console.log('✅ [Chat WS] Updated balance in existing messages');
-              }
-
-              // Notify parent component about balance update
-              if (onBalanceUpdatedRef.current) {
-                onBalanceUpdatedRef.current({
-                  playerId: Number(playerId),
-                  balance: balance !== undefined && balance !== null ? String(balance) : '0',
-                  winningBalance: winningBalance !== undefined && winningBalance !== null ? String(winningBalance) : '0',
-                });
-              }
+            // FIX #8: Standalone balance update (no message content) — single handler
+            if (!rawData.message) {
+              handleBalanceUpdate(rawData);
             }
           } else if (messageType === 'error') {
             console.error('❌ WebSocket error message:', rawData.error || rawData.message);
-            setConnectionError(rawData.error || rawData.message || 'Unknown error');
+            if (isMountedRef.current) {
+              setConnectionError(String(rawData.error || rawData.message || 'Unknown error'));
+            }
           } else {
             !IS_PROD && console.log('ℹ️ Unhandled message type:', messageType);
           }
-        } catch (error) {
-          console.error('❌ Failed to parse WebSocket message:', error);
-        }
+        },
+
+        // FIX #7: Surface connection errors to UI
+        onError: () => {
+          console.error('❌ [Chat WS] WebSocket error');
+          if (isMountedRef.current) {
+            setConnectionError('Chat connection error. Retrying...');
+          }
+        },
+
+        onClose: (event) => {
+          if (activeConnectionKeyRef.current !== connectionKey) return;
+
+          !IS_PROD && console.log('🔌 Chat WebSocket closed:', event.code, event.reason);
+          connectionStateRef.current = 'disconnected';
+          if (isMountedRef.current) {
+            setIsConnected(false);
+          }
+        },
       };
 
-      ws.onerror = (error) => {
-        console.error('❌ Chat WebSocket error:', error);
-        // Don't set blocking error - just log it
-      };
+      // Store listener ref for cleanup
+      listenersRef.current = listeners;
 
-      ws.onclose = (event) => {
-        if (activeConnectionKeyRef.current !== connectionKey) {
-          return;
-        }
-
-        !IS_PROD && console.log('🔌 Chat WebSocket closed:', event.code, event.reason);
-        setIsConnected(false);
-        wsRef.current = null;
-
-        // Don't attempt reconnection if backend returned 404 or similar
-        if (event.code === 1006 || event.code === 1001) {
-          !IS_PROD && console.log('⚠️ Backend WebSocket not available, using REST API fallback');
-          return;
-        }
-
-        //  PERFORMANCE: Exponential backoff reconnection with max attempts
-        if (effectiveEnabled && reconnectAttemptsRef.current < maxReconnectAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          !IS_PROD && console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectAttemptsRef.current += 1;
-            connect();
-          }, delay);
-        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-          !IS_PROD && console.log('⚠️ Max reconnection attempts reached, using REST API fallback');
-        }
-      };
+      websocketManager.connect({
+        url: wsUrl,
+        maxReconnectAttempts: 5,
+        baseDelay: 1000,
+        maxDelay: 30000,
+        connectionTimeout: 10000,
+      }, listeners);
     } catch (error) {
       console.error('❌ Failed to create WebSocket connection:', error);
     }
-  }, [userId, chatId, adminId, effectiveEnabled, fetchMessageHistory]);
+  }, [userId, chatId, adminId, effectiveEnabled, fetchMessageHistory, handleBalanceUpdate]);
 
   const sendMessageViaRest = useCallback(async (text: string, retryCount = 0): Promise<boolean> => {
     const MAX_RETRIES = 2;
@@ -889,27 +807,26 @@ export function useChatWebSocket({
 
       !IS_PROD && console.log('✅ Message sent successfully via REST API');
 
-      // Add the message to local state for instant feedback
-      const messageDate = new Date();
-      const newMessage: ChatMessage = {
-        id: Date.now().toString(),
-        text,
-        sender: 'admin',
-        timestamp: messageDate.toISOString(),
-        date: messageDate.toISOString().split('T')[0],
-        time: messageDate.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        isRead: false,
-        userId: adminId,
-        isPinned: false,
-      };
+      // FIX #9: Guard state updates against unmounted component
+      if (isMountedRef.current) {
+        const messageDate = new Date();
+        const newMessage: ChatMessage = {
+          id: `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          text,
+          sender: 'admin',
+          timestamp: messageDate.toISOString(),
+          date: messageDate.toISOString().split('T')[0],
+          time: messageDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          isRead: false,
+          userId: adminId,
+          isPinned: false,
+        };
 
-      setMessages((prev) => [...prev, newMessage]);
+        setMessages((prev) => [...prev, newMessage]);
 
-      if (onMessageReceivedRef.current) {
-        onMessageReceivedRef.current(newMessage);
+        if (onMessageReceivedRef.current) {
+          onMessageReceivedRef.current(newMessage);
+        }
       }
 
       return true;
@@ -928,140 +845,112 @@ export function useChatWebSocket({
   }, [adminId, userId]);
 
   const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
     if (connectionWaitTimeoutRef.current) {
       clearTimeout(connectionWaitTimeoutRef.current);
       connectionWaitTimeoutRef.current = null;
     }
 
-    // Process any remaining queued messages via REST API before disconnecting
-    if (messageQueueRef.current.length > 0) {
+    // FIX #2: Clear typing timeout on disconnect
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+
+    // FIX #9: Only send queued messages if still mounted
+    if (messageQueueRef.current.length > 0 && isMountedRef.current) {
       !IS_PROD && console.log(`📤 Processing ${messageQueueRef.current.length} queued messages before disconnect...`);
       const queuedMessages = [...messageQueueRef.current];
       messageQueueRef.current = [];
-
       queuedMessages.forEach(({ text }) => {
         void sendMessageViaRest(text);
       });
+    } else {
+      messageQueueRef.current = [];
     }
 
-    if (wsRef.current) {
-      !IS_PROD && console.log('🔌 Disconnecting chat WebSocket');
-      wsRef.current.close();
-      wsRef.current = null;
+    // FIX #1: Disconnect via manager instead of raw ws.close()
+    if (wsUrlRef.current && listenersRef.current) {
+      !IS_PROD && console.log('🔌 Disconnecting chat WebSocket via manager');
+      websocketManager.disconnect(wsUrlRef.current, listenersRef.current);
+      listenersRef.current = null;
     }
 
-    setIsConnected(false);
-    reconnectAttemptsRef.current = 0;
+    connectionStateRef.current = 'disconnected';
+    if (isMountedRef.current) {
+      setIsConnected(false);
+    }
   }, [sendMessageViaRest]);
 
+  // FIX #1: Use manager for sending instead of raw WS ref
   const sendMessage = useCallback((text: string) => {
-    if (!text.trim()) {
-      return;
-    }
+    if (!text.trim()) return;
 
-    const ws = wsRef.current;
-    const readyState = ws?.readyState;
-
-    // Case 1: WebSocket is OPEN - send immediately
-    if (ws && readyState === WebSocket.OPEN) {
-      try {
-        const message = {
-          type: 'message',
-          sender_id: adminId,
-          is_player_sender: false,
-          message: text,
-          sent_time: new Date().toISOString(),
-        };
-
-        ws.send(JSON.stringify(message));
-        !IS_PROD && console.log('📤 Sent message via WebSocket - waiting for confirmation');
+    // Case 1: Connected — send via manager
+    if (connectionStateRef.current === 'connected') {
+      const sent = websocketManager.send(wsUrlRef.current, {
+        type: 'message',
+        sender_id: adminId,
+        is_player_sender: false,
+        message: text,
+        sent_time: new Date().toISOString(),
+      });
+      if (sent) {
+        !IS_PROD && console.log('📤 Sent message via WebSocket');
         return;
-      } catch (error) {
-        console.error('❌ Failed to send via WebSocket, trying REST API:', error);
-        // Fall through to REST API fallback
       }
+      // If send failed, fall through to REST
+      console.error('❌ Failed to send via WebSocket, falling back to REST');
     }
 
-    // Case 2: WebSocket is CONNECTING - queue the message and wait
-    if (readyState === WebSocket.CONNECTING) {
+    // Case 2: Connecting — queue and wait
+    if (connectionStateRef.current === 'connecting') {
       !IS_PROD && console.log('⏳ WebSocket connecting, queueing message...');
-
-      // Add to queue
       messageQueueRef.current.push({ text, timestamp: Date.now() });
 
-      // Set timeout to wait for connection, then fallback to REST API
       if (!connectionWaitTimeoutRef.current) {
         connectionWaitTimeoutRef.current = setTimeout(async () => {
           connectionWaitTimeoutRef.current = null;
 
-          // If still connecting after timeout, process queue via REST API
-          if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+          if (connectionStateRef.current !== 'connected') {
             !IS_PROD && console.log('⏱️ Connection timeout, sending queued messages via REST API...');
             const queuedMessages = [...messageQueueRef.current];
             messageQueueRef.current = [];
-
-            // Send all queued messages via REST API
             for (const { text: queuedText } of queuedMessages) {
               await sendMessageViaRest(queuedText);
             }
-          } else if (wsRef.current?.readyState === WebSocket.OPEN) {
-            // Connection established - messages will be sent via WebSocket in onopen handler
-            !IS_PROD && console.log('✅ Connection established, queued messages will be sent via WebSocket');
           }
         }, CONNECTION_WAIT_TIMEOUT);
       }
-
       return;
     }
 
-    // Case 3: WebSocket is CLOSED or CLOSING - send via REST API immediately
+    // Case 3: Disconnected — REST fallback
     !IS_PROD && console.log('📤 WebSocket not available, sending via REST API...');
     void sendMessageViaRest(text);
   }, [adminId, sendMessageViaRest]);
 
   const markAsRead = useCallback((messageId: string) => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    try {
-      const message = {
-        type: 'mark_message_as_read',
-        sender_id: adminId,
-        is_player_sender: false,
-        message_id: messageId,
-      };
-
-      wsRef.current.send(JSON.stringify(message));
+    const sent = websocketManager.send(wsUrlRef.current, {
+      type: 'mark_message_as_read',
+      sender_id: adminId,
+      is_player_sender: false,
+      message_id: messageId,
+    });
+    if (sent) {
       !IS_PROD && console.log(' Marked message as read:', messageId);
-    } catch (error) {
-      console.error('❌ Failed to mark message as read:', error);
     }
   }, [adminId]);
 
   const markAllAsRead = useCallback(() => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      !IS_PROD && console.log('⚠️ Cannot mark all as read: WebSocket not connected');
-      return;
-    }
-
-    try {
-      // Send mark_message_as_read without message_id to mark all player messages as read
-      const message = {
-        type: 'mark_message_as_read',
-        sender_id: adminId,
-        is_player_sender: false,
-      };
-
-      wsRef.current.send(JSON.stringify(message));
+    const sent = websocketManager.send(wsUrlRef.current, {
+      type: 'mark_message_as_read',
+      sender_id: adminId,
+      is_player_sender: false,
+    });
+    if (sent) {
       !IS_PROD && console.log(' Sent mark all as read message to backend');
-    } catch (error) {
-      console.error('❌ Failed to mark all messages as read:', error);
+    } else {
+      !IS_PROD && console.log('⚠️ Cannot mark all as read: WebSocket not connected');
     }
   }, [adminId]);
 
@@ -1108,6 +997,14 @@ export function useChatWebSocket({
     // Fetch page 1 (latest messages) and merge with existing, replacing temporary IDs
     await fetchMessageHistory(1, 'replace');
   }, [chatId, userId, fetchMessageHistory]);
+
+  // FIX #9: Track mount state for safe state updates
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Connect/disconnect based on enabled state and userId
   useEffect(() => {

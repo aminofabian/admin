@@ -36,85 +36,57 @@ interface UseOnlinePlayersReturn {
  * 2. Chat objects with nested player: {chat_id: ..., player: {id: user_id, ...}}
  * 3. Direct player objects: {id: user_id, username: ...}
  */
-function transformPlayerToUser(data: any): ChatUser {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformPlayerToUser(data: Record<string, any>): ChatUser {
   // Format 1: Chats array format - player data is at root level with 'player_' prefix
   if (data.player_id && data.player_username) {
-    // Validate timestamp before storing it
-    const rawTimestamp = data.last_message_timestamp || data.last_message_time;
+    const rawTimestamp = (data.last_message_timestamp || data.last_message_time) as string | undefined;
     const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
-    const transformed = {
-      id: String(data.id || ''), // chatroom_id
+    return {
+      id: String(data.id || ''),
       user_id: Number(data.player_id || 0),
-      username: data.player_username || data.player_full_name || 'Unknown',
-      fullName: data.player_full_name || undefined,
-      email: data.player_email || '',
-      avatar: data.player_profile_pic || undefined,
-      isOnline: true, // Players in online list are online
-      lastMessage: data.last_message || undefined,
+      username: String(data.player_username || data.player_full_name || 'Unknown'),
+      fullName: data.player_full_name ? String(data.player_full_name) : undefined,
+      email: String(data.player_email || ''),
+      avatar: data.player_profile_pic ? String(data.player_profile_pic) : undefined,
+      isOnline: true,
+      lastMessage: data.last_message ? String(data.last_message) : undefined,
       lastMessageTime: validTimestamp,
       balance: data.player_balance !== undefined ? String(data.player_balance) : undefined,
       winningBalance: data.player_winning_balance !== undefined ? String(data.player_winning_balance) : undefined,
-      gamesPlayed: data.player_games_played || undefined,
-      winRate: data.player_win_rate || undefined,
-      phone: data.player_phone_number || undefined,
-      unreadCount: data.unread_messages_count || data.unread_message_count || 0,
-      notes: data.player_notes || undefined,
+      gamesPlayed: (data.player_games_played as number | undefined) || undefined,
+      winRate: (data.player_win_rate as number | undefined) || undefined,
+      phone: data.player_phone_number ? String(data.player_phone_number) : undefined,
+      unreadCount: Number(data.unread_messages_count || data.unread_message_count || 0),
+      notes: data.player_notes ? String(data.player_notes) : undefined,
     };
-
-    // Log only if notes exist to reduce noise
-    if (data.player_notes) {
-      !IS_PROD && console.log(' [Transform Format 1] Player with notes:', {
-        player_id: data.player_id,
-        player_username: data.player_username,
-        player_notes: data.player_notes,
-        transformed_notes: transformed.notes,
-      });
-    }
-
-    return transformed;
   }
 
   // Format 2 & 3: Chat object with nested player OR direct player object
   const hasNestedPlayer = data.player && typeof data.player === 'object';
-  const player = hasNestedPlayer ? data.player : data;
-
-  // Validate timestamp before storing it
-  const rawTimestamp = data.last_message_timestamp || data.last_message_time;
+  const player = hasNestedPlayer ? (data.player as Record<string, any>) : data;
+  const rawTimestamp = (data.last_message_timestamp || data.last_message_time) as string | undefined;
   const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
-  const transformed = {
-    // Use chat_id/chatroom_id if available, otherwise fall back to player.id
+  return {
     id: String(data.chat_id || data.chatroom_id || data.id || player.id || ''),
     user_id: Number(player.id || data.player_id || 0),
-    username: player.username || player.full_name || 'Unknown',
-    fullName: player.full_name || player.name || undefined,
-    email: player.email || '',
-    avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
+    username: String(player.username || player.full_name || 'Unknown'),
+    fullName: player.full_name ? String(player.full_name) : (player.name ? String(player.name) : undefined),
+    email: String(player.email || ''),
+    avatar: (player.profile_pic || player.profile_image || player.avatar) ? String(player.profile_pic || player.profile_image || player.avatar) : undefined,
     isOnline: player.is_online !== undefined ? Boolean(player.is_online) : true,
-    lastMessage: data.last_message || undefined,
+    lastMessage: data.last_message ? String(data.last_message) : undefined,
     lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
-    gamesPlayed: player.games_played || undefined,
-    winRate: player.win_rate || undefined,
-    phone: player.phone_number || player.mobile_number || undefined,
-    unreadCount: data.unread_message_count || 0,
-    notes: player.notes || undefined,
+    gamesPlayed: (player.games_played as number | undefined) || undefined,
+    winRate: (player.win_rate as number | undefined) || undefined,
+    phone: (player.phone_number || player.mobile_number) ? String(player.phone_number || player.mobile_number) : undefined,
+    unreadCount: Number(data.unread_message_count || 0),
+    notes: player.notes ? String(player.notes) : undefined,
   };
-
-  // Log only if notes exist to reduce noise
-  if (player.notes) {
-    !IS_PROD && console.log(' [Transform Format 2/3] Player with notes:', {
-      player_id: player.id,
-      player_username: player.username,
-      hasNestedPlayer,
-      player_notes: player.notes,
-      transformed_notes: transformed.notes,
-    });
-  }
-
-  return transformed;
 }
 
 /**
@@ -179,7 +151,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
 
       // Log sample player data to see notes field
       if (!IS_PROD && data.player && Array.isArray(data.player) && data.player.length > 0) {
-        const playersWithNotes = data.player.filter((p: any) => p.notes);
+        const playersWithNotes = data.player.filter((p: Record<string, any>) => p.notes);
         if (playersWithNotes.length > 0) {
           console.log('📝 [Online Players] Sample player with notes from API:', {
             id: playersWithNotes[0].id,
@@ -191,21 +163,21 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
 
       // Parse different response formats
       //  IMPORTANT: Merge chats + player arrays when both are present
-      let players: any[] = [];
+      let players: Record<string, any>[] = [];
       if (Array.isArray(data)) {
         players = data;
       } else if (data.chats && Array.isArray(data.chats) && data.player && Array.isArray(data.player)) {
         //  BEST CASE: Merge chats with player details
         // Create a map of player details by player_id
         const playerDetailsMap = new Map();
-        data.player.forEach((p: any) => {
+        data.player.forEach((p: Record<string, any>) => {
           if (p.id) {
             playerDetailsMap.set(p.id, p);
           }
         });
 
         // Merge chat data with player details
-        players = data.chats.map((chat: any) => {
+        players = data.chats.map((chat: Record<string, any>) => {
           const playerDetails = playerDetailsMap.get(chat.player_id);
           if (playerDetails) {
             // Merge chat info with full player details
@@ -320,13 +292,14 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
         onMessage: (data) => {
           try {
             // Type assertion for WebSocket message data (consistent with other hooks)
-            const messageData = data as any;
-            const messageType = messageData.type || messageData.message?.type;
+            const messageData = data as Record<string, unknown>;
+            const messageWrapper = messageData.message as Record<string, unknown> | undefined;
+            const messageType = (messageData.type as string | undefined) || (messageWrapper?.type as string | undefined);
 
             //  PERFORMANCE: Only process live_status messages for online players
             if (messageType === 'live_status') {
-              const playerId = Number(messageData.player_id || messageData.message?.player_id);
-              const isActive = Boolean(messageData.is_active ?? messageData.message?.is_active);
+              const playerId = Number(messageData.player_id || messageWrapper?.player_id);
+              const isActive = Boolean(messageData.is_active ?? messageWrapper?.is_active);
 
               !IS_PROD && console.log(`🟢 [Online Players] Status update: Player ${playerId} is ${isActive ? 'ONLINE' : 'OFFLINE'}`);
 
@@ -351,13 +324,13 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
               });
             }
             // Also handle full chat list updates if available
-            else if (messageData.message?.type === 'add_new_chats' && Array.isArray(messageData.message.chats)) {
+            else if (messageWrapper?.type === 'add_new_chats' && Array.isArray(messageWrapper.chats)) {
               !IS_PROD && console.log('🔄 [Online Players] Received full chat list update');
 
-              // Extract online players from chat list
-              const onlineFromChats = messageData.message.chats
-                .filter((chat: any) => chat.player?.is_online)
-                .map((chat: any) => {
+              const chatList = messageWrapper.chats as Record<string, any>[];
+              const onlineFromChats = chatList
+                .filter((chat) => chat.player?.is_online)
+                .map((chat) => {
                   // Merge chat data with player data to preserve timestamps
                   const mergedChat = {
                     ...chat,
