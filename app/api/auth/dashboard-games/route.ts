@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bruii.com';
-const DASHBOARD_GAMES_URL = `${BACKEND_URL}/users/dashboard-games/`;
+const PROD_API_BASE = 'https://api.bruii.com';
+
+/** In production, always use api.bruii.com; otherwise use env or fallback. */
+function getBackendBaseUrl(): string {
+  if (process.env.NODE_ENV === 'production') {
+    return PROD_API_BASE;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || PROD_API_BASE;
+}
+
+const DASHBOARD_GAMES_URL = `${getBackendBaseUrl()}/users/dashboard-games/`;
 
 /**
  * Domain mapping: admin panel hostname -> project domain for backend
