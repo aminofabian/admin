@@ -389,6 +389,11 @@ export function GameSettingsSection() {
                 } catch (err) {
                   const message = err instanceof Error ? err.message : 'Failed to update multiplier';
                   setMultiplierError(message);
+                  addToast({
+                    type: 'error',
+                    title: 'Update failed',
+                    description: message,
+                  });
                 } finally {
                   setIsUpdatingMultiplier(false);
                 }

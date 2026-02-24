@@ -162,22 +162,22 @@ export const useGamesStore = create<GamesStore>((set, get) => ({
       set({ minimumRedeemMultiplier: response.minimum_redeem_multiplier });
     } catch (err: unknown) {
       let errorMessage = 'Failed to update minimum redeem multiplier';
-      
+
       if (err && typeof err === 'object') {
         if ('detail' in err) {
           errorMessage = String(err.detail);
         } else if ('message' in err) {
           errorMessage = String(err.message);
         }
-        
+
         if (errorMessage.toLowerCase().includes('permission')) {
           errorMessage = 'Access Denied: You need proper privileges.';
         }
       } else if (err instanceof Error) {
         errorMessage = err.message;
       }
-      
-      set({ error: errorMessage });
+
+      // Do not set store error — UI shows toast + inline error in modal only
       throw new Error(errorMessage);
     }
   },
