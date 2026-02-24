@@ -204,10 +204,9 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const DAYS_PER_YEAR = 365;
 
 /**
- * Chat list timestamp: actual date/time.
+ * Chat list timestamp:
  * - &lt; 24h: time only (e.g. "2:30 PM")
- * - 24h–1y: time + date (e.g. "Feb 24, 2:30 PM")
- * - &gt; 1y: time + date + year (e.g. "Feb 24, 2024, 2:30 PM")
+ * - ≥ 24h: date only — no time (e.g. "Feb 24" or "Feb 24, 2024" if different year)
  */
 export const formatChatTimestampCompact = (timestamp: string | null | undefined): string => {
   if (!timestamp || timestamp.trim() === '') {
@@ -222,27 +221,23 @@ export const formatChatTimestampCompact = (timestamp: string | null | undefined)
     const diffMs = now.getTime() - date.getTime();
     const diffDays = diffMs / MS_PER_DAY;
 
-    const timeStr = date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-
     if (diffDays < 1) {
-      return timeStr;
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
     }
 
     if (diffDays < DAYS_PER_YEAR) {
-      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      return `${dateStr}, ${timeStr}`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
-    const dateStr = date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
-    return `${dateStr}, ${timeStr}`;
   } catch {
     return '';
   }
