@@ -64,7 +64,7 @@ export function getCurrentDomain(): string {
 
   // admin.<project> -> https://<project> (e.g. admin.bitslot.cc -> https://bitslot.cc)
   if (hostname.startsWith('admin.')) {
-    const project = hostname.slice(7);
+    const project = hostname.slice(6); // "admin." = 6 chars
     return `https://${project}`;
   }
 

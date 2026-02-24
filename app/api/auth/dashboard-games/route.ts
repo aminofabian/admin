@@ -30,7 +30,7 @@ function mapToProjectDomain(incomingDomain: string | undefined, host: string): s
 
   // Generic rule: admin.<project> -> https://<project>
   if (hostname.startsWith('admin.')) {
-    const project = hostname.slice(7);
+    const project = hostname.slice(6); // "admin." = 6 chars
     const projectDomain = `https://${project}`;
     console.log(`✅ Host mapped: ${host} -> ${projectDomain}`);
     return projectDomain;
