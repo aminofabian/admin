@@ -14,15 +14,43 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import type { AnalyticsFilters } from '@/lib/api/analytics';
 
-// Import shared utilities
 import { US_STATES, getDateRange } from '../analytics-utils';
+
+function CardSkel() {
+  return (
+    <div className="rounded-xl border border-border/30 bg-card p-4 animate-pulse">
+      <div className="h-3 bg-muted/40 rounded w-20 mb-3" />
+      <div className="h-7 bg-muted/40 rounded w-28" />
+    </div>
+  );
+}
+
+function TableSkel() {
+  return (
+    <div className="p-5 space-y-3">
+      {[0, 1, 2].map(i => (
+        <div key={i} className="flex items-center gap-3 animate-pulse">
+          <div className="w-7 h-7 rounded-lg bg-muted/30 shrink-0" />
+          <div className="flex-1 h-3 bg-muted/20 rounded" />
+          <div className="w-16 h-3 bg-muted/30 rounded" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function rateColor(rate: number | undefined): string {
+  if (!rate) return 'text-muted-foreground';
+  if (rate >= 90) return 'text-emerald-600 dark:text-emerald-400';
+  if (rate >= 70) return 'text-amber-600 dark:text-amber-400';
+  return 'text-rose-600 dark:text-rose-400';
+}
 
 export default function TransactionAnalyticsPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { data: analyticsData, loading: loadingDashboard, error: dashboardError } = useAdminAnalytics();
 
-  // Filter state
   const [datePreset, setDatePreset] = useState('last_3_months');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -31,34 +59,28 @@ export default function TransactionAnalyticsPage() {
   const [gender, setGender] = useState<'male' | 'female' | ''>('');
   const [showFilters, setShowFilters] = useState(true);
 
-  // Initialize date range
   useEffect(() => {
     const range = getDateRange(datePreset);
     setStartDate(range.start);
     setEndDate(range.end);
   }, [datePreset]);
 
-  // Build filters object
   const filters = useMemo<AnalyticsFilters>(() => {
-    const filterObj: AnalyticsFilters = {};
-    if (startDate) filterObj.start_date = startDate;
-    if (endDate) filterObj.end_date = endDate;
-    if (username) filterObj.username = username;
-    if (state) filterObj.state = state;
-    if (gender) filterObj.gender = gender;
-    return filterObj;
+    const f: AnalyticsFilters = {};
+    if (startDate) f.start_date = startDate;
+    if (endDate) f.end_date = endDate;
+    if (username) f.username = username;
+    if (state) f.state = state;
+    if (gender) f.gender = gender;
+    return f;
   }, [startDate, endDate, username, state, gender]);
 
-  // Fetch analytics data
   const { data: transactionSummary, loading: loadingSummary } = useTransactionSummary(filters);
   const { data: paymentMethods, loading: loadingPaymentMethods } = usePaymentMethods(filters);
   const { data: bonusAnalytics, loading: loadingBonus } = useBonusAnalytics(filters);
 
-  // Redirect if user is not a company admin
   useEffect(() => {
-    if (user && user.role !== USER_ROLES.COMPANY) {
-      router.replace('/dashboard');
-    }
+    if (user && user.role !== USER_ROLES.COMPANY) router.replace('/dashboard');
   }, [user, router]);
 
   const handlePresetChange = (preset: string) => {
@@ -81,464 +103,333 @@ export default function TransactionAnalyticsPage() {
   };
 
   const hasActiveFilters = username || state || gender || datePreset !== 'last_3_months';
-
-  // Format payment method name
-  const formatPaymentMethodName = (name: string): string => {
-    return name.split('_').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-  };
-
-  // Filter payment methods by type
+  const fmtMethod = (n: string) => n.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const purchaseMethods = paymentMethods.filter(m => m.type === 'purchase');
   const cashoutMethods = paymentMethods.filter(m => m.type === 'cashout');
 
-  // Loading state
+  const netRevenue = useMemo(() => {
+    if (!transactionSummary) return null;
+    return transactionSummary.total_purchase - transactionSummary.total_cashout;
+  }, [transactionSummary]);
+
+  const bonusBreakdown = useMemo(() => {
+    if (!bonusAnalytics) return [];
+    const items = [
+      { label: 'Purchase', value: bonusAnalytics.purchase_bonus, bar: 'bg-emerald-500' },
+      { label: 'Signup', value: bonusAnalytics.signup_bonus, bar: 'bg-blue-500' },
+      { label: '1st Deposit', value: bonusAnalytics.first_deposit_bonus, bar: 'bg-violet-500' },
+      { label: 'Transfer', value: bonusAnalytics.transfer_bonus, bar: 'bg-indigo-500' },
+      { label: 'Free Play', value: bonusAnalytics.total_free_play ?? 0, bar: 'bg-cyan-500' },
+      { label: 'Seized/Tipped', value: bonusAnalytics.seized_or_tipped_fund ?? 0, bar: 'bg-slate-400' },
+    ];
+    const max = Math.max(...items.map(i => i.value), 1);
+    return items.map(i => ({ ...i, pct: (i.value / max) * 100 }));
+  }, [bonusAnalytics]);
+
   if (loadingDashboard) {
     return (
-      <div className="space-y-3 sm:space-y-4 md:space-y-6">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-            <div className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg bg-muted/50 animate-pulse shrink-0" />
-            <div className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 bg-muted/50 rounded animate-pulse shrink-0" />
-            <div className="flex-1 min-w-0" />
-          </div>
+      <div className="space-y-4">
+        <div className="h-14 rounded-xl bg-muted/20 animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[0, 1, 2, 3].map(i => <CardSkel key={i} />)}
         </div>
       </div>
     );
   }
 
-  // Error state
   if (dashboardError) {
     return (
-      <div className="space-y-3 sm:space-y-4 md:space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
-            <div className="p-4 rounded-full bg-red-500/10 text-red-500 mb-4">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Unable to Load Analytics</h2>
-            <p className="text-muted-foreground max-w-md mb-6">{dashboardError}</p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
-          </div>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-8">
+        <div className="p-4 rounded-2xl bg-rose-500/10 text-rose-500 mb-4">
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
         </div>
+        <h2 className="text-lg font-semibold mb-1 text-foreground">Unable to Load Analytics</h2>
+        <p className="text-sm text-muted-foreground max-w-sm mb-5">{dashboardError}</p>
+        <Button onClick={() => window.location.reload()} variant="primary" size="sm">Try Again</Button>
       </div>
     );
   }
 
-
   return (
-    <div className="space-y-3 sm:space-y-4 md:space-y-6">
-      {/* Header - Compact */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-          {/* Icon */}
-          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
-            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-          </div>
-          
-          {/* Title */}
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
-            Analytics
-          </h2>
-          
-          {/* Spacer */}
-          <div className="flex-1 min-w-0" />
-          
-          {/* Filter Toggle Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="gap-2 shrink-0"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-            </svg>
-            Filters
-            {hasActiveFilters && (
-              <span className="ml-1 px-2 py-0.5 text-xs bg-primary/20 rounded-full">Active</span>
-            )}
-          </Button>
+    <div className="space-y-4">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">Transactions</h1>
+          {analyticsData && (
+            <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
+              {analyticsData.total_players ?? 0} players &middot; {analyticsData.total_managers ?? 0} managers &middot; {analyticsData.total_agents ?? 0} agents &middot; {analyticsData.total_staffs ?? 0} staff
+            </p>
+          )}
         </div>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            showFilters
+              ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+          </svg>
+          Filters
+          {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+        </button>
       </div>
 
-      {/* Filters */}
+      {/* ── Filters ── */}
       {showFilters && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Filters</h3>
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-muted-foreground hover:text-foreground gap-2">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Clear All
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="p-4 relative">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              {/* Date Filter */}
-              <div className="space-y-2 lg:col-span-2 relative">
-              <label className="text-sm font-medium flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                  </svg>
-                  Date Range
-                </label>
-                <div className="grid gap-2 md:grid-cols-3">
-                  <Select
-                    value={datePreset}
-                    onChange={(value: string) => handlePresetChange(value)}
-                    options={[
-                      { value: 'today', label: 'Today' },
-                      { value: 'yesterday', label: 'Yesterday' },
-                      { value: 'this_month', label: 'This Month' },
-                      { value: 'last_month', label: 'Last Month' },
-                      { value: 'last_30_days', label: 'Last 30 Days' },
-                      { value: 'last_3_months', label: 'Last 3 Months' },
-                      { value: 'custom', label: 'Custom Range' },
-                    ]}
-                  />
-                  {datePreset === 'custom' && (
-                    <>
-                      <div className="date-input-wrapper">
-                        <DateSelect
-                          label="Start Date"
-                          value={startDate}
-                          onChange={setStartDate}
-                        />
-                      </div>
-                      <div className="date-input-wrapper">
-                        <DateSelect
-                          label="End Date"
-                          value={endDate}
-                          onChange={setEndDate}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Username Filter */}
-              <div className="space-y-2 relative">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Exact username"
-                  className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-
-              {/* State Filter */}
-              <div className="space-y-2 relative">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  State
-                </label>
-                <Select
-                  value={state}
-                  onChange={(value: string) => setState(value)}
-                  options={US_STATES}
-                  placeholder="All States"
-                />
-              </div>
-
-              {/* Gender Filter */}
-              <div className="space-y-2 relative">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  Gender
-                </label>
-                <Select
-                  value={gender}
-                  onChange={(value: string) => setGender(value as 'male' | 'female' | '')}
-                  options={[
-                    { value: '', label: 'All' },
-                    { value: 'male', label: 'Male' },
-                    { value: 'female', label: 'Female' },
-                  ]}
-                  placeholder="All"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Team Overview Stats */}
-      {analyticsData && (
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:grid-cols-4">
-          <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Players</div>
-            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{analyticsData.total_players ?? 0}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Managers</div>
-            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{analyticsData.total_managers ?? 0}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Agents</div>
-            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{analyticsData.total_agents ?? 0}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Staff</div>
-            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{analyticsData.total_staffs ?? 0}</div>
-          </div>
-        </div>
-      )}
-
-      {/* Transaction Analytics */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Transaction Analytics</h3>
-        </div>
-        <div className="p-4 space-y-6">
-          {/* Summary Metrics */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Summary Metrics</h4>
-            <div className="grid gap-3 md:grid-cols-3">
-              {loadingSummary ? (
-                [...Array(3)].map((_, i) => (
-                  <div key={i} className="rounded-2xl bg-card/50 p-6 animate-pulse">
-                    <div className="h-4 bg-muted/50 rounded w-24 mb-3" />
-                    <div className="h-8 bg-muted/50 rounded w-32" />
-                  </div>
-                ))
-              ) : transactionSummary ? (
-                <>
-                  <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Total Purchase</div>
-                    <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(transactionSummary.total_purchase)}</div>
-                    <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Sum of completed purchases (excl. manual/bonus)</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Total Cashout</div>
-                    <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(transactionSummary.total_cashout)}</div>
-                    <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Sum of completed cashouts (excl. manual/bonus)</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Total Transfer</div>
-                    <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(transactionSummary.total_transfer)}</div>
-                    <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Sum of transfers (excl. bonus)</div>
-                  </div>
-                </>
-              ) : (
-                <div className="col-span-3 text-center py-8 text-muted-foreground">No transaction data available</div>
-              )}
-            </div>
-          </div>
-
-          {/* Payment Method Breakdown - Two Column Layout */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Payment Method Breakdown</h4>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {/* Purchase Analytics Table (Left Half) */}
-              <div className="space-y-2">
-                <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Purchase Analytics</h5>
-                <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
-                  {loadingPaymentMethods ? (
-                    <div className="p-6 space-y-4">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="animate-pulse">
-                          <div className="h-4 bg-muted/50 rounded w-32 mb-2" />
-                          <div className="h-3 bg-muted/30 rounded" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : purchaseMethods.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/30">
-                          <tr>
-                            <th className="text-left p-3 font-medium">Payment Method</th>
-                            <th className="text-right p-3 font-medium">Purchase</th>
-                            <th className="text-right p-3 font-medium">Bonus</th>
-                            <th className="text-right p-3 font-medium">Avg Bonus %</th>
-                            <th className="text-right p-3 font-medium">Success Rate</th>
-                            <th className="text-right p-3 font-medium">Avg Size</th>
-                            <th className="text-right p-3 font-medium">Usage %</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/50">
-                          {purchaseMethods.map((method, idx) => (
-                            <tr key={`purchase-${method.payment_method}-${idx}`} className="hover:bg-muted/20 transition-colors">
-                              <td className="p-3">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
-                                    {formatPaymentMethodName(method.payment_method).charAt(0)}
-                                  </div>
-                                  <span className="font-medium text-xs">{formatPaymentMethodName(method.payment_method)}</span>
-                                </div>
-                              </td>
-                              <td className="p-3 text-right font-semibold text-emerald-500 text-xs">
-                                {formatCurrency(method.purchase ?? 0)}
-                              </td>
-                              <td className="p-3 text-right text-amber-500 text-xs">
-                                {method.bonus && method.bonus > 0 ? formatCurrency(method.bonus) : '-'}
-                              </td>
-                              <td className="p-3 text-right text-xs">
-                                {method.average_bonus_pct && method.average_bonus_pct > 0 ? `${method.average_bonus_pct.toFixed(1)}%` : '-'}
-                              </td>
-                              <td className="p-3 text-right text-xs">
-                                <span className={method.success_rate && method.success_rate >= 90 ? 'text-emerald-500' : method.success_rate && method.success_rate >= 70 ? 'text-amber-500' : 'text-rose-500'}>
-                                  {method.success_rate?.toFixed(1) ?? 0}%
-                                </span>
-                              </td>
-                              <td className="p-3 text-right text-xs">
-                                {formatCurrency(method.average_transaction_size ?? 0)}
-                              </td>
-                              <td className="p-3 text-right text-xs">
-                                <div className="flex items-center justify-end gap-2">
-                                  <div className="w-12 h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary rounded-full" style={{ width: `${method.usage_distribution_pct ?? 0}%` }} />
-                                  </div>
-                                  <span className="w-8">{method.usage_distribution_pct?.toFixed(1) ?? 0}%</span>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="p-6 text-center text-muted-foreground text-xs">No purchase data available</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Cashout Analytics Table (Right Half) */}
-              <div className="space-y-2">
-                <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300">Cashout Analytics</h5>
-                <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
-                  {loadingPaymentMethods ? (
-                    <div className="p-6 space-y-4">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="animate-pulse">
-                          <div className="h-4 bg-muted/50 rounded w-32 mb-2" />
-                          <div className="h-3 bg-muted/30 rounded" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : cashoutMethods.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/30">
-                          <tr>
-                            <th className="text-left p-3 font-medium">Payment Method</th>
-                            <th className="text-right p-3 font-medium">Cashout</th>
-                            <th className="text-right p-3 font-medium">Success Rate</th>
-                            <th className="text-right p-3 font-medium">Avg Size</th>
-                            <th className="text-right p-3 font-medium">Usage %</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/50">
-                          {cashoutMethods.map((method, idx) => (
-                            <tr key={`cashout-${method.payment_method}-${idx}`} className="hover:bg-muted/20 transition-colors">
-                              <td className="p-3">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-semibold text-xs">
-                                    {formatPaymentMethodName(method.payment_method).charAt(0)}
-                                  </div>
-                                  <span className="font-medium text-xs">{formatPaymentMethodName(method.payment_method)}</span>
-                                </div>
-                              </td>
-                              <td className="p-3 text-right font-semibold text-rose-500 text-xs">
-                                {formatCurrency(method.cashout ?? 0)}
-                              </td>
-                              <td className="p-3 text-right text-xs">
-                                <span className={method.success_rate && method.success_rate >= 90 ? 'text-emerald-500' : method.success_rate && method.success_rate >= 70 ? 'text-amber-500' : 'text-rose-500'}>
-                                  {method.success_rate?.toFixed(1) ?? 0}%
-                                </span>
-                              </td>
-                              <td className="p-3 text-right text-xs">
-                                {formatCurrency(method.average_transaction_size ?? 0)}
-                              </td>
-                              <td className="p-3 text-right text-xs">
-                                <div className="flex items-center justify-end gap-2">
-                                  <div className="w-12 h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary rounded-full" style={{ width: `${method.usage_distribution_pct ?? 0}%` }} />
-                                  </div>
-                                  <span className="w-8">{method.usage_distribution_pct?.toFixed(1) ?? 0}%</span>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="p-6 text-center text-muted-foreground text-xs">No cashout data available</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bonus Analytics */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Bonus Analytics</h4>
-            {loadingBonus ? (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 animate-pulse">
-                    <div className="h-4 bg-muted/50 rounded w-24 mb-2" />
-                    <div className="h-8 bg-muted/50 rounded w-32" />
-                  </div>
-                ))}
-              </div>
-            ) : bonusAnalytics ? (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <div className="lg:col-span-2 rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                  <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Total Bonus</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(bonusAnalytics.total_bonus)}</div>
-                  <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Sum of all bonus amounts across all types</div>
-                </div>
-                <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                  <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Purchase Bonus</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(bonusAnalytics.purchase_bonus)}</div>
-                  <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Sum of purchase bonus amounts</div>
-                </div>
-                <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                  <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Avg Purchase Bonus %</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{bonusAnalytics.average_purchase_bonus_pct?.toFixed(2) ?? 0}%</div>
-                  <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">(Purchase Bonus / Total Purchase) × 100</div>
-                </div>
-                <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                  <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Signup Bonus</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(bonusAnalytics.signup_bonus)}</div>
-                  <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Welcome/signup bonus amounts</div>
-                </div>
-                <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                  <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">First Deposit Bonus</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(bonusAnalytics.first_deposit_bonus)}</div>
-                  <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">First deposit bonus amounts</div>
-                </div>
-                <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                  <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Transfer Bonus</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(bonusAnalytics.transfer_bonus)}</div>
-                  <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Bonus from transfer transactions</div>
-                </div>
-                <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                  <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Avg Transfer Bonus %</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{bonusAnalytics.average_transfer_bonus_pct?.toFixed(2) ?? 0}%</div>
-                  <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">(Transfer Bonus / Total Transfer) × 100</div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">No bonus data available</div>
+        <div className="relative z-20 flex items-center gap-2.5 rounded-lg border border-border/40 bg-card px-3 py-2 shadow-sm flex-wrap lg:flex-nowrap">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
+            {hasActiveFilters && (
+              <button onClick={handleClearFilters} className="text-[10px] font-medium text-rose-500 hover:text-rose-600 transition-colors">clear</button>
             )}
           </div>
+          <div className="flex-1 grid gap-2 grid-cols-2 lg:grid-cols-4">
+            <Select
+              value={datePreset}
+              onChange={(v: string) => handlePresetChange(v)}
+              options={[
+                { value: 'today', label: 'Today' },
+                { value: 'yesterday', label: 'Yesterday' },
+                { value: 'this_month', label: 'This Month' },
+                { value: 'last_month', label: 'Last Month' },
+                { value: 'last_30_days', label: 'Last 30 Days' },
+                { value: 'last_3_months', label: 'Last 3 Months' },
+                { value: 'custom', label: 'Custom Range' },
+              ]}
+            />
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-950 px-2.5 py-2 text-sm text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+            />
+            <Select value={state} onChange={(v: string) => setState(v)} options={US_STATES} placeholder="All States" />
+            <Select
+              value={gender}
+              onChange={(v: string) => setGender(v as 'male' | 'female' | '')}
+              options={[{ value: '', label: 'All' }, { value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]}
+              placeholder="Gender"
+            />
+          </div>
+          {datePreset === 'custom' && (
+            <div className="grid grid-cols-2 gap-2 mt-2 max-w-xs w-full lg:w-auto lg:mt-0">
+              <DateSelect label="Start" value={startDate} onChange={setStartDate} />
+              <DateSelect label="End" value={endDate} onChange={setEndDate} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Financial Dashboard (unified card) ── */}
+      <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
+        {/* Revenue row */}
+        {loadingSummary ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="bg-card px-5 py-4 animate-pulse border-r border-border/10 last:border-r-0">
+                <div className="h-2.5 w-14 bg-muted/40 rounded mb-2.5" />
+                <div className="h-5 w-20 bg-muted/40 rounded" />
+              </div>
+            ))}
+          </div>
+        ) : transactionSummary ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4">
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-emerald-500 border-r border-border/10">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Purchase</p>
+              <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">{formatCurrency(transactionSummary.total_purchase)}</p>
+            </div>
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-rose-500 border-r border-border/10">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cashout</p>
+              <p className="text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400 mt-0.5">{formatCurrency(transactionSummary.total_cashout)}</p>
+            </div>
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-blue-500 border-r border-border/10">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Transfer</p>
+              <p className="text-lg font-bold tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">{formatCurrency(transactionSummary.total_transfer)}</p>
+            </div>
+            {netRevenue !== null && (
+              <div className={`px-5 py-3.5 ${
+                netRevenue >= 0
+                  ? 'bg-gradient-to-br from-emerald-900 to-emerald-950 dark:from-emerald-900/80 dark:to-emerald-950/90'
+                  : 'bg-gradient-to-br from-rose-900 to-rose-950 dark:from-rose-900/80 dark:to-rose-950/90'
+              }`}>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Net Revenue</p>
+                <p className="text-lg font-bold tabular-nums text-white mt-0.5">
+                  {netRevenue >= 0 ? '+' : ''}{formatCurrency(netRevenue)}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-card px-5 py-8 text-center text-sm text-muted-foreground">No transaction data available</div>
+        )}
+
+        {/* Bonus breakdown */}
+        {loadingBonus ? (
+          <div className="border-t border-border/15 bg-card px-5 py-4">
+            <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
+              {[0, 1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-2 w-12 bg-muted/40 rounded mb-2" />
+                  <div className="h-4 w-14 bg-muted/40 rounded mb-2" />
+                  <div className="h-1 bg-muted/20 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : bonusAnalytics ? (
+          <div className="border-t border-border/15 bg-card px-5 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Bonus Breakdown</p>
+              <p className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                {formatCurrency(bonusAnalytics.total_bonus)}
+                <span className="text-[10px] font-normal text-muted-foreground ml-1">total</span>
+              </p>
+            </div>
+            <div className="grid grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3">
+              {bonusBreakdown.map(({ label, value, bar, pct }) => (
+                <div key={label} className="group">
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-0.5">{label}</p>
+                  <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(value)}</p>
+                  <div className="mt-1.5 h-1 bg-muted/15 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${bar} transition-all duration-700 ease-out`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-3 mt-3.5 pt-3 border-t border-border/10 text-[10px] text-muted-foreground">
+              <span>Avg Purchase Bonus: <strong className="text-foreground">{bonusAnalytics.average_purchase_bonus_pct?.toFixed(2) ?? 0}%</strong></span>
+              <span className="text-border/50">&middot;</span>
+              <span>Avg Transfer Bonus: <strong className="text-foreground">{bonusAnalytics.average_transfer_bonus_pct?.toFixed(2) ?? 0}%</strong></span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ── Payment Methods ── */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {/* Purchase table */}
+        <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+            <span className="text-sm font-semibold text-foreground">Purchase Methods</span>
+            {purchaseMethods.length > 0 && (
+              <span className="ml-auto text-[10px] font-medium text-muted-foreground tabular-nums">{purchaseMethods.length}</span>
+            )}
+          </div>
+          {loadingPaymentMethods ? <TableSkel /> : purchaseMethods.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border/10 bg-muted/5">
+                    <th className="text-left px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Method</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Volume</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Bonus</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Avg %</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Success</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Avg Size</th>
+                    <th className="text-right px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Usage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/5">
+                  {purchaseMethods.map((m, i) => (
+                    <tr key={`p-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-[9px] shrink-0">{fmtMethod(m.payment_method).charAt(0)}</span>
+                          <span className="font-medium text-foreground text-xs">{fmtMethod(m.payment_method)}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(m.purchase ?? 0)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {m.bonus && m.bonus > 0
+                          ? <span className="text-amber-600 dark:text-amber-400">{formatCurrency(m.bonus)}</span>
+                          : <span className="text-muted-foreground/25">&mdash;</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                        {m.average_bonus_pct && m.average_bonus_pct > 0
+                          ? `${m.average_bonus_pct.toFixed(1)}%`
+                          : <span className="text-muted-foreground/25">&mdash;</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate?.toFixed(1) ?? 0}%</span></td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(m.average_transaction_size ?? 0)}</td>
+                      <td className="px-4 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <div className="w-8 h-1 bg-muted/15 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500/50 rounded-full" style={{ width: `${m.usage_distribution_pct ?? 0}%` }} />
+                          </div>
+                          <span className="w-9 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct?.toFixed(1) ?? 0}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-6 text-center text-xs text-muted-foreground">No purchase data</div>
+          )}
+        </div>
+
+        {/* Cashout table */}
+        <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+            <span className="text-sm font-semibold text-foreground">Cashout Methods</span>
+            {cashoutMethods.length > 0 && (
+              <span className="ml-auto text-[10px] font-medium text-muted-foreground tabular-nums">{cashoutMethods.length}</span>
+            )}
+          </div>
+          {loadingPaymentMethods ? <TableSkel /> : cashoutMethods.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border/10 bg-muted/5">
+                    <th className="text-left px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Method</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Volume</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Success</th>
+                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Avg Size</th>
+                    <th className="text-right px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Usage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/5">
+                  {cashoutMethods.map((m, i) => (
+                    <tr key={`c-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-[9px] shrink-0">{fmtMethod(m.payment_method).charAt(0)}</span>
+                          <span className="font-medium text-foreground text-xs">{fmtMethod(m.payment_method)}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(m.cashout ?? 0)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate?.toFixed(1) ?? 0}%</span></td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(m.average_transaction_size ?? 0)}</td>
+                      <td className="px-4 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <div className="w-8 h-1 bg-muted/15 rounded-full overflow-hidden">
+                            <div className="h-full bg-rose-500/50 rounded-full" style={{ width: `${m.usage_distribution_pct ?? 0}%` }} />
+                          </div>
+                          <span className="w-9 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct?.toFixed(1) ?? 0}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-6 text-center text-xs text-muted-foreground">No cashout data</div>
+          )}
         </div>
       </div>
     </div>

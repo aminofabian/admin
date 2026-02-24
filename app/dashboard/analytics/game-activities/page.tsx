@@ -11,15 +11,25 @@ import { useEffect, useState, useMemo } from 'react';
 import type { AnalyticsFilters } from '@/lib/api/analytics';
 import { US_STATES, getDateRange } from '../analytics-utils';
 
-// Progress Bar Component
-function ProgressBar({ value, max, colorClass }: { value: number; max: number; colorClass: string }) {
-  const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+function CardSkel() {
   return (
-    <div className="w-full h-2 bg-muted/50 rounded-full overflow-hidden">
-      <div
-        className={`h-full rounded-full transition-all duration-700 ease-out ${colorClass}`}
-        style={{ width: `${percentage}%` }}
-      />
+    <div className="rounded-xl border border-border/30 bg-card p-4 animate-pulse">
+      <div className="h-3 bg-muted/40 rounded w-20 mb-3" />
+      <div className="h-7 bg-muted/40 rounded w-28" />
+    </div>
+  );
+}
+
+function TableSkel() {
+  return (
+    <div className="p-5 space-y-3">
+      {[0, 1, 2].map(i => (
+        <div key={i} className="flex items-center gap-3 animate-pulse">
+          <div className="w-7 h-7 rounded-lg bg-muted/30 shrink-0" />
+          <div className="flex-1 h-3 bg-muted/20 rounded" />
+          <div className="w-16 h-3 bg-muted/30 rounded" />
+        </div>
+      ))}
     </div>
   );
 }
@@ -29,7 +39,6 @@ export default function GameActivityAnalyticsPage() {
   const router = useRouter();
   const { data: analyticsData, loading: loadingDashboard, error: dashboardError } = useAdminAnalytics();
 
-  // Filter state
   const [datePreset, setDatePreset] = useState('last_3_months');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -38,33 +47,27 @@ export default function GameActivityAnalyticsPage() {
   const [gender, setGender] = useState<'male' | 'female' | ''>('');
   const [showFilters, setShowFilters] = useState(true);
 
-  // Initialize date range
   useEffect(() => {
     const range = getDateRange(datePreset);
     setStartDate(range.start);
     setEndDate(range.end);
   }, [datePreset]);
 
-  // Build filters object
   const filters = useMemo<AnalyticsFilters>(() => {
-    const filterObj: AnalyticsFilters = {};
-    if (startDate) filterObj.start_date = startDate;
-    if (endDate) filterObj.end_date = endDate;
-    if (username) filterObj.username = username;
-    if (state) filterObj.state = state;
-    if (gender) filterObj.gender = gender;
-    return filterObj;
+    const f: AnalyticsFilters = {};
+    if (startDate) f.start_date = startDate;
+    if (endDate) f.end_date = endDate;
+    if (username) f.username = username;
+    if (state) f.state = state;
+    if (gender) f.gender = gender;
+    return f;
   }, [startDate, endDate, username, state, gender]);
 
-  // Fetch analytics data
   const { data: gameSummary, loading: loadingGameSummary } = useGameSummary(filters);
   const { data: gamesByGame, loading: loadingGamesByGame } = useGamesByGame(filters);
 
-  // Redirect if user is not a company admin
   useEffect(() => {
-    if (user && user.role !== USER_ROLES.COMPANY) {
-      router.replace('/dashboard');
-    }
+    if (user && user.role !== USER_ROLES.COMPANY) router.replace('/dashboard');
   }, [user, router]);
 
   const handlePresetChange = (preset: string) => {
@@ -88,345 +91,229 @@ export default function GameActivityAnalyticsPage() {
 
   const hasActiveFilters = username || state || gender || datePreset !== 'last_3_months';
 
-  // Loading state
-  if (loadingDashboard) {
-    return (
-      <div className="space-y-3 sm:space-y-4 md:space-y-6">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-            <div className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg bg-muted/50 animate-pulse shrink-0" />
-            <div className="h-6 sm:h-7 md:h-8 lg:h-9 w-32 bg-muted/50 rounded animate-pulse shrink-0" />
-            <div className="flex-1 min-w-0" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (dashboardError) {
-    return (
-      <div className="space-y-3 sm:space-y-4 md:space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
-            <div className="p-4 rounded-full bg-red-500/10 text-red-500 mb-4">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Unable to Load Analytics</h2>
-            <p className="text-muted-foreground max-w-md mb-6">{dashboardError}</p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Calculate max values for progress bars
   const maxGameRecharge = gamesByGame.length > 0
     ? Math.max(...gamesByGame.map(g => g.recharge ?? 0))
     : 0;
 
-  return (
-    <div className="space-y-3 sm:space-y-4 md:space-y-6">
-      {/* Header - Compact */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-          {/* Icon */}
-          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
-            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-          </div>
-          
-          {/* Title */}
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
-            Analytics
-          </h2>
-          
-          {/* Spacer */}
-          <div className="flex-1 min-w-0" />
-          
-          {/* Filter Toggle Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="gap-2 shrink-0"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-            </svg>
-            Filters
-            {hasActiveFilters && (
-              <span className="ml-1 px-2 py-0.5 text-xs bg-primary/20 rounded-full">Active</span>
-            )}
-          </Button>
+  if (loadingDashboard) {
+    return (
+      <div className="space-y-4">
+        <div className="h-14 rounded-xl bg-muted/20 animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          {[0, 1, 2, 3, 4].map(i => <CardSkel key={i} />)}
         </div>
       </div>
+    );
+  }
 
-      {/* Filters */}
+  if (dashboardError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-8">
+        <div className="p-4 rounded-2xl bg-rose-500/10 text-rose-500 mb-4">
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+        </div>
+        <h2 className="text-lg font-semibold mb-1 text-foreground">Unable to Load Analytics</h2>
+        <p className="text-sm text-muted-foreground max-w-sm mb-5">{dashboardError}</p>
+        <Button onClick={() => window.location.reload()} variant="primary" size="sm">Try Again</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">Game Activities</h1>
+          {analyticsData && (
+            <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
+              {analyticsData.total_players ?? 0} players &middot; {analyticsData.total_managers ?? 0} managers &middot; {analyticsData.total_agents ?? 0} agents &middot; {analyticsData.total_staffs ?? 0} staff
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            showFilters
+              ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+          </svg>
+          Filters
+          {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+        </button>
+      </div>
+
+      {/* ── Filters ── */}
       {showFilters && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Filters</h3>
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-muted-foreground hover:text-foreground gap-2">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Clear All
-                </Button>
-              )}
-            </div>
+        <div className="relative z-20 flex items-center gap-2.5 rounded-lg border border-border/40 bg-card px-3 py-2 shadow-sm flex-wrap lg:flex-nowrap">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
+            {hasActiveFilters && (
+              <button onClick={handleClearFilters} className="text-[10px] font-medium text-rose-500 hover:text-rose-600 transition-colors">clear</button>
+            )}
           </div>
-          <div className="p-4 relative">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              {/* Date Filter */}
-              <div className="space-y-2 lg:col-span-2 relative">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                  </svg>
-                  Date Range
-                </label>
-                <div className="grid gap-2 md:grid-cols-3">
-                  <Select
-                    value={datePreset}
-                    onChange={(value: string) => handlePresetChange(value)}
-                    options={[
-                      { value: 'today', label: 'Today' },
-                      { value: 'yesterday', label: 'Yesterday' },
-                      { value: 'this_month', label: 'This Month' },
-                      { value: 'last_month', label: 'Last Month' },
-                      { value: 'last_30_days', label: 'Last 30 Days' },
-                      { value: 'last_3_months', label: 'Last 3 Months' },
-                      { value: 'custom', label: 'Custom Range' },
-                    ]}
-                  />
-                  {datePreset === 'custom' && (
-                    <>
-                      <div className="date-input-wrapper">
-                        <DateSelect
-                          label="Start Date"
-                          value={startDate}
-                          onChange={setStartDate}
-                        />
-                      </div>
-                      <div className="date-input-wrapper">
-                        <DateSelect
-                          label="End Date"
-                          value={endDate}
-                          onChange={setEndDate}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Username Filter */}
-              <div className="space-y-2 relative">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Exact username"
-                  className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-              </div>
-
-              {/* State Filter */}
-              <div className="space-y-2 relative">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  State
-                </label>
-                <Select
-                  value={state}
-                  onChange={(value: string) => setState(value)}
-                  options={US_STATES}
-                  placeholder="All States"
-                />
-              </div>
-
-              {/* Gender Filter */}
-              <div className="space-y-2 relative">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  Gender
-                </label>
-                <Select
-                  value={gender}
-                  onChange={(value: string) => setGender(value as 'male' | 'female' | '')}
-                  options={[
-                    { value: '', label: 'All' },
-                    { value: 'male', label: 'Male' },
-                    { value: 'female', label: 'Female' },
-                  ]}
-                  placeholder="All"
-                />
-              </div>
-            </div>
+          <div className="flex-1 grid gap-2 grid-cols-2 lg:grid-cols-4">
+            <Select
+              value={datePreset}
+              onChange={(v: string) => handlePresetChange(v)}
+              options={[
+                { value: 'today', label: 'Today' },
+                { value: 'yesterday', label: 'Yesterday' },
+                { value: 'this_month', label: 'This Month' },
+                { value: 'last_month', label: 'Last Month' },
+                { value: 'last_30_days', label: 'Last 30 Days' },
+                { value: 'last_3_months', label: 'Last 3 Months' },
+                { value: 'custom', label: 'Custom Range' },
+              ]}
+            />
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Username"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-950 px-2.5 py-2 text-sm text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+            />
+            <Select value={state} onChange={(v: string) => setState(v)} options={US_STATES} placeholder="All States" />
+            <Select
+              value={gender}
+              onChange={(v: string) => setGender(v as 'male' | 'female' | '')}
+              options={[{ value: '', label: 'All' }, { value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]}
+              placeholder="Gender"
+            />
           </div>
+          {datePreset === 'custom' && (
+            <div className="grid grid-cols-2 gap-2 mt-2 max-w-xs w-full lg:w-auto lg:mt-0">
+              <DateSelect label="Start" value={startDate} onChange={setStartDate} />
+              <DateSelect label="End" value={endDate} onChange={setEndDate} />
+            </div>
+          )}
         </div>
       )}
 
-      {/* Team Overview Stats */}
-      {analyticsData && (
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:grid-cols-4">
-          <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Players</div>
-            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{analyticsData.total_players ?? 0}</div>
+      {/* ── Game Summary (unified card) ── */}
+      <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
+        {loadingGameSummary ? (
+          <div className="grid grid-cols-2 lg:grid-cols-5">
+            {[0, 1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-card px-5 py-4 animate-pulse border-r border-border/10 last:border-r-0">
+                <div className="h-2.5 w-14 bg-muted/40 rounded mb-2.5" />
+                <div className="h-5 w-20 bg-muted/40 rounded" />
+              </div>
+            ))}
           </div>
-          <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Managers</div>
-            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{analyticsData.total_managers ?? 0}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Agents</div>
-            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{analyticsData.total_agents ?? 0}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Staff</div>
-            <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{analyticsData.total_staffs ?? 0}</div>
-          </div>
-        </div>
-      )}
-
-      {/* Game Activity Analytics */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Game Activity Analytics</h3>
-        </div>
-        <div className="p-4 space-y-6">
-          {/* Summary Metrics (All Games Combined) */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Summary Metrics (All Games Combined)</h4>
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-              {loadingGameSummary ? (
-                [...Array(5)].map((_, i) => (
-                  <div key={i} className="rounded-2xl bg-card/50 p-6 animate-pulse">
-                    <div className="h-4 bg-muted/50 rounded w-24 mb-3" />
-                    <div className="h-8 bg-muted/50 rounded w-32" />
-                  </div>
-                ))
-              ) : gameSummary ? (
-                <>
-                  <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Total Recharge</div>
-                    <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(gameSummary.total_recharge)}</div>
-                    <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Sum of all game recharges (base)</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Total Bonus</div>
-                    <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(gameSummary.total_bonus)}</div>
-                    <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Sum of all game recharge bonuses</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Average Bonus %</div>
-                    <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{gameSummary.average_bonus_pct?.toFixed(2) ?? 0}%</div>
-                    <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">(Total Bonus / Total Recharge) × 100</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Total Redeem</div>
-                    <div className="mt-1 text-xl sm:text-2xl font-semibold text-foreground dark:text-white">{formatCurrency(gameSummary.total_redeem)}</div>
-                    <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Sum of all game redemptions</div>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-white p-3 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-400">Net Game Activity</div>
-                    <div className={`mt-1 text-xl sm:text-2xl font-semibold ${gameSummary.net_game_activity >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {formatCurrency(gameSummary.net_game_activity)}
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">(Recharge + Bonus) - Redeem</div>
-                  </div>
-                </>
-              ) : (
-                <div className="col-span-5 text-center py-8 text-muted-foreground">No game summary data available</div>
-              )}
+        ) : gameSummary ? (
+          <div className="grid grid-cols-2 lg:grid-cols-5">
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-emerald-500 border-r border-border/10">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Recharge</p>
+              <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">{formatCurrency(gameSummary.total_recharge)}</p>
+            </div>
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-amber-500 border-r border-border/10">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Bonus</p>
+              <p className="text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400 mt-0.5">{formatCurrency(gameSummary.total_bonus)}</p>
+            </div>
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-blue-500 border-r border-border/10">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Avg Bonus</p>
+              <p className="text-lg font-bold tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">
+                {gameSummary.average_bonus_pct?.toFixed(2) ?? 0}<span className="text-xs font-semibold text-blue-400/50 ml-0.5">%</span>
+              </p>
+            </div>
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-rose-500 border-r border-border/10">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Redeem</p>
+              <p className="text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400 mt-0.5">{formatCurrency(gameSummary.total_redeem)}</p>
+            </div>
+            <div className={`px-5 py-3.5 ${
+              gameSummary.net_game_activity >= 0
+                ? 'bg-gradient-to-br from-emerald-900 to-emerald-950 dark:from-emerald-900/80 dark:to-emerald-950/90'
+                : 'bg-gradient-to-br from-rose-900 to-rose-950 dark:from-rose-900/80 dark:to-rose-950/90'
+            }`}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Net Activity</p>
+              <p className="text-lg font-bold tabular-nums text-white mt-0.5">{formatCurrency(gameSummary.net_game_activity)}</p>
             </div>
           </div>
+        ) : (
+          <div className="bg-card px-5 py-8 text-center text-sm text-muted-foreground">No game summary data available</div>
+        )}
+      </div>
 
-          {/* Per-Game Breakdown */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Per-Game Breakdown</h4>
-            <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
-              {loadingGamesByGame ? (
-                <div className="p-6 space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="h-4 bg-muted/50 rounded w-32 mb-2" />
-                      <div className="h-3 bg-muted/30 rounded" />
-                    </div>
-                  ))}
-                </div>
-              ) : gamesByGame.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/30">
-                      <tr>
-                        <th className="text-left p-4 font-medium">Game</th>
-                        <th className="text-right p-4 font-medium">Recharge</th>
-                        <th className="text-right p-4 font-medium">Bonus</th>
-                        <th className="text-right p-4 font-medium">Avg Bonus %</th>
-                        <th className="text-right p-4 font-medium">Redeem</th>
-                        <th className="text-right p-4 font-medium">Net Activity</th>
-                        <th className="text-left p-4 font-medium w-32">Volume</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                      {gamesByGame.map((game, idx) => (
-                        <tr key={idx} className="hover:bg-muted/20 transition-colors">
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 01-.657.643 48.39 48.39 0 01-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 01-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 00-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 01-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 00.657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 01-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 005.427-.63 48.05 48.05 0 00.582-4.717.532.532 0 00-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 00.658-.663 48.422 48.422 0 00-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 01-.61-.58v0z" />
-                                </svg>
-                              </div>
-                              <span className="font-medium">{game.game_title}</span>
-                            </div>
-                          </td>
-                          <td className="p-4 text-right font-semibold text-emerald-500">
-                            {formatCurrency(game.recharge)}
-                          </td>
-                          <td className="p-4 text-right text-amber-500">
-                            {formatCurrency(game.bonus)}
-                          </td>
-                          <td className="p-4 text-right">
-                            {game.average_bonus_pct?.toFixed(1) ?? 0}%
-                          </td>
-                          <td className="p-4 text-right text-rose-500">
-                            {formatCurrency(game.redeem)}
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className={`font-semibold ${game.net_game_activity >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                              {formatCurrency(game.net_game_activity)}
-                            </span>
-                          </td>
-                          <td className="p-4">
-                            <ProgressBar
-                              value={game.recharge ?? 0}
-                              max={maxGameRecharge}
-                              colorClass="bg-gradient-to-r from-violet-500 to-purple-500"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="p-8 text-center text-muted-foreground">No game data available</div>
-              )}
-            </div>
-          </div>
+      {/* ── Per-Game Breakdown ── */}
+      <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+          <span className="text-sm font-semibold text-foreground">Per-Game Breakdown</span>
+          {gamesByGame.length > 0 && (
+            <span className="ml-auto text-[10px] font-medium text-muted-foreground tabular-nums">{gamesByGame.length}</span>
+          )}
         </div>
+        {loadingGamesByGame ? <TableSkel /> : gamesByGame.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border/10 bg-muted/5">
+                  <th className="text-left px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Game</th>
+                  <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Recharge</th>
+                  <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Bonus</th>
+                  <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Avg Bonus</th>
+                  <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Redeem</th>
+                  <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Net Activity</th>
+                  <th className="text-left px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider w-24">Volume</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/5">
+                {gamesByGame.map((game, idx) => {
+                  const pct = maxGameRecharge > 0 ? Math.min(((game.recharge ?? 0) / maxGameRecharge) * 100, 100) : 0;
+                  return (
+                    <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-[9px] shrink-0">{game.game_title.charAt(0)}</span>
+                          <span className="font-medium text-foreground text-xs">{game.game_title}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(game.recharge)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {game.bonus > 0
+                          ? <span className="text-amber-600 dark:text-amber-400">{formatCurrency(game.bonus)}</span>
+                          : <span className="text-muted-foreground/25">&mdash;</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                        {game.average_bonus_pct > 0
+                          ? `${game.average_bonus_pct.toFixed(1)}%`
+                          : <span className="text-muted-foreground/25">&mdash;</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {game.redeem > 0
+                          ? <span className="text-rose-600 dark:text-rose-400">{formatCurrency(game.redeem)}</span>
+                          : <span className="text-muted-foreground/25">&mdash;</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        <span className={`font-semibold ${game.net_game_activity >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {formatCurrency(game.net_game_activity)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="w-full h-1 bg-muted/15 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-purple-500/50 rounded-full transition-all duration-700 ease-out"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-6 text-center text-xs text-muted-foreground">No game data available</div>
+        )}
       </div>
     </div>
   );

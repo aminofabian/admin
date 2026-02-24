@@ -62,6 +62,8 @@ export interface BonusAnalytics {
   first_deposit_bonus: number;
   transfer_bonus: number;
   average_transfer_bonus_pct: number;
+  total_free_play: number;
+  seized_or_tipped_fund: number;
 }
 
 // Game Analytics Types
