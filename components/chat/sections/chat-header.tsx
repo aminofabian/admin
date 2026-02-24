@@ -2,7 +2,7 @@
 
 import { memo, useMemo } from 'react';
 import { Skeleton } from '@/components/ui';
-import { formatChatTimestamp } from '@/lib/utils/formatters';
+import { formatChatTimestampCompact } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 
 interface ChatHeaderProps {
@@ -86,15 +86,15 @@ export const ChatHeader = memo(function ChatHeader({
               </span>
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground truncate min-h-[1rem] flex items-center">
+          <div className="text-[10px] text-muted-foreground truncate min-h-[1rem] flex items-center">
             {connectionError
               ? `Error: ${connectionError}`
               : selectedPlayer.isOnline
                 ? 'Active now'
                 : lastSeenTime != null
-                  ? `Last seen ${formatChatTimestamp(lastSeenTime)}`
+                  ? `Last seen ${formatChatTimestampCompact(lastSeenTime)}`
                   : <Skeleton className="h-3 w-24" />}
-          </p>
+          </div>
         </div>
       </div>
       
