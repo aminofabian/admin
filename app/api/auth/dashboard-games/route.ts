@@ -36,6 +36,16 @@ function mapToProjectDomain(incomingDomain: string | undefined, host: string): s
     return projectDomain;
   }
 
+  // Fallback: normalize incoming if client sent https://admin.xyz (e.g. old client or wrong Host header)
+  if (incomingDomain && typeof incomingDomain === 'string') {
+    const m = incomingDomain.match(/^https?:\/\/admin\.(.+)$/);
+    if (m) {
+      const normalized = `https://${m[1]}`;
+      console.log(`✅ Incoming normalized: ${incomingDomain} -> ${normalized}`);
+      return normalized;
+    }
+  }
+
   return incomingDomain;
 }
 

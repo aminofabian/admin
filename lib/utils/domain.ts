@@ -41,37 +41,40 @@ const DOMAIN_MAPPINGS: Record<string, string> = {
 
 /**
  * Gets the current domain from window.location
- * Returns the full URL with https:// prefix
+ * Returns the project domain (e.g. https://bitslot.cc), NOT the admin host (e.g. admin.bitslot.cc)
  * For localhost or bruii.com, returns 'https://serverhub.biz' as fallback
- * For production, returns 'https://<domain>' (e.g., 'https://spincash.cc')
  */
 export function getCurrentDomain(): string {
   if (typeof window === 'undefined') {
     throw new Error('getCurrentDomain can only be called in the browser');
   }
-  
+
   const hostname = window.location.hostname;
-  
+
   // If running on localhost, use https://bruii.com as fallback
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('localhost:') || hostname.startsWith('127.0.0.1:')) {
     return 'https://bruii.com';
   }
-  
+
   // Check for explicit domain mappings first
   if (DOMAIN_MAPPINGS[hostname]) {
     console.log(`🔄 Domain mapped: ${hostname} -> ${DOMAIN_MAPPINGS[hostname]}`);
     return DOMAIN_MAPPINGS[hostname];
   }
-  
-  // Extract domain from URL
-  const domain = extractDomainFromUrl(window.location.href);
-  
+
+  // admin.<project> -> https://<project> (e.g. admin.bitslot.cc -> https://bitslot.cc)
+  if (hostname.startsWith('admin.')) {
+    const project = hostname.slice(7);
+    return `https://${project}`;
+  }
+
   // Special exception: sa.bruii.com should use bruii.com
-  if (domain === 'sa.bruii.com') {
+  if (hostname === 'sa.bruii.com') {
     return 'https://bruii.com';
   }
-  
-  // For production, return with https:// prefix
+
+  // Extract domain from URL and return with https:// prefix
+  const domain = extractDomainFromUrl(window.location.href);
   return `https://${domain}`;
 }
 
