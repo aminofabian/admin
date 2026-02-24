@@ -117,7 +117,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
                 <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" aria-label={`${unreadCount} unread`} />
               )}
               {player.lastMessageTime && (
-                <span className={`text-[7px] transition-colors duration-200 uppercase tabular-nums ${isNewMessage ? 'text-primary font-semibold' : 'text-muted-foreground group-hover:text-muted-foreground/90'
+                <span className={`text-[7px] transition-colors duration-200 capitalize tabular-nums ${isNewMessage ? 'text-primary font-semibold' : 'text-muted-foreground group-hover:text-muted-foreground/90'
                   }`}>
                   {formatChatTimestampCompact(player.lastMessageTime)}
                 </span>

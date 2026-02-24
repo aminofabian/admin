@@ -200,7 +200,15 @@ export const formatChatTimestamp = (timestamp: string | null | undefined): strin
   }
 };
 
-/** Compact format for chat list: "now", "2m", "2h", "2d", "1w", "2w", "1mo", "1y" */
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const DAYS_PER_YEAR = 365;
+
+/**
+ * Chat list timestamp: actual date/time.
+ * - &lt; 24h: time only (e.g. "2:30 PM")
+ * - 24h–1y: time + date (e.g. "Feb 24, 2:30 PM")
+ * - &gt; 1y: time + date + year (e.g. "Feb 24, 2024, 2:30 PM")
+ */
 export const formatChatTimestampCompact = (timestamp: string | null | undefined): string => {
   if (!timestamp || timestamp.trim() === '') {
     return '';
@@ -212,20 +220,29 @@ export const formatChatTimestampCompact = (timestamp: string | null | undefined)
 
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const diffWeeks = Math.floor(diffDays / 7);
-    const diffMonths = Math.floor(diffDays / 30);
-    const diffYears = Math.floor(diffDays / 365);
+    const diffDays = diffMs / MS_PER_DAY;
 
-    if (diffMins < 1) return 'now';
-    if (diffMins < 60) return `${diffMins}m`;
-    if (diffHours < 24) return `${diffHours}h`;
-    if (diffDays < 7) return `${diffDays}d`;
-    if (diffWeeks < 4) return `${diffWeeks}w`;
-    if (diffMonths < 12) return `${diffMonths}mo`;
-    return `${diffYears}y`;
+    const timeStr = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    if (diffDays < 1) {
+      return timeStr;
+    }
+
+    if (diffDays < DAYS_PER_YEAR) {
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `${dateStr}, ${timeStr}`;
+    }
+
+    const dateStr = date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return `${dateStr}, ${timeStr}`;
   } catch {
     return '';
   }
