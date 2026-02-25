@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { useTheme } from '@/providers/theme-provider';
 import { Input, Logo, useToast } from '@/components/ui';
@@ -11,7 +11,13 @@ export default function LoginPage() {
   const { login, isFetchingUuid, uuidFetchError, refetchUuid } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { addToast } = useToast();
-  const isSuperadmin = isSuperadminDomain();
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
+  const [brandName, setBrandName] = useState('Admin');
+
+  useEffect(() => {
+    setIsSuperadmin(isSuperadminDomain());
+    setBrandName(getBrandName());
+  }, []);
   const [formData, setFormData] = useState<LoginRequest>({
     username: '',
     password: '',
@@ -122,7 +128,7 @@ export default function LoginPage() {
           <div className="relative text-center mb-10">
             <div className="relative inline-block">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-wide">
-                {getBrandName()} Admin Panel
+                {brandName} Admin Panel
               </h1>
               {/* Subtle glow effect behind title */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 blur-sm -z-10 opacity-70 dark:opacity-100" />
