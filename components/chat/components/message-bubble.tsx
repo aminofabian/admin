@@ -179,16 +179,12 @@ function KycVerificationMessage({ message }: { message: ChatMessage }) {
     <div className="flex justify-center my-4">
       <div className="max-w-[85%] md:max-w-[75%]">
         <div
-          className="rounded-xl border px-4 py-3 shadow-sm bg-muted/40 backdrop-blur-sm border-border/40"
-          style={{
-            backgroundColor: '#fbf2e3',
-            borderColor: '#F0E6D7',
-          }}
+          className="rounded-xl border px-4 py-3 shadow-sm backdrop-blur-sm border-[#F0E6D7] bg-[#fbf2e3] dark:border-gray-700 dark:bg-gray-800/95 dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.4)]"
         >
-          <p className="text-center font-bold mb-1.5 text-[13px] md:text-sm" style={{ color: '#B3672C' }}>
+          <p className="text-center font-bold mb-1.5 text-[13px] md:text-sm text-[#B3672C] dark:text-amber-400">
             Binpay
           </p>
-          <p className="text-center leading-relaxed break-words mb-3 text-[13px] md:text-sm text-foreground [&_b]:font-bold [&_b]:text-foreground">
+          <p className="text-center leading-relaxed break-words mb-3 text-[13px] md:text-sm text-foreground [&_b]:font-bold [&_b]:text-foreground dark:text-gray-200 [&_b]:dark:text-gray-100">
             {formatKycBodyWithBoldAction(bodyText)}
           </p>
           {link && (
@@ -197,11 +193,7 @@ function KycVerificationMessage({ message }: { message: ChatMessage }) {
                 href={link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 min-h-9 px-4 py-2 rounded-xl font-semibold text-white hover:opacity-95 focus-visible:ring-2 focus-visible:ring-offset-2 transition-opacity text-[13px] md:text-sm"
-                style={{
-                  backgroundColor: '#6E5DEB',
-                  boxShadow: '0 2px 8px rgba(110, 93, 235, 0.35)',
-                }}
+                className="inline-flex items-center justify-center gap-2 min-h-9 px-4 py-2 rounded-xl font-semibold text-white hover:opacity-95 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-amber-50 dark:focus-visible:ring-offset-gray-900 transition-opacity text-[13px] md:text-sm bg-[#6E5DEB] shadow-[0_2px_8px_rgba(110,93,235,0.35)] hover:bg-[#5d4ed6] dark:bg-violet-600 dark:shadow-[0_2px_8px_rgba(139,92,246,0.4)] dark:hover:bg-violet-500"
               >
                 <span className="flex items-center justify-center w-5 h-5 rounded-full border-2 border-white flex-shrink-0">
                   <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +206,7 @@ function KycVerificationMessage({ message }: { message: ChatMessage }) {
           )}
           {message.time && (
             <div className="flex items-center justify-center gap-1.5 mt-1.5">
-              <span className="text-[10px] md:text-xs font-medium text-muted-foreground/80">
+              <span className="text-[10px] md:text-xs font-medium text-muted-foreground/80 dark:text-gray-400">
                 {message.time}
               </span>
             </div>
