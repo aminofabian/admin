@@ -322,6 +322,11 @@ export function SuperAdminHistoryTransactions() {
                     uniqueMethods.set(value, label);
                 });
 
+                // Add reason-based payment methods (from manual balance adjustments)
+                uniqueMethods.set('free_play', 'Free Play');
+                uniqueMethods.set('manual', 'Manual');
+                uniqueMethods.set('seize_tip', 'Seize Tip');
+
                 const mappedOptions = Array.from(uniqueMethods.entries())
                     .map(([value, label]) => ({ value, label }))
                     .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
