@@ -8,20 +8,20 @@ import { formatCurrency } from '@/lib/utils/formatters';
 export const REASON_OPTIONS = {
   credit: {
     add: {
-      bonus_adjustment: 'Bonus Adjustment',
-      credit_adjustment: 'Credit Adjustment',
+      free_play: 'Free Play',
+      manual: 'Manual',
     },
     deduct: {
-      credit_adjustment: 'Credit Adjustment',
+      manual: 'Manual',
     },
   },
   winning: {
     add: {
-      winning_adjustment: 'Winning Adjustment',
+      manual: 'Manual',
     },
     deduct: {
-      winning_adjustment: 'Winning Adjustment',
-      normal_flow: 'Tips/Sieze',
+      manual: 'Manual',
+      seize_tip: 'Seize/Tip',
     },
   },
 } as const;
@@ -88,6 +88,8 @@ export function EditBalanceDrawer({
   onUpdate,
 }: EditBalanceDrawerProps) {
   const reasonOptions = getReasonOptionsForBalanceType(balanceType);
+  const canAdd = isReasonValidForAction(balanceType, 'add', reason);
+  const canDeduct = isReasonValidForAction(balanceType, 'deduct', reason);
 
   // Clear reason when balance type changes so user must pick a reason valid for the new type
   useEffect(() => {
@@ -321,26 +323,30 @@ export function EditBalanceDrawer({
             >
               Cancel
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onUpdate('decrease', reason, remarks)}
-              disabled={isUpdating || balanceValue <= 0}
-              isLoading={isUpdating}
-              className="px-4 py-2 text-sm font-semibold"
-            >
-              Deduct
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => onUpdate('increase', reason, remarks)}
-              disabled={isUpdating || balanceValue <= 0}
-              isLoading={isUpdating}
-              className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
-            >
-              Add
-            </Button>
+            {canDeduct && (
+              <Button
+                variant={canAdd ? 'secondary' : 'primary'}
+                size="sm"
+                onClick={() => onUpdate('decrease', reason, remarks)}
+                disabled={isUpdating || balanceValue <= 0}
+                isLoading={isUpdating}
+                className={canAdd ? 'px-4 py-2 text-sm font-semibold' : 'px-4 py-2 text-sm font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white'}
+              >
+                Deduct
+              </Button>
+            )}
+            {canAdd && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => onUpdate('increase', reason, remarks)}
+                disabled={isUpdating || balanceValue <= 0}
+                isLoading={isUpdating}
+                className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+              >
+                Add
+              </Button>
+            )}
           </div>
         </div>
       </div>
