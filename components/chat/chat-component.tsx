@@ -304,7 +304,6 @@ export function ChatComponent() {
     hasMoreHistory,
     loadOlderMessages,
     selectedPlayerId: selectedPlayer?.user_id ?? null,
-    addToast,
   });
 
   

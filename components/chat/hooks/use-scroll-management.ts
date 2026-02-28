@@ -11,11 +11,6 @@ interface UseScrollManagementProps {
   hasMoreHistory: boolean;
   loadOlderMessages: () => Promise<{ added: number }>;
   selectedPlayerId: number | null;
-  addToast?: (toast: {
-    type: 'info' | 'success' | 'error' | 'warning';
-    title: string;
-    description?: string;
-  }) => void;
 }
 
 interface UseScrollManagementReturn {
@@ -32,7 +27,6 @@ export function useScrollManagement({
   hasMoreHistory,
   loadOlderMessages,
   selectedPlayerId,
-  addToast,
 }: UseScrollManagementProps): UseScrollManagementReturn {
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
@@ -44,7 +38,6 @@ export function useScrollManagement({
   const lastScrollTimeRef = useRef<number>(0);
   const isLoadingOlderRef = useRef(false);
   const lastLoadTimeRef = useRef<number>(0);
-  const hasShownEndToastRef = useRef(false);
   const previousPlayerIdRef = useRef<number | null>(null);
   const pendingScrollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -286,21 +279,6 @@ export function useScrollManagement({
     }
   }, [isHistoryLoadingMessages, hasMoreHistory, maybeLoadOlder]);
 
-  // End-of-history toast
-  useEffect(() => {
-    if (hasMoreHistory || hasShownEndToastRef.current || !addToast) return;
-
-    const container = messagesContainerRef.current;
-    if (container && container.scrollTop < container.clientHeight) {
-      hasShownEndToastRef.current = true;
-      addToast({
-        type: 'info',
-        title: 'End of conversation',
-        description: "You've reached the beginning of the conversation.",
-      });
-    }
-  }, [hasMoreHistory, addToast, messagesContainerRef]);
-
   // Reset on player change
   useEffect(() => {
     if (selectedPlayerId === previousPlayerIdRef.current) return;
@@ -309,7 +287,6 @@ export function useScrollManagement({
     clearCooldown();
     setIsUserAtBottom(true);
     setIsLoadingOlder(false);
-    hasShownEndToastRef.current = false;
     hasUserManuallyScrolledRef.current = false;
     isLoadingOlderRef.current = false;
 
