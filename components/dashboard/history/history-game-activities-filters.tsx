@@ -170,23 +170,25 @@ export function HistoryGameActivitiesFilters({
               Filters
             </h4>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <label className={labelClasses}>Game</label>
-                <Select
-                  value={filters.game}
-                  onChange={(v) => onFilterChange('game', v)}
-                  options={[
-                    { value: '', label: 'All Games' },
-                    ...(gameOptions || []),
-                    ...(filters.game && gameOptions && !gameOptions.some((o) => o.value === filters.game)
-                      ? [{ value: filters.game, label: filters.game }]
-                      : []),
-                  ]}
-                  placeholder="All Games"
-                  isLoading={isGameLoading}
-                  disabled={isGameLoading}
-                />
-              </div>
+              {!(Array.isArray(gameOptions) && gameOptions.length === 0) && (
+                <div>
+                  <label className={labelClasses}>Game</label>
+                  <Select
+                    value={filters.game}
+                    onChange={(v) => onFilterChange('game', v)}
+                    options={[
+                      { value: '', label: 'All Games' },
+                      ...(gameOptions || []),
+                      ...(filters.game && gameOptions && !gameOptions.some((o) => o.value === filters.game)
+                        ? [{ value: filters.game, label: filters.game }]
+                        : []),
+                    ]}
+                    placeholder="All Games"
+                    isLoading={isGameLoading}
+                    disabled={isGameLoading}
+                  />
+                </div>
+              )}
               <div>
                 <label className={labelClasses}>Activity type</label>
                 <Select

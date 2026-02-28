@@ -196,9 +196,10 @@ export function HistoryTransactionsFilters({
                   />
                 </div>
               )}
-              <div>
-                <label className={labelClasses}>Payment method</label>
-                <Select
+              {!(Array.isArray(paymentMethodOptions) && paymentMethodOptions.length === 0) && (
+                <div>
+                  <label className={labelClasses}>Payment method</label>
+                  <Select
                   value={filters.payment_method}
                   onChange={(v) => onFilterChange('payment_method', v)}
                   options={[
@@ -212,7 +213,8 @@ export function HistoryTransactionsFilters({
                   isLoading={isPaymentMethodLoading}
                   disabled={isPaymentMethodLoading}
                 />
-              </div>
+                </div>
+              )}
               {BASE_SELECT_FIELDS.map(({ key, label: fieldLabel, options }) => (
                 <div key={key}>
                   <label className={labelClasses}>{fieldLabel}</label>

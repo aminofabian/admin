@@ -444,10 +444,8 @@ export function TransactionsSection() {
           uniqueMethods.set(value, label);
         });
 
-        // Add reason-based payment methods (from manual balance adjustments)
-        uniqueMethods.set('free_play', 'Free Play');
-        uniqueMethods.set('manual', 'Manual');
-        uniqueMethods.set('seize_tip', 'Seize Tip');
+        // Only show payment methods returned by API (enabled by superadmin for this admin)
+        // Do not add hardcoded methods - admins should not see methods they don't have access to
 
         const mapped = Array.from(uniqueMethods.entries())
           .map(([value, label]) => ({ value, label }))

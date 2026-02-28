@@ -7,8 +7,8 @@ import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
-import { useTransactionQueuesStore } from '@/stores';
-import { gamesApi, staffsApi, managersApi } from '@/lib/api';
+import { useTransactionQueuesStore, useGamesStore } from '@/stores';
+import { staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
 import type { TransactionQueue, Game, Staff, Manager } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
@@ -236,10 +236,12 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     }
   }, [advancedFilters]);
 
-  // Lazy load games when filters are opened
+  // Use games from useGamesStore (same source as /dashboard/games - only games enabled by superadmin)
+  const fetchGames = useGamesStore((state) => state.fetchGames);
+
+  // Lazy load games when filters are opened (uses same API as dashboard games page)
   useEffect(() => {
-    // Only load if filters are open, games haven't been loaded, and not currently loading
-    if (!areFiltersOpen || gameOptions.length > 0 || isGameLoading) {
+    if (!areFiltersOpen) {
       return;
     }
 
@@ -248,19 +250,16 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
 
     const loadGames = async () => {
       try {
-        const data = await gamesApi.list();
+        await fetchGames();
 
         if (!isMounted) return;
 
-        const games = Array.isArray(data)
-          ? data
-          : (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results))
-            ? data.results
-            : [];
+        const gamesData = useGamesStore.getState().games;
+        const gamesList = Array.isArray(gamesData) ? gamesData : gamesData ?? [];
 
         const uniqueGames = new Map<string, string>();
 
-        games.forEach((game: Game) => {
+        gamesList.forEach((game: Game) => {
           if (game?.title) {
             uniqueGames.set(game.title, game.title);
           }
@@ -288,7 +287,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [areFiltersOpen, gameOptions.length]);
+  }, [areFiltersOpen]);
 
   // Load operators on mount (always load for staff portal)
   useEffect(() => {

@@ -31,12 +31,13 @@ import {
 } from '@/components/dashboard/history/history-game-activities-filters';
 import { 
   useTransactionsStore, 
-  useTransactionQueuesStore 
+  useTransactionQueuesStore,
+  useGamesStore 
 } from '@/stores';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
 import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
-import { gamesApi, staffsApi, managersApi, playersApi } from '@/lib/api';
+import { staffsApi, managersApi, playersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
 import type { ApiError } from '@/types';
 import { useToast, ConfirmModal } from '@/components/ui';
@@ -639,12 +640,12 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     }
   }, [advancedFilters, isGameActivitiesView]);
 
+  // Use games from useGamesStore (same source as /dashboard/games - only games enabled by superadmin)
+  const fetchGames = useGamesStore((state) => state.fetchGames);
+
   // Lazy-load games when filters are opened (match history view behavior)
   useEffect(() => {
-    if (!isGameActivitiesView) {
-      return;
-    }
-    if (!areGameFiltersOpen || gameOptions.length > 0 || isGameLoading) {
+    if (!isGameActivitiesView || !areGameFiltersOpen || gameOptions.length > 0 || isGameLoading) {
       return;
     }
 
@@ -653,21 +654,16 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
     const loadGames = async () => {
       try {
-        const data = await gamesApi.list();
+        await fetchGames();
 
         if (!isMounted) return;
 
-        type GamesListResponse = { results?: Array<{ title?: string }> };
-        const raw = data as unknown;
-        const games = Array.isArray(raw)
-          ? raw
-          : (raw && typeof raw === 'object' && 'results' in raw && Array.isArray((raw as GamesListResponse).results))
-            ? (raw as GamesListResponse).results ?? []
-            : [];
+        const gamesData = useGamesStore.getState().games;
+        const gamesList = Array.isArray(gamesData) ? gamesData : gamesData ?? [];
 
         const uniqueGames = new Map<string, string>();
 
-        (games as Array<{ title?: string }>).forEach((game: { title?: string }) => {
+        gamesList.forEach((game: { title?: string }) => {
           if (game?.title) {
             uniqueGames.set(game.title, game.title);
           }
@@ -677,7 +673,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           .map(([value, label]) => ({ value, label }))
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
-        setGameOptions(mappedOptions);
+        if (isMounted) {
+          setGameOptions(mappedOptions);
+        }
       } catch (error) {
         console.error('Failed to load games for game activity filters (processing view):', error);
       } finally {
@@ -692,7 +690,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     return () => {
       isMounted = false;
     };
-  }, [areGameFiltersOpen, gameOptions.length, isGameLoading, isGameActivitiesView]);
+  }, [areGameFiltersOpen, gameOptions.length, isGameLoading, isGameActivitiesView, fetchGames]);
 
   // Load operators (staff + managers) for operator filter in processing view
   useEffect(() => {
