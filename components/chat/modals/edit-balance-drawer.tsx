@@ -4,51 +4,38 @@ import { useEffect } from 'react';
 import { Button, Input, Select } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 
-/** Reason options per balance type and action (credit = main, winning = winning). */
+/** Reason options per balance type. Same reasons for both add and deduct. */
 export const REASON_OPTIONS = {
   credit: {
-    add: {
-      free_play: 'Free Play',
-      manual: 'Manual',
-    },
-    deduct: {
-      manual: 'Manual',
-    },
+    free_play: 'Free Play',
+    manual: 'Manual',
   },
   winning: {
-    add: {
-      manual: 'Manual',
-    },
-    deduct: {
-      manual: 'Manual',
-      seize_tip: 'Seize/Tip',
-    },
+    manual: 'Manual',
+    seize_tip: 'Seize/Tip',
   },
 } as const;
 
 type BalanceTypeKey = keyof typeof REASON_OPTIONS;
-type ActionKey = 'add' | 'deduct';
 
-/** Returns dropdown options for the current balance type (merged add + deduct, unique by key). */
+/** Returns dropdown options for the current balance type. */
 function getReasonOptionsForBalanceType(
   balanceType: 'main' | 'winning',
 ): { value: string; label: string }[] {
   const key: BalanceTypeKey = balanceType === 'main' ? 'credit' : 'winning';
-  const add = REASON_OPTIONS[key].add as Record<string, string>;
-  const deduct = REASON_OPTIONS[key].deduct as Record<string, string>;
-  const merged = { ...add, ...deduct };
-  return Object.entries(merged).map(([value, label]) => ({ value, label }));
+  const options = REASON_OPTIONS[key] as Record<string, string>;
+  return Object.entries(options).map(([value, label]) => ({ value, label }));
 }
 
-/** Returns whether the selected reason is valid for the given action. */
+/** Returns whether the selected reason is valid for the balance type (valid for both add and deduct). */
 export function isReasonValidForAction(
   balanceType: 'main' | 'winning',
-  action: 'add' | 'deduct',
+  _action: 'add' | 'deduct',
   reason: string,
 ): boolean {
   if (!reason) return false;
   const key: BalanceTypeKey = balanceType === 'main' ? 'credit' : 'winning';
-  const options = REASON_OPTIONS[key][action as ActionKey] as Record<string, string>;
+  const options = REASON_OPTIONS[key] as Record<string, string>;
   return Object.prototype.hasOwnProperty.call(options, reason);
 }
 
