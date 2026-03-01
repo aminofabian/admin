@@ -367,14 +367,7 @@ export default function TransactionAnalyticsPage() {
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate?.toFixed(1) ?? 0}%</span></td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(m.average_transaction_size ?? 0)}</td>
-                      <td className="px-4 py-2 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <div className="w-8 h-1 bg-muted/15 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500/50 rounded-full" style={{ width: `${m.usage_distribution_pct ?? 0}%` }} />
-                          </div>
-                          <span className="w-9 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct?.toFixed(1) ?? 0}%</span>
-                        </div>
-                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct?.toFixed(1) ?? 0}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -418,14 +411,7 @@ export default function TransactionAnalyticsPage() {
                       <td className="px-3 py-2 text-right font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(m.cashout ?? 0)}</td>
                       <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate?.toFixed(1) ?? 0}%</span></td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(m.average_transaction_size ?? 0)}</td>
-                      <td className="px-4 py-2 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <div className="w-8 h-1 bg-muted/15 rounded-full overflow-hidden">
-                            <div className="h-full bg-rose-500/50 rounded-full" style={{ width: `${m.usage_distribution_pct ?? 0}%` }} />
-                          </div>
-                          <span className="w-9 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct?.toFixed(1) ?? 0}%</span>
-                        </div>
-                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct?.toFixed(1) ?? 0}%</td>
                     </tr>
                   ))}
                 </tbody>
