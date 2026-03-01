@@ -64,7 +64,7 @@ export interface BonusAnalytics {
   transfer_bonus: number;
   average_transfer_bonus_pct: number;
   total_free_play: number;
-  average_free_play_pct?: number;
+  average_free_play?: number;
   seized_or_tipped_fund: number;
 }
 

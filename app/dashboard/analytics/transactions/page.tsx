@@ -314,7 +314,7 @@ export default function TransactionAnalyticsPage() {
               <span className="text-border/50">&middot;</span>
               <span>Avg 1st Deposit Bonus: <strong className="text-foreground">{bonusAnalytics.average_first_deposit_bonus_pct?.toFixed(2) ?? 0}%</strong></span>
               <span className="text-border/50">&middot;</span>
-              <span>Avg Free Play: <strong className="text-foreground">{bonusAnalytics.average_free_play_pct?.toFixed(2) ?? 0}%</strong></span>
+              <span>Avg Free Play: <strong className="text-foreground">{formatCurrency(bonusAnalytics.average_free_play ?? 0)}</strong></span>
             </div>
           </div>
         ) : null}
