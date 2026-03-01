@@ -789,13 +789,17 @@ export function SuperAdminHistoryTransactions() {
                                             const transactionType = transaction.type || '—';
                                             const isPurchase = transactionType === 'purchase';
                                             const isTransfer = transactionType?.toLowerCase().includes('transfer') || transaction.payment_method?.toLowerCase().includes('transfer');
-                                            
+                                            const isFailedOrCancelled = transaction.status === 'failed' || transaction.status === 'cancelled';
+
                                             const typeVariant = isPurchase ? 'success' : (isTransfer ? 'default' : 'danger');
-                                            const amountColorClass = isPurchase || isTransfer ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-                                            
+                                            const amountValue = parseFloat(String(transaction.amount ?? 0));
+                                            const amountColorClass = amountValue >= 0
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : 'text-rose-600 dark:text-rose-400';
+
                                             const bonusAmount = parseFloat(transaction.bonus_amount || '0');
                                             const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;
-                                            
+
                                             const userInitial = username.charAt(0).toUpperCase();
                                             const formattedCreatedAt = formatDate(transaction.created_at || transaction.created);
                                             const formattedUpdatedAt = formatDate(transaction.updated_at || transaction.updated);
@@ -804,7 +808,11 @@ export function SuperAdminHistoryTransactions() {
                                                 <TableRow key={transaction.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                                     <TableCell>
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
+                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm ${
+                                                                isFailedOrCancelled
+                                                                    ? 'bg-gradient-to-br from-red-500 to-red-600'
+                                                                    : 'bg-gradient-to-br from-indigo-500 to-indigo-600'
+                                                            }`}>
                                                                 {userInitial}
                                                             </div>
                                                             <div>
@@ -966,13 +974,17 @@ export function SuperAdminHistoryTransactions() {
                                     const transactionType = transaction.type || '—';
                                     const isPurchase = transactionType === 'purchase';
                                     const isTransfer = transactionType?.toLowerCase().includes('transfer') || transaction.payment_method?.toLowerCase().includes('transfer');
-                                    
+                                    const isFailedOrCancelled = transaction.status === 'failed' || transaction.status === 'cancelled';
+
                                     const typeVariant = isPurchase ? 'success' : (isTransfer ? 'default' : 'danger');
-                                    const amountColorClass = isPurchase || isTransfer ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-                                    
+                                    const amountValue = parseFloat(String(transaction.amount ?? 0));
+                                    const amountColorClass = amountValue >= 0
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-rose-600 dark:text-rose-400';
+
                                     const bonusAmount = parseFloat(transaction.bonus_amount || '0');
                                     const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;
-                                    
+
                                     const userInitial = username.charAt(0).toUpperCase();
                                     const formattedCreatedAt = formatDate(transaction.created_at || transaction.created);
 
@@ -983,7 +995,11 @@ export function SuperAdminHistoryTransactions() {
                                         >
                                             <div className="p-3 border-b border-gray-100 dark:border-gray-800">
                                                 <div className="flex items-start gap-3">
-                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
+                                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold shadow-md ${
+                                                        isFailedOrCancelled
+                                                            ? 'bg-gradient-to-br from-red-500 to-red-600'
+                                                            : 'bg-gradient-to-br from-indigo-500 to-indigo-600'
+                                                    }`}>
                                                         {userInitial}
                                                     </div>
                                                     <div className="flex-1 min-w-0">

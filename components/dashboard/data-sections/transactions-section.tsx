@@ -1029,14 +1029,18 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
 
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
   const amountColorClass = useMemo(() => {
-    if (isTransfer) return 'text-green-600 dark:text-green-400';
-    return isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-  }, [isPurchase, isTransfer]);
+    const amountValue = parseFloat(String(transaction.amount ?? 0));
+    return amountValue >= 0
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : 'text-rose-600 dark:text-rose-400';
+  }, [transaction.amount]);
 
   const bonusColorClass = useMemo(() => {
-    if (isTransfer) return 'text-green-600 dark:text-green-400';
-    return isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-  }, [isPurchase, isTransfer]);
+    const amountValue = parseFloat(String(transaction.amount ?? 0));
+    return amountValue >= 0
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : 'text-rose-600 dark:text-rose-400';
+  }, [transaction.amount]);
 
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
@@ -1154,18 +1158,18 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
       </TableCell>
       <TableCell>
         <Badge
-          variant={isFailedOrCancelled ? 'danger' : typeVariant}
-          className={`text-xs uppercase ${!isFailedOrCancelled && isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
+          variant={typeVariant}
+          className={`text-xs uppercase ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
         >
           {transaction.type}
         </Badge>
       </TableCell>
       <TableCell>
-        <div className={`text-sm font-bold ${isFailedOrCancelled ? 'text-red-600 dark:text-red-400' : amountColorClass}`}>
+        <div className={`text-sm font-bold ${amountColorClass}`}>
           {formattedAmount}
         </div>
         {formattedBonus && (
-          <div className={`text-xs font-semibold mt-0.5 ${isFailedOrCancelled ? 'text-red-600 dark:text-red-400' : bonusColorClass}`}>
+          <div className={`text-xs font-semibold mt-0.5 ${bonusColorClass}`}>
             +{formattedBonus} bonus
           </div>
         )}
@@ -1229,7 +1233,12 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
   const isTransfer = useMemo(() => transaction.type?.toLowerCase().includes('transfer') || transaction.payment_method?.toLowerCase().includes('transfer'), [transaction.type, transaction.payment_method]);
   const typeVariant = useMemo(() => isPurchase ? 'success' : (isTransfer ? 'default' : 'danger'), [isPurchase, isTransfer]);
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
-  const amountColorClass = useMemo(() => (isPurchase || isTransfer ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'), [isPurchase, isTransfer]);
+  const amountColorClass = useMemo(() => {
+    const amountValue = parseFloat(String(transaction.amount ?? 0));
+    return amountValue >= 0
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : 'text-rose-600 dark:text-rose-400';
+  }, [transaction.amount]);
 
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
@@ -1293,8 +1302,8 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
                 </p>
               </div>
               <Badge
-                variant={isFailedOrCancelled ? 'danger' : typeVariant}
-                className={`text-[10px] px-2 py-0.5 uppercase shrink-0 ${!isFailedOrCancelled && isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
+                variant={typeVariant}
+                className={`text-[10px] px-2 py-0.5 uppercase shrink-0 ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
               >
                 {transaction.type}
               </Badge>
@@ -1318,11 +1327,11 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
           <div className="text-right">
-            <div className={`text-base font-bold ${isFailedOrCancelled ? 'text-red-600 dark:text-red-400' : amountColorClass}`}>
+            <div className={`text-base font-bold ${amountColorClass}`}>
               {formattedAmount}
             </div>
             {formattedBonus && (
-              <div className={`text-xs font-semibold mt-0.5 ${isFailedOrCancelled ? 'text-red-600 dark:text-red-400' : amountColorClass}`}>
+              <div className={`text-xs font-semibold mt-0.5 ${amountColorClass}`}>
                 +{formattedBonus} bonus
               </div>
             )}
