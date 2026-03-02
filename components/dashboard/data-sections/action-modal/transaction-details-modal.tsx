@@ -24,13 +24,32 @@ const CRYPTO_PAYMENT_METHODS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'cry
 /** Keys to show for Binpay payment details (Binpay Status, Binpay Player IP Address). Case-insensitive. */
 const BINPAY_PAYMENT_DETAIL_KEYS_LOWER = ['binpay_status', 'binpay_player_ip_address'];
 
+/** Keys to show for Tierlock cashout: Phone, Customer Name, Tierlock Status only. Case-insensitive. */
+const TIERLOCK_PAYMENT_DETAIL_KEYS_LOWER = [
+  'phone',
+  'phone_number',
+  'phonenumber',
+  'customer_name',
+  'customername',
+  'tierlock_status',
+];
+
 function getFilteredPaymentDetailEntries(
   paymentDetails: Record<string, unknown> | null | undefined,
   paymentMethod: string
 ): [string, unknown][] {
   if (!paymentDetails || typeof paymentDetails !== 'object') return [];
   const entries = Object.entries(paymentDetails);
-  const isBinpayByMethod = /binpay/i.test(paymentMethod ?? '');
+  const method = paymentMethod ?? '';
+
+  const isTierlock = /tierlock/i.test(method);
+  if (isTierlock) {
+    return entries.filter(([key]) =>
+      TIERLOCK_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase())
+    );
+  }
+
+  const isBinpayByMethod = /binpay/i.test(method);
   const hasBinpayKeys = entries.some(([key]) => BINPAY_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase()));
   const isBinpay = isBinpayByMethod || hasBinpayKeys;
   if (!isBinpay) return entries;

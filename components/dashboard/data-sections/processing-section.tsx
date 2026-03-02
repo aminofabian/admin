@@ -53,30 +53,14 @@ interface ProcessingSectionProps {
 /** Keys to show for Binpay payment details (Binpay Status, Binpay Player IP Address). Case-insensitive. */
 const BINPAY_PAYMENT_DETAIL_KEYS_LOWER = ['binpay_status', 'binpay_player_ip_address'];
 
-/** Keys to show for Tierlock payment details: phone number and customer name only. Case-insensitive. Includes common API key variants. */
+/** Keys to show for Tierlock cashout: Phone, Customer Name, Tierlock Status only. Case-insensitive. */
 const TIERLOCK_PAYMENT_DETAIL_KEYS_LOWER = [
-  'phone_number',
-  'customer_name',
-  'phonenumber',
-  'customername',
   'phone',
-  'mobile',
-  'mobile_number',
-  'tel',
-  'telephone',
-  'customer_phone',
-  'msisdn',
-  'recipient_phone',
-  'beneficiary_phone',
-  'payout_phone',
-  'name',
-  'customer',
-  'full_name',
-  'account_name',
-  'account_holder',
-  'recipient_name',
-  'beneficiary_name',
-  'payout_name',
+  'phone_number',
+  'phonenumber',
+  'customer_name',
+  'customername',
+  'tierlock_status',
 ];
 
 function getFilteredPaymentDetailEntries(
