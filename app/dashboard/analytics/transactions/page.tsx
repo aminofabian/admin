@@ -310,6 +310,8 @@ export default function TransactionAnalyticsPage() {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3.5 pt-3 border-t border-border/10 text-[10px] text-muted-foreground">
               <span>Avg Purchase Bonus: <strong className="text-foreground">{bonusAnalytics.average_purchase_bonus_pct?.toFixed(2) ?? 0}%</strong></span>
               <span className="text-border/50">&middot;</span>
+              <span>Avg Signup Bonus: <strong className="text-foreground">{formatCurrency(bonusAnalytics.average_signup_bonus ?? 0)}</strong></span>
+              <span className="text-border/50">&middot;</span>
               <span>Avg Transfer Bonus: <strong className="text-foreground">{bonusAnalytics.average_transfer_bonus_pct?.toFixed(2) ?? 0}%</strong></span>
               <span className="text-border/50">&middot;</span>
               <span>Avg 1st Deposit Bonus: <strong className="text-foreground">{bonusAnalytics.average_first_deposit_bonus_pct?.toFixed(2) ?? 0}%</strong></span>

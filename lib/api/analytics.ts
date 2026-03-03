@@ -59,6 +59,7 @@ export interface BonusAnalytics {
   purchase_bonus: number;
   average_purchase_bonus_pct: number;
   signup_bonus: number;
+  average_signup_bonus?: number;
   first_deposit_bonus: number;
   average_first_deposit_bonus_pct?: number;
   transfer_bonus: number;
