@@ -35,6 +35,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     binpay_withdrawal_secret_key: company?.binpay_withdrawal_secret_key ?? '',
     brenzi_merchant_slug: company?.brenzi_merchant_slug ?? '',
     taparcaida_vendor_id: company?.taparcaida_vendor_id ?? '',
+    taparcaida_payout_api_key: company?.taparcaida_payout_api_key ?? '',
     tierlock_merchant_id: company?.tierlock_merchant_id ?? '',
     tierlock_merchant_secret: company?.tierlock_merchant_secret ?? '',
     tierlock_deposit_secret: company?.tierlock_deposit_secret ?? '',
@@ -135,6 +136,7 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           binpay_withdrawal_secret_key: formData.binpay_withdrawal_secret_key || undefined,
           brenzi_merchant_slug: formData.brenzi_merchant_slug || undefined,
           taparcaida_vendor_id: formData.taparcaida_vendor_id || undefined,
+          taparcaida_payout_api_key: formData.taparcaida_payout_api_key || undefined,
           tierlock_merchant_id: formData.tierlock_merchant_id || undefined,
           tierlock_merchant_secret: formData.tierlock_merchant_secret || undefined,
           tierlock_deposit_secret: formData.tierlock_deposit_secret || undefined,
@@ -433,6 +435,14 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
             value={formData.taparcaida_vendor_id}
             onChange={(e) => handleChange('taparcaida_vendor_id', e.target.value)}
             placeholder="Taparcaida Vendor ID"
+            disabled={isLoading}
+          />
+          <Input
+            label="Taparcaida Payout API Key"
+            type="text"
+            value={formData.taparcaida_payout_api_key}
+            onChange={(e) => handleChange('taparcaida_payout_api_key', e.target.value)}
+            placeholder="Taparcaida Payout API Key"
             disabled={isLoading}
           />
         </div>
