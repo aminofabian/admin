@@ -136,6 +136,38 @@ export interface PaymentMethodsListResponse {
 
 export type PaymentMethodAction = keyof PaymentMethodsListResponse;
 
+/** Subcategory within a cashout payment method (e.g. Binpay under Card) */
+export interface CashoutSubcategory {
+  id: number;
+  payment_method: string;
+  payment_method_display: string;
+  provider_payment_method?: string;
+  provider_payment_method_display?: string;
+  method_type?: string;
+  is_configured?: boolean;
+  enabled_for_cashout_by_superadmin: boolean;
+  is_enabled_for_cashout?: boolean;
+  superadmin_min_amount_cashout: string | null;
+  superadmin_max_amount_cashout: string | null;
+  min_amount_cashout?: string | null;
+  max_amount_cashout?: string | null;
+  created?: string;
+  modified?: string;
+}
+
+/** Main cashout payment method with optional subcategories */
+export interface CashoutPaymentMethod {
+  payment_method: string;
+  payment_method_display: string;
+  is_enabled_for_cashout?: boolean;
+  min_amount?: string | null;
+  max_amount?: string | null;
+  has_subcategories: boolean;
+  configured_subcategories_count?: number;
+  enabled_subcategories_count?: number;
+  subcategories: CashoutSubcategory[];
+}
+
 // API Response Types
 export interface CompanyCreateResponse {
   status: string;

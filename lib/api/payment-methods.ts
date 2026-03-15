@@ -3,6 +3,7 @@ import type {
   PaymentMethod,
   PaymentMethodsListResponse,
   UpdatePaymentMethodRequest,
+  CashoutPaymentMethod,
 } from '@/types';
 import type { Company } from '@/types';
 
@@ -12,6 +13,7 @@ interface PaymentMethodManagementResponse {
   companies: Company[];
   selected_company?: Company;
   company_payment_methods: PaymentMethod[];
+  cashout_payment_methods?: CashoutPaymentMethod[];
 }
 
 interface ToggleCashoutRequest {

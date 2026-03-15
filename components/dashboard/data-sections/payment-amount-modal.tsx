@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Drawer } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import type { PaymentMethod, PaymentMethodAction } from '@/types';
+import type { PaymentMethod, PaymentMethodAction, CashoutSubcategory } from '@/types';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
 
 type AmountScope = 'admin' | 'superadmin';
@@ -17,7 +17,7 @@ export interface AmountValidationErrors {
 interface AmountValidationContext {
   scope: AmountScope;
   action: PaymentMethodAction;
-  paymentMethod: PaymentMethod | null;
+  paymentMethod: (PaymentMethod | CashoutSubcategory) | null;
   minAmount: string;
   maxAmount: string;
 }
@@ -99,7 +99,7 @@ export const validatePaymentAmounts = ({
 interface PaymentAmountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  paymentMethod: PaymentMethod | null;
+  paymentMethod: (PaymentMethod | CashoutSubcategory) | null;
   action: PaymentMethodAction;
   onSave: (minAmount: number | null, maxAmount: number | null) => Promise<void>;
   isLoading?: boolean;

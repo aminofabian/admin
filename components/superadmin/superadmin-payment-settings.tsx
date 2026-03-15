@@ -19,9 +19,10 @@ import {
 import { useToast } from '@/components/ui/toast';
 import { EmptyState, LoadingState, ErrorState } from '@/components/features';
 import { paymentMethodsApi } from '@/lib/api';
-import type { Company, PaymentMethod, PaymentMethodAction } from '@/types';
+import type { Company, PaymentMethod, PaymentMethodAction, CashoutPaymentMethod, CashoutSubcategory } from '@/types';
 import { PaymentAmountModal } from '@/components/dashboard/data-sections/payment-amount-modal';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
+import { getPaymentMethodIcon } from '@/lib/utils/payment-method-icons';
 
 type SortField = 'name' | 'type' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -33,6 +34,8 @@ export function SuperAdminPaymentSettings() {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [cashoutPaymentMethods, setCashoutPaymentMethods] = useState<CashoutPaymentMethod[]>([]);
+    const [expandedCashoutMethods, setExpandedCashoutMethods] = useState<Set<string>>(new Set());
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
     const [isLoadingMethods, setIsLoadingMethods] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -51,7 +54,7 @@ export function SuperAdminPaymentSettings() {
     });
     const [limitsModal, setLimitsModal] = useState<{
         isOpen: boolean;
-        paymentMethod: PaymentMethod | null;
+        paymentMethod: (PaymentMethod | CashoutSubcategory) | null;
         action: PaymentMethodAction;
         isLoading: boolean;
     }>({
@@ -73,6 +76,7 @@ export function SuperAdminPaymentSettings() {
             fetchCompanyPaymentMethods(selectedCompanyId);
         } else {
             setPaymentMethods([]);
+            setCashoutPaymentMethods([]);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedCompanyId]);
@@ -107,6 +111,9 @@ export function SuperAdminPaymentSettings() {
                     if (response.company_payment_methods) {
                         setPaymentMethods(response.company_payment_methods);
                     }
+                    if (response.cashout_payment_methods) {
+                        setCashoutPaymentMethods(response.cashout_payment_methods);
+                    }
                 }
             } else {
                 setCompanies([]);
@@ -133,6 +140,11 @@ export function SuperAdminPaymentSettings() {
                 setPaymentMethods(response.company_payment_methods);
             } else {
                 setPaymentMethods([]);
+            }
+            if (response.cashout_payment_methods) {
+                setCashoutPaymentMethods(response.cashout_payment_methods);
+            } else {
+                setCashoutPaymentMethods([]);
             }
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to load payment methods';
@@ -173,7 +185,7 @@ export function SuperAdminPaymentSettings() {
         return `$${num.toFixed(2)}`;
     };
 
-    const handleEditSuperadminLimits = (method: PaymentMethod, action: PaymentMethodAction) => {
+    const handleEditSuperadminLimits = (method: PaymentMethod | CashoutSubcategory, action: PaymentMethodAction) => {
         setLimitsModal({
             isOpen: true,
             paymentMethod: method,
@@ -278,6 +290,34 @@ export function SuperAdminPaymentSettings() {
         setConfirmModal({ isOpen: false, action: 'toggleCashout', isLoading: false });
     };
 
+    const toggleExpandedCashoutMethod = (paymentMethod: string) => {
+        setExpandedCashoutMethods((prev) => {
+            const next = new Set(prev);
+            if (next.has(paymentMethod)) {
+                next.delete(paymentMethod);
+            } else {
+                next.add(paymentMethod);
+            }
+            return next;
+        });
+    };
+
+    const filteredCashoutPaymentMethods = useMemo(() => {
+        if (!searchTerm.trim()) return cashoutPaymentMethods;
+        const search = searchTerm.toLowerCase();
+        return cashoutPaymentMethods.filter((method) => {
+            const mainMatch =
+                method.payment_method_display?.toLowerCase().includes(search) ||
+                method.payment_method?.toLowerCase().includes(search);
+            if (mainMatch) return true;
+            return method.subcategories?.some(
+                (sub) =>
+                    sub.payment_method_display?.toLowerCase().includes(search) ||
+                    sub.payment_method?.toLowerCase().includes(search)
+            );
+        });
+    }, [cashoutPaymentMethods, searchTerm]);
+
     const filteredCompanies = useMemo(() => {
         if (!companySearchTerm.trim()) return companies;
 
@@ -371,7 +411,7 @@ export function SuperAdminPaymentSettings() {
             </div>
 
             {/* Company Selector - Searchable Dropdown */}
-            <Card className="mb-4 md:mb-6 shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-visible">
+            <Card className="mb-4 md:mb-6 shadow-sm md:shadow-md dark:shadow-black/10 border md:border-2 dark:border-border/60 rounded-xl md:rounded-lg overflow-visible">
                 <CardHeader className="pb-3 md:pb-4 px-4 md:px-6 pt-4 md:pt-6">
                     <div className="flex items-center justify-between">
                         <div>
@@ -382,7 +422,9 @@ export function SuperAdminPaymentSettings() {
                         </div>
                         {selectedCompany && (
                             <Badge variant="info" className="hidden md:inline-flex">
-                                {filteredPaymentMethods.length} methods
+                                {viewMode === 'cashout' && cashoutPaymentMethods.length > 0
+                                    ? `${filteredCashoutPaymentMethods.length} cashout methods`
+                                    : `${filteredPaymentMethods.length} methods`}
                             </Badge>
                         )}
                     </div>
@@ -398,12 +440,12 @@ export function SuperAdminPaymentSettings() {
                             {/* Selected Company Display / Dropdown Trigger */}
                             <button
                                 onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
-                                className="w-full p-4 md:p-5 rounded-xl border-2 border-border bg-card hover:border-primary/50 hover:bg-accent transition-all text-left group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-[0.99]"
+                                className="w-full p-4 md:p-5 rounded-xl border-2 border-border dark:border-border/80 bg-card dark:bg-card/50 hover:border-primary/50 dark:hover:border-primary/40 hover:bg-accent dark:hover:bg-muted/30 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background active:scale-[0.99]"
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                                         {/* Company Icon */}
-                                        <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 rounded-xl flex items-center justify-center shadow-sm border border-primary/10">
+                                        <div className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 dark:from-primary/25 dark:via-primary/15 dark:to-primary/10 rounded-xl flex items-center justify-center shadow-sm border border-primary/10 dark:border-primary/20">
                                             <svg className="w-6 h-6 md:w-7 md:h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                             </svg>
@@ -445,9 +487,9 @@ export function SuperAdminPaymentSettings() {
 
                             {/* Dropdown Menu */}
                             {isCompanyDropdownOpen && (
-                                <div className="absolute z-50 w-full mt-2 bg-card border-2 border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="absolute z-50 w-full mt-2 bg-card dark:bg-card border-2 border-border dark:border-border/80 rounded-xl shadow-2xl dark:shadow-xl dark:shadow-black/20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                     {/* Search Input */}
-                                    <div className="p-3 border-b border-border bg-muted/30">
+                                    <div className="p-3 border-b border-border dark:border-border/60 bg-muted/30 dark:bg-muted/20">
                                         <div className="relative">
                                             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -457,7 +499,7 @@ export function SuperAdminPaymentSettings() {
                                                 value={companySearchTerm}
                                                 onChange={(e) => setCompanySearchTerm(e.target.value)}
                                                 placeholder="Search companies..."
-                                                className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
+                                                className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-background dark:bg-muted/30 border border-border dark:border-border/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
                                                 onClick={(e) => e.stopPropagation()}
                                             />
                                         </div>
@@ -481,14 +523,14 @@ export function SuperAdminPaymentSettings() {
                                                         setIsCompanyDropdownOpen(false);
                                                         setCompanySearchTerm('');
                                                     }}
-                                                    className={`w-full p-3 md:p-4 text-left transition-all hover:bg-accent border-b border-border/50 last:border-b-0 group ${selectedCompanyId === company.id ? 'bg-primary/5' : ''
+                                                    className={`w-full p-3 md:p-4 text-left transition-all hover:bg-accent dark:hover:bg-muted/40 border-b border-border/50 dark:border-border/40 last:border-b-0 group ${selectedCompanyId === company.id ? 'bg-primary/5 dark:bg-primary/10' : ''
                                                         }`}
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         {/* Company Avatar */}
                                                         <div className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center font-bold text-sm md:text-base transition-all ${selectedCompanyId === company.id
                                                             ? 'bg-primary text-primary-foreground shadow-md'
-                                                            : 'bg-gradient-to-br from-muted to-muted/50 text-muted-foreground group-hover:from-primary/20 group-hover:to-primary/10 group-hover:text-primary'
+                                                            : 'bg-gradient-to-br from-muted to-muted/50 dark:from-muted/80 dark:to-muted/60 text-muted-foreground group-hover:from-primary/20 group-hover:to-primary/10 dark:group-hover:from-primary/25 dark:group-hover:to-primary/15 group-hover:text-primary'
                                                             }`}>
                                                             {company.project_name.charAt(0).toUpperCase()}
                                                         </div>
@@ -525,8 +567,8 @@ export function SuperAdminPaymentSettings() {
 
             {/* Payment Methods Table */}
             {selectedCompanyId ? (
-                <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
-                    <CardHeader className="pb-4 md:pb-6 px-4 md:px-6 pt-4 md:pt-6 border-b">
+                <Card className="shadow-sm md:shadow-md dark:shadow-black/10 border md:border-2 dark:border-border/60 rounded-xl md:rounded-lg overflow-hidden">
+                    <CardHeader className="pb-4 md:pb-6 px-4 md:px-6 pt-4 md:pt-6 border-b dark:border-border/60">
                         <div className="space-y-4">
                             {/* Title Section with Toggle Buttons */}
                             <div className="flex items-center justify-between gap-4">
@@ -542,14 +584,14 @@ export function SuperAdminPaymentSettings() {
                                 </div>
                                 {/* View Mode Toggle */}
                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                    <div className="flex gap-2 bg-background p-1.5 rounded-xl border-2 border-primary/20 shadow-md">
+                                    <div className="flex gap-2 bg-background dark:bg-muted/30 p-1.5 rounded-xl border-2 border-primary/20 dark:border-primary/30 shadow-md">
                                         <Button
                                             variant={viewMode === 'purchase' ? 'secondary' : 'ghost'}
                                             size="md"
                                             onClick={() => setViewMode('purchase')}
                                             className={`font-semibold transition-all min-w-[120px] ${viewMode === 'purchase'
                                                 ? 'bg-primary text-primary-foreground shadow-lg scale-105'
-                                                : 'hover:bg-muted hover:scale-105'
+                                                : 'hover:bg-muted dark:hover:bg-muted/70 hover:scale-105'
                                                 }`}
                                         >
                                             <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -563,7 +605,7 @@ export function SuperAdminPaymentSettings() {
                                             onClick={() => setViewMode('cashout')}
                                             className={`font-semibold transition-all min-w-[120px] ${viewMode === 'cashout'
                                                 ? 'bg-primary text-primary-foreground shadow-lg scale-105'
-                                                : 'hover:bg-muted hover:scale-105'
+                                                : 'hover:bg-muted dark:hover:bg-muted/70 hover:scale-105'
                                                 }`}
                                         >
                                             <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -592,11 +634,147 @@ export function SuperAdminPaymentSettings() {
                             <div className="p-8 flex items-center justify-center">
                                 <LoadingState />
                             </div>
-                        ) : filteredPaymentMethods.length === 0 ? (
+                        ) : (viewMode === 'cashout' && cashoutPaymentMethods.length > 0
+                            ? filteredCashoutPaymentMethods.length === 0
+                            : filteredPaymentMethods.length === 0) ? (
                             <EmptyState
                                 title="No payment methods found"
                                 description={searchTerm ? `No payment methods match "${searchTerm}"` : selectedCompany ? `No payment methods available for ${selectedCompany.project_name}` : "Select a company to view payment methods"}
                             />
+                        ) : viewMode === 'cashout' && cashoutPaymentMethods.length > 0 ? (
+                            /* Cashout view with subcategories */
+                            <div className="space-y-4 p-4 md:p-6">
+                                {filteredCashoutPaymentMethods.map((method) => {
+                                    const hasSubs = method.has_subcategories && (method.subcategories?.length ?? 0) > 0;
+                                    const isExpanded = expandedCashoutMethods.has(method.payment_method);
+                                    const enabledCount = method.enabled_subcategories_count ?? 0;
+                                    const totalCount = method.configured_subcategories_count ?? 0;
+                                    return (
+                                        <Card
+                                            key={method.payment_method}
+                                            className="overflow-hidden border border-border/60 shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl bg-gradient-to-br from-card via-card to-muted/20 dark:from-card dark:via-card/95 dark:to-muted/40"
+                                        >
+                                            <CardHeader
+                                                className={`py-5 px-5 md:px-6 transition-all duration-300 ${hasSubs ? 'cursor-pointer select-none active:scale-[0.998]' : ''}`}
+                                                onClick={() => hasSubs && toggleExpandedCashoutMethod(method.payment_method)}
+                                            >
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-4 min-w-0">
+                                                        <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white/80 dark:bg-slate-800 dark:ring-border/60 flex items-center justify-center ring-1 ring-border/50 shadow-md dark:shadow-none dark:border dark:border-border/50">
+                                                            {getPaymentMethodIcon(method.payment_method, { size: 'lg', asInitialFallback: true })}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="font-semibold text-lg text-foreground truncate">
+                                                                {formatPaymentMethod(method.payment_method_display || method.payment_method)}
+                                                            </div>
+                                                            {hasSubs && (
+                                                                <div className="flex items-center gap-2 mt-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="h-2 w-20 rounded-full bg-muted dark:bg-muted/60 overflow-hidden">
+                                                                            <div
+                                                                                className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 dark:from-primary dark:to-primary/80 transition-all duration-500"
+                                                                                style={{ width: `${totalCount ? (enabledCount / totalCount) * 100 : 0}%` }}
+                                                                            />
+                                                                        </div>
+                                                                        <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                                                                            {enabledCount}/{totalCount} enabled
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {hasSubs && (
+                                                        <div className="flex-shrink-0 flex items-center gap-2">
+                                                            <span className="text-xs text-muted-foreground hidden sm:inline">View providers</span>
+                                                            <div
+                                                                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${isExpanded ? 'bg-primary/15 dark:bg-primary/25 text-primary rotate-180' : 'bg-muted/60 dark:bg-muted/50 text-muted-foreground hover:bg-muted dark:hover:bg-muted/70'}`}
+                                                            >
+                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </CardHeader>
+                                            {hasSubs && isExpanded && (
+                                                <CardContent className="p-0">
+                                                    <div className="border-t border-border/40 bg-gradient-to-b from-muted/30 to-muted/10 dark:from-muted/30 dark:to-muted/10 dark:border-border/50">
+                                                        {method.subcategories.map((sub) => (
+                                                            <div
+                                                                key={sub.id}
+                                                                className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 pl-8 md:pl-10 pr-4 md:pr-6 py-4 border-b border-border/30 dark:border-border/40 last:border-b-0 hover:bg-white/60 dark:hover:bg-white/[0.06] transition-all duration-200 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-gradient-to-b before:from-primary/40 before:to-primary/10 dark:before:from-primary/50 dark:before:to-primary/20 before:opacity-50 hover:before:opacity-100 before:transition-opacity"
+                                                            >
+                                                                <div className="flex items-center gap-4 min-w-0">
+                                                                    <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-white dark:bg-slate-800 dark:border-border/60 flex items-center justify-center border border-border/50 shadow-sm group-hover:shadow-md group-hover:border-primary/30 dark:group-hover:border-primary/40 dark:group-hover:bg-slate-700 transition-all duration-200">
+                                                                        {getPaymentMethodIcon(sub.payment_method ?? sub.provider_payment_method, { size: 'md', methodType: sub.method_type, providerPaymentMethod: sub.provider_payment_method_display ?? sub.provider_payment_method, asInitialFallback: true })}
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <div className="font-medium text-sm text-foreground">
+                                                                            {formatPaymentMethod(sub.payment_method_display || sub.payment_method)}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                                            <Badge variant="info" className="text-[11px] px-2 py-0.5 font-medium">
+                                                                                {sub.method_type || sub.payment_method || 'N/A'}
+                                                                            </Badge>
+                                                                            <Badge
+                                                                                variant={sub.enabled_for_cashout_by_superadmin ? 'success' : 'default'}
+                                                                                className="text-[11px] px-2 py-0.5 font-medium"
+                                                                            >
+                                                                                {sub.enabled_for_cashout_by_superadmin ? 'Enabled' : 'Disabled'}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 pl-0 md:pl-4">
+                                                                    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-white/90 to-muted/20 dark:from-slate-800 dark:to-slate-700/90 border border-border/40 dark:border-border/50 shadow-sm dark:shadow-none w-fit">
+                                                                        <span className="text-xs text-muted-foreground dark:text-slate-400">
+                                                                            Min <span className="font-semibold text-foreground dark:text-slate-200 tabular-nums">{formatAmount(sub.superadmin_min_amount_cashout)}</span>
+                                                                        </span>
+                                                                        <span className="w-px h-4 bg-border/60 dark:bg-slate-600" aria-hidden />
+                                                                        <span className="text-xs text-muted-foreground dark:text-slate-400">
+                                                                            Max <span className="font-semibold text-foreground dark:text-slate-200 tabular-nums">{formatAmount(sub.superadmin_max_amount_cashout)}</span>
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="secondary"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleEditSuperadminLimits(sub, 'cashout');
+                                                                            }}
+                                                                            disabled={limitsModal.isLoading}
+                                                                            className="h-9 text-xs font-medium rounded-lg"
+                                                                        >
+                                                                            Edit Limits
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant={sub.enabled_for_cashout_by_superadmin ? 'ghost' : 'secondary'}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleToggleCashout(sub.id);
+                                                                            }}
+                                                                            disabled={confirmModal.isLoading}
+                                                                            className={`h-9 text-xs font-medium rounded-lg ${sub.enabled_for_cashout_by_superadmin
+                                                                                ? 'border border-red-200 dark:border-red-800/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
+                                                                                : 'border border-emerald-200 dark:border-emerald-800/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}
+                                                                        >
+                                                                            {sub.enabled_for_cashout_by_superadmin ? 'Disable' : 'Enable'}
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </CardContent>
+                                            )}
+                                        </Card>
+                                    );
+                                })}
+                            </div>
                         ) : (
                             <>
                                 {/* Desktop Table */}
@@ -687,10 +865,8 @@ export function SuperAdminPaymentSettings() {
                                                 <TableRow key={method.id}>
                                                     <TableCell className="font-medium">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg flex items-center justify-center">
-                                                                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                                                </svg>
+                                                            <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-white/80 dark:bg-slate-800 dark:border dark:border-border/50 flex items-center justify-center ring-1 ring-border/50 shadow-sm dark:shadow-none">
+                                                                {getPaymentMethodIcon(method.payment_method, { size: 'md', methodType: method.method_type, asInitialFallback: true })}
                                                             </div>
                                                             <div>
                                                                 <div>{formatPaymentMethod(method.payment_method_display || method.payment_method)}</div>
@@ -815,14 +991,12 @@ export function SuperAdminPaymentSettings() {
                                     {filteredPaymentMethods.map((method) => (
                                         <Card
                                             key={method.id}
-                                            className="border shadow-md hover:shadow-lg transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card"
+                                            className="border dark:border-border/60 shadow-md hover:shadow-lg dark:hover:shadow-xl dark:shadow-black/10 transition-shadow active:scale-[0.99] rounded-2xl overflow-hidden bg-card dark:bg-card/80"
                                         >
                                             <CardContent className="p-3 space-y-2">
                                                 <div className="flex items-start gap-3">
-                                                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center shadow-sm">
-                                                        <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                                        </svg>
+                                                    <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-white/80 dark:bg-slate-800 dark:border dark:border-border/50 flex items-center justify-center ring-1 ring-border/50 shadow-sm dark:shadow-none">
+                                                        {getPaymentMethodIcon(method.payment_method, { size: 'lg', methodType: method.method_type, asInitialFallback: true })}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className="font-semibold text-base leading-tight mb-1">{formatPaymentMethod(method.payment_method_display || method.payment_method)}</h3>
@@ -853,7 +1027,7 @@ export function SuperAdminPaymentSettings() {
                                                             onClick={() => handleTogglePurchase(method.id)}
                                                             disabled={confirmModal.isLoading}
                                                             className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.enabled_for_purchase_by_superadmin ?? false
-                                                                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                                                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-muted/40'
                                                                 : ''
                                                                 }`}
                                                         >
@@ -866,7 +1040,7 @@ export function SuperAdminPaymentSettings() {
                                                             onClick={() => handleToggleCashout(method.id)}
                                                             disabled={confirmModal.isLoading}
                                                             className={`w-full h-11 text-sm font-medium active:scale-[0.98] ${method.enabled_for_cashout_by_superadmin ?? false
-                                                                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                                                ? 'text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-muted/40'
                                                                 : ''
                                                                 }`}
                                                         >
@@ -923,7 +1097,7 @@ export function SuperAdminPaymentSettings() {
                     </CardContent>
                 </Card>
             ) : (
-                <Card className="shadow-sm md:shadow-md border md:border-2 rounded-xl md:rounded-lg overflow-hidden">
+                <Card className="shadow-sm md:shadow-md dark:shadow-black/10 border md:border-2 dark:border-border/60 rounded-xl md:rounded-lg overflow-hidden">
                     <CardContent className="p-3 md:p-8">
                         <EmptyState
                             title="No Company Selected"
