@@ -197,10 +197,19 @@ export function SuperAdminPaymentSettings() {
     const handleSaveSuperadminLimits = async (minAmount: number | null, maxAmount: number | null) => {
         if (!limitsModal.paymentMethod) return;
 
+        const { paymentMethod, action } = limitsModal;
+        if (paymentMethod.id == null) {
+            addToast({
+                type: 'error',
+                title: 'Cannot Update Limits',
+                description: 'This payment method is not yet configured and cannot be updated.',
+            });
+            return;
+        }
+
         setLimitsModal(prev => ({ ...prev, isLoading: true }));
 
         try {
-            const { paymentMethod, action } = limitsModal;
             const payload =
                 action === 'cashout'
                     ? {
@@ -755,9 +764,9 @@ export function SuperAdminPaymentSettings() {
                                                                             variant={sub.enabled_for_cashout_by_superadmin ? 'ghost' : 'secondary'}
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                handleToggleCashout(sub.id);
+                                                                                if (sub.id != null) handleToggleCashout(sub.id);
                                                                             }}
-                                                                            disabled={confirmModal.isLoading}
+                                                                            disabled={confirmModal.isLoading || sub.id == null}
                                                                             className={`h-9 text-xs font-medium rounded-lg ${sub.enabled_for_cashout_by_superadmin
                                                                                 ? 'border border-red-200 dark:border-red-800/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
                                                                                 : 'border border-emerald-200 dark:border-emerald-800/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}

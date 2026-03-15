@@ -4,37 +4,36 @@ import { useEffect, useMemo, useState } from 'react';
 import { ErrorState, EmptyState } from '@/components/features';
 import { usePaymentMethodsStore } from '@/stores';
 import { useToast } from '@/components/ui/toast';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Skeleton } from '@/components/ui';
+import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Skeleton, Card, CardHeader, CardContent, Badge, Button } from '@/components/ui';
 import { PaymentAmountModal } from './payment-amount-modal';
-import type { PaymentMethod, PaymentMethodAction } from '@/types';
+import type { PaymentMethod, PaymentMethodAction, CashoutPaymentMethod, CashoutSubcategory } from '@/types';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
-
-// Get payment method initials
-const getPaymentMethodInitials = (paymentMethodDisplay: string): string => {
-  const words = paymentMethodDisplay.trim().split(/\s+/);
-  
-  if (words.length === 1) {
-    return words[0].substring(0, 2).toUpperCase();
-  } else if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
-  
-  return 'PM';
-};
+import { getPaymentMethodIcon } from '@/lib/utils/payment-method-icons';
 
 
 export function PaymentSettingsSection() {
   const paymentMethods = usePaymentMethodsStore((state) => state.paymentMethods);
+  const cashoutCategories = usePaymentMethodsStore((state) => state.cashoutCategories);
   const isLoading = usePaymentMethodsStore((state) => state.isLoading);
   const error = usePaymentMethodsStore((state) => state.error);
   const fetchPaymentMethods = usePaymentMethodsStore((state) => state.fetchPaymentMethods);
   const { addToast } = useToast();
   const updatePaymentMethodAmounts = usePaymentMethodsStore((state) => state.updatePaymentMethodAmounts);
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+  const [expandedCashoutCategories, setExpandedCashoutCategories] = useState<Set<string>>(new Set());
   const [filterAction, setFilterAction] = useState<PaymentMethodAction>('cashout');
   const [amountModalOpen, setAmountModalOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodRow | null>(null);
   const [isUpdatingAmounts, setIsUpdatingAmounts] = useState(false);
+
+  const toggleExpandedCategory = (key: string) => {
+    setExpandedCashoutCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   type PaymentMethodRow = PaymentMethod & {
     action: PaymentMethodAction;
@@ -81,6 +80,24 @@ export function PaymentSettingsSection() {
     setAmountModalOpen(true);
   };
 
+  /** Convert configured subcategory to PaymentMethodRow for modal/API */
+  const subToRow = (sub: CashoutSubcategory): PaymentMethodRow => ({
+    id: sub.id!,
+    payment_method: sub.payment_method,
+    payment_method_display: sub.payment_method_display || sub.provider_payment_method_display || sub.payment_method,
+    method_type: sub.method_type || sub.payment_method || 'N/A',
+    provider_payment_method: sub.provider_payment_method ?? undefined,
+    action: 'cashout',
+    isEnabled: Boolean(sub.is_enabled_for_cashout),
+    loadingKey: `cashout-${sub.id}`,
+    min_amount_cashout: sub.min_amount_cashout ?? null,
+    max_amount_cashout: sub.max_amount_cashout ?? null,
+    superadmin_min_amount_cashout: sub.superadmin_min_amount_cashout ?? null,
+    superadmin_max_amount_cashout: sub.superadmin_max_amount_cashout ?? null,
+    created: sub.created ?? '',
+    modified: sub.modified ?? '',
+  });
+
   const handleSaveAmounts = async (minAmount: number | null, maxAmount: number | null) => {
     if (!selectedPaymentMethod) return;
 
@@ -124,33 +141,29 @@ export function PaymentSettingsSection() {
     return (
       <div className="space-y-6">
         {/* Header Skeleton */}
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
-            <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-40 shrink-0" />
-            <div className="flex-1 min-w-0" />
-            <div className="flex items-center gap-2 shrink-0">
-              <Skeleton className="h-9 w-24 rounded-lg" />
-              <Skeleton className="h-9 w-24 rounded-lg" />
-            </div>
+        <div className="flex items-center justify-between gap-4">
+          <Skeleton className="h-7 w-40" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
           </div>
         </div>
 
-        {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700"
+              className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 px-4 py-3"
             >
-              <Skeleton className="h-4 w-32 mb-2" />
-              <Skeleton className="h-8 w-16" />
+              <Skeleton className="h-3 w-16 mb-2" />
+              <Skeleton className="h-6 w-12" />
             </div>
           ))}
         </div>
 
         {/* Table Skeleton */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-full">
               {/* Table Header Skeleton */}
@@ -208,72 +221,229 @@ export function PaymentSettingsSection() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-          {/* Icon */}
-          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
-            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Payment Methods
+        </h2>
+        <div className="flex items-center gap-2">
+          {(['purchase', 'cashout'] as PaymentMethodAction[]).map((action) => {
+            const isActive = filterAction === action;
+            return (
+              <button
+                key={action}
+                type="button"
+                onClick={() => setFilterAction(action)}
+                className={`px-3 py-2 rounded-md text-sm font-medium capitalize transition-colors ${
+                  isActive
+                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                {action}
+                <span className="ml-1.5 text-xs opacity-80">({actionCounts[action]})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 px-4 py-3">
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</div>
+          <div className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-0.5">{totalCount}</div>
+        </div>
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 px-4 py-3">
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active</div>
+          <div className="text-xl font-semibold text-green-600 dark:text-green-400 mt-0.5">{enabledCount}</div>
+        </div>
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 px-4 py-3">
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Inactive</div>
+          <div className="text-xl font-semibold text-gray-600 dark:text-gray-400 mt-0.5">{disabledCount}</div>
+        </div>
+      </div>
+
+      {/* Payment Methods */}
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 overflow-hidden">
+        {!paymentMethods ? (
+          <div className="py-12">
+            <EmptyState 
+              title="No Payment Methods" 
+              description="Payment methods will appear here once configured"
+            />
           </div>
-          
-          {/* Title */}
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100 shrink-0">
-            Payment Methods
-          </h2>
-          
-          {/* Spacer */}
-          <div className="flex-1 min-w-0" />
-          
-          {/* Filter Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-            {(['purchase', 'cashout'] as PaymentMethodAction[]).map((action) => {
-              const isActive = filterAction === action;
+        ) : filterAction === 'cashout' && cashoutCategories && cashoutCategories.length > 0 ? (
+          /* Hierarchical Cashout View: Categories + Subcategories */
+          <div className="space-y-3 p-4 lg:p-5">
+            {cashoutCategories
+              .filter((category) => {
+                const configuredCount = category.subcategories?.filter((s) => s.is_configured && s.id != null).length ?? 0;
+                return configuredCount > 0;
+              })
+              .map((category) => {
+              const hasSubs = category.has_subcategories && (category.subcategories?.length ?? 0) > 0;
+              const isExpanded = expandedCashoutCategories.has(category.payment_method);
+
               return (
-                <button
-                  key={action}
-                  type="button"
-                  onClick={() => setFilterAction(action)}
-                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium capitalize transition-all ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90'
-                      : 'bg-white dark:bg-gray-900 text-muted-foreground border-gray-200 dark:border-gray-800 hover:text-primary hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/10'
-                  }`}
+                <Card
+                  key={category.payment_method}
+                  className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm"
                 >
-                  {action}
-                  <span className={`ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 py-0 text-xs font-semibold ${
-                    isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {actionCounts[action]}
-                  </span>
-                </button>
+                  <CardHeader
+                    className={`py-4 px-4 lg:px-5 ${hasSubs ? 'cursor-pointer select-none hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors' : ''}`}
+                    onClick={() => hasSubs && toggleExpandedCategory(category.payment_method)}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center border border-gray-200 dark:border-gray-600">
+                          {getPaymentMethodIcon(category.payment_method, { size: 'lg', asInitialFallback: true })}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {formatPaymentMethod(category.payment_method_display || category.payment_method)}
+                          </div>
+                          {hasSubs && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {category.configured_subcategories_count ?? 0} provider{(category.configured_subcategories_count ?? 0) !== 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {hasSubs && (
+                        <div
+                          className={`flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center transition-all ${
+                            isExpanded ? 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rotate-180' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  {hasSubs && isExpanded && category.subcategories && (
+                    <CardContent className="p-0">
+                      <div className="border-t border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+                        {category.subcategories
+                          .filter((sub) => sub.is_configured === true && sub.id != null)
+                          .map((sub) => {
+                            const loadingKey = `cashout-${sub.id}`;
+
+                            return (
+                            <div
+                              key={sub.id}
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 lg:px-5 py-3 sm:py-4"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="flex-shrink-0 w-9 h-9 rounded-md bg-white dark:bg-slate-800 flex items-center justify-center border border-gray-200 dark:border-gray-600">
+                                  {getPaymentMethodIcon(sub.payment_method ?? sub.provider_payment_method, {
+                                    size: 'md',
+                                    methodType: sub.method_type,
+                                    providerPaymentMethod: sub.provider_payment_method_display ?? sub.provider_payment_method,
+                                    asInitialFallback: true,
+                                  })}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                                    {formatPaymentMethod(sub.payment_method_display || sub.payment_method)}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                                      {sub.method_type || sub.payment_method || 'N/A'}
+                                    </span>
+                                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                                    <span
+                                      className={`text-xs font-medium ${
+                                        sub.is_enabled_for_cashout
+                                          ? 'text-green-600 dark:text-green-400'
+                                          : 'text-gray-500 dark:text-gray-400'
+                                      }`}
+                                    >
+                                      {sub.is_enabled_for_cashout ? 'Active' : 'Inactive'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <span>Min <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums">{formatAmount(sub.min_amount_cashout)}</span></span>
+                                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                                    <span>Max <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums">{formatAmount(sub.max_amount_cashout)}</span></span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditAmounts(subToRow(sub));
+                                      }}
+                                      disabled={isUpdatingAmounts}
+                                      className="h-8 text-xs"
+                                    >
+                                      Edit Limits
+                                    </Button>
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (loadingIds.has(loadingKey)) return;
+                                        setLoadingIds((prev) => new Set(prev).add(loadingKey));
+                                        try {
+                                          const newStatus = !sub.is_enabled_for_cashout;
+                                          await usePaymentMethodsStore.getState().updatePaymentMethod({
+                                            id: sub.id!,
+                                            action: 'cashout',
+                                            value: newStatus,
+                                          });
+                                          addToast({
+                                            type: 'success',
+                                            title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
+                                            description: `${sub.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+                                          });
+                                        } catch (err) {
+                                          addToast({
+                                            type: 'error',
+                                            title: 'Update failed',
+                                            description: `Failed to ${sub.is_enabled_for_cashout ? 'disable' : 'enable'} ${sub.payment_method_display}.`,
+                                          });
+                                        } finally {
+                                          setLoadingIds((prev) => {
+                                            const next = new Set(prev);
+                                            next.delete(loadingKey);
+                                            return next;
+                                          });
+                                        }
+                                      }}
+                                      disabled={loadingIds.has(loadingKey)}
+                                      className={`h-8 px-3 rounded-md text-xs font-medium border transition-colors ${
+                                        sub.is_enabled_for_cashout
+                                          ? 'border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
+                                          : 'border-green-200 dark:border-green-900/50 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20'
+                                      }`}
+                                    >
+                                      {loadingIds.has(loadingKey) ? (
+                                        <>
+                                          <span className="animate-spin mr-1.5 inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+                                          {sub.is_enabled_for_cashout ? 'Disabling...' : 'Enabling...'}
+                                        </>
+                                      ) : (
+                                        sub.is_enabled_for_cashout ? 'Disable' : 'Enable'
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                            </div>
+                            );
+                          })}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
               );
             })}
           </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Payment Methods</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{totalCount}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
-          <div className="text-2xl font-bold text-green-500 mt-1">
-            {enabledCount}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
-          <div className="text-2xl font-bold text-gray-500 mt-1">{disabledCount}</div>
-        </div>
-      </div>
-
-      {/* Payment Methods Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {!paymentMethods || filteredResults.length === 0 ? (
+        ) : filteredResults.length === 0 ? (
           <div className="py-12">
             <EmptyState 
               title="No Payment Methods" 
@@ -282,7 +452,7 @@ export function PaymentSettingsSection() {
           </div>
         ) : (
           <>
-            {/* Desktop Table View */}
+            {/* Desktop Table View (Purchase or flat Cashout) */}
             <div className="hidden lg:block overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -300,8 +470,8 @@ export function PaymentSettingsSection() {
                     <TableRow key={method.loadingKey} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-sm">
-                          {getPaymentMethodInitials(method.payment_method_display || formatPaymentMethod(method.payment_method))}
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center ring-1 ring-border/50 shadow-sm dark:shadow-none dark:border dark:border-border/50">
+                          {getPaymentMethodIcon(method.payment_method, { size: 'md', methodType: method.method_type, providerPaymentMethod: method.provider_payment_method ?? undefined, asInitialFallback: true })}
                         </div>
                         <div>
                           <div className="font-medium text-gray-900 dark:text-gray-100">
@@ -321,14 +491,15 @@ export function PaymentSettingsSection() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          Min: <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <div className="inline-flex items-center gap-3 px-3 py-2 rounded-lg bg-white/90 dark:bg-slate-800 dark:border dark:border-slate-600/50 border border-gray-200 dark:border-slate-600/50 shadow-sm dark:shadow-none w-fit">
+                        <div className="text-xs text-gray-600 dark:text-slate-400">
+                          Min: <span className="font-medium text-gray-900 dark:text-slate-200 tabular-nums">
                             {formatAmount(method.action === 'cashout' ? method.min_amount_cashout : method.min_amount_purchase)}
                           </span>
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          Max: <span className="font-medium text-gray-900 dark:text-gray-100">
+                        <span className="w-px h-4 bg-gray-200 dark:bg-slate-600" aria-hidden />
+                        <div className="text-xs text-gray-600 dark:text-slate-400">
+                          Max: <span className="font-medium text-gray-900 dark:text-slate-200 tabular-nums">
                             {formatAmount(method.action === 'cashout' ? method.max_amount_cashout : method.max_amount_purchase)}
                           </span>
                         </div>
@@ -425,8 +596,8 @@ export function PaymentSettingsSection() {
                   <div className="flex items-center justify-between gap-6">
                     {/* Left: Icon + Info */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-md">
-                        {getPaymentMethodInitials(method.payment_method_display || formatPaymentMethod(method.payment_method))}
+                      <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center ring-1 ring-border/50 shadow-sm dark:shadow-none dark:border dark:border-border/50">
+                        {getPaymentMethodIcon(method.payment_method, { size: 'lg', methodType: method.method_type, providerPaymentMethod: method.provider_payment_method ?? undefined, asInitialFallback: true })}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-gray-900 dark:text-gray-100 leading-tight truncate">
@@ -506,16 +677,17 @@ export function PaymentSettingsSection() {
                         Edit
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400">Min:</span>{' '}
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/90 dark:bg-slate-800 dark:border dark:border-slate-600/50 border border-gray-200 dark:border-slate-600/50 shadow-sm dark:shadow-none w-fit">
+                      <div className="text-xs">
+                        <span className="text-gray-600 dark:text-slate-400">Min:</span>{' '}
+                        <span className="font-medium text-gray-900 dark:text-slate-200 tabular-nums">
                           {formatAmount(method.action === 'cashout' ? method.min_amount_cashout : method.min_amount_purchase)}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400">Max:</span>{' '}
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="w-px h-4 bg-gray-200 dark:bg-slate-600" aria-hidden />
+                      <div className="text-xs">
+                        <span className="text-gray-600 dark:text-slate-400">Max:</span>{' '}
+                        <span className="font-medium text-gray-900 dark:text-slate-200 tabular-nums">
                           {formatAmount(method.action === 'cashout' ? method.max_amount_cashout : method.max_amount_purchase)}
                         </span>
                       </div>

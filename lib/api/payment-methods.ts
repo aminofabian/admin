@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import type {
   PaymentMethod,
   PaymentMethodsListResponse,
+  PaymentMethodsListResponseRaw,
   UpdatePaymentMethodRequest,
   CashoutPaymentMethod,
 } from '@/types';
@@ -48,7 +49,7 @@ interface DisableAllCashoutRequest {
 
 export const paymentMethodsApi = {
   list: () => {
-    return apiClient.get<PaymentMethodsListResponse>('api/admin/payment-methods');
+    return apiClient.get<PaymentMethodsListResponseRaw>('api/admin/payment-methods');
   },
 
   get: (id: number) =>

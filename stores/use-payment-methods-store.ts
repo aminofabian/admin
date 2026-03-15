@@ -4,11 +4,15 @@ import type {
   PaymentMethod,
   PaymentMethodAction,
   PaymentMethodsListResponse,
+  PaymentMethodsListResponseRaw,
+  CashoutPaymentMethod,
   UpdatePaymentMethodRequest,
 } from '@/types';
 
 interface PaymentMethodsState {
   paymentMethods: PaymentMethodsListResponse | null;
+  /** Raw nested cashout for hierarchical UI (categories + subcategories) */
+  cashoutCategories: CashoutPaymentMethod[] | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -37,6 +41,7 @@ type PaymentMethodsStore = PaymentMethodsState & PaymentMethodsActions;
 
 const initialState: PaymentMethodsState = {
   paymentMethods: null,
+  cashoutCategories: null,
   isLoading: false,
   error: null,
 };
@@ -48,6 +53,34 @@ const normalizeMethods = (methods: PaymentMethod[]): PaymentMethod[] =>
     is_enabled_for_purchase: Boolean(method.is_enabled_for_purchase),
   }));
 
+/** Flatten cashout with subcategories into PaymentMethod rows (configured subcategories only) */
+const flattenCashout = (cashout: CashoutPaymentMethod[]): PaymentMethod[] => {
+  const rows: PaymentMethod[] = [];
+  for (const parent of cashout) {
+    if (parent.has_subcategories && parent.subcategories?.length) {
+      for (const sub of parent.subcategories) {
+        if (sub.is_configured === true && sub.id != null) {
+          rows.push({
+            id: sub.id,
+            payment_method: sub.payment_method,
+            payment_method_display: sub.payment_method_display || sub.provider_payment_method_display || sub.payment_method,
+            method_type: sub.method_type || sub.payment_method || 'N/A',
+            provider_payment_method: sub.provider_payment_method ?? undefined,
+            is_enabled_for_cashout: Boolean(sub.is_enabled_for_cashout),
+            min_amount_cashout: sub.min_amount_cashout ?? null,
+            max_amount_cashout: sub.max_amount_cashout ?? null,
+            superadmin_min_amount_cashout: sub.superadmin_min_amount_cashout ?? null,
+            superadmin_max_amount_cashout: sub.superadmin_max_amount_cashout ?? null,
+            created: sub.created ?? '',
+            modified: sub.modified ?? '',
+          });
+        }
+      }
+    }
+  }
+  return rows;
+};
+
 export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => ({
   ...initialState,
 
@@ -57,11 +90,22 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
     try {
       const data = await paymentMethodsApi.list();
 
+      const isNestedCashout = (arr: unknown): arr is CashoutPaymentMethod[] =>
+        Array.isArray(arr) &&
+        arr.length > 0 &&
+        typeof (arr[0] as CashoutPaymentMethod).has_subcategories === 'boolean';
+
+      const cashoutRaw = data.cashout ?? [];
+      const cashoutFlat = isNestedCashout(cashoutRaw)
+        ? flattenCashout(cashoutRaw)
+        : (cashoutRaw as PaymentMethod[]);
+
       set({
         paymentMethods: {
-          cashout: normalizeMethods(data.cashout ?? []),
+          cashout: normalizeMethods(cashoutFlat),
           purchase: normalizeMethods(data.purchase ?? []),
         },
+        cashoutCategories: isNestedCashout(cashoutRaw) ? cashoutRaw : null,
         isLoading: false,
         error: null,
       });
@@ -95,6 +139,8 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
       await paymentMethodsApi.patch(id, payload);
 
       const currentPaymentMethods = get().paymentMethods;
+      const cashoutCategories = get().cashoutCategories;
+
       if (currentPaymentMethods) {
         const updateList = (methods: PaymentMethod[]) =>
           methods.map((method) => {
@@ -109,11 +155,26 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
             return { ...method, is_enabled_for_purchase: value };
           });
 
+        const updateCashoutCategories = (cats: CashoutPaymentMethod[] | null): CashoutPaymentMethod[] | null => {
+          if (!cats || action !== 'cashout') return cats;
+          return cats.map((parent) => ({
+            ...parent,
+            subcategories: parent.subcategories.map((sub) =>
+              sub.id === id ? { ...sub, is_enabled_for_cashout: value } : sub
+            ),
+            enabled_subcategories_count: parent.subcategories.reduce(
+              (n, s) => n + (s.id === id ? (value ? 1 : 0) : (s.is_enabled_for_cashout ? 1 : 0)),
+              0
+            ),
+          }));
+        };
+
         set({
           paymentMethods: {
             cashout: updateList(currentPaymentMethods.cashout),
             purchase: updateList(currentPaymentMethods.purchase),
           },
+          cashoutCategories: updateCashoutCategories(cashoutCategories),
         });
       }
     } catch (err: unknown) {
@@ -150,6 +211,8 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
       await paymentMethodsApi.patch(id, payload);
 
       const currentPaymentMethods = get().paymentMethods;
+      const cashoutCategories = get().cashoutCategories;
+
       if (currentPaymentMethods) {
         const updateList = (methods: PaymentMethod[]) =>
           methods.map((method) => {
@@ -172,11 +235,28 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
             };
           });
 
+        const updateCashoutCategories = (cats: CashoutPaymentMethod[] | null): CashoutPaymentMethod[] | null => {
+          if (!cats || action !== 'cashout') return cats;
+          return cats.map((parent) => ({
+            ...parent,
+            subcategories: parent.subcategories.map((sub) =>
+              sub.id === id
+                ? {
+                    ...sub,
+                    min_amount_cashout: minAmount !== null ? String(minAmount) : null,
+                    max_amount_cashout: maxAmount !== null ? String(maxAmount) : null,
+                  }
+                : sub
+            ),
+          }));
+        };
+
         set({
           paymentMethods: {
             cashout: updateList(currentPaymentMethods.cashout),
             purchase: updateList(currentPaymentMethods.purchase),
           },
+          cashoutCategories: updateCashoutCategories(cashoutCategories),
         });
       }
     } catch (err: unknown) {

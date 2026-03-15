@@ -95,6 +95,7 @@ export interface PaymentMethod {
   payment_method: string;
   payment_method_display: string;
   method_type: string;
+  provider_payment_method?: string | null;
   is_enabled_for_cashout?: boolean;
   is_enabled_for_purchase?: boolean;
   enabled_for_cashout_by_superadmin?: boolean;
@@ -138,34 +139,45 @@ export type PaymentMethodAction = keyof PaymentMethodsListResponse;
 
 /** Subcategory within a cashout payment method (e.g. Binpay under Card) */
 export interface CashoutSubcategory {
-  id: number;
+  id: number | null;
   payment_method: string;
   payment_method_display: string;
-  provider_payment_method?: string;
-  provider_payment_method_display?: string;
-  method_type?: string;
+  provider_payment_method?: string | null;
+  provider_payment_method_display?: string | null;
+  method_type?: string | null;
   is_configured?: boolean;
-  enabled_for_cashout_by_superadmin: boolean;
+  enabled_for_cashout_by_superadmin?: boolean;
   is_enabled_for_cashout?: boolean;
-  superadmin_min_amount_cashout: string | null;
-  superadmin_max_amount_cashout: string | null;
+  superadmin_min_amount_cashout?: string | null;
+  superadmin_max_amount_cashout?: string | null;
   min_amount_cashout?: string | null;
   max_amount_cashout?: string | null;
-  created?: string;
-  modified?: string;
+  created?: string | null;
+  modified?: string | null;
 }
 
-/** Main cashout payment method with optional subcategories */
+/** Main cashout payment method with optional subcategories (admin API response) */
 export interface CashoutPaymentMethod {
   payment_method: string;
   payment_method_display: string;
+  enabled_for_cashout_by_superadmin?: boolean;
   is_enabled_for_cashout?: boolean;
+  superadmin_min_amount_cashout?: string | null;
+  superadmin_max_amount_cashout?: string | null;
+  min_amount_cashout?: string | null;
+  max_amount_cashout?: string | null;
   min_amount?: string | null;
   max_amount?: string | null;
   has_subcategories: boolean;
   configured_subcategories_count?: number;
   enabled_subcategories_count?: number;
   subcategories: CashoutSubcategory[];
+}
+
+/** Raw admin API response - cashout can be nested with subcategories */
+export interface PaymentMethodsListResponseRaw {
+  cashout: CashoutPaymentMethod[];
+  purchase: PaymentMethod[];
 }
 
 // API Response Types
