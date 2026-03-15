@@ -656,7 +656,6 @@ export function SuperAdminPaymentSettings() {
                                 {filteredCashoutPaymentMethods.map((method) => {
                                     const hasSubs = method.has_subcategories && (method.subcategories?.length ?? 0) > 0;
                                     const isExpanded = expandedCashoutMethods.has(method.payment_method);
-                                    const enabledCount = method.enabled_subcategories_count ?? 0;
                                     const totalCount = method.configured_subcategories_count ?? 0;
                                     return (
                                         <Card
@@ -677,18 +676,8 @@ export function SuperAdminPaymentSettings() {
                                                                 {formatPaymentMethod(method.payment_method_display || method.payment_method)}
                                                             </div>
                                                             {hasSubs && (
-                                                                <div className="flex items-center gap-2 mt-2">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="h-2 w-20 rounded-full bg-muted dark:bg-muted/60 overflow-hidden">
-                                                                            <div
-                                                                                className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 dark:from-primary dark:to-primary/80 transition-all duration-500"
-                                                                                style={{ width: `${totalCount ? (enabledCount / totalCount) * 100 : 0}%` }}
-                                                                            />
-                                                                        </div>
-                                                                        <span className="text-xs font-medium text-muted-foreground tabular-nums">
-                                                                            {enabledCount}/{totalCount} enabled
-                                                                        </span>
-                                                                    </div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">
+                                                                    {totalCount} provider{totalCount !== 1 ? 's' : ''}
                                                                 </div>
                                                             )}
                                                         </div>
