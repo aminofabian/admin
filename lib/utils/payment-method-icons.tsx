@@ -132,13 +132,13 @@ function resolveIcon(
   const typeKey = normalizeKey(methodType ?? '');
 
   // Payment logos (check first – use images when available)
-  const logoKeys = [key, typeKey, providerKey].filter(Boolean);
+  const logoKeys = [key, typeKey, providerKey].filter((x): x is string => Boolean(x));
   for (const k of logoKeys) {
     const exact = PAYMENT_LOGOS[k];
     if (exact) return <PaymentLogoImage src={exact} sizeClass={sizeClass} />;
   }
   const sortedLogoEntries = Object.entries(PAYMENT_LOGOS).sort(([a], [b]) => b.length - a.length);
-  const allKeys = [key, typeKey, providerKey].filter(Boolean);
+  const allKeys = [key, typeKey, providerKey].filter((x): x is string => Boolean(x));
   for (const [logoKey, src] of sortedLogoEntries) {
     if (allKeys.some((k) => k.startsWith(logoKey))) {
       return <PaymentLogoImage src={src} sizeClass={sizeClass} />;

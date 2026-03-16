@@ -11,7 +11,7 @@ import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/for
 import { useTransactionsStore } from '@/stores';
 import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
-import type { Agent, PaymentMethod, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
+import type { Agent, PaymentMethod, CashoutPaymentMethod, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 
 const TRANSACTIONS_SKELETON = (
@@ -430,7 +430,7 @@ export function TransactionsSection() {
 
         const uniqueMethods = new Map<string, string>();
 
-        collection.forEach((method: PaymentMethod) => {
+        collection.forEach((method: PaymentMethod | CashoutPaymentMethod) => {
           if (!method) {
             return;
           }

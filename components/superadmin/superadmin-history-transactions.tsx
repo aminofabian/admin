@@ -9,7 +9,7 @@ import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/for
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
-import type { Agent, PaymentMethod, Company, Transaction } from '@/types';
+import type { Agent, PaymentMethod, CashoutPaymentMethod, Company, Transaction } from '@/types';
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
     agent: '',
@@ -308,7 +308,7 @@ export function SuperAdminHistoryTransactions() {
 
                 const uniqueMethods = new Map<string, string>();
 
-                collection.forEach((method: PaymentMethod) => {
+                collection.forEach((method: PaymentMethod | CashoutPaymentMethod) => {
                     if (!method) {
                         return;
                     }
