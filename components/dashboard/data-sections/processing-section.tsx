@@ -1234,37 +1234,55 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     handleTransactionActionClick(selectedTransaction, action);
   };
 
-  /** Map subcategory payment_method to API action string. Only Binpay, Tierlock, Taparcaida. */
+  /** Map subcategory payment_method/provider_payment_method to API action string. Only Binpay, Tierlock, Taparcaida. */
   const subcategoryToAction = (pm: string): string | null => {
     const lower = (pm ?? '').toLowerCase();
     if (lower === 'binpay') return 'send_to_binpay';
     if (lower === 'tierlock') return 'send_to_tierlock';
-    if (lower === 'taparcaida' || lower === 'taparcadia') return 'send_to_taparcaida';
+    if (lower === 'taparcaida' || lower === 'taparcadia' || lower === 'tap') return 'send_to_taparcaida';
     return null;
   };
 
-  /** Build dynamic "Send to X" buttons from payment-methods subcategories when transaction uses card. Only Binpay, Tierlock, Taparcaida. */
+  /** Build dynamic "Send to X" buttons from payment-methods subcategories. Shows BinPay, Taparcadia, Tierlock when enabled for the transaction's payment method. */
   const sendToProviderButtons = useMemo(() => {
     const txn = selectedTransaction;
     if (!txn || txn.type !== 'cashout' || txn.status !== 'pending') return [];
 
     const pm = (txn.payment_method ?? '').toLowerCase();
-    if (pm !== 'card') return [];
-
     const categories = cashoutCategories ?? [];
-    const cardCategory = categories.find(
-      (c) => (c.payment_method ?? '').toLowerCase() === 'card'
-    );
-    if (!cardCategory?.subcategories?.length) return [];
 
+    // Find category by transaction payment_method (e.g. card, venmo, cashapp, chime, paypal, zelle, tierlock)
+    let category = categories.find((c) => (c.payment_method ?? '').toLowerCase() === pm);
+
+    // Fallback: if no direct match, find a category that has a subcategory matching the transaction's payment_method (e.g. binpay, taparcaida)
+    if (!category) {
+      category = categories.find((c) =>
+        c.subcategories?.some(
+          (s) =>
+            (s.payment_method ?? '').toLowerCase() === pm ||
+            (s.provider_payment_method ?? '').toLowerCase() === pm
+        )
+      );
+    }
+
+    if (!category?.subcategories?.length) return [];
+
+    const seenActions = new Set<string>();
     const buttons: { label: string; action: string }[] = [];
-    for (const sub of cardCategory.subcategories) {
-      const action = subcategoryToAction(sub.payment_method ?? sub.provider_payment_method ?? '');
+
+    for (const sub of category.subcategories) {
+      const providerKey = sub.provider_payment_method ?? sub.payment_method ?? '';
+      const action = subcategoryToAction(providerKey);
       if (!action) continue;
       if (sub.is_configured !== true || sub.id == null) continue;
-      const label = `Send to ${sub.payment_method_display || sub.payment_method || sub.provider_payment_method_display || sub.provider_payment_method || 'Provider'}`;
+      if (sub.is_enabled_for_cashout !== true) continue;
+      if (seenActions.has(action)) continue;
+
+      seenActions.add(action);
+      const label = `Send to ${sub.provider_payment_method_display || sub.payment_method_display || sub.provider_payment_method || sub.payment_method || 'Provider'}`;
       buttons.push({ label, action });
     }
+
     return buttons;
   }, [selectedTransaction, cashoutCategories]);
 
