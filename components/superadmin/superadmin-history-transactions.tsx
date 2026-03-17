@@ -779,6 +779,7 @@ export function SuperAdminHistoryTransactions() {
                                             <TableHead>New Balance</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Payment</TableHead>
+                                            <TableHead>Provider</TableHead>
                                             <TableHead>Dates</TableHead>
                                             <TableHead className="text-right">Action</TableHead>
                                         </TableRow>
@@ -938,6 +939,11 @@ export function SuperAdminHistoryTransactions() {
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>
+                                                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                                                            {transaction.provider ? formatPaymentMethod(transaction.provider) : '—'}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell>
                                                         <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                                                             <div>{formattedCreatedAt}</div>
                                                             <div>{formattedUpdatedAt}</div>
@@ -1030,9 +1036,14 @@ export function SuperAdminHistoryTransactions() {
                                                             >
                                                                 {transaction.status}
                                                             </Badge>
-                                                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
+                                                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
                                                                 {formatPaymentMethod(transaction.payment_method)}
                                                             </Badge>
+                                                            {transaction.provider && (
+                                                                <Badge variant="default" className="text-[10px] px-2 py-0.5 truncate">
+                                                                    {formatPaymentMethod(transaction.provider)}
+                                                                </Badge>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>

@@ -266,6 +266,9 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
             </DetailsRow>
             <DetailsRow>
               <DetailsField label="Payment Method" value={formatPaymentMethod(transaction.payment_method)} />
+              {transaction.provider && (
+                <DetailsField label="Provider" value={formatPaymentMethod(transaction.provider)} />
+              )}
             </DetailsRow>
             <DetailsRow>
               <DetailsField label="Operator" value={transaction.operator || '—'} />

@@ -971,6 +971,7 @@ function TransactionsTable({
                     <TableHead>Winning</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
+                    <TableHead>Provider</TableHead>
                     <TableHead>Dates</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1203,6 +1204,11 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </Badge>
       </TableCell>
       <TableCell>
+        <span className="text-xs text-gray-600 dark:text-gray-400">
+          {transaction.provider ? formatPaymentMethod(transaction.provider) : '—'}
+        </span>
+      </TableCell>
+      <TableCell>
         <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
           <div>{formattedCreatedAt}</div>
           <div>{formattedUpdatedAt}</div>
@@ -1222,7 +1228,8 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     prevProps.transaction.previous_balance === nextProps.transaction.previous_balance &&
     prevProps.transaction.new_balance === nextProps.transaction.new_balance &&
     prevProps.transaction.previous_winning_balance === nextProps.transaction.previous_winning_balance &&
-    prevProps.transaction.new_winning_balance === nextProps.transaction.new_winning_balance
+    prevProps.transaction.new_winning_balance === nextProps.transaction.new_winning_balance &&
+    prevProps.transaction.provider === nextProps.transaction.provider
   );
 });
 
@@ -1313,16 +1320,21 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
                 {transaction.type}
               </Badge>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
                 {transaction.status}
               </Badge>
               <Badge
                 variant={transaction.payment_method?.toLowerCase() === 'manual' ? 'warning' : 'info'}
-                className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0"
+                className="text-[10px] px-2 py-0.5 truncate"
               >
                 {formatPaymentMethod(transaction.payment_method)}
               </Badge>
+              {transaction.provider && (
+                <Badge variant="default" className="text-[10px] px-2 py-0.5 truncate">
+                  {formatPaymentMethod(transaction.provider)}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -1420,6 +1432,7 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
     prevProps.transaction.id === nextProps.transaction.id &&
     prevProps.transaction.status === nextProps.transaction.status &&
     prevProps.transaction.amount === nextProps.transaction.amount &&
+    prevProps.transaction.provider === nextProps.transaction.provider &&
     prevProps.onView === nextProps.onView &&
     prevProps.transaction.user_username === nextProps.transaction.user_username
   );

@@ -14,6 +14,7 @@ export interface Transaction {
   type: TransactionType;
   operator: string;
   payment_method: string;
+  provider?: string | null;
   currency: string;
   description: string;
   journal_entry: JournalEntry;
