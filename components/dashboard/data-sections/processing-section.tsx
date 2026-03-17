@@ -32,7 +32,8 @@ import {
 import { 
   useTransactionsStore, 
   useTransactionQueuesStore,
-  useGamesStore 
+  useGamesStore,
+  usePaymentMethodsStore
 } from '@/stores';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
 import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
@@ -563,6 +564,16 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   } = useProcessingWebSocketContext();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const cashoutCategories = usePaymentMethodsStore((state) => state.cashoutCategories);
+  const fetchPaymentMethods = usePaymentMethodsStore((state) => state.fetchPaymentMethods);
+
+  // Fetch payment methods when in cashouts view (needed for dynamic "Send to X" buttons)
+  useEffect(() => {
+    if (viewType === 'cashouts') {
+      void fetchPaymentMethods();
+    }
+  }, [viewType, fetchPaymentMethods]);
+
   // Game activity filters state (always declared so hooks order is stable)
   const [gameFilters, setGameFilters] = useState<HistoryGameActivitiesFiltersState>(DEFAULT_GAME_ACTIVITY_FILTERS);
   const [areGameFiltersOpen, setAreGameFiltersOpen] = useState(false);
@@ -1011,7 +1022,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   }, [viewType, queueFilter, setTransactionsFilter, setQueuesFilter]);
 
 
-  type TransactionActionType = 'completed' | 'cancelled' | 'send_to_binpay' | 'send_to_tierlock';
+  type TransactionActionType = 'completed' | 'cancelled' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcaida';
 
   const handleTransactionAction = async (
     transactionId: string, 
@@ -1044,11 +1055,12 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       return;
     }
 
-    const apiActionMap: Record<TransactionActionType, 'complete' | 'cancel' | 'send_to_binpay' | 'send_to_tierlock'> = {
+    const apiActionMap: Record<TransactionActionType, 'complete' | 'cancel' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcaida'> = {
       completed: 'complete',
       cancelled: 'cancel',
       send_to_binpay: 'send_to_binpay',
       send_to_tierlock: 'send_to_tierlock',
+      send_to_taparcaida: 'send_to_taparcaida',
     };
     const apiAction = apiActionMap[action];
     const successTitleMap: Record<TransactionActionType, string> = {
@@ -1056,12 +1068,14 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       cancelled: 'Transaction Cancelled',
       send_to_binpay: 'Sent to Binpay',
       send_to_tierlock: 'Sent to Tierlock',
+      send_to_taparcaida: 'Sent to Taparcaida',
     };
     const successDescriptionMap: Record<TransactionActionType, string> = {
       completed: 'Transaction completed successfully',
       cancelled: 'Transaction cancelled successfully',
       send_to_binpay: 'Transaction sent to Binpay successfully',
       send_to_tierlock: 'Transaction sent to Tierlock successfully',
+      send_to_taparcaida: 'Transaction sent to Taparcaida successfully',
     };
 
     try {
@@ -1207,7 +1221,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       return;
     }
 
-    if (action === 'send_to_binpay' || action === 'send_to_tierlock') {
+    if (action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcaida') {
       void handleTransactionAction(
         selectedTransaction.id,
         action,
@@ -1219,6 +1233,40 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
     handleTransactionActionClick(selectedTransaction, action);
   };
+
+  /** Map subcategory payment_method to API action string. Only Binpay, Tierlock, Taparcaida. */
+  const subcategoryToAction = (pm: string): string | null => {
+    const lower = (pm ?? '').toLowerCase();
+    if (lower === 'binpay') return 'send_to_binpay';
+    if (lower === 'tierlock') return 'send_to_tierlock';
+    if (lower === 'taparcaida' || lower === 'taparcadia') return 'send_to_taparcaida';
+    return null;
+  };
+
+  /** Build dynamic "Send to X" buttons from payment-methods subcategories when transaction uses card. Only Binpay, Tierlock, Taparcaida. */
+  const sendToProviderButtons = useMemo(() => {
+    const txn = selectedTransaction;
+    if (!txn || txn.type !== 'cashout' || txn.status !== 'pending') return [];
+
+    const pm = (txn.payment_method ?? '').toLowerCase();
+    if (pm !== 'card') return [];
+
+    const categories = cashoutCategories ?? [];
+    const cardCategory = categories.find(
+      (c) => (c.payment_method ?? '').toLowerCase() === 'card'
+    );
+    if (!cardCategory?.subcategories?.length) return [];
+
+    const buttons: { label: string; action: string }[] = [];
+    for (const sub of cardCategory.subcategories) {
+      const action = subcategoryToAction(sub.payment_method ?? sub.provider_payment_method ?? '');
+      if (!action) continue;
+      if (sub.is_configured !== true || sub.id == null) continue;
+      const label = `Send to ${sub.payment_method_display || sub.payment_method || sub.provider_payment_method_display || sub.provider_payment_method || 'Provider'}`;
+      buttons.push({ label, action });
+    }
+    return buttons;
+  }, [selectedTransaction, cashoutCategories]);
 
   const handleQuickAction = useCallback(async (queue: TransactionQueue, action: string) => {
     if (action === 'view') {
@@ -1713,13 +1761,23 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           onClose={handleCloseViewModal}
           onComplete={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('completed') : undefined}
           onCancel={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('cancelled') : undefined}
+          sendToProviderButtons={
+            sendToProviderButtons.length > 0 ? sendToProviderButtons : undefined
+          }
+          onSendToProvider={
+            sendToProviderButtons.length > 0
+              ? (action) => handleTransactionDetailsAction(action as TransactionActionType)
+              : undefined
+          }
           onSendToBinpay={
+            sendToProviderButtons.length === 0 &&
             selectedTransaction.status === 'pending' &&
             /binpay/i.test(selectedTransaction.payment_method ?? '')
               ? () => handleTransactionDetailsAction('send_to_binpay')
               : undefined
           }
           onSendToTierlock={
+            sendToProviderButtons.length === 0 &&
             selectedTransaction.status === 'pending' &&
             /tierlock/i.test(selectedTransaction.payment_method ?? '')
               ? () => handleTransactionDetailsAction('send_to_tierlock')

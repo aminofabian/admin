@@ -19,7 +19,7 @@ import {
 import { useToast } from '@/components/ui/toast';
 import { EmptyState, LoadingState, ErrorState } from '@/components/features';
 import { paymentMethodsApi } from '@/lib/api';
-import type { Company, PaymentMethod, PaymentMethodAction, CashoutPaymentMethod, CashoutSubcategory } from '@/types';
+import type { Company, PaymentMethod, PaymentMethodAction, CashoutPaymentMethod, CashoutSubcategory, PurchasePaymentMethod, PurchaseSubcategory } from '@/types';
 import { PaymentAmountModal } from '@/components/dashboard/data-sections/payment-amount-modal';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
 import { getPaymentMethodIcon } from '@/lib/utils/payment-method-icons';
@@ -35,7 +35,9 @@ export function SuperAdminPaymentSettings() {
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
     const [cashoutPaymentMethods, setCashoutPaymentMethods] = useState<CashoutPaymentMethod[]>([]);
+    const [purchasePaymentMethods, setPurchasePaymentMethods] = useState<PurchasePaymentMethod[]>([]);
     const [expandedCashoutMethods, setExpandedCashoutMethods] = useState<Set<string>>(new Set());
+    const [expandedPurchaseMethods, setExpandedPurchaseMethods] = useState<Set<string>>(new Set());
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
     const [isLoadingMethods, setIsLoadingMethods] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export function SuperAdminPaymentSettings() {
     });
     const [limitsModal, setLimitsModal] = useState<{
         isOpen: boolean;
-        paymentMethod: (PaymentMethod | CashoutSubcategory) | null;
+        paymentMethod: (PaymentMethod | CashoutSubcategory | PurchaseSubcategory) | null;
         action: PaymentMethodAction;
         isLoading: boolean;
     }>({
@@ -114,6 +116,9 @@ export function SuperAdminPaymentSettings() {
                     if (response.cashout_payment_methods) {
                         setCashoutPaymentMethods(response.cashout_payment_methods);
                     }
+                    if (response.purchase_payment_methods) {
+                        setPurchasePaymentMethods(response.purchase_payment_methods);
+                    }
                 }
             } else {
                 setCompanies([]);
@@ -145,6 +150,11 @@ export function SuperAdminPaymentSettings() {
                 setCashoutPaymentMethods(response.cashout_payment_methods);
             } else {
                 setCashoutPaymentMethods([]);
+            }
+            if (response.purchase_payment_methods) {
+                setPurchasePaymentMethods(response.purchase_payment_methods);
+            } else {
+                setPurchasePaymentMethods([]);
             }
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to load payment methods';
@@ -311,6 +321,18 @@ export function SuperAdminPaymentSettings() {
         });
     };
 
+    const toggleExpandedPurchaseMethod = (paymentMethod: string) => {
+        setExpandedPurchaseMethods((prev) => {
+            const next = new Set(prev);
+            if (next.has(paymentMethod)) {
+                next.delete(paymentMethod);
+            } else {
+                next.add(paymentMethod);
+            }
+            return next;
+        });
+    };
+
     const filteredCashoutPaymentMethods = useMemo(() => {
         if (!searchTerm.trim()) return cashoutPaymentMethods;
         const search = searchTerm.toLowerCase();
@@ -326,6 +348,22 @@ export function SuperAdminPaymentSettings() {
             );
         });
     }, [cashoutPaymentMethods, searchTerm]);
+
+    const filteredPurchasePaymentMethods = useMemo(() => {
+        if (!searchTerm.trim()) return purchasePaymentMethods;
+        const search = searchTerm.toLowerCase();
+        return purchasePaymentMethods.filter((method) => {
+            const mainMatch =
+                method.payment_method_display?.toLowerCase().includes(search) ||
+                method.payment_method?.toLowerCase().includes(search);
+            if (mainMatch) return true;
+            return method.subcategories?.some(
+                (sub) =>
+                    sub.payment_method_display?.toLowerCase().includes(search) ||
+                    sub.payment_method?.toLowerCase().includes(search)
+            );
+        });
+    }, [purchasePaymentMethods, searchTerm]);
 
     const filteredCompanies = useMemo(() => {
         if (!companySearchTerm.trim()) return companies;
@@ -433,7 +471,9 @@ export function SuperAdminPaymentSettings() {
                             <Badge variant="info" className="hidden md:inline-flex">
                                 {viewMode === 'cashout' && cashoutPaymentMethods.length > 0
                                     ? `${filteredCashoutPaymentMethods.length} cashout methods`
-                                    : `${filteredPaymentMethods.length} methods`}
+                                    : viewMode === 'purchase' && purchasePaymentMethods.length > 0
+                                        ? `${filteredPurchasePaymentMethods.length} purchase methods`
+                                        : `${filteredPaymentMethods.length} methods`}
                             </Badge>
                         )}
                     </div>
@@ -645,11 +685,136 @@ export function SuperAdminPaymentSettings() {
                             </div>
                         ) : (viewMode === 'cashout' && cashoutPaymentMethods.length > 0
                             ? filteredCashoutPaymentMethods.length === 0
-                            : filteredPaymentMethods.length === 0) ? (
+                            : viewMode === 'purchase' && purchasePaymentMethods.length > 0
+                                ? filteredPurchasePaymentMethods.length === 0
+                                : filteredPaymentMethods.length === 0) ? (
                             <EmptyState
                                 title="No payment methods found"
                                 description={searchTerm ? `No payment methods match "${searchTerm}"` : selectedCompany ? `No payment methods available for ${selectedCompany.project_name}` : "Select a company to view payment methods"}
                             />
+                        ) : viewMode === 'purchase' && purchasePaymentMethods.length > 0 ? (
+                            /* Purchase view with subcategories */
+                            <div className="space-y-4 p-4 md:p-6">
+                                {filteredPurchasePaymentMethods.map((method) => {
+                                    const hasSubs = method.has_subcategories && (method.subcategories?.length ?? 0) > 0;
+                                    const isExpanded = expandedPurchaseMethods.has(method.payment_method);
+                                    const totalCount = method.configured_subcategories_count ?? 0;
+                                    return (
+                                        <Card
+                                            key={method.payment_method}
+                                            className="overflow-hidden border border-border/60 shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl bg-gradient-to-br from-card via-card to-muted/20 dark:from-card dark:via-card/95 dark:to-muted/40"
+                                        >
+                                            <CardHeader
+                                                className={`py-5 px-5 md:px-6 transition-all duration-300 ${hasSubs ? 'cursor-pointer select-none active:scale-[0.998]' : ''}`}
+                                                onClick={() => hasSubs && toggleExpandedPurchaseMethod(method.payment_method)}
+                                            >
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-4 min-w-0">
+                                                        <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white/80 dark:bg-slate-800 dark:ring-border/60 flex items-center justify-center ring-1 ring-border/50 shadow-md dark:shadow-none dark:border dark:border-border/50">
+                                                            {getPaymentMethodIcon(method.payment_method, { size: 'lg', asInitialFallback: true })}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="font-semibold text-lg text-foreground truncate">
+                                                                {formatPaymentMethod(method.payment_method_display || method.payment_method)}
+                                                            </div>
+                                                            {hasSubs && (
+                                                                <div className="text-xs text-muted-foreground mt-0.5">
+                                                                    {totalCount} provider{totalCount !== 1 ? 's' : ''}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {hasSubs && (
+                                                        <div className="flex-shrink-0 flex items-center gap-2">
+                                                            <span className="text-xs text-muted-foreground hidden sm:inline">View providers</span>
+                                                            <div
+                                                                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${isExpanded ? 'bg-primary/15 dark:bg-primary/25 text-primary rotate-180' : 'bg-muted/60 dark:bg-muted/50 text-muted-foreground hover:bg-muted dark:hover:bg-muted/70'}`}
+                                                            >
+                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </CardHeader>
+                                            {hasSubs && isExpanded && (
+                                                <CardContent className="p-0">
+                                                    <div className="border-t border-border/40 bg-gradient-to-b from-muted/30 to-muted/10 dark:from-muted/30 dark:to-muted/10 dark:border-border/50">
+                                                        {method.subcategories.map((sub) => (
+                                                            <div
+                                                                key={sub.id}
+                                                                className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 pl-8 md:pl-10 pr-4 md:pr-6 py-4 border-b border-border/30 dark:border-border/40 last:border-b-0 hover:bg-white/60 dark:hover:bg-white/[0.06] transition-all duration-200 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-gradient-to-b before:from-primary/40 before:to-primary/10 dark:before:from-primary/50 dark:before:to-primary/20 before:opacity-50 hover:before:opacity-100 before:transition-opacity"
+                                                            >
+                                                                <div className="flex items-center gap-4 min-w-0">
+                                                                    <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-white dark:bg-slate-800 dark:border-border/60 flex items-center justify-center border border-border/50 shadow-sm group-hover:shadow-md group-hover:border-primary/30 dark:group-hover:border-primary/40 dark:group-hover:bg-slate-700 transition-all duration-200">
+                                                                        {getPaymentMethodIcon(sub.payment_method ?? sub.provider_payment_method, { size: 'md', methodType: sub.method_type, providerPaymentMethod: sub.provider_payment_method_display ?? sub.provider_payment_method, asInitialFallback: true })}
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <div className="font-medium text-sm text-foreground">
+                                                                            {formatPaymentMethod(sub.payment_method_display || sub.payment_method)}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                                                            <Badge variant="info" className="text-[11px] px-2 py-0.5 font-medium">
+                                                                                {sub.method_type || sub.payment_method || 'N/A'}
+                                                                            </Badge>
+                                                                            <Badge
+                                                                                variant={sub.enabled_for_purchase_by_superadmin ? 'success' : 'default'}
+                                                                                className="text-[11px] px-2 py-0.5 font-medium"
+                                                                            >
+                                                                                {sub.enabled_for_purchase_by_superadmin ? 'Enabled' : 'Disabled'}
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 pl-0 md:pl-4">
+                                                                    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-white/90 to-muted/20 dark:from-slate-800 dark:to-slate-700/90 border border-border/40 dark:border-border/50 shadow-sm dark:shadow-none w-fit">
+                                                                        <span className="text-xs text-muted-foreground dark:text-slate-400">
+                                                                            Min <span className="font-semibold text-foreground dark:text-slate-200 tabular-nums">{formatAmount(sub.superadmin_min_amount_purchase)}</span>
+                                                                        </span>
+                                                                        <span className="w-px h-4 bg-border/60 dark:bg-slate-600" aria-hidden />
+                                                                        <span className="text-xs text-muted-foreground dark:text-slate-400">
+                                                                            Max <span className="font-semibold text-foreground dark:text-slate-200 tabular-nums">{formatAmount(sub.superadmin_max_amount_purchase)}</span>
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="secondary"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleEditSuperadminLimits(sub, 'purchase');
+                                                                            }}
+                                                                            disabled={limitsModal.isLoading}
+                                                                            className="h-9 text-xs font-medium rounded-lg"
+                                                                        >
+                                                                            Edit Limits
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant={sub.enabled_for_purchase_by_superadmin ? 'ghost' : 'secondary'}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if (sub.id != null) handleTogglePurchase(sub.id);
+                                                                            }}
+                                                                            disabled={confirmModal.isLoading || sub.id == null}
+                                                                            className={`h-9 text-xs font-medium rounded-lg ${sub.enabled_for_purchase_by_superadmin
+                                                                                ? 'border border-red-200 dark:border-red-800/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
+                                                                                : 'border border-emerald-200 dark:border-emerald-800/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}
+                                                                        >
+                                                                            {sub.enabled_for_purchase_by_superadmin ? 'Disable' : 'Enable'}
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </CardContent>
+                                            )}
+                                        </Card>
+                                    );
+                                })}
+                            </div>
                         ) : viewMode === 'cashout' && cashoutPaymentMethods.length > 0 ? (
                             /* Cashout view with subcategories */
                             <div className="space-y-4 p-4 md:p-6">

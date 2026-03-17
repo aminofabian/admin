@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Drawer } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import type { PaymentMethod, PaymentMethodAction, CashoutSubcategory } from '@/types';
+import type { PaymentMethod, PaymentMethodAction, CashoutSubcategory, PurchaseSubcategory } from '@/types';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
 
 type AmountScope = 'admin' | 'superadmin';
@@ -17,7 +17,7 @@ export interface AmountValidationErrors {
 interface AmountValidationContext {
   scope: AmountScope;
   action: PaymentMethodAction;
-  paymentMethod: (PaymentMethod | CashoutSubcategory) | null;
+  paymentMethod: (PaymentMethod | CashoutSubcategory | PurchaseSubcategory) | null;
   minAmount: string;
   maxAmount: string;
 }
@@ -63,18 +63,11 @@ export const validatePaymentAmounts = ({
     let superMaxRaw: string | null | undefined;
 
     if (action === 'cashout') {
-      superMinRaw = paymentMethod.superadmin_min_amount_cashout;
-      superMaxRaw = paymentMethod.superadmin_max_amount_cashout;
+      superMinRaw = 'superadmin_min_amount_cashout' in paymentMethod ? paymentMethod.superadmin_min_amount_cashout : undefined;
+      superMaxRaw = 'superadmin_max_amount_cashout' in paymentMethod ? paymentMethod.superadmin_max_amount_cashout : undefined;
     } else {
-      // Purchase limits exist only on PaymentMethod; CashoutSubcategory has no purchase fields
-      superMinRaw =
-        'superadmin_min_amount_purchase' in paymentMethod
-          ? paymentMethod.superadmin_min_amount_purchase
-          : undefined;
-      superMaxRaw =
-        'superadmin_max_amount_purchase' in paymentMethod
-          ? paymentMethod.superadmin_max_amount_purchase
-          : undefined;
+      superMinRaw = 'superadmin_min_amount_purchase' in paymentMethod ? paymentMethod.superadmin_min_amount_purchase : undefined;
+      superMaxRaw = 'superadmin_max_amount_purchase' in paymentMethod ? paymentMethod.superadmin_max_amount_purchase : undefined;
     }
 
     const superMin = superMinRaw != null && superMinRaw !== '' ? parseFloat(superMinRaw) : NaN;
@@ -109,7 +102,7 @@ export const validatePaymentAmounts = ({
 interface PaymentAmountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  paymentMethod: (PaymentMethod | CashoutSubcategory) | null;
+  paymentMethod: (PaymentMethod | CashoutSubcategory | PurchaseSubcategory) | null;
   action: PaymentMethodAction;
   onSave: (minAmount: number | null, maxAmount: number | null) => Promise<void>;
   isLoading?: boolean;
@@ -136,13 +129,17 @@ export function PaymentAmountModal({
 
       if (action === 'cashout') {
         minVal =
-          scope === 'superadmin'
+          scope === 'superadmin' && 'superadmin_min_amount_cashout' in paymentMethod
             ? paymentMethod.superadmin_min_amount_cashout
-            : paymentMethod.min_amount_cashout;
+            : 'min_amount_cashout' in paymentMethod
+              ? paymentMethod.min_amount_cashout
+              : undefined;
         maxVal =
-          scope === 'superadmin'
+          scope === 'superadmin' && 'superadmin_max_amount_cashout' in paymentMethod
             ? paymentMethod.superadmin_max_amount_cashout
-            : paymentMethod.max_amount_cashout;
+            : 'max_amount_cashout' in paymentMethod
+              ? paymentMethod.max_amount_cashout
+              : undefined;
       } else {
         minVal =
           scope === 'superadmin' && 'superadmin_min_amount_purchase' in paymentMethod
@@ -204,19 +201,15 @@ export function PaymentAmountModal({
   const superMinRaw =
     scope === 'admin' && paymentMethod
       ? action === 'cashout'
-        ? paymentMethod.superadmin_min_amount_cashout
-        : 'superadmin_min_amount_purchase' in paymentMethod
-          ? paymentMethod.superadmin_min_amount_purchase
-          : null
+        ? ('superadmin_min_amount_cashout' in paymentMethod ? paymentMethod.superadmin_min_amount_cashout : null)
+        : ('superadmin_min_amount_purchase' in paymentMethod ? paymentMethod.superadmin_min_amount_purchase : null)
       : null;
 
   const superMaxRaw =
     scope === 'admin' && paymentMethod
       ? action === 'cashout'
-        ? paymentMethod.superadmin_max_amount_cashout
-        : 'superadmin_max_amount_purchase' in paymentMethod
-          ? paymentMethod.superadmin_max_amount_purchase
-          : null
+        ? ('superadmin_max_amount_cashout' in paymentMethod ? paymentMethod.superadmin_max_amount_cashout : null)
+        : ('superadmin_max_amount_purchase' in paymentMethod ? paymentMethod.superadmin_max_amount_purchase : null)
       : null;
 
   const superMin =

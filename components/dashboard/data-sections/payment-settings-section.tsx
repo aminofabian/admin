@@ -6,7 +6,7 @@ import { usePaymentMethodsStore } from '@/stores';
 import { useToast } from '@/components/ui/toast';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Skeleton, Card, CardHeader, CardContent, Badge, Button } from '@/components/ui';
 import { PaymentAmountModal } from './payment-amount-modal';
-import type { PaymentMethod, PaymentMethodAction, CashoutPaymentMethod, CashoutSubcategory } from '@/types';
+import type { PaymentMethod, PaymentMethodAction, CashoutPaymentMethod, CashoutSubcategory, PurchasePaymentMethod, PurchaseSubcategory } from '@/types';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
 import { getPaymentMethodIcon } from '@/lib/utils/payment-method-icons';
 
@@ -14,20 +14,21 @@ import { getPaymentMethodIcon } from '@/lib/utils/payment-method-icons';
 export function PaymentSettingsSection() {
   const paymentMethods = usePaymentMethodsStore((state) => state.paymentMethods);
   const cashoutCategories = usePaymentMethodsStore((state) => state.cashoutCategories);
+  const purchaseCategories = usePaymentMethodsStore((state) => state.purchaseCategories);
   const isLoading = usePaymentMethodsStore((state) => state.isLoading);
   const error = usePaymentMethodsStore((state) => state.error);
   const fetchPaymentMethods = usePaymentMethodsStore((state) => state.fetchPaymentMethods);
   const { addToast } = useToast();
   const updatePaymentMethodAmounts = usePaymentMethodsStore((state) => state.updatePaymentMethodAmounts);
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
-  const [expandedCashoutCategories, setExpandedCashoutCategories] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [filterAction, setFilterAction] = useState<PaymentMethodAction>('cashout');
   const [amountModalOpen, setAmountModalOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodRow | null>(null);
   const [isUpdatingAmounts, setIsUpdatingAmounts] = useState(false);
 
   const toggleExpandedCategory = (key: string) => {
-    setExpandedCashoutCategories((prev) => {
+    setExpandedCategories((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -80,7 +81,7 @@ export function PaymentSettingsSection() {
     setAmountModalOpen(true);
   };
 
-  /** Convert configured subcategory to PaymentMethodRow for modal/API */
+  /** Convert configured cashout subcategory to PaymentMethodRow for modal/API */
   const subToRow = (sub: CashoutSubcategory): PaymentMethodRow => ({
     id: sub.id!,
     payment_method: sub.payment_method,
@@ -94,6 +95,24 @@ export function PaymentSettingsSection() {
     max_amount_cashout: sub.max_amount_cashout ?? null,
     superadmin_min_amount_cashout: sub.superadmin_min_amount_cashout ?? null,
     superadmin_max_amount_cashout: sub.superadmin_max_amount_cashout ?? null,
+    created: sub.created ?? '',
+    modified: sub.modified ?? '',
+  });
+
+  /** Convert configured purchase subcategory to PaymentMethodRow for modal/API */
+  const purchaseSubToRow = (sub: PurchaseSubcategory): PaymentMethodRow => ({
+    id: sub.id!,
+    payment_method: sub.payment_method,
+    payment_method_display: sub.payment_method_display || sub.provider_payment_method_display || sub.payment_method,
+    method_type: sub.method_type || sub.payment_method || 'N/A',
+    provider_payment_method: sub.provider_payment_method ?? undefined,
+    action: 'purchase',
+    isEnabled: Boolean(sub.is_enabled_for_purchase),
+    loadingKey: `purchase-${sub.id}`,
+    min_amount_purchase: sub.min_amount_purchase ?? null,
+    max_amount_purchase: sub.max_amount_purchase ?? null,
+    superadmin_min_amount_purchase: sub.superadmin_min_amount_purchase ?? null,
+    superadmin_max_amount_purchase: sub.superadmin_max_amount_purchase ?? null,
     created: sub.created ?? '',
     modified: sub.modified ?? '',
   });
@@ -272,6 +291,177 @@ export function PaymentSettingsSection() {
               description="Payment methods will appear here once configured"
             />
           </div>
+        ) : filterAction === 'purchase' && purchaseCategories && purchaseCategories.length > 0 ? (
+          /* Hierarchical Purchase View: Categories + Subcategories */
+          <div className="space-y-3 p-4 lg:p-5">
+            {purchaseCategories
+              .filter((category) => {
+                const configuredCount = category.subcategories?.filter((s) => s.is_configured && s.id != null).length ?? 0;
+                return configuredCount > 0;
+              })
+              .map((category) => {
+              const hasSubs = category.has_subcategories && (category.subcategories?.length ?? 0) > 0;
+              const isExpanded = expandedCategories.has(category.payment_method);
+
+              return (
+                <Card
+                  key={category.payment_method}
+                  className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm"
+                >
+                  <CardHeader
+                    className={`py-4 px-4 lg:px-5 ${hasSubs ? 'cursor-pointer select-none hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors' : ''}`}
+                    onClick={() => hasSubs && toggleExpandedCategory(category.payment_method)}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center border border-gray-200 dark:border-gray-600">
+                          {getPaymentMethodIcon(category.payment_method, { size: 'lg', asInitialFallback: true })}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {formatPaymentMethod(category.payment_method_display || category.payment_method)}
+                          </div>
+                          {hasSubs && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                              {category.configured_subcategories_count ?? 0} provider{(category.configured_subcategories_count ?? 0) !== 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {hasSubs && (
+                        <div
+                          className={`flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center transition-all ${
+                            isExpanded ? 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rotate-180' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  {hasSubs && isExpanded && category.subcategories && (
+                    <CardContent className="p-0">
+                      <div className="border-t border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+                        {category.subcategories
+                          .filter((sub) => sub.is_configured === true && sub.id != null)
+                          .map((sub) => {
+                            const loadingKey = `purchase-${sub.id}`;
+
+                            return (
+                            <div
+                              key={sub.id}
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 lg:px-5 py-3 sm:py-4"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="flex-shrink-0 w-9 h-9 rounded-md bg-white dark:bg-slate-800 flex items-center justify-center border border-gray-200 dark:border-gray-600">
+                                  {getPaymentMethodIcon(sub.payment_method ?? sub.provider_payment_method, {
+                                    size: 'md',
+                                    methodType: sub.method_type,
+                                    providerPaymentMethod: sub.provider_payment_method_display ?? sub.provider_payment_method,
+                                    asInitialFallback: true,
+                                  })}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                                    {formatPaymentMethod(sub.payment_method_display || sub.payment_method)}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                                      {sub.method_type || sub.payment_method || 'N/A'}
+                                    </span>
+                                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                                    <span
+                                      className={`text-xs font-medium ${
+                                        sub.is_enabled_for_purchase
+                                          ? 'text-green-600 dark:text-green-400'
+                                          : 'text-gray-500 dark:text-gray-400'
+                                      }`}
+                                    >
+                                      {sub.is_enabled_for_purchase ? 'Active' : 'Inactive'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <span>Min <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums">{formatAmount(sub.min_amount_purchase)}</span></span>
+                                    <span className="text-gray-300 dark:text-gray-600">·</span>
+                                    <span>Max <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums">{formatAmount(sub.max_amount_purchase)}</span></span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditAmounts(purchaseSubToRow(sub));
+                                      }}
+                                      disabled={isUpdatingAmounts}
+                                      className="h-8 text-xs"
+                                    >
+                                      Edit Limits
+                                    </Button>
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (loadingIds.has(loadingKey)) return;
+                                        setLoadingIds((prev) => new Set(prev).add(loadingKey));
+                                        try {
+                                          const newStatus = !sub.is_enabled_for_purchase;
+                                          await usePaymentMethodsStore.getState().updatePaymentMethod({
+                                            id: sub.id!,
+                                            action: 'purchase',
+                                            value: newStatus,
+                                          });
+                                          addToast({
+                                            type: 'success',
+                                            title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
+                                            description: `${sub.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+                                          });
+                                        } catch (err) {
+                                          addToast({
+                                            type: 'error',
+                                            title: 'Update failed',
+                                            description: `Failed to ${sub.is_enabled_for_purchase ? 'disable' : 'enable'} ${sub.payment_method_display}.`,
+                                          });
+                                        } finally {
+                                          setLoadingIds((prev) => {
+                                            const next = new Set(prev);
+                                            next.delete(loadingKey);
+                                            return next;
+                                          });
+                                        }
+                                      }}
+                                      disabled={loadingIds.has(loadingKey)}
+                                      className={`h-8 px-3 rounded-md text-xs font-medium border transition-colors ${
+                                        sub.is_enabled_for_purchase
+                                          ? 'border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
+                                          : 'border-green-200 dark:border-green-900/50 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20'
+                                      }`}
+                                    >
+                                      {loadingIds.has(loadingKey) ? (
+                                        <>
+                                          <span className="animate-spin mr-1.5 inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+                                          {sub.is_enabled_for_purchase ? 'Disabling...' : 'Enabling...'}
+                                        </>
+                                      ) : (
+                                        sub.is_enabled_for_purchase ? 'Disable' : 'Enable'
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                            </div>
+                            );
+                          })}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
         ) : filterAction === 'cashout' && cashoutCategories && cashoutCategories.length > 0 ? (
           /* Hierarchical Cashout View: Categories + Subcategories */
           <div className="space-y-3 p-4 lg:p-5">
@@ -282,7 +472,7 @@ export function PaymentSettingsSection() {
               })
               .map((category) => {
               const hasSubs = category.has_subcategories && (category.subcategories?.length ?? 0) > 0;
-              const isExpanded = expandedCashoutCategories.has(category.payment_method);
+              const isExpanded = expandedCategories.has(category.payment_method);
 
               return (
                 <Card

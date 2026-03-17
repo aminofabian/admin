@@ -5,6 +5,7 @@ import type {
   PaymentMethodsListResponseRaw,
   UpdatePaymentMethodRequest,
   CashoutPaymentMethod,
+  PurchasePaymentMethod,
 } from '@/types';
 import type { Company } from '@/types';
 
@@ -15,6 +16,7 @@ interface PaymentMethodManagementResponse {
   selected_company?: Company;
   company_payment_methods: PaymentMethod[];
   cashout_payment_methods?: CashoutPaymentMethod[];
+  purchase_payment_methods?: PurchasePaymentMethod[];
 }
 
 interface ToggleCashoutRequest {

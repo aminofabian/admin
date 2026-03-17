@@ -78,14 +78,26 @@ const parseNumericValue = (value: string | number | null | undefined): number | 
   return Number.isNaN(parsedValue) ? null : parsedValue;
 };
 
+/** Dynamic "Send to Provider" button (e.g. Send to Binpay, Send to Apex) */
+export interface SendToProviderButton {
+  label: string;
+  action: string;
+}
+
 interface TransactionDetailsModalProps {
   transaction: Transaction;
   isOpen: boolean;
   onClose: () => void;
   onComplete?: () => void;
   onCancel?: () => void;
+  /** @deprecated Use sendToProviderButtons + onSendToProvider instead */
   onSendToBinpay?: () => void;
+  /** @deprecated Use sendToProviderButtons + onSendToProvider instead */
   onSendToTierlock?: () => void;
+  /** Dynamic send-to-provider buttons from payment-methods subcategories (e.g. Send to Binpay, Send to Apex) */
+  sendToProviderButtons?: SendToProviderButton[];
+  /** Handler when a send-to-provider button is clicked; receives the action string (e.g. send_to_binpay, send_to_apex) */
+  onSendToProvider?: (action: string) => void;
   isActionLoading?: boolean;
 }
 
@@ -97,6 +109,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   onCancel,
   onSendToBinpay,
   onSendToTierlock,
+  sendToProviderButtons,
+  onSendToProvider,
   isActionLoading = false,
 }: TransactionDetailsModalProps) {
   const router = useRouter();
@@ -136,8 +150,12 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   const isPending = useMemo(() => transaction.status === 'pending', [transaction.status]);
   const hasComplete = typeof onComplete === 'function';
   const hasCancel = typeof onCancel === 'function';
+  const hasDynamicSendButtons = Boolean(
+    sendToProviderButtons?.length && typeof onSendToProvider === 'function'
+  );
   const hasSendToBinpay = typeof onSendToBinpay === 'function';
   const hasSendToTierlock = typeof onSendToTierlock === 'function';
+  const hasSendToProvider = hasDynamicSendButtons || hasSendToBinpay || hasSendToTierlock;
 
   const bonusAmount = useMemo(() => {
     const parsedBonus = parseNumericValue(transaction.bonus_amount);
@@ -215,11 +233,10 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   }, [router, playerId, transaction.user_username, onClose]);
 
   const statusColor = transaction.status === 'completed' ? 'green' : transaction.status === 'failed' || transaction.status === 'cancelled' ? 'red' : 'yellow';
-  const showActions = isPending && (hasComplete || hasCancel || hasSendToBinpay || hasSendToTierlock);
+  const showActions = isPending && (hasComplete || hasCancel || hasSendToProvider);
   const disableComplete = isActionLoading || !isPending;
   const disableCancel = isActionLoading || !isPending;
-  const disableSendToBinpay = isActionLoading || !isPending;
-  const disableSendToTierlock = isActionLoading || !isPending;
+  const disableSendToProvider = isActionLoading || !isPending;
 
   return (
     <DetailsModalWrapper isOpen={isOpen} onClose={onClose} title="Transaction Details">
@@ -394,25 +411,38 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
                   </Button>
                 )}
               </div>
-              {(hasSendToBinpay || hasSendToTierlock) && (
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  {hasSendToBinpay && (
+              {(hasDynamicSendButtons || hasSendToBinpay || hasSendToTierlock) && (
+                <div className="flex flex-col gap-2 sm:flex-row flex-wrap">
+                  {hasDynamicSendButtons &&
+                    sendToProviderButtons!.map((btn) => (
+                      <Button
+                        key={btn.action}
+                        variant="secondary"
+                        size="sm"
+                        className="flex-1 min-w-0 font-semibold"
+                        disabled={disableSendToProvider}
+                        onClick={() => onSendToProvider!(btn.action)}
+                      >
+                        {isActionLoading ? 'Processing...' : btn.label}
+                      </Button>
+                    ))}
+                  {!hasDynamicSendButtons && hasSendToBinpay && (
                     <Button
                       variant="secondary"
                       size="sm"
                       className="flex-1 font-semibold"
-                      disabled={disableSendToBinpay}
+                      disabled={disableSendToProvider}
                       onClick={onSendToBinpay}
                     >
                       {isActionLoading ? 'Processing...' : 'Send to Binpay'}
                     </Button>
                   )}
-                  {hasSendToTierlock && (
+                  {!hasDynamicSendButtons && hasSendToTierlock && (
                     <Button
                       variant="secondary"
                       size="sm"
                       className="flex-1 font-semibold"
-                      disabled={disableSendToTierlock}
+                      disabled={disableSendToProvider}
                       onClick={onSendToTierlock}
                     >
                       {isActionLoading ? 'Processing...' : 'Send to Tierlock'}

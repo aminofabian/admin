@@ -174,10 +174,47 @@ export interface CashoutPaymentMethod {
   subcategories: CashoutSubcategory[];
 }
 
-/** Raw admin API response - cashout can be nested with subcategories */
+/** Subcategory within a purchase payment method (e.g. Banxa under Credit & Debit Card) */
+export interface PurchaseSubcategory {
+  id: number | null;
+  payment_method: string;
+  payment_method_display: string;
+  provider_payment_method?: string | null;
+  provider_payment_method_display?: string | null;
+  method_type?: string | null;
+  is_configured?: boolean;
+  enabled_for_purchase_by_superadmin?: boolean;
+  is_enabled_for_purchase?: boolean;
+  superadmin_min_amount_purchase?: string | null;
+  superadmin_max_amount_purchase?: string | null;
+  min_amount_purchase?: string | null;
+  max_amount_purchase?: string | null;
+  created?: string | null;
+  modified?: string | null;
+}
+
+/** Main purchase payment method with optional subcategories (admin/superadmin API response) */
+export interface PurchasePaymentMethod {
+  payment_method: string;
+  payment_method_display: string;
+  enabled_for_purchase_by_superadmin?: boolean;
+  is_enabled_for_purchase?: boolean;
+  superadmin_min_amount_purchase?: string | null;
+  superadmin_max_amount_purchase?: string | null;
+  min_amount_purchase?: string | null;
+  max_amount_purchase?: string | null;
+  min_amount?: string | null;
+  max_amount?: string | null;
+  has_subcategories: boolean;
+  configured_subcategories_count?: number;
+  enabled_subcategories_count?: number;
+  subcategories: PurchaseSubcategory[];
+}
+
+/** Raw admin API response - cashout and purchase can be nested with subcategories */
 export interface PaymentMethodsListResponseRaw {
   cashout: CashoutPaymentMethod[];
-  purchase: PaymentMethod[];
+  purchase: (PurchasePaymentMethod | PaymentMethod)[];
 }
 
 // API Response Types
