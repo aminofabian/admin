@@ -37,7 +37,7 @@ export function StaffPaymentSettingsSection() {
   const isLoading = usePaymentMethodsStore((state) => state.isLoading);
   const error = usePaymentMethodsStore((state) => state.error);
   const fetchPaymentMethods = usePaymentMethodsStore((state) => state.fetchPaymentMethods);
-  const [filterAction, setFilterAction] = useState<PaymentMethodAction>('cashout');
+  const [filterAction, setFilterAction] = useState<PaymentMethodAction>('purchase');
 
   type PaymentMethodRow = PaymentMethod & {
     action: PaymentMethodAction;

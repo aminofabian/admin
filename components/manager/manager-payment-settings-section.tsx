@@ -34,7 +34,7 @@ export function ManagerPaymentSettingsSection() {
   const { addToast } = useToast();
   const updatePaymentMethodAmounts = usePaymentMethodsStore((state) => state.updatePaymentMethodAmounts);
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
-  const [filterAction, setFilterAction] = useState<PaymentMethodAction>('cashout');
+  const [filterAction, setFilterAction] = useState<PaymentMethodAction>('purchase');
   const [amountModalOpen, setAmountModalOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodRow | null>(null);
   const [isUpdatingAmounts, setIsUpdatingAmounts] = useState(false);
