@@ -292,9 +292,11 @@ interface ProcessingTransactionRowProps {
   getStatusVariant: (status: string) => 'success' | 'warning' | 'danger' | 'info';
   onView: () => void;
   isActionPending: boolean;
+  /** Show provider column (purchase processing only; cashout provider is unknown until admin clicks a button) */
+  showProvider?: boolean;
 }
 
-function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isActionPending }: ProcessingTransactionRowProps) {
+function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isActionPending, showProvider }: ProcessingTransactionRowProps) {
   const router = useRouter();
   const bonusValue = parseFloat(transaction.bonus_amount || '0');
   const paymentMethod = transaction.payment_method ?? '—';
@@ -438,6 +440,14 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
     </TableCell>
   );
 
+  const providerCell = showProvider ? (
+    <TableCell>
+      <Badge variant="info" className="text-xs">
+        {formatPaymentMethod(transaction.provider)}
+      </Badge>
+    </TableCell>
+  ) : null;
+
   const paymentCell = (
     <TableCell>
       <div className="space-y-1">
@@ -480,6 +490,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
       {creditCell}
       {winningCell}
       {statusCell}
+      {providerCell}
       {paymentCell}
       {datesCell}
     </TableRow>
@@ -1561,6 +1572,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                       <TableHead>Credit</TableHead>
                       <TableHead>Winning</TableHead>
                       <TableHead>Status</TableHead>
+                      {viewType === 'purchases' && <TableHead>Provider</TableHead>}
                       <TableHead>Payment</TableHead>
                       <TableHead>Dates</TableHead>
                     </TableRow>
@@ -1573,6 +1585,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                         getStatusVariant={getStatusVariant}
                         onView={() => handleViewTransaction(transaction)}
                         isActionPending={pendingTransactionId === transaction.id}
+                        showProvider={viewType === 'purchases'}
                       />
                     ))}
                   </TableBody>
@@ -1634,10 +1647,15 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                             {transaction.type ?? '—'}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
                             {transaction.status}
                           </Badge>
+                          {viewType === 'purchases' && (
+                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
+                              {formatPaymentMethod(transaction.provider)}
+                            </Badge>
+                          )}
                           <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
                             {formatPaymentMethod(transaction.payment_method)}
                           </Badge>
