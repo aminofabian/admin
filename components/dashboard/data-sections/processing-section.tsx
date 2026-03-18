@@ -196,6 +196,66 @@ function getCashoutPaymentDetailEntries(
   ]);
 }
 
+/**
+ * Purchase processing: show exactly 2 payment detail fields.
+ * - Card: Provider (e.g. banxa), Payment Method (e.g. card)
+ * - Other: 2 most worthwhile from payment_details or transaction
+ */
+function getPurchasePaymentDetailEntries(transaction: Transaction): [string, string][] {
+  const paymentDetails = transaction.payment_details;
+  const paymentMethod = (transaction.payment_method ?? '').toLowerCase();
+  const providerVal = transaction.provider ?? (paymentDetails && typeof paymentDetails === 'object' ? findPaymentDetailValue(paymentDetails, ['provider']) : undefined);
+  const provider = formatPaymentMethod(providerVal);
+  const methodDisplay = formatPaymentMethod(transaction.payment_method);
+
+  if (/card/.test(paymentMethod)) {
+    const entries: [string, string][] = [];
+    if (provider !== '—' && provider.trim() !== '') entries.push(['Provider', provider]);
+    if (methodDisplay !== '—' && methodDisplay.trim() !== '') entries.push(['Payment Method', methodDisplay]);
+    if (entries.length > 0) return entries;
+  }
+
+  if (!paymentDetails || typeof paymentDetails !== 'object') {
+    const fallback: [string, string][] = [];
+    if (provider !== '—' && provider.trim() !== '') fallback.push(['Provider', provider]);
+    if (methodDisplay !== '—' && methodDisplay.trim() !== '') fallback.push(['Payment Method', methodDisplay]);
+    return fallback;
+  }
+
+  const worthwhileKeyOrder = [
+    'provider', 'payment_method', 'email', 'full_name', 'fullname', 'customer_name', 'customername',
+    'phone', 'phone_number', 'phonenumber', 'cashtag', 'cash_tag',
+    'game_name', 'game_title', 'gametitle', 'game', 'account', 'address',
+  ];
+  const keyLower = (k: string) => k.toLowerCase();
+  const byPriority: [string, unknown][] = [];
+  const others: [string, unknown][] = [];
+  for (const [key, value] of Object.entries(paymentDetails)) {
+    const formatted = formatDetailValue(value);
+    if (formatted === '—' || formatted.trim() === '') continue;
+    const kl = keyLower(key);
+    const idx = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === kl);
+    if (idx >= 0) byPriority.push([key, value]);
+    else others.push([key, value]);
+  }
+  byPriority.sort((a, b) => {
+    const ai = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === keyLower(a[0]));
+    const bi = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === keyLower(b[0]));
+    return ai - bi;
+  });
+  const chosen = [...byPriority, ...others].slice(0, 2);
+  if (chosen.length > 0) {
+    return chosen.map(([key, value]) => [
+      key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      formatDetailValue(value),
+    ]);
+  }
+  const fallback: [string, string][] = [];
+  if (provider !== '—' && provider.trim() !== '') fallback.push(['Provider', provider]);
+  if (methodDisplay !== '—' && methodDisplay.trim() !== '') fallback.push(['Payment Method', methodDisplay]);
+  return fallback;
+}
+
 // Skeleton loaders for better UX
 function ProcessingTransactionTableSkeleton() {
   return (
@@ -564,19 +624,16 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
         </Badge>
         {(() => {
           const entries = isPurchase
-            ? getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, paymentMethod)
+            ? getPurchasePaymentDetailEntries(transaction)
             : getCashoutPaymentDetailEntries(transaction.payment_details ?? undefined, paymentMethod);
           return entries.length > 0 ? (
             <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
-              {entries.map(([label, value]) => {
-                const displayLabel = isPurchase ? (label as string).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : label;
-                return (
-                  <div key={label} className="truncate" title={`${displayLabel}: ${formatDetailValue(value)}`}>
-                    <span className="font-medium">{displayLabel}:</span>{' '}
-                    <span className="text-gray-700 dark:text-gray-300">{formatDetailValue(value)}</span>
-                  </div>
-                );
-              })}
+              {entries.map(([label, value]) => (
+                <div key={label} className="truncate" title={`${label}: ${value}`}>
+                  <span className="font-medium">{label}:</span>{' '}
+                  <span className="text-gray-700 dark:text-gray-300">{value}</span>
+                </div>
+              ))}
             </div>
           ) : null;
         })()}
@@ -1774,22 +1831,17 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                         {(() => {
                           const isPurchaseTxn = transaction.type === 'purchase';
                           const entries = isPurchaseTxn
-                            ? getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, transaction.payment_method ?? '')
+                            ? getPurchasePaymentDetailEntries(transaction)
                             : getCashoutPaymentDetailEntries(transaction.payment_details ?? undefined, transaction.payment_method ?? '');
                           return entries.length > 0 ? (
                             <div className="mt-2 bg-gray-50 dark:bg-gray-800/50 rounded-md p-2 space-y-1">
                               <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Payment Details</div>
-                              {entries.map(([label, value]) => {
-                                const displayLabel = isPurchaseTxn
-                                  ? (label as string).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-                                  : label;
-                                return (
-                                  <div key={label} className="text-[10px] text-gray-700 dark:text-gray-300">
-                                    <span className="font-medium">{displayLabel}:</span>{' '}
-                                    <span className="break-all">{formatDetailValue(value)}</span>
-                                  </div>
-                                );
-                              })}
+                              {entries.map(([label, value]) => (
+                                <div key={label} className="text-[10px] text-gray-700 dark:text-gray-300">
+                                  <span className="font-medium">{label}:</span>{' '}
+                                  <span className="break-all">{value}</span>
+                                </div>
+                              ))}
                             </div>
                           ) : null;
                         })()}
