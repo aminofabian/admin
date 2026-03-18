@@ -1022,7 +1022,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   }, [viewType, queueFilter, setTransactionsFilter, setQueuesFilter]);
 
 
-  type TransactionActionType = 'completed' | 'cancelled' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcaida';
+  type TransactionActionType = 'completed' | 'cancelled' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia';
 
   const handleTransactionAction = async (
     transactionId: string, 
@@ -1055,12 +1055,12 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       return;
     }
 
-    const apiActionMap: Record<TransactionActionType, 'complete' | 'cancel' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcaida'> = {
+    const apiActionMap: Record<TransactionActionType, 'complete' | 'cancel' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia'> = {
       completed: 'complete',
       cancelled: 'cancel',
       send_to_binpay: 'send_to_binpay',
       send_to_tierlock: 'send_to_tierlock',
-      send_to_taparcaida: 'send_to_taparcaida',
+      send_to_taparcadia: 'send_to_taparcadia',
     };
     const apiAction = apiActionMap[action];
     const successTitleMap: Record<TransactionActionType, string> = {
@@ -1068,14 +1068,14 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       cancelled: 'Transaction Cancelled',
       send_to_binpay: 'Sent to Binpay',
       send_to_tierlock: 'Sent to Tierlock',
-      send_to_taparcaida: 'Sent to Taparcaida',
+      send_to_taparcadia: 'Sent to Taparcadia',
     };
     const successDescriptionMap: Record<TransactionActionType, string> = {
       completed: 'Transaction completed successfully',
       cancelled: 'Transaction cancelled successfully',
       send_to_binpay: 'Transaction sent to Binpay successfully',
       send_to_tierlock: 'Transaction sent to Tierlock successfully',
-      send_to_taparcaida: 'Transaction sent to Taparcaida successfully',
+      send_to_taparcadia: 'Transaction sent to Taparcadia successfully',
     };
 
     try {
@@ -1221,7 +1221,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       return;
     }
 
-    if (action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcaida') {
+    if (action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia') {
       void handleTransactionAction(
         selectedTransaction.id,
         action,
@@ -1239,7 +1239,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     const lower = (pm ?? '').toLowerCase();
     if (lower === 'binpay') return 'send_to_binpay';
     if (lower === 'tierlock') return 'send_to_tierlock';
-    if (lower === 'taparcaida' || lower === 'taparcadia' || lower === 'tap') return 'send_to_taparcaida';
+    if (lower === 'taparcaida' || lower === 'taparcadia' || lower === 'tap') return 'send_to_taparcadia';
     return null;
   };
 
