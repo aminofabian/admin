@@ -88,6 +88,114 @@ function getFilteredPaymentDetailEntries(
   );
 }
 
+/** Find first value in paymentDetails matching any of the given keys (case-insensitive). */
+function findPaymentDetailValue(
+  paymentDetails: Record<string, unknown>,
+  keys: string[]
+): unknown {
+  const keySet = new Set(keys.map((k) => k.toLowerCase()));
+  for (const [key, value] of Object.entries(paymentDetails)) {
+    if (keySet.has(key.toLowerCase())) return value;
+  }
+  return undefined;
+}
+
+/** Format value for display. */
+function formatDetailValue(value: unknown): string {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  return JSON.stringify(value);
+}
+
+/**
+ * Cashout processing: show exactly 2 payment detail fields per method.
+ * - CashApp: Game name, Cashtag
+ * - Card (Binpay): Binpay sent, Player IP address
+ * - PayPal: Email, Full name
+ * - Tierlock: Phone, Customer name
+ * - Other: first 2 available entries
+ */
+function getCashoutPaymentDetailEntries(
+  paymentDetails: Record<string, unknown> | null | undefined,
+  paymentMethod: string
+): [string, string][] {
+  if (!paymentDetails || typeof paymentDetails !== 'object') return [];
+  const method = (paymentMethod ?? '').toLowerCase();
+
+  const getVal = (keys: string[]) => formatDetailValue(findPaymentDetailValue(paymentDetails, keys));
+
+  const pickSpecific = (label1: string, keys1: string[], label2: string, keys2: string[]): [string, string][] => {
+    const v1 = getVal(keys1);
+    const v2 = getVal(keys2);
+    const entries: [string, string][] = [];
+    if (v1 !== '—' && String(v1).trim() !== '') entries.push([label1, v1]);
+    if (v2 !== '—' && String(v2).trim() !== '') entries.push([label2, v2]);
+    return entries;
+  };
+
+  const formatBinpaySent = (val: unknown): string => {
+    if (val === true) return 'Yes';
+    if (val === false) return 'No';
+    return formatDetailValue(val);
+  };
+
+  const cashapp = pickSpecific('Game name', ['game_name', 'game_title', 'gameTitle', 'gameName', 'game'], 'Cashtag', ['cashtag', 'cash_tag']);
+  if (/cashapp|cash_app/.test(method) && cashapp.length > 0) return cashapp;
+
+  const hasBinpayKeys = Object.keys(paymentDetails).some((k) => /binpay/.test(k.toLowerCase()));
+  if ((/card/.test(method) || /binpay/.test(method)) && hasBinpayKeys) {
+    const sentVal = findPaymentDetailValue(paymentDetails, ['binpay_sent', 'binpay_status']);
+    const ipVal = findPaymentDetailValue(paymentDetails, ['binpay_player_ip_address', 'player_ip_address', 'player_ip']);
+    const sent = formatBinpaySent(sentVal);
+    const ip = formatDetailValue(ipVal);
+    const cardEntries: [string, string][] = [];
+    if (sent !== '—' && sent.trim() !== '') cardEntries.push(['Binpay sent', sent]);
+    if (ip !== '—' && ip.trim() !== '') cardEntries.push(['Player IP address', ip]);
+    if (cardEntries.length > 0) return cardEntries;
+  }
+
+  const paypal = pickSpecific('Email', ['email'], 'Full name', ['full_name', 'fullname', 'customer_name', 'customername']);
+  if (/paypal|pay_pal/.test(method) && paypal.length > 0) return paypal;
+
+  const tierlock = pickSpecific('Phone', ['phone', 'phone_number', 'phonenumber'], 'Customer name', ['customer_name', 'customername', 'full_name', 'fullname']);
+  if (/tierlock/.test(method) && tierlock.length > 0) return tierlock;
+
+  const venmo = pickSpecific('Email', ['email'], 'Full name', ['full_name', 'fullname', 'customer_name', 'customername']);
+  if (/venmo/.test(method) && venmo.length > 0) return venmo;
+
+  const chimeZelle = pickSpecific('Email', ['email'], 'Full name', ['full_name', 'fullname', 'customer_name', 'customername']);
+  if (/chime|zelle/.test(method) && chimeZelle.length > 0) return chimeZelle;
+
+  // Fallback: pick 2 most worthwhile fields (prioritize identity/contact over internal keys)
+  const worthwhileKeyOrder = [
+    'email', 'full_name', 'fullname', 'customer_name', 'customername',
+    'phone', 'phone_number', 'phonenumber', 'cashtag', 'cash_tag',
+    'game_name', 'game_title', 'gametitle', 'game', 'binpay_status', 'binpay_player_ip_address',
+    'player_ip_address', 'player_ip', 'account', 'address',
+  ];
+  const keyLower = (k: string) => k.toLowerCase();
+  const byPriority: [string, unknown][] = [];
+  const others: [string, unknown][] = [];
+  for (const [key, value] of Object.entries(paymentDetails)) {
+    const formatted = formatDetailValue(value);
+    if (formatted === '—' || formatted.trim() === '') continue;
+    const kl = keyLower(key);
+    const idx = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === kl);
+    if (idx >= 0) byPriority.push([key, value]);
+    else others.push([key, value]);
+  }
+  byPriority.sort((a, b) => {
+    const ai = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === keyLower(a[0]));
+    const bi = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === keyLower(b[0]));
+    return ai - bi;
+  });
+  const chosen = [...byPriority, ...others].slice(0, 2);
+  return chosen.map(([key, value]) => [
+    key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    formatDetailValue(value),
+  ]);
+}
+
 // Skeleton loaders for better UX
 function ProcessingTransactionTableSkeleton() {
   return (
@@ -455,17 +563,20 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
           {formatPaymentMethod(paymentMethod)}
         </Badge>
         {(() => {
-          const entries = getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, paymentMethod);
+          const entries = isPurchase
+            ? getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, paymentMethod)
+            : getCashoutPaymentDetailEntries(transaction.payment_details ?? undefined, paymentMethod);
           return entries.length > 0 ? (
             <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
-              {entries.map(([key, value]) => (
-                <div key={key} className="truncate" title={`${key.replace(/_/g, ' ')}: ${typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}`}>
-                  <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
-                  </span>
-                </div>
-              ))}
+              {entries.map(([label, value]) => {
+                const displayLabel = isPurchase ? (label as string).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : label;
+                return (
+                  <div key={label} className="truncate" title={`${displayLabel}: ${formatDetailValue(value)}`}>
+                    <span className="font-medium">{displayLabel}:</span>{' '}
+                    <span className="text-gray-700 dark:text-gray-300">{formatDetailValue(value)}</span>
+                  </div>
+                );
+              })}
             </div>
           ) : null;
         })()}
@@ -1661,18 +1772,24 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                           </Badge>
                         </div>
                         {(() => {
-                          const entries = getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, transaction.payment_method ?? '');
+                          const isPurchaseTxn = transaction.type === 'purchase';
+                          const entries = isPurchaseTxn
+                            ? getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, transaction.payment_method ?? '')
+                            : getCashoutPaymentDetailEntries(transaction.payment_details ?? undefined, transaction.payment_method ?? '');
                           return entries.length > 0 ? (
                             <div className="mt-2 bg-gray-50 dark:bg-gray-800/50 rounded-md p-2 space-y-1">
                               <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Payment Details</div>
-                              {entries.map(([key, value]) => (
-                                <div key={key} className="text-[10px] text-gray-700 dark:text-gray-300">
-                                  <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
-                                  <span className="break-all">
-                                    {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
-                                  </span>
-                                </div>
-                              ))}
+                              {entries.map(([label, value]) => {
+                                const displayLabel = isPurchaseTxn
+                                  ? (label as string).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+                                  : label;
+                                return (
+                                  <div key={label} className="text-[10px] text-gray-700 dark:text-gray-300">
+                                    <span className="font-medium">{displayLabel}:</span>{' '}
+                                    <span className="break-all">{formatDetailValue(value)}</span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : null;
                         })()}
