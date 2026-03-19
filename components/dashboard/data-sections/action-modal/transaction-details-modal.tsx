@@ -3,7 +3,7 @@
 import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod, getPaymentDetailsForDisplay } from '@/lib/utils/formatters';
 import type { Transaction } from '@/types';
 import { PROJECT_DOMAIN } from '@/lib/constants/api';
 import { playersApi } from '@/lib/api';
@@ -20,43 +20,6 @@ import {
 } from './details-modal-wrapper';
 
 const CRYPTO_PAYMENT_METHODS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'];
-
-/** Keys to show for Binpay payment details (Binpay Status, Binpay Player IP Address). Case-insensitive. */
-const BINPAY_PAYMENT_DETAIL_KEYS_LOWER = ['binpay_status', 'binpay_player_ip_address'];
-
-/** Keys to show for Tierlock cashout: Phone, Customer Name, Tierlock Status only. Case-insensitive. */
-const TIERLOCK_PAYMENT_DETAIL_KEYS_LOWER = [
-  'phone',
-  'phone_number',
-  'phonenumber',
-  'customer_name',
-  'customername',
-  'tierlock_status',
-];
-
-function getFilteredPaymentDetailEntries(
-  paymentDetails: Record<string, unknown> | null | undefined,
-  paymentMethod: string
-): [string, unknown][] {
-  if (!paymentDetails || typeof paymentDetails !== 'object') return [];
-  const entries = Object.entries(paymentDetails);
-  const method = paymentMethod ?? '';
-
-  const isTierlock = /tierlock/i.test(method);
-  if (isTierlock) {
-    return entries.filter(([key]) =>
-      TIERLOCK_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase())
-    );
-  }
-
-  const isBinpayByMethod = /binpay/i.test(method);
-  const hasBinpayKeys = entries.some(([key]) => BINPAY_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase()));
-  const isBinpay = isBinpayByMethod || hasBinpayKeys;
-  if (!isBinpay) return entries;
-  return entries.filter(([key]) =>
-    BINPAY_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase())
-  );
-}
 
 const parseNumericValue = (value: string | number | null | undefined): number | null => {
   if (value === null || value === undefined) {
@@ -265,12 +228,6 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
               <DetailsField label="Email" value={transaction.user_email} />
             </DetailsRow>
             <DetailsRow>
-              <DetailsField label="Payment Method" value={formatPaymentMethod(transaction.payment_method)} />
-              {transaction.provider && (
-                <DetailsField label="Provider" value={formatPaymentMethod(transaction.provider)} />
-              )}
-            </DetailsRow>
-            <DetailsRow>
               <DetailsField label="Operator" value={transaction.operator || '—'} />
             </DetailsRow>
 
@@ -302,20 +259,20 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
             </div>
           </div>
 
-          {/* Payment Details */}
+          {/* Payment Details (provider-specific: email, account name, cashtag, etc.) */}
           {(() => {
-            const entries = getFilteredPaymentDetailEntries(transaction.payment_details ?? undefined, transaction.payment_method ?? '');
+            const entries = getPaymentDetailsForDisplay(transaction);
             return entries.length > 0 ? (
               <div className="space-y-2">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Payment Details</div>
                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-md p-3 space-y-2">
-                  {entries.map(([key, value]) => (
-                    <div key={key} className="flex items-start justify-between gap-3">
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300 capitalize min-w-0 flex-shrink-0">
-                        {key.replace(/_/g, ' ')}:
+                  {entries.map(([label, value]) => (
+                    <div key={label} className="flex items-start justify-between gap-3">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300 min-w-0 flex-shrink-0">
+                        {label}:
                       </span>
                       <span className="text-xs text-gray-900 dark:text-gray-100 text-right break-all min-w-0">
-                        {typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}
+                        {value}
                       </span>
                     </div>
                   ))}

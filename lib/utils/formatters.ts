@@ -92,6 +92,89 @@ export const formatDate = (dateString: string | null | undefined): string => {
   }
 };
 
+function findPaymentDetailValue(
+  paymentDetails: Record<string, unknown>,
+  keys: string[]
+): unknown {
+  const keySet = new Set(keys.map((k) => k.toLowerCase()));
+  for (const [key, value] of Object.entries(paymentDetails)) {
+    if (keySet.has(key.toLowerCase())) return value;
+  }
+  return undefined;
+}
+
+function formatDetailValue(value: unknown): string {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  return JSON.stringify(value);
+}
+
+function pickValue(paymentDetails: Record<string, unknown>, keys: string[]): string {
+  const val = findPaymentDetailValue(paymentDetails, keys);
+  const formatted = formatDetailValue(val);
+  return formatted !== '—' && String(formatted).trim() !== '' ? formatted : '';
+}
+
+/**
+ * Get at most 2 user-identifying payment details for display.
+ * Prioritizes: Email, Name, Username, Phone, Cashtag/ChimeSign, Wallet.
+ */
+const IDENTITY_PRIORITY: [string, string[]][] = [
+  ['Email', ['email', 'paypal_email', 'user_email', 'payer_email', 'customer_email']],
+  ['Name', ['full_name', 'fullname', 'customer_name', 'customername', 'account_name', 'accountName']],
+  ['Username', ['username', 'venmo_username', 'user_name']],
+  ['Phone', ['phone', 'phone_number', 'phonenumber']],
+  ['Cashtag', ['cashtag', 'cash_tag', 'chimetag', 'chimesign', 'chime_sign']],
+  ['Wallet', ['wallet_address', 'wallet', 'crypto_address', 'address', 'destination']],
+  ['Player IP', ['binpay_player_ip_address', 'player_ip_address', 'player_ip']],
+];
+
+function pickTopTwoIdentifiers(paymentDetails: Record<string, unknown>): [string, string][] {
+  const out: [string, string][] = [];
+  const seen = new Set<string>();
+  for (const [label, keys] of IDENTITY_PRIORITY) {
+    const v = pickValue(paymentDetails, keys);
+    if (v && !seen.has(v)) {
+      seen.add(v);
+      out.push([label, v]);
+      if (out.length >= 2) break;
+    }
+  }
+  return out;
+}
+
+/** Fallback when no identity fields: Provider + Payment Method. */
+function getProviderPaymentMethodFallback(transaction: {
+  payment_method?: string | null;
+  provider?: string | null;
+  payment_details?: Record<string, unknown> | null;
+}): [string, string][] {
+  const out: [string, string][] = [];
+  const provider = transaction.provider ?? (transaction.payment_details && typeof transaction.payment_details === 'object'
+    ? findPaymentDetailValue(transaction.payment_details, ['provider'])
+    : null);
+  const providerStr = formatDetailValue(provider);
+  const methodStr = formatDetailValue(transaction.payment_method);
+  if (providerStr !== '—' && String(providerStr).trim() !== '') out.push(['Provider', providerStr]);
+  if (methodStr !== '—' && String(methodStr).trim() !== '') out.push(['Payment Method', methodStr]);
+  return out.slice(0, 2);
+}
+
+export function getPaymentDetailsForDisplay(transaction: {
+  payment_details?: Record<string, unknown> | null;
+  payment_method?: string | null;
+  provider?: string | null;
+}): [string, string][] {
+  const paymentDetails = transaction.payment_details;
+
+  if (paymentDetails && typeof paymentDetails === 'object') {
+    const entries = pickTopTwoIdentifiers(paymentDetails);
+    if (entries.length > 0) return entries;
+  }
+
+  return getProviderPaymentMethodFallback(transaction);
+}
+
 export const formatPaymentMethod = (method: string | null | undefined): string => {
   if (!method || method.trim() === '') {
     return '—';

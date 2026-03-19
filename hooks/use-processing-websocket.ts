@@ -55,6 +55,12 @@ function transformPurchaseToTransaction(rawPurchase: any): Transaction {
   const userData = rawPurchase.user && typeof rawPurchase.user === 'object' ? rawPurchase.user : null;
   const nestedData = rawPurchase.data && typeof rawPurchase.data === 'object' ? rawPurchase.data : null;
 
+  const paymentDetails = (rawPurchase.payment_details && typeof rawPurchase.payment_details === 'object')
+    ? rawPurchase.payment_details
+    : (nestedData?.payment_details && typeof nestedData.payment_details === 'object')
+      ? nestedData.payment_details
+      : null;
+
   return {
     id: rawPurchase.id || rawPurchase.transaction_id || nestedData?.id || nestedData?.transaction_id || '',
     user_username: rawPurchase.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawPurchase.username || nestedData?.username || '',
@@ -65,6 +71,7 @@ function transformPurchaseToTransaction(rawPurchase: any): Transaction {
     type: 'purchase',
     operator: rawPurchase.operator || nestedData?.operator || '',
     payment_method: rawPurchase.payment_method || nestedData?.payment_method || rawPurchase.operator || nestedData?.operator || '',
+    provider: rawPurchase.provider ?? nestedData?.provider ?? undefined,
     currency: rawPurchase.currency || nestedData?.currency || 'USD',
     description: rawPurchase.description || nestedData?.description || '',
     journal_entry: 'credit',
@@ -82,6 +89,7 @@ function transformPurchaseToTransaction(rawPurchase: any): Transaction {
     updated_at: rawPurchase.updated_at || rawPurchase.updated || nestedData?.updated_at || nestedData?.updated || new Date().toISOString(),
     payment_url: rawPurchase.payment_url || nestedData?.payment_url || null,
     invoice_url: rawPurchase.invoice_url || nestedData?.invoice_url,
+    payment_details: paymentDetails,
   };
 }
 

@@ -36,7 +36,7 @@ import {
   usePaymentMethodsStore
 } from '@/stores';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
-import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod, getPaymentDetailsForDisplay } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import { staffsApi, managersApi, playersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
@@ -49,222 +49,6 @@ type QueueFilterType = 'processing' | 'history' | 'recharge_game' | 'redeem_game
 
 interface ProcessingSectionProps {
   type: ViewType;
-}
-
-/** Keys to show for Binpay payment details (Binpay Status, Binpay Player IP Address). Case-insensitive. */
-const BINPAY_PAYMENT_DETAIL_KEYS_LOWER = ['binpay_status', 'binpay_player_ip_address'];
-
-/** Keys to show for Tierlock cashout: Phone, Customer Name, Tierlock Status only. Case-insensitive. */
-const TIERLOCK_PAYMENT_DETAIL_KEYS_LOWER = [
-  'phone',
-  'phone_number',
-  'phonenumber',
-  'customer_name',
-  'customername',
-  'tierlock_status',
-];
-
-function getFilteredPaymentDetailEntries(
-  paymentDetails: Record<string, unknown> | null | undefined,
-  paymentMethod: string
-): [string, unknown][] {
-  if (!paymentDetails || typeof paymentDetails !== 'object') return [];
-  const entries = Object.entries(paymentDetails);
-  const method = paymentMethod ?? '';
-
-  const isTierlock = /tierlock/i.test(method);
-  if (isTierlock) {
-    return entries.filter(([key]) =>
-      TIERLOCK_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase())
-    );
-  }
-
-  const isBinpayByMethod = /binpay/i.test(method);
-  const hasBinpayKeys = entries.some(([key]) => BINPAY_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase()));
-  const isBinpay = isBinpayByMethod || hasBinpayKeys;
-  if (!isBinpay) return entries;
-  return entries.filter(([key]) =>
-    BINPAY_PAYMENT_DETAIL_KEYS_LOWER.includes(key.toLowerCase())
-  );
-}
-
-/** Find first value in paymentDetails matching any of the given keys (case-insensitive). */
-function findPaymentDetailValue(
-  paymentDetails: Record<string, unknown>,
-  keys: string[]
-): unknown {
-  const keySet = new Set(keys.map((k) => k.toLowerCase()));
-  for (const [key, value] of Object.entries(paymentDetails)) {
-    if (keySet.has(key.toLowerCase())) return value;
-  }
-  return undefined;
-}
-
-/** Format value for display. */
-function formatDetailValue(value: unknown): string {
-  if (value === null || value === undefined) return '—';
-  if (typeof value === 'string' || typeof value === 'number') return String(value);
-  return JSON.stringify(value);
-}
-
-/**
- * Cashout processing: show exactly 2 payment detail fields per method.
- * - CashApp: Game name, Cashtag
- * - Card (Binpay): Binpay sent, Player IP address
- * - PayPal: Email, Full name
- * - Tierlock: Phone, Customer name
- * - Other: first 2 available entries
- */
-function getCashoutPaymentDetailEntries(
-  paymentDetails: Record<string, unknown> | null | undefined,
-  paymentMethod: string
-): [string, string][] {
-  if (!paymentDetails || typeof paymentDetails !== 'object') return [];
-  const method = (paymentMethod ?? '').toLowerCase();
-
-  const getVal = (keys: string[]) => formatDetailValue(findPaymentDetailValue(paymentDetails, keys));
-
-  const pickSpecific = (label1: string, keys1: string[], label2: string, keys2: string[]): [string, string][] => {
-    const v1 = getVal(keys1);
-    const v2 = getVal(keys2);
-    const entries: [string, string][] = [];
-    if (v1 !== '—' && String(v1).trim() !== '') entries.push([label1, v1]);
-    if (v2 !== '—' && String(v2).trim() !== '') entries.push([label2, v2]);
-    return entries;
-  };
-
-  const formatBinpaySent = (val: unknown): string => {
-    if (val === true) return 'Yes';
-    if (val === false) return 'No';
-    return formatDetailValue(val);
-  };
-
-  const cashapp = pickSpecific('Game name', ['game_name', 'game_title', 'gameTitle', 'gameName', 'game'], 'Chimetag', ['cashtag', 'cash_tag']);
-  if (/cashapp|cash_app/.test(method) && cashapp.length > 0) return cashapp;
-
-  const hasBinpayKeys = Object.keys(paymentDetails).some((k) => /binpay/.test(k.toLowerCase()));
-  if ((/card/.test(method) || /binpay/.test(method)) && hasBinpayKeys) {
-    const sentVal = findPaymentDetailValue(paymentDetails, ['binpay_sent', 'binpay_status']);
-    const ipVal = findPaymentDetailValue(paymentDetails, ['binpay_player_ip_address', 'player_ip_address', 'player_ip']);
-    const sent = formatBinpaySent(sentVal);
-    const ip = formatDetailValue(ipVal);
-    const cardEntries: [string, string][] = [];
-    if (sent !== '—' && sent.trim() !== '') cardEntries.push(['Binpay sent', sent]);
-    if (ip !== '—' && ip.trim() !== '') cardEntries.push(['Player IP address', ip]);
-    if (cardEntries.length > 0) return cardEntries;
-  }
-
-  const paypal = pickSpecific('Email', ['email'], 'Full name', ['full_name', 'fullname', 'customer_name', 'customername']);
-  if (/paypal|pay_pal/.test(method) && paypal.length > 0) return paypal;
-
-  const tierlock = pickSpecific('Phone', ['phone', 'phone_number', 'phonenumber'], 'Customer name', ['customer_name', 'customername', 'full_name', 'fullname']);
-  if (/tierlock/.test(method) && tierlock.length > 0) return tierlock;
-
-  const venmo = pickSpecific('Email', ['email'], 'Full name', ['full_name', 'fullname', 'customer_name', 'customername']);
-  if (/venmo/.test(method) && venmo.length > 0) return venmo;
-
-  // Chime: display cashtag field as "Chimetag"
-  const chime = pickSpecific('Game name', ['game_name', 'game_title', 'gameTitle', 'gameName', 'game'], 'Chimetag', ['cashtag', 'cash_tag']);
-  if (/chime/.test(method) && chime.length > 0) return chime;
-
-  const chimeZelle = pickSpecific('Email', ['email'], 'Full name', ['full_name', 'fullname', 'customer_name', 'customername']);
-  if (/chime|zelle/.test(method) && chimeZelle.length > 0) return chimeZelle;
-
-  // Fallback: pick 2 most worthwhile fields (prioritize identity/contact over internal keys)
-  const worthwhileKeyOrder = [
-    'email', 'full_name', 'fullname', 'customer_name', 'customername',
-    'phone', 'phone_number', 'phonenumber', 'cashtag', 'cash_tag',
-    'game_name', 'game_title', 'gametitle', 'game', 'binpay_status', 'binpay_player_ip_address',
-    'player_ip_address', 'player_ip', 'account', 'address',
-  ];
-  const keyLower = (k: string) => k.toLowerCase();
-  const byPriority: [string, unknown][] = [];
-  const others: [string, unknown][] = [];
-  for (const [key, value] of Object.entries(paymentDetails)) {
-    const formatted = formatDetailValue(value);
-    if (formatted === '—' || formatted.trim() === '') continue;
-    const kl = keyLower(key);
-    const idx = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === kl);
-    if (idx >= 0) byPriority.push([key, value]);
-    else others.push([key, value]);
-  }
-  byPriority.sort((a, b) => {
-    const ai = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === keyLower(a[0]));
-    const bi = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === keyLower(b[0]));
-    return ai - bi;
-  });
-  const chosen = [...byPriority, ...others].slice(0, 2);
-  const formatLabel = (k: string): string => {
-    const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-    if (/(chime|cashapp|cash_app)/.test(method) && /cashtag|cash_tag/.test(k.toLowerCase())) return 'Chimetag';
-    return label;
-  };
-  return chosen.map(([key, value]) => [formatLabel(key), formatDetailValue(value)]);
-}
-
-/**
- * Purchase processing: show exactly 2 payment detail fields.
- * - Card: Provider (e.g. banxa), Payment Method (e.g. card)
- * - Other: 2 most worthwhile from payment_details or transaction
- */
-function getPurchasePaymentDetailEntries(transaction: Transaction): [string, string][] {
-  const paymentDetails = transaction.payment_details;
-  const paymentMethod = (transaction.payment_method ?? '').toLowerCase();
-  const providerVal = transaction.provider ?? (paymentDetails && typeof paymentDetails === 'object' ? findPaymentDetailValue(paymentDetails, ['provider']) : undefined);
-  const provider = formatPaymentMethod(
-    providerVal == null ? providerVal : typeof providerVal === 'string' ? providerVal : String(providerVal)
-  );
-  const methodDisplay = formatPaymentMethod(transaction.payment_method);
-
-  if (/card/.test(paymentMethod)) {
-    const entries: [string, string][] = [];
-    if (provider !== '—' && provider.trim() !== '') entries.push(['Provider', provider]);
-    if (methodDisplay !== '—' && methodDisplay.trim() !== '') entries.push(['Payment Method', methodDisplay]);
-    if (entries.length > 0) return entries;
-  }
-
-  if (!paymentDetails || typeof paymentDetails !== 'object') {
-    const fallback: [string, string][] = [];
-    if (provider !== '—' && provider.trim() !== '') fallback.push(['Provider', provider]);
-    if (methodDisplay !== '—' && methodDisplay.trim() !== '') fallback.push(['Payment Method', methodDisplay]);
-    return fallback;
-  }
-
-  const worthwhileKeyOrder = [
-    'provider', 'payment_method', 'email', 'full_name', 'fullname', 'customer_name', 'customername',
-    'phone', 'phone_number', 'phonenumber', 'cashtag', 'cash_tag',
-    'game_name', 'game_title', 'gametitle', 'game', 'account', 'address',
-  ];
-  const keyLower = (k: string) => k.toLowerCase();
-  const byPriority: [string, unknown][] = [];
-  const others: [string, unknown][] = [];
-  for (const [key, value] of Object.entries(paymentDetails)) {
-    const formatted = formatDetailValue(value);
-    if (formatted === '—' || formatted.trim() === '') continue;
-    const kl = keyLower(key);
-    const idx = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === kl);
-    if (idx >= 0) byPriority.push([key, value]);
-    else others.push([key, value]);
-  }
-  byPriority.sort((a, b) => {
-    const ai = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === keyLower(a[0]));
-    const bi = worthwhileKeyOrder.findIndex((w) => w.toLowerCase() === keyLower(b[0]));
-    return ai - bi;
-  });
-  const chosen = [...byPriority, ...others].slice(0, 2);
-  if (chosen.length > 0) {
-    const isChimeOrCashapp = /chime|cashapp|cash_app/.test(paymentMethod) || /chime|cashapp|cash_app/.test(String(providerVal ?? '').toLowerCase());
-    const formatLabel = (k: string): string => {
-      const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-      if (isChimeOrCashapp && /cashtag|cash_tag/.test(k.toLowerCase())) return 'Chimetag';
-      return label;
-    };
-    return chosen.map(([key, value]) => [formatLabel(key), formatDetailValue(value)]);
-  }
-  const fallback: [string, string][] = [];
-  if (provider !== '—' && provider.trim() !== '') fallback.push(['Provider', provider]);
-  if (methodDisplay !== '—' && methodDisplay.trim() !== '') fallback.push(['Payment Method', methodDisplay]);
-  return fallback;
 }
 
 // Skeleton loaders for better UX
@@ -471,15 +255,12 @@ interface ProcessingTransactionRowProps {
   getStatusVariant: (status: string) => 'success' | 'warning' | 'danger' | 'info';
   onView: () => void;
   isActionPending: boolean;
-  /** Show provider column (purchase processing only; cashout provider is unknown until admin clicks a button) */
   showProvider?: boolean;
 }
 
 function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isActionPending, showProvider }: ProcessingTransactionRowProps) {
   const router = useRouter();
   const bonusValue = parseFloat(transaction.bonus_amount || '0');
-  const paymentMethod = transaction.payment_method ?? '—';
-
   const isPurchase = transaction.type === 'purchase';
   const statusVariant = getStatusVariant(transaction.status);
 
@@ -619,35 +400,27 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
     </TableCell>
   );
 
-  const providerCell = showProvider ? (
+  const paymentDetails = getPaymentDetailsForDisplay(transaction);
+  const providerCell = showProvider && transaction.provider ? (
     <TableCell>
       <Badge variant="info" className="text-xs">
         {formatPaymentMethod(transaction.provider)}
       </Badge>
     </TableCell>
   ) : null;
-
   const paymentCell = (
     <TableCell>
-      <div className="space-y-1">
-        <Badge variant="info" className="text-xs">
-          {formatPaymentMethod(paymentMethod)}
-        </Badge>
-        {(() => {
-          const entries = isPurchase
-            ? getPurchasePaymentDetailEntries(transaction)
-            : getCashoutPaymentDetailEntries(transaction.payment_details ?? undefined, paymentMethod);
-          return entries.length > 0 ? (
-            <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1 space-y-0.5">
-              {entries.map(([label, value]) => (
-                <div key={label} className="truncate" title={`${label}: ${value}`}>
-                  <span className="font-medium">{label}:</span>{' '}
-                  <span className="text-gray-700 dark:text-gray-300">{value}</span>
-                </div>
-              ))}
+      <div className="space-y-0.5">
+        {paymentDetails.length > 0 ? (
+          paymentDetails.map(([label, value]) => (
+            <div key={label} className="text-[10px] truncate" title={`${label}: ${value}`}>
+              <span className="font-medium text-gray-600 dark:text-gray-400">{label}:</span>{' '}
+              <span className="text-gray-700 dark:text-gray-300">{value}</span>
             </div>
-          ) : null;
-        })()}
+          ))
+        ) : (
+          <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
+        )}
       </div>
     </TableCell>
   );
@@ -669,8 +442,8 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
       {creditCell}
       {winningCell}
       {statusCell}
-      {paymentCell}
       {providerCell}
+      {paymentCell}
       {datesCell}
     </TableRow>
   );
@@ -1751,8 +1524,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                       <TableHead>Credit</TableHead>
                       <TableHead>Winning</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Payment</TableHead>
                       {viewType === 'purchases' && <TableHead>Provider</TableHead>}
+                      <TableHead>Payment</TableHead>
                       <TableHead>Dates</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1830,20 +1603,14 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                           <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
                             {transaction.status}
                           </Badge>
-                          <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
-                            {formatPaymentMethod(transaction.payment_method)}
-                          </Badge>
-                          {viewType === 'purchases' && (
+                          {viewType === 'purchases' && transaction.provider && (
                             <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
                               {formatPaymentMethod(transaction.provider)}
                             </Badge>
                           )}
                         </div>
                         {(() => {
-                          const isPurchaseTxn = transaction.type === 'purchase';
-                          const entries = isPurchaseTxn
-                            ? getPurchasePaymentDetailEntries(transaction)
-                            : getCashoutPaymentDetailEntries(transaction.payment_details ?? undefined, transaction.payment_method ?? '');
+                          const entries = getPaymentDetailsForDisplay(transaction);
                           return entries.length > 0 ? (
                             <div className="mt-2 bg-gray-50 dark:bg-gray-800/50 rounded-md p-2 space-y-1">
                               <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Payment Details</div>

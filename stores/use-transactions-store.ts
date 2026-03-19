@@ -623,14 +623,20 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       }
       
       // Update existing transaction (for status changes like pending -> processing)
-      // Merge WebSocket update with existing transaction to preserve user data from API
+      // Merge WebSocket update with existing transaction. WebSocket is prioritized for provider and payment_details.
+      // API data is only used on page load/reload; once WebSocket sends data, it takes precedence.
       const existingTransaction = transactions.results[transactionIndex];
+      const hasWsProvider = updatedTransaction.provider != null && String(updatedTransaction.provider).trim() !== '';
+      const hasWsPaymentDetails = updatedTransaction.payment_details != null
+        && typeof updatedTransaction.payment_details === 'object'
+        && Object.keys(updatedTransaction.payment_details).length > 0;
       const mergedTransaction: Transaction = {
         ...existingTransaction,
         ...updatedTransaction,
-        // Preserve user data from API if WebSocket update doesn't have it
         user_username: updatedTransaction.user_username || existingTransaction.user_username || '',
         user_email: updatedTransaction.user_email || existingTransaction.user_email || '',
+        provider: hasWsProvider ? updatedTransaction.provider : existingTransaction.provider,
+        payment_details: hasWsPaymentDetails ? updatedTransaction.payment_details : existingTransaction.payment_details,
       };
       
       const updatedResults = [...transactions.results];
