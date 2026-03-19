@@ -669,8 +669,8 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
       {creditCell}
       {winningCell}
       {statusCell}
-      {providerCell}
       {paymentCell}
+      {providerCell}
       {datesCell}
     </TableRow>
   );
@@ -1751,8 +1751,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                       <TableHead>Credit</TableHead>
                       <TableHead>Winning</TableHead>
                       <TableHead>Status</TableHead>
-                      {viewType === 'purchases' && <TableHead>Provider</TableHead>}
                       <TableHead>Payment</TableHead>
+                      {viewType === 'purchases' && <TableHead>Provider</TableHead>}
                       <TableHead>Dates</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1830,14 +1830,14 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                           <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
                             {transaction.status}
                           </Badge>
+                          <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
+                            {formatPaymentMethod(transaction.payment_method)}
+                          </Badge>
                           {viewType === 'purchases' && (
                             <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
                               {formatPaymentMethod(transaction.provider)}
                             </Badge>
                           )}
-                          <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0">
-                            {formatPaymentMethod(transaction.payment_method)}
-                          </Badge>
                         </div>
                         {(() => {
                           const isPurchaseTxn = transaction.type === 'purchase';
