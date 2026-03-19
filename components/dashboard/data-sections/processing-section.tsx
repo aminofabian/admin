@@ -211,7 +211,9 @@ function getPurchasePaymentDetailEntries(transaction: Transaction): [string, str
   const paymentDetails = transaction.payment_details;
   const paymentMethod = (transaction.payment_method ?? '').toLowerCase();
   const providerVal = transaction.provider ?? (paymentDetails && typeof paymentDetails === 'object' ? findPaymentDetailValue(paymentDetails, ['provider']) : undefined);
-  const provider = formatPaymentMethod(providerVal);
+  const provider = formatPaymentMethod(
+    providerVal == null ? providerVal : typeof providerVal === 'string' ? providerVal : String(providerVal)
+  );
   const methodDisplay = formatPaymentMethod(transaction.payment_method);
 
   if (/card/.test(paymentMethod)) {
