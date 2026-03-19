@@ -1204,9 +1204,13 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </Badge>
       </TableCell>
       <TableCell>
-        <span className="text-xs text-gray-600 dark:text-gray-400">
-          {transaction.provider ? formatPaymentMethod(transaction.provider) : '—'}
-        </span>
+        {transaction.provider ? (
+          <Badge variant="info" className="text-xs">
+            {formatPaymentMethod(transaction.provider)}
+          </Badge>
+        ) : (
+          <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
+        )}
       </TableCell>
       <TableCell>
         <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
@@ -1331,7 +1335,7 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
                 {formatPaymentMethod(transaction.payment_method)}
               </Badge>
               {transaction.provider && (
-                <Badge variant="default" className="text-[10px] px-2 py-0.5 truncate">
+                <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
                   {formatPaymentMethod(transaction.provider)}
                 </Badge>
               )}
