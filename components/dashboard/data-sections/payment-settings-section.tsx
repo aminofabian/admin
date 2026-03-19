@@ -64,14 +64,6 @@ export function PaymentSettingsSection() {
   }, [paymentMethods]);
 
   const filteredResults = methodsByAction[filterAction] ?? [];
-  const totalCount = filteredResults.length;
-  const enabledCount = filteredResults.filter((method) => method.isEnabled).length;
-  const disabledCount = filteredResults.filter((method) => !method.isEnabled).length;
-  const actionCounts: Record<PaymentMethodAction, number> = {
-    cashout: methodsByAction.cashout.length,
-    purchase: methodsByAction.purchase.length,
-  };
-
   useEffect(() => {
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);
@@ -158,7 +150,7 @@ export function PaymentSettingsSection() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header Skeleton */}
         <div className="flex items-center justify-between gap-4">
           <Skeleton className="h-7 w-40" />
@@ -168,26 +160,13 @@ export function PaymentSettingsSection() {
           </div>
         </div>
 
-        {/* Stats Skeleton */}
-        <div className="grid grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 px-4 py-3"
-            >
-              <Skeleton className="h-3 w-16 mb-2" />
-              <Skeleton className="h-6 w-12" />
-            </div>
-          ))}
-        </div>
-
         {/* Table Skeleton */}
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 overflow-hidden">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <div className="min-w-full">
               {/* Table Header Skeleton */}
               <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                <div className="grid grid-cols-6 gap-4 px-4 py-3">
+                <div className="grid grid-cols-6 gap-4 px-6 py-4">
                   {[...Array(6)].map((_, i) => (
                     <Skeleton key={i} className="h-4 w-24" />
                   ))}
@@ -197,7 +176,7 @@ export function PaymentSettingsSection() {
               {/* Table Rows Skeleton */}
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="grid grid-cols-6 gap-4 px-4 py-4">
+                  <div key={i} className="grid grid-cols-6 gap-4 px-6 py-5">
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-10 w-10 rounded-lg" />
                       <div className="flex-1">
@@ -238,13 +217,13 @@ export function PaymentSettingsSection() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <h2 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
           Payment Methods
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {(['purchase', 'cashout'] as PaymentMethodAction[]).map((action) => {
             const isActive = filterAction === action;
             return (
@@ -252,40 +231,23 @@ export function PaymentSettingsSection() {
                 key={action}
                 type="button"
                 onClick={() => setFilterAction(action)}
-                className={`px-3 py-2 rounded-md text-sm font-medium capitalize transition-colors ${
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium capitalize transition-colors ${
                   isActive
                     ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
                 {action}
-                <span className="ml-1.5 text-xs opacity-80">({actionCounts[action]})</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 px-4 py-3">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</div>
-          <div className="text-xl font-semibold text-gray-900 dark:text-gray-100 mt-0.5">{totalCount}</div>
-        </div>
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 px-4 py-3">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Active</div>
-          <div className="text-xl font-semibold text-green-600 dark:text-green-400 mt-0.5">{enabledCount}</div>
-        </div>
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 px-4 py-3">
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Inactive</div>
-          <div className="text-xl font-semibold text-gray-600 dark:text-gray-400 mt-0.5">{disabledCount}</div>
-        </div>
-      </div>
-
       {/* Payment Methods */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 overflow-hidden">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
         {!paymentMethods ? (
-          <div className="py-12">
+          <div className="py-16 px-8">
             <EmptyState 
               title="No Payment Methods" 
               description="Payment methods will appear here once configured"
@@ -293,7 +255,7 @@ export function PaymentSettingsSection() {
           </div>
         ) : filterAction === 'purchase' && purchaseCategories && purchaseCategories.length > 0 ? (
           /* Hierarchical Purchase View: Categories + Subcategories */
-          <div className="space-y-3 p-4 lg:p-5">
+          <div className="space-y-4 p-6 lg:p-8">
             {purchaseCategories
               .filter((category) => {
                 const configuredCount = category.subcategories?.filter((s) => s.is_configured && s.id != null).length ?? 0;
@@ -302,14 +264,17 @@ export function PaymentSettingsSection() {
               .map((category) => {
               const hasSubs = category.has_subcategories && (category.subcategories?.length ?? 0) > 0;
               const isExpanded = expandedCategories.has(category.payment_method);
+              const configuredSubs = category.subcategories?.filter((s) => s.is_configured && s.id != null) ?? [];
+              const activeCount = configuredSubs.filter((s) => s.is_enabled_for_purchase).length;
+              const inactiveCount = configuredSubs.length - activeCount;
 
               return (
                 <Card
                   key={category.payment_method}
-                  className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm"
+                  className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm"
                 >
                   <CardHeader
-                    className={`py-4 px-4 lg:px-5 ${hasSubs ? 'cursor-pointer select-none hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors' : ''}`}
+                    className={`py-5 px-5 lg:px-6 ${hasSubs ? 'cursor-pointer select-none hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors' : ''}`}
                     onClick={() => hasSubs && toggleExpandedCategory(category.payment_method)}
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -323,7 +288,9 @@ export function PaymentSettingsSection() {
                           </div>
                           {hasSubs && (
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                              {category.configured_subcategories_count ?? 0} provider{(category.configured_subcategories_count ?? 0) !== 1 ? 's' : ''}
+                              <span className="text-green-600 dark:text-green-400 font-medium">{activeCount} active</span>
+                              <span className="text-gray-400 dark:text-gray-500 mx-1">·</span>
+                              <span className="text-gray-500 dark:text-gray-400">{inactiveCount} inactive</span>
                             </div>
                           )}
                         </div>
@@ -352,7 +319,7 @@ export function PaymentSettingsSection() {
                             return (
                             <div
                               key={sub.id}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 lg:px-5 py-3 sm:py-4"
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pl-6 pr-5 lg:pl-8 lg:pr-6 py-4 sm:py-5"
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="flex-shrink-0 w-9 h-9 rounded-md bg-white dark:bg-slate-800 flex items-center justify-center border border-gray-200 dark:border-gray-600">
@@ -464,7 +431,7 @@ export function PaymentSettingsSection() {
           </div>
         ) : filterAction === 'cashout' && cashoutCategories && cashoutCategories.length > 0 ? (
           /* Hierarchical Cashout View: Categories + Subcategories */
-          <div className="space-y-3 p-4 lg:p-5">
+          <div className="space-y-4 p-6 lg:p-8">
             {cashoutCategories
               .filter((category) => {
                 const configuredCount = category.subcategories?.filter((s) => s.is_configured && s.id != null).length ?? 0;
@@ -473,14 +440,17 @@ export function PaymentSettingsSection() {
               .map((category) => {
               const hasSubs = category.has_subcategories && (category.subcategories?.length ?? 0) > 0;
               const isExpanded = expandedCategories.has(category.payment_method);
+              const configuredSubs = category.subcategories?.filter((s) => s.is_configured && s.id != null) ?? [];
+              const activeCount = configuredSubs.filter((s) => s.is_enabled_for_cashout).length;
+              const inactiveCount = configuredSubs.length - activeCount;
 
               return (
                 <Card
                   key={category.payment_method}
-                  className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm"
+                  className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm"
                 >
                   <CardHeader
-                    className={`py-4 px-4 lg:px-5 ${hasSubs ? 'cursor-pointer select-none hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors' : ''}`}
+                    className={`py-5 px-5 lg:px-6 ${hasSubs ? 'cursor-pointer select-none hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors' : ''}`}
                     onClick={() => hasSubs && toggleExpandedCategory(category.payment_method)}
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -494,7 +464,9 @@ export function PaymentSettingsSection() {
                           </div>
                           {hasSubs && (
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                              {category.configured_subcategories_count ?? 0} provider{(category.configured_subcategories_count ?? 0) !== 1 ? 's' : ''}
+                              <span className="text-green-600 dark:text-green-400 font-medium">{activeCount} active</span>
+                              <span className="text-gray-400 dark:text-gray-500 mx-1">·</span>
+                              <span className="text-gray-500 dark:text-gray-400">{inactiveCount} inactive</span>
                             </div>
                           )}
                         </div>
@@ -523,7 +495,7 @@ export function PaymentSettingsSection() {
                             return (
                             <div
                               key={sub.id}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 lg:px-5 py-3 sm:py-4"
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pl-6 pr-5 lg:pl-8 lg:pr-6 py-4 sm:py-5"
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="flex-shrink-0 w-9 h-9 rounded-md bg-white dark:bg-slate-800 flex items-center justify-center border border-gray-200 dark:border-gray-600">
@@ -634,7 +606,7 @@ export function PaymentSettingsSection() {
             })}
           </div>
         ) : filteredResults.length === 0 ? (
-          <div className="py-12">
+          <div className="py-16 px-8">
             <EmptyState 
               title="No Payment Methods" 
               description="Payment methods will appear here once configured"
@@ -644,7 +616,7 @@ export function PaymentSettingsSection() {
           <>
             {/* Desktop Table View (Purchase or flat Cashout) */}
             <div className="hidden lg:block overflow-x-auto">
-              <Table>
+              <Table className="[&_th]:px-6 [&_th]:py-4 [&_td]:px-6 [&_td]:py-4">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Payment Method</TableHead>
@@ -776,13 +748,13 @@ export function PaymentSettingsSection() {
             </div>
 
           {/* Mobile Card View */}
-          <div className="lg:hidden space-y-2">
+          <div className="lg:hidden space-y-4 p-4 lg:p-0">
             {sortedResults.map((method) => (
               <div
                 key={method.loadingKey}
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"
               >
-                <div className="p-4">
+                <div className="p-5 sm:p-6">
                   <div className="flex items-center justify-between gap-6">
                     {/* Left: Icon + Info */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -857,7 +829,7 @@ export function PaymentSettingsSection() {
                   </div>
 
                   {/* Mobile Amount Limits */}
-                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Amount Limits</span>
                       <button
@@ -885,7 +857,7 @@ export function PaymentSettingsSection() {
                   </div>
 
                   {/* Mobile badges */}
-                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <span className="inline-flex items-center px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 text-xs font-medium capitalize">
                       {method.method_type}
                     </span>

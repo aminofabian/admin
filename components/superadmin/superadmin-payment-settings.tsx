@@ -698,7 +698,9 @@ export function SuperAdminPaymentSettings() {
                                 {filteredPurchasePaymentMethods.map((method) => {
                                     const hasSubs = method.has_subcategories && (method.subcategories?.length ?? 0) > 0;
                                     const isExpanded = expandedPurchaseMethods.has(method.payment_method);
-                                    const totalCount = method.configured_subcategories_count ?? 0;
+                                    const configuredSubs = method.subcategories?.filter((s) => s.id != null) ?? [];
+                                    const activeCount = configuredSubs.filter((s) => s.enabled_for_purchase_by_superadmin).length;
+                                    const inactiveCount = configuredSubs.length - activeCount;
                                     return (
                                         <Card
                                             key={method.payment_method}
@@ -719,7 +721,9 @@ export function SuperAdminPaymentSettings() {
                                                             </div>
                                                             {hasSubs && (
                                                                 <div className="text-xs text-muted-foreground mt-0.5">
-                                                                    {totalCount} provider{totalCount !== 1 ? 's' : ''}
+                                                                    <span className="text-green-600 dark:text-green-400 font-medium">{activeCount} active</span>
+                                                                    <span className="text-muted-foreground/60 mx-1">·</span>
+                                                                    <span>{inactiveCount} inactive</span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -821,7 +825,9 @@ export function SuperAdminPaymentSettings() {
                                 {filteredCashoutPaymentMethods.map((method) => {
                                     const hasSubs = method.has_subcategories && (method.subcategories?.length ?? 0) > 0;
                                     const isExpanded = expandedCashoutMethods.has(method.payment_method);
-                                    const totalCount = method.configured_subcategories_count ?? 0;
+                                    const configuredSubs = method.subcategories?.filter((s) => s.id != null) ?? [];
+                                    const activeCount = configuredSubs.filter((s) => s.enabled_for_cashout_by_superadmin).length;
+                                    const inactiveCount = configuredSubs.length - activeCount;
                                     return (
                                         <Card
                                             key={method.payment_method}
@@ -842,7 +848,9 @@ export function SuperAdminPaymentSettings() {
                                                             </div>
                                                             {hasSubs && (
                                                                 <div className="text-xs text-muted-foreground mt-0.5">
-                                                                    {totalCount} provider{totalCount !== 1 ? 's' : ''}
+                                                                    <span className="text-green-600 dark:text-green-400 font-medium">{activeCount} active</span>
+                                                                    <span className="text-muted-foreground/60 mx-1">·</span>
+                                                                    <span>{inactiveCount} inactive</span>
                                                                 </div>
                                                             )}
                                                         </div>

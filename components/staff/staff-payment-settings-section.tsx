@@ -67,14 +67,6 @@ export function StaffPaymentSettingsSection() {
   }, [paymentMethods]);
 
   const filteredResults = methodsByAction[filterAction] ?? [];
-  const totalCount = filteredResults.length;
-  const enabledCount = filteredResults.filter((method) => method.isEnabled).length;
-  const disabledCount = filteredResults.filter((method) => !method.isEnabled).length;
-  const actionCounts: Record<PaymentMethodAction, number> = {
-    cashout: methodsByAction.cashout.length,
-    purchase: methodsByAction.purchase.length,
-  };
-
   useEffect(() => {
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);
@@ -93,19 +85,6 @@ export function StaffPaymentSettingsSection() {
               <Skeleton className="h-9 w-24 rounded-lg" />
             </div>
           </div>
-        </div>
-
-        {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700"
-            >
-              <Skeleton className="h-4 w-32 mb-2" />
-              <Skeleton className="h-8 w-16" />
-            </div>
-          ))}
         </div>
 
         {/* Table Skeleton */}
@@ -202,33 +181,10 @@ export function StaffPaymentSettingsSection() {
                   }`}
                 >
                   {action}
-                  <span className={`ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 py-0 text-xs font-semibold ${
-                    isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {actionCounts[action]}
-                  </span>
                 </button>
               );
             })}
           </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total Payment Methods</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{totalCount}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
-          <div className="text-2xl font-bold text-green-500 mt-1">
-            {enabledCount}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Inactive</div>
-          <div className="text-2xl font-bold text-gray-500 mt-1">{disabledCount}</div>
         </div>
       </div>
 
