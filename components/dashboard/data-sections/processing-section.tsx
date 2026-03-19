@@ -163,6 +163,10 @@ function getCashoutPaymentDetailEntries(
   const venmo = pickSpecific('Email', ['email'], 'Full name', ['full_name', 'fullname', 'customer_name', 'customername']);
   if (/venmo/.test(method) && venmo.length > 0) return venmo;
 
+  // Chime: display cashtag field as "Chimetag"
+  const chime = pickSpecific('Game name', ['game_name', 'game_title', 'gameTitle', 'gameName', 'game'], 'Chimetag', ['cashtag', 'cash_tag']);
+  if (/chime/.test(method) && chime.length > 0) return chime;
+
   const chimeZelle = pickSpecific('Email', ['email'], 'Full name', ['full_name', 'fullname', 'customer_name', 'customername']);
   if (/chime|zelle/.test(method) && chimeZelle.length > 0) return chimeZelle;
 
@@ -190,10 +194,12 @@ function getCashoutPaymentDetailEntries(
     return ai - bi;
   });
   const chosen = [...byPriority, ...others].slice(0, 2);
-  return chosen.map(([key, value]) => [
-    key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-    formatDetailValue(value),
-  ]);
+  const formatLabel = (k: string): string => {
+    const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    if (/chime/.test(method) && /cashtag|cash_tag/.test(k.toLowerCase())) return 'Chimetag';
+    return label;
+  };
+  return chosen.map(([key, value]) => [formatLabel(key), formatDetailValue(value)]);
 }
 
 /**
@@ -245,10 +251,13 @@ function getPurchasePaymentDetailEntries(transaction: Transaction): [string, str
   });
   const chosen = [...byPriority, ...others].slice(0, 2);
   if (chosen.length > 0) {
-    return chosen.map(([key, value]) => [
-      key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-      formatDetailValue(value),
-    ]);
+    const isChime = /chime/.test(paymentMethod) || /chime/.test(String(providerVal ?? '').toLowerCase());
+    const formatLabel = (k: string): string => {
+      const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+      if (isChime && /cashtag|cash_tag/.test(k.toLowerCase())) return 'Chimetag';
+      return label;
+    };
+    return chosen.map(([key, value]) => [formatLabel(key), formatDetailValue(value)]);
   }
   const fallback: [string, string][] = [];
   if (provider !== '—' && provider.trim() !== '') fallback.push(['Provider', provider]);
