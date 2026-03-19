@@ -139,7 +139,7 @@ function getCashoutPaymentDetailEntries(
     return formatDetailValue(val);
   };
 
-  const cashapp = pickSpecific('Game name', ['game_name', 'game_title', 'gameTitle', 'gameName', 'game'], 'Cashtag', ['cashtag', 'cash_tag']);
+  const cashapp = pickSpecific('Game name', ['game_name', 'game_title', 'gameTitle', 'gameName', 'game'], 'Chimetag', ['cashtag', 'cash_tag']);
   if (/cashapp|cash_app/.test(method) && cashapp.length > 0) return cashapp;
 
   const hasBinpayKeys = Object.keys(paymentDetails).some((k) => /binpay/.test(k.toLowerCase()));
@@ -196,7 +196,7 @@ function getCashoutPaymentDetailEntries(
   const chosen = [...byPriority, ...others].slice(0, 2);
   const formatLabel = (k: string): string => {
     const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-    if (/chime/.test(method) && /cashtag|cash_tag/.test(k.toLowerCase())) return 'Chimetag';
+    if (/(chime|cashapp|cash_app)/.test(method) && /cashtag|cash_tag/.test(k.toLowerCase())) return 'Chimetag';
     return label;
   };
   return chosen.map(([key, value]) => [formatLabel(key), formatDetailValue(value)]);
@@ -251,10 +251,10 @@ function getPurchasePaymentDetailEntries(transaction: Transaction): [string, str
   });
   const chosen = [...byPriority, ...others].slice(0, 2);
   if (chosen.length > 0) {
-    const isChime = /chime/.test(paymentMethod) || /chime/.test(String(providerVal ?? '').toLowerCase());
+    const isChimeOrCashapp = /chime|cashapp|cash_app/.test(paymentMethod) || /chime|cashapp|cash_app/.test(String(providerVal ?? '').toLowerCase());
     const formatLabel = (k: string): string => {
       const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-      if (isChime && /cashtag|cash_tag/.test(k.toLowerCase())) return 'Chimetag';
+      if (isChimeOrCashapp && /cashtag|cash_tag/.test(k.toLowerCase())) return 'Chimetag';
       return label;
     };
     return chosen.map(([key, value]) => [formatLabel(key), formatDetailValue(value)]);
