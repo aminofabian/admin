@@ -109,6 +109,23 @@ function formatDetailValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
+/** Format a raw phone string (e.g. "11234566785") to readable form (e.g. "+1 (123) 456-6785"). */
+export function formatPhoneNumber(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.length === 0) return '—';
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length >= 10) {
+    return `+${digits.slice(0, -10)} (${digits.slice(-10, -7)}) ${digits.slice(-7, -4)}-${digits.slice(-4)}`;
+  }
+  return digits;
+}
+
 function pickValue(paymentDetails: Record<string, unknown>, keys: string[]): string {
   const val = findPaymentDetailValue(paymentDetails, keys);
   const formatted = formatDetailValue(val);
@@ -136,7 +153,8 @@ function pickTopTwoIdentifiers(paymentDetails: Record<string, unknown>): [string
     const v = pickValue(paymentDetails, keys);
     if (v && !seen.has(v)) {
       seen.add(v);
-      out.push([label, v]);
+      const displayValue = label === 'Phone' ? formatPhoneNumber(v) : v;
+      out.push([label, displayValue]);
       if (out.length >= 2) break;
     }
   }

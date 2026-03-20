@@ -299,10 +299,12 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   const typeVariant = isPurchase ? 'success' : 'danger';
 
   const transactionCell = (
-    <TableCell>
-      <Badge variant={typeVariant} className="text-xs uppercase">
-        {transaction.type ?? '—'}
-      </Badge>
+    <TableCell className="align-top">
+      <div className="rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2 w-fit">
+        <Badge variant={typeVariant} className="text-xs uppercase font-medium">
+          {transaction.type ?? '—'}
+        </Badge>
+      </div>
     </TableCell>
   );
 
@@ -312,15 +314,17 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   const bonusColorClass = isPurchase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
   const amountCell = (
-    <TableCell>
-      <div className={`text-sm font-bold ${amountColorClass}`}>
-        {formattedAmount}
-      </div>
-      {formattedBonus && (
-        <div className={`text-xs font-semibold mt-0.5 ${bonusColorClass}`}>
-          +{formattedBonus} bonus
+    <TableCell className="align-top">
+      <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+        <div className={`text-sm font-bold ${amountColorClass}`}>
+          {formattedAmount}
         </div>
-      )}
+        {formattedBonus && (
+          <div className={`text-xs font-semibold mt-0.5 ${bonusColorClass}`}>
+            +{formattedBonus} bonus
+          </div>
+        )}
+      </div>
     </TableCell>
   );
 
@@ -377,47 +381,61 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   }, [winningChanged]);
 
   const creditCell = (
-    <TableCell>
-      <div className={`text-xs ${creditColorClass}`}>
-        {creditDisplayText}
+    <TableCell className="align-top">
+      <div className="min-w-[5.5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+        <div className={`text-xs font-medium ${creditColorClass}`}>
+          {creditDisplayText}
+        </div>
       </div>
     </TableCell>
   );
 
   const winningCell = (
-    <TableCell>
-      <div className={`text-xs ${winningColorClass}`}>
-        {winningDisplayText}
+    <TableCell className="align-top">
+      <div className="min-w-[5.5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+        <div className={`text-xs font-medium ${winningColorClass}`}>
+          {winningDisplayText}
+        </div>
       </div>
     </TableCell>
   );
 
   const statusCell = (
-    <TableCell>
-      <Badge variant={statusVariant} className="capitalize">
-        {transaction.status}
-      </Badge>
+    <TableCell className="align-top">
+      <div className="rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2 w-fit">
+        <Badge variant={statusVariant} className="capitalize font-medium">
+          {transaction.status}
+        </Badge>
+      </div>
     </TableCell>
   );
 
   const paymentDetails = getPaymentDetailsForDisplay(transaction);
   const providerCell = showProvider && transaction.provider ? (
-    <TableCell>
-      <Badge variant="info" className="text-xs">
-        {formatPaymentMethod(transaction.provider)}
-      </Badge>
+    <TableCell className="align-top">
+      <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+        <Badge variant="info" className="text-xs font-medium">
+          {formatPaymentMethod(transaction.provider)}
+        </Badge>
+      </div>
     </TableCell>
   ) : null;
   const paymentCell = (
-    <TableCell>
-      <div className="space-y-0.5">
+    <TableCell className="align-top">
+      <div className="min-w-[8rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
         {paymentDetails.length > 0 ? (
-          paymentDetails.map(([label, value]) => (
-            <div key={label} className="text-[10px] truncate" title={`${label}: ${value}`}>
-              <span className="font-medium text-gray-600 dark:text-gray-400">{label}:</span>{' '}
-              <span className="text-gray-700 dark:text-gray-300">{value}</span>
-            </div>
-          ))
+          <div className="space-y-1.5">
+            {paymentDetails.map(([label, value]) => (
+              <div key={label} className="flex items-baseline gap-2 min-w-0">
+                <span className="shrink-0 min-w-[3.5rem] text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  {label}:
+                </span>
+                <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate min-w-0" title={String(value)}>
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
         ) : (
           <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
         )}
@@ -426,10 +444,12 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   );
 
   const datesCell = (
-    <TableCell>
-      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-        <div>{transaction.created_at ? formatDate(transaction.created_at) : '—'}</div>
-        <div>{transaction.updated_at ? formatDate(transaction.updated_at) : '—'}</div>
+    <TableCell className="align-top">
+      <div className="min-w-[6rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+        <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+          <div>{transaction.created_at ? formatDate(transaction.created_at) : '—'}</div>
+          <div>{transaction.updated_at ? formatDate(transaction.updated_at) : '—'}</div>
+        </div>
       </div>
     </TableCell>
   );
@@ -442,8 +462,8 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
       {creditCell}
       {winningCell}
       {statusCell}
-      {providerCell}
       {paymentCell}
+      {providerCell}
       {datesCell}
     </TableRow>
   );
@@ -1524,8 +1544,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                       <TableHead>Credit</TableHead>
                       <TableHead>Winning</TableHead>
                       <TableHead>Status</TableHead>
-                      {viewType === 'purchases' && <TableHead>Provider</TableHead>}
                       <TableHead>Payment</TableHead>
+                      {viewType === 'purchases' && <TableHead>Provider</TableHead>}
                       <TableHead>Dates</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1612,12 +1632,15 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                         {(() => {
                           const entries = getPaymentDetailsForDisplay(transaction);
                           return entries.length > 0 ? (
-                            <div className="mt-2 bg-gray-50 dark:bg-gray-800/50 rounded-md p-2 space-y-1">
-                              <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Payment Details</div>
+                            <div className="mt-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-2.5 space-y-1.5">
                               {entries.map(([label, value]) => (
-                                <div key={label} className="text-[10px] text-gray-700 dark:text-gray-300">
-                                  <span className="font-medium">{label}:</span>{' '}
-                                  <span className="break-all">{value}</span>
+                                <div key={label} className="flex items-baseline gap-2 min-w-0">
+                                  <span className="shrink-0 min-w-[3.5rem] text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    {label}:
+                                  </span>
+                                  <span className="text-xs font-medium text-gray-900 dark:text-gray-100 break-all min-w-0">
+                                    {value}
+                                  </span>
                                 </div>
                               ))}
                             </div>
