@@ -410,7 +410,10 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
     </TableCell>
   );
 
-  const paymentDetails = getPaymentDetailsForDisplay(transaction);
+  const rawPaymentDetails = getPaymentDetailsForDisplay(transaction);
+  const paymentDetails = showProvider
+    ? rawPaymentDetails.filter(([label]) => label !== 'Provider')
+    : rawPaymentDetails;
   const providerCell = showProvider && transaction.provider ? (
     <TableCell className="align-top">
       <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
@@ -1630,7 +1633,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                           )}
                         </div>
                         {(() => {
-                          const entries = getPaymentDetailsForDisplay(transaction);
+                          const rawEntries = getPaymentDetailsForDisplay(transaction);
+                          const entries = viewType === 'purchases'
+                            ? rawEntries.filter(([label]) => label !== 'Provider')
+                            : rawEntries;
                           return entries.length > 0 ? (
                             <div className="mt-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-2.5 space-y-1.5">
                               {entries.map(([label, value]) => (
