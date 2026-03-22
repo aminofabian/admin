@@ -656,9 +656,9 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
   const { users: chatUsers } = useChatUsersContext();
 
   // Calculate total unread count across all chat users
-  const hasUnreadMessages = useMemo(() => {
-    if (!chatUsers || chatUsers.length === 0) return false;
-    return chatUsers.some((chatUser) => (chatUser.unreadCount ?? 0) > 0);
+  const totalUnreadCount = useMemo(() => {
+    if (!chatUsers || chatUsers.length === 0) return 0;
+    return chatUsers.reduce((sum, chatUser) => sum + (chatUser.unreadCount ?? 0), 0);
   }, [chatUsers]);
 
   const filteredCategories = user
@@ -808,12 +808,19 @@ export function Sidebar({ onClose, isCollapsed = false, onToggleCollapse }: Side
               <div className={`shrink-0 transition-all duration-200 relative ${pathname === '/dashboard/chat' ? 'text-primary' : 'group-hover:text-primary'
                 }`}>
                 <ChatIcon />
-                {/* Red dot indicator when there are unread messages */}
-                {hasUnreadMessages && (
-                  <span className="absolute -top-0.5 -right-0.5 z-10 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background shadow-sm" />
-                )}
               </div>
               <span>Chat</span>
+              {totalUnreadCount > 0 && (
+                <span
+                  className={`ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center px-2 text-[10px] font-bold tabular-nums rounded-md shadow-sm transition-all duration-200 ${
+                    pathname === '/dashboard/chat'
+                      ? 'bg-red-500/90 text-white border border-red-400/30'
+                      : 'bg-gradient-to-br from-red-500/90 to-red-600 text-white border border-red-400/20'
+                  }`}
+                >
+                  {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                </span>
+              )}
             </Link>
           )}
 
