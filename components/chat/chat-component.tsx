@@ -9,6 +9,7 @@ import { useChatUsersContext } from '@/contexts/chat-users-context';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
 import { useOnlinePlayers } from '@/hooks/use-online-players';
 import { storage } from '@/lib/utils/storage';
+import { playNotificationSound } from '@/lib/utils/notification-sound';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
 import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
@@ -224,6 +225,11 @@ export function ChatComponent() {
     adminId: adminUserId,
     enabled: !!selectedPlayer && hasValidAdminUser,
     onMessageReceived: useCallback(async (message: ChatMessage) => {
+      // Play notification sound when receiving a message from the player
+      if (message.sender === 'player') {
+        playNotificationSound();
+      }
+
       // 🔄 Refresh the chat list from the API to get latest unread counts and sorting
       // This ensures the sidebar is always in sync with the backend
       refreshActiveChats();
