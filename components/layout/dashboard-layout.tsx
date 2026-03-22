@@ -12,6 +12,7 @@ import { ProcessingWebSocketProvider } from '@/contexts/processing-websocket-con
 import { ChatUsersProvider } from '@/contexts/chat-users-context';
 import { ChatDrawer } from '@/components/chat/chat-drawer';
 import { GlobalTransactionNotifications } from '@/components/dashboard/global-transaction-notifications';
+import { unlockAudioOnFirstInteraction } from '@/lib/utils/notification-sound';
 import { isSuperadminDomain } from '@/lib/utils/domain';
 import { useToast } from '@/components/ui';
 
@@ -42,6 +43,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
+
+  // Unlock notification sound on first user interaction (required by browser autoplay policy)
+  useEffect(() => {
+    if (isAuthenticated) {
+      unlockAudioOnFirstInteraction();
+    }
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return <LoadingState />;

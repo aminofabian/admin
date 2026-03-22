@@ -225,11 +225,9 @@ export function ChatComponent() {
     adminId: adminUserId,
     enabled: !!selectedPlayer && hasValidAdminUser,
     onMessageReceived: useCallback(async (message: ChatMessage) => {
-      // Play notification sound when receiving a message from the player
       if (message.sender === 'player') {
-        playNotificationSound();
+        void playNotificationSound();
       }
-
       // 🔄 Refresh the chat list from the API to get latest unread counts and sorting
       // This ensures the sidebar is always in sync with the backend
       refreshActiveChats();
