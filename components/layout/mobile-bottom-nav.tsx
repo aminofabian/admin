@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
+import { useChatUsersContext } from '@/contexts/chat-users-context';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import type { ReactNode } from 'react';
@@ -18,7 +20,13 @@ interface NavItem {
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { counts: processingCounts } = useProcessingWebSocketContext();
+  const { users: chatUsers } = useChatUsersContext();
   const { user } = useAuth();
+
+  const totalChatUnread = useMemo(() => {
+    if (!chatUsers?.length) return 0;
+    return chatUsers.reduce((sum, u) => sum + (u.unreadCount ?? 0), 0);
+  }, [chatUsers]);
 
   const NAV_ITEMS: NavItem[] = [
     {
@@ -73,6 +81,7 @@ export function MobileBottomNav() {
   ];
 
   const getCount = (item: NavItem): number | undefined => {
+    if (item.label === 'Chat') return totalChatUnread > 0 ? totalChatUnread : undefined;
     if (!item.countKey) return undefined;
     return processingCounts[item.countKey];
   };

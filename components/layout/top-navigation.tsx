@@ -36,11 +36,6 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
   const { users: chatUsers, isConnected: chatConnected } = useChatUsersContext();
 
   // Calculate total unread count across all chat users
-  const hasUnreadMessages = useMemo(() => {
-    if (!chatUsers || chatUsers.length === 0) return false;
-    return chatUsers.some((chatUser) => (chatUser.unreadCount ?? 0) > 0);
-  }, [chatUsers]);
-
   const totalUnreadCount = useMemo(() => {
     if (!chatUsers || chatUsers.length === 0) return 0;
     return chatUsers.reduce((sum, chatUser) => sum + (chatUser.unreadCount ?? 0), 0);
@@ -180,7 +175,7 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
               </svg>
             ),
             label: 'Chat',
-            count: undefined,
+            count: totalUnreadCount,
             hiddenRoles: [USER_ROLES.SUPERADMIN, USER_ROLES.AGENT]
           },
         ]
@@ -222,10 +217,6 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                       }`}>
                       {item.count > 99 ? '99+' : item.count}
                     </span>
-                  )}
-                  {/* Red dot indicator for chat when there are unread messages */}
-                  {item.href === '/dashboard/chat' && hasUnreadMessages && (
-                    <span className="absolute -top-0.5 -right-0.5 z-10 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-card shadow-sm" />
                   )}
                 </div>
                 {/* Label */}
