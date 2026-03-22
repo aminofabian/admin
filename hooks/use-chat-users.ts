@@ -357,7 +357,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         const isFromPlayer = isPlayerSender === true || isPlayerSender === 'true';
         const unknownSender = isPlayerSender === undefined || isPlayerSender === null;
         if (isFromPlayer || unknownSender) {
-          void playNotificationSound();
+          const player = (msg.player as { username?: string } | undefined) || {};
+          playNotificationSound({
+            senderName: (player.username as string) || 'Player',
+            preview: messageText || 'New message',
+          });
         }
 
         // Refresh chat list from API to get latest counts and messages
@@ -453,7 +457,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           const isPlayerSender = updateData.is_player_sender;
           const isFromAdmin = isPlayerSender === false || isPlayerSender === 'false';
           if (!isFromAdmin) {
-            void playNotificationSound();
+            const player = (updateData.player as { username?: string } | undefined) || {};
+            playNotificationSound({
+              senderName: (player.username as string) || 'Player',
+              preview: String(updateData.last_message || updateData.message || 'New message').slice(0, 80),
+            });
           }
           debouncedChatUpdateRef.current(updateData);
         }
@@ -555,7 +563,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
       }
 
-      // Handle re_arrange
+      // Handle re_arrange - refresh list; sound plays via message/update_chat or poll
       if ((messageWrapper && messageWrapper.type === 're_arrange') || data.type === 're_arrange') {
         refreshCallback?.();
         return;
@@ -638,7 +646,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
       //  Use the 'player' array - it has complete data including chat context
       if (data.player && Array.isArray(data.player)) {
-        const transformedUsers = data.player.map(transformPlayerToUser);
+        let transformedUsers: ChatUser[];
+        try {
+          transformedUsers = data.player.map(transformPlayerToUser);
+        } catch (transformError) {
+          console.error('❌ [refreshActiveChats] transformPlayerToUser failed:', transformError);
+          return;
+        }
         if (!IS_PROD) console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} players with chat data`);
 
         // Log raw data for first player to verify unread_messages_count is present
@@ -658,7 +672,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           (c: ChatUser) => (c.unreadCount ?? 0) > (prevUnread.get(c.id) ?? 0)
         );
         if (unreadIncreased) {
-          void playNotificationSound();
+          try {
+            playNotificationSound({ preview: 'New message' });
+          } catch (e) {
+            if (!IS_PROD) console.warn('[refreshActiveChats] playNotificationSound failed:', e);
+          }
         }
         prevUnreadByChatRef.current = new Map(
           transformedUsers.map((c: ChatUser) => [c.id, c.unreadCount ?? 0])
@@ -686,14 +704,26 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
       } else if (data.chats && Array.isArray(data.chats)) {
         // Fallback to chats format if player array is not present
-        const transformedUsers = data.chats.map(transformChatToUser);
+        let transformedUsers: ChatUser[];
+        try {
+          transformedUsers = data.chats.map(transformChatToUser);
+        } catch (transformError) {
+          console.error('❌ [refreshActiveChats] transformChatToUser failed:', transformError);
+          return;
+        }
         if (!IS_PROD) console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} chats (fallback format)`);
         const prevUnread = prevUnreadByChatRef.current;
         const hasPriorState = prevUnread.size > 0;
         const unreadIncreased = hasPriorState && transformedUsers.some(
           (c: ChatUser) => (c.unreadCount ?? 0) > (prevUnread.get(c.id) ?? 0)
         );
-        if (unreadIncreased) void playNotificationSound();
+        if (unreadIncreased) {
+          try {
+            playNotificationSound({ preview: 'New message' });
+          } catch (e) {
+            if (!IS_PROD) console.warn('[refreshActiveChats] playNotificationSound failed:', e);
+          }
+        }
         prevUnreadByChatRef.current = new Map(transformedUsers.map((c: ChatUser) => [c.id, c.unreadCount ?? 0]));
         setActiveChats(transformedUsers);
       } else {
@@ -863,8 +893,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     };
   }, [effectiveEnabled, adminId, connect, disconnect]);
 
-  // Poll for new messages when chat drawer may be closed (fallback - WebSocket may not push to chat list)
-  const POLL_INTERVAL_MS = 20_000;
+  // Poll for new messages (fallback when WebSocket doesn't push - e.g. chat open, no player selected)
+  const POLL_INTERVAL_MS = 10_000;
   useEffect(() => {
     if (!effectiveEnabled) return;
     void refreshActiveChats(); // Initial refresh to establish baseline

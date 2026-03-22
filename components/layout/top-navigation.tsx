@@ -7,6 +7,8 @@ import { useAuth } from '@/providers/auth-provider';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import { useChatUsersContext } from '@/contexts/chat-users-context';
 import { USER_ROLES } from '@/lib/constants/roles';
+import { NotificationSoundEnabler } from '@/components/chat/notification-sound-enabler';
+import { playNotificationSound } from '@/lib/utils/notification-sound';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 interface TopNavigationProps {
@@ -279,6 +281,9 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
           </button>
         </div>
 
+        {/* Enable message sounds - one-click unlock for browser audio policy */}
+        {user?.role !== USER_ROLES.SUPERADMIN && <NotificationSoundEnabler />}
+
         {/* Notifications/Alerts - Responsive sizing with dropdown */}
         {user?.role !== USER_ROLES.AGENT && (
           <div className="relative" ref={notificationRef}>
@@ -341,6 +346,15 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                       <p className="text-xs text-muted-foreground mt-1 ml-4">{wsError}</p>
                     )}
                   </div>
+
+                  {/* Test notification sound */}
+                  <button
+                    type="button"
+                    onClick={() => playNotificationSound({ senderName: 'Test', preview: 'Test notification' })}
+                    className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors text-left"
+                  >
+                    <span className="text-xs text-muted-foreground">🔔 Test notification</span>
+                  </button>
 
                   {/* Chat Connection Status */}
                   <div className="p-3 border-b border-border">

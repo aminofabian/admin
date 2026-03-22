@@ -12,7 +12,7 @@ import { ProcessingWebSocketProvider } from '@/contexts/processing-websocket-con
 import { ChatUsersProvider } from '@/contexts/chat-users-context';
 import { ChatDrawer } from '@/components/chat/chat-drawer';
 import { GlobalTransactionNotifications } from '@/components/dashboard/global-transaction-notifications';
-import { unlockAudioOnFirstInteraction } from '@/lib/utils/notification-sound';
+import { attachUnlockListeners } from '@/lib/utils/notification-sound';
 import { isSuperadminDomain } from '@/lib/utils/domain';
 import { useToast } from '@/components/ui';
 
@@ -44,10 +44,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Unlock notification sound on first user interaction (required by browser autoplay policy)
+  // Passive unlock: first click/key/touch anywhere enables notification sounds
   useEffect(() => {
     if (isAuthenticated) {
-      unlockAudioOnFirstInteraction();
+      attachUnlockListeners();
     }
   }, [isAuthenticated]);
 

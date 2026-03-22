@@ -226,7 +226,10 @@ export function ChatComponent() {
     enabled: !!selectedPlayer && hasValidAdminUser,
     onMessageReceived: useCallback(async (message: ChatMessage) => {
       if (message.sender === 'player') {
-        void playNotificationSound();
+        playNotificationSound({
+          senderName: selectedPlayer?.username ?? 'Player',
+          preview: message.text?.slice(0, 80) ?? 'New message',
+        });
       }
       // 🔄 Refresh the chat list from the API to get latest unread counts and sorting
       // This ensures the sidebar is always in sync with the backend
