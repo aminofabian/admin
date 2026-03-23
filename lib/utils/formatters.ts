@@ -178,6 +178,21 @@ function getProviderPaymentMethodFallback(transaction: {
   return out.slice(0, 2);
 }
 
+function resolvePaymentMethod(transaction: {
+  payment_details?: Record<string, unknown> | null;
+  payment_method?: string | null;
+}): string | null | undefined {
+  if (transaction.payment_method != null && String(transaction.payment_method).trim() !== '') {
+    return transaction.payment_method;
+  }
+  const pd = transaction.payment_details;
+  if (pd && typeof pd === 'object') {
+    const val = findPaymentDetailValue(pd, ['payment_method', 'method', 'payment_method_type']);
+    return val != null ? String(val) : undefined;
+  }
+  return undefined;
+}
+
 export function getPaymentDetailsForDisplay(transaction: {
   payment_details?: Record<string, unknown> | null;
   payment_method?: string | null;
@@ -193,7 +208,8 @@ export function getPaymentDetailsForDisplay(transaction: {
     entries = getProviderPaymentMethodFallback(transaction);
   }
 
-  const methodStr = formatDetailValue(transaction.payment_method);
+  const resolvedMethod = resolvePaymentMethod(transaction);
+  const methodStr = formatDetailValue(resolvedMethod);
   const hasMethod = methodStr !== '—' && String(methodStr).trim() !== '';
   const alreadyHasMethod = entries.some(([label]) =>
     label.toLowerCase() === 'method' || label.toLowerCase() === 'payment method'

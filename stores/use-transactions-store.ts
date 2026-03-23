@@ -630,6 +630,8 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       const hasWsPaymentDetails = updatedTransaction.payment_details != null
         && typeof updatedTransaction.payment_details === 'object'
         && Object.keys(updatedTransaction.payment_details).length > 0;
+      const hasWsPaymentMethod = updatedTransaction.payment_method != null
+        && String(updatedTransaction.payment_method).trim() !== '';
       const mergedTransaction: Transaction = {
         ...existingTransaction,
         ...updatedTransaction,
@@ -637,6 +639,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         user_email: updatedTransaction.user_email || existingTransaction.user_email || '',
         provider: hasWsProvider ? updatedTransaction.provider : existingTransaction.provider,
         payment_details: hasWsPaymentDetails ? updatedTransaction.payment_details : existingTransaction.payment_details,
+        payment_method: hasWsPaymentMethod ? updatedTransaction.payment_method : existingTransaction.payment_method,
       };
       
       const updatedResults = [...transactions.results];
