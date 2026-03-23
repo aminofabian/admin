@@ -18,13 +18,16 @@ interface AmountValidationContext {
   scope: AmountScope;
   action: PaymentMethodAction;
   paymentMethod: (PaymentMethod | CashoutSubcategory | PurchaseSubcategory) | null;
-  minAmount: string;
-  maxAmount: string;
+  minAmount: string | number;
+  maxAmount: string | number;
 }
 
 const formatCurrencyLimit = (value: number): string => {
   return `$${value.toFixed(2)}`;
 };
+
+const ensureString = (v: unknown): string =>
+  typeof v === 'string' ? v : v != null ? String(v) : '';
 
 export const validatePaymentAmounts = ({
   scope,
@@ -35,11 +38,13 @@ export const validatePaymentAmounts = ({
 }: AmountValidationContext): AmountValidationErrors => {
   const errors: AmountValidationErrors = {};
 
-  const hasMin = minAmount.trim() !== '';
-  const hasMax = maxAmount.trim() !== '';
+  const minStr = ensureString(minAmount);
+  const maxStr = ensureString(maxAmount);
+  const hasMin = minStr.trim() !== '';
+  const hasMax = maxStr.trim() !== '';
 
-  const parsedMin = hasMin ? parseFloat(minAmount) : NaN;
-  const parsedMax = hasMax ? parseFloat(maxAmount) : NaN;
+  const parsedMin = hasMin ? parseFloat(minStr) : NaN;
+  const parsedMax = hasMax ? parseFloat(maxStr) : NaN;
 
   if (hasMin) {
     if (isNaN(parsedMin) || parsedMin < 0) {
@@ -155,8 +160,8 @@ export function PaymentAmountModal({
               : undefined;
       }
 
-      setMinAmount(minVal || '');
-      setMaxAmount(maxVal || '');
+      setMinAmount(minVal != null && minVal !== '' ? String(minVal) : '');
+      setMaxAmount(maxVal != null && maxVal !== '' ? String(maxVal) : '');
       setErrors({});
     }
   }, [paymentMethod, action, isOpen, scope]);
