@@ -174,7 +174,7 @@ function getProviderPaymentMethodFallback(transaction: {
   const providerStr = formatDetailValue(provider);
   const methodStr = formatDetailValue(transaction.payment_method);
   if (providerStr !== '—' && String(providerStr).trim() !== '') out.push(['Provider', providerStr]);
-  if (methodStr !== '—' && String(methodStr).trim() !== '') out.push(['Payment Method', methodStr]);
+  if (methodStr !== '—' && String(methodStr).trim() !== '') out.push(['Method', methodStr]);
   return out.slice(0, 2);
 }
 
@@ -184,13 +184,24 @@ export function getPaymentDetailsForDisplay(transaction: {
   provider?: string | null;
 }): [string, string][] {
   const paymentDetails = transaction.payment_details;
+  let entries: [string, string][];
 
   if (paymentDetails && typeof paymentDetails === 'object') {
-    const entries = pickTopTwoIdentifiers(paymentDetails);
-    if (entries.length > 0) return entries;
+    entries = pickTopTwoIdentifiers(paymentDetails);
+    if (entries.length === 0) entries = getProviderPaymentMethodFallback(transaction);
+  } else {
+    entries = getProviderPaymentMethodFallback(transaction);
   }
 
-  return getProviderPaymentMethodFallback(transaction);
+  const methodStr = formatDetailValue(transaction.payment_method);
+  const hasMethod = methodStr !== '—' && String(methodStr).trim() !== '';
+  const alreadyHasMethod = entries.some(([label]) =>
+    label.toLowerCase() === 'method' || label.toLowerCase() === 'payment method'
+  );
+  if (hasMethod && !alreadyHasMethod) {
+    entries.push(['Method', methodStr]);
+  }
+  return entries;
 }
 
 export const formatPaymentMethod = (method: string | null | undefined): string => {
