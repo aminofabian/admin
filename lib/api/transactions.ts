@@ -175,11 +175,17 @@ export const transactionsApi = {
     return response;
   },
 
-  transactionAction: async (txnId: string, type: 'cancel' | 'complete' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia') => {
-    // Create form-data for the transaction action request
+  transactionAction: async (
+    txnId: string,
+    type: 'cancel' | 'complete' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia',
+    options?: { playerIp?: string | null }
+  ) => {
     const formData = new FormData();
     formData.append('txn_id', txnId);
     formData.append('type', type);
+    if (options?.playerIp) {
+      formData.append('player_ip', options.playerIp);
+    }
 
     const response = await apiClient.post<{ status: string; message: string; kyc_link?: string }>(
       'api/transaction-action',

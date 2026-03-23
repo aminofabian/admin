@@ -36,7 +36,7 @@ import {
   usePaymentMethodsStore
 } from '@/stores';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
-import { formatCurrency, formatDate, formatPaymentMethod, getPaymentDetailsForDisplay } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod, getPaymentDetailsForDisplay, getPlayerIpFromTransaction } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import { staffsApi, managersApi, playersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
@@ -1011,10 +1011,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   type TransactionActionType = 'completed' | 'cancelled' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia';
 
   const handleTransactionAction = async (
-    transactionId: string, 
+    transactionId: string,
     action: TransactionActionType,
     internalId?: string,
-    transactionStatus?: string
+    transactionStatus?: string,
+    transaction?: Transaction
   ) => {
     console.log('🔵 handleTransactionAction called:', { transactionId, action, internalId, transactionStatus });
     
@@ -1065,11 +1066,14 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     };
 
     try {
-      // Use internal ID for tracking if provided, otherwise use transactionId
       setPendingTransactionId(internalId ?? transactionId);
-      
-      console.log('🔄 Transaction Action - About to call API:', { transactionId, action: apiAction });
-      const response = await transactionsApi.transactionAction(transactionId, apiAction);
+
+      const playerIp = (action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia') && transaction
+        ? getPlayerIpFromTransaction(transaction)
+        : null;
+
+      console.log('🔄 Transaction Action - About to call API:', { transactionId, action: apiAction, playerIp: playerIp ?? '(none)' });
+      const response = await transactionsApi.transactionAction(transactionId, apiAction, playerIp ? { playerIp } : undefined);
       console.log(' Transaction Action - API call successful:', response);
       
       // Refresh transactions after successful action
@@ -1212,7 +1216,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         selectedTransaction.id,
         action,
         selectedTransaction.id,
-        selectedTransaction.status
+        selectedTransaction.status,
+        selectedTransaction
       );
       return;
     }

@@ -134,6 +134,29 @@ function pickValue(paymentDetails: Record<string, unknown>, keys: string[]): str
   return formatted !== '—' && String(formatted).trim() !== '' ? formatted : '';
 }
 
+const PLAYER_IP_KEYS = ['binpay_player_ip_address', 'player_ip_address', 'player_ip'];
+
+/**
+ * Extract the player's IP address from a transaction for use when sending to Binpay/Tierlock.
+ * Checks payment_details first, then top-level fields. Used to send the correct player IP
+ * (instead of admin/proxy IP) when admins click "Send to Binpay" etc.
+ */
+export function getPlayerIpFromTransaction(
+  transaction: Pick<Transaction, 'payment_details'>
+): string | null {
+  const pd = transaction.payment_details;
+  if (pd && typeof pd === 'object') {
+    const val = findPaymentDetailValue(pd, PLAYER_IP_KEYS);
+    if (val != null && String(val).trim() !== '') return String(val).trim();
+  }
+  const tx = transaction as Record<string, unknown>;
+  for (const key of PLAYER_IP_KEYS) {
+    const val = tx[key];
+    if (val != null && String(val).trim() !== '') return String(val).trim();
+  }
+  return null;
+}
+
 /**
  * Get at most 2 user-identifying payment details for display.
  * Prioritizes: Email, Name, Username, Phone, Cashtag/ChimeSign, Wallet.
