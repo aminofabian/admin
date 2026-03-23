@@ -6,6 +6,7 @@ import {
   requestNotificationPermission,
   notifyNewMessage,
 } from '@/lib/utils/notification-sound';
+import { subscribeToPush } from '@/lib/push';
 import { Bell } from 'lucide-react';
 
 /**
@@ -35,6 +36,7 @@ export function NotificationSoundEnabler() {
     if (granted) {
       setShow(false);
       notifyNewMessage({ senderName: 'Test', preview: 'Sound enabled! You will hear new messages.' });
+      subscribeToPush().catch(() => {}); // Push subscription for when tab is in background
     }
   };
 

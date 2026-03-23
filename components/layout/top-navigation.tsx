@@ -9,6 +9,7 @@ import { useChatUsersContext } from '@/contexts/chat-users-context';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { NotificationSoundEnabler } from '@/components/chat/notification-sound-enabler';
 import { playNotificationSound } from '@/lib/utils/notification-sound';
+import { sendTestPush } from '@/lib/push';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 interface TopNavigationProps {
@@ -339,13 +340,22 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                   </div>
 
                   {/* Test notification sound */}
-                  <button
-                    type="button"
-                    onClick={() => playNotificationSound({ senderName: 'Test', preview: 'Test notification' })}
-                    className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors text-left"
-                  >
-                    <span className="text-xs text-muted-foreground">🔔 Test notification</span>
-                  </button>
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => playNotificationSound({ senderName: 'Test', preview: 'Test notification' })}
+                      className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors text-left"
+                    >
+                      <span className="text-xs text-muted-foreground">🔔 Test notification</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => sendTestPush()}
+                      className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors text-left"
+                    >
+                      <span className="text-xs text-muted-foreground">📲 Test push (works when tab is closed)</span>
+                    </button>
+                  </div>
 
                   {/* Chat Connection Status */}
                   <div className="p-3 border-b border-border">

@@ -13,6 +13,7 @@ import { ChatUsersProvider } from '@/contexts/chat-users-context';
 import { ChatDrawer } from '@/components/chat/chat-drawer';
 import { GlobalTransactionNotifications } from '@/components/dashboard/global-transaction-notifications';
 import { attachUnlockListeners } from '@/lib/utils/notification-sound';
+import { registerServiceWorker } from '@/lib/push';
 import { isSuperadminDomain } from '@/lib/utils/domain';
 import { useToast } from '@/components/ui';
 
@@ -48,6 +49,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isAuthenticated) {
       attachUnlockListeners();
+    }
+  }, [isAuthenticated]);
+
+  // Pre-register service worker for push (must be same origin, HTTPS)
+  useEffect(() => {
+    if (isAuthenticated && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      registerServiceWorker().catch(() => {});
     }
   }, [isAuthenticated]);
 
