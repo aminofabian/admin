@@ -632,6 +632,10 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         && Object.keys(updatedTransaction.payment_details).length > 0;
       const hasWsPaymentMethod = updatedTransaction.payment_method != null
         && String(updatedTransaction.payment_method).trim() !== '';
+      const hasWsProviderStatus = (key: 'binpay_status' | 'tierlock_status' | 'taparcadia_status') => {
+        const v = updatedTransaction[key];
+        return v != null && String(v).trim() !== '';
+      };
       const mergedTransaction: Transaction = {
         ...existingTransaction,
         ...updatedTransaction,
@@ -640,6 +644,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         provider: hasWsProvider ? updatedTransaction.provider : existingTransaction.provider,
         payment_details: hasWsPaymentDetails ? updatedTransaction.payment_details : existingTransaction.payment_details,
         payment_method: hasWsPaymentMethod ? updatedTransaction.payment_method : existingTransaction.payment_method,
+        binpay_status: hasWsProviderStatus('binpay_status') ? updatedTransaction.binpay_status : existingTransaction.binpay_status,
+        tierlock_status: hasWsProviderStatus('tierlock_status') ? updatedTransaction.tierlock_status : existingTransaction.tierlock_status,
+        taparcadia_status: hasWsProviderStatus('taparcadia_status') ? updatedTransaction.taparcadia_status : existingTransaction.taparcadia_status,
       };
       
       const updatedResults = [...transactions.results];

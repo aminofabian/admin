@@ -133,6 +133,9 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
     payment_url: rawCashout.payment_url || nestedData?.payment_url || null,
     invoice_url: rawCashout.invoice_url || nestedData?.invoice_url,
     payment_details: paymentDetails,
+    binpay_status: rawCashout.binpay_status ?? nestedData?.binpay_status ?? undefined,
+    tierlock_status: rawCashout.tierlock_status ?? nestedData?.tierlock_status ?? undefined,
+    taparcadia_status: rawCashout.taparcadia_status ?? nestedData?.taparcaida_status ?? nestedData?.taparcadia_status ?? undefined,
   };
 }
 

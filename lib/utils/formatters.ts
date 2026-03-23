@@ -1,3 +1,5 @@
+import type { Transaction } from '@/types';
+
 /**
  * Utility function to merge class names
  * Simple implementation without external dependencies
@@ -193,11 +195,43 @@ function resolvePaymentMethod(transaction: {
   return undefined;
 }
 
-export function getPaymentDetailsForDisplay(transaction: {
-  payment_details?: Record<string, unknown> | null;
-  payment_method?: string | null;
-  provider?: string | null;
-}): [string, string][] {
+/** Provider status config: [displayLabel, possible API keys]. */
+const PROVIDER_STATUS_KEYS: [string, string[]][] = [
+  ['Binpay status', ['binpay_status', 'binpayStatus']],
+  ['Tierlock status', ['tierlock_status', 'tierlockStatus']],
+  ['Taparcadia status', ['taparcadia_status', 'taparcaida_status', 'taparcadiaStatus', 'taparcaidaStatus']],
+];
+
+function getProviderStatusEntries(
+  transaction: Pick<Transaction, 'payment_details' | 'binpay_status' | 'tierlock_status' | 'taparcadia_status'>
+): [string, string][] {
+  const out: [string, string][] = [];
+  const tx = transaction as Record<string, unknown>;
+  const pd = transaction.payment_details && typeof transaction.payment_details === 'object'
+    ? transaction.payment_details
+    : null;
+
+  for (const [label, keys] of PROVIDER_STATUS_KEYS) {
+    let val: unknown = null;
+    for (const key of keys) {
+      val = tx[key] ?? (pd && typeof pd === 'object' ? (pd as Record<string, unknown>)[key] : undefined);
+      if (val != null && String(val).trim() !== '') break;
+    }
+    const str = formatDetailValue(val);
+    if (str !== '—' && String(str).trim() !== '') {
+      out.push([label, str]);
+    }
+  }
+  return out;
+}
+
+/** Accepts Transaction or any object with the payment-related fields we need. */
+export function getPaymentDetailsForDisplay(
+  transaction: Pick<
+    Transaction,
+    'payment_details' | 'payment_method' | 'provider' | 'binpay_status' | 'tierlock_status' | 'taparcadia_status'
+  >
+): [string, string][] {
   const paymentDetails = transaction.payment_details;
   let entries: [string, string][];
 
@@ -216,6 +250,11 @@ export function getPaymentDetailsForDisplay(transaction: {
   );
   if (hasMethod && !alreadyHasMethod) {
     entries.push(['Method', methodStr]);
+  }
+
+  const providerStatusEntries = getProviderStatusEntries(transaction);
+  for (const entry of providerStatusEntries) {
+    entries.push(entry);
   }
   return entries;
 }

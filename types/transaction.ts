@@ -35,6 +35,10 @@ export interface Transaction {
   payment_details?: Record<string, unknown> | null;
   company_id?: number;
   company_username?: string;
+  /** Provider-specific status when sent via "Send to X" (e.g. Binpay, Tierlock, Taparcadia) */
+  binpay_status?: string | null;
+  tierlock_status?: string | null;
+  taparcadia_status?: string | null;
 }
 
 export interface TransactionQueue {
