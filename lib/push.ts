@@ -14,11 +14,12 @@ function getAuthHeaders(): HeadersInit {
   return headers;
 }
 
-function base64UrlToUint8Array(base64: string): Uint8Array {
+function base64UrlToUint8Array(base64: string): BufferSource {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
   const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
+  const buffer = new ArrayBuffer(binary.length);
+  const bytes = new Uint8Array(buffer);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
