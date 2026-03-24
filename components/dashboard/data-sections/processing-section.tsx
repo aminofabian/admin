@@ -36,7 +36,7 @@ import {
   usePaymentMethodsStore
 } from '@/stores';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
-import { formatCurrency, formatDate, formatPaymentMethod, getPaymentDetailsForDisplay, getPlayerIpFromTransaction } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod, getPaymentDetailsForDisplay, getPlayerIpFromTransaction, getEmailOrPhoneFromTransaction } from '@/lib/utils/formatters';
 import { transactionsApi } from '@/lib/api/transactions';
 import { staffsApi, managersApi, playersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
@@ -1072,8 +1072,17 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         ? getPlayerIpFromTransaction(transaction)
         : null;
 
-      console.log('🔄 Transaction Action - About to call API:', { transactionId, action: apiAction, playerIp: playerIp ?? '(none)' });
-      const response = await transactionsApi.transactionAction(transactionId, apiAction, playerIp ? { playerIp } : undefined);
+      const { email: userEmail, phone: userPhone } = (action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia') && transaction
+        ? getEmailOrPhoneFromTransaction(transaction)
+        : { email: undefined, phone: undefined };
+
+      const actionOptions =
+        action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia'
+          ? { playerIp: playerIp ?? undefined, userEmail: userEmail ?? undefined, userPhone: userPhone ?? undefined }
+          : undefined;
+
+      console.log('🔄 Transaction Action - About to call API:', { transactionId, action: apiAction, playerIp: playerIp ?? '(none)', userEmail: userEmail ?? '(none)', userPhone: userPhone ?? '(none)' });
+      const response = await transactionsApi.transactionAction(transactionId, apiAction, actionOptions);
       console.log(' Transaction Action - API call successful:', response);
       
       // Refresh transactions after successful action

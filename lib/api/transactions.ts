@@ -178,13 +178,19 @@ export const transactionsApi = {
   transactionAction: async (
     txnId: string,
     type: 'cancel' | 'complete' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia',
-    options?: { playerIp?: string | null }
+    options?: { playerIp?: string | null; userEmail?: string | null; userPhone?: string | null }
   ) => {
     const formData = new FormData();
     formData.append('txn_id', txnId);
     formData.append('type', type);
     if (options?.playerIp) {
       formData.append('player_ip', options.playerIp);
+    }
+    if (options?.userEmail) {
+      formData.append('user_email', options.userEmail);
+    }
+    if (options?.userPhone) {
+      formData.append('user_phone', options.userPhone);
     }
 
     const response = await apiClient.post<{ status: string; message: string; kyc_link?: string }>(

@@ -157,6 +157,44 @@ export function getPlayerIpFromTransaction(
   return null;
 }
 
+const EMAIL_KEYS = ['email', 'paypal_email', 'user_email', 'payer_email', 'customer_email'];
+const PHONE_KEYS = ['phone', 'phone_number', 'phonenumber', 'mobile_number', 'mobile'];
+
+/**
+ * Extract email and/or phone from a transaction for use when sending to BinPay/Tierlock/Taparcadia.
+ * BinPay requires username to be a valid email or 10-digit phone number.
+ */
+export function getEmailOrPhoneFromTransaction(
+  transaction: Pick<Transaction, 'user_email' | 'payment_details'>
+): { email?: string; phone?: string } {
+  const result: { email?: string; phone?: string } = {};
+
+  // Prefer transaction-level user_email
+  const txEmail = transaction.user_email;
+  if (txEmail && typeof txEmail === 'string' && txEmail.trim() !== '') {
+    result.email = txEmail.trim();
+  }
+
+  const pd = transaction.payment_details;
+  if (pd && typeof pd === 'object') {
+    if (!result.email) {
+      const emailVal = findPaymentDetailValue(pd, EMAIL_KEYS);
+      if (emailVal != null && typeof emailVal === 'string' && emailVal.trim() !== '') {
+        result.email = emailVal.trim();
+      }
+    }
+    const phoneVal = findPaymentDetailValue(pd, PHONE_KEYS);
+    if (phoneVal != null) {
+      const phoneStr = String(phoneVal).replace(/\D/g, '');
+      if (phoneStr.length >= 10) {
+        result.phone = phoneStr.slice(-10);
+      }
+    }
+  }
+
+  return result;
+}
+
 /**
  * Get at most 2 user-identifying payment details for display.
  * Prioritizes: Email, Name, Username, Phone, Cashtag/ChimeSign, Wallet.
