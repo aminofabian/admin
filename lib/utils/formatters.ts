@@ -260,6 +260,46 @@ const IDENTITY_PRIORITY: [string, string[]][] = [
   ['Player IP', ['binpay_player_ip_address', 'player_ip_address', 'player_ip']],
 ];
 
+const CARD_TAIL_KEYS = [
+  'masked_card',
+  'maskedcard',
+  'card_last4',
+  'card_last_4',
+  'last4',
+  'card_tail',
+  'card_tail4',
+  'card_last_four',
+  'card_number_last4',
+];
+const CARD_NAME_KEYS = [
+  'cardholder_name',
+  'name_on_card',
+  'card_name',
+  'card_holder_name',
+  'holder_name',
+  'cardholder',
+  'card_holder',
+];
+
+function extractCardTail(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  const digits = String(value).replace(/\D/g, '');
+  if (digits.length >= 4) return digits.slice(-4);
+  return undefined;
+}
+
+function extractCardName(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === 'string') {
+    const s = value.trim();
+    return s ? s : undefined;
+  }
+  if (typeof value === 'number') {
+    return String(value);
+  }
+  return undefined;
+}
+
 function pickTopTwoIdentifiers(paymentDetails: Record<string, unknown>): [string, string][] {
   const out: [string, string][] = [];
   const seen = new Set<string>();
@@ -362,6 +402,26 @@ export function getPaymentDetailsForDisplay(
   );
   if (hasMethod && !alreadyHasMethod) {
     entries.push(['Method', methodStr]);
+  }
+
+  // Card-specific display (cashout processing):
+  // Show card tail and name-on-card when we detect method == "card".
+  const rawMethod = transaction.payment_method ?? resolvedMethod;
+  const isCard = typeof rawMethod === 'string' && rawMethod.trim().toLowerCase() === 'card';
+  if (isCard && paymentDetails && typeof paymentDetails === 'object') {
+    const tailVal = findPaymentDetailValue(paymentDetails, CARD_TAIL_KEYS);
+    const tail = extractCardTail(tailVal);
+    if (tail) {
+      const alreadyHasTail = entries.some(([label]) => label.toLowerCase() === 'card details');
+      if (!alreadyHasTail) entries.push(['Card Details', tail]);
+    }
+
+    const nameVal = findPaymentDetailValue(paymentDetails, CARD_NAME_KEYS);
+    const name = extractCardName(nameVal);
+    if (name) {
+      const alreadyHasName = entries.some(([label]) => label.toLowerCase() === 'name on card');
+      if (!alreadyHasName) entries.push(['Name on Card', name]);
+    }
   }
 
   const providerStatusEntries = getProviderStatusEntries(transaction);
