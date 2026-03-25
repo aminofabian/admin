@@ -412,9 +412,19 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
   );
 
   const rawPaymentDetails = getPaymentDetailsForDisplay(transaction);
-  const paymentDetails = showProvider
-    ? rawPaymentDetails.filter(([label]) => label !== 'Provider')
-    : rawPaymentDetails;
+  const paymentDetails = (() => {
+    let details = showProvider
+      ? rawPaymentDetails.filter(([label]) => label !== 'Provider')
+      : rawPaymentDetails;
+
+    // After "Send to Binpay", the email is already visible in the User column.
+    // Hide it from the payment-details box to reduce duplication.
+    if (transaction.binpay_status !== undefined && transaction.binpay_status !== null) {
+      details = details.filter(([label]) => label.toLowerCase() !== 'email');
+    }
+
+    return details;
+  })();
   const providerCell = showProvider && transaction.provider ? (
     <TableCell className="align-top">
       <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
@@ -1697,9 +1707,13 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                         </div>
                         {(() => {
                           const rawEntries = getPaymentDetailsForDisplay(transaction);
-                          const entries = viewType === 'purchases'
+                          let entries = viewType === 'purchases'
                             ? rawEntries.filter(([label]) => label !== 'Provider')
                             : rawEntries;
+
+                          if (transaction.binpay_status !== undefined && transaction.binpay_status !== null) {
+                            entries = entries.filter(([label]) => label.toLowerCase() !== 'email');
+                          }
                           return entries.length > 0 ? (
                             <div className="mt-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-2.5 space-y-1.5">
                               {entries.map(([label, value]) => (
