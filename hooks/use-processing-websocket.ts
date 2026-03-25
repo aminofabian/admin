@@ -107,6 +107,14 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
 
   return {
     id: rawCashout.id || rawCashout.transaction_id || nestedData?.id || nestedData?.transaction_id || '',
+    user_id:
+      typeof rawCashout.user_id === 'number'
+        ? rawCashout.user_id
+        : typeof userData?.id === 'number'
+          ? userData.id
+          : typeof nestedData?.user_id === 'number'
+            ? nestedData.user_id
+            : undefined,
     user_username: rawCashout.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawCashout.username || nestedData?.username || '',
     user_email: rawCashout.user_email || userData?.email || userData?.user_email || nestedData?.user_email || rawCashout.email || nestedData?.email || '',
     amount: String(rawCashout.amount || nestedData?.amount || 0),

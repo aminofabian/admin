@@ -195,6 +195,57 @@ export function getEmailOrPhoneFromTransaction(
   return result;
 }
 
+const SIMPLE_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidEmail(value: string): boolean {
+  const s = value.trim();
+  return s.length > 0 && SIMPLE_EMAIL_RE.test(s);
+}
+
+/**
+ * Resolves email/phone and BinPay `username` (email or 10-digit phone).
+ * Uses player profile overrides when provided (from GET /api/v1/players/{id}/).
+ */
+export function resolvePayoutContactFromTransaction(
+  transaction: Pick<Transaction, 'user_email' | 'user_username' | 'payment_details'>,
+  playerOverride?: { email?: string; phone?: string }
+): {
+  userEmail?: string;
+  userPhone?: string;
+  binpayUsername?: string;
+} {
+  const base = getEmailOrPhoneFromTransaction(transaction);
+  let email = base.email && isValidEmail(base.email) ? base.email.trim() : undefined;
+  if (!email && transaction.user_username && isValidEmail(transaction.user_username)) {
+    email = transaction.user_username.trim();
+  }
+  if (playerOverride?.email?.trim()) {
+    const pe = playerOverride.email.trim();
+    if (isValidEmail(pe)) email = pe;
+  }
+  let phone = base.phone;
+  if (playerOverride?.phone && /^\d{10}$/.test(playerOverride.phone)) {
+    phone = playerOverride.phone;
+  }
+
+  if (email && !isValidEmail(email)) {
+    email = undefined;
+  }
+
+  let binpayUsername: string | undefined;
+  if (email && isValidEmail(email)) {
+    binpayUsername = email;
+  } else if (phone && /^\d{10}$/.test(phone)) {
+    binpayUsername = phone;
+  }
+
+  return {
+    userEmail: email,
+    userPhone: phone,
+    binpayUsername,
+  };
+}
+
 /**
  * Get at most 2 user-identifying payment details for display.
  * Prioritizes: Email, Name, Username, Phone, Cashtag/ChimeSign, Wallet.
@@ -318,6 +369,24 @@ export function getPaymentDetailsForDisplay(
     entries.push(entry);
   }
   return entries;
+}
+
+/**
+ * Returns a user-friendly provider display name, accounting for combos like
+ * provider=bitcoin_lightning + payment_method=cashapp → "Cashapp Pay".
+ */
+export function getProviderDisplayName(
+  provider: string | null | undefined,
+  paymentMethod?: string | null
+): string {
+  if (!provider) return '—';
+  if (
+    provider.toLowerCase() === 'bitcoin_lightning' &&
+    paymentMethod?.toLowerCase() === 'cashapp'
+  ) {
+    return 'Cashapp Pay';
+  }
+  return formatPaymentMethod(provider);
 }
 
 export const formatPaymentMethod = (method: string | null | undefined): string => {

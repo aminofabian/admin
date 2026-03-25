@@ -36,8 +36,9 @@ import {
   usePaymentMethodsStore
 } from '@/stores';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
-import { formatCurrency, formatDate, formatPaymentMethod, getPaymentDetailsForDisplay, getPlayerIpFromTransaction, getEmailOrPhoneFromTransaction } from '@/lib/utils/formatters';
-import { transactionsApi } from '@/lib/api/transactions';
+import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName, getPaymentDetailsForDisplay, getPlayerIpFromTransaction, resolvePayoutContactFromTransaction } from '@/lib/utils/formatters';
+import { transactionsApi, type TransactionActionOptions } from '@/lib/api/transactions';
+import { fetchPlayerPayoutContact } from '@/lib/api/payout-contact';
 import { staffsApi, managersApi, playersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
 import type { ApiError } from '@/types';
@@ -418,7 +419,7 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
     <TableCell className="align-top">
       <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
         <Badge variant="info" className="text-xs font-medium">
-          {formatPaymentMethod(transaction.provider)}
+          {getProviderDisplayName(transaction.provider, transaction.payment_method)}
         </Badge>
       </div>
     </TableCell>
@@ -1072,16 +1073,64 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         ? getPlayerIpFromTransaction(transaction)
         : null;
 
-      const { email: userEmail, phone: userPhone } = (action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia') && transaction
-        ? getEmailOrPhoneFromTransaction(transaction)
-        : { email: undefined, phone: undefined };
+      let actionOptions: TransactionActionOptions | undefined;
+      if ((action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia') && transaction) {
+        let playerOverride: { email?: string; phone?: string } | undefined;
+        if (typeof transaction.user_id === 'number' && transaction.user_id > 0) {
+          const loaded = await fetchPlayerPayoutContact(transaction.user_id);
+          if (loaded) playerOverride = loaded;
+        }
+        const contact = resolvePayoutContactFromTransaction(transaction, playerOverride);
 
-      const actionOptions =
-        action === 'send_to_binpay' || action === 'send_to_tierlock' || action === 'send_to_taparcadia'
-          ? { playerIp: playerIp ?? undefined, userEmail: userEmail ?? undefined, userPhone: userPhone ?? undefined }
-          : undefined;
+        if (action === 'send_to_binpay' && !contact.binpayUsername) {
+          addToast({
+            type: 'error',
+            title: 'Missing contact for BinPay',
+            description:
+              'BinPay requires a valid email or 10-digit phone number. Add an email or phone on the player profile or in payment details.',
+            duration: 8000,
+          });
+          return;
+        }
+        if (action === 'send_to_tierlock' && !contact.userEmail) {
+          addToast({
+            type: 'error',
+            title: 'Missing email for Tierlock',
+            description:
+              'Tierlock needs a valid email for this payout (phone-only contact is often rejected). Add a player email in the profile.',
+            duration: 8000,
+          });
+          return;
+        }
 
-      console.log('🔄 Transaction Action - About to call API:', { transactionId, action: apiAction, playerIp: playerIp ?? '(none)', userEmail: userEmail ?? '(none)', userPhone: userPhone ?? '(none)' });
+        if (action === 'send_to_binpay') {
+          actionOptions = {
+            playerIp: playerIp ?? undefined,
+            userEmail: contact.userEmail,
+            userPhone: contact.userPhone,
+            binpayUsername: contact.binpayUsername,
+          };
+        } else if (action === 'send_to_tierlock') {
+          actionOptions = {
+            playerIp: playerIp ?? undefined,
+            userEmail: contact.userEmail,
+            tierlockPreferEmailOnly: true,
+          };
+        } else {
+          actionOptions = {
+            playerIp: playerIp ?? undefined,
+            userEmail: contact.userEmail,
+            userPhone: contact.userPhone,
+          };
+        }
+      }
+
+      console.log('🔄 Transaction Action - About to call API:', {
+        transactionId,
+        action: apiAction,
+        playerIp: playerIp ?? '(none)',
+        actionOptions,
+      });
       const response = await transactionsApi.transactionAction(transactionId, apiAction, actionOptions);
       console.log(' Transaction Action - API call successful:', response);
       
@@ -1642,7 +1691,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                           </Badge>
                           {viewType === 'purchases' && transaction.provider && (
                             <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                              {formatPaymentMethod(transaction.provider)}
+                              {getProviderDisplayName(transaction.provider, transaction.payment_method)}
                             </Badge>
                           )}
                         </div>

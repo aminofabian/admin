@@ -6,6 +6,8 @@ export type GameActionType = 'retry' | 'cancel' | 'complete';
 
 export interface Transaction {
   id: string;
+  /** Player user id when returned by API (used to load email/phone for payout providers). */
+  user_id?: number;
   user_username: string;
   user_email: string;
   amount: string;

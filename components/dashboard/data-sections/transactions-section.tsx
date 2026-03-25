@@ -7,7 +7,7 @@ import {
 } from '@/components/dashboard/layout';
 import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useToast, Skeleton } from '@/components/ui';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
-import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName } from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
 import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
@@ -1206,7 +1206,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
       <TableCell>
         {transaction.provider ? (
           <Badge variant="info" className="text-xs">
-            {formatPaymentMethod(transaction.provider)}
+            {getProviderDisplayName(transaction.provider, transaction.payment_method)}
           </Badge>
         ) : (
           <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
@@ -1336,7 +1336,7 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
               </Badge>
               {transaction.provider && (
                 <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                  {formatPaymentMethod(transaction.provider)}
+                  {getProviderDisplayName(transaction.provider, transaction.payment_method)}
                 </Badge>
               )}
             </div>

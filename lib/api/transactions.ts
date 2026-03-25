@@ -9,6 +9,17 @@ import type {
   GameActionResponse
 } from '@/types';
 
+/** Extra fields forwarded to Django for BinPay/Tierlock/Taparcadia (backend must read these). */
+export type TransactionActionOptions = {
+  playerIp?: string | null;
+  userEmail?: string | null;
+  userPhone?: string | null;
+  /** BinPay `username`: valid email or 10-digit phone. */
+  binpayUsername?: string | null;
+  /** Hint Tierlock to use email for payout contact (no phone). */
+  tierlockPreferEmailOnly?: boolean;
+};
+
 /**
  * Normalizes transaction list response to ensure it matches PaginatedResponse format.
  * Backend sometimes returns plain arrays instead of paginated responses.
@@ -178,7 +189,7 @@ export const transactionsApi = {
   transactionAction: async (
     txnId: string,
     type: 'cancel' | 'complete' | 'send_to_binpay' | 'send_to_tierlock' | 'send_to_taparcadia',
-    options?: { playerIp?: string | null; userEmail?: string | null; userPhone?: string | null }
+    options?: TransactionActionOptions
   ) => {
     const formData = new FormData();
     formData.append('txn_id', txnId);
@@ -187,10 +198,25 @@ export const transactionsApi = {
       formData.append('player_ip', options.playerIp);
     }
     if (options?.userEmail) {
-      formData.append('user_email', options.userEmail);
+      const e = options.userEmail.trim();
+      formData.append('user_email', e);
+      formData.append('player_email', e);
+      formData.append('email', e);
     }
     if (options?.userPhone) {
-      formData.append('user_phone', options.userPhone);
+      const p = options.userPhone.trim();
+      formData.append('user_phone', p);
+      formData.append('phone', p);
+      formData.append('phone_number', p);
+    }
+    if (options?.binpayUsername) {
+      formData.append('binpay_username', options.binpayUsername.trim());
+    }
+    if (options?.tierlockPreferEmailOnly) {
+      formData.append('tierlock_prefer_email', '1');
+      if (options.userEmail) {
+        formData.append('tierlock_contact_email', options.userEmail.trim());
+      }
     }
 
     const response = await apiClient.post<{ status: string; message: string; kyc_link?: string }>(

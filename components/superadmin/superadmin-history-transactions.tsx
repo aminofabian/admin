@@ -5,7 +5,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { DashboardSectionContainer } from '@/components/dashboard/layout';
 import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination, Button } from '@/components/ui';
 import { useTransactionsStore } from '@/stores';
-import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName } from '@/lib/utils/formatters';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
@@ -941,7 +941,7 @@ export function SuperAdminHistoryTransactions() {
                                                     <TableCell>
                                                         {transaction.provider ? (
                                                             <Badge variant="info" className="text-xs">
-                                                                {formatPaymentMethod(transaction.provider)}
+                                                                {getProviderDisplayName(transaction.provider, transaction.payment_method)}
                                                             </Badge>
                                                         ) : (
                                                             <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
@@ -1045,7 +1045,7 @@ export function SuperAdminHistoryTransactions() {
                                                             </Badge>
                                                             {transaction.provider && (
                                                                 <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                                                                    {formatPaymentMethod(transaction.provider)}
+                                                                    {getProviderDisplayName(transaction.provider, transaction.payment_method)}
                                                                 </Badge>
                                                             )}
                                                         </div>
