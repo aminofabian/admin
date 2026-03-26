@@ -225,7 +225,6 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
           <div className="space-y-3">
             <DetailsRow>
               <DetailsField label="User" value={transaction.user_username} />
-              <DetailsField label="Email" value={transaction.user_email} />
             </DetailsRow>
             <DetailsRow>
               <DetailsField label="Operator" value={transaction.operator || '—'} />
@@ -261,7 +260,9 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
           {/* Payment Details (provider-specific: email, account name, cashtag, etc.) */}
           {(() => {
-            const entries = getPaymentDetailsForDisplay(transaction);
+            const entries = getPaymentDetailsForDisplay(transaction).filter(
+              ([label]) => label.toLowerCase() !== 'email'
+            );
             return entries.length > 0 ? (
               <div className="space-y-2">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Payment Details</div>

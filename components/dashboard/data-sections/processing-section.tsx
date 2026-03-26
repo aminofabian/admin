@@ -417,10 +417,15 @@ function ProcessingTransactionRow({ transaction, getStatusVariant, onView, isAct
       ? rawPaymentDetails.filter(([label]) => label !== 'Provider')
       : rawPaymentDetails;
 
-    // After "Send to Binpay", the email is already visible in the User column.
-    // Hide it from the payment-details box to reduce duplication.
-    if (transaction.binpay_status !== undefined && transaction.binpay_status !== null) {
-      details = details.filter(([label]) => label.toLowerCase() !== 'email');
+    // Hide email from the payment-details box entirely (email is already shown in the User column).
+    details = details.filter(([label]) => label.toLowerCase() !== 'email');
+
+    // Ensure "Method" is the first row in the payment details box.
+    // getPaymentDetailsForDisplay typically adds "Method" near the end, so reorder here.
+    const methodIndex = details.findIndex(([label]) => label.toLowerCase() === 'method' || label.toLowerCase() === 'payment method');
+    if (methodIndex > 0) {
+      const [methodEntry] = details.splice(methodIndex, 1);
+      details = [methodEntry, ...details];
     }
 
     return details;
@@ -1334,6 +1339,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       const action = subcategoryToAction(providerKey);
       if (!action) continue;
       if (sub.is_configured !== true || sub.id == null) continue;
+      if (sub.enabled_for_cashout_by_superadmin === false) continue;
       if (sub.is_enabled_for_cashout !== true) continue;
       if (seenActions.has(action)) continue;
 
@@ -1711,8 +1717,16 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                             ? rawEntries.filter(([label]) => label !== 'Provider')
                             : rawEntries;
 
-                          if (transaction.binpay_status !== undefined && transaction.binpay_status !== null) {
-                            entries = entries.filter(([label]) => label.toLowerCase() !== 'email');
+                          // Hide email from the payment-details list entirely.
+                          entries = entries.filter(([label]) => label.toLowerCase() !== 'email');
+
+                          // Ensure "Method" is the first row in the payment details list.
+                          const methodIndex = entries.findIndex(
+                            ([label]) => label.toLowerCase() === 'method' || label.toLowerCase() === 'payment method'
+                          );
+                          if (methodIndex > 0) {
+                            const [methodEntry] = entries.splice(methodIndex, 1);
+                            entries = [methodEntry, ...entries];
                           }
                           return entries.length > 0 ? (
                             <div className="mt-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-2.5 space-y-1.5">

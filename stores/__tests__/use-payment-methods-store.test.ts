@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { paymentMethodsApi } from '@/lib/api';
 import { usePaymentMethodsStore } from '@/stores';
-import type { PaymentMethod } from '@/types';
+import type { PaymentMethod, PurchasePaymentMethod } from '@/types';
 
 vi.mock('@/lib/api', () => ({
   paymentMethodsApi: {
@@ -93,6 +93,48 @@ describe('usePaymentMethodsStore', () => {
     expect(state.paymentMethods?.cashout[0].is_enabled_for_cashout).toBe(true);
     expect(state.paymentMethods?.purchase[0].is_enabled_for_cashout).toBe(true);
     expect(state.paymentMethods?.purchase[0].is_enabled_for_purchase).toBe(true);
+  });
+
+  it('fetchPaymentMethods excludes purchase subcategories when superadmin has not enabled purchase', async () => {
+    const nestedPurchase: PurchasePaymentMethod[] = [
+      {
+        payment_method: 'card',
+        payment_method_display: 'Card',
+        enabled_for_purchase_by_superadmin: true,
+        has_subcategories: true,
+        subcategories: [
+          {
+            id: 101,
+            payment_method: 'banxa',
+            payment_method_display: 'Banxa',
+            is_configured: true,
+            enabled_for_purchase_by_superadmin: false,
+            is_enabled_for_purchase: false,
+          },
+          {
+            id: 102,
+            payment_method: 'moonpay',
+            payment_method_display: 'Moonpay',
+            is_configured: true,
+            enabled_for_purchase_by_superadmin: true,
+            is_enabled_for_purchase: true,
+          },
+        ],
+      },
+    ];
+
+    apiMock.list.mockResolvedValue({
+      cashout: [],
+      purchase: nestedPurchase,
+    });
+
+    await usePaymentMethodsStore.getState().fetchPaymentMethods();
+
+    const state = usePaymentMethodsStore.getState();
+    expect(state.paymentMethods?.purchase).toHaveLength(1);
+    expect(state.paymentMethods?.purchase[0].id).toBe(102);
+    expect(state.purchaseCategories?.[0].subcategories).toHaveLength(1);
+    expect(state.purchaseCategories?.[0].subcategories[0].id).toBe(102);
   });
 });
 

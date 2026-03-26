@@ -351,7 +351,6 @@ function resolvePaymentMethod(transaction: {
 const PROVIDER_STATUS_KEYS: [string, string[]][] = [
   ['Binpay status', ['binpay_status', 'binpayStatus']],
   ['Tierlock status', ['tierlock_status', 'tierlockStatus']],
-  ['Taparcadia status', ['taparcadia_status', 'taparcaida_status', 'taparcadiaStatus', 'taparcaidaStatus']],
 ];
 
 function getProviderStatusEntries(

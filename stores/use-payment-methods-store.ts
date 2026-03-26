@@ -50,6 +50,40 @@ const initialState: PaymentMethodsState = {
   error: null,
 };
 
+/** Company admin UI: omit methods the superadmin has disabled (`false`). `undefined` kept for older API responses. */
+const isPurchaseAllowedBySuperadmin = (flag: boolean | undefined): boolean => flag !== false;
+
+const isCashoutAllowedBySuperadmin = (flag: boolean | undefined): boolean => flag !== false;
+
+/** Trim nested trees so settings / processing never surface gated-off providers. */
+const filterPurchaseCategoriesForStore = (
+  purchase: PurchasePaymentMethod[],
+): PurchasePaymentMethod[] =>
+  purchase
+    .filter((parent) => isPurchaseAllowedBySuperadmin(parent.enabled_for_purchase_by_superadmin))
+    .map((parent) => ({
+      ...parent,
+      subcategories: (parent.subcategories ?? []).filter((sub) =>
+        isPurchaseAllowedBySuperadmin(sub.enabled_for_purchase_by_superadmin),
+      ),
+    }))
+    .filter((parent) =>
+      (parent.subcategories ?? []).some((s) => s.is_configured === true && s.id != null),
+    );
+
+const filterCashoutCategoriesForStore = (cashout: CashoutPaymentMethod[]): CashoutPaymentMethod[] =>
+  cashout
+    .filter((parent) => isCashoutAllowedBySuperadmin(parent.enabled_for_cashout_by_superadmin))
+    .map((parent) => ({
+      ...parent,
+      subcategories: (parent.subcategories ?? []).filter((sub) =>
+        isCashoutAllowedBySuperadmin(sub.enabled_for_cashout_by_superadmin),
+      ),
+    }))
+    .filter((parent) =>
+      (parent.subcategories ?? []).some((s) => s.is_configured === true && s.id != null),
+    );
+
 const normalizeMethods = (methods: PaymentMethod[]): PaymentMethod[] =>
   methods.map((method) => ({
     ...method,
@@ -61,9 +95,14 @@ const normalizeMethods = (methods: PaymentMethod[]): PaymentMethod[] =>
 const flattenCashout = (cashout: CashoutPaymentMethod[]): PaymentMethod[] => {
   const rows: PaymentMethod[] = [];
   for (const parent of cashout) {
+    if (!isCashoutAllowedBySuperadmin(parent.enabled_for_cashout_by_superadmin)) continue;
     if (parent.has_subcategories && parent.subcategories?.length) {
       for (const sub of parent.subcategories) {
-        if (sub.is_configured === true && sub.id != null) {
+        if (
+          sub.is_configured === true &&
+          sub.id != null &&
+          isCashoutAllowedBySuperadmin(sub.enabled_for_cashout_by_superadmin)
+        ) {
           rows.push({
             id: sub.id,
             payment_method: sub.payment_method,
@@ -71,6 +110,7 @@ const flattenCashout = (cashout: CashoutPaymentMethod[]): PaymentMethod[] => {
             method_type: sub.method_type || sub.payment_method || 'N/A',
             provider_payment_method: sub.provider_payment_method ?? undefined,
             is_enabled_for_cashout: Boolean(sub.is_enabled_for_cashout),
+            enabled_for_cashout_by_superadmin: sub.enabled_for_cashout_by_superadmin,
             min_amount_cashout: sub.min_amount_cashout ?? null,
             max_amount_cashout: sub.max_amount_cashout ?? null,
             superadmin_min_amount_cashout: sub.superadmin_min_amount_cashout ?? null,
@@ -89,9 +129,14 @@ const flattenCashout = (cashout: CashoutPaymentMethod[]): PaymentMethod[] => {
 const flattenPurchase = (purchase: PurchasePaymentMethod[]): PaymentMethod[] => {
   const rows: PaymentMethod[] = [];
   for (const parent of purchase) {
+    if (!isPurchaseAllowedBySuperadmin(parent.enabled_for_purchase_by_superadmin)) continue;
     if (parent.has_subcategories && parent.subcategories?.length) {
       for (const sub of parent.subcategories) {
-        if (sub.is_configured === true && sub.id != null) {
+        if (
+          sub.is_configured === true &&
+          sub.id != null &&
+          isPurchaseAllowedBySuperadmin(sub.enabled_for_purchase_by_superadmin)
+        ) {
           rows.push({
             id: sub.id,
             payment_method: sub.payment_method,
@@ -99,6 +144,7 @@ const flattenPurchase = (purchase: PurchasePaymentMethod[]): PaymentMethod[] => 
             method_type: sub.method_type || sub.payment_method || 'N/A',
             provider_payment_method: sub.provider_payment_method ?? undefined,
             is_enabled_for_purchase: Boolean(sub.is_enabled_for_purchase),
+            enabled_for_purchase_by_superadmin: sub.enabled_for_purchase_by_superadmin,
             min_amount_purchase: sub.min_amount_purchase ?? null,
             max_amount_purchase: sub.max_amount_purchase ?? null,
             superadmin_min_amount_purchase: sub.superadmin_min_amount_purchase ?? null,
@@ -136,18 +182,26 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
       const purchaseRaw = data.purchase ?? [];
       const cashoutFlat = isNestedCashout(cashoutRaw)
         ? flattenCashout(cashoutRaw)
-        : (cashoutRaw as PaymentMethod[]);
+        : (cashoutRaw as PaymentMethod[]).filter((m) =>
+            isCashoutAllowedBySuperadmin(m.enabled_for_cashout_by_superadmin),
+          );
       const purchaseFlat = isNestedPurchase(purchaseRaw)
         ? flattenPurchase(purchaseRaw)
-        : (purchaseRaw as PaymentMethod[]);
+        : (purchaseRaw as PaymentMethod[]).filter((m) =>
+            isPurchaseAllowedBySuperadmin(m.enabled_for_purchase_by_superadmin),
+          );
 
       set({
         paymentMethods: {
           cashout: normalizeMethods(cashoutFlat),
           purchase: normalizeMethods(purchaseFlat),
         },
-        cashoutCategories: isNestedCashout(cashoutRaw) ? cashoutRaw : null,
-        purchaseCategories: isNestedPurchase(purchaseRaw) ? purchaseRaw : null,
+        cashoutCategories: isNestedCashout(cashoutRaw)
+          ? filterCashoutCategoriesForStore(cashoutRaw)
+          : null,
+        purchaseCategories: isNestedPurchase(purchaseRaw)
+          ? filterPurchaseCategoriesForStore(purchaseRaw)
+          : null,
         isLoading: false,
         error: null,
       });
