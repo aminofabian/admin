@@ -1,4 +1,4 @@
-import { formatDate, formatCurrency, formatPercentage } from '../formatters';
+import { formatDate, formatCurrency, formatPercentage, getPaymentDetailsForDisplay } from '../formatters';
 
 describe('formatters', () => {
   describe('formatDate', () => {
@@ -60,6 +60,48 @@ describe('formatters', () => {
     it('should format string numbers correctly', () => {
       expect(formatPercentage('12.34')).toBe('12.34%');
       expect(formatPercentage('0')).toBe('0.00%');
+    });
+  });
+
+  describe('getPaymentDetailsForDisplay', () => {
+    it('includes Venmo username when method is venmo and handle is in payment_details', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'venmo',
+        payment_details: {
+          full_name: 'Alex Jones',
+          venmo_username: 'alex-handle',
+          player_ip_address: '10.124.0.12',
+        },
+        user_username: 'Alex Jones',
+      });
+      const venmoRow = rows.find(([label]) => label === 'Venmo username');
+      expect(venmoRow?.[1]).toBe('@alex-handle');
+    });
+
+    it('does not duplicate Venmo username from user_username when it matches display name', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'venmo',
+        payment_details: {
+          full_name: 'Alex Jones',
+          player_ip_address: '10.0.0.1',
+        },
+        user_username: 'Alex Jones',
+      });
+      expect(rows.some(([label]) => label === 'Venmo username')).toBe(false);
+    });
+
+    it('appends Venmo username when handle uses a key outside the generic Username bucket', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'venmo',
+        payment_details: {
+          full_name: 'Alex Jones',
+          player_ip_address: '10.124.0.12',
+          venmo_handle: 'Alex-Pay-Venmo',
+        },
+        user_username: 'Alex Jones',
+      });
+      const venmoRow = rows.find(([label]) => label === 'Venmo username');
+      expect(venmoRow?.[1]).toBe('@Alex-Pay-Venmo');
     });
   });
 });

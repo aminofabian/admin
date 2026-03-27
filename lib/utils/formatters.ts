@@ -253,7 +253,7 @@ export function resolvePayoutContactFromTransaction(
 const IDENTITY_PRIORITY: [string, string[]][] = [
   ['Email', ['email', 'paypal_email', 'user_email', 'payer_email', 'customer_email']],
   ['Name', ['full_name', 'fullname', 'customer_name', 'customername', 'account_name', 'accountName']],
-  ['Username', ['username', 'venmo_username', 'user_name']],
+  ['Username', ['username', 'venmo_username', 'venmo_handle', 'venmo_user', 'user_name']],
   ['Phone', ['phone', 'phone_number', 'phonenumber']],
   ['Cashtag', ['cashtag', 'cash_tag', 'chimetag', 'chimesign', 'chime_sign']],
   ['Wallet', ['wallet_address', 'wallet', 'crypto_address', 'address', 'destination']],
@@ -280,6 +280,25 @@ const CARD_NAME_KEYS = [
   'cardholder',
   'card_holder',
 ];
+
+const VENMO_USERNAME_KEYS = [
+  'venmo_username',
+  'venmo_handle',
+  'venmo_handle_name',
+  'venmo_user',
+  'venmo_id',
+  'username',
+  'handle',
+];
+
+/** @-prefixed when value looks like a bare Venmo handle. */
+function formatVenmoHandleForDisplay(raw: string): string {
+  const s = raw.trim();
+  if (!s) return s;
+  if (s.startsWith('@')) return s;
+  if (/^[\w.-]+$/.test(s)) return `@${s}`;
+  return s;
+}
 
 function extractCardTail(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
@@ -380,7 +399,13 @@ function getProviderStatusEntries(
 export function getPaymentDetailsForDisplay(
   transaction: Pick<
     Transaction,
-    'payment_details' | 'payment_method' | 'provider' | 'binpay_status' | 'tierlock_status' | 'taparcadia_status'
+    | 'payment_details'
+    | 'payment_method'
+    | 'provider'
+    | 'binpay_status'
+    | 'tierlock_status'
+    | 'taparcadia_status'
+    | 'user_username'
   >
 ): [string, string][] {
   const paymentDetails = transaction.payment_details;
@@ -420,6 +445,45 @@ export function getPaymentDetailsForDisplay(
     if (name) {
       const alreadyHasName = entries.some(([label]) => label.toLowerCase() === 'name on card');
       if (!alreadyHasName) entries.push(['Name on Card', name]);
+    }
+  }
+
+  const resolvedForVenmo = transaction.payment_method ?? resolvedMethod;
+  const isVenmo =
+    typeof resolvedForVenmo === 'string' && resolvedForVenmo.trim().toLowerCase() === 'venmo';
+  if (isVenmo) {
+    const usernameIdx = entries.findIndex(([label]) => label.toLowerCase() === 'username');
+    if (usernameIdx >= 0) {
+      const [, v] = entries[usernameIdx];
+      entries[usernameIdx] = ['Venmo username', formatVenmoHandleForDisplay(String(v))];
+    } else {
+      let handleRaw = '';
+      if (paymentDetails && typeof paymentDetails === 'object') {
+        const v = findPaymentDetailValue(paymentDetails, VENMO_USERNAME_KEYS);
+        if (v != null) {
+          handleRaw = String(v).trim();
+        }
+      }
+      if (!handleRaw && transaction.user_username?.trim()) {
+        const u = transaction.user_username.trim();
+        const nameRow = entries.find(([label]) => label.toLowerCase() === 'name');
+        const sameAsDisplayName = nameRow && nameRow[1].trim().toLowerCase() === u.toLowerCase();
+        if (!sameAsDisplayName) {
+          handleRaw = u;
+        }
+      }
+      if (handleRaw) {
+        const displayHandle = formatVenmoHandleForDisplay(handleRaw);
+        const alreadyListed = entries.some(
+          ([label, v]) =>
+            label.toLowerCase() === 'venmo username' ||
+            String(v).trim().toLowerCase() === displayHandle.replace(/^@/, '').toLowerCase() ||
+            String(v).trim().toLowerCase() === displayHandle.toLowerCase(),
+        );
+        if (!alreadyListed) {
+          entries.push(['Venmo username', displayHandle]);
+        }
+      }
     }
   }
 
