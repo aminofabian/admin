@@ -12,6 +12,58 @@ interface SavedPaymentMethodsModalProps {
   savedPaymentMethods: SavedPaymentMethod[];
 }
 
+function savedMethodTitle(method: SavedPaymentMethod): string {
+  const legacy =
+    method.payment_method_display?.trim() || method.payment_method?.trim();
+  if (legacy) {
+    return formatPaymentMethod(legacy);
+  }
+  const typePart = method.method_type?.trim()
+    ? formatPaymentMethod(method.method_type)
+    : '';
+  const providerPart = method.provider_code?.trim()
+    ? formatPaymentMethod(method.provider_code)
+    : '';
+  if (typePart && providerPart) {
+    return `${typePart} · ${providerPart}`;
+  }
+  return typePart || providerPart || 'Saved payment method';
+}
+
+function cardDisplayLine(method: SavedPaymentMethod): string | null {
+  const masked = method.masked_card?.trim();
+  if (masked) {
+    return masked;
+  }
+  const last4 = method.card_last4?.trim();
+  if (last4) {
+    return `•••• ${last4}`;
+  }
+  return null;
+}
+
+function savedMethodDetailLines(method: SavedPaymentMethod): string[] {
+  const lines: string[] = [];
+  const holder =
+    method.card_holder_name?.trim() ||
+    method.account_holder_name?.trim() ||
+    method.account_name?.trim();
+  if (holder) {
+    lines.push(holder);
+  }
+  const accountLine =
+    method.account_number?.trim() ||
+    method.account_info?.trim() ||
+    cardDisplayLine(method);
+  if (accountLine) {
+    lines.push(accountLine);
+  }
+  if (method.expiry_date?.trim()) {
+    lines.push(`Expires ${method.expiry_date.trim()}`);
+  }
+  return lines;
+}
+
 export function SavedPaymentMethodsModal({
   isOpen,
   onClose,
@@ -44,36 +96,57 @@ export function SavedPaymentMethodsModal({
           </div>
         ) : (
           <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {savedPaymentMethods.map((method) => (
-              <div
-                key={method.id}
-                className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                  {getPaymentMethodIcon(method.payment_method, {
-                    size: 'md',
-                    asInitialFallback: true,
-                  })}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                      {formatPaymentMethod(method.payment_method_display || method.payment_method)}
-                    </p>
-                    {method.is_default && (
-                      <Badge variant="info" className="text-[9px] px-1.5 py-0">
-                        Default
-                      </Badge>
-                    )}
+            {savedPaymentMethods.map((method) => {
+              const iconKey =
+                method.payment_method ||
+                method.method_type ||
+                method.provider_code;
+              const detailLines = savedMethodDetailLines(method);
+              return (
+                <div
+                  key={method.id}
+                  className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center mt-0.5">
+                    {getPaymentMethodIcon(iconKey, {
+                      size: 'md',
+                      methodType: method.method_type ?? null,
+                      providerPaymentMethod: method.provider_code ?? null,
+                      asInitialFallback: true,
+                    })}
                   </div>
-                  {(method.account_name || method.account_number || method.account_info) && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                      {method.account_name || method.account_number || method.account_info}
-                    </p>
-                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {savedMethodTitle(method)}
+                      </p>
+                      {method.is_default && (
+                        <Badge variant="info" className="text-[9px] px-1.5 py-0">
+                          Default
+                        </Badge>
+                      )}
+                      {method.is_active === false && (
+                        <Badge variant="danger" className="text-[9px] px-1.5 py-0">
+                          Inactive
+                        </Badge>
+                      )}
+                    </div>
+                    {detailLines.length > 0 ? (
+                      <div className="mt-1 space-y-0.5">
+                        {detailLines.map((line, i) => (
+                          <p
+                            key={`${method.id}-line-${i}`}
+                            className="text-xs text-gray-500 dark:text-gray-400 break-words"
+                          >
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

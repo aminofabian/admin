@@ -26,17 +26,29 @@ export interface Staff extends BaseUser {
   max_amount?: string | number | null;
 }
 
+/** Player-saved instrument from GET player detail (shape from backend). */
 export interface SavedPaymentMethod {
   id: number;
-  payment_method: string;
+  provider_code?: string;
+  method_type?: string;
+  provider_ref_id?: string;
+  provider_player_ref?: string;
+  is_default?: boolean;
+  is_active?: boolean;
+  account_holder_name?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  card_last4?: string | null;
+  card_holder_name?: string | null;
+  expiry_date?: string | null;
+  zip_code?: string | null;
+  masked_card?: string | null;
+  /** Alternate API shapes */
+  payment_method?: string;
   payment_method_display?: string;
   account_name?: string;
   account_number?: string;
   account_info?: string;
-  is_default?: boolean;
-  created?: string;
-  modified?: string;
-  [key: string]: unknown;
 }
 
 export interface Player extends BaseUser {
