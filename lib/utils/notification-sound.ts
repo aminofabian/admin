@@ -23,6 +23,8 @@ let audioUnlocked = false;
  * Uses full-volume HTML5 Audio – quiet sounds may not satisfy autoplay.
  */
 function unlockWebAudio(): void {
+  // TODO: muted — see playNotificationSound
+  return;
   if (typeof window === 'undefined' || audioUnlocked) return;
 
   try {
@@ -104,6 +106,8 @@ export interface NotifyMessageOptions {
  * when permission is granted, regardless of autoplay policy or other tabs.
  */
 export function notifyNewMessage(options: NotifyMessageOptions = {}): void {
+  // TODO: muted — see playNotificationSound
+  return;
   if (!canUseNotifications() || Notification.permission !== 'granted') return;
 
   const { senderName = 'Player', preview = 'New message' } = options;
@@ -136,6 +140,8 @@ export function notifyNewMessage(options: NotifyMessageOptions = {}): void {
  *    is suspended in background tabs and will never play.
  */
 export function playNotificationSound(options?: NotifyMessageOptions): void {
+  // TODO: sound fires at random times — muted until logic is refined
+  return;
   try {
     if (typeof window === 'undefined') return;
 
