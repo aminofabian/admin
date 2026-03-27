@@ -15,9 +15,6 @@ function canUseNotifications(): boolean {
   return typeof window !== 'undefined' && 'Notification' in window;
 }
 
-/** Tracks if we've successfully unlocked audio this session */
-let audioUnlocked = false;
-
 /**
  * Unlock audio for this page. MUST run synchronously during a user gesture.
  * Uses full-volume HTML5 Audio – quiet sounds may not satisfy autoplay.
@@ -25,32 +22,6 @@ let audioUnlocked = false;
 function unlockWebAudio(): void {
   // TODO: muted — see playNotificationSound
   return;
-  if (typeof window === 'undefined' || audioUnlocked) return;
-
-  try {
-    if (!beepDataUri) beepDataUri = createBeepDataUri();
-    const a = new Audio(beepDataUri);
-    a.volume = 0.6; // Must be audible – quiet sounds often don't satisfy autoplay
-    a.play().then(() => { audioUnlocked = true; }).catch(() => {});
-  } catch {
-    /* ignore */
-  }
-
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    gain.gain.value = 0.5;
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.1);
-    audioUnlocked = true;
-  } catch {
-    /* ignore */
-  }
 }
 
 /** Play in-page sound immediately – used during user gesture to prime. */
@@ -227,7 +198,7 @@ function tryInPageSound(): void {
   // 2. HTML5 Audio fallback - can work when Web Audio is suspended
   try {
     if (!beepDataUri) beepDataUri = createBeepDataUri();
-    const a = new Audio(beepDataUri);
+    const a = new Audio(beepDataUri ?? undefined);
     a.volume = 0.8;
     a.play().catch(() => {});
   } catch {
