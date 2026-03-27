@@ -8,7 +8,7 @@ import { playersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
 import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input } from '@/components/ui';
-import { LoadingState, ErrorState, PlayerGameBalanceModal } from '@/components/features';
+import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
@@ -60,6 +60,7 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
   const [gameToEdit, setGameToEdit] = useState<PlayerGame | null>(null);
   const [isEditingGame, setIsEditingGame] = useState(false);
   const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
+  const [isSavedPaymentMethodsOpen, setIsSavedPaymentMethodsOpen] = useState(false);
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
   const [editableFields, setEditableFields] = useState<EditableFields>({
@@ -554,6 +555,21 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
                   </svg>
                   <span className="text-center leading-tight">Activities</span>
                 </Button>
+                <Button
+                  onClick={() => setIsSavedPaymentMethodsOpen(true)}
+                  variant="secondary"
+                  className="group col-span-2 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98] touch-manipulation"
+                >
+                  <svg className="h-5 w-5 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                  </svg>
+                  <span>Saved Payment Methods</span>
+                  {selectedPlayer.has_saved_payment_methods && (
+                    <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[16px] px-1 text-[9px] font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">
+                      {selectedPlayer.saved_payment_methods?.length ?? 0}
+                    </span>
+                  )}
+                </Button>
               </div>
             </section>
 
@@ -818,6 +834,13 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
         confirmText="Delete"
         variant="danger"
         isLoading={isDeletingGame}
+      />
+
+      <SavedPaymentMethodsModal
+        isOpen={isSavedPaymentMethodsOpen}
+        onClose={() => setIsSavedPaymentMethodsOpen(false)}
+        playerUsername={selectedPlayer.username}
+        savedPaymentMethods={selectedPlayer.saved_payment_methods ?? []}
       />
 
       {/* Edit Game Drawer */}

@@ -26,6 +26,19 @@ export interface Staff extends BaseUser {
   max_amount?: string | number | null;
 }
 
+export interface SavedPaymentMethod {
+  id: number;
+  payment_method: string;
+  payment_method_display?: string;
+  account_name?: string;
+  account_number?: string;
+  account_info?: string;
+  is_default?: boolean;
+  created?: string;
+  modified?: string;
+  [key: string]: unknown;
+}
+
 export interface Player extends BaseUser {
   role: 'player';
   full_name: string;
@@ -43,6 +56,8 @@ export interface Player extends BaseUser {
   company_id?: number;
   company_username?: string;
   created_by?: { id: number; username: string } | null;
+  saved_payment_methods?: SavedPaymentMethod[];
+  has_saved_payment_methods?: boolean;
 }
 
 export type User = Agent | Manager | Staff | Player;
