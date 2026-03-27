@@ -12,7 +12,6 @@ import { ProcessingWebSocketProvider } from '@/contexts/processing-websocket-con
 import { ChatUsersProvider } from '@/contexts/chat-users-context';
 import { ChatDrawer } from '@/components/chat/chat-drawer';
 import { GlobalTransactionNotifications } from '@/components/dashboard/global-transaction-notifications';
-import { attachUnlockListeners } from '@/lib/utils/notification-sound';
 import { registerServiceWorker } from '@/lib/push';
 import { isSuperadminDomain } from '@/lib/utils/domain';
 import { useToast } from '@/components/ui';
@@ -44,13 +43,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
-
-  // Passive unlock: first click/key/touch anywhere enables notification sounds
-  useEffect(() => {
-    if (isAuthenticated) {
-      attachUnlockListeners();
-    }
-  }, [isAuthenticated]);
 
   // Pre-register service worker for push (must be same origin, HTTPS)
   useEffect(() => {
