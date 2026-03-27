@@ -98,10 +98,11 @@ export function ManagerPaymentSettingsSection() {
       setSelectedPaymentMethod(null);
     } catch (error) {
       console.error('Failed to update payment method amounts:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       addToast({
         type: 'error',
         title: 'Update failed',
-        description: `Failed to update amount limits for ${selectedPaymentMethod.payment_method_display}.`,
+        description: errorMessage,
       });
     } finally {
       setIsUpdatingAmounts(false);

@@ -392,8 +392,12 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
     } catch (err: unknown) {
       let errorMessage = 'Failed to update payment method amounts';
 
-      if (err && typeof err === 'object' && 'detail' in err) {
-        errorMessage = String(err.detail);
+      if (err && typeof err === 'object') {
+        if ('message' in err && typeof (err as { message: unknown }).message === 'string') {
+          errorMessage = (err as { message: string }).message;
+        } else if ('detail' in err) {
+          errorMessage = String((err as { detail: unknown }).detail);
+        }
 
         if (errorMessage.toLowerCase().includes('permission')) {
           errorMessage = 'Access Denied: You need proper privileges to update payment methods.';
