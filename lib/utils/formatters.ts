@@ -300,10 +300,21 @@ function formatVenmoHandleForDisplay(raw: string): string {
   return s;
 }
 
-function extractCardTail(value: unknown): string | undefined {
+/**
+ * Card line for payment details: show like ****7887, not bare 7887.
+ * Keeps API-supplied masks (e.g. **** **** **** 7887); bare digits → **** + last4.
+ */
+function formatCardDetailsForDisplay(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
-  const digits = String(value).replace(/\D/g, '');
-  if (digits.length >= 4) return digits.slice(-4);
+  const s = String(value).trim();
+  if (!s) return undefined;
+  if (/[*•·xX]/.test(s)) {
+    return s;
+  }
+  const digits = s.replace(/\D/g, '');
+  if (digits.length >= 4) {
+    return `****${digits.slice(-4)}`;
+  }
   return undefined;
 }
 
@@ -434,10 +445,10 @@ export function getPaymentDetailsForDisplay(
   const isCard = typeof rawMethod === 'string' && rawMethod.trim().toLowerCase() === 'card';
   if (isCard && paymentDetails && typeof paymentDetails === 'object') {
     const tailVal = findPaymentDetailValue(paymentDetails, CARD_TAIL_KEYS);
-    const tail = extractCardTail(tailVal);
-    if (tail) {
+    const cardDisplay = formatCardDetailsForDisplay(tailVal);
+    if (cardDisplay) {
       const alreadyHasTail = entries.some(([label]) => label.toLowerCase() === 'card details');
-      if (!alreadyHasTail) entries.push(['Card Details', tail]);
+      if (!alreadyHasTail) entries.push(['Card Details', cardDisplay]);
     }
 
     const nameVal = findPaymentDetailValue(paymentDetails, CARD_NAME_KEYS);

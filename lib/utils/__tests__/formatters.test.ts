@@ -90,6 +90,23 @@ describe('formatters', () => {
       expect(rows.some(([label]) => label === 'Venmo username')).toBe(false);
     });
 
+    it('formats card details as **** + last four digits when value is digits only', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        payment_details: { last4: '7887' },
+      });
+      expect(rows.find(([label]) => label === 'Card Details')?.[1]).toBe('****7887');
+    });
+
+    it('preserves already-masked card strings from the API', () => {
+      const masked = '**** **** **** 7887';
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        payment_details: { masked_card: masked },
+      });
+      expect(rows.find(([label]) => label === 'Card Details')?.[1]).toBe(masked);
+    });
+
     it('appends Venmo username when handle uses a key outside the generic Username bucket', () => {
       const rows = getPaymentDetailsForDisplay({
         payment_method: 'venmo',
