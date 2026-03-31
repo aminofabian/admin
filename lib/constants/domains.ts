@@ -5,6 +5,8 @@
 export const PERMITTED_SUPERADMIN_DOMAINS = [
   'sa.bruii.com',
   'sa.serverhub.biz',
+  'sa-beta.serverhub.biz',
+  'beta-omega-tan.vercel.app',
   'localhost',
   '127.0.0.1',
 ] as const;
