@@ -318,7 +318,7 @@ export default function DashboardPage() {
         <div className="w-full max-w-5xl px-3 sm:px-4">
           <div className="flex items-center gap-1.5 px-1">
             <div className="h-0.5 w-4 bg-primary rounded-full"></div>
-            <h2 className="text-[8px] sm:text-[9px] font-light text-foreground/70">Quick Access</h2>
+            <h2 className="text-[8px] sm:text-[9px] font-light text-foreground/70">Quick Access...</h2>
             <div className="flex-1 h-0.5 bg-border rounded-full"></div>
           </div>
         </div>

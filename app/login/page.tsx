@@ -134,7 +134,7 @@ export default function LoginPage() {
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-purple-500/10 blur-sm -z-10 opacity-70 dark:opacity-100" />
             </div>
             <p className="text-gray-600 dark:text-muted-foreground mt-3 text-base">
-              Sign in to access your dashboard
+              Sign in to access your dashboard...
             </p>
           </div>
 
