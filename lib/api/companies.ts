@@ -13,7 +13,7 @@ interface CompanyFilters {
   [key: string]: string | number | boolean | undefined;
 }
 
-// Helper to clean up optional fields - remove empty strings and problematic fields
+// Helper to normalize company payloads for create vs update
 type CleanableFields = {
   game_api_url?: string;
   game_api_key?: string;
@@ -38,9 +38,7 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
   isCreate: boolean = false
 ): T => {
   const cleaned = { ...data } as T & CleanableFields;
-  
-  // Remove empty strings from optional fields
-  // These fields may exist on CreateCompanyRequest but not UpdateCompanyRequest
+
   const optionalFields: (keyof CleanableFields)[] = [
     'game_api_url', 
     'game_api_key', 
@@ -59,16 +57,16 @@ const cleanCompanyData = <T extends CreateCompanyRequest | UpdateCompanyRequest>
     'tierlock_payout_shared_secret',
     'tierlock_payout_client_secret',
   ];
-  optionalFields.forEach(field => {
-    if (field in cleaned && cleaned[field] === '') {
-      delete cleaned[field];
-    }
-  });
-  
-  // For create requests, completely remove game_api_url and game_api_key
-  // These fields cause backend errors as they don't exist on the Users model
-  // They may need to be set separately after company creation
+  // On create, omit empty optional strings so we do not send noisy blank fields.
+  // On update/patch, keep '' so the backend can clear stored secrets and IDs.
   if (isCreate) {
+    optionalFields.forEach(field => {
+      if (field in cleaned && cleaned[field] === '') {
+        delete cleaned[field];
+      }
+    });
+    // These fields cause backend errors as they don't exist on the Users model
+    // They may need to be set separately after company creation
     delete cleaned.game_api_url;
     delete cleaned.game_api_key;
   }
