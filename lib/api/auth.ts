@@ -72,7 +72,18 @@ export const authApi = {
     }
     
     // Use Next.js API route to proxy the login request (avoids CORS)
-    const response = await fetch('/api/auth/login', {
+    const loginPath = '/api/auth/login';
+    if (typeof window !== 'undefined') {
+      const resolvedLoginUrl = new URL(loginPath, window.location.origin).href;
+      console.log('[login] App origin (browser base URL):', window.location.origin);
+      console.log('[login] Resolved login fetch URL:', resolvedLoginUrl);
+      console.log(
+        '[login] NEXT_PUBLIC_API_URL (Django target used by API route on server):',
+        process.env.NEXT_PUBLIC_API_URL ?? '(unset in client bundle)',
+      );
+    }
+
+    const response = await fetch(loginPath, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
