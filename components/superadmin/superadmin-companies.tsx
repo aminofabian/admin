@@ -280,7 +280,7 @@ export function SuperAdminCompanies() {
             {/* Sticky Mobile Header */}
             <div className="sticky top-0 z-10 md:relative md:top-auto md:z-auto bg-background/95 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none border-b md:border-b-0 mb-4 md:mb-6 -mx-4 md:mx-0 px-2 md:px-0 py-3 md:py-0">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Company Management</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Company Management...</h1>
                     <Button 
                         onClick={() => setIsCreateModalOpen(true)}
                         className="md:hidden h-10 px-3 text-sm active:scale-[0.98]"

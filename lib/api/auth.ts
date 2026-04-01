@@ -1,4 +1,5 @@
 import type { LoginRequest, LoginResponse, DashboardGamesResponse } from '@/types';
+import { API_BASE_URL } from '@/lib/constants/api';
 import { getCurrentDomain, extractDomainFromUrl } from '@/lib/utils/domain';
 
 export const authApi = {
@@ -72,18 +73,15 @@ export const authApi = {
     }
     
     // Use Next.js API route to proxy the login request (avoids CORS)
-    const loginPath = '/api/auth/login';
     if (typeof window !== 'undefined') {
-      const resolvedLoginUrl = new URL(loginPath, window.location.origin).href;
-      console.log('[login] App origin (browser base URL):', window.location.origin);
-      console.log('[login] Resolved login fetch URL:', resolvedLoginUrl);
       console.log(
-        '[login] NEXT_PUBLIC_API_URL (Django target used by API route on server):',
-        process.env.NEXT_PUBLIC_API_URL ?? '(unset in client bundle)',
+        '[login] NEXT_PUBLIC_API_URL (env):',
+        process.env.NEXT_PUBLIC_API_URL ?? '(not set)',
       );
+      console.log('[login] API_BASE_URL (effective, same as rest of client API):', API_BASE_URL);
     }
 
-    const response = await fetch(loginPath, {
+    const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
