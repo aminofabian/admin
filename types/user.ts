@@ -56,6 +56,12 @@ export interface Player extends BaseUser {
   full_name: string;
   balance: string;
   winning_balance: string;
+  cashout_limit?: string;
+  locked_balance?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  gender?: string | null;
+  affiliated_by?: string | null;
   mobile_number?: string;
   dob?: string;
   state?: string;

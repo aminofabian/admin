@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, context: RouteContextParams) {
     const body = await request.json();
     const authHeader = request.headers.get('authorization');
 
-    const response = await fetch(`${BACKEND_URL}/api/v1/players/${id}/`, {
+    const response = await fetch(`${BACKEND_URL}/api/admin/players/${id}/`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
