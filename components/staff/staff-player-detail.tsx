@@ -460,7 +460,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Credit</p>
+                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Balance</p>
                   <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{creditBalance}</p>
                 </div>
               </div>
@@ -473,7 +473,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Winning</p>
+                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Winnings</p>
                   <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{winningBalance}</p>
                 </div>
               </div>

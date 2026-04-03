@@ -74,7 +74,7 @@ export function EditBalanceDrawer({
   isOpen,
   onClose,
   credits = '0',
-  winnings = '0',
+  winnings,
   cashoutLimit,
   lockedBalance,
   adjustmentKind,
@@ -157,15 +157,21 @@ export function EditBalanceDrawer({
             <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Player balances
             </p>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+            <div
+              className={`mt-2 grid gap-2 text-sm ${winnings !== undefined ? 'grid-cols-2' : 'grid-cols-1'}`}
+            >
               <div>
-                <span className="text-gray-500 dark:text-gray-400">Credits</span>
+                <span className="text-gray-500 dark:text-gray-400">Balance</span>
                 <p className="font-bold tabular-nums text-gray-900 dark:text-gray-100">{formatCurrency(credits)}</p>
               </div>
-              <div>
-                <span className="text-gray-500 dark:text-gray-400">Winnings</span>
-                <p className="font-bold tabular-nums text-amber-700 dark:text-amber-400">{formatCurrency(winnings)}</p>
-              </div>
+              {winnings !== undefined ? (
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Winnings</span>
+                  <p className="font-bold tabular-nums text-amber-700 dark:text-amber-400">
+                    {formatCurrency(winnings || '0')}
+                  </p>
+                </div>
+              ) : null}
             </div>
             {(cashoutLimit !== undefined && cashoutLimit !== '') || (lockedBalance !== undefined && lockedBalance !== '') ? (
               <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-200 pt-3 text-xs dark:border-gray-600">
@@ -332,7 +338,7 @@ export function EditBalanceDrawer({
         <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 px-5 py-4 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
           {!amountBlocked && (
             <p className="mb-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
-              {meta.direction === 'add' ? 'Adds to credits' : 'Deducts (see type)'} · ${balanceValue}
+              {meta.direction === 'add' ? 'Adds to balance' : 'Deducts (see type)'} · ${balanceValue}
             </p>
           )}
           <div className="flex items-center justify-end gap-2">

@@ -4,8 +4,9 @@ const RAW_BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhu
 const BACKEND_URL = RAW_BACKEND_URL.replace(/\/$/, '');
 
 /**
- * Backend may return `locked_balance` instead of `winning_balance`; dashboards use the latter.
- * Some payloads omit `count` when `results` is present — fill it for PaginatedResponse consumers.
+ * `GET /api/v1/players/` returns DRF pagination: count, next, previous, results.
+ * Each row includes balance, winning_balance, cashout_limit, locked_balance, etc.
+ * If an older payload omits winning_balance, default to "0.00" (do not copy locked_balance).
  */
 function normalizePlayersListResponse(data: unknown): unknown {
   if (!data || typeof data !== 'object') return data;
@@ -13,27 +14,33 @@ function normalizePlayersListResponse(data: unknown): unknown {
   const results = body.results;
   if (!Array.isArray(results)) return data;
 
+  const rawCount = body.count;
   const count =
-    typeof body.count === 'number' ? body.count : results.length;
+    typeof rawCount === 'number'
+      ? rawCount
+      : typeof rawCount === 'string'
+        ? Number.parseInt(rawCount, 10)
+        : Number.NaN;
+  const safeCount = Number.isFinite(count) ? count : results.length;
 
   const mappedResults = results.map((row) => {
     if (!row || typeof row !== 'object') return row;
     const p = row as Record<string, unknown>;
-    if (p.winning_balance !== undefined && p.winning_balance !== null) {
+    const wb = p.winning_balance;
+    if (wb !== undefined && wb !== null && String(wb).trim() !== '') {
       return row;
     }
-    const fallback = p.locked_balance ?? '0.00';
     return {
       ...p,
-      winning_balance: typeof fallback === 'string' ? fallback : String(fallback),
+      winning_balance: '0.00',
     };
   });
 
   return {
     ...body,
-    count,
-    next: body.next === undefined ? null : body.next,
-    previous: body.previous === undefined ? null : body.previous,
+    count: safeCount,
+    next: body.next ?? null,
+    previous: body.previous ?? null,
     results: mappedResults,
   };
 }

@@ -1414,7 +1414,7 @@ export function ChatComponent() {
         void: `$${balanceValue} void applied`,
       };
 
-      let description = `Credits: ${formatCurrency(response.player_bal)}\nWinnings: ${formatCurrency(response.player_winning_bal)}`;
+      let description = `Balance: ${formatCurrency(response.player_bal)}\nWinnings: ${formatCurrency(response.player_winning_bal)}`;
       if (response.cashout_limit !== undefined && response.cashout_limit !== null && String(response.cashout_limit) !== '') {
         description += `\nCashout limit: ${formatCurrency(String(response.cashout_limit))}`;
       }
@@ -2339,7 +2339,7 @@ export function ChatComponent() {
         isOpen={isEditBalanceModalOpen}
         onClose={() => setIsEditBalanceModalOpen(false)}
         credits={selectedPlayer?.balance ?? '0'}
-        winnings={selectedPlayer?.winningBalance ?? '0'}
+        winnings={selectedPlayer?.winningBalance}
         cashoutLimit={selectedPlayer?.cashoutLimit}
         lockedBalance={selectedPlayer?.lockedBalance}
         adjustmentKind={balanceAdjustmentKind}

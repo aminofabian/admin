@@ -10,6 +10,7 @@ export interface ChatUser {
   lastMessageTime?: string;
   playerLastSeenAt?: string; // Timestamp of when player was last seen online
   balance?: string;
+  /** Separate winnings bucket; omitted by admin chat list API (only balance / locked / cashout limit). */
   winningBalance?: string;
   /** Available when API provides it; used for external cashout / void context. */
   cashoutLimit?: string;
