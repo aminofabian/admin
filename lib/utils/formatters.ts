@@ -567,6 +567,27 @@ export function formatLedgerArrowDisplay(
 }
 
 /**
+ * Game activity history: API often omits `previous_*` on `create_game` / `add_user_game`.
+ * When only `new_*` exists, show `$0.00 → $new` instead of hiding balances.
+ */
+export function formatBalanceTransitionDisplay(
+  formattedPrevious: string | null,
+  formattedNew: string | null,
+  zeroCurrency: string,
+): string {
+  if (formattedPrevious && formattedNew) {
+    return `${formattedPrevious} → ${formattedNew}`;
+  }
+  if (formattedNew) {
+    return `${zeroCurrency} → ${formattedNew}`;
+  }
+  if (formattedPrevious) {
+    return `${formattedPrevious} → ${zeroCurrency}`;
+  }
+  return '—';
+}
+
+/**
  * Formats a timestamp to a human-readable relative format for chat messages
  * Examples:
  * - "Just now" for messages less than 1 minute old

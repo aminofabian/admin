@@ -4,7 +4,12 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { DashboardSectionContainer } from '@/components/dashboard/layout';
 import { Badge, Button, Card, CardContent, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
-import { formatCurrency, formatDate, formatPaymentMethod } from '@/lib/utils/formatters';
+import {
+  formatBalanceTransitionDisplay,
+  formatCurrency,
+  formatDate,
+  formatPaymentMethod,
+} from '@/lib/utils/formatters';
 import { useTransactionQueuesStore } from '@/stores';
 import { gamesApi, paymentMethodsApi, staffsApi, managersApi, agentsApi } from '@/lib/api';
 import type { TransactionQueue, Game, Company, Staff, Manager, Agent, PaymentMethod } from '@/types';
@@ -1010,11 +1015,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
 
     const zeroCurrency = formatCurrency('0');
 
-    const shouldShowBlankBalance = useMemo(() => {
-        const typeStr = String(activity.type);
-        return typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
-    }, [activity.type]);
-
     /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
     const previousCreditsNum = previousCreditsBalance ?? 0;
     const newCreditsNum = newCreditsBalanceNum ?? 0;
@@ -1030,19 +1030,25 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         return winningsChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
     }, [winningsChanged]);
 
-    const creditsDisplayText = useMemo(() => {
-        if (shouldShowBlankBalance) return '—';
-        return formattedPreviousCredits && formattedNewCredits
-            ? `${formattedPreviousCredits} → ${formattedNewCredits}`
-            : (formattedNewCredits || formattedPreviousCredits || zeroCurrency);
-    }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency]);
+    const creditsDisplayText = useMemo(
+        () =>
+            formatBalanceTransitionDisplay(
+                formattedPreviousCredits,
+                formattedNewCredits,
+                zeroCurrency,
+            ),
+        [formattedPreviousCredits, formattedNewCredits, zeroCurrency],
+    );
 
-    const winningsDisplayText = useMemo(() => {
-        if (shouldShowBlankBalance) return '—';
-        return formattedPreviousWinnings && formattedNewWinnings
-            ? `${formattedPreviousWinnings} → ${formattedNewWinnings}`
-            : (formattedNewWinnings || formattedPreviousWinnings || zeroCurrency);
-    }, [shouldShowBlankBalance, formattedPreviousWinnings, formattedNewWinnings, zeroCurrency]);
+    const winningsDisplayText = useMemo(
+        () =>
+            formatBalanceTransitionDisplay(
+                formattedPreviousWinnings,
+                formattedNewWinnings,
+                zeroCurrency,
+            ),
+        [formattedPreviousWinnings, formattedNewWinnings, zeroCurrency],
+    );
 
     const websiteUsername = useMemo(() => {
         if (typeof activity.user_username === 'string' && activity.user_username.trim()) {

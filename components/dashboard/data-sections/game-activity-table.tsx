@@ -11,7 +11,7 @@ import {
   Badge,
 } from '@/components/ui';
 import type { TransactionQueue } from '@/types';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { formatBalanceTransitionDisplay, formatCurrency, formatDate } from '@/lib/utils/formatters';
 
 interface GameActivityTableProps {
   activities: TransactionQueue[];
@@ -147,34 +147,25 @@ function GameActivityRow({
 
   const zeroCurrency = formatCurrency('0');
 
-  // Check if this is a reset or add user action - these should show hyphen for balance
-  // For create_game, show balances if they exist in data, otherwise show dash
-  const shouldShowBlankBalance = useMemo(() => {
-    const typeStr = String(activity.type);
-    return typeStr === 'create_game' || typeStr === 'add_user_game' || typeStr === 'change_password' || typeStr === 'reset_password';
-  }, [activity.type]);
+  const creditsDisplayText = useMemo(
+    () =>
+      formatBalanceTransitionDisplay(
+        formattedPreviousCredits,
+        formattedNewCredits,
+        zeroCurrency,
+      ),
+    [formattedPreviousCredits, formattedNewCredits, zeroCurrency],
+  );
 
-  const creditsDisplayText = useMemo(() => {
-    // For types that should show blank, return dash
-    if (shouldShowBlankBalance) return '—';
-    // Show previous -> new format if both exist
-    if (formattedPreviousCredits && formattedNewCredits) {
-      return `${formattedPreviousCredits} → ${formattedNewCredits}`;
-    }
-    // Fallback to new balance or previous balance or zero
-    return formattedNewCredits || formattedPreviousCredits || zeroCurrency;
-  }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency]);
-
-  const winningsDisplayText = useMemo(() => {
-    // For types that should show blank, return dash
-    if (shouldShowBlankBalance) return '—';
-    // Show previous -> new format if both exist
-    if (formattedPreviousWinnings && formattedNewWinnings) {
-      return `${formattedPreviousWinnings} → ${formattedNewWinnings}`;
-    }
-    // Fallback to new balance or previous balance or zero
-    return formattedNewWinnings || formattedPreviousWinnings || zeroCurrency;
-  }, [shouldShowBlankBalance, formattedPreviousWinnings, formattedNewWinnings, zeroCurrency]);
+  const winningsDisplayText = useMemo(
+    () =>
+      formatBalanceTransitionDisplay(
+        formattedPreviousWinnings,
+        formattedNewWinnings,
+        zeroCurrency,
+      ),
+    [formattedPreviousWinnings, formattedNewWinnings, zeroCurrency],
+  );
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
     ? activity.user_username.trim()
@@ -281,12 +272,12 @@ function GameActivityRow({
         </div>
       </TableCell>
       <TableCell>
-        <div className={shouldShowBlankBalance ? 'font-medium text-gray-900 dark:text-gray-100' : `text-xs ${creditsColorClass}`}>
+        <div className={`text-xs ${creditsColorClass}`}>
           {creditsDisplayText}
         </div>
       </TableCell>
       <TableCell>
-        <div className={shouldShowBlankBalance ? 'font-medium text-gray-900 dark:text-gray-100' : `text-xs ${winningsColorClass}`}>
+        <div className={`text-xs ${winningsColorClass}`}>
           {winningsDisplayText}
         </div>
       </TableCell>
@@ -464,34 +455,25 @@ const GameActivityCard = memo(function GameActivityCard({
 
   const zeroCurrency = formatCurrency('0');
 
-  // Check if this is a reset or add user action - these should show hyphen for balance
-  // For create_game, show balances if they exist in data, otherwise show dash
-  const shouldShowBlankBalance = useMemo(() => {
-    const typeStr = String(activity.type);
-    return typeStr === 'create_game' || typeStr === 'add_user_game' || typeStr === 'change_password' || typeStr === 'reset_password';
-  }, [activity.type]);
+  const creditsDisplayText = useMemo(
+    () =>
+      formatBalanceTransitionDisplay(
+        formattedPreviousCredits,
+        formattedNewCredits,
+        zeroCurrency,
+      ),
+    [formattedPreviousCredits, formattedNewCredits, zeroCurrency],
+  );
 
-  const creditsDisplayText = useMemo(() => {
-    // For types that should show blank, return dash
-    if (shouldShowBlankBalance) return '—';
-    // Show previous -> new format if both exist
-    if (formattedPreviousCredits && formattedNewCredits) {
-      return `${formattedPreviousCredits} → ${formattedNewCredits}`;
-    }
-    // Fallback to new balance or previous balance or zero
-    return formattedNewCredits || formattedPreviousCredits || zeroCurrency;
-  }, [shouldShowBlankBalance, formattedPreviousCredits, formattedNewCredits, zeroCurrency]);
-
-  const winningsDisplayText = useMemo(() => {
-    // For types that should show blank, return dash
-    if (shouldShowBlankBalance) return '—';
-    // Show previous -> new format if both exist
-    if (formattedPreviousWinnings && formattedNewWinnings) {
-      return `${formattedPreviousWinnings} → ${formattedNewWinnings}`;
-    }
-    // Fallback to new balance or previous balance or zero
-    return formattedNewWinnings || formattedPreviousWinnings || zeroCurrency;
-  }, [shouldShowBlankBalance, formattedPreviousWinnings, formattedNewWinnings, zeroCurrency]);
+  const winningsDisplayText = useMemo(
+    () =>
+      formatBalanceTransitionDisplay(
+        formattedPreviousWinnings,
+        formattedNewWinnings,
+        zeroCurrency,
+      ),
+    [formattedPreviousWinnings, formattedNewWinnings, zeroCurrency],
+  );
 
   const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
@@ -650,8 +632,7 @@ const GameActivityCard = memo(function GameActivityCard({
       </div>
 
       {/* Balance Section */}
-      {/* Balance Section */}
-      {!shouldShowBlankBalance && (formattedPreviousCredits || formattedNewCredits || formattedPreviousWinnings || formattedNewWinnings) && (
+      {(formattedPreviousCredits || formattedNewCredits || formattedPreviousWinnings || formattedNewWinnings) && (
         <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">
             {/* Credits */}

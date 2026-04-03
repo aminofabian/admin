@@ -6,7 +6,7 @@ import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboa
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { formatBalanceTransitionDisplay, formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore, useGamesStore } from '@/stores';
 import { staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
@@ -774,7 +774,6 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
   const formattedNewWinnings = newWinningsValue !== null && !isNaN(newWinningsValue) ? formatCurrency(String(newWinningsValue)) : null;
 
   const zeroCurrency = formatCurrency('0');
-  const shouldShowBlankBalance = typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
 
   /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
   const previousCreditsNum = previousCreditsValue ?? 0;
@@ -791,16 +790,16 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
     ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
     : 'text-gray-600 dark:text-gray-400';
 
-  const creditsDisplayText = shouldShowBlankBalance ? '—' : (
-    formattedPreviousCredits && formattedNewCredits
-      ? `${formattedPreviousCredits} → ${formattedNewCredits}`
-      : (formattedNewCredits || formattedPreviousCredits || zeroCurrency)
+  const creditsDisplayText = formatBalanceTransitionDisplay(
+    formattedPreviousCredits,
+    formattedNewCredits,
+    zeroCurrency,
   );
 
-  const winningsDisplayText = shouldShowBlankBalance ? '—' : (
-    formattedPreviousWinnings && formattedNewWinnings
-      ? `${formattedPreviousWinnings} → ${formattedNewWinnings}`
-      : (formattedNewWinnings || formattedPreviousWinnings || zeroCurrency)
+  const winningsDisplayText = formatBalanceTransitionDisplay(
+    formattedPreviousWinnings,
+    formattedNewWinnings,
+    zeroCurrency,
   );
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
@@ -968,9 +967,6 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
     ? (typeof newWinnings === 'string' || typeof newWinnings === 'number' ? parseFloat(String(newWinnings)) : null)
     : null;
   const formattedNewWinnings = newWinningsValue !== null && !isNaN(newWinningsValue) ? formatCurrency(String(newWinningsValue)) : null;
-
-  const zeroCurrency = formatCurrency('0');
-  const shouldShowBlankBalance = typeStr === 'change_password' || typeStr === 'add_user_game' || typeStr === 'create_game';
 
   /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
   const previousCreditsNum = previousCreditsValue ?? 0;
