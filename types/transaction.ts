@@ -1,4 +1,4 @@
-export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
+export type TransactionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 export type TransactionType = 'purchase' | 'cashout';
 export type QueueType = 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
 export type JournalEntry = 'debit' | 'credit';
