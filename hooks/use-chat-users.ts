@@ -7,26 +7,10 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, debounce, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
-
+import { extractUnreadCount, transformChatToUser, transformPlayerToUser } from '@/lib/chat/map-chat-api';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
-
-/**
- * Extract unread count from various field names consistently
- * Handles both unread_message_count and unread_messages_count fields
- */
-const extractUnreadCount = (data: Record<string, unknown>): number => {
-  const count1 = data.unread_message_count as number | undefined;
-  const count2 = data.unread_messages_count as number | undefined;
-
-  // Validate both are numbers and non-negative
-  const validCount1 = typeof count1 === 'number' && count1 >= 0 ? count1 : 0;
-  const validCount2 = typeof count2 === 'number' && count2 >= 0 ? count2 : 0;
-
-  // Use the higher of the two valid counts for safety
-  return Math.max(validCount1, validCount2);
-};
 
 /**
  * Check if two chat objects have meaningful differences
@@ -67,129 +51,6 @@ interface UseChatUsersReturn {
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
   markChatAsRead: (params: { chatId?: string; userId?: number }) => void;
   markChatAsReadDebounced: (params: { chatId?: string; userId?: number }) => void;
-}
-
-/**
- * Transform backend chat data to frontend ChatUser format
- * WebSocket format: chat object with nested player data OR re_arrange format
- */
-function transformChatToUser(chat: {
-  player?: {
-    id?: string | number;
-    username?: string;
-    full_name?: string;
-    name?: string;
-    email?: string;
-    profile_pic?: string;
-    profile_image?: string;
-    avatar?: string;
-    is_online?: boolean;
-    isOnline?: boolean;
-    balance?: number | string;
-    winning_balance?: number | string;
-    winningBalance?: number | string;
-    cashout_limit?: number | string;
-    locked_balance?: number | string;
-    games_played?: number;
-    gamesPlayed?: number;
-    win_rate?: number;
-    winRate?: number;
-    phone_number?: string;
-    mobile_number?: string;
-    phone?: string;
-    mobile?: string;
-    notes?: string;
-  };
-  user_id?: number | string;
-  username?: string;
-  id?: number | string;
-  chat_id?: number | string;
-  unread_message_count?: number;
-  unread_messages_count?: number;
-  unreadCount?: number;
-  updated_at?: string;
-  last_message?: string;
-  last_message_time?: string;
-}): ChatUser {
-  const player = chat.player || {};
-
-  // Handle re_arrange format where user_id is at top level
-  const userId = Number(chat.user_id || player.id || 0);
-  const username = chat.username || player.username || player.full_name || 'Unknown';
-
-  // Validate timestamp before storing it
-  const rawTimestamp = chat.last_message_time;
-  const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
-
-  return {
-    // Use chat_id as the main ID so we can match remove_chat_from_list messages
-    id: String(chat.chat_id || chat.id || player.id || ''),
-    user_id: userId,
-    username: username,
-    fullName: player.full_name || player.name || undefined,
-    email: player.email || '',
-    avatar: player.profile_pic || player.profile_image || player.avatar || undefined,
-    isOnline: player.is_online || player.isOnline || false,
-    lastMessage: chat.last_message || undefined,
-    lastMessageTime: validTimestamp,
-    balance: player.balance !== undefined ? String(player.balance) : undefined,
-    winningBalance: player.winning_balance || player.winningBalance ?
-      String(player.winning_balance || player.winningBalance) : undefined,
-    cashoutLimit:
-      player.cashout_limit !== undefined && player.cashout_limit !== null
-        ? String(player.cashout_limit)
-        : undefined,
-    lockedBalance:
-      player.locked_balance !== undefined && player.locked_balance !== null
-        ? String(player.locked_balance)
-        : undefined,
-    gamesPlayed: player.games_played || player.gamesPlayed || undefined,
-    winRate: player.win_rate || player.winRate || undefined,
-    phone: player.phone_number || player.mobile_number || player.phone || player.mobile || undefined,
-    unreadCount: extractUnreadCount(chat) || chat.unreadCount || 0,
-    notes: player.notes || undefined,
-  };
-}
-
-/**
- * Transform REST API player data to frontend ChatUser format
- * REST API format: player object from /api/v1/admin/chat/?request_type=all_players
- * This endpoint includes chat context (last message, unread count, chatroom info)
- */
-function transformPlayerToUser(player: Record<string, unknown>): ChatUser {
-  // Validate timestamp before storing it
-  const rawTimestamp = player.last_message_timestamp as string | undefined;
-  const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
-
-  return {
-    // Use chatroom_id if available (for chat context), otherwise use player.id
-    id: String(player.chatroom_id || player.id || ''),
-    user_id: Number(player.id || 0),
-    username: (player.username as string | undefined) || (player.full_name as string | undefined) || 'Unknown',
-    fullName: (player.full_name as string | undefined) || (player.name as string | undefined) || undefined,
-    email: (player.email as string | undefined) || '',
-    avatar: (player.profile_pic as string | undefined) || (player.profile_image as string | undefined) || (player.avatar as string | undefined) || undefined,
-    isOnline: (player.is_online as boolean | undefined) || false,
-    // Use last_message from API if available (new endpoint provides this)
-    lastMessage: (player.last_message as string | undefined) || undefined,
-    lastMessageTime: validTimestamp,
-    balance: player.balance !== undefined ? String(player.balance) : undefined,
-    winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
-    cashoutLimit:
-      player.cashout_limit !== undefined && player.cashout_limit !== null
-        ? String(player.cashout_limit as string | number)
-        : undefined,
-    lockedBalance:
-      player.locked_balance !== undefined && player.locked_balance !== null
-        ? String(player.locked_balance as string | number)
-        : undefined,
-    gamesPlayed: (player.games_played as number | undefined) || (player.gems as number | undefined) || undefined,
-    winRate: (player.win_rate as number | undefined) || undefined,
-    phone: (player.phone_number as string | undefined) || (player.mobile_number as string | undefined) || undefined,
-    // Use unread_messages_count from API if available
-    unreadCount: extractUnreadCount(player) || 0,
-    notes: (player.notes as string | undefined) || undefined,
-  };
 }
 
 export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): UseChatUsersReturn {
@@ -234,7 +95,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const debouncedChatUpdateRef = useRef(
     debounce((...args: unknown[]) => {
       const updateData = args[0] as Record<string, unknown>;
-      const chatId = String(updateData.chat_id);
+      const chatId = String(updateData.chat_id ?? updateData.id ?? '');
       const now = Date.now();
       const lastUpdate = chatLastUpdateRef.current.get(chatId) || 0;
 
@@ -270,7 +131,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         const updatedChat = {
           ...existingChat,
           lastMessage: (updateData.last_message as string | undefined) || existingChat.lastMessage,
-          lastMessageTime: isValidTimestamp(updateData.last_message_time as string | undefined) ? updateData.last_message_time as string : existingChat.lastMessageTime,
+          lastMessageTime: (() => {
+            const t =
+              (updateData.last_message_time as string | undefined) ||
+              (updateData.last_message_timestamp as string | undefined);
+            return isValidTimestamp(t) ? t : existingChat.lastMessageTime;
+          })(),
           unreadCount: newUnreadCount,
           balance: newBalance !== undefined ? String(newBalance) : existingChat.balance,
           winningBalance: newWinningBalance !== undefined ? String(newWinningBalance) : existingChat.winningBalance,
@@ -450,7 +316,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         }
 
         const chatList = messageWrapper.chats;
-        const incomingUsers = chatList.map(transformChatToUser);
+        const incomingUsers = chatList.map((c) => transformChatToUser(c as Record<string, unknown>));
 
         setActiveChats((prevChats) => {
           if (prevChats.length === 0) {
@@ -610,7 +476,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           return;
         }
 
-        const transformedUsers = data.chats.map(transformChatToUser);
+        const transformedUsers = data.chats.map((c) => transformChatToUser(c as Record<string, unknown>));
         setActiveChats(transformedUsers);
         setIsLoading(false);
       }
@@ -723,7 +589,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         // Fallback to chats format if player array is not present
         let transformedUsers: ChatUser[];
         try {
-          transformedUsers = data.chats.map(transformChatToUser);
+          transformedUsers = data.chats.map((c: unknown) => transformChatToUser(c as Record<string, unknown>));
         } catch (transformError) {
           console.error('❌ [refreshActiveChats] transformChatToUser failed:', transformError);
           return;
