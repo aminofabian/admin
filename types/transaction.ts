@@ -22,8 +22,18 @@ export interface Transaction {
   journal_entry: JournalEntry;
   previous_balance: string;
   new_balance: string;
-  previous_winning_balance: string;
-  new_winning_balance: string;
+  /** Omitted on some APIs (e.g. v1 transactions-history); UI treats missing as N/A. */
+  previous_winning_balance?: string;
+  new_winning_balance?: string;
+  /** Ledger fields from v1 transactions-history */
+  previous_cashout_limit?: string | null;
+  new_cashout_limit?: string | null;
+  new_locked_balance?: string | null;
+  reason?: string | null;
+  reason_display?: string | null;
+  agent_id?: number;
+  agent_username?: string;
+  merchant_username?: string;
   unique_id: string;
   role: string;
   action: string;

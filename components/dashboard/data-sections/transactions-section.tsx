@@ -7,7 +7,14 @@ import {
 } from '@/components/dashboard/layout';
 import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useToast, Skeleton } from '@/components/ui';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
-import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName } from '@/lib/utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  formatLedgerAmountDisplay,
+  formatLedgerArrowDisplay,
+  formatPaymentMethod,
+  getProviderDisplayName,
+} from '@/lib/utils/formatters';
 import { useTransactionsStore } from '@/stores';
 import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
@@ -43,8 +50,8 @@ const TRANSACTIONS_SKELETON = (
       <div className="overflow-x-auto">
         <div className="min-w-full">
           <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-9 gap-4 px-4 py-3">
-              {[...Array(9)].map((_, i) => (
+            <div className="grid grid-cols-11 gap-4 px-4 py-3">
+              {[...Array(11)].map((_, i) => (
                 <Skeleton key={i} className="h-4 w-24" />
               ))}
             </div>
@@ -52,18 +59,10 @@ const TRANSACTIONS_SKELETON = (
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="grid grid-cols-9 gap-4 px-4 py-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-6 w-16 rounded-full" />
-                <Skeleton className="h-5 w-20" />
-                <Skeleton className="h-5 w-32" />
-                <div className="flex justify-end">
-                  <Skeleton className="h-8 w-20 rounded-full" />
-                </div>
+              <div key={i} className="grid grid-cols-11 gap-4 px-4 py-4">
+                {[...Array(11)].map((_, j) => (
+                  <Skeleton key={j} className="h-5 w-20" />
+                ))}
               </div>
             ))}
           </div>
@@ -970,8 +969,10 @@ function TransactionsTable({
                     <TableHead>User</TableHead>
                     <TableHead>Transaction</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Credit</TableHead>
-                    <TableHead>Winning</TableHead>
+                    <TableHead>Balance</TableHead>
+                    <TableHead>Winnings</TableHead>
+                    <TableHead>Cashout limit</TableHead>
+                    <TableHead>Locked</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Provider</TableHead>
@@ -1194,6 +1195,19 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </div>
       </TableCell>
       <TableCell>
+        <div className="text-xs text-gray-600 dark:text-gray-400 tabular-nums">
+          {formatLedgerArrowDisplay(
+            transaction.previous_cashout_limit,
+            transaction.new_cashout_limit,
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="text-xs text-gray-600 dark:text-gray-400 tabular-nums">
+          {formatLedgerAmountDisplay(transaction.new_locked_balance) ?? '—'}
+        </div>
+      </TableCell>
+      <TableCell>
         <Badge variant={statusVariant} className="capitalize">
           {transaction.status}
         </Badge>
@@ -1236,6 +1250,10 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     prevProps.transaction.new_balance === nextProps.transaction.new_balance &&
     prevProps.transaction.previous_winning_balance === nextProps.transaction.previous_winning_balance &&
     prevProps.transaction.new_winning_balance === nextProps.transaction.new_winning_balance &&
+    prevProps.transaction.previous_cashout_limit === nextProps.transaction.previous_cashout_limit &&
+    prevProps.transaction.new_cashout_limit === nextProps.transaction.new_cashout_limit &&
+    prevProps.transaction.new_locked_balance === nextProps.transaction.new_locked_balance &&
+    prevProps.transaction.payment_method === nextProps.transaction.payment_method &&
     prevProps.transaction.provider === nextProps.transaction.provider
   );
 });

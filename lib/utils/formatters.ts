@@ -546,6 +546,26 @@ export const formatPercentage = (value: string | number): string => {
   return `${numValue.toFixed(2)}%`;
 };
 
+/** API ledger N/A is often "-" or empty (e.g. cashout limit on purchases). */
+export function formatLedgerAmountDisplay(raw: string | number | null | undefined): string | null {
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).trim();
+  if (s === '' || s === '-') return null;
+  const n = parseFloat(s);
+  if (Number.isNaN(n)) return null;
+  return formatCurrency(s);
+}
+
+export function formatLedgerArrowDisplay(
+  prevRaw: string | number | null | undefined,
+  nextRaw: string | number | null | undefined,
+): string {
+  const prev = formatLedgerAmountDisplay(prevRaw);
+  const next = formatLedgerAmountDisplay(nextRaw);
+  if (prev === null && next === null) return '—';
+  return `${prev ?? '—'} → ${next ?? '—'}`;
+}
+
 /**
  * Formats a timestamp to a human-readable relative format for chat messages
  * Examples:

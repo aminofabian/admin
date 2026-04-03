@@ -20,6 +20,24 @@ export type TransactionActionOptions = {
   tierlockPreferEmailOnly?: boolean;
 };
 
+function normalizePaginatedBody<T>(body: Record<string, unknown>): PaginatedResponse<T> {
+  const results = Array.isArray(body.results) ? (body.results as T[]) : [];
+  const rawCount = body.count;
+  const count =
+    typeof rawCount === 'number'
+      ? rawCount
+      : typeof rawCount === 'string'
+        ? Number.parseInt(rawCount, 10)
+        : Number.NaN;
+  const safeCount = Number.isFinite(count) ? count : results.length;
+  return {
+    count: safeCount,
+    next: (body.next as string | null | undefined) ?? null,
+    previous: (body.previous as string | null | undefined) ?? null,
+    results,
+  };
+}
+
 /**
  * Normalizes transaction list response to ensure it matches PaginatedResponse format.
  * Backend sometimes returns plain arrays instead of paginated responses.
@@ -31,7 +49,7 @@ async function normalizePaginatedResponse<T>(
   
   // If response is already paginated (has 'results' property), return as-is
   if (response && typeof response === 'object' && 'results' in response) {
-    return response as PaginatedResponse<T>;
+    return normalizePaginatedBody<T>(response as Record<string, unknown>);
   }
   
   // If response is a plain array, wrap it in paginated structure
