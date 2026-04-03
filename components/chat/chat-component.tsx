@@ -12,7 +12,11 @@ import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
 import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
-import { isReasonValidForAction } from './modals/edit-balance-drawer';
+import {
+  buildManualPaymentRequestBody,
+  parseLedgerAmount,
+  type ManualAdjustmentKind,
+} from '@/lib/api/manual-adjustment-payload';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
 import { isAutoMessage, isPurchaseNotification, isKycVerificationMessage, parseTransactionMessage } from './utils/message-helpers';
@@ -120,8 +124,8 @@ export function ChatComponent() {
   const [isEditBalanceModalOpen, setIsEditBalanceModalOpen] = useState(false);
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   const [balanceValue, setBalanceValue] = useState(0);
-  const [balanceType, setBalanceType] = useState<'main' | 'winning'>('main');
-  const [balanceReason, setBalanceReason] = useState('');
+  const [balanceAdjustmentKind, setBalanceAdjustmentKind] = useState<ManualAdjustmentKind>('freeplay');
+  const [voidReasonCode, setVoidReasonCode] = useState('');
   const [balanceRemarks, setBalanceRemarks] = useState('');
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -151,7 +155,7 @@ export function ChatComponent() {
     playerId: number;
     amount: number;
     operation: 'increase' | 'decrease';
-    balanceType: 'main' | 'winning';
+    adjustmentKind: ManualAdjustmentKind;
     timestamp: number;
   } | null>(null);
   const { addToast } = useToast();
@@ -1331,102 +1335,127 @@ export function ChatComponent() {
   const handleOpenEditBalance = useCallback(() => {
     if (!selectedPlayer) return;
     setBalanceValue(0);
-    setBalanceType('main');
-    setBalanceReason('');
+    setBalanceAdjustmentKind('freeplay');
+    setVoidReasonCode('');
     setBalanceRemarks('');
     setIsEditBalanceModalOpen(true);
   }, [selectedPlayer]);
 
-  const handleUpdateBalance = useCallback(async (operation: 'increase' | 'decrease', reason: string, remarks: string) => {
-    if (!selectedPlayer || isUpdatingBalance || balanceValue <= 0) {
-      if (balanceValue <= 0) {
-        addToast({
-          type: 'error',
-          title: 'Invalid amount',
-          description: 'Please enter a valid amount greater than 0.',
-        });
-      }
-      return;
-    }
+  const handleManualAdjustmentPrimary = useCallback(async () => {
+    if (!selectedPlayer || isUpdatingBalance) return;
 
-    const action = operation === 'increase' ? 'add' : 'deduct';
-    if (!isReasonValidForAction(balanceType, action, reason)) {
+    if (balanceValue <= 0) {
       addToast({
         type: 'error',
-        title: 'Invalid reason',
-        description: `Please select a valid reason for ${action === 'add' ? 'Add' : 'Deduct'}.`,
+        title: 'Invalid amount',
+        description: 'Please enter a valid amount greater than 0.',
       });
       return;
     }
+
+    if (balanceAdjustmentKind === 'void' && !voidReasonCode.trim()) {
+      addToast({
+        type: 'error',
+        title: 'Void reason required',
+        description: 'Select a void reason before submitting.',
+      });
+      return;
+    }
+
+    const limitNum = parseLedgerAmount(selectedPlayer.cashoutLimit);
+    if (
+      balanceAdjustmentKind === 'external_cashout' &&
+      limitNum !== null &&
+      balanceValue > limitNum
+    ) {
+      addToast({
+        type: 'error',
+        title: 'Over cashout limit',
+        description: 'External cashout cannot exceed the player’s cashout limit.',
+      });
+      return;
+    }
+
+    const operation: 'increase' | 'decrease' =
+      balanceAdjustmentKind === 'freeplay' || balanceAdjustmentKind === 'external_deposit'
+        ? 'increase'
+        : 'decrease';
 
     setIsUpdatingBalance(true);
     try {
       const { playersApi } = await import('@/lib/api/users');
 
-      const response = await playersApi.manualPayment({
-        player_id: selectedPlayer.user_id,
-        value: balanceValue,
-        type: operation,
-        balanceType: balanceType,
-        reason,
-        remarks: remarks.trim() || undefined,
+      const payload = buildManualPaymentRequestBody(selectedPlayer.user_id, balanceAdjustmentKind, balanceValue, {
+        remarks: balanceRemarks,
+        voidReasonCode: balanceAdjustmentKind === 'void' ? voidReasonCode : undefined,
       });
 
-      // Track the last manual payment operation to help determine message type
-      // when balanceUpdated messages arrive from backend
+      const response = await playersApi.manualPayment(payload);
+
+      const manualPaymentTs = Date.now();
       lastManualPaymentRef.current = {
         playerId: selectedPlayer.user_id,
         amount: balanceValue,
         operation,
-        balanceType,
-        timestamp: Date.now(),
+        adjustmentKind: balanceAdjustmentKind,
+        timestamp: manualPaymentTs,
       };
 
-      // Clear the last operation after 10 seconds to avoid incorrect matches
       setTimeout(() => {
-        if (lastManualPaymentRef.current?.timestamp === lastManualPaymentRef.current?.timestamp) {
+        if (lastManualPaymentRef.current?.timestamp === manualPaymentTs) {
           lastManualPaymentRef.current = null;
         }
       }, 10000);
 
-      // Determine the message based on operation and balance type
-      let title = '';
-      if (balanceType === 'main') {
-        title = operation === 'increase'
-          ? `$${balanceValue} added to your credit balance.`
-          : `$${balanceValue} deducted from your credit balance.`;
-      } else {
-        title = operation === 'increase'
-          ? `$${balanceValue} added to your winning balance.`
-          : `$${balanceValue} deducted from your winning balance.`;
-      }
+      const titleByKind: Record<ManualAdjustmentKind, string> = {
+        freeplay: `$${balanceValue} freeplay added`,
+        external_deposit: `$${balanceValue} external deposit recorded`,
+        external_cashout: `$${balanceValue} external cashout recorded`,
+        void: `$${balanceValue} void applied`,
+      };
 
-      const description = `Credits: ${formatCurrency(response.player_bal)}\nWinnings: ${formatCurrency(response.player_winning_bal)}`;
+      let description = `Credits: ${formatCurrency(response.player_bal)}\nWinnings: ${formatCurrency(response.player_winning_bal)}`;
+      if (response.cashout_limit !== undefined && response.cashout_limit !== null && String(response.cashout_limit) !== '') {
+        description += `\nCashout limit: ${formatCurrency(String(response.cashout_limit))}`;
+      }
+      if (response.locked_balance !== undefined && response.locked_balance !== null && String(response.locked_balance) !== '') {
+        description += `\nLocked: ${formatCurrency(String(response.locked_balance))}`;
+      }
 
       addToast({
         type: 'success',
-        title,
+        title: titleByKind[balanceAdjustmentKind],
         description,
       });
 
       setIsEditBalanceModalOpen(false);
       setBalanceValue(0);
-      setBalanceReason('');
+      setVoidReasonCode('');
       setBalanceRemarks('');
 
-      // Update the selected player balance
-      setSelectedPlayer(prev => prev ? {
-        ...prev,
-        balance: String(response.player_bal),
-        winningBalance: String(response.player_winning_bal),
-      } : null);
+      setSelectedPlayer((prev) =>
+        prev
+          ? {
+              ...prev,
+              balance: String(response.player_bal),
+              winningBalance: String(response.player_winning_bal),
+              ...(response.cashout_limit !== undefined &&
+              response.cashout_limit !== null &&
+              String(response.cashout_limit) !== ''
+                ? { cashoutLimit: String(response.cashout_limit) }
+                : {}),
+              ...(response.locked_balance !== undefined &&
+              response.locked_balance !== null &&
+              String(response.locked_balance) !== ''
+                ? { lockedBalance: String(response.locked_balance) }
+                : {}),
+            }
+          : null,
+      );
     } catch (error) {
-      // Extract error message from ApiError object (thrown by apiClient)
-      // Backend returns: { status: "Failed", message: "You cannot withdraw bonus balance. Max amount you can withdraw: 562.70" }
       let errorMessage = 'Unknown error';
 
       if (error && typeof error === 'object') {
-        // Check for ApiError structure: { message, detail, error, status }
         const apiError = error as { message?: string; detail?: string; error?: string; status?: string };
         errorMessage = apiError.message || apiError.detail || apiError.error || errorMessage;
       } else if (error instanceof Error) {
@@ -1441,7 +1470,15 @@ export function ChatComponent() {
     } finally {
       setIsUpdatingBalance(false);
     }
-  }, [selectedPlayer, balanceValue, balanceType, isUpdatingBalance, addToast]);
+  }, [
+    selectedPlayer,
+    balanceValue,
+    balanceAdjustmentKind,
+    voidReasonCode,
+    balanceRemarks,
+    isUpdatingBalance,
+    addToast,
+  ]);
 
   // Log online players connection status
   useEffect(() => {
@@ -2303,16 +2340,18 @@ export function ChatComponent() {
         onClose={() => setIsEditBalanceModalOpen(false)}
         credits={selectedPlayer?.balance ?? '0'}
         winnings={selectedPlayer?.winningBalance ?? '0'}
+        cashoutLimit={selectedPlayer?.cashoutLimit}
+        lockedBalance={selectedPlayer?.lockedBalance}
+        adjustmentKind={balanceAdjustmentKind}
+        setAdjustmentKind={setBalanceAdjustmentKind}
+        voidReasonCode={voidReasonCode}
+        setVoidReasonCode={setVoidReasonCode}
         balanceValue={balanceValue}
         setBalanceValue={setBalanceValue}
-        balanceType={balanceType}
-        setBalanceType={setBalanceType}
-        reason={balanceReason}
-        setReason={setBalanceReason}
         remarks={balanceRemarks}
         setRemarks={setBalanceRemarks}
         isUpdating={isUpdatingBalance}
-        onUpdate={handleUpdateBalance}
+        onPrimaryAction={handleManualAdjustmentPrimary}
       />
 
       <NotesDrawer

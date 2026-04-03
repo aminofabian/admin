@@ -39,7 +39,9 @@ const hasSignificantChanges = (existing: ChatUser, incoming: ChatUser): boolean 
     existing.unreadCount !== incoming.unreadCount ||
     existing.isOnline !== incoming.isOnline ||
     existing.balance !== incoming.balance ||
-    existing.winningBalance !== incoming.winningBalance
+    existing.winningBalance !== incoming.winningBalance ||
+    existing.cashoutLimit !== incoming.cashoutLimit ||
+    existing.lockedBalance !== incoming.lockedBalance
   );
 };
 
@@ -86,6 +88,8 @@ function transformChatToUser(chat: {
     balance?: number | string;
     winning_balance?: number | string;
     winningBalance?: number | string;
+    cashout_limit?: number | string;
+    locked_balance?: number | string;
     games_played?: number;
     gamesPlayed?: number;
     win_rate?: number;
@@ -131,6 +135,14 @@ function transformChatToUser(chat: {
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     winningBalance: player.winning_balance || player.winningBalance ?
       String(player.winning_balance || player.winningBalance) : undefined,
+    cashoutLimit:
+      player.cashout_limit !== undefined && player.cashout_limit !== null
+        ? String(player.cashout_limit)
+        : undefined,
+    lockedBalance:
+      player.locked_balance !== undefined && player.locked_balance !== null
+        ? String(player.locked_balance)
+        : undefined,
     gamesPlayed: player.games_played || player.gamesPlayed || undefined,
     winRate: player.win_rate || player.winRate || undefined,
     phone: player.phone_number || player.mobile_number || player.phone || player.mobile || undefined,
@@ -163,6 +175,14 @@ function transformPlayerToUser(player: Record<string, unknown>): ChatUser {
     lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
+    cashoutLimit:
+      player.cashout_limit !== undefined && player.cashout_limit !== null
+        ? String(player.cashout_limit as string | number)
+        : undefined,
+    lockedBalance:
+      player.locked_balance !== undefined && player.locked_balance !== null
+        ? String(player.locked_balance as string | number)
+        : undefined,
     gamesPlayed: (player.games_played as number | undefined) || (player.gems as number | undefined) || undefined,
     winRate: (player.win_rate as number | undefined) || undefined,
     phone: (player.phone_number as string | undefined) || (player.mobile_number as string | undefined) || undefined,
@@ -237,6 +257,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         const playerData = (updateData.player as Record<string, unknown>) || {};
         const newBalance = updateData.balance ?? playerData.balance ?? updateData.player_bal;
         const newWinningBalance = updateData.winning_balance ?? playerData.winning_balance ?? updateData.player_winning_bal;
+        const newCashoutLimit =
+          updateData.cashout_limit ?? playerData.cashout_limit ?? updateData.player_cashout_limit;
+        const newLockedBalance =
+          updateData.locked_balance ?? playerData.locked_balance ?? updateData.player_locked_balance;
 
         const extractedUnreadCount = extractUnreadCount(updateData);
         const newUnreadCount = extractedUnreadCount !== undefined && extractedUnreadCount !== null
@@ -250,6 +274,14 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           unreadCount: newUnreadCount,
           balance: newBalance !== undefined ? String(newBalance) : existingChat.balance,
           winningBalance: newWinningBalance !== undefined ? String(newWinningBalance) : existingChat.winningBalance,
+          cashoutLimit:
+            newCashoutLimit !== undefined && newCashoutLimit !== null
+              ? String(newCashoutLimit)
+              : existingChat.cashoutLimit,
+          lockedBalance:
+            newLockedBalance !== undefined && newLockedBalance !== null
+              ? String(newLockedBalance)
+              : existingChat.lockedBalance,
         };
 
         updatedChats.splice(chatIndex, 1);
@@ -359,27 +391,52 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         const playerId = data.player_id || data.user_id;
         const balance = data.balance ?? data.player_bal;
         const winningBalance = data.winning_balance ?? data.player_winning_bal;
+        const cashoutLimit = data.cashout_limit ?? data.player_cashout_limit;
+        const lockedBalance = data.locked_balance ?? data.player_locked_balance;
 
         if (!IS_PROD) console.log('💰 [Chat Users] Balance updated notification received:', {
           playerId,
           balance,
           winningBalance,
+          cashoutLimit,
+          lockedBalance,
         });
 
-        if (playerId && (balance !== undefined || winningBalance !== undefined)) {
+        if (
+          playerId &&
+          (balance !== undefined ||
+            winningBalance !== undefined ||
+            cashoutLimit !== undefined ||
+            lockedBalance !== undefined)
+        ) {
+          const pid = Number(playerId);
+          const patch = (chat: ChatUser) => ({
+            ...chat,
+            balance: balance !== undefined ? String(balance) : chat.balance,
+            winningBalance: winningBalance !== undefined ? String(winningBalance) : chat.winningBalance,
+            cashoutLimit:
+              cashoutLimit !== undefined && cashoutLimit !== null
+                ? String(cashoutLimit)
+                : chat.cashoutLimit,
+            lockedBalance:
+              lockedBalance !== undefined && lockedBalance !== null
+                ? String(lockedBalance)
+                : chat.lockedBalance,
+          });
+
           setActiveChats((prevChats) => {
             return prevChats.map((chat) => {
-              if (chat.user_id === Number(playerId)) {
+              if (chat.user_id === pid) {
                 if (!IS_PROD) console.log(`💰 [Chat Users] Updating balance for player ${playerId}`);
-                return {
-                  ...chat,
-                  balance: balance !== undefined ? String(balance) : chat.balance,
-                  winningBalance: winningBalance !== undefined ? String(winningBalance) : chat.winningBalance,
-                };
+                return patch(chat);
               }
               return chat;
             });
           });
+
+          setAllPlayers((prev) =>
+            prev.map((player) => (player.user_id === pid ? patch(player) : player)),
+          );
         }
         return;
       }
@@ -421,6 +478,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
                 isOnline: incomingChat.isOnline ?? existingChat.isOnline,
                 balance: incomingChat.balance ?? existingChat.balance,
                 winningBalance: incomingChat.winningBalance ?? existingChat.winningBalance,
+                cashoutLimit: incomingChat.cashoutLimit ?? existingChat.cashoutLimit,
+                lockedBalance: incomingChat.lockedBalance ?? existingChat.lockedBalance,
                 notes: existingChat.notes || incomingChat.notes,
               };
             }

@@ -1,59 +1,71 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Button, Input, Select } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { parseLedgerAmount, type ManualAdjustmentKind } from '@/lib/api/manual-adjustment-payload';
 
-/** Reason options per balance type. Same reasons for both add and deduct. */
-export const REASON_OPTIONS = {
-  credit: {
-    free_play: 'Free Play',
-    manual: 'Manual',
+export type { ManualAdjustmentKind };
+
+const ADJUSTMENT_OPTIONS: {
+  kind: ManualAdjustmentKind;
+  title: string;
+  description: string;
+  direction: 'add' | 'deduct';
+}[] = [
+  {
+    kind: 'freeplay',
+    title: 'Freeplay',
+    description: 'Add freeplay credit. Does not change cashout limit.',
+    direction: 'add',
   },
-  winning: {
-    manual: 'Manual',
-    seize_tip: 'Seize/Tip',
+  {
+    kind: 'external_deposit',
+    title: 'External deposit',
+    description: 'Money received outside the site. Does not change cashout limit.',
+    direction: 'add',
   },
-} as const;
+  {
+    kind: 'external_cashout',
+    title: 'External cashout',
+    description: 'Paid outside the site. Max amount is current cashout limit.',
+    direction: 'deduct',
+  },
+  {
+    kind: 'void',
+    title: 'Void',
+    description: 'Deduct when no real payout (fraud, penalties, etc.). Uses locked balance first.',
+    direction: 'deduct',
+  },
+];
 
-type BalanceTypeKey = keyof typeof REASON_OPTIONS;
-
-/** Returns dropdown options for the current balance type. */
-function getReasonOptionsForBalanceType(
-  balanceType: 'main' | 'winning',
-): { value: string; label: string }[] {
-  const key: BalanceTypeKey = balanceType === 'main' ? 'credit' : 'winning';
-  const options = REASON_OPTIONS[key] as Record<string, string>;
-  return Object.entries(options).map(([value, label]) => ({ value, label }));
-}
-
-/** Returns whether the selected reason is valid for the balance type (valid for both add and deduct). */
-export function isReasonValidForAction(
-  balanceType: 'main' | 'winning',
-  _action: 'add' | 'deduct',
-  reason: string,
-): boolean {
-  if (!reason) return false;
-  const key: BalanceTypeKey = balanceType === 'main' ? 'credit' : 'winning';
-  const options = REASON_OPTIONS[key] as Record<string, string>;
-  return Object.prototype.hasOwnProperty.call(options, reason);
-}
+export const VOID_REASON_OPTIONS: { value: string; label: string }[] = [
+  { value: 'rule_breaking', label: 'Rule breaking' },
+  { value: 'fraud', label: 'Fraud' },
+  { value: 'scam', label: 'Scam' },
+  { value: 'tips', label: 'Tips' },
+  { value: 'penalties', label: 'Penalties' },
+  { value: 'corrections', label: 'Corrections' },
+  { value: 'other', label: 'Other' },
+];
 
 interface EditBalanceDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   credits?: string;
   winnings?: string;
+  cashoutLimit?: string;
+  lockedBalance?: string;
+  adjustmentKind: ManualAdjustmentKind;
+  setAdjustmentKind: React.Dispatch<React.SetStateAction<ManualAdjustmentKind>>;
+  voidReasonCode: string;
+  setVoidReasonCode: React.Dispatch<React.SetStateAction<string>>;
   balanceValue: number;
   setBalanceValue: React.Dispatch<React.SetStateAction<number>>;
-  balanceType: 'main' | 'winning';
-  setBalanceType: React.Dispatch<React.SetStateAction<'main' | 'winning'>>;
-  reason: string;
-  setReason: React.Dispatch<React.SetStateAction<string>>;
   remarks: string;
   setRemarks: React.Dispatch<React.SetStateAction<string>>;
   isUpdating: boolean;
-  onUpdate: (operation: 'increase' | 'decrease', reason: string, remarks: string) => void;
+  onPrimaryAction: () => void;
 }
 
 const QUICK_AMOUNTS = [2, 3, 5, 7, 10];
@@ -63,28 +75,51 @@ export function EditBalanceDrawer({
   onClose,
   credits = '0',
   winnings = '0',
+  cashoutLimit,
+  lockedBalance,
+  adjustmentKind,
+  setAdjustmentKind,
+  voidReasonCode,
+  setVoidReasonCode,
   balanceValue,
   setBalanceValue,
-  balanceType,
-  setBalanceType,
-  reason,
-  setReason,
   remarks,
   setRemarks,
   isUpdating,
-  onUpdate,
+  onPrimaryAction,
 }: EditBalanceDrawerProps) {
-  const reasonOptions = getReasonOptionsForBalanceType(balanceType);
-  const canAdd = isReasonValidForAction(balanceType, 'add', reason);
-  const canDeduct = isReasonValidForAction(balanceType, 'deduct', reason);
-  const isReady = reason && balanceValue > 0;
-  const balanceLabel = balanceType === 'main' ? 'Credits' : 'Winnings';
-  const currentBalance = balanceType === 'main' ? credits : winnings;
+  const meta = useMemo(
+    () => ADJUSTMENT_OPTIONS.find((o) => o.kind === adjustmentKind) ?? ADJUSTMENT_OPTIONS[0],
+    [adjustmentKind],
+  );
 
-  // Clear reason when balance type changes
+  const limitNum = parseLedgerAmount(cashoutLimit);
+  const lockedNum = parseLedgerAmount(lockedBalance);
+
+  const cashoutExceeded =
+    adjustmentKind === 'external_cashout' &&
+    limitNum !== null &&
+    balanceValue > 0 &&
+    balanceValue > limitNum;
+
+  const voidBlocked = adjustmentKind === 'void' && !voidReasonCode;
+  const amountBlocked = balanceValue <= 0;
+  const primaryDisabled =
+    isUpdating || amountBlocked || cashoutExceeded || voidBlocked;
+
   useEffect(() => {
-    setReason('');
-  }, [balanceType, setReason]);
+    setVoidReasonCode('');
+  }, [adjustmentKind, setVoidReasonCode]);
+
+  const primaryLabel = useMemo(() => {
+    if (amountBlocked) {
+      return meta.direction === 'add' ? 'Add' : 'Deduct';
+    }
+    if (meta.direction === 'add') {
+      return `Add $${balanceValue}`;
+    }
+    return `Deduct $${balanceValue}`;
+  }, [balanceValue, meta.direction, amountBlocked]);
 
   if (!isOpen) return null;
 
@@ -97,22 +132,12 @@ export function EditBalanceDrawer({
       />
 
       <div className="fixed inset-y-0 right-0 z-[60] flex w-full max-w-[400px] flex-col bg-white shadow-xl dark:bg-gray-900 dark:shadow-black/40">
-        {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Adjust Balance</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Manual adjustment</h2>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              Add or deduct from player balance
+              Freeplay, external deposit/cashout, or void
             </p>
-            <span
-              className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                balanceType === 'main'
-                  ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
-                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
-              }`}
-            >
-              Adjusting: {balanceLabel}
-            </span>
           </div>
           <button
             type="button"
@@ -127,66 +152,90 @@ export function EditBalanceDrawer({
           </button>
         </div>
 
-        {/* Body — 1. Which balance → 2. Why → 3. How much → 4. Notes */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 pb-40">
-          {/* Step 1: Which balance (with current amounts) */}
-          <div className="mb-6">
-            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Which balance?</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setBalanceType('main')}
-                disabled={isUpdating}
-                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${
-                  balanceType === 'main'
-                    ? 'border-indigo-500 bg-indigo-500 text-white dark:border-indigo-400 dark:bg-indigo-600'
-                    : 'border-gray-300 bg-white hover:border-indigo-400 hover:bg-indigo-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/40'
-                }`}
-              >
-                <span className="text-xs font-medium uppercase tracking-wider opacity-90">Credits</span>
-                <span className="text-sm font-bold tabular-nums">{formatCurrency(credits)}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setBalanceType('winning')}
-                disabled={isUpdating}
-                className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${
-                  balanceType === 'winning'
-                    ? 'border-amber-500 bg-amber-500 text-white dark:border-amber-400 dark:bg-amber-600'
-                    : 'border-gray-300 bg-white hover:border-amber-400 hover:bg-amber-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-amber-500 dark:hover:bg-amber-950/40'
-                }`}
-              >
-                <span className="text-xs font-medium uppercase tracking-wider opacity-90">Winnings</span>
-                <span className="text-sm font-bold tabular-nums">{formatCurrency(winnings)}</span>
-              </button>
+        <div className="flex-1 overflow-y-auto px-5 py-5 pb-44">
+          <div className="mb-5 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-800/40">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Player balances
+            </p>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="text-gray-500 dark:text-gray-400">Credits</span>
+                <p className="font-bold tabular-nums text-gray-900 dark:text-gray-100">{formatCurrency(credits)}</p>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-gray-400">Winnings</span>
+                <p className="font-bold tabular-nums text-amber-700 dark:text-amber-400">{formatCurrency(winnings)}</p>
+              </div>
+            </div>
+            {(cashoutLimit !== undefined && cashoutLimit !== '') || (lockedBalance !== undefined && lockedBalance !== '') ? (
+              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-200 pt-3 text-xs dark:border-gray-600">
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Cashout limit</span>
+                  <p className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                    {limitNum !== null ? formatCurrency(cashoutLimit ?? '0') : '—'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">Locked balance</span>
+                  <p className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                    {lockedNum !== null ? formatCurrency(lockedBalance ?? '0') : '—'}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mb-5">
+            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Adjustment type</p>
+            <div className="grid grid-cols-1 gap-2">
+              {ADJUSTMENT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.kind}
+                  type="button"
+                  disabled={isUpdating}
+                  onClick={() => setAdjustmentKind(opt.kind)}
+                  className={`rounded-lg border px-3 py-2.5 text-left transition-all disabled:opacity-50 ${
+                    adjustmentKind === opt.kind
+                      ? opt.direction === 'add'
+                        ? 'border-indigo-500 bg-indigo-500 text-white dark:border-indigo-400 dark:bg-indigo-600'
+                        : 'border-rose-500 bg-rose-500 text-white dark:border-rose-400 dark:bg-rose-600'
+                      : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-gray-500'
+                  }`}
+                >
+                  <span className="block text-sm font-semibold">{opt.title}</span>
+                  <span
+                    className={`mt-0.5 block text-xs ${
+                      adjustmentKind === opt.kind ? 'text-white/90' : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                  >
+                    {opt.description}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Step 2: Reason */}
-          <div className="mb-6">
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Why is this balance changing?
-            </label>
-            <Select
-              value={reason}
-              onChange={setReason}
-              options={reasonOptions}
-              placeholder="Select a reason"
-              disabled={isUpdating}
-              className="h-10"
-            />
-            {!reason && (
-              <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                Choose a reason to enable Add / Deduct
+          {adjustmentKind === 'void' && (
+            <div className="mb-5">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Void reason <span className="text-rose-600 dark:text-rose-400">*</span>
+              </label>
+              <Select
+                value={voidReasonCode}
+                onChange={setVoidReasonCode}
+                options={VOID_REASON_OPTIONS}
+                placeholder="Select reason"
+                disabled={isUpdating}
+                className="h-10"
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Void reduces locked balance first; cashout limit may drop if locked funds are insufficient.
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Step 3: Amount — combined stepper, quick amounts, custom */}
-          <div className="mb-6">
-            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              How much? <span className="font-normal text-gray-500">(from {balanceLabel})</span>
-            </p>
+          <div className="mb-5">
+            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Amount</p>
             <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-800/30">
               <div className="flex items-center justify-between gap-4">
                 <button
@@ -239,7 +288,7 @@ export function EditBalanceDrawer({
                     if (val === '') setBalanceValue(0);
                     else setBalanceValue(Math.max(0, parseFloat(val) || 0));
                   }}
-                  placeholder="Or enter custom amount"
+                  placeholder="Custom amount"
                   className="h-9 text-sm"
                   disabled={isUpdating}
                   min={0}
@@ -247,10 +296,19 @@ export function EditBalanceDrawer({
                   autoComplete="off"
                 />
               </div>
+              {adjustmentKind === 'external_cashout' && limitNum === null && (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                  Cashout limit not loaded; the server will still validate the amount.
+                </p>
+              )}
+              {cashoutExceeded && (
+                <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400">
+                  Amount cannot exceed cashout limit ({formatCurrency(cashoutLimit ?? '0')}).
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Step 4: Notes (optional) */}
           <div>
             <label
               htmlFor="edit-balance-remarks"
@@ -262,7 +320,7 @@ export function EditBalanceDrawer({
               id="edit-balance-remarks"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              placeholder="Add internal notes for this adjustment..."
+              placeholder="Internal notes…"
               rows={3}
               disabled={isUpdating}
               autoComplete="off"
@@ -271,56 +329,30 @@ export function EditBalanceDrawer({
           </div>
         </div>
 
-        {/* Footer — sticky with summary */}
         <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 px-5 py-4 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
-          {isReady && (
+          {!amountBlocked && (
             <p className="mb-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
-              {balanceLabel}: {formatCurrency(currentBalance)} →{' '}
-              {canAdd && canDeduct
-                ? `Add or deduct $${balanceValue}`
-                : canAdd
-                  ? `Add $${balanceValue}`
-                  : `Deduct $${balanceValue}`}
+              {meta.direction === 'add' ? 'Adds to credits' : 'Deducts (see type)'} · ${balanceValue}
             </p>
           )}
           <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              disabled={isUpdating}
-              className="px-4"
-            >
+            <Button variant="ghost" size="sm" onClick={onClose} disabled={isUpdating} className="px-4">
               Cancel
             </Button>
-            {canDeduct && (
-              <Button
-                variant={canAdd ? 'secondary' : 'primary'}
-                size="sm"
-                onClick={() => onUpdate('decrease', reason, remarks)}
-                disabled={isUpdating || balanceValue <= 0}
-                isLoading={isUpdating}
-                className={
-                  canAdd
-                    ? 'px-4'
-                    : 'bg-gradient-to-r from-indigo-600 to-violet-600 px-4 hover:from-indigo-700 hover:to-violet-700'
-                }
-              >
-                {balanceValue > 0 ? `Deduct $${balanceValue}` : 'Deduct'}
-              </Button>
-            )}
-            {canAdd && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => onUpdate('increase', reason, remarks)}
-                disabled={isUpdating || balanceValue <= 0}
-                isLoading={isUpdating}
-                className="bg-gradient-to-r from-indigo-600 to-violet-600 px-4 hover:from-indigo-700 hover:to-violet-700"
-              >
-                {balanceValue > 0 ? `Add $${balanceValue}` : 'Add'}
-              </Button>
-            )}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onPrimaryAction}
+              disabled={primaryDisabled}
+              isLoading={isUpdating}
+              className={
+                meta.direction === 'deduct'
+                  ? 'bg-gradient-to-r from-rose-600 to-rose-700 px-4 hover:from-rose-700 hover:to-rose-800'
+                  : 'bg-gradient-to-r from-indigo-600 to-violet-600 px-4 hover:from-indigo-700 hover:to-violet-700'
+              }
+            >
+              {primaryLabel}
+            </Button>
           </div>
         </div>
       </div>

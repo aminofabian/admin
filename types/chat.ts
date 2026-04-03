@@ -11,6 +11,9 @@ export interface ChatUser {
   playerLastSeenAt?: string; // Timestamp of when player was last seen online
   balance?: string;
   winningBalance?: string;
+  /** Available when API provides it; used for external cashout / void context. */
+  cashoutLimit?: string;
+  lockedBalance?: string;
   gamesPlayed?: number;
   winRate?: number;
   phone?: string;

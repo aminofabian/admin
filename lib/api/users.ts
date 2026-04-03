@@ -1,4 +1,8 @@
 import { apiClient } from './client';
+import type { ManualPaymentRequestBody, ManualPaymentResponse } from './manual-adjustment-payload';
+
+export type { ManualAdjustmentKind, ManualPaymentRequestBody, ManualPaymentResponse } from './manual-adjustment-payload';
+export { buildManualPaymentRequestBody, MANUAL_ADJUSTMENT_KINDS } from './manual-adjustment-payload';
 import type { 
   Agent,
   Manager,
@@ -88,19 +92,8 @@ export const playersApi = {
       `api/view-player/${id}`
     ),
 
-  manualPayment: (data: {
-    player_id: number;
-    value: number;
-    type: 'increase' | 'decrease';
-    balanceType: 'main' | 'winning';
-    reason: string;
-    remarks?: string;
-  }) =>
-    apiClient.post<{ 
-      status: string; 
-      player_bal: number; 
-      player_winning_bal: number 
-    }>('api/admin/manual-payment', data),
+  manualPayment: (data: ManualPaymentRequestBody) =>
+    apiClient.post<ManualPaymentResponse>('api/admin/manual-payment', data),
 
   games: (playerId: number) =>
     apiClient.get<PlayerGame[]>('api/admin/user-games', {

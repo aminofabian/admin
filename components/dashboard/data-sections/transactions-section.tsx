@@ -451,6 +451,9 @@ export function TransactionsSection() {
         uniqueMethods.set('free_play', 'Free Play');
         uniqueMethods.set('manual', 'Manual');
         uniqueMethods.set('seize_tip', 'Seize Tip');
+        uniqueMethods.set('external_deposit', 'External Deposit');
+        uniqueMethods.set('external_cashout', 'External Cashout');
+        uniqueMethods.set('void', 'Void');
 
         const mapped = Array.from(uniqueMethods.entries())
           .map(([value, label]) => ({ value, label }))

@@ -210,6 +210,27 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               </p>
             </div>
           </div>
+          {(selectedPlayer.cashoutLimit !== undefined && selectedPlayer.cashoutLimit !== '') ||
+          (selectedPlayer.lockedBalance !== undefined && selectedPlayer.lockedBalance !== '') ? (
+            <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-border/50 pt-2">
+              <div className="rounded-md bg-muted/30 p-1.5">
+                <span className="text-[9px] font-medium text-muted-foreground uppercase">CASHOUT LIMIT</span>
+                <p className="text-xs font-bold tabular-nums text-foreground">
+                  {selectedPlayer.cashoutLimit !== undefined && selectedPlayer.cashoutLimit !== ''
+                    ? formatCurrency(selectedPlayer.cashoutLimit)
+                    : '—'}
+                </p>
+              </div>
+              <div className="rounded-md bg-muted/30 p-1.5">
+                <span className="text-[9px] font-medium text-muted-foreground uppercase">LOCKED</span>
+                <p className="text-xs font-bold tabular-nums text-foreground">
+                  {selectedPlayer.lockedBalance !== undefined && selectedPlayer.lockedBalance !== ''
+                    ? formatCurrency(selectedPlayer.lockedBalance)
+                    : '—'}
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Action Buttons */}
