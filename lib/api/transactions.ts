@@ -20,7 +20,15 @@ export type TransactionActionOptions = {
   tierlockPreferEmailOnly?: boolean;
 };
 
-function normalizePaginatedBody<T>(body: Record<string, unknown>): PaginatedResponse<T> {
+/** Loose shape from Django-style paginated JSON (fields may be wrong types). */
+type PaginatedBodyLike = {
+  results?: unknown;
+  count?: unknown;
+  next?: unknown;
+  previous?: unknown;
+};
+
+function normalizePaginatedBody<T>(body: PaginatedBodyLike): PaginatedResponse<T> {
   const results = Array.isArray(body.results) ? (body.results as T[]) : [];
   const rawCount = body.count;
   const count =
@@ -49,7 +57,7 @@ async function normalizePaginatedResponse<T>(
   
   // If response is already paginated (has 'results' property), return as-is
   if (response && typeof response === 'object' && 'results' in response) {
-    return normalizePaginatedBody<T>(response as Record<string, unknown>);
+    return normalizePaginatedBody<T>(response);
   }
   
   // If response is a plain array, wrap it in paginated structure
