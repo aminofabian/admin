@@ -2,6 +2,7 @@
 
 import { memo } from 'react';
 import type { ChatMessage } from '@/types';
+import { prepareChatMessageHtmlForDisplay } from '../utils/message-helpers';
 
 // Check if a URL points to an image
 const HTML_TAG_REGEX = /<\/?[a-z][^>]*>/i;
@@ -88,9 +89,10 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                     <div className="flex-1 min-w-0">
                       <p className="line-clamp-2 text-foreground">
                         {(() => {
-                          const hasHtml = hasHtmlContent(msg.text);
-                          const linkedText = hasHtml ? msg.text : linkifyText(msg.text ?? '');
-                          const shouldRenderAsHtml = hasHtml || linkedText !== msg.text;
+                          const raw = prepareChatMessageHtmlForDisplay(msg.text ?? '');
+                          const hasHtml = hasHtmlContent(raw);
+                          const linkedText = hasHtml ? raw : linkifyText(raw);
+                          const shouldRenderAsHtml = hasHtml || linkedText !== raw;
                           
                           return shouldRenderAsHtml ? (
                             <span 
@@ -98,7 +100,7 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                               dangerouslySetInnerHTML={{ __html: linkedText }} 
                             />
                           ) : (
-                            msg.text
+                            raw
                           );
                         })()}
                       </p>

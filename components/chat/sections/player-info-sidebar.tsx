@@ -10,6 +10,7 @@ import { usePlayerGameActivities } from '@/hooks/use-player-game-activities';
 import { PlayerGameBalanceModal } from '@/components/features';
 import { playersApi } from '@/lib/api/users';
 import type { ChatUser, PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
+import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 
 interface PlayerInfoSidebarProps {
   selectedPlayer: ChatUser;
@@ -184,7 +185,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
         <div className="rounded-lg border border-border/50 bg-card/50 p-2">
 
           <div
-            className={`grid gap-1.5 ${selectedPlayer.winningBalance !== undefined ? 'grid-cols-2' : 'grid-cols-1'}`}
+            className={`grid gap-1.5 ${hasMeaningfulWinningBalance(selectedPlayer.winningBalance) ? 'grid-cols-2' : 'grid-cols-1'}`}
           >
             {/* Balance */}
             <div className="rounded-md bg-blue-500/5 border border-blue-500/20 p-1.5">
@@ -199,8 +200,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               </p>
             </div>
 
-            {/* Winnings only when winning_balance is provided (e.g. WebSocket), not on chat list API */}
-            {selectedPlayer.winningBalance !== undefined ? (
+            {/* Winnings only when non-zero (WebSocket often sends 0 for single-balance backends) */}
+            {hasMeaningfulWinningBalance(selectedPlayer.winningBalance) ? (
               <div className="rounded-md bg-yellow-500/5 border border-yellow-500/20 p-1.5">
                 <div className="flex items-center gap-1 mb-1">
                   <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">

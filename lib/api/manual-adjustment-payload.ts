@@ -36,7 +36,8 @@ export interface ManualPaymentRequestBody {
 export interface ManualPaymentResponse {
   status: string;
   player_bal: number;
-  player_winning_bal: number;
+  /** Omitted when the deployment uses a single balance bucket. */
+  player_winning_bal?: number | string;
   cashout_limit?: number | string;
   locked_balance?: number | string;
 }
@@ -56,7 +57,7 @@ export function buildManualPaymentRequestBody(
         value,
         type: 'increase',
         balanceType: 'main',
-        reason: 'free_play',
+        reason: 'freeplay',
         remarks,
         adjustment_type: kind,
       };
@@ -88,7 +89,7 @@ export function buildManualPaymentRequestBody(
         player_id: playerId,
         value,
         type: 'decrease',
-        balanceType: 'winning',
+        balanceType: 'main',
         reason: 'void',
         remarks: combinedRemarks,
         adjustment_type: kind,

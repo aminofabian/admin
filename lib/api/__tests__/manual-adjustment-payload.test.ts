@@ -18,14 +18,14 @@ describe('parseLedgerAmount', () => {
 });
 
 describe('buildManualPaymentRequestBody', () => {
-  it('should map freeplay to increase main free_play', () => {
+  it('should map freeplay to increase main with backend reason key freeplay', () => {
     const body = buildManualPaymentRequestBody(1, 'freeplay', 10, { remarks: ' promo ' });
     expect(body).toEqual({
       player_id: 1,
       value: 10,
       type: 'increase',
       balanceType: 'main',
-      reason: 'free_play',
+      reason: 'freeplay',
       remarks: 'promo',
       adjustment_type: 'freeplay',
     });
@@ -46,13 +46,13 @@ describe('buildManualPaymentRequestBody', () => {
     expect(body.reason).toBe('external_cashout');
   });
 
-  it('should map void to decrease winning with void_reason', () => {
+  it('should map void to decrease main with void_reason', () => {
     const body = buildManualPaymentRequestBody(4, 'void', 15, {
       voidReasonCode: 'fraud',
       remarks: 'details',
     });
     expect(body.type).toBe('decrease');
-    expect(body.balanceType).toBe('winning');
+    expect(body.balanceType).toBe('main');
     expect(body.reason).toBe('void');
     expect(body.void_reason).toBe('fraud');
     expect(body.remarks).toBe('fraud: details');

@@ -145,7 +145,8 @@ interface UseChatWebSocketParams {
   adminId: number;
   enabled: boolean;
   onMessageReceived?: (message: ChatMessage) => void; // Callback to update chat list
-  onBalanceUpdated?: (data: { playerId: number; balance: string; winningBalance: string }) => void; // Callback for balance updates
+  /** `winningBalance` only present when the WS payload included a winnings field (omit when single-balance). */
+  onBalanceUpdated?: (data: { playerId: number; balance: string; winningBalance?: string }) => void;
 }
 
 interface UseChatWebSocketReturn {
@@ -521,11 +522,14 @@ export function useChatWebSocket({
     }
 
     if (onBalanceUpdatedRef.current) {
-      onBalanceUpdatedRef.current({
+      const payload: { playerId: number; balance: string; winningBalance?: string } = {
         playerId: Number(playerId),
         balance: balance !== undefined && balance !== null ? String(balance) : '0',
-        winningBalance: winningBalance !== undefined && winningBalance !== null ? String(winningBalance) : '0',
-      });
+      };
+      if (winningBalance !== undefined && winningBalance !== null) {
+        payload.winningBalance = String(winningBalance);
+      }
+      onBalanceUpdatedRef.current(payload);
     }
   }, [userId]);
 

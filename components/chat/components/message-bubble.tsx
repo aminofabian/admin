@@ -15,6 +15,7 @@ import {
   parseKycMessage,
   formatTransactionMessage,
   parseTransactionMessage,
+  prepareChatMessageHtmlForDisplay,
 } from '../utils/message-helpers';
 
 interface MessageBubbleProps {
@@ -336,7 +337,7 @@ function MessageText({ message, isAdmin, messageHasHtml }: {
 
   if (hasRenderedImage) return null;
 
-  let displayText = message.text;
+  let displayText = prepareChatMessageHtmlForDisplay(message.text);
   if (hasImages) {
     imageUrls.forEach(url => {
       displayText = displayText.replace(new RegExp(url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '');

@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { Button, Input, Select } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { parseLedgerAmount, type ManualAdjustmentKind } from '@/lib/api/manual-adjustment-payload';
+import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 
 export type { ManualAdjustmentKind };
 
@@ -158,13 +159,13 @@ export function EditBalanceDrawer({
               Player balances
             </p>
             <div
-              className={`mt-2 grid gap-2 text-sm ${winnings !== undefined ? 'grid-cols-2' : 'grid-cols-1'}`}
+              className={`mt-2 grid gap-2 text-sm ${hasMeaningfulWinningBalance(winnings) ? 'grid-cols-2' : 'grid-cols-1'}`}
             >
               <div>
                 <span className="text-gray-500 dark:text-gray-400">Balance</span>
                 <p className="font-bold tabular-nums text-gray-900 dark:text-gray-100">{formatCurrency(credits)}</p>
               </div>
-              {winnings !== undefined ? (
+              {hasMeaningfulWinningBalance(winnings) ? (
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Winnings</span>
                   <p className="font-bold tabular-nums text-amber-700 dark:text-amber-400">

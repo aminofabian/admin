@@ -7,7 +7,13 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, debounce, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
-import { extractUnreadCount, transformChatToUser, transformPlayerToUser } from '@/lib/chat/map-chat-api';
+import {
+  extractUnreadCount,
+  mergeWinningBalanceFromPartialPayload,
+  payloadIncludesWinningBalanceFields,
+  transformChatToUser,
+  transformPlayerToUser,
+} from '@/lib/chat/map-chat-api';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -115,13 +121,15 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
         const updatedChats = [...prevChats];
         const existingChat = updatedChats[chatIndex];
-        const playerData = (updateData.player as Record<string, unknown>) || {};
-        const newBalance = updateData.balance ?? playerData.balance ?? updateData.player_bal;
-        const newWinningBalance = updateData.winning_balance ?? playerData.winning_balance ?? updateData.player_winning_bal;
+        const playerData = (updateData.player as Record<string, unknown>) || undefined;
+        const newBalance =
+          updateData.balance ??
+          (playerData ? playerData.balance : undefined) ??
+          updateData.player_bal;
         const newCashoutLimit =
-          updateData.cashout_limit ?? playerData.cashout_limit ?? updateData.player_cashout_limit;
+          updateData.cashout_limit ?? playerData?.cashout_limit ?? updateData.player_cashout_limit;
         const newLockedBalance =
-          updateData.locked_balance ?? playerData.locked_balance ?? updateData.player_locked_balance;
+          updateData.locked_balance ?? playerData?.locked_balance ?? updateData.player_locked_balance;
 
         const extractedUnreadCount = extractUnreadCount(updateData);
         const newUnreadCount = extractedUnreadCount !== undefined && extractedUnreadCount !== null
@@ -139,7 +147,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           })(),
           unreadCount: newUnreadCount,
           balance: newBalance !== undefined ? String(newBalance) : existingChat.balance,
-          winningBalance: newWinningBalance !== undefined ? String(newWinningBalance) : existingChat.winningBalance,
+          winningBalance: mergeWinningBalanceFromPartialPayload(
+            updateData as Record<string, unknown>,
+            playerData,
+            existingChat.winningBalance,
+          ),
           cashoutLimit:
             newCashoutLimit !== undefined && newCashoutLimit !== null
               ? String(newCashoutLimit)
@@ -256,22 +268,23 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (messageType === 'balanceUpdated' || messageType === 'balance_updated') {
         const playerId = data.player_id || data.user_id;
         const balance = data.balance ?? data.player_bal;
-        const winningBalance = data.winning_balance ?? data.player_winning_bal;
         const cashoutLimit = data.cashout_limit ?? data.player_cashout_limit;
         const lockedBalance = data.locked_balance ?? data.player_locked_balance;
+        const dataRecord = data as Record<string, unknown>;
+        const nestedPlayer = (dataRecord.player as Record<string, unknown>) || undefined;
 
         if (!IS_PROD) console.log('💰 [Chat Users] Balance updated notification received:', {
           playerId,
           balance,
-          winningBalance,
           cashoutLimit,
           lockedBalance,
+          hasWinningFields: payloadIncludesWinningBalanceFields(dataRecord, nestedPlayer),
         });
 
         if (
           playerId &&
           (balance !== undefined ||
-            winningBalance !== undefined ||
+            payloadIncludesWinningBalanceFields(dataRecord, nestedPlayer) ||
             cashoutLimit !== undefined ||
             lockedBalance !== undefined)
         ) {
@@ -279,7 +292,11 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           const patch = (chat: ChatUser) => ({
             ...chat,
             balance: balance !== undefined ? String(balance) : chat.balance,
-            winningBalance: winningBalance !== undefined ? String(winningBalance) : chat.winningBalance,
+            winningBalance: mergeWinningBalanceFromPartialPayload(
+              dataRecord,
+              nestedPlayer,
+              chat.winningBalance,
+            ),
             cashoutLimit:
               cashoutLimit !== undefined && cashoutLimit !== null
                 ? String(cashoutLimit)
@@ -343,7 +360,9 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
                 unreadCount: incomingChat.unreadCount ?? existingChat.unreadCount,
                 isOnline: incomingChat.isOnline ?? existingChat.isOnline,
                 balance: incomingChat.balance ?? existingChat.balance,
-                winningBalance: incomingChat.winningBalance ?? existingChat.winningBalance,
+                winningBalance: Object.prototype.hasOwnProperty.call(incomingChat, 'winningBalance')
+                  ? incomingChat.winningBalance
+                  : undefined,
                 cashoutLimit: incomingChat.cashoutLimit ?? existingChat.cashoutLimit,
                 lockedBalance: incomingChat.lockedBalance ?? existingChat.lockedBalance,
                 notes: existingChat.notes || incomingChat.notes,

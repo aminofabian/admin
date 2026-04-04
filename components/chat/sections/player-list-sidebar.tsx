@@ -10,6 +10,7 @@ import {
   isPurchaseNotification,
   isKycVerificationMessage,
   formatTransactionMessage,
+  prepareChatMessageHtmlForDisplay,
 } from '../utils/message-helpers';
 
 // Strip HTML tags for preview text
@@ -158,7 +159,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
               );
             }
 
-            const plainText = stripHtml(player.lastMessage);
+            const plainText = stripHtml(prepareChatMessageHtmlForDisplay(player.lastMessage));
             return (
               <p className={`text-[10px] truncate mt-0 transition-all duration-200 ${isNewMessage
                 ? 'text-foreground font-medium'

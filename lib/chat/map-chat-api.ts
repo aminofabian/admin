@@ -15,6 +15,129 @@ export const extractUnreadCount = (data: Record<string, unknown>): number => {
   return Math.max(validCount1, validCount2);
 };
 
+/** Parsed non-zero ledger string, or null when empty / zero / invalid (single-balance deployments often send 0). */
+function ledgerWinningString(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const s = String(value).trim();
+  if (s === '' || s === 'undefined' || s === 'null') {
+    return null;
+  }
+  const n = Number.parseFloat(s.replace(/,/g, ''));
+  if (!Number.isFinite(n) || n === 0) {
+    return null;
+  }
+  return s;
+}
+
+/**
+ * Only attach winningBalance when the payload includes a non-zero bucket amount.
+ * Zero / missing is treated as “no separate winnings” so the admin UI does not show an empty WINNINGS tile.
+ */
+export function pickWinningBalanceFromBackend(
+  raw: Record<string, unknown>,
+): Pick<ChatUser, 'winningBalance'> | Record<string, never> {
+  for (const key of ['winning_balance', 'winningBalance', 'player_winning_balance'] as const) {
+    if (!Object.prototype.hasOwnProperty.call(raw, key)) {
+      continue;
+    }
+    const sig = ledgerWinningString(raw[key]);
+    if (sig === null) {
+      continue;
+    }
+    return { winningBalance: sig };
+  }
+  return {};
+}
+
+/**
+ * Realtime (WebSocket) updates often include winning_balance: 0 even when the product only uses one bucket.
+ * Non-finite / zero clears the field; missing raw preserves previous.
+ */
+export function normalizeWinningBalanceFromRealtime(
+  raw: unknown,
+  previous: string | undefined,
+): string | undefined {
+  if (raw === undefined || raw === null) {
+    return previous;
+  }
+  const sig = ledgerWinningString(raw);
+  if (sig === null) {
+    return undefined;
+  }
+  return sig;
+}
+
+/** Used by chat UI to gate the second “Winnings” column. */
+export function hasMeaningfulWinningBalance(value: string | undefined): boolean {
+  return ledgerWinningString(value ?? null) !== null;
+}
+
+const WINNING_PARTIAL_KEYS = [
+  'winning_balance',
+  'player_winning_bal',
+  'player_winning_balance',
+  'winningBalance',
+] as const;
+
+/**
+ * Chat-list partial WS payloads often update only `balance`. If no winning* key is present,
+ * clear winnings (do not preserve stale state). If keys exist, apply non-zero normalization.
+ */
+export function mergeWinningBalanceFromPartialPayload(
+  payload: Record<string, unknown>,
+  nestedPlayer: Record<string, unknown> | undefined,
+  previous: string | undefined,
+): string | undefined {
+  let raw: unknown;
+  let found = false;
+
+  for (const k of WINNING_PARTIAL_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(payload, k)) {
+      found = true;
+      raw = payload[k];
+      break;
+    }
+  }
+  if (!found && nestedPlayer) {
+    for (const k of WINNING_PARTIAL_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(nestedPlayer, k)) {
+        found = true;
+        raw = nestedPlayer[k];
+        break;
+      }
+    }
+  }
+
+  if (!found) {
+    return undefined;
+  }
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  return normalizeWinningBalanceFromRealtime(raw, previous);
+}
+
+export function payloadIncludesWinningBalanceFields(
+  payload: Record<string, unknown>,
+  nestedPlayer?: Record<string, unknown>,
+): boolean {
+  for (const k of WINNING_PARTIAL_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(payload, k)) {
+      return true;
+    }
+  }
+  if (nestedPlayer) {
+    for (const k of WINNING_PARTIAL_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(nestedPlayer, k)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 type BackendChatPayload = {
   player?: {
     id?: string | number;
@@ -90,10 +213,7 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
     lastMessage: chat.last_message || undefined,
     lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
-    winningBalance:
-      player.winning_balance || player.winningBalance
-        ? String(player.winning_balance || player.winningBalance)
-        : undefined,
+    ...pickWinningBalanceFromBackend(player as Record<string, unknown>),
     cashoutLimit:
       player.cashout_limit !== undefined && player.cashout_limit !== null
         ? String(player.cashout_limit)
@@ -137,7 +257,7 @@ export function transformPlayerToUser(player: Record<string, unknown>): ChatUser
     lastMessageTime: validTimestamp,
     playerLastSeenAt: validLastSeen,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
-    winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
+    ...pickWinningBalanceFromBackend(player),
     cashoutLimit:
       player.cashout_limit !== undefined && player.cashout_limit !== null
         ? String(player.cashout_limit as string | number)

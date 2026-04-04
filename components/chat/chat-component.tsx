@@ -17,6 +17,8 @@ import {
   parseLedgerAmount,
   type ManualAdjustmentKind,
 } from '@/lib/api/manual-adjustment-payload';
+import { normalizeWinningBalanceFromRealtime, pickWinningBalanceFromBackend } from '@/lib/chat/map-chat-api';
+import { mergeWinningBalanceFromDirectoryRow } from '@/lib/chat/merge-player-ledger-display';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
 import { isAutoMessage, isPurchaseNotification, isKycVerificationMessage, parseTransactionMessage } from './utils/message-helpers';
@@ -242,7 +244,7 @@ export function ChatComponent() {
         );
       }
     }, [refreshActiveChats, updateChatLastMessage, selectedPlayer?.id]),
-    onBalanceUpdated: useCallback((data: { playerId: number; balance: string; winningBalance: string }) => {
+    onBalanceUpdated: useCallback((data: { playerId: number; balance: string; winningBalance?: string }) => {
       if (!IS_PROD) {
         console.log('💰 [Chat Component] Balance updated via WebSocket callback:', {
           playerId: data.playerId,
@@ -263,9 +265,10 @@ export function ChatComponent() {
           const newBalance = data.balance && data.balance !== '0' && data.balance !== 'undefined'
             ? String(data.balance)
             : prev.balance;
-          const newWinningBalance = data.winningBalance && data.winningBalance !== '0' && data.winningBalance !== 'undefined'
-            ? String(data.winningBalance)
-            : prev.winningBalance;
+          const newWinningBalance =
+            data.winningBalance !== undefined
+              ? normalizeWinningBalanceFromRealtime(data.winningBalance, prev.winningBalance)
+              : undefined;
 
           // Only update if values actually changed to avoid unnecessary re-renders
           if (newBalance === prev.balance && newWinningBalance === prev.winningBalance) {
@@ -621,7 +624,9 @@ export function ChatComponent() {
               email: player.email || existing.email,
               avatar: player.avatar || existing.avatar,
               balance: player.balance || existing.balance,
-              winningBalance: player.winningBalance || existing.winningBalance,
+              winningBalance: Object.prototype.hasOwnProperty.call(player, 'winningBalance')
+                ? player.winningBalance
+                : undefined,
               gamesPlayed: player.gamesPlayed || existing.gamesPlayed,
               winRate: player.winRate || existing.winRate,
               phone: player.phone || existing.phone,
@@ -712,6 +717,13 @@ export function ChatComponent() {
 
     return filtered;
   }, [activeTab, apiOnlinePlayers, activeChatsUsers, allPlayers, searchQuery]);
+
+  /** Sidebar/drawer: align winnings with directory row on the same render (no `useEffect` flash). */
+  const selectedPlayerLedgerView = useMemo(
+    () =>
+      selectedPlayer ? mergeWinningBalanceFromDirectoryRow(selectedPlayer, displayedPlayers) : null,
+    [selectedPlayer, displayedPlayers],
+  );
 
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {
@@ -1414,7 +1426,7 @@ export function ChatComponent() {
         void: `$${balanceValue} void applied`,
       };
 
-      let description = `Balance: ${formatCurrency(response.player_bal)}\nWinnings: ${formatCurrency(response.player_winning_bal)}`;
+      let description = `Balance: ${formatCurrency(response.player_bal)}`;
       if (response.cashout_limit !== undefined && response.cashout_limit !== null && String(response.cashout_limit) !== '') {
         description += `\nCashout limit: ${formatCurrency(String(response.cashout_limit))}`;
       }
@@ -1438,7 +1450,10 @@ export function ChatComponent() {
           ? {
               ...prev,
               balance: String(response.player_bal),
-              winningBalance: String(response.player_winning_bal),
+              winningBalance:
+                response.player_winning_bal !== undefined && response.player_winning_bal !== null
+                  ? String(response.player_winning_bal)
+                  : undefined,
               ...(response.cashout_limit !== undefined &&
               response.cashout_limit !== null &&
               String(response.cashout_limit) !== ''
@@ -1616,7 +1631,7 @@ export function ChatComponent() {
               lastMessage: player.last_message || undefined,
               lastMessageTime: player.last_message_timestamp || undefined,
               balance: player.balance !== undefined ? String(player.balance) : undefined,
-              winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
+              ...pickWinningBalanceFromBackend(player as Record<string, unknown>),
               gamesPlayed: player.games_played || player.gems || undefined,
               winRate: player.win_rate || undefined,
               phone: player.phone_number || player.mobile_number || undefined,
@@ -2311,9 +2326,9 @@ export function ChatComponent() {
       </div>
 
       {/* Right Column - Player Info */}
-      {selectedPlayer && (
+      {selectedPlayerLedgerView && (
         <PlayerInfoSidebar
-          selectedPlayer={selectedPlayer}
+          selectedPlayer={selectedPlayerLedgerView}
           isConnected={isConnected}
           mobileView={mobileView}
           setMobileView={setMobileView}
@@ -2338,10 +2353,10 @@ export function ChatComponent() {
       <EditBalanceDrawer
         isOpen={isEditBalanceModalOpen}
         onClose={() => setIsEditBalanceModalOpen(false)}
-        credits={selectedPlayer?.balance ?? '0'}
-        winnings={selectedPlayer?.winningBalance}
-        cashoutLimit={selectedPlayer?.cashoutLimit}
-        lockedBalance={selectedPlayer?.lockedBalance}
+        credits={selectedPlayerLedgerView?.balance ?? '0'}
+        winnings={selectedPlayerLedgerView?.winningBalance}
+        cashoutLimit={selectedPlayerLedgerView?.cashoutLimit}
+        lockedBalance={selectedPlayerLedgerView?.lockedBalance}
         adjustmentKind={balanceAdjustmentKind}
         setAdjustmentKind={setBalanceAdjustmentKind}
         voidReasonCode={voidReasonCode}

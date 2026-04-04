@@ -7,6 +7,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
+import { pickWinningBalanceFromBackend } from '@/lib/chat/map-chat-api';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -54,7 +55,7 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
       lastMessage: data.last_message ? String(data.last_message) : undefined,
       lastMessageTime: validTimestamp,
       balance: data.player_balance !== undefined ? String(data.player_balance) : undefined,
-      winningBalance: data.player_winning_balance !== undefined ? String(data.player_winning_balance) : undefined,
+      ...pickWinningBalanceFromBackend(data as Record<string, unknown>),
       gamesPlayed: (data.player_games_played as number | undefined) || undefined,
       winRate: (data.player_win_rate as number | undefined) || undefined,
       phone: data.player_phone_number ? String(data.player_phone_number) : undefined,
@@ -80,7 +81,7 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
     lastMessage: data.last_message ? String(data.last_message) : undefined,
     lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
-    winningBalance: player.winning_balance ? String(player.winning_balance) : undefined,
+    ...pickWinningBalanceFromBackend(player as Record<string, unknown>),
     gamesPlayed: (player.games_played as number | undefined) || undefined,
     winRate: (player.win_rate as number | undefined) || undefined,
     phone: (player.phone_number || player.mobile_number) ? String(player.phone_number || player.mobile_number) : undefined,

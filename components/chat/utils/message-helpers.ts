@@ -41,6 +41,38 @@ export const stripHtml = (html: string): string => {
   return tmp.textContent || tmp.innerText || '';
 };
 
+/**
+ * Remove "Winnings: …" lines from server chat templates (single-balance product).
+ * Handles HTML `<br>` blocks and plain newlines.
+ */
+export function stripWinningsLineFromChatMessage(text: string): string {
+  if (!text) return text;
+  let s = text;
+  s = s.replace(/(?:<br\s*\/?>\s*)+Winnings?\s*:\s*<b>[\s\S]*?<\/b>/gi, '');
+  s = s.replace(/(?:<br\s*\/?>\s*)+Winnings?\s*:\s*[^<\n]+/gi, '');
+  s = s.replace(/^Winnings?\s*:\s*<b>[\s\S]*?<\/b>\s*(?:<br\s*\/?>\s*)?/gim, '');
+  s = s.replace(/\r?\n\s*Winnings?\s*:\s*[^\n\r]*/gi, '');
+  s = s.replace(/(?:<br\s*\/?>\s*)+$/gi, '');
+  return s.trim();
+}
+
+/**
+ * Show "Balance:" instead of server "Credits:" / "Credit balance:" in chat UI.
+ */
+export function relabelCreditsToBalanceInChatMessage(text: string): string {
+  if (!text) return text;
+  let s = text;
+  s = s.replace(/<b>\s*Credits?\s*:\s*<\/b>/gi, '<b>Balance:</b>');
+  s = s.replace(/\b[Cc]redit\s+[Bb]alance\s*:/g, 'Balance:');
+  s = s.replace(/\bCredits?\s*:/gi, 'Balance:');
+  return s;
+}
+
+/** Strip winnings line + relabel credits→balance for any rendered chat HTML. */
+export function prepareChatMessageHtmlForDisplay(text: string): string {
+  return relabelCreditsToBalanceInChatMessage(stripWinningsLineFromChatMessage(text));
+}
+
 // Message HTML content classes
 export const MESSAGE_HTML_CONTENT_CLASS = {
   admin: 'text-[13px] md:text-sm leading-relaxed break-words [&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80 [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4',
@@ -455,7 +487,9 @@ export const formatTransactionMessage = (
   if (!message.text) return '';
 
   // Remove automated headings like "Recharge" or "Redeem" as requested
-  const textWithoutHeading = removeAutomatedMessageHeading(message.text);
+  const textWithoutHeading = prepareChatMessageHtmlForDisplay(
+    removeAutomatedMessageHeading(message.text),
+  );
 
   const details = parseTransactionMessage(message.text, message.type, message.operationType);
 
@@ -476,11 +510,11 @@ export const formatTransactionMessage = (
 
   const boldClass = `text-[0.92em] font-bold ${colorClass}`;
 
-  // Just return the original text but apply the transaction-specific color 
-  // to any bolded elements (which usually contain the amounts/balances)
-  return textWithoutHeading
-    .replace(/<b>(.*?)<\/b>/g, `<b class="${boldClass}">$1</b>`)
-    // Remove bold from labels if they were bolded in source to keep it clean,
-    // as requested to "remove formatting" while keeping color on values
-    .replace(/<b>(Credits:|Winnings:)<\/b>/gi, '$1');
+  // Unbold labels before wrapping amounts so "Balance:" stays plain while $ amounts get color
+  const unboldLabels = textWithoutHeading.replace(
+    /<b>\s*(Balance:|Credits:|Winnings:)\s*<\/b>/gi,
+    '$1',
+  );
+
+  return unboldLabels.replace(/<b>(.*?)<\/b>/g, `<b class="${boldClass}">$1</b>`);
 };
