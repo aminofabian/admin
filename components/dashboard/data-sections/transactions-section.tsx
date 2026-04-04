@@ -446,8 +446,9 @@ export function TransactionsSection() {
         // Only show payment methods returned by API (enabled by superadmin for this admin)
         // Do not add hardcoded methods - admins should not see methods they don't have access to
 
-        // Add reason-based payment methods (from manual balance adjustments)
-        uniqueMethods.set('free_play', 'Free Play');
+        // Manual adjustment methods (6.1–6.4) — align labels with history/analytics taxonomy
+        uniqueMethods.set('free_play', 'Freeplay');
+        uniqueMethods.set('freeplay', 'Freeplay');
         uniqueMethods.set('manual', 'Manual');
         uniqueMethods.set('seize_tip', 'Seize Tip');
         uniqueMethods.set('external_deposit', 'External Deposit');

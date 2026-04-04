@@ -1,6 +1,7 @@
 import {
   buildManualPaymentRequestBody,
   parseLedgerAmount,
+  validateExternalCashoutAmount,
   type ManualAdjustmentKind,
 } from '../manual-adjustment-payload';
 
@@ -14,6 +15,33 @@ describe('parseLedgerAmount', () => {
     expect(parseLedgerAmount('')).toBeNull();
     expect(parseLedgerAmount(undefined)).toBeNull();
     expect(parseLedgerAmount('x')).toBeNull();
+  });
+});
+
+describe('validateExternalCashoutAmount', () => {
+  it('rejects when limit unknown', () => {
+    expect(validateExternalCashoutAmount(10, undefined, '100')).toEqual({
+      ok: false,
+      reason: 'limit_unknown',
+    });
+  });
+
+  it('rejects when amount exceeds limit', () => {
+    expect(validateExternalCashoutAmount(50, '25', '100')).toEqual({
+      ok: false,
+      reason: 'exceeds_limit',
+    });
+  });
+
+  it('rejects when amount exceeds balance', () => {
+    expect(validateExternalCashoutAmount(40, '50', '30')).toEqual({
+      ok: false,
+      reason: 'exceeds_balance',
+    });
+  });
+
+  it('accepts when amount within limit and balance', () => {
+    expect(validateExternalCashoutAmount(20, '50', '100')).toEqual({ ok: true });
   });
 });
 

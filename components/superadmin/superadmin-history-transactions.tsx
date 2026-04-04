@@ -322,8 +322,8 @@ export function SuperAdminHistoryTransactions() {
                     uniqueMethods.set(value, label);
                 });
 
-                // Add reason-based payment methods (from manual balance adjustments)
-                uniqueMethods.set('free_play', 'Free Play');
+                uniqueMethods.set('free_play', 'Freeplay');
+                uniqueMethods.set('freeplay', 'Freeplay');
                 uniqueMethods.set('manual', 'Manual');
                 uniqueMethods.set('seize_tip', 'Seize Tip');
                 uniqueMethods.set('external_deposit', 'External Deposit');

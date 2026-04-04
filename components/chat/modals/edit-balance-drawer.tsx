@@ -3,7 +3,11 @@
 import { useEffect, useMemo } from 'react';
 import { Button, Input, Select } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { parseLedgerAmount, type ManualAdjustmentKind } from '@/lib/api/manual-adjustment-payload';
+import {
+  parseLedgerAmount,
+  validateExternalCashoutAmount,
+  type ManualAdjustmentKind,
+} from '@/lib/api/manual-adjustment-payload';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 
 export type { ManualAdjustmentKind };
@@ -17,29 +21,32 @@ const ADJUSTMENT_OPTIONS: {
   {
     kind: 'freeplay',
     title: 'Freeplay',
-    description: 'Add freeplay credit. Does not change cashout limit.',
+    description: 'Add only: increases balance. Cashout limit unchanged.',
     direction: 'add',
   },
   {
     kind: 'external_deposit',
     title: 'External deposit',
-    description: 'Money received outside the site. Does not change cashout limit.',
+    description: 'Add only: record funds received outside the site. Cashout limit unchanged.',
     direction: 'add',
   },
   {
     kind: 'external_cashout',
     title: 'External cashout',
-    description: 'Paid outside the site. Max amount is current cashout limit.',
+    description:
+      'Deduct only: record payout outside the site. Amount must be ≤ cashout limit and ≤ balance; both decrease.',
     direction: 'deduct',
   },
   {
     kind: 'void',
     title: 'Void',
-    description: 'Deduct when no real payout (fraud, penalties, etc.). Uses locked balance first.',
+    description:
+      'Deduct only: no real money paid out (rule breaking, fraud, scam, tips, penalties, corrections). Locked balance reduced first; cashout limit only if locked is insufficient.',
     direction: 'deduct',
   },
 ];
 
+/** Matches history/analytics void reason taxonomy (6.4). */
 export const VOID_REASON_OPTIONS: { value: string; label: string }[] = [
   { value: 'rule_breaking', label: 'Rule breaking' },
   { value: 'fraud', label: 'Fraud' },
@@ -47,7 +54,7 @@ export const VOID_REASON_OPTIONS: { value: string; label: string }[] = [
   { value: 'tips', label: 'Tips' },
   { value: 'penalties', label: 'Penalties' },
   { value: 'corrections', label: 'Corrections' },
-  { value: 'other', label: 'Other' },
+  { value: 'other', label: 'Other (use notes)' },
 ];
 
 interface EditBalanceDrawerProps {
@@ -97,16 +104,17 @@ export function EditBalanceDrawer({
   const limitNum = parseLedgerAmount(cashoutLimit);
   const lockedNum = parseLedgerAmount(lockedBalance);
 
-  const cashoutExceeded =
-    adjustmentKind === 'external_cashout' &&
-    limitNum !== null &&
-    balanceValue > 0 &&
-    balanceValue > limitNum;
+  const externalCashoutValidation =
+    adjustmentKind === 'external_cashout' && balanceValue > 0
+      ? validateExternalCashoutAmount(balanceValue, cashoutLimit, credits)
+      : ({ ok: true } as const);
 
   const voidBlocked = adjustmentKind === 'void' && !voidReasonCode;
   const amountBlocked = balanceValue <= 0;
+  const externalCashoutBlocked =
+    adjustmentKind === 'external_cashout' && !externalCashoutValidation.ok;
   const primaryDisabled =
-    isUpdating || amountBlocked || cashoutExceeded || voidBlocked;
+    isUpdating || amountBlocked || externalCashoutBlocked || voidBlocked;
 
   useEffect(() => {
     setVoidReasonCode('');
@@ -137,7 +145,7 @@ export function EditBalanceDrawer({
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Manual adjustment</h2>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              Freeplay, external deposit/cashout, or void
+              Freeplay, external deposit, external cashout, or void — per admin adjustment policy
             </p>
           </div>
           <button
@@ -236,7 +244,8 @@ export function EditBalanceDrawer({
                 className="h-10"
               />
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Void reduces locked balance first; cashout limit may drop if locked funds are insufficient.
+                Transaction history: Deduct · Void, with this reason. Analytics: Void. Balance decreases;
+                locked balance first, then cashout limit only if locked is not enough.
               </p>
             </div>
           )}
@@ -303,16 +312,28 @@ export function EditBalanceDrawer({
                   autoComplete="off"
                 />
               </div>
-              {adjustmentKind === 'external_cashout' && limitNum === null && (
-                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-                  Cashout limit not loaded; the server will still validate the amount.
-                </p>
-              )}
-              {cashoutExceeded && (
-                <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400">
-                  Amount cannot exceed cashout limit ({formatCurrency(cashoutLimit ?? '0')}).
-                </p>
-              )}
+              {adjustmentKind === 'external_cashout' &&
+                !externalCashoutValidation.ok &&
+                externalCashoutValidation.reason === 'limit_unknown' && (
+                  <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+                    Cashout limit must be known before external cashout (amount ≤ limit). Refresh player data or
+                    reopen chat.
+                  </p>
+                )}
+              {adjustmentKind === 'external_cashout' &&
+                !externalCashoutValidation.ok &&
+                externalCashoutValidation.reason === 'exceeds_limit' && (
+                  <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400">
+                    External cashout cannot exceed cashout limit ({formatCurrency(cashoutLimit ?? '0')}).
+                  </p>
+                )}
+              {adjustmentKind === 'external_cashout' &&
+                !externalCashoutValidation.ok &&
+                externalCashoutValidation.reason === 'exceeds_balance' && (
+                  <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400">
+                    Amount cannot exceed the player&apos;s balance ({formatCurrency(credits)}).
+                  </p>
+                )}
             </div>
           </div>
 
@@ -339,7 +360,14 @@ export function EditBalanceDrawer({
         <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 px-5 py-4 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
           {!amountBlocked && (
             <p className="mb-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
-              {meta.direction === 'add' ? 'Adds to balance' : 'Deducts (see type)'} · ${balanceValue}
+              {adjustmentKind === 'freeplay' &&
+                `Adds freeplay · Balance +$${balanceValue} · Cashout limit unchanged`}
+              {adjustmentKind === 'external_deposit' &&
+                `Adds external deposit · Balance +$${balanceValue} · Cashout limit unchanged`}
+              {adjustmentKind === 'external_cashout' &&
+                `External cashout · Balance −$${balanceValue} · Cashout limit decreases by the same amount (when allowed)`}
+              {adjustmentKind === 'void' &&
+                `Void · Balance −$${balanceValue} · Locked reduced first; cashout limit only if needed`}
             </p>
           )}
           <div className="flex items-center justify-end gap-2">

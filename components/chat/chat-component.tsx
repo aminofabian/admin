@@ -14,7 +14,7 @@ import type { ChatUser, ChatMessage } from '@/types';
 import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
 import {
   buildManualPaymentRequestBody,
-  parseLedgerAmount,
+  validateExternalCashoutAmount,
   type ManualAdjustmentKind,
 } from '@/lib/api/manual-adjustment-payload';
 import { normalizeWinningBalanceFromRealtime, pickWinningBalanceFromBackend } from '@/lib/chat/map-chat-api';
@@ -1374,18 +1374,36 @@ export function ChatComponent() {
       return;
     }
 
-    const limitNum = parseLedgerAmount(selectedPlayer.cashoutLimit);
-    if (
-      balanceAdjustmentKind === 'external_cashout' &&
-      limitNum !== null &&
-      balanceValue > limitNum
-    ) {
-      addToast({
-        type: 'error',
-        title: 'Over cashout limit',
-        description: 'External cashout cannot exceed the player’s cashout limit.',
-      });
-      return;
+    if (balanceAdjustmentKind === 'external_cashout') {
+      const cashoutCheck = validateExternalCashoutAmount(
+        balanceValue,
+        selectedPlayer.cashoutLimit,
+        selectedPlayer.balance,
+      );
+      if (!cashoutCheck.ok) {
+        let description = 'This external cashout cannot be submitted.';
+        switch (cashoutCheck.reason) {
+          case 'invalid_amount':
+            description = 'Enter an amount greater than 0.';
+            break;
+          case 'limit_unknown':
+            description =
+              'Cashout limit must be loaded before external cashout. Refresh the player or reopen the drawer.';
+            break;
+          case 'exceeds_limit':
+            description = 'External cashout cannot exceed the player’s cashout limit.';
+            break;
+          case 'exceeds_balance':
+            description = 'External cashout cannot exceed the player’s balance.';
+            break;
+        }
+        addToast({
+          type: 'error',
+          title: 'External cashout not allowed',
+          description,
+        });
+        return;
+      }
     }
 
     const operation: 'increase' | 'decrease' =

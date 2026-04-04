@@ -528,6 +528,11 @@ export const formatPaymentMethod = (method: string | null | undefined): string =
     return '—';
   }
 
+  const normalizedKey = method.trim().toLowerCase().replace(/-/g, '_');
+  if (normalizedKey === 'free_play' || normalizedKey === 'freeplay') {
+    return 'Freeplay';
+  }
+
   // Handle common methods that should be fully capitalized
   const upperCaseMethods = ['manual', 'bot', 'crypto'];
   if (upperCaseMethods.includes(method.toLowerCase())) {
