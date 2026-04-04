@@ -13,6 +13,7 @@ import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
+import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 
 
@@ -364,7 +365,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     : '?';
 
   const creditBalance = formatCurrency(selectedPlayer.balance ?? 0);
-  const winningBalance = formatCurrency(selectedPlayer.winning_balance ?? 0);
+  const showWinningsHero = hasMeaningfulWinningBalance(selectedPlayer.winning_balance);
   const purchasesTotal = formatCurrency(selectedPlayer.total_purchases ?? 0);
   const cashoutsTotal = formatCurrency(selectedPlayer.total_cashouts ?? 0);
   const transfersTotal = formatCurrency(selectedPlayer.total_transfers ?? 0);
@@ -451,7 +452,11 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6 pb-safe">
         {/* Hero Stats Banner */}
         <div className="mb-3 sm:mb-4 md:mb-6 bg-gray-100 dark:bg-gray-900 p-2 sm:p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:grid-cols-4">
+          <div
+            className={`grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 ${
+              showWinningsHero ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
+            }`}
+          >
             <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
                 <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
@@ -465,19 +470,23 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
-                <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
-                  <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Winnings</p>
-                  <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{winningBalance}</p>
+            {showWinningsHero ? (
+              <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
+                <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
+                  <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">
+                    <svg className="h-2.5 w-2.5 sm:h-3 sm:w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[8px] sm:text-[9px] md:text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">Winnings</p>
+                    <p className="mt-0.5 text-xs sm:text-sm md:text-lg lg:text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">
+                      {formatCurrency(selectedPlayer.winning_balance ?? 0)}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
             <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
                 <div className="flex h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 lg:h-10 lg:w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 shrink-0 rounded">

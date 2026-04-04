@@ -69,9 +69,9 @@ export function normalizeWinningBalanceFromRealtime(
   return sig;
 }
 
-/** Used by chat UI to gate the second “Winnings” column. */
-export function hasMeaningfulWinningBalance(value: string | undefined): boolean {
-  return ledgerWinningString(value ?? null) !== null;
+/** Used by chat and player profile UIs to gate the “Winnings” tile (omit when zero / missing). */
+export function hasMeaningfulWinningBalance(value: unknown): boolean {
+  return ledgerWinningString(value) !== null;
 }
 
 const WINNING_PARTIAL_KEYS = [
