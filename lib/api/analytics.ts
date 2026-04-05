@@ -80,7 +80,8 @@ export interface GameSummary {
 }
 
 export interface GameByGame {
-  game_id: number;
+  game_id?: number;
+  game_code?: string;
   game_title: string;
   recharge: number;
   bonus: number;
