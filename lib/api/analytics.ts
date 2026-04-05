@@ -54,18 +54,19 @@ export interface PaymentMethodsResponseData {
   };
 }
 
+/** Bonus analytics `data` object from GET …/transactions/bonus (all numeric fields). */
 export interface BonusAnalytics {
   total_bonus: number;
   purchase_bonus: number;
   average_purchase_bonus_pct: number;
   signup_bonus: number;
-  average_signup_bonus?: number;
+  average_signup_bonus: number;
   first_deposit_bonus: number;
-  average_first_deposit_bonus_pct?: number;
+  average_first_deposit_bonus_pct: number;
   transfer_bonus: number;
   average_transfer_bonus_pct: number;
   total_free_play: number;
-  average_free_play?: number;
+  average_free_play: number;
   seized_or_tipped_fund: number;
 }
 

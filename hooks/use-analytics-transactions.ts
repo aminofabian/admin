@@ -6,6 +6,43 @@ import type {
   BonusAnalytics,
 } from '@/lib/api/analytics';
 
+/** Maps API payload to a consistent TransactionSummary (handles missing keys and total_cash_in alias). */
+function normalizeTransactionSummary(raw: TransactionSummary | Record<string, unknown>): TransactionSummary {
+  const o = raw as Record<string, unknown>;
+  const num = (v: unknown): number => (typeof v === 'number' && !Number.isNaN(v) ? v : 0);
+  const purchase =
+    typeof o.total_purchase === 'number' && !Number.isNaN(o.total_purchase)
+      ? o.total_purchase
+      : typeof o.total_cash_in === 'number' && !Number.isNaN(o.total_cash_in)
+        ? o.total_cash_in
+        : 0;
+  return {
+    total_purchase: purchase,
+    total_cashout: num(o.total_cashout),
+    total_transfer: num(o.total_transfer),
+  };
+}
+
+/** Ensures every bonus analytics field is a finite number (matches API snake_case payload). */
+function normalizeBonusAnalytics(raw: unknown): BonusAnalytics {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  return {
+    total_bonus: n(o.total_bonus),
+    purchase_bonus: n(o.purchase_bonus),
+    average_purchase_bonus_pct: n(o.average_purchase_bonus_pct),
+    signup_bonus: n(o.signup_bonus),
+    average_signup_bonus: n(o.average_signup_bonus),
+    first_deposit_bonus: n(o.first_deposit_bonus),
+    average_first_deposit_bonus_pct: n(o.average_first_deposit_bonus_pct),
+    transfer_bonus: n(o.transfer_bonus),
+    average_transfer_bonus_pct: n(o.average_transfer_bonus_pct),
+    total_free_play: n(o.total_free_play),
+    average_free_play: n(o.average_free_play),
+    seized_or_tipped_fund: n(o.seized_or_tipped_fund),
+  };
+}
+
 export function useTransactionSummary(filters?: AnalyticsFilters) {
   const [data, setData] = useState<TransactionSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -18,7 +55,7 @@ export function useTransactionSummary(filters?: AnalyticsFilters) {
         setError(null);
         const response = await analyticsApi.getTransactionSummary(filters);
         if (response.status === 'success' && response.data) {
-          setData(response.data);
+          setData(normalizeTransactionSummary(response.data));
         } else {
           throw new Error(response.message || 'Failed to fetch transaction summary');
         }
@@ -120,7 +157,7 @@ export function useBonusAnalytics(filters?: AnalyticsFilters) {
         setError(null);
         const response = await analyticsApi.getBonusAnalytics(filters);
         if (response.status === 'success' && response.data) {
-          setData(response.data);
+          setData(normalizeBonusAnalytics(response.data));
         } else {
           throw new Error(response.message || 'Failed to fetch bonus analytics');
         }
