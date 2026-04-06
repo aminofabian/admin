@@ -14,7 +14,7 @@
  * Allowed only if amount ≤ cashout_limit (and ≤ balance client-side). Balance ↓ · cashout_limit ↓ ·
  * History: Deduct + method External Cashout · Analytics: Cashout + External Cashout.
  *
- * **6.4 Void (deduct only)** — `type: decrease`, `reason: void`, `void_reason` required.
+ * **6.4 Void (deduct only)** — `type: decrease`, `reason: void`; optional `remarks` for notes.
  * Balance ↓ · locked-first (locked_balance first; cashout_limit only if locked insufficient) ·
  * History: Deduct + method Void + reason · Analytics: Void.
  */
@@ -77,7 +77,6 @@ export interface ManualPaymentRequestBody {
   reason: string;
   remarks?: string;
   adjustment_type: ManualAdjustmentKind;
-  void_reason?: string;
 }
 
 /** Manual-payment API success shape; backend may add limit fields over time. */
@@ -94,7 +93,7 @@ export function buildManualPaymentRequestBody(
   playerId: number,
   kind: ManualAdjustmentKind,
   value: number,
-  options: { remarks?: string; voidReasonCode?: string },
+  options: { remarks?: string },
 ): ManualPaymentRequestBody {
   const remarks = options.remarks?.trim() || undefined;
 
@@ -129,21 +128,16 @@ export function buildManualPaymentRequestBody(
         remarks,
         adjustment_type: kind,
       };
-    case 'void': {
-      const code = options.voidReasonCode?.trim();
-      const combinedRemarks =
-        remarks && code ? `${code}: ${remarks}` : remarks || code;
+    case 'void':
       return {
         player_id: playerId,
         value,
         type: 'decrease',
         balanceType: 'main',
         reason: 'void',
-        remarks: combinedRemarks,
+        remarks,
         adjustment_type: kind,
-        void_reason: code,
       };
-    }
     default: {
       const _exhaustive: never = kind;
       return _exhaustive;

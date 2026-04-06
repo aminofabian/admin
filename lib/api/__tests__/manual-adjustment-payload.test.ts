@@ -74,16 +74,15 @@ describe('buildManualPaymentRequestBody', () => {
     expect(body.reason).toBe('external_cashout');
   });
 
-  it('should map void to decrease main with void_reason', () => {
+  it('should map void to decrease main with optional remarks', () => {
     const body = buildManualPaymentRequestBody(4, 'void', 15, {
-      voidReasonCode: 'fraud',
       remarks: 'details',
     });
     expect(body.type).toBe('decrease');
     expect(body.balanceType).toBe('main');
     expect(body.reason).toBe('void');
-    expect(body.void_reason).toBe('fraud');
-    expect(body.remarks).toBe('fraud: details');
+    expect(body.adjustment_type).toBe('void');
+    expect(body.remarks).toBe('details');
   });
 
   it('should cover every ManualAdjustmentKind', () => {
@@ -94,7 +93,7 @@ describe('buildManualPaymentRequestBody', () => {
       'void',
     ];
     for (const k of kinds) {
-      const body = buildManualPaymentRequestBody(1, k, 1, { voidReasonCode: 'rule_breaking' });
+      const body = buildManualPaymentRequestBody(1, k, 1, {});
       expect(body.adjustment_type).toBe(k);
       expect(body.player_id).toBe(1);
       expect(body.value).toBe(1);

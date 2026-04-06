@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import { Button, Input, Select } from '@/components/ui';
+import { useMemo } from 'react';
+import { Button, Input } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import {
   parseLedgerAmount,
@@ -41,20 +41,9 @@ const ADJUSTMENT_OPTIONS: {
     kind: 'void',
     title: 'Void',
     description:
-      'Deduct only: no real money paid out (rule breaking, fraud, scam, tips, penalties, corrections). Locked balance reduced first; cashout limit only if locked is insufficient.',
+      'Deduct only: no real money paid out. Locked balance reduced first; cashout limit only if locked is insufficient.',
     direction: 'deduct',
   },
-];
-
-/** Matches history/analytics void reason taxonomy (6.4). */
-export const VOID_REASON_OPTIONS: { value: string; label: string }[] = [
-  { value: 'rule_breaking', label: 'Rule breaking' },
-  { value: 'fraud', label: 'Fraud' },
-  { value: 'scam', label: 'Scam' },
-  { value: 'tips', label: 'Tips' },
-  { value: 'penalties', label: 'Penalties' },
-  { value: 'corrections', label: 'Corrections' },
-  { value: 'other', label: 'Other (use notes)' },
 ];
 
 interface EditBalanceDrawerProps {
@@ -66,8 +55,6 @@ interface EditBalanceDrawerProps {
   lockedBalance?: string;
   adjustmentKind: ManualAdjustmentKind;
   setAdjustmentKind: React.Dispatch<React.SetStateAction<ManualAdjustmentKind>>;
-  voidReasonCode: string;
-  setVoidReasonCode: React.Dispatch<React.SetStateAction<string>>;
   balanceValue: number;
   setBalanceValue: React.Dispatch<React.SetStateAction<number>>;
   remarks: string;
@@ -87,8 +74,6 @@ export function EditBalanceDrawer({
   lockedBalance,
   adjustmentKind,
   setAdjustmentKind,
-  voidReasonCode,
-  setVoidReasonCode,
   balanceValue,
   setBalanceValue,
   remarks,
@@ -109,16 +94,10 @@ export function EditBalanceDrawer({
       ? validateExternalCashoutAmount(balanceValue, cashoutLimit, credits)
       : ({ ok: true } as const);
 
-  const voidBlocked = adjustmentKind === 'void' && !voidReasonCode;
   const amountBlocked = balanceValue <= 0;
   const externalCashoutBlocked =
     adjustmentKind === 'external_cashout' && !externalCashoutValidation.ok;
-  const primaryDisabled =
-    isUpdating || amountBlocked || externalCashoutBlocked || voidBlocked;
-
-  useEffect(() => {
-    setVoidReasonCode('');
-  }, [adjustmentKind, setVoidReasonCode]);
+  const primaryDisabled = isUpdating || amountBlocked || externalCashoutBlocked;
 
   const primaryLabel = useMemo(() => {
     if (amountBlocked) {
@@ -229,26 +208,6 @@ export function EditBalanceDrawer({
               ))}
             </div>
           </div>
-
-          {adjustmentKind === 'void' && (
-            <div className="mb-5">
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Void reason <span className="text-rose-600 dark:text-rose-400">*</span>
-              </label>
-              <Select
-                value={voidReasonCode}
-                onChange={setVoidReasonCode}
-                options={VOID_REASON_OPTIONS}
-                placeholder="Select reason"
-                disabled={isUpdating}
-                className="h-10"
-              />
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Transaction history: Deduct · Void, with this reason. Analytics: Void. Balance decreases;
-                locked balance first, then cashout limit only if locked is not enough.
-              </p>
-            </div>
-          )}
 
           <div className="mb-5">
             <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Amount</p>

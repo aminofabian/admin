@@ -127,7 +127,6 @@ export function ChatComponent() {
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   const [balanceValue, setBalanceValue] = useState(0);
   const [balanceAdjustmentKind, setBalanceAdjustmentKind] = useState<ManualAdjustmentKind>('freeplay');
-  const [voidReasonCode, setVoidReasonCode] = useState('');
   const [balanceRemarks, setBalanceRemarks] = useState('');
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -1348,7 +1347,6 @@ export function ChatComponent() {
     if (!selectedPlayer) return;
     setBalanceValue(0);
     setBalanceAdjustmentKind('freeplay');
-    setVoidReasonCode('');
     setBalanceRemarks('');
     setIsEditBalanceModalOpen(true);
   }, [selectedPlayer]);
@@ -1361,15 +1359,6 @@ export function ChatComponent() {
         type: 'error',
         title: 'Invalid amount',
         description: 'Please enter a valid amount greater than 0.',
-      });
-      return;
-    }
-
-    if (balanceAdjustmentKind === 'void' && !voidReasonCode.trim()) {
-      addToast({
-        type: 'error',
-        title: 'Void reason required',
-        description: 'Select a void reason before submitting.',
       });
       return;
     }
@@ -1417,7 +1406,6 @@ export function ChatComponent() {
 
       const payload = buildManualPaymentRequestBody(selectedPlayer.user_id, balanceAdjustmentKind, balanceValue, {
         remarks: balanceRemarks,
-        voidReasonCode: balanceAdjustmentKind === 'void' ? voidReasonCode : undefined,
       });
 
       const response = await playersApi.manualPayment(payload);
@@ -1460,7 +1448,6 @@ export function ChatComponent() {
 
       setIsEditBalanceModalOpen(false);
       setBalanceValue(0);
-      setVoidReasonCode('');
       setBalanceRemarks('');
 
       setSelectedPlayer((prev) =>
@@ -1507,7 +1494,6 @@ export function ChatComponent() {
     selectedPlayer,
     balanceValue,
     balanceAdjustmentKind,
-    voidReasonCode,
     balanceRemarks,
     isUpdatingBalance,
     addToast,
@@ -2377,8 +2363,6 @@ export function ChatComponent() {
         lockedBalance={selectedPlayerLedgerView?.lockedBalance}
         adjustmentKind={balanceAdjustmentKind}
         setAdjustmentKind={setBalanceAdjustmentKind}
-        voidReasonCode={voidReasonCode}
-        setVoidReasonCode={setVoidReasonCode}
         balanceValue={balanceValue}
         setBalanceValue={setBalanceValue}
         remarks={balanceRemarks}
