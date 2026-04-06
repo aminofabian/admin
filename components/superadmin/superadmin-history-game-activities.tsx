@@ -869,7 +869,7 @@ function HistoryGameActivitiesTable({
                                         <TableHead>Game</TableHead>
                                         <TableHead>Game Username</TableHead>
                                         <TableHead>Amount</TableHead>
-                                        <TableHead>New Balance</TableHead>
+                                        <TableHead>Credit</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Dates</TableHead>
                                         <TableHead className="text-right">Action</TableHead>
@@ -951,18 +951,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
     }, [bonusAmount]);
 
-    const credit = useMemo(() => {
-        const creditValue = activity.data?.credit;
-        if (creditValue === undefined || creditValue === null) return null;
-        return formatCurrency(String(creditValue));
-    }, [activity.data?.credit]);
-
-    const winnings = useMemo(() => {
-        const winningsValue = activity.data?.winnings;
-        if (winningsValue === undefined || winningsValue === null) return null;
-        return formatCurrency(String(winningsValue));
-    }, [activity.data?.winnings]);
-
     const previousCreditsBalance = useMemo(() => {
         const credits = activity.data?.previous_credits_balance;
         if (credits === undefined || credits === null) return null;
@@ -976,19 +964,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         return previousCreditsBalance !== null && !isNaN(previousCreditsBalance) ? formatCurrency(String(previousCreditsBalance)) : null;
     }, [previousCreditsBalance]);
 
-    const prevWinningBalance = useMemo(() => {
-        const winnings = activity.data?.previous_winning_balance;
-        if (winnings === undefined || winnings === null) return null;
-        const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
-            ? parseFloat(String(winnings))
-            : null;
-        return winningsValue;
-    }, [activity.data?.previous_winning_balance]);
-
-    const formattedPreviousWinnings = useMemo(() => {
-        return prevWinningBalance !== null && !isNaN(prevWinningBalance) ? formatCurrency(String(prevWinningBalance)) : null;
-    }, [prevWinningBalance]);
-
     const newCreditsBalanceNum = useMemo(() => {
         const credits = activity.data?.new_credits_balance;
         if (credits === undefined || credits === null) return null;
@@ -1001,18 +976,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         return newCreditsBalanceNum !== null && !isNaN(newCreditsBalanceNum) ? formatCurrency(String(newCreditsBalanceNum)) : null;
     }, [newCreditsBalanceNum]);
 
-    const newWinningBalanceNum = useMemo(() => {
-        const winnings = activity.data?.new_winning_balance;
-        if (winnings === undefined || winnings === null) return null;
-        return typeof winnings === 'string' || typeof winnings === 'number'
-            ? parseFloat(String(winnings))
-            : null;
-    }, [activity.data?.new_winning_balance]);
-
-    const formattedNewWinnings = useMemo(() => {
-        return newWinningBalanceNum !== null && !isNaN(newWinningBalanceNum) ? formatCurrency(String(newWinningBalanceNum)) : null;
-    }, [newWinningBalanceNum]);
-
     const zeroCurrency = formatCurrency('0');
 
     /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
@@ -1023,13 +986,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
         return creditsChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
     }, [creditsChanged]);
 
-    const previousWinningsNum = prevWinningBalance ?? 0;
-    const newWinningsNum = newWinningBalanceNum ?? 0;
-    const winningsChanged = previousWinningsNum !== newWinningsNum;
-    const winningsColorClass = useMemo(() => {
-        return winningsChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
-    }, [winningsChanged]);
-
     const creditsDisplayText = useMemo(
         () =>
             formatBalanceTransitionDisplay(
@@ -1038,16 +994,6 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
                 zeroCurrency,
             ),
         [formattedPreviousCredits, formattedNewCredits, zeroCurrency],
-    );
-
-    const winningsDisplayText = useMemo(
-        () =>
-            formatBalanceTransitionDisplay(
-                formattedPreviousWinnings,
-                formattedNewWinnings,
-                zeroCurrency,
-            ),
-        [formattedPreviousWinnings, formattedNewWinnings, zeroCurrency],
     );
 
     const websiteUsername = useMemo(() => {
@@ -1222,13 +1168,8 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
                 </div>
             </TableCell>
             <TableCell>
-                <div className="space-y-1">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                        C: <span className={creditsColorClass}>{creditsDisplayText}</span>
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                        W: <span className={winningsColorClass}>{winningsDisplayText}</span>
-                    </div>
+                <div className={`text-xs ${creditsColorClass}`}>
+                    {creditsDisplayText}
                 </div>
             </TableCell>
             <TableCell>

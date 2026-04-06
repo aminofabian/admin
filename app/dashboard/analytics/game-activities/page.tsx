@@ -399,22 +399,22 @@ export default function GameActivityAnalyticsPage() {
                       Game
                     </th>
                     <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      game_code
+                      Game code
                     </th>
                     <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      recharge
+                      Recharge
                     </th>
                     <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      bonus
+                      Bonus
                     </th>
                     <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      average_bonus_pct
+                      Avg bonus %
                     </th>
                     <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      redeem
+                      Redeem
                     </th>
                     <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      net_game_activity
+                      Net game activity
                     </th>
                     <th className="w-24 px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Volume
@@ -443,20 +443,20 @@ export default function GameActivityAnalyticsPage() {
                           {formatCurrency(game.recharge)}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          {game.bonus > 0 ? (
-                            <span className="text-amber-600 dark:text-amber-400">{formatCurrency(game.bonus)}</span>
+                          {(game.bonus ?? 0) > 0 ? (
+                            <span className="text-amber-600 dark:text-amber-400">{formatCurrency(game.bonus ?? 0)}</span>
                           ) : (
-                            <span className="text-muted-foreground/25">&mdash;</span>
+                            <span className="text-muted-foreground">{formatCurrency(game.bonus ?? 0)}</span>
                           )}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                          {game.average_bonus_pct > 0 ? `${game.average_bonus_pct.toFixed(1)}%` : <span className="text-muted-foreground/25">&mdash;</span>}
+                          {`${(game.average_bonus_pct ?? 0).toFixed(1)}%`}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
-                          {game.redeem > 0 ? (
-                            <span className="text-rose-600 dark:text-rose-400">{formatCurrency(game.redeem)}</span>
+                          {(game.redeem ?? 0) > 0 ? (
+                            <span className="text-rose-600 dark:text-rose-400">{formatCurrency(game.redeem ?? 0)}</span>
                           ) : (
-                            <span className="text-muted-foreground/25">&mdash;</span>
+                            <span className="text-muted-foreground">{formatCurrency(game.redeem ?? 0)}</span>
                           )}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">

@@ -680,7 +680,6 @@ function HistoryGameActivitiesTable({
                     <TableHead>Game Username</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Credit</TableHead>
-                    <TableHead>Winning</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Dates</TableHead>
                   </TableRow>
@@ -761,18 +760,6 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
     : null;
   const formattedNewCredits = newCreditsValue !== null && !isNaN(newCreditsValue) ? formatCurrency(String(newCreditsValue)) : null;
 
-  const previousWinnings = activity.data?.previous_winning_balance;
-  const previousWinningsValue = previousWinnings !== undefined && previousWinnings !== null
-    ? (typeof previousWinnings === 'string' || typeof previousWinnings === 'number' ? parseFloat(String(previousWinnings)) : null)
-    : null;
-  const formattedPreviousWinnings = previousWinningsValue !== null && !isNaN(previousWinningsValue) ? formatCurrency(String(previousWinningsValue)) : null;
-
-  const newWinnings = activity.data?.new_winning_balance;
-  const newWinningsValue = newWinnings !== undefined && newWinnings !== null
-    ? (typeof newWinnings === 'string' || typeof newWinnings === 'number' ? parseFloat(String(newWinnings)) : null)
-    : null;
-  const formattedNewWinnings = newWinningsValue !== null && !isNaN(newWinningsValue) ? formatCurrency(String(newWinningsValue)) : null;
-
   const zeroCurrency = formatCurrency('0');
 
   /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
@@ -783,22 +770,9 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
     ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
     : 'text-gray-600 dark:text-gray-400';
 
-  const previousWinningsNum = previousWinningsValue ?? 0;
-  const newWinningsNum = newWinningsValue ?? 0;
-  const winningsChanged = previousWinningsNum !== newWinningsNum;
-  const winningsColorClass = winningsChanged
-    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
-    : 'text-gray-600 dark:text-gray-400';
-
   const creditsDisplayText = formatBalanceTransitionDisplay(
     formattedPreviousCredits,
     formattedNewCredits,
-    zeroCurrency,
-  );
-
-  const winningsDisplayText = formatBalanceTransitionDisplay(
-    formattedPreviousWinnings,
-    formattedNewWinnings,
     zeroCurrency,
   );
 
@@ -894,11 +868,6 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
         </div>
       </TableCell>
       <TableCell>
-        <div className={`text-xs ${winningsColorClass}`}>
-          {winningsDisplayText}
-        </div>
-      </TableCell>
-      <TableCell>
         <Badge variant={statusVariant} className="capitalize">
           {activity.status}
         </Badge>
@@ -956,30 +925,11 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
     : null;
   const formattedNewCredits = newCreditsValue !== null && !isNaN(newCreditsValue) ? formatCurrency(String(newCreditsValue)) : null;
 
-  const previousWinnings = activity.data?.previous_winning_balance;
-  const previousWinningsValue = previousWinnings !== undefined && previousWinnings !== null
-    ? (typeof previousWinnings === 'string' || typeof previousWinnings === 'number' ? parseFloat(String(previousWinnings)) : null)
-    : null;
-  const formattedPreviousWinnings = previousWinningsValue !== null && !isNaN(previousWinningsValue) ? formatCurrency(String(previousWinningsValue)) : null;
-
-  const newWinnings = activity.data?.new_winning_balance;
-  const newWinningsValue = newWinnings !== undefined && newWinnings !== null
-    ? (typeof newWinnings === 'string' || typeof newWinnings === 'number' ? parseFloat(String(newWinnings)) : null)
-    : null;
-  const formattedNewWinnings = newWinningsValue !== null && !isNaN(newWinningsValue) ? formatCurrency(String(newWinningsValue)) : null;
-
   /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
   const previousCreditsNum = previousCreditsValue ?? 0;
   const newCreditsNum = newCreditsValue ?? 0;
   const creditsChanged = previousCreditsNum !== newCreditsNum;
   const creditsColorClass = creditsChanged
-    ? 'text-indigo-600 dark:text-indigo-400'
-    : 'text-gray-500 dark:text-gray-400';
-
-  const previousWinningsNum = previousWinningsValue ?? 0;
-  const newWinningsNum = newWinningsValue ?? 0;
-  const winningsChanged = previousWinningsNum !== newWinningsNum;
-  const winningsColorClass = winningsChanged
     ? 'text-indigo-600 dark:text-indigo-400'
     : 'text-gray-500 dark:text-gray-400';
 
@@ -1011,8 +961,6 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
   // Calculate balance values for display
   const prevCredit = previousCreditsValue ?? 0;
   const newCredit = newCreditsValue ?? 0;
-  const prevWinning = previousWinningsValue ?? 0;
-  const newWinning = newWinningsValue ?? 0;
 
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
@@ -1093,32 +1041,14 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
       </div>
 
       <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-3">
-          {/* Credit Balance */}
-          <div className="flex-1 min-w-0">
-            <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credit</div>
-            <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
-              <span className="truncate">{formatCurrency(String(prevCredit))}</span>
-              <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-              <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
-            </div>
-          </div>
-
-          {/* Vertical Divider */}
-          <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 shrink-0" />
-
-          {/* Winning Balance */}
-          <div className="flex-1 min-w-0">
-            <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winning</div>
-            <div className={`text-xs ${winningsColorClass} flex items-center gap-1`}>
-              <span className="truncate">{formatCurrency(String(prevWinning))}</span>
-              <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-              <span className="font-semibold truncate">{formatCurrency(String(newWinning))}</span>
-            </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credit</div>
+          <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
+            <span className="truncate">{formatCurrency(String(prevCredit))}</span>
+            <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
           </div>
         </div>
       </div>
