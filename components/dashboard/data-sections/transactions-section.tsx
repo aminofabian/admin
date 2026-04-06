@@ -10,8 +10,6 @@ import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import {
   formatCurrency,
   formatDate,
-  formatLedgerAmountDisplay,
-  formatLedgerArrowDisplay,
   formatPaymentMethod,
   getProviderDisplayName,
 } from '@/lib/utils/formatters';
@@ -50,8 +48,8 @@ const TRANSACTIONS_SKELETON = (
       <div className="overflow-x-auto">
         <div className="min-w-full">
           <div className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-11 gap-4 px-4 py-3">
-              {[...Array(11)].map((_, i) => (
+            <div className="grid grid-cols-8 gap-4 px-4 py-3">
+              {[...Array(8)].map((_, i) => (
                 <Skeleton key={i} className="h-4 w-24" />
               ))}
             </div>
@@ -59,8 +57,8 @@ const TRANSACTIONS_SKELETON = (
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="grid grid-cols-11 gap-4 px-4 py-4">
-                {[...Array(11)].map((_, j) => (
+              <div key={i} className="grid grid-cols-8 gap-4 px-4 py-4">
+                {[...Array(8)].map((_, j) => (
                   <Skeleton key={j} className="h-5 w-20" />
                 ))}
               </div>
@@ -971,9 +969,6 @@ function TransactionsTable({
                     <TableHead>Transaction</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Balance</TableHead>
-                    <TableHead>Winnings</TableHead>
-                    <TableHead>Cashout limit</TableHead>
-                    <TableHead>Locked</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Provider</TableHead>
@@ -1088,43 +1083,17 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     return { value, formatted: formatCurrency(String(value)) };
   }, [transaction.new_balance]);
 
-  const previousWinningBalance = useMemo(() => {
-    const value = transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-      ? parseFloat(transaction.previous_winning_balance)
-      : 0;
-    return { value, formatted: formatCurrency(String(value)) };
-  }, [transaction.previous_winning_balance]);
-
-  const newWinningBalance = useMemo(() => {
-    const value = transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-      ? parseFloat(transaction.new_winning_balance)
-      : 0;
-    return { value, formatted: formatCurrency(String(value)) };
-  }, [transaction.new_winning_balance]);
-
   const creditChanged = useMemo(() => {
     return previousCreditBalance.value !== newCreditBalance.value;
   }, [previousCreditBalance.value, newCreditBalance.value]);
-
-  const winningChanged = useMemo(() => {
-    return previousWinningBalance.value !== newWinningBalance.value;
-  }, [previousWinningBalance.value, newWinningBalance.value]);
 
   const creditDisplayText = useMemo(() => {
     return `${previousCreditBalance.formatted} → ${newCreditBalance.formatted}`;
   }, [previousCreditBalance.formatted, newCreditBalance.formatted]);
 
-  const winningDisplayText = useMemo(() => {
-    return `${previousWinningBalance.formatted} → ${newWinningBalance.formatted}`;
-  }, [previousWinningBalance.formatted, newWinningBalance.formatted]);
-
   const creditColorClass = useMemo(() => {
     return creditChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
   }, [creditChanged]);
-
-  const winningColorClass = useMemo(() => {
-    return winningChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
-  }, [winningChanged]);
 
   const handleOpenTransactionDetails = useCallback(() => {
     onView(transaction);
@@ -1191,24 +1160,6 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </div>
       </TableCell>
       <TableCell>
-        <div className={`text-xs ${winningColorClass}`}>
-          {winningDisplayText}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="text-xs text-gray-600 dark:text-gray-400 tabular-nums">
-          {formatLedgerArrowDisplay(
-            transaction.previous_cashout_limit,
-            transaction.new_cashout_limit,
-          )}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="text-xs text-gray-600 dark:text-gray-400 tabular-nums">
-          {formatLedgerAmountDisplay(transaction.new_locked_balance) ?? '—'}
-        </div>
-      </TableCell>
-      <TableCell>
         <Badge variant={statusVariant} className="capitalize">
           {transaction.status}
         </Badge>
@@ -1249,11 +1200,6 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     prevProps.transaction.user_username === nextProps.transaction.user_username &&
     prevProps.transaction.previous_balance === nextProps.transaction.previous_balance &&
     prevProps.transaction.new_balance === nextProps.transaction.new_balance &&
-    prevProps.transaction.previous_winning_balance === nextProps.transaction.previous_winning_balance &&
-    prevProps.transaction.new_winning_balance === nextProps.transaction.new_winning_balance &&
-    prevProps.transaction.previous_cashout_limit === nextProps.transaction.previous_cashout_limit &&
-    prevProps.transaction.new_cashout_limit === nextProps.transaction.new_cashout_limit &&
-    prevProps.transaction.new_locked_balance === nextProps.transaction.new_locked_balance &&
     prevProps.transaction.payment_method === nextProps.transaction.payment_method &&
     prevProps.transaction.provider === nextProps.transaction.provider
   );
@@ -1383,64 +1329,31 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
       </div>
 
       <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-3">
-          {/* Credit Balance */}
-          {(() => {
-            const prevCredit = transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
-              ? parseFloat(transaction.previous_balance)
-              : 0;
-            const newCredit = transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
-              ? parseFloat(transaction.new_balance)
-              : 0;
-            const creditChanged = prevCredit !== newCredit;
-            const creditColorClass = creditChanged
-              ? 'text-indigo-600 dark:text-indigo-400'
-              : 'text-gray-500 dark:text-gray-400';
+        {(() => {
+          const prevCredit = transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
+            ? parseFloat(transaction.previous_balance)
+            : 0;
+          const newCredit = transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
+            ? parseFloat(transaction.new_balance)
+            : 0;
+          const creditChanged = prevCredit !== newCredit;
+          const creditColorClass = creditChanged
+            ? 'text-indigo-600 dark:text-indigo-400'
+            : 'text-gray-500 dark:text-gray-400';
 
-            return (
-              <div className="flex-1 min-w-0">
-                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credit</div>
-                <div className={`text-xs ${creditColorClass} flex items-center gap-1`}>
-                  <span className="truncate">{formatCurrency(String(prevCredit))}</span>
-                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
-                </div>
+          return (
+            <div className="min-w-0">
+              <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credit</div>
+              <div className={`text-xs ${creditColorClass} flex items-center gap-1`}>
+                <span className="truncate">{formatCurrency(String(prevCredit))}</span>
+                <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+                <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
               </div>
-            );
-          })()}
-
-          {/* Vertical Divider */}
-          <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 shrink-0" />
-
-          {/* Winning Balance */}
-          {(() => {
-            const prevWinning = transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-              ? parseFloat(transaction.previous_winning_balance)
-              : 0;
-            const newWinning = transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-              ? parseFloat(transaction.new_winning_balance)
-              : 0;
-            const winningChanged = prevWinning !== newWinning;
-            const winningColorClass = winningChanged
-              ? 'text-indigo-600 dark:text-indigo-400'
-              : 'text-gray-500 dark:text-gray-400';
-
-            return (
-              <div className="flex-1 min-w-0">
-                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winning</div>
-                <div className={`text-xs ${winningColorClass} flex items-center gap-1`}>
-                  <span className="truncate">{formatCurrency(String(prevWinning))}</span>
-                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  <span className="font-semibold truncate">{formatCurrency(String(newWinning))}</span>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+            </div>
+          );
+        })()}
       </div>
 
       <div className="p-3">

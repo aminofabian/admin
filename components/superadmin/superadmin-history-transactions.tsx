@@ -901,27 +901,13 @@ export function SuperAdminHistoryTransactions() {
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className="space-y-1">
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                                C: {formatCurrency(transaction.previous_balance || '0')}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                                W: {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-                                                                    ? formatCurrency(transaction.previous_winning_balance)
-                                                                    : formatCurrency('0')}
-                                                            </div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                            {formatCurrency(transaction.previous_balance || '0')}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className="space-y-1">
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                                C: {formatCurrency(transaction.new_balance || '0')}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                                W: {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-                                                                    ? formatCurrency(transaction.new_winning_balance)
-                                                                    : formatCurrency('0')}
-                                                            </div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                            {formatCurrency(transaction.new_balance || '0')}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
@@ -1123,26 +1109,10 @@ export function SuperAdminHistoryTransactions() {
                                                             {formatCurrency(transaction.previous_balance || '0')}
                                                         </div>
                                                     </div>
-                                                    <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
-                                                        <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">Previous Winning</div>
-                                                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                                                            {transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-                                                                ? formatCurrency(transaction.previous_winning_balance)
-                                                                : formatCurrency('0')}
-                                                        </div>
-                                                    </div>
                                                     <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
                                                         <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">New Credit</div>
                                                         <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
                                                             {formatCurrency(transaction.new_balance || '0')}
-                                                        </div>
-                                                    </div>
-                                                    <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
-                                                        <div className="text-[10px] text-green-700 dark:text-green-300 uppercase mb-0.5 font-medium">New Winning</div>
-                                                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                                                            {transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-                                                                ? formatCurrency(transaction.new_winning_balance)
-                                                                : formatCurrency('0')}
                                                         </div>
                                                     </div>
                                                 </div>
