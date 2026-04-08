@@ -969,9 +969,9 @@ function TransactionsTable({
                     <TableHead>Transaction</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Balance</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Provider</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Dates</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1160,11 +1160,6 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         </div>
       </TableCell>
       <TableCell>
-        <Badge variant={statusVariant} className="capitalize">
-          {transaction.status}
-        </Badge>
-      </TableCell>
-      <TableCell>
         <Badge
           variant={transaction.payment_method?.toLowerCase() === 'manual' ? 'warning' : 'info'}
           className="text-xs"
@@ -1180,6 +1175,11 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
         ) : (
           <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
         )}
+      </TableCell>
+      <TableCell>
+        <Badge variant={statusVariant} className="capitalize">
+          {transaction.status}
+        </Badge>
       </TableCell>
       <TableCell>
         <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
@@ -1293,9 +1293,6 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
               </Badge>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
-                {transaction.status}
-              </Badge>
               <Badge
                 variant={transaction.payment_method?.toLowerCase() === 'manual' ? 'warning' : 'info'}
                 className="text-[10px] px-2 py-0.5 truncate"
@@ -1307,6 +1304,9 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
                   {getProviderDisplayName(transaction.provider, transaction.payment_method)}
                 </Badge>
               )}
+              <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
+                {transaction.status}
+              </Badge>
             </div>
           </div>
         </div>

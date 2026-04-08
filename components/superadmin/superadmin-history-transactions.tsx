@@ -780,9 +780,9 @@ export function SuperAdminHistoryTransactions() {
                                             <TableHead>Amount</TableHead>
                                             <TableHead>Previous Balance</TableHead>
                                             <TableHead>New Balance</TableHead>
-                                            <TableHead>Status</TableHead>
                                             <TableHead>Payment</TableHead>
                                             <TableHead>Provider</TableHead>
+                                            <TableHead>Status</TableHead>
                                             <TableHead>Dates</TableHead>
                                             <TableHead className="text-right">Action</TableHead>
                                         </TableRow>
@@ -911,18 +911,6 @@ export function SuperAdminHistoryTransactions() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge
-                                                            variant={
-                                                                transaction.status === 'completed' ? 'success' :
-                                                                    transaction.status === 'pending' ? 'warning' :
-                                                                        transaction.status === 'failed' || transaction.status === 'cancelled' ? 'danger' : 'default'
-                                                            }
-                                                            className="capitalize"
-                                                        >
-                                                            {transaction.status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
                                                         <Badge variant="info" className="text-xs">
                                                             {formatPaymentMethod(transaction.payment_method)}
                                                         </Badge>
@@ -935,6 +923,18 @@ export function SuperAdminHistoryTransactions() {
                                                         ) : (
                                                             <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
                                                         )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge
+                                                            variant={
+                                                                transaction.status === 'completed' ? 'success' :
+                                                                    transaction.status === 'pending' ? 'warning' :
+                                                                        transaction.status === 'failed' || transaction.status === 'cancelled' ? 'danger' : 'default'
+                                                            }
+                                                            className="capitalize"
+                                                        >
+                                                            {transaction.status}
+                                                        </Badge>
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
@@ -1019,6 +1019,14 @@ export function SuperAdminHistoryTransactions() {
                                                             </Badge>
                                                         </div>
                                                         <div className="flex items-center gap-2">
+                                                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
+                                                                {formatPaymentMethod(transaction.payment_method)}
+                                                            </Badge>
+                                                            {transaction.provider && (
+                                                                <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
+                                                                    {getProviderDisplayName(transaction.provider, transaction.payment_method)}
+                                                                </Badge>
+                                                            )}
                                                             <Badge
                                                                 variant={
                                                                     transaction.status === 'completed' ? 'success' :
@@ -1029,14 +1037,6 @@ export function SuperAdminHistoryTransactions() {
                                                             >
                                                                 {transaction.status}
                                                             </Badge>
-                                                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                                                                {formatPaymentMethod(transaction.payment_method)}
-                                                            </Badge>
-                                                            {transaction.provider && (
-                                                                <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                                                                    {getProviderDisplayName(transaction.provider, transaction.payment_method)}
-                                                                </Badge>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
