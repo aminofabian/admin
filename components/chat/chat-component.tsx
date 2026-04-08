@@ -2360,7 +2360,6 @@ export function ChatComponent() {
         credits={selectedPlayerLedgerView?.balance ?? '0'}
         winnings={selectedPlayerLedgerView?.winningBalance}
         cashoutLimit={selectedPlayerLedgerView?.cashoutLimit}
-        lockedBalance={selectedPlayerLedgerView?.lockedBalance}
         adjustmentKind={balanceAdjustmentKind}
         setAdjustmentKind={setBalanceAdjustmentKind}
         balanceValue={balanceValue}

@@ -52,7 +52,6 @@ interface EditBalanceDrawerProps {
   credits?: string;
   winnings?: string;
   cashoutLimit?: string;
-  lockedBalance?: string;
   adjustmentKind: ManualAdjustmentKind;
   setAdjustmentKind: React.Dispatch<React.SetStateAction<ManualAdjustmentKind>>;
   balanceValue: number;
@@ -71,7 +70,6 @@ export function EditBalanceDrawer({
   credits = '0',
   winnings,
   cashoutLimit,
-  lockedBalance,
   adjustmentKind,
   setAdjustmentKind,
   balanceValue,
@@ -87,7 +85,6 @@ export function EditBalanceDrawer({
   );
 
   const limitNum = parseLedgerAmount(cashoutLimit);
-  const lockedNum = parseLedgerAmount(lockedBalance);
 
   const externalCashoutValidation =
     adjustmentKind === 'external_cashout' && balanceValue > 0
@@ -123,9 +120,6 @@ export function EditBalanceDrawer({
         <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Manual adjustment</h2>
-            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              Freeplay, external deposit, external cashout, or void — per admin adjustment policy
-            </p>
           </div>
           <button
             type="button"
@@ -161,18 +155,12 @@ export function EditBalanceDrawer({
                 </div>
               ) : null}
             </div>
-            {(cashoutLimit !== undefined && cashoutLimit !== '') || (lockedBalance !== undefined && lockedBalance !== '') ? (
-              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-200 pt-3 text-xs dark:border-gray-600">
+            {cashoutLimit !== undefined && cashoutLimit !== '' ? (
+              <div className="mt-3 border-t border-gray-200 pt-3 text-xs dark:border-gray-600">
                 <div>
                   <span className="text-gray-500 dark:text-gray-400">Cashout limit</span>
                   <p className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                     {limitNum !== null ? formatCurrency(cashoutLimit ?? '0') : '—'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-gray-500 dark:text-gray-400">Locked balance</span>
-                  <p className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                    {lockedNum !== null ? formatCurrency(lockedBalance ?? '0') : '—'}
                   </p>
                 </div>
               </div>
