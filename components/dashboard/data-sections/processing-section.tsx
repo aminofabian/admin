@@ -39,8 +39,6 @@ import type { Transaction, TransactionQueue, GameActionType } from '@/types';
 import {
   formatCurrency,
   formatDate,
-  formatLedgerAmountDisplay,
-  formatLedgerArrowDisplay,
   formatPaymentMethod,
   getPaymentDetailsForDisplay,
   getPlayerIpFromTransaction,
@@ -267,7 +265,6 @@ interface ProcessingTransactionRowProps {
   onView: () => void;
   isActionPending: boolean;
   showProvider?: boolean;
-  viewType: ViewType;
 }
 
 function ProcessingTransactionRow({
@@ -276,9 +273,7 @@ function ProcessingTransactionRow({
   onView,
   isActionPending,
   showProvider,
-  viewType,
 }: ProcessingTransactionRowProps) {
-  const router = useRouter();
   const bonusValue = parseFloat(transaction.bonus_amount || '0');
   const isPurchase = transaction.type === 'purchase';
   const statusVariant = getStatusVariant(transaction.status);
@@ -383,31 +378,6 @@ function ProcessingTransactionRow({
     </TableCell>
   );
 
-  const cashoutLimitCell =
-    viewType === 'cashouts' ? (
-      <TableCell className="align-top">
-        <div className="min-w-[6rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
-          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums">
-            {formatLedgerArrowDisplay(
-              transaction.previous_cashout_limit,
-              transaction.new_cashout_limit,
-            )}
-          </div>
-        </div>
-      </TableCell>
-    ) : null;
-
-  const lockedCell =
-    viewType === 'cashouts' ? (
-      <TableCell className="align-top">
-        <div className="min-w-[4.5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
-          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 tabular-nums">
-            {formatLedgerAmountDisplay(transaction.new_locked_balance) ?? '—'}
-          </div>
-        </div>
-      </TableCell>
-    ) : null;
-
   const statusCell = (
     <TableCell className="align-top">
       <div className="rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2 w-fit">
@@ -486,8 +456,6 @@ function ProcessingTransactionRow({
       {transactionCell}
       {amountCell}
       {creditCell}
-      {cashoutLimitCell}
-      {lockedCell}
       {paymentCell}
       {providerCell}
       {statusCell}
@@ -1633,14 +1601,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                       <TableHead>Transaction</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Balance</TableHead>
-                      {viewType === 'cashouts' && (
-                        <>
-                          <TableHead>Cashout limit</TableHead>
-                          <TableHead>Locked</TableHead>
-                        </>
-                      )}
                       <TableHead>Payment</TableHead>
-                      {(viewType === 'purchases' || viewType === 'cashouts') && (
+                      {viewType === 'purchases' && (
                         <TableHead>Provider</TableHead>
                       )}
                       <TableHead>Status</TableHead>
@@ -1655,8 +1617,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                         getStatusVariant={getStatusVariant}
                         onView={() => handleViewTransaction(transaction)}
                         isActionPending={pendingTransactionId === transaction.id}
-                        showProvider={viewType === 'purchases' || viewType === 'cashouts'}
-                        viewType={viewType}
+                        showProvider={viewType === 'purchases'}
                       />
                     ))}
                   </TableBody>
@@ -1722,7 +1683,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                           <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
                             {transaction.status}
                           </Badge>
-                          {(viewType === 'purchases' || viewType === 'cashouts') && transaction.provider && (
+                          {viewType === 'purchases' && transaction.provider && (
                             <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
                               {getProviderDisplayName(transaction.provider, transaction.payment_method)}
                             </Badge>
@@ -1809,32 +1770,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                       );
                     })()}
                   </div>
-
-                  {viewType === 'cashouts' && (
-                    <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="min-w-0">
-                          <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">
-                            Cashout limit
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400 tabular-nums">
-                            {formatLedgerArrowDisplay(
-                              transaction.previous_cashout_limit,
-                              transaction.new_cashout_limit,
-                            )}
-                          </div>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">
-                            Locked
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400 tabular-nums font-medium">
-                            {formatLedgerAmountDisplay(transaction.new_locked_balance) ?? '—'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Bottom Section: Date */}
                   <div className="p-3">
