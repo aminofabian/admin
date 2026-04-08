@@ -102,18 +102,6 @@ function GameActivityRow({
     return typeof val === 'string' || typeof val === 'number' ? parseFloat(String(val)) : 0;
   }, [activity.data?.new_credits_balance]);
 
-  const previousWinningsNum = useMemo(() => {
-    const val = activity.data?.previous_winning_balance;
-    if (val === undefined || val === null) return 0;
-    return typeof val === 'string' || typeof val === 'number' ? parseFloat(String(val)) : 0;
-  }, [activity.data?.previous_winning_balance]);
-
-  const newWinningsNum = useMemo(() => {
-    const val = activity.data?.new_winning_balance;
-    if (val === undefined || val === null) return 0;
-    return typeof val === 'string' || typeof val === 'number' ? parseFloat(String(val)) : 0;
-  }, [activity.data?.new_winning_balance]);
-
   const formattedPreviousCredits = useMemo(() => {
     const val = activity.data?.previous_credits_balance;
     return (val !== undefined && val !== null) ? formatCurrency(String(val)) : null;
@@ -124,24 +112,9 @@ function GameActivityRow({
     return (val !== undefined && val !== null) ? formatCurrency(String(val)) : null;
   }, [activity.data?.new_credits_balance]);
 
-  const formattedPreviousWinnings = useMemo(() => {
-    const val = activity.data?.previous_winning_balance;
-    return (val !== undefined && val !== null) ? formatCurrency(String(val)) : null;
-  }, [activity.data?.previous_winning_balance]);
-
-  const formattedNewWinnings = useMemo(() => {
-    const val = activity.data?.new_winning_balance;
-    return (val !== undefined && val !== null) ? formatCurrency(String(val)) : null;
-  }, [activity.data?.new_winning_balance]);
-
   const creditsChanged = previousCreditsNum !== newCreditsNum;
-  const winningsChanged = previousWinningsNum !== newWinningsNum;
 
   const creditsColorClass = creditsChanged
-    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
-    : 'text-gray-600 dark:text-gray-400';
-
-  const winningsColorClass = winningsChanged
     ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
     : 'text-gray-600 dark:text-gray-400';
 
@@ -155,16 +128,6 @@ function GameActivityRow({
         zeroCurrency,
       ),
     [formattedPreviousCredits, formattedNewCredits, zeroCurrency],
-  );
-
-  const winningsDisplayText = useMemo(
-    () =>
-      formatBalanceTransitionDisplay(
-        formattedPreviousWinnings,
-        formattedNewWinnings,
-        zeroCurrency,
-      ),
-    [formattedPreviousWinnings, formattedNewWinnings, zeroCurrency],
   );
 
   const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
@@ -277,11 +240,6 @@ function GameActivityRow({
         </div>
       </TableCell>
       <TableCell>
-        <div className={`text-xs ${winningsColorClass}`}>
-          {winningsDisplayText}
-        </div>
-      </TableCell>
-      <TableCell>
         <Badge variant={statusVariant} className="capitalize">
           {activity.status}
         </Badge>
@@ -342,7 +300,6 @@ export function GameActivityTable({
               <TableHead>Game Username</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Balance</TableHead>
-              <TableHead>Winning</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Dates</TableHead>
             </TableRow>
@@ -410,18 +367,6 @@ const GameActivityCard = memo(function GameActivityCard({
     return typeof val === 'string' || typeof val === 'number' ? parseFloat(String(val)) : 0;
   }, [activity.data?.new_credits_balance]);
 
-  const previousWinningsNum = useMemo(() => {
-    const val = activity.data?.previous_winning_balance;
-    if (val === undefined || val === null) return 0;
-    return typeof val === 'string' || typeof val === 'number' ? parseFloat(String(val)) : 0;
-  }, [activity.data?.previous_winning_balance]);
-
-  const newWinningsNum = useMemo(() => {
-    const val = activity.data?.new_winning_balance;
-    if (val === undefined || val === null) return 0;
-    return typeof val === 'string' || typeof val === 'number' ? parseFloat(String(val)) : 0;
-  }, [activity.data?.new_winning_balance]);
-
   const formattedPreviousCredits = useMemo(() => {
     const val = activity.data?.previous_credits_balance;
     return (val !== undefined && val !== null) ? formatCurrency(String(val)) : null;
@@ -432,48 +377,13 @@ const GameActivityCard = memo(function GameActivityCard({
     return (val !== undefined && val !== null) ? formatCurrency(String(val)) : null;
   }, [activity.data?.new_credits_balance]);
 
-  const formattedPreviousWinnings = useMemo(() => {
-    const val = activity.data?.previous_winning_balance;
-    return (val !== undefined && val !== null) ? formatCurrency(String(val)) : null;
-  }, [activity.data?.previous_winning_balance]);
-
-  const formattedNewWinnings = useMemo(() => {
-    const val = activity.data?.new_winning_balance;
-    return (val !== undefined && val !== null) ? formatCurrency(String(val)) : null;
-  }, [activity.data?.new_winning_balance]);
-
   const creditsChanged = previousCreditsNum !== newCreditsNum;
-  const winningsChanged = previousWinningsNum !== newWinningsNum;
 
   const creditsColorClass = creditsChanged
     ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
     : 'text-gray-600 dark:text-gray-400';
 
-  const winningsColorClass = winningsChanged
-    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
-    : 'text-gray-600 dark:text-gray-400';
-
   const zeroCurrency = formatCurrency('0');
-
-  const creditsDisplayText = useMemo(
-    () =>
-      formatBalanceTransitionDisplay(
-        formattedPreviousCredits,
-        formattedNewCredits,
-        zeroCurrency,
-      ),
-    [formattedPreviousCredits, formattedNewCredits, zeroCurrency],
-  );
-
-  const winningsDisplayText = useMemo(
-    () =>
-      formatBalanceTransitionDisplay(
-        formattedPreviousWinnings,
-        formattedNewWinnings,
-        zeroCurrency,
-      ),
-    [formattedPreviousWinnings, formattedNewWinnings, zeroCurrency],
-  );
 
   const websiteUsername = useMemo(() => {
     if (typeof activity.user_username === 'string' && activity.user_username.trim()) {
@@ -501,12 +411,6 @@ const GameActivityCard = memo(function GameActivityCard({
     }
     return null;
   }, [activity.game_username, activity.data]);
-
-  // Check if this is an "Add user" action - should show hyphen for game username
-  const isAddUserAction = useMemo(() => {
-    const typeStr = String(activity.type);
-    return typeStr === 'add_user_game' || typeStr === 'create_game';
-  }, [activity.type]);
 
   const userInitial = useMemo(() => {
     if (websiteUsername) {
@@ -632,41 +536,19 @@ const GameActivityCard = memo(function GameActivityCard({
       </div>
 
       {/* Balance Section */}
-      {(formattedPreviousCredits || formattedNewCredits || formattedPreviousWinnings || formattedNewWinnings) && (
+      {(formattedPreviousCredits || formattedNewCredits) && (
         <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">
-            {/* Balance */}
-            {(formattedPreviousCredits || formattedNewCredits) && (
-              <div className="flex-1 min-w-0">
-                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
-                <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
-                  <span className="truncate">{formattedPreviousCredits || zeroCurrency}</span>
-                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  <span className="font-semibold truncate">{formattedNewCredits || zeroCurrency}</span>
-                </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
+              <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
+                <span className="truncate">{formattedPreviousCredits || zeroCurrency}</span>
+                <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+                <span className="font-semibold truncate">{formattedNewCredits || zeroCurrency}</span>
               </div>
-            )}
-
-            {/* Vertical Divider */}
-            {(formattedPreviousCredits || formattedNewCredits) && (formattedPreviousWinnings || formattedNewWinnings) && (
-              <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 shrink-0" />
-            )}
-
-            {/* Winnings */}
-            {(formattedPreviousWinnings || formattedNewWinnings) && (
-              <div className="flex-1 min-w-0">
-                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winnings</div>
-                <div className={`text-xs ${winningsColorClass} flex items-center gap-1`}>
-                  <span className="truncate">{formattedPreviousWinnings || zeroCurrency}</span>
-                  <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  <span className="font-semibold truncate">{formattedNewWinnings || zeroCurrency}</span>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}

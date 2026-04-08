@@ -140,15 +140,6 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
     [transaction.new_balance]
   );
 
-  const previousWinningValue = useMemo(
-    () => parseNumericValue(transaction.previous_winning_balance) ?? 0,
-    [transaction.previous_winning_balance]
-  );
-  const newWinningValue = useMemo(
-    () => parseNumericValue(transaction.new_winning_balance) ?? 0,
-    [transaction.new_winning_balance]
-  );
-
   const paymentMethod = useMemo(() => transaction.payment_method ?? '', [transaction.payment_method]);
   const lowerPaymentMethod = useMemo(() => paymentMethod.toLowerCase(), [paymentMethod]);
   const isCryptoPayment = useMemo(
@@ -301,20 +292,6 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
               <DetailsHighlightBox
                 label="New Balance"
                 value={formatCurrency(newBalanceValue)}
-                variant="green"
-              />
-            </DetailsRow>
-
-            {/* Winning Balance Information */}
-            <DetailsRow>
-              <DetailsHighlightBox
-                label="Prev Winning"
-                value={formatCurrency(previousWinningValue)}
-                variant="purple"
-              />
-              <DetailsHighlightBox
-                label="New Winning"
-                value={formatCurrency(newWinningValue)}
                 variant="green"
               />
             </DetailsRow>

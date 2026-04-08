@@ -66,7 +66,6 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
   }, [bonusAmount]);
 
-  // New credits and winnings from data object
   const newCreditsBalance = useMemo(() => {
     if (!queue) return null;
     const credits = queue.data?.new_credits_balance;
@@ -75,16 +74,6 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       ? parseFloat(String(credits))
       : null;
     return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
-  }, [queue]);
-
-  const newWinningBalance = useMemo(() => {
-    if (!queue) return null;
-    const winnings = queue.data?.new_winning_balance;
-    if (winnings === undefined || winnings === null) return null;
-    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
-      ? parseFloat(String(winnings))
-      : null;
-    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
   }, [queue]);
 
   if (!queue) {
@@ -202,7 +191,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   const renderCompleteFormDetails = () => {
     if (isRechargeOrRedeem) {
-      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, New Credits - New Winnings
+      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, optional New Credits
       return (
         <div className="space-y-2">
           {/* Transaction Type and Status */}
@@ -254,21 +243,14 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             </div>
           </div>
 
-          {/* Balance Information */}
-          <div className="grid grid-cols-2 gap-2">
+          {newCreditsBalance && (
             <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
               <div className="text-[10px] text-muted-foreground mb-0.5">New Credits</div>
               <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                {newCreditsBalance || '—'}
+                {newCreditsBalance}
               </div>
             </div>
-            <div className="p-1.5 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800/30">
-              <div className="text-[10px] text-muted-foreground mb-0.5">New Winnings</div>
-              <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                {newWinningBalance || '—'}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Transaction Amount */}
           <div className={`p-2 border rounded ${amountContainerClass}`}>
@@ -540,7 +522,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   const renderTransactionDetails = () => {
     if (isRechargeOrRedeem) {
-      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, New Credits - New Winnings
+      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, optional New Credits
       return (
         <div className="space-y-2">
           {/* Type - Status */}
@@ -594,21 +576,14 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             </div>
           </div>
 
-          {/* New Credits - New Winnings */}
-          <div className="grid grid-cols-2 gap-2">
+          {newCreditsBalance && (
             <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
               <div className="text-[10px] text-muted-foreground mb-0.5">New Credits</div>
               <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                {newCreditsBalance || '—'}
+                {newCreditsBalance}
               </div>
             </div>
-            <div className="p-1.5 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800/30">
-              <div className="text-[10px] text-muted-foreground mb-0.5">New Winnings</div>
-              <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                {newWinningBalance || '—'}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Amount and Bonus */}
           <div className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded">

@@ -171,8 +171,14 @@ interface DetailsRemarksProps {
   gameBalance?: string | null;
 }
 
+/** Removes standalone "winning" / "winnings" wording from API-provided remark/description text for display. */
+export function stripWinningsFromDisplayText(text: string): string {
+  return text.replace(/\bwinnings?\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+}
+
 export function DetailsRemarks({ remarks, gameBalance }: DetailsRemarksProps) {
-  const hasRemarks = remarks.trim().length > 0;
+  const displayRemarks = stripWinningsFromDisplayText(remarks);
+  const hasRemarks = displayRemarks.length > 0;
   const hasBalance = gameBalance != null && String(gameBalance).trim().length > 0;
   if (!hasRemarks && !hasBalance) return null;
 
@@ -184,7 +190,7 @@ export function DetailsRemarks({ remarks, gameBalance }: DetailsRemarksProps) {
         </h4>
         {hasRemarks && (
           <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
-            {remarks.trim()}
+            {displayRemarks}
           </p>
         )}
         {hasBalance && (

@@ -86,7 +86,6 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
     return formatCurrency(String(dataAmount));
   }, [activity.data?.amount]);
 
-  // New credits and winnings from data object
   const newCreditsBalance = useMemo(() => {
     const credits = activity.data?.new_credits_balance;
     if (credits === undefined || credits === null) return null;
@@ -95,15 +94,6 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
       : null;
     return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
   }, [activity.data?.new_credits_balance]);
-
-  const newWinningBalance = useMemo(() => {
-    const winnings = activity.data?.new_winning_balance;
-    if (winnings === undefined || winnings === null) return null;
-    const winningsValue = typeof winnings === 'string' || typeof winnings === 'number'
-      ? parseFloat(String(winnings))
-      : null;
-    return winningsValue !== null && !isNaN(winningsValue) ? formatCurrency(String(winningsValue)) : null;
-  }, [activity.data?.new_winning_balance]);
 
   // Website user (actual user on the platform)
   const websiteUsername = useMemo(() => {
@@ -234,22 +224,13 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
             />
 
             {/* Balance Information */}
-            {(newCreditsBalance || newWinningBalance) && (
+            {newCreditsBalance && (
               <DetailsRow>
-                {newCreditsBalance && (
-                  <DetailsHighlightBox
-                    label="New Credits"
-                    value={newCreditsBalance}
-                    variant="blue"
-                  />
-                )}
-                {newWinningBalance && (
-                  <DetailsHighlightBox
-                    label="New Winnings"
-                    value={newWinningBalance}
-                    variant="green"
-                  />
-                )}
+                <DetailsHighlightBox
+                  label="New Credits"
+                  value={newCreditsBalance}
+                  variant="blue"
+                />
               </DetailsRow>
             )}
           </div>
