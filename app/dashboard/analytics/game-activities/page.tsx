@@ -13,9 +13,9 @@ import { US_STATES, getDateRange } from '../analytics-utils';
 
 function CardSkel() {
   return (
-    <div className="border border-border/30 bg-card p-4 animate-pulse">
-      <div className="mb-3 h-3 w-20 bg-muted/40" />
-      <div className="h-7 w-28 bg-muted/40" />
+    <div className="rounded-xl border border-border/30 bg-card p-4 animate-pulse">
+      <div className="mb-3 h-3 w-20 rounded bg-muted/40" />
+      <div className="h-7 w-28 rounded bg-muted/40" />
     </div>
   );
 }
@@ -25,72 +25,31 @@ function TableSkel() {
     <div className="space-y-3 p-5">
       {[0, 1, 2].map(i => (
         <div key={i} className="flex animate-pulse items-center gap-3">
-          <div className="h-7 w-7 shrink-0 bg-muted/30" />
-          <div className="h-3 flex-1 bg-muted/20" />
-          <div className="h-3 w-16 bg-muted/30" />
+          <div className="h-7 w-7 shrink-0 rounded-lg bg-muted/30" />
+          <div className="h-3 flex-1 rounded bg-muted/20" />
+          <div className="h-3 w-16 rounded bg-muted/30" />
         </div>
       ))}
     </div>
   );
 }
 
-type MetricTone = 'cash_in' | 'cash_out' | 'count' | 'bonus' | 'avg' | 'transfer' | 'derived';
-
-function ApiMetricCard({
-  fieldKey,
-  children,
-  tone = 'count',
-  className = '',
-}: {
-  fieldKey: string;
-  children: ReactNode;
-  tone?: MetricTone;
-  className?: string;
-}) {
-  const toneClass: Record<MetricTone, string> = {
-    cash_in: 'bg-emerald-500/[0.06] dark:bg-emerald-500/10',
-    cash_out: 'bg-rose-500/[0.06] dark:bg-rose-500/10',
-    count: 'bg-sky-500/[0.05] dark:bg-sky-500/10',
-    bonus: 'bg-amber-500/[0.07] dark:bg-amber-500/12',
-    avg: 'bg-orange-500/[0.05] dark:bg-orange-500/10',
-    transfer: 'bg-violet-500/[0.06] dark:bg-violet-500/10',
-    derived: 'bg-gradient-to-br from-amber-500/10 via-card to-card dark:from-amber-500/15',
-  };
-  return (
-    <div className={`border border-border/50 p-3 ${toneClass[tone]} ${className}`}>
-      <p className="break-all font-mono text-[10px] leading-snug text-muted-foreground">{fieldKey}</p>
-      <div className="mt-1.5">{children}</div>
-    </div>
-  );
+/** API snake_case (or dotted paths) → Title Case With Spaces for display. */
+function apiFieldLabel(apiKey: string): string {
+  return apiKey
+    .split(/[._]+/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
 }
 
-function AnalyticsSection({
-  eyebrow,
-  title,
-  hint,
-  action,
-  children,
-}: {
-  eyebrow?: string;
-  title: string;
-  hint?: string;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
+/** Label from API key; value = formatted as in the payload. */
+function ApiLabeledValue({ apiKey, children }: { apiKey: string; children: ReactNode }) {
   return (
-    <section className="border border-border/60 bg-card">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/50 px-4 py-3 sm:px-5">
-        <div className="min-w-0">
-          {eyebrow ? (
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{eyebrow}</p>
-          ) : null}
-          <h2 className={`text-base font-semibold tracking-tight text-foreground ${eyebrow ? 'mt-1' : ''}`}>{title}</h2>
-          {hint ? <p className="mt-1 max-w-3xl font-mono text-[10px] leading-relaxed text-muted-foreground">{hint}</p> : null}
-        </div>
-        {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
-      </div>
-      <div className="p-4 sm:p-5">{children}</div>
-    </section>
+    <div className="min-w-0">
+      <p className="break-words text-[10px] font-medium leading-snug text-muted-foreground">{apiFieldLabel(apiKey)}</p>
+      <div className="mt-1 text-sm font-semibold tabular-nums text-foreground">{children}</div>
+    </div>
   );
 }
 
@@ -158,10 +117,10 @@ export default function GameActivityAnalyticsPage() {
 
   if (loadingDashboard) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="h-16 bg-muted/25 animate-pulse" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          {[0, 1, 2, 3, 4].map(i => (
+      <div className="space-y-4">
+        <div className="h-14 animate-pulse rounded-xl bg-muted/20" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[0, 1, 2, 3].map(i => (
             <CardSkel key={i} />
           ))}
         </div>
@@ -172,7 +131,7 @@ export default function GameActivityAnalyticsPage() {
   if (dashboardError) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center p-8 text-center">
-        <div className="mb-4 bg-rose-500/10 p-4 text-rose-500">
+        <div className="mb-4 rounded-2xl bg-rose-500/10 p-4 text-rose-500">
           <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path
               strokeLinecap="round"
@@ -191,53 +150,52 @@ export default function GameActivityAnalyticsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Game activity analytics</h1>
-          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Dashboard snapshot is organization-wide. Summary and per-game rows follow the filters below.
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">Game activities</h1>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            Organization totals come from the dashboard <span className="font-medium">{apiFieldLabel('data')}</span> object;
+            filtered blocks use <span className="font-medium">{apiFieldLabel('games.summary')}</span> and{' '}
+            <span className="font-medium">{apiFieldLabel('games.by_game')}</span>.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setShowFilters(!showFilters)}
-          className={`inline-flex items-center justify-center gap-2 border px-3 py-2 text-sm font-medium ${
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
             showFilters
-              ? 'border-primary/40 bg-primary/10 text-primary'
-              : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+              ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+              : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
           }`}
         >
-          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"
             />
           </svg>
-          {showFilters ? 'Hide filters' : 'Show filters'}
-          {hasActiveFilters ? <span className="h-1.5 w-1.5 bg-primary" title="Scope changed" /> : null}
+          Filters
+          {hasActiveFilters ? <span className="h-1.5 w-1.5 rounded-full bg-primary" /> : null}
         </button>
       </div>
 
       {showFilters ? (
-        <AnalyticsSection
-          eyebrow="Filters"
-          title="Scope"
-          hint="Applies to: games/summary · games/by-game"
-          action={
-            hasActiveFilters ? (
+        <div className="relative z-20 flex flex-wrap items-center gap-2.5 rounded-lg border border-border/40 bg-card px-3 py-2 shadow-sm lg:flex-nowrap">
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Filters</span>
+            {hasActiveFilters ? (
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="text-sm font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400"
+                className="text-[10px] font-medium text-rose-500 transition-colors hover:text-rose-600"
               >
-                Clear all
+                clear
               </button>
-            ) : null
-          }
-        >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            ) : null}
+          </div>
+          <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-4">
             <Select
               value={datePreset}
               onChange={(v: string) => handlePresetChange(v)}
@@ -256,7 +214,7 @@ export default function GameActivityAnalyticsPage() {
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder="Username"
-              className="w-full border border-border bg-background px-2.5 py-2 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+              className="w-full rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-sm text-gray-900 shadow-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-slate-950 dark:text-slate-100"
             />
             <Select value={state} onChange={(v: string) => setState(v)} options={US_STATES} placeholder="All States" />
             <Select
@@ -267,157 +225,157 @@ export default function GameActivityAnalyticsPage() {
             />
           </div>
           {datePreset === 'custom' ? (
-            <div className="mt-4 grid max-w-md grid-cols-2 gap-3 border-t border-border/50 pt-4">
+            <div className="mt-2 grid w-full max-w-xs grid-cols-2 gap-2 lg:mt-0 lg:w-auto">
               <DateSelect label="Start" value={startDate} onChange={setStartDate} />
               <DateSelect label="End" value={endDate} onChange={setEndDate} />
             </div>
           ) : null}
-        </AnalyticsSection>
+        </div>
       ) : null}
 
-      <div className="space-y-6">
-        {analyticsData ? (
-          <AnalyticsSection
-            eyebrow="Dashboard"
-            title="Organization"
-            hint="analytics/dashboard/ — not affected by filters below"
-          >
-            <div className="space-y-6">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <ApiMetricCard fieldKey="total_cash_in" tone="cash_in">
-                  <p className="text-xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
-                    {formatCurrency(analyticsData.total_cash_in ?? 0)}
-                  </p>
-                </ApiMetricCard>
-                <ApiMetricCard fieldKey="total_cashout" tone="cash_out">
-                  <p className="text-xl font-bold tabular-nums text-rose-700 dark:text-rose-300">
-                    {formatCurrency(analyticsData.total_cashout ?? 0)}
-                  </p>
-                </ApiMetricCard>
-              </div>
-              <div>
-                <h3 className="mb-3 text-xs font-medium text-muted-foreground">People</h3>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <ApiMetricCard fieldKey="total_players" tone="count">
-                    <p className="text-lg font-bold tabular-nums">{(analyticsData.total_players ?? 0).toLocaleString()}</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="total_agents" tone="count">
-                    <p className="text-lg font-bold tabular-nums">{(analyticsData.total_agents ?? 0).toLocaleString()}</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="total_managers" tone="count">
-                    <p className="text-lg font-bold tabular-nums">{(analyticsData.total_managers ?? 0).toLocaleString()}</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="total_staffs" tone="count">
-                    <p className="text-lg font-bold tabular-nums">{(analyticsData.total_staffs ?? 0).toLocaleString()}</p>
-                  </ApiMetricCard>
-                </div>
-              </div>
-            </div>
-          </AnalyticsSection>
-        ) : null}
+      {analyticsData ? (
+        <div className="overflow-hidden rounded-xl border border-border/30 bg-card p-4 shadow-sm sm:p-5">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Dashboard <span className="font-normal normal-case">{apiFieldLabel('data')}</span>
+            <span className="mt-0.5 block font-normal normal-case text-[9px] opacity-80">
+              Same fields as the API response {apiFieldLabel('status')} / {apiFieldLabel('data')}
+            </span>
+          </p>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            <ApiLabeledValue apiKey="total_cash_in">{formatCurrency(analyticsData.total_cash_in)}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_cashout">{formatCurrency(analyticsData.total_cashout)}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_players">{analyticsData.total_players}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_agents">{analyticsData.total_agents}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_managers">{analyticsData.total_managers}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_staffs">{analyticsData.total_staffs}</ApiLabeledValue>
+          </div>
+        </div>
+      ) : null}
 
-        <AnalyticsSection
-          eyebrow="Summary"
-          title="Game activity totals"
-          hint="games/summary/"
-          action={
-            <span className="text-xs text-muted-foreground">{hasActiveFilters ? 'Custom scope' : 'Date range only'}</span>
-          }
-        >
-          {loadingGameSummary ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {[0, 1, 2, 3, 4].map(i => (
-                <div key={i} className="h-24 bg-muted/20 animate-pulse" />
-              ))}
-            </div>
-          ) : gameSummaryError ? (
-            <p className="text-center text-sm text-destructive">{gameSummaryError}</p>
-          ) : gameSummary ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              <ApiMetricCard fieldKey="total_recharge" tone="cash_in">
-                <p className="text-lg font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
-                  {formatCurrency(gameSummary.total_recharge)}
-                </p>
-              </ApiMetricCard>
-              <ApiMetricCard fieldKey="total_bonus" tone="bonus">
-                <p className="text-lg font-bold tabular-nums text-amber-700 dark:text-amber-300">
-                  {formatCurrency(gameSummary.total_bonus)}
-                </p>
-              </ApiMetricCard>
-              <ApiMetricCard fieldKey="average_bonus_pct" tone="avg">
-                <p className="text-lg font-bold tabular-nums text-orange-700 dark:text-orange-300">
-                  {gameSummary.average_bonus_pct.toFixed(2)}
-                  <span className="ml-0.5 text-xs font-semibold text-muted-foreground">%</span>
-                </p>
-              </ApiMetricCard>
-              <ApiMetricCard fieldKey="total_redeem" tone="cash_out">
-                <p className="text-lg font-bold tabular-nums text-rose-700 dark:text-rose-300">
-                  {formatCurrency(gameSummary.total_redeem)}
-                </p>
-              </ApiMetricCard>
-              <ApiMetricCard fieldKey="net_game_activity" tone="derived" className="relative overflow-hidden">
-                <div
-                  className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 bg-amber-500/15 blur-2xl"
-                  aria-hidden
-                />
-                <p
-                  className={`relative text-lg font-bold tabular-nums ${
-                    gameSummary.net_game_activity >= 0
-                      ? 'text-emerald-700 dark:text-emerald-300'
-                      : 'text-rose-700 dark:text-rose-300'
-                  }`}
-                >
-                  {formatCurrency(gameSummary.net_game_activity)}
-                </p>
-              </ApiMetricCard>
-            </div>
-          ) : (
-            <p className="text-center text-sm text-muted-foreground">No game summary data</p>
-          )}
-        </AnalyticsSection>
+      <p className="px-0.5 text-[10px] text-muted-foreground">
+        Filtered: {apiFieldLabel('total_recharge')}, {apiFieldLabel('total_bonus')}, {apiFieldLabel('average_bonus_pct')},{' '}
+        {apiFieldLabel('total_redeem')}, {apiFieldLabel('net_game_activity')}; per row: {apiFieldLabel('game_title')},{' '}
+        {apiFieldLabel('game_code')}, {apiFieldLabel('game_id')}, …
+      </p>
 
-        <AnalyticsSection
-          eyebrow="Breakdown"
-          title="By game"
-          hint="games/by-game/"
-          action={
-            gamesByGame.length > 0 ? (
-              <span className="text-xs tabular-nums text-muted-foreground">{gamesByGame.length} rows</span>
-            ) : null
-          }
-        >
+      <div className="overflow-hidden rounded-2xl border border-border/30 shadow-sm">
+        {loadingGameSummary ? (
+          <div className="grid grid-cols-2 bg-card lg:grid-cols-5">
+            {[0, 1, 2, 3, 4].map(i => (
+              <div key={i} className="animate-pulse border-r border-border/10 px-5 py-4 last:border-r-0">
+                <div className="mb-2.5 h-2.5 w-14 rounded bg-muted/40" />
+                <div className="h-5 w-20 rounded bg-muted/40" />
+              </div>
+            ))}
+          </div>
+        ) : gameSummaryError ? (
+          <div className="bg-card px-5 py-8 text-center text-sm text-rose-600 dark:text-rose-400">{gameSummaryError}</div>
+        ) : gameSummary ? (
+          <div className="grid grid-cols-2 lg:grid-cols-5">
+            <div className="border-l-[3px] border-l-emerald-500 border-r border-border/10 bg-card px-5 py-3.5">
+              <p className="break-words text-[10px] font-medium leading-snug text-muted-foreground">
+                {apiFieldLabel('total_recharge')}
+              </p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(gameSummary.total_recharge)}
+              </p>
+            </div>
+            <div className="border-l-[3px] border-l-amber-500 border-r border-border/10 bg-card px-5 py-3.5">
+              <p className="break-words text-[10px] font-medium leading-snug text-muted-foreground">
+                {apiFieldLabel('total_bonus')}
+              </p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                {formatCurrency(gameSummary.total_bonus)}
+              </p>
+            </div>
+            <div className="border-l-[3px] border-l-orange-500 border-r border-border/10 bg-card px-5 py-3.5">
+              <p className="break-words text-[10px] font-medium leading-snug text-muted-foreground">
+                {apiFieldLabel('average_bonus_pct')}
+              </p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-orange-600 dark:text-orange-400">
+                {gameSummary.average_bonus_pct.toFixed(2)}
+                <span className="ml-0.5 text-xs font-semibold text-muted-foreground">%</span>
+              </p>
+            </div>
+            <div className="border-l-[3px] border-l-rose-500 border-r border-border/10 bg-card px-5 py-3.5">
+              <p className="break-words text-[10px] font-medium leading-snug text-muted-foreground">
+                {apiFieldLabel('total_redeem')}
+              </p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400">
+                {formatCurrency(gameSummary.total_redeem)}
+              </p>
+            </div>
+            <div
+              className={`px-5 py-3.5 lg:col-span-1 ${
+                gameSummary.net_game_activity >= 0
+                  ? 'bg-gradient-to-br from-emerald-900 to-emerald-950 dark:from-emerald-900/80 dark:to-emerald-950/90'
+                  : 'bg-gradient-to-br from-rose-900 to-rose-950 dark:from-rose-900/80 dark:to-rose-950/90'
+              }`}
+            >
+              <p className="break-words text-[10px] font-medium leading-snug text-white/70">{apiFieldLabel('net_game_activity')}</p>
+              <p
+                className={`mt-0.5 text-lg font-bold tabular-nums ${
+                  gameSummary.net_game_activity >= 0 ? 'text-emerald-200' : 'text-rose-200'
+                }`}
+              >
+                {formatCurrency(gameSummary.net_game_activity)}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-card px-5 py-8 text-center text-sm text-muted-foreground">No game summary data</div>
+        )}
+
+        <div className="border-t border-border/15 bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/10 px-4 py-2.5 sm:px-5">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                By game <span className="font-normal normal-case">{apiFieldLabel('data')}</span>
+              </p>
+              <p className="font-mono text-[9px] text-muted-foreground/80">games/by-game</p>
+            </div>
+            {gamesByGame.length > 0 ? (
+              <span className="text-[10px] font-medium tabular-nums text-muted-foreground">{gamesByGame.length} rows</span>
+            ) : null}
+          </div>
           {gamesByGameError ? (
-            <p className="text-center text-sm text-destructive">{gamesByGameError}</p>
+            <p className="px-5 py-8 text-center text-sm text-rose-600 dark:text-rose-400">{gamesByGameError}</p>
           ) : loadingGamesByGame ? (
             <TableSkel />
           ) : gamesByGame.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto px-1 pb-4 sm:px-2">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border/10 bg-muted/5">
-                    <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Game
+                    <th className="px-4 py-2 text-left text-[9px] font-medium text-muted-foreground">
+                      {apiFieldLabel('game_title')}
                     </th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Game code
+                    <th className="px-3 py-2 text-left text-[9px] font-medium text-muted-foreground">
+                      {apiFieldLabel('game_id')}
                     </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Recharge
+                    <th className="px-3 py-2 text-left text-[9px] font-medium text-muted-foreground">
+                      {apiFieldLabel('game_code')}
                     </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Bonus
+                    <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
+                      {apiFieldLabel('recharge')}
                     </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Avg bonus %
+                    <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
+                      {apiFieldLabel('bonus')}
                     </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Redeem
+                    <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
+                      {apiFieldLabel('average_bonus_pct')}
                     </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Net game activity
+                    <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
+                      {apiFieldLabel('redeem')}
                     </th>
-                    <th className="w-24 px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Volume
+                    <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
+                      {apiFieldLabel('net_game_activity')}
+                    </th>
+                    <th
+                      className="w-24 px-4 py-2 text-left text-[9px] font-medium text-muted-foreground"
+                      title="Bar length is recharge relative to the max recharge in the filtered result set (UI only)."
+                    >
+                      ···
                     </th>
                   </tr>
                 </thead>
@@ -430,11 +388,14 @@ export default function GameActivityAnalyticsPage() {
                       <tr key={String(rowKey)} className="transition-colors hover:bg-muted/10">
                         <td className="px-4 py-2">
                           <div className="flex items-center gap-2">
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-violet-500/10 text-[9px] font-bold text-violet-600 dark:text-violet-400">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-violet-500/10 text-[9px] font-bold text-violet-600 dark:text-violet-400">
                               {title.charAt(0)}
                             </span>
                             <span className="text-xs font-medium text-foreground">{title}</span>
                           </div>
+                        </td>
+                        <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">
+                          {game.game_id != null ? game.game_id : <span className="text-muted-foreground/25">&mdash;</span>}
                         </td>
                         <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">
                           {game.game_code ?? <span className="text-muted-foreground/25">&mdash;</span>}
@@ -471,8 +432,11 @@ export default function GameActivityAnalyticsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-2">
-                          <div className="h-1 w-full overflow-hidden bg-muted/30">
-                            <div className="h-full bg-violet-500/50 transition-all duration-700 ease-out" style={{ width: `${pct}%` }} />
+                          <div className="h-1 w-full overflow-hidden rounded-full bg-muted/30">
+                            <div
+                              className="h-full rounded-full bg-violet-500/50 transition-all duration-700 ease-out"
+                              style={{ width: `${pct}%` }}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -482,9 +446,9 @@ export default function GameActivityAnalyticsPage() {
               </table>
             </div>
           ) : (
-            <p className="text-center text-xs text-muted-foreground">No per-game rows</p>
+            <p className="px-5 py-8 text-center text-xs text-muted-foreground">No per-game rows</p>
           )}
-        </AnalyticsSection>
+        </div>
       </div>
     </div>
   );
