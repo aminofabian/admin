@@ -361,59 +361,23 @@ function ProcessingTransactionRow({
     return { value, formatted: formatCurrency(String(value)) };
   }, [transaction.new_balance]);
 
-  const previousWinningBalance = useMemo(() => {
-    const value = transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-      ? parseFloat(transaction.previous_winning_balance)
-      : 0;
-    return { value, formatted: formatCurrency(String(value)) };
-  }, [transaction.previous_winning_balance]);
-
-  const newWinningBalance = useMemo(() => {
-    const value = transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-      ? parseFloat(transaction.new_winning_balance)
-      : 0;
-    return { value, formatted: formatCurrency(String(value)) };
-  }, [transaction.new_winning_balance]);
-
   const creditChanged = useMemo(() => {
     return previousCreditBalance.value !== newCreditBalance.value;
   }, [previousCreditBalance.value, newCreditBalance.value]);
-
-  const winningChanged = useMemo(() => {
-    return previousWinningBalance.value !== newWinningBalance.value;
-  }, [previousWinningBalance.value, newWinningBalance.value]);
 
   const creditDisplayText = useMemo(() => {
     return `${previousCreditBalance.formatted} → ${newCreditBalance.formatted}`;
   }, [previousCreditBalance.formatted, newCreditBalance.formatted]);
 
-  const winningDisplayText = useMemo(() => {
-    return `${previousWinningBalance.formatted} → ${newWinningBalance.formatted}`;
-  }, [previousWinningBalance.formatted, newWinningBalance.formatted]);
-
   const creditColorClass = useMemo(() => {
     return creditChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
   }, [creditChanged]);
-
-  const winningColorClass = useMemo(() => {
-    return winningChanged ? 'text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400';
-  }, [winningChanged]);
 
   const creditCell = (
     <TableCell className="align-top">
       <div className="min-w-[5.5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
         <div className={`text-xs font-medium ${creditColorClass}`}>
           {creditDisplayText}
-        </div>
-      </div>
-    </TableCell>
-  );
-
-  const winningCell = (
-    <TableCell className="align-top">
-      <div className="min-w-[5.5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
-        <div className={`text-xs font-medium ${winningColorClass}`}>
-          {winningDisplayText}
         </div>
       </div>
     </TableCell>
@@ -522,12 +486,11 @@ function ProcessingTransactionRow({
       {transactionCell}
       {amountCell}
       {creditCell}
-      {winningCell}
       {cashoutLimitCell}
       {lockedCell}
-      {statusCell}
       {paymentCell}
       {providerCell}
+      {statusCell}
       {datesCell}
     </TableRow>
   );
@@ -1670,18 +1633,17 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                       <TableHead>Transaction</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Balance</TableHead>
-                      <TableHead>Winning</TableHead>
                       {viewType === 'cashouts' && (
                         <>
                           <TableHead>Cashout limit</TableHead>
                           <TableHead>Locked</TableHead>
                         </>
                       )}
-                      <TableHead>Status</TableHead>
                       <TableHead>Payment</TableHead>
                       {(viewType === 'purchases' || viewType === 'cashouts') && (
                         <TableHead>Provider</TableHead>
                       )}
+                      <TableHead>Status</TableHead>
                       <TableHead>Dates</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1821,64 +1783,31 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
                   {/* Balance Section */}
                   <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-3">
-                      {/* Credit Balance */}
-                      {(() => {
-                        const prevCredit = transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
-                          ? parseFloat(transaction.previous_balance)
-                          : 0;
-                        const newCredit = transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
-                          ? parseFloat(transaction.new_balance)
-                          : 0;
-                        const creditChanged = prevCredit !== newCredit;
-                        const creditColorClass = creditChanged
-                          ? 'text-indigo-600 dark:text-indigo-400'
-                          : 'text-gray-500 dark:text-gray-400';
+                    {(() => {
+                      const prevCredit = transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
+                        ? parseFloat(transaction.previous_balance)
+                        : 0;
+                      const newCredit = transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
+                        ? parseFloat(transaction.new_balance)
+                        : 0;
+                      const creditChanged = prevCredit !== newCredit;
+                      const creditColorClass = creditChanged
+                        ? 'text-indigo-600 dark:text-indigo-400'
+                        : 'text-gray-500 dark:text-gray-400';
 
-                        return (
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credit</div>
-                            <div className={`text-xs ${creditColorClass} flex items-center gap-1`}>
-                              <span className="truncate">{formatCurrency(String(prevCredit))}</span>
-                              <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                              </svg>
-                              <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
-                            </div>
+                      return (
+                        <div className="min-w-0">
+                          <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
+                          <div className={`text-xs ${creditColorClass} flex items-center gap-1`}>
+                            <span className="truncate">{formatCurrency(String(prevCredit))}</span>
+                            <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                            <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
                           </div>
-                        );
-                      })()}
-
-                      {/* Vertical Divider */}
-                      <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 shrink-0" />
-
-                      {/* Winning Balance */}
-                      {(() => {
-                        const prevWinning = transaction.previous_winning_balance && !isNaN(parseFloat(transaction.previous_winning_balance))
-                          ? parseFloat(transaction.previous_winning_balance)
-                          : 0;
-                        const newWinning = transaction.new_winning_balance && !isNaN(parseFloat(transaction.new_winning_balance))
-                          ? parseFloat(transaction.new_winning_balance)
-                          : 0;
-                        const winningChanged = prevWinning !== newWinning;
-                        const winningColorClass = winningChanged
-                          ? 'text-indigo-600 dark:text-indigo-400'
-                          : 'text-gray-500 dark:text-gray-400';
-
-                        return (
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Winning</div>
-                            <div className={`text-xs ${winningColorClass} flex items-center gap-1`}>
-                              <span className="truncate">{formatCurrency(String(prevWinning))}</span>
-                              <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                              </svg>
-                              <span className="font-semibold truncate">{formatCurrency(String(newWinning))}</span>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {viewType === 'cashouts' && (
