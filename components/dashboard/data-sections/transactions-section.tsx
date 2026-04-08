@@ -13,6 +13,10 @@ import {
   formatPaymentMethod,
   getProviderDisplayName,
 } from '@/lib/utils/formatters';
+import {
+  getTransactionAmountColorClass,
+  getTransactionTypeBadgeStyle,
+} from '@/lib/utils/transaction-display';
 import { useTransactionsStore } from '@/stores';
 import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
@@ -1021,32 +1025,21 @@ interface TransactionsRowProps {
 const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: TransactionsRowProps) {
   const router = useRouter();
   const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
-  const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
-  const isTransfer = useMemo(() => {
-    const type = (transaction.type || '').toLowerCase();
-    const method = (transaction.payment_method || '').toLowerCase();
-    return type.includes('transfer') || method.includes('transfer');
-  }, [transaction.type, transaction.payment_method]);
-  
-  const typeVariant = useMemo(() => {
-    if (isTransfer) return 'default'; // We'll use custom indigo classes
-    return isPurchase ? 'success' : 'danger';
-  }, [isPurchase, isTransfer]);
+  const { variant: typeVariant, isTransfer } = useMemo(
+    () => getTransactionTypeBadgeStyle(transaction.type, transaction.payment_method),
+    [transaction.type, transaction.payment_method],
+  );
 
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
-  const amountColorClass = useMemo(() => {
-    const amountValue = parseFloat(String(transaction.amount ?? 0));
-    return amountValue >= 0
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : 'text-rose-600 dark:text-rose-400';
-  }, [transaction.amount]);
+  const amountColorClass = useMemo(
+    () => getTransactionAmountColorClass(transaction.type, transaction.amount),
+    [transaction.type, transaction.amount],
+  );
 
-  const bonusColorClass = useMemo(() => {
-    const amountValue = parseFloat(String(transaction.amount ?? 0));
-    return amountValue >= 0
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : 'text-rose-600 dark:text-rose-400';
-  }, [transaction.amount]);
+  const bonusColorClass = useMemo(
+    () => getTransactionAmountColorClass(transaction.type, transaction.amount),
+    [transaction.type, transaction.amount],
+  );
 
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
@@ -1201,7 +1194,8 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
     prevProps.transaction.previous_balance === nextProps.transaction.previous_balance &&
     prevProps.transaction.new_balance === nextProps.transaction.new_balance &&
     prevProps.transaction.payment_method === nextProps.transaction.payment_method &&
-    prevProps.transaction.provider === nextProps.transaction.provider
+    prevProps.transaction.provider === nextProps.transaction.provider &&
+    prevProps.transaction.type === nextProps.transaction.type
   );
 });
 
@@ -1213,16 +1207,15 @@ interface TransactionCardProps {
 const TransactionCard = memo(function TransactionCard({ transaction, onView }: TransactionCardProps) {
   const router = useRouter();
   const statusVariant = useMemo(() => mapStatusToVariant(transaction.status), [transaction.status]);
-  const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
-  const isTransfer = useMemo(() => transaction.type?.toLowerCase().includes('transfer') || transaction.payment_method?.toLowerCase().includes('transfer'), [transaction.type, transaction.payment_method]);
-  const typeVariant = useMemo(() => isPurchase ? 'success' : (isTransfer ? 'default' : 'danger'), [isPurchase, isTransfer]);
+  const { variant: typeVariant, isTransfer } = useMemo(
+    () => getTransactionTypeBadgeStyle(transaction.type, transaction.payment_method),
+    [transaction.type, transaction.payment_method],
+  );
   const formattedAmount = useMemo(() => formatCurrency(transaction.amount), [transaction.amount]);
-  const amountColorClass = useMemo(() => {
-    const amountValue = parseFloat(String(transaction.amount ?? 0));
-    return amountValue >= 0
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : 'text-rose-600 dark:text-rose-400';
-  }, [transaction.amount]);
+  const amountColorClass = useMemo(
+    () => getTransactionAmountColorClass(transaction.type, transaction.amount),
+    [transaction.type, transaction.amount],
+  );
 
   const bonusAmount = useMemo(() => {
     const bonus = parseFloat(transaction.bonus_amount || '0');
@@ -1373,7 +1366,8 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
     prevProps.transaction.amount === nextProps.transaction.amount &&
     prevProps.transaction.provider === nextProps.transaction.provider &&
     prevProps.onView === nextProps.onView &&
-    prevProps.transaction.user_username === nextProps.transaction.user_username
+    prevProps.transaction.user_username === nextProps.transaction.user_username &&
+    prevProps.transaction.type === nextProps.transaction.type
   );
 });
 

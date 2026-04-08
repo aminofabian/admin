@@ -6,6 +6,7 @@ import { DashboardSectionContainer } from '@/components/dashboard/layout';
 import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination, Button } from '@/components/ui';
 import { useTransactionsStore } from '@/stores';
 import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName } from '@/lib/utils/formatters';
+import { getTransactionAmountColorClass, getTransactionTypeBadgeStyle } from '@/lib/utils/transaction-display';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
@@ -791,15 +792,16 @@ export function SuperAdminHistoryTransactions() {
                                         {transactionList.map((transaction) => {
                                             const username = transaction.user_username || `User ${transaction.id}`;
                                             const transactionType = transaction.type || '—';
-                                            const isPurchase = transactionType === 'purchase';
-                                            const isTransfer = transactionType?.toLowerCase().includes('transfer') || transaction.payment_method?.toLowerCase().includes('transfer');
+                                            const { variant: typeVariant, isTransfer } = getTransactionTypeBadgeStyle(
+                                                transaction.type,
+                                                transaction.payment_method,
+                                            );
                                             const isFailedOrCancelled = transaction.status === 'failed' || transaction.status === 'cancelled';
 
-                                            const typeVariant = isPurchase ? 'success' : (isTransfer ? 'default' : 'danger');
-                                            const amountValue = parseFloat(String(transaction.amount ?? 0));
-                                            const amountColorClass = amountValue >= 0
-                                                ? 'text-emerald-600 dark:text-emerald-400'
-                                                : 'text-rose-600 dark:text-rose-400';
+                                            const amountColorClass = getTransactionAmountColorClass(
+                                                transaction.type,
+                                                transaction.amount,
+                                            );
 
                                             const bonusAmount = parseFloat(transaction.bonus_amount || '0');
                                             const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;
@@ -971,15 +973,16 @@ export function SuperAdminHistoryTransactions() {
                                 {transactionList.map((transaction) => {
                                     const username = transaction.user_username || `User ${transaction.id}`;
                                     const transactionType = transaction.type || '—';
-                                    const isPurchase = transactionType === 'purchase';
-                                    const isTransfer = transactionType?.toLowerCase().includes('transfer') || transaction.payment_method?.toLowerCase().includes('transfer');
+                                    const { variant: typeVariant, isTransfer } = getTransactionTypeBadgeStyle(
+                                        transaction.type,
+                                        transaction.payment_method,
+                                    );
                                     const isFailedOrCancelled = transaction.status === 'failed' || transaction.status === 'cancelled';
 
-                                    const typeVariant = isPurchase ? 'success' : (isTransfer ? 'default' : 'danger');
-                                    const amountValue = parseFloat(String(transaction.amount ?? 0));
-                                    const amountColorClass = amountValue >= 0
-                                        ? 'text-emerald-600 dark:text-emerald-400'
-                                        : 'text-rose-600 dark:text-rose-400';
+                                    const amountColorClass = getTransactionAmountColorClass(
+                                        transaction.type,
+                                        transaction.amount,
+                                    );
 
                                     const bonusAmount = parseFloat(transaction.bonus_amount || '0');
                                     const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;
