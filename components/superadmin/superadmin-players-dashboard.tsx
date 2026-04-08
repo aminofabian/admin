@@ -899,9 +899,7 @@ function SuperAdminPlayersTable({
               <TableHead>Email</TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Balance</TableHead>
-              <TableHead>Winnings</TableHead>
               <TableHead>Cashout limit</TableHead>
-              <TableHead>Locked</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
             </TableRow>
@@ -1002,30 +1000,11 @@ function SuperAdminPlayerCard({
               {formatCurrency(player.balance)}
             </p>
           </div>
-          <div className="bg-green-50 dark:bg-green-950/20 rounded-md p-2">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <svg className="h-3 w-3 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-[10px] font-medium text-green-700 dark:text-green-300 uppercase">Winnings</span>
-            </div>
-            <p className="text-sm font-bold text-green-600 dark:text-green-400">
-              {formatCurrency(player.winning_balance)}
-            </p>
-          </div>
           <div className="rounded-md bg-gray-100 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 p-2">
             <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Cashout limit</span>
             <p className="text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
               {player.cashout_limit != null && String(player.cashout_limit).trim() !== ''
                 ? formatCurrency(player.cashout_limit)
-                : '—'}
-            </p>
-          </div>
-          <div className="rounded-md bg-gray-100 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 p-2">
-            <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Locked</span>
-            <p className="text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
-              {player.locked_balance != null && String(player.locked_balance).trim() !== ''
-                ? formatCurrency(player.locked_balance)
                 : '—'}
             </p>
           </div>
@@ -1085,21 +1064,9 @@ function SuperAdminPlayersTableRow({
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-          {formatCurrency(player.winning_balance)}
-        </div>
-      </TableCell>
-      <TableCell>
         <div className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
           {player.cashout_limit != null && String(player.cashout_limit).trim() !== ''
             ? formatCurrency(player.cashout_limit)
-            : '—'}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="text-sm tabular-nums text-gray-700 dark:text-gray-300">
-          {player.locked_balance != null && String(player.locked_balance).trim() !== ''
-            ? formatCurrency(player.locked_balance)
             : '—'}
         </div>
       </TableCell>
