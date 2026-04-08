@@ -1669,7 +1669,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                       <TableHead>User</TableHead>
                       <TableHead>Transaction</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Credit</TableHead>
+                      <TableHead>Balance</TableHead>
                       <TableHead>Winning</TableHead>
                       {viewType === 'cashouts' && (
                         <>

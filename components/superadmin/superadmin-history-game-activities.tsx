@@ -869,7 +869,7 @@ function HistoryGameActivitiesTable({
                                         <TableHead>Game</TableHead>
                                         <TableHead>Game Username</TableHead>
                                         <TableHead>Amount</TableHead>
-                                        <TableHead>Credit</TableHead>
+                                        <TableHead>Balance</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Dates</TableHead>
                                         <TableHead className="text-right">Action</TableHead>

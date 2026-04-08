@@ -341,7 +341,7 @@ export function GameActivityTable({
               <TableHead>Game</TableHead>
               <TableHead>Game Username</TableHead>
               <TableHead>Amount</TableHead>
-              <TableHead>Credit</TableHead>
+              <TableHead>Balance</TableHead>
               <TableHead>Winning</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Dates</TableHead>
@@ -635,10 +635,10 @@ const GameActivityCard = memo(function GameActivityCard({
       {(formattedPreviousCredits || formattedNewCredits || formattedPreviousWinnings || formattedNewWinnings) && (
         <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">
-            {/* Credits */}
+            {/* Balance */}
             {(formattedPreviousCredits || formattedNewCredits) && (
               <div className="flex-1 min-w-0">
-                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credits</div>
+                <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
                 <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
                   <span className="truncate">{formattedPreviousCredits || zeroCurrency}</span>
                   <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
