@@ -227,7 +227,7 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
             {newCreditsBalance && (
               <DetailsRow>
                 <DetailsHighlightBox
-                  label="New Credits"
+                  label="Balance"
                   value={newCreditsBalance}
                   variant="blue"
                 />

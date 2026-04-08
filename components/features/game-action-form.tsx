@@ -191,7 +191,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   const renderCompleteFormDetails = () => {
     if (isRechargeOrRedeem) {
-      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, optional New Credits
+      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, optional Balance
       return (
         <div className="space-y-2">
           {/* Transaction Type and Status */}
@@ -245,7 +245,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
           {newCreditsBalance && (
             <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
-              <div className="text-[10px] text-muted-foreground mb-0.5">New Credits</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Balance</div>
               <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
                 {newCreditsBalance}
               </div>
@@ -522,7 +522,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   const renderTransactionDetails = () => {
     if (isRechargeOrRedeem) {
-      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, optional New Credits
+      // For recharge and redeem: Type-Status, Game - Game Username, User - Email, optional Balance
       return (
         <div className="space-y-2">
           {/* Type - Status */}
@@ -578,7 +578,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
           {newCreditsBalance && (
             <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
-              <div className="text-[10px] text-muted-foreground mb-0.5">New Credits</div>
+              <div className="text-[10px] text-muted-foreground mb-0.5">Balance</div>
               <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
                 {newCreditsBalance}
               </div>

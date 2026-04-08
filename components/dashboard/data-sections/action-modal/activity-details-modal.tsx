@@ -248,7 +248,7 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
             {newCreditsBalance && (
               <DetailsRow>
                 <DetailsHighlightBox
-                  label="New Credits"
+                  label="Balance"
                   value={newCreditsBalance}
                   variant="blue"
                 />
