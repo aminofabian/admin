@@ -18,9 +18,9 @@ import { US_STATES, getDateRange } from '../analytics-utils';
 
 function CardSkel() {
   return (
-    <div className="border border-border/30 bg-card p-4 animate-pulse">
-      <div className="mb-3 h-3 w-20 bg-muted/40" />
-      <div className="h-7 w-28 bg-muted/40" />
+    <div className="rounded-xl border border-border/30 bg-card p-4 animate-pulse">
+      <div className="h-3 bg-muted/40 rounded w-20 mb-3" />
+      <div className="h-7 bg-muted/40 rounded w-28" />
     </div>
   );
 }
@@ -30,9 +30,9 @@ function TableSkel() {
     <div className="p-5 space-y-3">
       {[0, 1, 2].map(i => (
         <div key={i} className="flex items-center gap-3 animate-pulse">
-          <div className="h-7 w-7 shrink-0 bg-muted/30" />
-          <div className="h-3 flex-1 bg-muted/20" />
-          <div className="h-3 w-16 bg-muted/30" />
+          <div className="w-7 h-7 rounded-lg bg-muted/30 shrink-0" />
+          <div className="flex-1 h-3 bg-muted/20 rounded" />
+          <div className="w-16 h-3 bg-muted/30 rounded" />
         </div>
       ))}
     </div>
@@ -46,63 +46,22 @@ function rateColor(rate: number | undefined): string {
   return 'text-rose-600 dark:text-rose-400';
 }
 
-type MetricTone = 'cash_in' | 'cash_out' | 'count' | 'bonus' | 'avg' | 'transfer' | 'derived';
-
-function ApiMetricCard({
-  fieldKey,
-  children,
-  tone = 'count',
-  className = '',
-}: {
-  fieldKey: string;
-  children: ReactNode;
-  tone?: MetricTone;
-  className?: string;
-}) {
-  const toneClass: Record<MetricTone, string> = {
-    cash_in: 'bg-emerald-500/[0.06] dark:bg-emerald-500/10',
-    cash_out: 'bg-rose-500/[0.06] dark:bg-rose-500/10',
-    count: 'bg-sky-500/[0.05] dark:bg-sky-500/10',
-    bonus: 'bg-amber-500/[0.07] dark:bg-amber-500/12',
-    avg: 'bg-orange-500/[0.05] dark:bg-orange-500/10',
-    transfer: 'bg-violet-500/[0.06] dark:bg-violet-500/10',
-    derived: 'bg-gradient-to-br from-amber-500/10 via-card to-card dark:from-amber-500/15',
-  };
-  return (
-    <div className={`border border-border/50 p-3 ${toneClass[tone]} ${className}`}>
-      <p className="font-mono text-[10px] leading-snug text-muted-foreground break-all">{fieldKey}</p>
-      <div className="mt-1.5">{children}</div>
-    </div>
-  );
+/** API snake_case (or dotted paths) → Title Case With Spaces for display. */
+function apiFieldLabel(apiKey: string): string {
+  return apiKey
+    .split(/[._]+/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
 }
 
-function AnalyticsSection({
-  eyebrow,
-  title,
-  hint,
-  action,
-  children,
-}: {
-  eyebrow?: string;
-  title: string;
-  hint?: string;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
+/** Label from API key; value = formatted as in the payload. */
+function ApiLabeledValue({ apiKey, children }: { apiKey: string; children: ReactNode }) {
   return (
-    <section className="border border-border/60 bg-card">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/50 px-4 py-3 sm:px-5">
-        <div className="min-w-0">
-          {eyebrow ? (
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{eyebrow}</p>
-          ) : null}
-          <h2 className={`text-base font-semibold tracking-tight text-foreground ${eyebrow ? 'mt-1' : ''}`}>{title}</h2>
-          {hint ? <p className="mt-1 max-w-3xl font-mono text-[10px] leading-relaxed text-muted-foreground">{hint}</p> : null}
-        </div>
-        {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
-      </div>
-      <div className="p-4 sm:p-5">{children}</div>
-    </section>
+    <div className="min-w-0">
+      <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel(apiKey)}</p>
+      <div className="mt-1 text-sm font-semibold tabular-nums text-foreground">{children}</div>
+    </div>
   );
 }
 
@@ -137,37 +96,9 @@ export default function TransactionAnalyticsPage() {
 
   const { data: transactionSummary, loading: loadingSummary, error: summaryError } =
     useTransactionSummary(filters);
-  const { data: paymentMethods, loading: loadingPaymentMethods } = usePaymentMethods(filters);
-  const { data: bonusAnalytics, loading: loadingBonus } = useBonusAnalytics(filters);
-
-  const summaryTapeCells = useMemo(() => {
-    if (!transactionSummary) return [];
-    const net = transactionSummary.total_purchase - transactionSummary.total_cashout;
-    return [
-      {
-        key: 'total_purchase',
-        tone: 'cash_in' as const,
-        v: formatCurrency(transactionSummary.total_purchase),
-      },
-      {
-        key: 'total_cashout',
-        tone: 'cash_out' as const,
-        v: formatCurrency(transactionSummary.total_cashout),
-      },
-      {
-        key: 'total_transfer',
-        tone: 'transfer' as const,
-        v: formatCurrency(transactionSummary.total_transfer),
-      },
-      {
-        key: 'total_purchase − total_cashout',
-        tone: 'derived' as const,
-        v: `${net >= 0 ? '+' : ''}${formatCurrency(net)}`,
-        netNonNegative: net >= 0,
-        sub: 'derived' as const,
-      },
-    ];
-  }, [transactionSummary]);
+  const { data: paymentMethods, loading: loadingPaymentMethods, error: paymentMethodsError } =
+    usePaymentMethods(filters);
+  const { data: bonusAnalytics, loading: loadingBonus, error: bonusError } = useBonusAnalytics(filters);
 
   useEffect(() => {
     if (user && user.role !== USER_ROLES.COMPANY) router.replace('/dashboard');
@@ -197,7 +128,12 @@ export default function TransactionAnalyticsPage() {
   const purchaseMethods = paymentMethods.filter(m => m.type === 'purchase');
   const cashoutMethods = paymentMethods.filter(m => m.type === 'cashout');
 
-  const bonusAmountBars = useMemo(() => {
+  const netRevenue = useMemo(() => {
+    if (!transactionSummary) return null;
+    return transactionSummary.total_purchase - transactionSummary.total_cashout;
+  }, [transactionSummary]);
+
+  const bonusBreakdown = useMemo(() => {
     if (!bonusAnalytics) return [];
     const items = [
       { fieldKey: 'purchase_bonus', value: bonusAnalytics.purchase_bonus, bar: 'bg-emerald-500' },
@@ -213,12 +149,11 @@ export default function TransactionAnalyticsPage() {
 
   if (loadingDashboard) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="h-16 bg-muted/25 animate-pulse" />
-        <div className="h-32 border border-border/40 bg-muted/15 animate-pulse" />
-        {[0, 1, 2, 3].map(i => (
-          <div key={i} className="h-48 border border-border/40 bg-muted/10 animate-pulse" />
-        ))}
+      <div className="space-y-4">
+        <div className="h-14 rounded-xl bg-muted/20 animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[0, 1, 2, 3].map(i => <CardSkel key={i} />)}
+        </div>
       </div>
     );
   }
@@ -226,7 +161,7 @@ export default function TransactionAnalyticsPage() {
   if (dashboardError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-8">
-        <div className="mb-4 bg-rose-500/10 p-4 text-rose-500">
+        <div className="p-4 rounded-2xl bg-rose-500/10 text-rose-500 mb-4">
           <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
@@ -239,50 +174,42 @@ export default function TransactionAnalyticsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+    <div className="space-y-4">
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Transaction analytics</h1>
-          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Snapshot is always organization-wide. Summary, bonuses, and payment breakdown use the filters below.
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">Transactions</h1>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Organization totals come from the dashboard <span className="font-medium">{apiFieldLabel('data')}</span> object; filtered blocks use the transaction analytics endpoints.
           </p>
         </div>
         <button
-          type="button"
           onClick={() => setShowFilters(!showFilters)}
-          className={`inline-flex items-center justify-center gap-2 border px-3 py-2 text-sm font-medium ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
             showFilters
-              ? 'border-primary/40 bg-primary/10 text-primary'
-              : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+              ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
           }`}
         >
-          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
           </svg>
-          {showFilters ? 'Hide filters' : 'Show filters'}
-          {hasActiveFilters ? <span className="h-1.5 w-1.5 bg-primary" title="Scope changed" /> : null}
+          Filters
+          {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
         </button>
       </div>
 
-      {showFilters ? (
-        <AnalyticsSection
-          eyebrow="Filters"
-          title="Scope"
-          hint="Applies to: transactions/summary · transactions/bonus · payment-methods"
-          action={
-            hasActiveFilters ? (
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="text-sm font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400"
-              >
-                Clear all
-              </button>
-            ) : null
-          }
-        >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* ── Filters ── */}
+      {showFilters && (
+        <div className="relative z-20 flex items-center gap-2.5 rounded-lg border border-border/40 bg-card px-3 py-2 shadow-sm flex-wrap lg:flex-nowrap">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
+            {hasActiveFilters && (
+              <button onClick={handleClearFilters} className="text-[10px] font-medium text-rose-500 hover:text-rose-600 transition-colors">clear</button>
+            )}
+          </div>
+          <div className="flex-1 grid gap-2 grid-cols-2 lg:grid-cols-4">
             <Select
               value={datePreset}
               onChange={(v: string) => handlePresetChange(v)}
@@ -299,9 +226,9 @@ export default function TransactionAnalyticsPage() {
             <input
               type="text"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value)}
               placeholder="Username"
-              className="w-full border border-border bg-background px-2.5 py-2 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-950 px-2.5 py-2 text-sm text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
             <Select value={state} onChange={(v: string) => setState(v)} options={US_STATES} placeholder="All States" />
             <Select
@@ -311,203 +238,180 @@ export default function TransactionAnalyticsPage() {
               placeholder="Gender"
             />
           </div>
-          {datePreset === 'custom' ? (
-            <div className="mt-4 grid max-w-md grid-cols-2 gap-3 border-t border-border/50 pt-4">
+          {datePreset === 'custom' && (
+            <div className="grid grid-cols-2 gap-2 mt-2 max-w-xs w-full lg:w-auto lg:mt-0">
               <DateSelect label="Start" value={startDate} onChange={setStartDate} />
               <DateSelect label="End" value={endDate} onChange={setEndDate} />
             </div>
-          ) : null}
-        </AnalyticsSection>
+          )}
+        </div>
+      )}
+
+      {/* ── Organization dashboard `data` (not filtered) ── */}
+      {analyticsData ? (
+        <div className="rounded-xl border border-border/30 bg-card overflow-hidden shadow-sm p-4 sm:p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Dashboard <span className="font-normal normal-case">{apiFieldLabel('data')}</span>
+            <span className="block font-normal normal-case text-[9px] opacity-80 mt-0.5">
+              Same fields as the API response {apiFieldLabel('status')} / {apiFieldLabel('data')}
+            </span>
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <ApiLabeledValue apiKey="total_cash_in">{formatCurrency(analyticsData.total_cash_in)}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_cashout">{formatCurrency(analyticsData.total_cashout)}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_players">{analyticsData.total_players}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_agents">{analyticsData.total_agents}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_managers">{analyticsData.total_managers}</ApiLabeledValue>
+            <ApiLabeledValue apiKey="total_staffs">{analyticsData.total_staffs}</ApiLabeledValue>
+          </div>
+        </div>
       ) : null}
 
-      <div className="space-y-6">
-        {analyticsData ? (
-          <AnalyticsSection
-            eyebrow="Dashboard"
-            title="Organization"
-            hint="analytics/dashboard/ — not affected by filters below"
-          >
-            <div className="space-y-6">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <ApiMetricCard fieldKey="total_cash_in" tone="cash_in">
-                  <p className="text-xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
-                    {formatCurrency(analyticsData.total_cash_in ?? 0)}
-                  </p>
-                </ApiMetricCard>
-                <ApiMetricCard fieldKey="total_cashout" tone="cash_out">
-                  <p className="text-xl font-bold tabular-nums text-rose-700 dark:text-rose-300">
-                    {formatCurrency(analyticsData.total_cashout ?? 0)}
-                  </p>
-                </ApiMetricCard>
+      {/* ── Filtered transaction summary + bonus (unified card) ── */}
+      <p className="text-[10px] text-muted-foreground px-0.5">
+        Filtered: {apiFieldLabel('total_purchase')}, {apiFieldLabel('total_cashout')}, {apiFieldLabel('total_transfer')}; payment{' '}
+        {apiFieldLabel('data.purchases')} / {apiFieldLabel('data.cashouts')}; bonus fields.
+      </p>
+      <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
+        {/* Revenue row */}
+        {loadingSummary ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="bg-card px-5 py-4 animate-pulse border-r border-border/10 last:border-r-0">
+                <div className="h-2.5 w-14 bg-muted/40 rounded mb-2.5" />
+                <div className="h-5 w-20 bg-muted/40 rounded" />
               </div>
-              <div>
-                <h3 className="mb-3 text-xs font-medium text-muted-foreground">People</h3>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <ApiMetricCard fieldKey="total_players" tone="count">
-                    <p className="text-lg font-bold tabular-nums">{(analyticsData.total_players ?? 0).toLocaleString()}</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="total_agents" tone="count">
-                    <p className="text-lg font-bold tabular-nums">{(analyticsData.total_agents ?? 0).toLocaleString()}</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="total_managers" tone="count">
-                    <p className="text-lg font-bold tabular-nums">{(analyticsData.total_managers ?? 0).toLocaleString()}</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="total_staffs" tone="count">
-                    <p className="text-lg font-bold tabular-nums">{(analyticsData.total_staffs ?? 0).toLocaleString()}</p>
-                  </ApiMetricCard>
-                </div>
-              </div>
+            ))}
+          </div>
+        ) : summaryError ? (
+          <div className="bg-card px-5 py-8 text-center text-sm text-rose-600 dark:text-rose-400">
+            {summaryError}
+          </div>
+        ) : transactionSummary ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4">
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-emerald-500 border-r border-border/10">
+              <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_purchase')}</p>
+              <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">{formatCurrency(transactionSummary.total_purchase)}</p>
             </div>
-          </AnalyticsSection>
-        ) : null}
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-rose-500 border-r border-border/10">
+              <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_cashout')}</p>
+              <p className="text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400 mt-0.5">{formatCurrency(transactionSummary.total_cashout)}</p>
+            </div>
+            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-blue-500 border-r border-border/10">
+              <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_transfer')}</p>
+              <p className="text-lg font-bold tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">{formatCurrency(transactionSummary.total_transfer)}</p>
+            </div>
+            {netRevenue !== null && (
+              <div className={`px-5 py-3.5 ${
+                netRevenue >= 0
+                  ? 'bg-gradient-to-br from-emerald-900 to-emerald-950 dark:from-emerald-900/80 dark:to-emerald-950/90'
+                  : 'bg-gradient-to-br from-rose-900 to-rose-950 dark:from-rose-900/80 dark:to-rose-950/90'
+              }`}>
+                <p className="text-[10px] font-medium leading-snug text-white/70 break-words">
+                  {apiFieldLabel('total_purchase')} − {apiFieldLabel('total_cashout')}
+                </p>
+                <p className="text-lg font-bold tabular-nums text-white mt-0.5">
+                  {netRevenue >= 0 ? '+' : ''}{formatCurrency(netRevenue)}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-card px-5 py-8 text-center text-sm text-muted-foreground">No transaction data available</div>
+        )}
 
-        <AnalyticsSection
-          eyebrow="Summary"
-          title="Filtered transaction totals"
-          hint="transactions/summary/"
-          action={
-            <span className="text-xs text-muted-foreground">
-              {hasActiveFilters ? 'Custom scope' : 'Date range only'}
-            </span>
-          }
-        >
-          {loadingSummary ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {[0, 1, 2, 3].map(i => (
-                <div key={i} className="h-24 bg-muted/20 animate-pulse" />
+        {/* Bonus breakdown */}
+        {loadingBonus ? (
+          <div className="border-t border-border/15 bg-card px-5 py-4">
+            <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
+              {[0, 1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-2 w-12 bg-muted/40 rounded mb-2" />
+                  <div className="h-4 w-14 bg-muted/40 rounded mb-2" />
+                  <div className="h-1 bg-muted/20 rounded-full" />
+                </div>
               ))}
             </div>
-          ) : summaryError ? (
-            <p className="text-center text-sm text-destructive">{summaryError}</p>
-          ) : transactionSummary ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {summaryTapeCells.map(cell => (
-                  <ApiMetricCard
-                    key={cell.key}
-                    fieldKey={cell.key}
-                    tone={cell.tone}
-                    className={cell.tone === 'derived' ? 'relative overflow-hidden' : ''}
-                  >
-                    {cell.tone === 'derived' ? (
-                      <div
-                        className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 bg-amber-500/15 blur-2xl"
-                        aria-hidden
-                      />
-                    ) : null}
-                    <p
-                      className={`text-lg font-bold tabular-nums ${
-                        cell.tone === 'cash_in'
-                          ? 'text-emerald-700 dark:text-emerald-300'
-                          : cell.tone === 'cash_out'
-                            ? 'text-rose-700 dark:text-rose-300'
-                            : cell.tone === 'transfer'
-                              ? 'text-violet-700 dark:text-violet-300'
-                              : 'netNonNegative' in cell && cell.netNonNegative
-                                ? 'relative text-emerald-700 dark:text-emerald-300'
-                                : 'relative text-rose-700 dark:text-rose-300'
-                      }`}
-                    >
-                      {cell.v}
-                    </p>
-                    {cell.tone === 'derived' ? (
-                      <p className="relative text-[10px] text-muted-foreground">purchase − cashout</p>
-                    ) : null}
-                  </ApiMetricCard>
-                ))}
-              </div>
-              <p className="text-center text-[11px] text-muted-foreground">
-                Net = total_purchase − total_cashout · total_transfer is separate
+          </div>
+        ) : bonusError ? (
+          <div className="border-t border-border/15 bg-card px-5 py-4">
+            <p className="text-center text-sm text-rose-600 dark:text-rose-400">{bonusError}</p>
+          </div>
+        ) : bonusAnalytics ? (
+          <div className="border-t border-border/15 bg-card px-5 py-4">
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Bonus <span className="font-normal normal-case">{apiFieldLabel('data')}</span>
               </p>
-            </div>
-          ) : (
-            <p className="text-center text-sm text-muted-foreground">No summary data</p>
-          )}
-        </AnalyticsSection>
-
-        <AnalyticsSection eyebrow="Bonus" title="Bonuses" hint="transactions/bonus/">
-          {loadingBonus ? (
-            <div className="space-y-4">
-              <div className="h-14 bg-muted/20 animate-pulse" />
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                {[0, 1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="h-20 bg-muted/15 animate-pulse" />
-                ))}
-              </div>
-            </div>
-          ) : bonusAnalytics ? (
-            <div className="space-y-6">
-              <ApiMetricCard fieldKey="total_bonus" tone="bonus">
-                <p className="text-2xl font-bold tabular-nums text-amber-700 dark:text-amber-300">
+              <div className="text-right">
+                <p className="text-[9px] font-medium text-muted-foreground">{apiFieldLabel('total_bonus')}</p>
+                <p className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">
                   {formatCurrency(bonusAnalytics.total_bonus)}
                 </p>
-              </ApiMetricCard>
-              <div>
-                <h3 className="mb-3 text-xs font-medium text-muted-foreground">By component</h3>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                  {bonusAmountBars.map(({ fieldKey, value, bar, pct }) => (
-                    <ApiMetricCard key={fieldKey} fieldKey={fieldKey} tone="bonus">
-                      <p className="text-sm font-bold tabular-nums">{formatCurrency(value)}</p>
-                      <div className="mt-2 h-1 overflow-hidden bg-muted/30">
-                        <div className={`h-full ${bar}`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </ApiMetricCard>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="mb-3 text-xs font-medium text-muted-foreground">Averages</h3>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                  <ApiMetricCard fieldKey="average_purchase_bonus_pct" tone="avg">
-                    <p className="text-sm font-bold tabular-nums">{bonusAnalytics.average_purchase_bonus_pct.toFixed(2)}%</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="average_signup_bonus" tone="avg">
-                    <p className="text-sm font-bold tabular-nums">{formatCurrency(bonusAnalytics.average_signup_bonus)}</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="average_first_deposit_bonus_pct" tone="avg">
-                    <p className="text-sm font-bold tabular-nums">{bonusAnalytics.average_first_deposit_bonus_pct.toFixed(2)}%</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="average_transfer_bonus_pct" tone="avg">
-                    <p className="text-sm font-bold tabular-nums">{bonusAnalytics.average_transfer_bonus_pct.toFixed(2)}%</p>
-                  </ApiMetricCard>
-                  <ApiMetricCard fieldKey="average_free_play" tone="avg">
-                    <p className="text-sm font-bold tabular-nums">{formatCurrency(bonusAnalytics.average_free_play)}</p>
-                  </ApiMetricCard>
-                </div>
               </div>
             </div>
-          ) : (
-            <p className="text-center text-sm text-muted-foreground">No bonus data</p>
-          )}
-        </AnalyticsSection>
+            <div className="grid grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3">
+              {bonusBreakdown.map(({ fieldKey, value, bar, pct }) => (
+                <div key={fieldKey} className="group">
+                  <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">{apiFieldLabel(fieldKey)}</p>
+                  <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(value)}</p>
+                  <div className="mt-1.5 h-1 bg-muted/15 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${bar} transition-all duration-700 ease-out`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3.5 pt-3 border-t border-border/10 text-[10px] text-muted-foreground">
+              <span className="text-[9px] font-medium">{apiFieldLabel('average_purchase_bonus_pct')}</span>
+              <strong className="text-foreground">{bonusAnalytics.average_purchase_bonus_pct.toFixed(2)}%</strong>
+              <span className="text-border/50">&middot;</span>
+              <span className="text-[9px] font-medium">{apiFieldLabel('average_signup_bonus')}</span>
+              <strong className="text-foreground">{formatCurrency(bonusAnalytics.average_signup_bonus)}</strong>
+              <span className="text-border/50">&middot;</span>
+              <span className="text-[9px] font-medium">{apiFieldLabel('average_transfer_bonus_pct')}</span>
+              <strong className="text-foreground">{bonusAnalytics.average_transfer_bonus_pct.toFixed(2)}%</strong>
+              <span className="text-border/50">&middot;</span>
+              <span className="text-[9px] font-medium">{apiFieldLabel('average_first_deposit_bonus_pct')}</span>
+              <strong className="text-foreground">{bonusAnalytics.average_first_deposit_bonus_pct.toFixed(2)}%</strong>
+              <span className="text-border/50">&middot;</span>
+              <span className="text-[9px] font-medium">{apiFieldLabel('average_free_play')}</span>
+              <strong className="text-foreground">{formatCurrency(bonusAnalytics.average_free_play)}</strong>
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      <AnalyticsSection
-        eyebrow="Methods"
-        title="Payment breakdown"
-        hint="transactions/payment-methods/"
-      >
-        <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-        <div className="min-w-0">
-          <div className="mb-3 flex items-center gap-2 border-b border-border/40 pb-2">
-            <span className="h-2 w-2 bg-emerald-500" />
-            <h3 className="text-sm font-semibold text-foreground">Purchases</h3>
-            {purchaseMethods.length > 0 ? (
-              <span className="ml-auto text-xs tabular-nums text-muted-foreground">{purchaseMethods.length} methods</span>
-            ) : null}
+      {/* ── Payment Methods ── */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {/* Purchase table */}
+        <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+            <span className="text-sm font-semibold text-foreground">Purchases</span>
+            <span className="text-[9px] font-medium text-muted-foreground hidden sm:inline">{apiFieldLabel('data.purchases')}</span>
+            {purchaseMethods.length > 0 && (
+              <span className="ml-auto text-[10px] font-medium text-muted-foreground tabular-nums">{purchaseMethods.length}</span>
+            )}
           </div>
-          {loadingPaymentMethods ? <TableSkel /> : purchaseMethods.length > 0 ? (
+          {loadingPaymentMethods ? (
+            <TableSkel />
+          ) : paymentMethodsError ? (
+            <div className="p-6 text-center text-xs text-rose-600 dark:text-rose-400">{paymentMethodsError}</div>
+          ) : purchaseMethods.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border/10 bg-muted/5">
-                    <th className="text-left px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Method</th>
-                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Volume</th>
-                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Bonus</th>
-                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Avg %</th>
-                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Success</th>
-                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Avg Size</th>
-                    <th className="text-right px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Usage</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('key')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('purchase')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('bonus')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('average_bonus_pct')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('average_transaction_size')}</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('usage_distribution_pct')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/5">
@@ -515,7 +419,7 @@ export default function TransactionAnalyticsPage() {
                     <tr key={`p-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-emerald-500/10 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">{fmtMethod(m.payment_method).charAt(0)}</span>
+                          <span className="w-5 h-5 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-[9px] shrink-0">{fmtMethod(m.payment_method).charAt(0)}</span>
                           <span className="font-medium text-foreground text-xs">{fmtMethod(m.payment_method)}</span>
                         </div>
                       </td>
@@ -543,24 +447,30 @@ export default function TransactionAnalyticsPage() {
           )}
         </div>
 
-        <div className="min-w-0">
-          <div className="mb-3 flex items-center gap-2 border-b border-border/40 pb-2">
-            <span className="h-2 w-2 bg-rose-500" />
-            <h3 className="text-sm font-semibold text-foreground">Cashouts</h3>
-            {cashoutMethods.length > 0 ? (
-              <span className="ml-auto text-xs tabular-nums text-muted-foreground">{cashoutMethods.length} methods</span>
-            ) : null}
+        {/* Cashout table */}
+        <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+            <span className="text-sm font-semibold text-foreground">Cashouts</span>
+            <span className="text-[9px] font-medium text-muted-foreground hidden sm:inline">{apiFieldLabel('data.cashouts')}</span>
+            {cashoutMethods.length > 0 && (
+              <span className="ml-auto text-[10px] font-medium text-muted-foreground tabular-nums">{cashoutMethods.length}</span>
+            )}
           </div>
-          {loadingPaymentMethods ? <TableSkel /> : cashoutMethods.length > 0 ? (
+          {loadingPaymentMethods ? (
+            <TableSkel />
+          ) : paymentMethodsError ? (
+            <div className="p-6 text-center text-xs text-rose-600 dark:text-rose-400">{paymentMethodsError}</div>
+          ) : cashoutMethods.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border/10 bg-muted/5">
-                    <th className="text-left px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Method</th>
-                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Volume</th>
-                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Success</th>
-                    <th className="text-right px-3 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Avg Size</th>
-                    <th className="text-right px-4 py-2 font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Usage</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('key')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('cashout')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('average_transaction_size')}</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('usage_distribution_pct')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/5">
@@ -568,7 +478,7 @@ export default function TransactionAnalyticsPage() {
                     <tr key={`c-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-rose-500/10 text-[9px] font-bold text-rose-600 dark:text-rose-400">{fmtMethod(m.payment_method).charAt(0)}</span>
+                          <span className="w-5 h-5 rounded bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-[9px] shrink-0">{fmtMethod(m.payment_method).charAt(0)}</span>
                           <span className="font-medium text-foreground text-xs">{fmtMethod(m.payment_method)}</span>
                         </div>
                       </td>
@@ -585,8 +495,7 @@ export default function TransactionAnalyticsPage() {
             <div className="p-6 text-center text-xs text-muted-foreground">No cashout data</div>
           )}
         </div>
-        </div>
-      </AnalyticsSection>
+      </div>
     </div>
   );
 }
