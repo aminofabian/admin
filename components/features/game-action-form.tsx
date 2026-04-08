@@ -66,15 +66,53 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
   }, [bonusAmount]);
 
-  const newCreditsBalance = useMemo(() => {
-    if (!queue) return null;
-    const credits = queue.data?.new_credits_balance;
-    if (credits === undefined || credits === null) return null;
-    const creditsValue = typeof credits === 'string' || typeof credits === 'number'
-      ? parseFloat(String(credits))
-      : null;
-    return creditsValue !== null && !isNaN(creditsValue) ? formatCurrency(String(creditsValue)) : null;
+  const formattedPreviousCreditsBalance = useMemo(() => {
+    if (!queue?.data || typeof queue.data !== 'object') return null;
+    const raw =
+      queue.data.previous_credits_balance ?? queue.data.balance;
+    if (raw === undefined || raw === null) return null;
+    const n =
+      typeof raw === 'string' || typeof raw === 'number'
+        ? parseFloat(String(raw))
+        : NaN;
+    return !Number.isNaN(n) ? formatCurrency(String(n)) : null;
   }, [queue]);
+
+  const formattedNewCreditsBalance = useMemo(() => {
+    if (!queue?.data || typeof queue.data !== 'object') return null;
+    const raw = queue.data.new_credits_balance;
+    if (raw === undefined || raw === null) return null;
+    const n =
+      typeof raw === 'string' || typeof raw === 'number'
+        ? parseFloat(String(raw))
+        : NaN;
+    return !Number.isNaN(n) ? formatCurrency(String(n)) : null;
+  }, [queue]);
+
+  const renderRechargeRedeemBalanceBoxes = () => (
+    <div className="grid grid-cols-2 gap-2">
+      <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
+        <div className="text-[10px] text-muted-foreground mb-0.5">Previous balance</div>
+        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+          {formattedPreviousCreditsBalance ?? '—'}
+        </div>
+      </div>
+      <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
+        <div className="text-[10px] text-muted-foreground mb-0.5">New balance</div>
+        <div
+          className={
+            formattedPreviousCreditsBalance &&
+            formattedNewCreditsBalance &&
+            formattedPreviousCreditsBalance !== formattedNewCreditsBalance
+              ? 'text-sm font-bold text-indigo-600 dark:text-indigo-400'
+              : 'text-sm font-bold text-blue-600 dark:text-blue-400'
+          }
+        >
+          {formattedNewCreditsBalance ?? '—'}
+        </div>
+      </div>
+    </div>
+  );
 
   if (!queue) {
     return null;
@@ -243,14 +281,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             </div>
           </div>
 
-          {newCreditsBalance && (
-            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
-              <div className="text-[10px] text-muted-foreground mb-0.5">Balance</div>
-              <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                {newCreditsBalance}
-              </div>
-            </div>
-          )}
+          {renderRechargeRedeemBalanceBoxes()}
 
           {/* Transaction Amount */}
           <div className={`p-2 border rounded ${amountContainerClass}`}>
@@ -576,14 +607,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             </div>
           </div>
 
-          {newCreditsBalance && (
-            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
-              <div className="text-[10px] text-muted-foreground mb-0.5">Balance</div>
-              <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                {newCreditsBalance}
-              </div>
-            </div>
-          )}
+          {renderRechargeRedeemBalanceBoxes()}
 
           {/* Amount and Bonus */}
           <div className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded">
