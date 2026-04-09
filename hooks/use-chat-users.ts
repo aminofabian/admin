@@ -267,11 +267,23 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       // Handle "balanceUpdated" or "balance_updated" message type
       if (messageType === 'balanceUpdated' || messageType === 'balance_updated') {
         const playerId = data.player_id || data.user_id;
-        const balance = data.balance ?? data.player_bal;
-        const cashoutLimit = data.cashout_limit ?? data.player_cashout_limit;
-        const lockedBalance = data.locked_balance ?? data.player_locked_balance;
         const dataRecord = data as Record<string, unknown>;
         const nestedPlayer = (dataRecord.player as Record<string, unknown>) || undefined;
+        const balance = data.balance ?? data.player_bal;
+        const cashoutLimit =
+          data.cashout_limit ??
+          data.player_cashout_limit ??
+          dataRecord.cashoutLimit ??
+          nestedPlayer?.cashout_limit ??
+          nestedPlayer?.player_cashout_limit ??
+          nestedPlayer?.cashoutLimit;
+        const lockedBalance =
+          data.locked_balance ??
+          data.player_locked_balance ??
+          dataRecord.lockedBalance ??
+          nestedPlayer?.locked_balance ??
+          nestedPlayer?.player_locked_balance ??
+          nestedPlayer?.lockedBalance;
 
         if (!IS_PROD) console.log('💰 [Chat Users] Balance updated notification received:', {
           playerId,

@@ -89,6 +89,94 @@ export interface ManualPaymentResponse {
   locked_balance?: number | string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function firstDefined<T>(obj: Record<string, unknown>, keys: string[]): T | undefined {
+  for (const k of keys) {
+    if (Object.prototype.hasOwnProperty.call(obj, k) && obj[k] !== undefined) {
+      return obj[k] as T;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Unwraps `{ data }` / `{ result }` payloads and snake_case vs camelCase so the chat UI
+ * can apply cashout limit and locked balance without a full page reload.
+ */
+export function normalizeManualPaymentResponse(body: unknown): ManualPaymentResponse | null {
+  if (!isRecord(body)) {
+    return null;
+  }
+
+  const innerRoot =
+    isRecord(body.data) ? body.data : isRecord(body.result) ? body.result : body;
+
+  const inner =
+    isRecord(innerRoot.player) &&
+    firstDefined<unknown>(innerRoot.player as Record<string, unknown>, [
+      'player_bal',
+      'player_balance',
+      'balance',
+      'playerBal',
+    ]) !== undefined
+      ? (innerRoot.player as Record<string, unknown>)
+      : innerRoot;
+
+  const playerBalRaw = firstDefined<unknown>(inner, [
+    'player_bal',
+    'player_balance',
+    'balance',
+    'playerBal',
+    'playerBalance',
+  ]);
+
+  if (playerBalRaw === undefined || playerBalRaw === null) {
+    return null;
+  }
+
+  const playerBalNum =
+    typeof playerBalRaw === 'number' ? playerBalRaw : Number.parseFloat(String(playerBalRaw).replace(/,/g, ''));
+  if (!Number.isFinite(playerBalNum)) {
+    return null;
+  }
+
+  const winningRaw = firstDefined<unknown>(inner, [
+    'player_winning_bal',
+    'player_winning_balance',
+    'winning_balance',
+    'playerWinningBal',
+    'playerWinningBalance',
+    'winningBalance',
+  ]);
+
+  const cashoutRaw = firstDefined<unknown>(inner, [
+    'cashout_limit',
+    'player_cashout_limit',
+    'cashoutLimit',
+    'playerCashoutLimit',
+  ]);
+
+  const lockedRaw = firstDefined<unknown>(inner, [
+    'locked_balance',
+    'player_locked_balance',
+    'lockedBalance',
+    'playerLockedBalance',
+  ]);
+
+  const status = typeof body.status === 'string' ? body.status : 'success';
+
+  return {
+    status,
+    player_bal: playerBalNum,
+    ...(winningRaw !== undefined && winningRaw !== null ? { player_winning_bal: winningRaw as number | string } : {}),
+    ...(cashoutRaw !== undefined && cashoutRaw !== null ? { cashout_limit: cashoutRaw as number | string } : {}),
+    ...(lockedRaw !== undefined && lockedRaw !== null ? { locked_balance: lockedRaw as number | string } : {}),
+  };
+}
+
 export function buildManualPaymentRequestBody(
   playerId: number,
   kind: ManualAdjustmentKind,

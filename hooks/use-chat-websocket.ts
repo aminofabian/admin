@@ -72,6 +72,20 @@ interface RawChatMessage {
     profile_pic?: string | null;
   };
   operationType?: 'increase' | 'decrease' | null;
+  cashout_limit?: string | number | null;
+  player_cashout_limit?: string | number | null;
+  locked_balance?: string | number | null;
+  player_locked_balance?: string | number | null;
+  cashoutLimit?: string | number | null;
+  lockedBalance?: string | number | null;
+  player?: {
+    cashout_limit?: string | number | null;
+    player_cashout_limit?: string | number | null;
+    locked_balance?: string | number | null;
+    player_locked_balance?: string | number | null;
+    cashoutLimit?: string | number | null;
+    lockedBalance?: string | number | null;
+  };
 }
 
 const mapHistoryMessage = (msg: RawChatMessage): ChatMessage => {
@@ -145,8 +159,17 @@ interface UseChatWebSocketParams {
   adminId: number;
   enabled: boolean;
   onMessageReceived?: (message: ChatMessage) => void; // Callback to update chat list
-  /** `winningBalance` only present when the WS payload included a winnings field (omit when single-balance). */
-  onBalanceUpdated?: (data: { playerId: number; balance: string; winningBalance?: string }) => void;
+  /**
+   * `winningBalance` only present when the WS payload included a winnings field (omit when single-balance).
+   * `cashoutLimit` / `lockedBalance` when the room WS includes ledger fields (same as chat-list WS).
+   */
+  onBalanceUpdated?: (data: {
+    playerId: number;
+    balance: string;
+    winningBalance?: string;
+    cashoutLimit?: string;
+    lockedBalance?: string;
+  }) => void;
 }
 
 interface UseChatWebSocketReturn {
@@ -501,10 +524,32 @@ export function useChatWebSocket({
     const playerId = rawData.player_id || rawData.user_id || userId;
     const balance = rawData.user_balance ?? rawData.balance ?? rawData.player_bal;
     const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal;
+    const p = rawData.player;
+    const cashoutRaw =
+      rawData.cashout_limit ??
+      rawData.player_cashout_limit ??
+      rawData.cashoutLimit ??
+      p?.cashout_limit ??
+      p?.player_cashout_limit ??
+      p?.cashoutLimit;
+    const lockedRaw =
+      rawData.locked_balance ??
+      rawData.player_locked_balance ??
+      rawData.lockedBalance ??
+      p?.locked_balance ??
+      p?.player_locked_balance ??
+      p?.lockedBalance;
 
     if (!playerId) return;
 
-    !IS_PROD && console.log('💰 [Chat WS] Processing balance update:', { playerId, balance, winningBalance });
+    !IS_PROD &&
+      console.log('💰 [Chat WS] Processing balance update:', {
+        playerId,
+        balance,
+        winningBalance,
+        cashoutRaw,
+        lockedRaw,
+      });
 
     if (String(playerId) === String(userId) && balance !== undefined && balance !== null) {
       const balanceStr = String(balance);
@@ -522,12 +567,24 @@ export function useChatWebSocket({
     }
 
     if (onBalanceUpdatedRef.current) {
-      const payload: { playerId: number; balance: string; winningBalance?: string } = {
+      const payload: {
+        playerId: number;
+        balance: string;
+        winningBalance?: string;
+        cashoutLimit?: string;
+        lockedBalance?: string;
+      } = {
         playerId: Number(playerId),
         balance: balance !== undefined && balance !== null ? String(balance) : '0',
       };
       if (winningBalance !== undefined && winningBalance !== null) {
         payload.winningBalance = String(winningBalance);
+      }
+      if (cashoutRaw !== undefined && cashoutRaw !== null && String(cashoutRaw).trim() !== '') {
+        payload.cashoutLimit = String(cashoutRaw);
+      }
+      if (lockedRaw !== undefined && lockedRaw !== null && String(lockedRaw).trim() !== '') {
+        payload.lockedBalance = String(lockedRaw);
       }
       onBalanceUpdatedRef.current(payload);
     }

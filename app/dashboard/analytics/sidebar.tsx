@@ -93,12 +93,6 @@ const RechargeBonusIcon = () => (
   </svg>
 );
 
-const TransferBonusIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-  </svg>
-);
-
 const SignUpBonusIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -349,7 +343,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     submenu: [
       { name: 'Purchase Bonus', href: '/dashboard/bonuses/purchase', icon: <PurchaseBonusIcon /> },
       { name: 'Recharge Bonus', href: '/dashboard/bonuses/recharge', icon: <RechargeBonusIcon /> },
-      { name: 'Transfer Bonus', href: '/dashboard/bonuses/transfer', icon: <TransferBonusIcon /> },
       { name: 'Sign Up Bonus', href: '/dashboard/bonuses/signup', icon: <SignUpBonusIcon /> },
       { name: 'First Purchase', href: '/dashboard/bonuses/first-page', icon: <FirstPageBonusIcon /> },
     ],
@@ -361,7 +354,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     submenu: [
       { name: 'Purchase Bonus', href: '/dashboard/bonuses/purchase', icon: <PurchaseBonusIcon /> },
       { name: 'Recharge Bonus', href: '/dashboard/bonuses/recharge', icon: <RechargeBonusIcon /> },
-      { name: 'Transfer Bonus', href: '/dashboard/bonuses/transfer', icon: <TransferBonusIcon /> },
       { name: 'Sign Up Bonus', href: '/dashboard/bonuses/signup', icon: <SignUpBonusIcon /> },
       { name: 'First Purchase', href: '/dashboard/bonuses/first-page', icon: <FirstPageBonusIcon /> },
     ],

@@ -1,5 +1,6 @@
 import {
   buildManualPaymentRequestBody,
+  normalizeManualPaymentResponse,
   parseLedgerAmount,
   validateExternalCashoutAmount,
   type ManualAdjustmentKind,
@@ -42,6 +43,48 @@ describe('validateExternalCashoutAmount', () => {
 
   it('accepts when amount within limit and balance', () => {
     expect(validateExternalCashoutAmount(20, '50', '100')).toEqual({ ok: true });
+  });
+});
+
+describe('normalizeManualPaymentResponse', () => {
+  it('returns null for non-objects and missing balance', () => {
+    expect(normalizeManualPaymentResponse(null)).toBeNull();
+    expect(normalizeManualPaymentResponse({ status: 'ok' })).toBeNull();
+  });
+
+  it('reads flat snake_case fields', () => {
+    expect(
+      normalizeManualPaymentResponse({
+        status: 'success',
+        player_bal: 40,
+        cashout_limit: '13.00',
+        locked_balance: '27.00',
+      }),
+    ).toEqual({
+      status: 'success',
+      player_bal: 40,
+      cashout_limit: '13.00',
+      locked_balance: '27.00',
+    });
+  });
+
+  it('unwraps data and nested player', () => {
+    expect(
+      normalizeManualPaymentResponse({
+        data: {
+          player: {
+            player_bal: '10.5',
+            cashoutLimit: 5,
+            lockedBalance: 1,
+          },
+        },
+      }),
+    ).toEqual({
+      status: 'success',
+      player_bal: 10.5,
+      cashout_limit: 5,
+      locked_balance: 1,
+    });
   });
 });
 

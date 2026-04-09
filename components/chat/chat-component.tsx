@@ -14,8 +14,10 @@ import type { ChatUser, ChatMessage } from '@/types';
 import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
 import {
   buildManualPaymentRequestBody,
+  normalizeManualPaymentResponse,
   validateExternalCashoutAmount,
   type ManualAdjustmentKind,
+  type ManualPaymentResponse,
 } from '@/lib/api/manual-adjustment-payload';
 import { normalizeWinningBalanceFromRealtime, pickWinningBalanceFromBackend } from '@/lib/chat/map-chat-api';
 import { mergeWinningBalanceFromDirectoryRow } from '@/lib/chat/merge-player-ledger-display';
@@ -243,59 +245,93 @@ export function ChatComponent() {
         );
       }
     }, [refreshActiveChats, updateChatLastMessage, selectedPlayer?.id]),
-    onBalanceUpdated: useCallback((data: { playerId: number; balance: string; winningBalance?: string }) => {
-      if (!IS_PROD) {
-        console.log('💰 [Chat Component] Balance updated via WebSocket callback:', {
-          playerId: data.playerId,
-          balance: data.balance,
-          winningBalance: data.winningBalance,
-          selectedPlayerId: selectedPlayer?.user_id,
-          matchesSelectedPlayer: selectedPlayer?.user_id === data.playerId,
-        });
-      }
+    onBalanceUpdated: useCallback(
+      (data: {
+        playerId: number;
+        balance: string;
+        winningBalance?: string;
+        cashoutLimit?: string;
+        lockedBalance?: string;
+      }) => {
+        if (!IS_PROD) {
+          console.log('💰 [Chat Component] Balance updated via WebSocket callback:', {
+            playerId: data.playerId,
+            balance: data.balance,
+            winningBalance: data.winningBalance,
+            cashoutLimit: data.cashoutLimit,
+            lockedBalance: data.lockedBalance,
+            selectedPlayerId: selectedPlayer?.user_id,
+            matchesSelectedPlayer: selectedPlayer?.user_id === data.playerId,
+          });
+        }
 
-      // Update selected player's balance if this is the current player
-      // Always create a new object to ensure React detects the change
-      if (selectedPlayer && selectedPlayer.user_id === data.playerId) {
-        setSelectedPlayer(prev => {
-          if (!prev) return null;
+        // Update selected player's balance if this is the current player
+        // Always create a new object to ensure React detects the change
+        if (selectedPlayer && selectedPlayer.user_id === data.playerId) {
+          setSelectedPlayer((prev) => {
+            if (!prev) return null;
 
-          // Parse balance values - handle both string and number formats
-          const newBalance = data.balance && data.balance !== '0' && data.balance !== 'undefined'
-            ? String(data.balance)
-            : prev.balance;
-          const newWinningBalance =
-            data.winningBalance !== undefined
-              ? normalizeWinningBalanceFromRealtime(data.winningBalance, prev.winningBalance)
-              : undefined;
+            // Parse balance values - handle both string and number formats
+            const newBalance =
+              data.balance && data.balance !== '0' && data.balance !== 'undefined'
+                ? String(data.balance)
+                : prev.balance;
+            const newWinningBalance =
+              data.winningBalance !== undefined
+                ? normalizeWinningBalanceFromRealtime(data.winningBalance, prev.winningBalance)
+                : undefined;
 
-          // Only update if values actually changed to avoid unnecessary re-renders
-          if (newBalance === prev.balance && newWinningBalance === prev.winningBalance) {
-            if (!IS_PROD) console.log('⏭️ [Chat Component] Balance values unchanged, skipping update');
-            return prev;
-          }
+            const nextCashout =
+              data.cashoutLimit !== undefined ? String(data.cashoutLimit) : prev.cashoutLimit;
+            const nextLocked =
+              data.lockedBalance !== undefined ? String(data.lockedBalance) : prev.lockedBalance;
 
-          const updated = {
-            ...prev,
-            balance: newBalance,
-            winningBalance: newWinningBalance,
-          };
+            // Only update if values actually changed to avoid unnecessary re-renders
+            if (
+              newBalance === prev.balance &&
+              newWinningBalance === prev.winningBalance &&
+              nextCashout === prev.cashoutLimit &&
+              nextLocked === prev.lockedBalance
+            ) {
+              if (!IS_PROD) console.log('⏭️ [Chat Component] Balance values unchanged, skipping update');
+              return prev;
+            }
 
-          if (!IS_PROD) {
-            console.log('✅ [Chat Component] Updated selected player balance:', {
-              before: { balance: prev.balance, winningBalance: prev.winningBalance },
-              after: { balance: updated.balance, winningBalance: updated.winningBalance },
-              objectReferenceChanged: prev !== updated,
-            });
-          }
+            const updated = {
+              ...prev,
+              balance: newBalance,
+              winningBalance: newWinningBalance,
+              cashoutLimit: nextCashout,
+              lockedBalance: nextLocked,
+            };
 
-          return updated;
-        });
-      }
+            if (!IS_PROD) {
+              console.log('✅ [Chat Component] Updated selected player balance:', {
+                before: {
+                  balance: prev.balance,
+                  winningBalance: prev.winningBalance,
+                  cashoutLimit: prev.cashoutLimit,
+                  lockedBalance: prev.lockedBalance,
+                },
+                after: {
+                  balance: updated.balance,
+                  winningBalance: updated.winningBalance,
+                  cashoutLimit: updated.cashoutLimit,
+                  lockedBalance: updated.lockedBalance,
+                },
+                objectReferenceChanged: prev !== updated,
+              });
+            }
 
-      // Balance updates are handled by websocket in real-time, no need to refresh
-      // The chat list websocket will update balances automatically
-    }, [selectedPlayer]),
+            return updated;
+          });
+        }
+
+        // Balance updates are handled by websocket in real-time, no need to refresh
+        // The chat list websocket will update balances automatically
+      },
+      [selectedPlayer],
+    ),
   });
 
   const {
@@ -1408,7 +1444,9 @@ export function ChatComponent() {
         remarks: balanceRemarks,
       });
 
-      const response = await playersApi.manualPayment(payload);
+      const rawPayment = await playersApi.manualPayment(payload);
+      const response: ManualPaymentResponse =
+        normalizeManualPaymentResponse(rawPayment) ?? (rawPayment as ManualPaymentResponse);
 
       const manualPaymentTs = Date.now();
       lastManualPaymentRef.current = {
@@ -1459,19 +1497,17 @@ export function ChatComponent() {
                 response.player_winning_bal !== undefined && response.player_winning_bal !== null
                   ? String(response.player_winning_bal)
                   : undefined,
-              ...(response.cashout_limit !== undefined &&
-              response.cashout_limit !== null &&
-              String(response.cashout_limit) !== ''
+              ...(response.cashout_limit !== undefined && response.cashout_limit !== null
                 ? { cashoutLimit: String(response.cashout_limit) }
                 : {}),
-              ...(response.locked_balance !== undefined &&
-              response.locked_balance !== null &&
-              String(response.locked_balance) !== ''
+              ...(response.locked_balance !== undefined && response.locked_balance !== null
                 ? { lockedBalance: String(response.locked_balance) }
                 : {}),
             }
           : null,
       );
+
+      void refreshActiveChats();
     } catch (error) {
       let errorMessage = 'Unknown error';
 
@@ -1497,6 +1533,7 @@ export function ChatComponent() {
     balanceRemarks,
     isUpdatingBalance,
     addToast,
+    refreshActiveChats,
   ]);
 
   // Log online players connection status
