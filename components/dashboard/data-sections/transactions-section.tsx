@@ -13,6 +13,7 @@ import {
   formatPaymentMethod,
   getProviderDisplayName,
 } from '@/lib/utils/formatters';
+import { buildProviderFilterOptionsFromPaymentMethodsRaw } from '@/lib/utils/transaction-provider-filter-options';
 import {
   getTransactionAmountColorClass,
   getTransactionTypeBadgeStyle,
@@ -83,6 +84,7 @@ const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
   operator: '',
   type: '',
   payment_method: '',
+  provider: '',
   status: '',
   game: '', // Keep in state for compatibility but will be removed when applying
   date_from: '',
@@ -93,12 +95,15 @@ const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
 
 function buildHistoryFilterState(advanced: Record<string, string>): HistoryTransactionsFiltersState {
   const txn = advanced.txn ?? '';
-  const derivedType =
+  let derivedType =
     txn === 'purchases'
       ? 'purchase'
       : txn === 'cashouts'
         ? 'cashout'
         : advanced.type ?? '';
+  if (derivedType === 'transfer') {
+    derivedType = '';
+  }
 
   return {
     agent: advanced.agent ?? '',
@@ -109,6 +114,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
     operator: advanced.operator ?? '',
     type: derivedType,
     payment_method: advanced.payment_method ?? '',
+    provider: advanced.provider ?? '',
     status: advanced.status ?? '',
     game: advanced.game ?? '',
     date_from: advanced.date_from ?? '',
@@ -159,6 +165,7 @@ export function TransactionsSection() {
   const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
   const [isAgentLoading, setIsAgentLoading] = useState(false);
   const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [providerOptions, setProviderOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
   const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
   const [isOperatorLoading, setIsOperatorLoading] = useState(false);
@@ -462,6 +469,7 @@ export function TransactionsSection() {
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
         setPaymentMethodOptions(mapped);
+        setProviderOptions(buildProviderFilterOptionsFromPaymentMethodsRaw(response));
       } catch (error) {
         console.error('Failed to load payment methods for transaction filters:', error);
       } finally {
@@ -699,19 +707,26 @@ export function TransactionsSection() {
       }
     }
 
-    // Transaction type filter: keep purchase/cashout/transfer as type parameter
-    // The store will respect this when filter is 'history' or 'all'
-    if (sanitized.type && sanitized.type !== 'purchase' && sanitized.type !== 'cashout' && sanitized.type !== 'transfer') {
-      // For other types, remove it (not supported in advanced filters)
+    // Transaction type filter: purchase, cashout, add, deduct (no transfer)
+    if (
+      sanitized.type &&
+      sanitized.type !== 'purchase' &&
+      sanitized.type !== 'cashout' &&
+      sanitized.type !== 'add' &&
+      sanitized.type !== 'deduct'
+    ) {
       delete sanitized.type;
     }
-    // If type is purchase, cashout, or transfer, keep it as-is - the store will use it
 
     console.log('🔍 Applying advanced filters - type filter:', {
       originalType: filters.type,
       sanitizedType: sanitized.type,
       mainFilter: filter,
-      willPreserveType: sanitized.type === 'purchase' || sanitized.type === 'cashout' || sanitized.type === 'transfer',
+      willPreserveType:
+        sanitized.type === 'purchase' ||
+        sanitized.type === 'cashout' ||
+        sanitized.type === 'add' ||
+        sanitized.type === 'deduct',
     });
 
     if (sanitized.agent && !sanitized.agent_id) {
@@ -800,6 +815,8 @@ export function TransactionsSection() {
         isAgentLoadingAgents={isAgentLoading}
         paymentMethodOptions={paymentMethodOptions}
         isPaymentMethodLoading={isPaymentMethodLoading}
+        providerOptions={providerOptions}
+        isProviderLoading={isPaymentMethodLoading}
         operatorOptions={operatorOptions}
         isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}
@@ -825,6 +842,8 @@ interface TransactionsLayoutProps {
   isAgentLoadingAgents: boolean;
   paymentMethodOptions: Array<{ value: string; label: string }>;
   isPaymentMethodLoading: boolean;
+  providerOptions: Array<{ value: string; label: string }>;
+  isProviderLoading: boolean;
   operatorOptions: Array<{ value: string; label: string }>;
   isOperatorLoading: boolean;
   isLoading: boolean;
@@ -847,6 +866,8 @@ function TransactionsLayout({
   isAgentLoadingAgents,
   paymentMethodOptions,
   isPaymentMethodLoading,
+  providerOptions,
+  isProviderLoading,
   operatorOptions,
   isOperatorLoading,
   isLoading,
@@ -894,6 +915,8 @@ function TransactionsLayout({
         isAgentLoading={isAgentLoadingAgents}
         paymentMethodOptions={paymentMethodOptions}
         isPaymentMethodLoading={isPaymentMethodLoading}
+        providerOptions={providerOptions}
+        isProviderLoading={isProviderLoading}
         operatorOptions={operatorOptions}
         isOperatorLoading={isOperatorLoading}
         isLoading={isLoading}

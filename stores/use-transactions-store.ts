@@ -159,7 +159,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       // Apply type filters from main filter dropdown
       // For history filter, respect advanced filter type if set, otherwise use 'history'
       // NOTE: API uses txn_type for purchase/cashout, and type for processing/history
-      const hasAdvancedTypeFilter = cleanedAdvancedFilters.type === 'purchase' || cleanedAdvancedFilters.type === 'cashout' || cleanedAdvancedFilters.type === 'transfer';
+      const hasAdvancedTypeFilter =
+        cleanedAdvancedFilters.type === 'purchase' ||
+        cleanedAdvancedFilters.type === 'cashout' ||
+        cleanedAdvancedFilters.type === 'add' ||
+        cleanedAdvancedFilters.type === 'deduct';
       
       console.log('🔍 Type filter processing:', {
         filter,
@@ -195,8 +199,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           filters.type = 'history';
           delete filters.txn_type;
         } else {
-          // Use txn_type for purchase/cashout/transfer filters
-          filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'transfer';
+          filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'add' | 'deduct';
           delete filters.type; // Don't use type when txn_type is set
         }
       } else if (filter === 'all') {
@@ -207,8 +210,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           delete filters.type;
           delete filters.txn_type;
         } else {
-          // Use txn_type for purchase/cashout/transfer filters
-          filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'transfer';
+          filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'add' | 'deduct';
           delete filters.type;
         }
       }
@@ -243,7 +245,13 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       // When txn_type is purchase or cashout in history, ensure pending is excluded
       // According to API docs: type=history excludes pending, but txn_type=cashout includes all cashouts
       // So when using txn_type=cashout in history view, we need to exclude pending
-      if (isHistoryFilter && (cleanedAdvancedFilters.type === 'purchase' || cleanedAdvancedFilters.type === 'cashout' || cleanedAdvancedFilters.type === 'transfer')) {
+      if (
+        isHistoryFilter &&
+        (cleanedAdvancedFilters.type === 'purchase' ||
+          cleanedAdvancedFilters.type === 'cashout' ||
+          cleanedAdvancedFilters.type === 'add' ||
+          cleanedAdvancedFilters.type === 'deduct')
+      ) {
         console.log('🔍 History view with type filter - ensuring txn_type is preserved:', {
           cleanedAdvancedFiltersType: cleanedAdvancedFilters.type,
           filtersTxnTypeBefore: filters.txn_type,
@@ -251,7 +259,7 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         });
         
         // CRITICAL: Ensure txn_type is set correctly (it might have been lost)
-        filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'transfer';
+        filters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'add' | 'deduct';
         delete filters.type; // Don't use type when txn_type is set
         
         // If status is pending, remove it (history shouldn't show pending)
@@ -338,13 +346,25 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
       // FINAL CHECK: Ensure txn_type filter is preserved if it was set in advanced filters
       // This is a safety check in case the txn_type got lost during processing
-      if (isHistoryFilter && (cleanedAdvancedFilters.type === 'purchase' || cleanedAdvancedFilters.type === 'cashout' || cleanedAdvancedFilters.type === 'transfer')) {
-        if (!apiFilters.txn_type || (apiFilters.txn_type !== 'purchase' && apiFilters.txn_type !== 'cashout' && apiFilters.txn_type !== 'transfer')) {
+      if (
+        isHistoryFilter &&
+        (cleanedAdvancedFilters.type === 'purchase' ||
+          cleanedAdvancedFilters.type === 'cashout' ||
+          cleanedAdvancedFilters.type === 'add' ||
+          cleanedAdvancedFilters.type === 'deduct')
+      ) {
+        if (
+          !apiFilters.txn_type ||
+          (apiFilters.txn_type !== 'purchase' &&
+            apiFilters.txn_type !== 'cashout' &&
+            apiFilters.txn_type !== 'add' &&
+            apiFilters.txn_type !== 'deduct')
+        ) {
           console.warn('⚠️ txn_type filter was lost! Restoring from cleanedAdvancedFilters:', {
             originalType: cleanedAdvancedFilters.type,
             currentApiFiltersTxnType: apiFilters.txn_type,
           });
-          apiFilters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'transfer';
+          apiFilters.txn_type = cleanedAdvancedFilters.type as 'purchase' | 'cashout' | 'add' | 'deduct';
           delete apiFilters.type; // Ensure type is not set when txn_type is used
         }
       }
@@ -426,7 +446,13 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
       // Client-side filtering for type and status in history view
       // This is a fallback in case the API doesn't support status__ne parameter
-      if (isHistoryFilter && (cleanedAdvancedFilters.type === 'purchase' || cleanedAdvancedFilters.type === 'cashout' || cleanedAdvancedFilters.type === 'transfer')) {
+      if (
+        isHistoryFilter &&
+        (cleanedAdvancedFilters.type === 'purchase' ||
+          cleanedAdvancedFilters.type === 'cashout' ||
+          cleanedAdvancedFilters.type === 'add' ||
+          cleanedAdvancedFilters.type === 'deduct')
+      ) {
         const expectedType = cleanedAdvancedFilters.type;
         const beforeCount = normalizedTransactions.length;
         

@@ -6,6 +6,7 @@ import { DashboardSectionContainer } from '@/components/dashboard/layout';
 import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination, Button } from '@/components/ui';
 import { useTransactionsStore } from '@/stores';
 import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName } from '@/lib/utils/formatters';
+import { buildProviderFilterOptionsFromPaymentMethodsRaw } from '@/lib/utils/transaction-provider-filter-options';
 import { getTransactionAmountColorClass, getTransactionTypeBadgeStyle } from '@/lib/utils/transaction-display';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
@@ -21,6 +22,7 @@ const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
     operator: '',
     type: '',
     payment_method: '',
+    provider: '',
     status: '',
     game: '',
     date_from: '',
@@ -31,12 +33,15 @@ const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
 
 function buildHistoryFilterState(advanced: Record<string, string>): HistoryTransactionsFiltersState {
     const txn = advanced.txn ?? '';
-    const derivedType =
+    let derivedType =
         txn === 'purchases'
             ? 'purchase'
             : txn === 'cashouts'
                 ? 'cashout'
                 : advanced.type ?? '';
+    if (derivedType === 'transfer') {
+        derivedType = '';
+    }
 
     return {
         agent: advanced.agent ?? '',
@@ -47,6 +52,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
         operator: '', // Operator filter removed for superadmin
         type: derivedType,
         payment_method: advanced.payment_method ?? '',
+        provider: advanced.provider ?? '',
         status: advanced.status ?? '',
         game: advanced.game ?? '',
         date_from: advanced.date_from ?? '',
@@ -78,6 +84,7 @@ export function SuperAdminHistoryTransactions() {
     const [agentIdMap, setAgentIdMap] = useState<Map<string, number>>(new Map());
     const [isAgentLoading, setIsAgentLoading] = useState(false);
     const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ value: string; label: string }>>([]);
+    const [providerOptions, setProviderOptions] = useState<Array<{ value: string; label: string }>>([]);
     const [isPaymentMethodLoading, setIsPaymentMethodLoading] = useState(false);
 
     // Company filter state
@@ -336,6 +343,7 @@ export function SuperAdminHistoryTransactions() {
                     .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
                 setPaymentMethodOptions(mappedOptions);
+                setProviderOptions(buildProviderFilterOptionsFromPaymentMethodsRaw(response));
             } catch (error) {
                 console.error('Failed to load payment methods for transaction filters:', error);
             } finally {
@@ -756,6 +764,8 @@ export function SuperAdminHistoryTransactions() {
                 isAgentLoading={false}
                 paymentMethodOptions={paymentMethodOptions}
                 isPaymentMethodLoading={isPaymentMethodLoading}
+                providerOptions={providerOptions}
+                isProviderLoading={isPaymentMethodLoading}
                 isLoading={isLoading}
             />
 

@@ -1,5 +1,5 @@
 export type TransactionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
-export type TransactionType = 'purchase' | 'cashout';
+export type TransactionType = 'purchase' | 'cashout' | 'add' | 'deduct';
 export type QueueType = 'recharge_game' | 'redeem_game' | 'add_user_game' | 'create_game';
 export type JournalEntry = 'debit' | 'credit';
 export type GameActionType = 'retry' | 'cancel' | 'complete';
@@ -78,7 +78,7 @@ export interface TransactionQueue {
 export interface TransactionFilters {
   search?: string;
   type?: 'processing' | 'history'; // Use type for processing/history views
-  txn_type?: 'purchase' | 'cashout' | 'transfer'; // Use txn_type for purchase/cashout/transfer filters
+  txn_type?: 'purchase' | 'cashout' | 'add' | 'deduct'; // Aligned with history type filter (no transfer)
   txn?: 'purchases' | 'cashouts';
   page?: number;
   page_size?: number;

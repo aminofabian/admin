@@ -12,6 +12,7 @@ export interface HistoryTransactionsFiltersState {
   operator: string;
   type: string;
   payment_method: string;
+  provider: string;
   status: string;
   game: string;
   date_from: string;
@@ -36,7 +37,8 @@ const BASE_SELECT_FIELDS: SelectFieldConfig[] = [
       { value: '', label: 'All Types' },
       { value: 'purchase', label: 'Purchase' },
       { value: 'cashout', label: 'Cashout' },
-      { value: 'transfer', label: 'Transfer' },
+      { value: 'add', label: 'Add' },
+      { value: 'deduct', label: 'Deduct' },
     ],
   },
 ];
@@ -65,6 +67,8 @@ interface HistoryTransactionsFiltersProps {
   isAgentLoading?: boolean;
   paymentMethodOptions?: Array<{ value: string; label: string }>;
   isPaymentMethodLoading?: boolean;
+  providerOptions?: Array<{ value: string; label: string }>;
+  isProviderLoading?: boolean;
   operatorOptions?: Array<{ value: string; label: string }>;
   isOperatorLoading?: boolean;
   isLoading?: boolean;
@@ -82,6 +86,8 @@ export function HistoryTransactionsFilters({
   isAgentLoading = false,
   paymentMethodOptions,
   isPaymentMethodLoading = false,
+  providerOptions = [],
+  isProviderLoading = false,
   operatorOptions,
   isOperatorLoading = false,
   isLoading = false,
@@ -196,16 +202,17 @@ export function HistoryTransactionsFilters({
                   />
                 </div>
               )}
-              {!(Array.isArray(paymentMethodOptions) && paymentMethodOptions.length === 0) && (
-                <div>
-                  <label className={labelClasses}>Payment method</label>
-                  <Select
+              <div>
+                <label className={labelClasses}>Payment method</label>
+                <Select
                   value={filters.payment_method}
                   onChange={(v) => onFilterChange('payment_method', v)}
                   options={[
                     { value: '', label: 'All Methods' },
-                    ...(paymentMethodOptions || []),
-                    ...(filters.payment_method && paymentMethodOptions && !paymentMethodOptions.some((o) => o.value === filters.payment_method)
+                    ...(paymentMethodOptions ?? []),
+                    ...(filters.payment_method &&
+                    paymentMethodOptions &&
+                    !paymentMethodOptions.some((o) => o.value === filters.payment_method)
                       ? [{ value: filters.payment_method, label: formatPaymentMethod(filters.payment_method) }]
                       : []),
                   ]}
@@ -213,8 +220,26 @@ export function HistoryTransactionsFilters({
                   isLoading={isPaymentMethodLoading}
                   disabled={isPaymentMethodLoading}
                 />
-                </div>
-              )}
+              </div>
+              <div>
+                <label className={labelClasses}>Provider</label>
+                <Select
+                  value={filters.provider}
+                  onChange={(v) => onFilterChange('provider', v)}
+                  options={[
+                    { value: '', label: 'All Providers' },
+                    ...(providerOptions ?? []),
+                    ...(filters.provider &&
+                    providerOptions &&
+                    !providerOptions.some((o) => o.value === filters.provider)
+                      ? [{ value: filters.provider, label: formatPaymentMethod(filters.provider) }]
+                      : []),
+                  ]}
+                  placeholder="All Providers"
+                  isLoading={isProviderLoading}
+                  disabled={isProviderLoading}
+                />
+              </div>
               {BASE_SELECT_FIELDS.map(({ key, label: fieldLabel, options }) => (
                 <div key={key}>
                   <label className={labelClasses}>{fieldLabel}</label>
