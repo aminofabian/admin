@@ -40,7 +40,6 @@ import {
   formatCurrency,
   formatDate,
   formatPaymentMethod,
-  getPaymentDetailsForDisplay,
   getPlayerIpFromTransaction,
   getProviderDisplayName,
   resolvePayoutContactFromTransaction,
@@ -388,25 +387,6 @@ function ProcessingTransactionRow({
     </TableCell>
   );
 
-  const rawPaymentDetails = getPaymentDetailsForDisplay(transaction);
-  const paymentDetails = (() => {
-    let details = showProvider
-      ? rawPaymentDetails.filter(([label]) => label !== 'Provider')
-      : rawPaymentDetails;
-
-    // Hide email from the payment-details box entirely (email is already shown in the User column).
-    details = details.filter(([label]) => label.toLowerCase() !== 'email');
-
-    // Ensure "Method" is the first row in the payment details box.
-    // getPaymentDetailsForDisplay typically adds "Method" near the end, so reorder here.
-    const methodIndex = details.findIndex(([label]) => label.toLowerCase() === 'method' || label.toLowerCase() === 'payment method');
-    if (methodIndex > 0) {
-      const [methodEntry] = details.splice(methodIndex, 1);
-      details = [methodEntry, ...details];
-    }
-
-    return details;
-  })();
   const providerCell = showProvider && transaction.provider ? (
     <TableCell className="align-top">
       <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
@@ -416,22 +396,14 @@ function ProcessingTransactionRow({
       </div>
     </TableCell>
   ) : null;
+  const paymentMethodLabel = transaction.payment_method?.trim() ?? '';
   const paymentCell = (
     <TableCell className="align-top">
-      <div className="min-w-[8rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
-        {paymentDetails.length > 0 ? (
-          <div className="space-y-1.5">
-            {paymentDetails.map(([label, value]) => (
-              <div key={label} className="flex items-baseline gap-2 min-w-0">
-                <span className="shrink-0 min-w-[3.5rem] text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {label}:
-                </span>
-                <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate min-w-0" title={String(value)}>
-                  {value}
-                </span>
-              </div>
-            ))}
-          </div>
+      <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+        {paymentMethodLabel ? (
+          <Badge variant="info" className="text-xs font-medium">
+            {paymentMethodLabel}
+          </Badge>
         ) : (
           <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
         )}
@@ -1683,44 +1655,17 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                           <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
                             {transaction.status}
                           </Badge>
+                          {transaction.payment_method?.trim() ? (
+                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
+                              {transaction.payment_method.trim()}
+                            </Badge>
+                          ) : null}
                           {viewType === 'purchases' && transaction.provider && (
                             <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
                               {getProviderDisplayName(transaction.provider, transaction.payment_method)}
                             </Badge>
                           )}
                         </div>
-                        {(() => {
-                          const rawEntries = getPaymentDetailsForDisplay(transaction);
-                          let entries = viewType === 'purchases'
-                            ? rawEntries.filter(([label]) => label !== 'Provider')
-                            : rawEntries;
-
-                          // Hide email from the payment-details list entirely.
-                          entries = entries.filter(([label]) => label.toLowerCase() !== 'email');
-
-                          // Ensure "Method" is the first row in the payment details list.
-                          const methodIndex = entries.findIndex(
-                            ([label]) => label.toLowerCase() === 'method' || label.toLowerCase() === 'payment method'
-                          );
-                          if (methodIndex > 0) {
-                            const [methodEntry] = entries.splice(methodIndex, 1);
-                            entries = [methodEntry, ...entries];
-                          }
-                          return entries.length > 0 ? (
-                            <div className="mt-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/40 p-2.5 space-y-1.5">
-                              {entries.map(([label, value]) => (
-                                <div key={label} className="flex items-baseline gap-2 min-w-0">
-                                  <span className="shrink-0 min-w-[3.5rem] text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                    {label}:
-                                  </span>
-                                  <span className="text-xs font-medium text-gray-900 dark:text-gray-100 break-all min-w-0">
-                                    {value}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null;
-                        })()}
                       </div>
                     </div>
                   </div>

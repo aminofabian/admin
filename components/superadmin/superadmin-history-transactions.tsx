@@ -923,9 +923,13 @@ export function SuperAdminHistoryTransactions() {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge variant="info" className="text-xs">
-                                                            {formatPaymentMethod(transaction.payment_method)}
-                                                        </Badge>
+                                                        {transaction.payment_method?.trim() ? (
+                                                            <Badge variant="info" className="text-xs">
+                                                                {transaction.payment_method.trim()}
+                                                            </Badge>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
+                                                        )}
                                                     </TableCell>
                                                     <TableCell>
                                                         {transaction.provider ? (
@@ -1031,10 +1035,12 @@ export function SuperAdminHistoryTransactions() {
                                                                 {transactionType}
                                                             </Badge>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                                                                {formatPaymentMethod(transaction.payment_method)}
-                                                            </Badge>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            {transaction.payment_method?.trim() ? (
+                                                                <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
+                                                                    {transaction.payment_method.trim()}
+                                                                </Badge>
+                                                            ) : null}
                                                             {transaction.provider && (
                                                                 <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
                                                                     {getProviderDisplayName(transaction.provider, transaction.payment_method)}
