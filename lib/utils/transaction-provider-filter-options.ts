@@ -22,12 +22,21 @@ function isNestedPurchase(arr: unknown): arr is PurchasePaymentMethod[] {
   );
 }
 
+/**
+ * Omitted from the provider dropdown and not treated as an integrator slug when splitting
+ * payment-method vs provider filters (e.g. PayPal is a rail, not Binpay/Tierlock-style provider).
+ */
+const PROVIDER_FILTER_EXCLUDED_SLUGS = new Set(['paypal']);
+
 /** Slugs used for `transaction.provider` / integrator — exclude from payment-method filter. */
 function collectProviderSlugSet(data: PaymentMethodsListResponseRaw): Set<string> {
   const slugs = new Set<string>();
   const addSlug = (raw: string | null | undefined) => {
     const v = raw?.trim();
-    if (v) slugs.add(v.toLowerCase());
+    if (!v) return;
+    const key = v.toLowerCase();
+    if (PROVIDER_FILTER_EXCLUDED_SLUGS.has(key)) return;
+    slugs.add(key);
   };
 
   const cashout = data.cashout ?? [];
@@ -80,7 +89,6 @@ function collectProviderSlugSet(data: PaymentMethodsListResponseRaw): Set<string
 }
 
 const MANUAL_ADJUSTMENT_METHOD_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'free_play', label: 'Freeplay' },
   { value: 'freeplay', label: 'Freeplay' },
   { value: 'manual', label: 'Manual' },
   { value: 'seize_tip', label: 'Seize Tip' },
@@ -89,9 +97,21 @@ const MANUAL_ADJUSTMENT_METHOD_OPTIONS: Array<{ value: string; label: string }> 
   { value: 'void', label: 'Void' },
 ];
 
+/** Same rail, different API spellings — one dropdown row, one query value. */
+const PAYMENT_METHOD_FILTER_VALUE_ALIASES: Record<string, string> = {
+  free_play: 'freeplay',
+};
+
+function canonicalPaymentMethodFilterValue(slug: string): string {
+  const trimmed = slug.trim();
+  const k = trimmed.toLowerCase();
+  return PAYMENT_METHOD_FILTER_VALUE_ALIASES[k] ?? trimmed;
+}
+
 /**
- * Payment rails for history `payment_method` query param — category + subcategory `payment_method`
- * only, never `provider_payment_method` integrator slugs.
+ * Payment rails for history `payment_method` query param — subcategory `payment_method`
+ * when subcategories exist (parent is only a UI group, e.g. Card vs Credit and Debit Card),
+ * never `provider_payment_method` integrator slugs.
  */
 export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
   data: PaymentMethodsListResponseRaw,
@@ -102,15 +122,16 @@ export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
   const addMethod = (raw: string | null | undefined, displayHint: string | null | undefined) => {
     const v = raw?.trim();
     if (!v) return;
-    if (providerSlugs.has(v.toLowerCase())) return;
-    const key = v.toLowerCase();
+    const canonical = canonicalPaymentMethodFilterValue(v);
+    const key = canonical.toLowerCase();
+    if (providerSlugs.has(key)) return;
     const label =
       displayHint?.trim() && displayHint.trim().length > 0
         ? displayHint.trim()
-        : formatPaymentMethod(v);
+        : formatPaymentMethod(canonical);
     const prev = map.get(key);
     if (!prev) {
-      map.set(key, { value: v, label });
+      map.set(key, { value: canonical, label });
       return;
     }
     if (displayHint?.trim() && displayHint.trim().length > 0) {
@@ -121,8 +142,11 @@ export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
   const cashout = data.cashout ?? [];
   if (isNestedCashout(cashout)) {
     for (const parent of cashout) {
-      addMethod(parent.payment_method, parent.payment_method_display);
-      for (const sub of parent.subcategories ?? []) {
+      const subs = parent.subcategories ?? [];
+      if (subs.length === 0) {
+        addMethod(parent.payment_method, parent.payment_method_display);
+      }
+      for (const sub of subs) {
         addMethod(sub.payment_method, sub.payment_method_display);
       }
     }
@@ -135,8 +159,11 @@ export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
   const purchase = data.purchase ?? [];
   if (isNestedPurchase(purchase)) {
     for (const parent of purchase) {
-      addMethod(parent.payment_method, parent.payment_method_display);
-      for (const sub of parent.subcategories ?? []) {
+      const subs = parent.subcategories ?? [];
+      if (subs.length === 0) {
+        addMethod(parent.payment_method, parent.payment_method_display);
+      }
+      for (const sub of subs) {
         addMethod(sub.payment_method, sub.payment_method_display);
       }
     }
@@ -170,6 +197,7 @@ export function buildProviderFilterOptionsFromPaymentMethodsRaw(
     const v = raw?.trim();
     if (!v) return;
     const key = v.toLowerCase();
+    if (PROVIDER_FILTER_EXCLUDED_SLUGS.has(key)) return;
     const label =
       displayHint?.trim() && displayHint.trim().length > 0
         ? displayHint.trim()

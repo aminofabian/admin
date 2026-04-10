@@ -87,6 +87,64 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     expect(opts[0]?.label).toBe('BinPay Display');
   });
 
+  it('omits paypal from provider filter options', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [
+        {
+          payment_method: 'card',
+          payment_method_display: 'Card',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              payment_method: 'paypal',
+              payment_method_display: 'PayPal',
+              provider_payment_method: 'paypal',
+              provider_payment_method_display: 'PayPal',
+            },
+            {
+              id: 2,
+              payment_method: 'venmo',
+              payment_method_display: 'Venmo',
+              provider_payment_method: 'binpay',
+              provider_payment_method_display: 'Binpay',
+            },
+          ],
+        },
+      ],
+      purchase: [],
+    };
+
+    const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
+    expect(opts.map((o) => o.value.toLowerCase())).not.toContain('paypal');
+    expect(opts.some((o) => o.value.toLowerCase() === 'binpay')).toBe(true);
+  });
+
+  it('still lists paypal as a payment method when API marks it as provider_payment_method', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [
+        {
+          payment_method: 'card',
+          payment_method_display: 'Card',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              payment_method: 'paypal',
+              payment_method_display: 'PayPal',
+              provider_payment_method: 'paypal',
+              provider_payment_method_display: 'PayPal',
+            },
+          ],
+        },
+      ],
+      purchase: [],
+    };
+
+    const paymentOpts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    expect(paymentOpts.map((o) => o.value.toLowerCase())).toContain('paypal');
+  });
+
   it('reads provider_payment_method from flat payment method rows', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [
@@ -133,9 +191,26 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
 
     const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
     const values = opts.map((o) => o.value);
-    expect(values).toContain('card');
+    expect(values).not.toContain('card');
     expect(values).toContain('venmo');
     expect(values).not.toContain('binpay');
+  });
+
+  it('includes parent payment_method when a category has no subcategories', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [
+        {
+          payment_method: 'crypto',
+          payment_method_display: 'Crypto',
+          has_subcategories: true,
+          subcategories: [],
+        },
+      ],
+      purchase: [],
+    };
+
+    const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    expect(opts.map((o) => o.value)).toContain('crypto');
   });
 
   it('drops sub rows where payment_method is the integrator slug', () => {
@@ -186,10 +261,31 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
 
     const payment = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
     const providers = buildProviderFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
-    expect(payment).toContain('zelle');
+    expect(payment).not.toContain('zelle');
     expect(payment).toContain('chime');
     expect(payment).not.toContain('taparcadia');
     expect(providers).toContain('taparcadia');
     expect(providers).not.toContain('chime');
+  });
+
+  it('merges free_play into freeplay so Freeplay appears once', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [
+        {
+          payment_method: 'misc',
+          payment_method_display: 'Misc',
+          has_subcategories: true,
+          subcategories: [
+            { id: 1, payment_method: 'free_play', payment_method_display: 'Freeplay' },
+          ],
+        },
+      ],
+      purchase: [],
+    };
+
+    const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    const freeplayRows = opts.filter((o) => o.label === 'Freeplay');
+    expect(freeplayRows).toHaveLength(1);
+    expect(freeplayRows[0]?.value).toBe('freeplay');
   });
 });
