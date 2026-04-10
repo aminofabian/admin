@@ -4,6 +4,7 @@ import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { TransactionQueue, Transaction } from '@/types';
+import { resolveCreditLedgerBalancesFromWsPayload } from '@/lib/utils/transaction-ledger-ws';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -61,6 +62,11 @@ function transformPurchaseToTransaction(rawPurchase: any): Transaction {
       ? nestedData.payment_details
       : null;
 
+  const { previous_balance, new_balance } = resolveCreditLedgerBalancesFromWsPayload(
+    rawPurchase,
+    nestedData,
+  );
+
   return {
     id: rawPurchase.id || rawPurchase.transaction_id || nestedData?.id || nestedData?.transaction_id || '',
     user_username: rawPurchase.user_username || userData?.username || userData?.user_username || nestedData?.user_username || rawPurchase.username || nestedData?.username || '',
@@ -75,8 +81,8 @@ function transformPurchaseToTransaction(rawPurchase: any): Transaction {
     currency: rawPurchase.currency || nestedData?.currency || 'USD',
     description: rawPurchase.description || nestedData?.description || '',
     journal_entry: 'credit',
-    previous_balance: String(rawPurchase.previous_balance || nestedData?.previous_balance || 0),
-    new_balance: String(rawPurchase.new_balance || nestedData?.new_balance || 0),
+    previous_balance,
+    new_balance,
     previous_winning_balance: String(rawPurchase.previous_winning_balance || nestedData?.previous_winning_balance || 0),
     new_winning_balance: String(rawPurchase.new_winning_balance || nestedData?.new_winning_balance || 0),
     unique_id: rawPurchase.unique_id || nestedData?.unique_id || rawPurchase.id || nestedData?.id || '',
@@ -105,6 +111,11 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
       ? nestedData.payment_details
       : null;
 
+  const { previous_balance, new_balance } = resolveCreditLedgerBalancesFromWsPayload(
+    rawCashout,
+    nestedData,
+  );
+
   return {
     id: rawCashout.id || rawCashout.transaction_id || nestedData?.id || nestedData?.transaction_id || '',
     user_id:
@@ -126,8 +137,8 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
     currency: rawCashout.currency || nestedData?.currency || 'USD',
     description: rawCashout.description || nestedData?.description || '',
     journal_entry: 'debit',
-    previous_balance: String(rawCashout.previous_balance || nestedData?.previous_balance || 0),
-    new_balance: String(rawCashout.new_balance || nestedData?.new_balance || 0),
+    previous_balance,
+    new_balance,
     previous_winning_balance: String(rawCashout.previous_winning_balance || nestedData?.previous_winning_balance || 0),
     new_winning_balance: String(rawCashout.new_winning_balance || nestedData?.new_winning_balance || 0),
     unique_id: rawCashout.unique_id || nestedData?.unique_id || rawCashout.id || nestedData?.id || '',

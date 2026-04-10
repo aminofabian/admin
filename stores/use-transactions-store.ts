@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { transactionsApi } from '@/lib/api';
+import { shouldPreserveLedgerBalancesWhenMerging } from '@/lib/utils/transaction-ledger-ws';
 import type { 
   Transaction,
   TransactionFilters,
@@ -674,6 +675,13 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         tierlock_status: hasWsProviderStatus('tierlock_status') ? updatedTransaction.tierlock_status : existingTransaction.tierlock_status,
         taparcadia_status: hasWsProviderStatus('taparcadia_status') ? updatedTransaction.taparcadia_status : existingTransaction.taparcadia_status,
       };
+
+      if (
+        shouldPreserveLedgerBalancesWhenMerging(existingTransaction, updatedTransaction)
+      ) {
+        mergedTransaction.previous_balance = existingTransaction.previous_balance;
+        mergedTransaction.new_balance = existingTransaction.new_balance;
+      }
       
       const updatedResults = [...transactions.results];
       updatedResults[transactionIndex] = mergedTransaction;
