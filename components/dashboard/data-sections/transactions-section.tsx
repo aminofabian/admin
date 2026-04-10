@@ -13,7 +13,10 @@ import {
   formatPaymentMethod,
   getProviderDisplayName,
 } from '@/lib/utils/formatters';
-import { buildProviderFilterOptionsFromPaymentMethodsRaw } from '@/lib/utils/transaction-provider-filter-options';
+import {
+  buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
+  buildProviderFilterOptionsFromPaymentMethodsRaw,
+} from '@/lib/utils/transaction-provider-filter-options';
 import {
   getTransactionAmountColorClass,
   getTransactionTypeBadgeStyle,
@@ -21,7 +24,7 @@ import {
 import { useTransactionsStore } from '@/stores';
 import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
-import type { Agent, PaymentMethod, CashoutPaymentMethod, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
+import type { Agent, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 
 const TRANSACTIONS_SKELETON = (
@@ -431,43 +434,7 @@ export function TransactionsSection() {
           return;
         }
 
-        const collection = [
-          ...(response?.cashout ?? []),
-          ...(response?.purchase ?? []),
-        ];
-
-        const uniqueMethods = new Map<string, string>();
-
-        collection.forEach((method: PaymentMethod | CashoutPaymentMethod) => {
-          if (!method) {
-            return;
-          }
-
-          const value = method.payment_method?.trim();
-          if (!value) {
-            return;
-          }
-
-          const label = method.payment_method_display?.trim() || formatPaymentMethod(value);
-          uniqueMethods.set(value, label);
-        });
-
-        // Only show payment methods returned by API (enabled by superadmin for this admin)
-        // Do not add hardcoded methods - admins should not see methods they don't have access to
-
-        // Manual adjustment methods (6.1–6.4) — align labels with history/analytics taxonomy
-        uniqueMethods.set('free_play', 'Freeplay');
-        uniqueMethods.set('freeplay', 'Freeplay');
-        uniqueMethods.set('manual', 'Manual');
-        uniqueMethods.set('seize_tip', 'Seize Tip');
-        uniqueMethods.set('external_deposit', 'External Deposit');
-        uniqueMethods.set('external_cashout', 'External Cashout');
-        uniqueMethods.set('void', 'Void');
-
-        const mapped = Array.from(uniqueMethods.entries())
-          .map(([value, label]) => ({ value, label }))
-          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
-
+        const mapped = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(response);
         setPaymentMethodOptions(mapped);
         setProviderOptions(buildProviderFilterOptionsFromPaymentMethodsRaw(response));
       } catch (error) {

@@ -6,12 +6,15 @@ import { DashboardSectionContainer } from '@/components/dashboard/layout';
 import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination, Button } from '@/components/ui';
 import { useTransactionsStore } from '@/stores';
 import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName } from '@/lib/utils/formatters';
-import { buildProviderFilterOptionsFromPaymentMethodsRaw } from '@/lib/utils/transaction-provider-filter-options';
+import {
+    buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
+    buildProviderFilterOptionsFromPaymentMethodsRaw,
+} from '@/lib/utils/transaction-provider-filter-options';
 import { getTransactionAmountColorClass, getTransactionTypeBadgeStyle } from '@/lib/utils/transaction-display';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
-import type { Agent, PaymentMethod, CashoutPaymentMethod, Company, Transaction } from '@/types';
+import type { Agent, Company, Transaction } from '@/types';
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
     agent: '',
@@ -309,39 +312,7 @@ export function SuperAdminHistoryTransactions() {
                     return;
                 }
 
-                const collection = [
-                    ...(response?.cashout ?? []),
-                    ...(response?.purchase ?? []),
-                ];
-
-                const uniqueMethods = new Map<string, string>();
-
-                collection.forEach((method: PaymentMethod | CashoutPaymentMethod) => {
-                    if (!method) {
-                        return;
-                    }
-
-                    const value = method.payment_method?.trim();
-                    if (!value) {
-                        return;
-                    }
-
-                    const label = method.payment_method_display?.trim() || formatPaymentMethod(value);
-                    uniqueMethods.set(value, label);
-                });
-
-                uniqueMethods.set('free_play', 'Freeplay');
-                uniqueMethods.set('freeplay', 'Freeplay');
-                uniqueMethods.set('manual', 'Manual');
-                uniqueMethods.set('seize_tip', 'Seize Tip');
-                uniqueMethods.set('external_deposit', 'External Deposit');
-                uniqueMethods.set('external_cashout', 'External Cashout');
-                uniqueMethods.set('void', 'Void');
-
-                const mappedOptions = Array.from(uniqueMethods.entries())
-                    .map(([value, label]) => ({ value, label }))
-                    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
-
+                const mappedOptions = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(response);
                 setPaymentMethodOptions(mappedOptions);
                 setProviderOptions(buildProviderFilterOptionsFromPaymentMethodsRaw(response));
             } catch (error) {

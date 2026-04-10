@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildProviderFilterOptionsFromPaymentMethodsRaw } from '../transaction-provider-filter-options';
+import {
+  buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
+  buildProviderFilterOptionsFromPaymentMethodsRaw,
+} from '../transaction-provider-filter-options';
 import type { PaymentMethodsListResponseRaw } from '@/types';
 
 describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
@@ -103,5 +106,90 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
 
     const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
     expect(opts.some((o) => o.value === 'taparcadia')).toBe(true);
+  });
+});
+
+describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
+  it('includes subcategory rails but omits integrator provider_payment_method slugs', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [
+        {
+          payment_method: 'card',
+          payment_method_display: 'Card',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              payment_method: 'venmo',
+              payment_method_display: 'Venmo',
+              provider_payment_method: 'binpay',
+              provider_payment_method_display: 'Binpay',
+            },
+          ],
+        },
+      ],
+      purchase: [],
+    };
+
+    const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    const values = opts.map((o) => o.value);
+    expect(values).toContain('card');
+    expect(values).toContain('venmo');
+    expect(values).not.toContain('binpay');
+  });
+
+  it('drops sub rows where payment_method is the integrator slug', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [
+        {
+          payment_method: 'payout',
+          payment_method_display: 'Payout',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              payment_method: 'tierlock',
+              payment_method_display: 'Tierlock',
+              provider_payment_method: 'tierlock',
+              provider_payment_method_display: 'Tierlock',
+            },
+          ],
+        },
+      ],
+      purchase: [],
+    };
+
+    const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    expect(opts.map((o) => o.value)).not.toContain('tierlock');
+  });
+
+  it('keeps provider and payment lists disjoint for nested data', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [
+        {
+          payment_method: 'zelle',
+          payment_method_display: 'Zelle',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              payment_method: 'chime',
+              payment_method_display: 'Chime',
+              provider_payment_method: 'taparcadia',
+              provider_payment_method_display: 'Taparcadia',
+            },
+          ],
+        },
+      ],
+      purchase: [],
+    };
+
+    const payment = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
+    const providers = buildProviderFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
+    expect(payment).toContain('zelle');
+    expect(payment).toContain('chime');
+    expect(payment).not.toContain('taparcadia');
+    expect(providers).toContain('taparcadia');
+    expect(providers).not.toContain('chime');
   });
 });
