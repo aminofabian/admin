@@ -4,7 +4,10 @@ import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { TransactionQueue, Transaction } from '@/types';
-import { resolveCreditLedgerBalancesFromWsPayload } from '@/lib/utils/transaction-ledger-ws';
+import {
+  patchGameActivityMergedDataCreditsFromWs,
+  resolveCreditLedgerBalancesFromWsPayload,
+} from '@/lib/utils/transaction-ledger-ws';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -164,10 +167,11 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
 
   // Merge nested data properties into the main data object for easier access
   // This ensures new_credits_balance and new_winning_balance are accessible at activity.data.new_credits_balance
-  const mergedData = {
+  const mergedData: Record<string, unknown> = {
     ...rawActivity,
     ...(nestedData || {}),
   };
+  patchGameActivityMergedDataCreditsFromWs(mergedData);
 
   // Normalize amount to string (handle both string and number types)
   let normalizedAmount: string;
@@ -208,7 +212,7 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
     bonus_amount: normalizedBonusAmount,
     new_game_balance: rawActivity.new_game_balance,
     remarks: rawActivity.remarks || '',
-    data: mergedData,
+    data: mergedData as TransactionQueue['data'],
     created_at: rawActivity.created_at || rawActivity.created || new Date().toISOString(),
     updated_at: rawActivity.updated_at || rawActivity.updated || new Date().toISOString(),
   };

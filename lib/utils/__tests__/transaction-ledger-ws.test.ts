@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   ledgerBalancesAreDuplicateSnapshot,
+  patchGameActivityMergedDataCreditsFromWs,
   resolveCreditLedgerBalancesFromWsPayload,
+  shouldPreserveGameActivityCreditsWhenMerging,
   shouldPreserveLedgerBalancesWhenMerging,
 } from '../transaction-ledger-ws';
 
@@ -48,5 +50,28 @@ describe('shouldPreserveLedgerBalancesWhenMerging', () => {
 describe('ledgerBalancesAreDuplicateSnapshot', () => {
   it('treats numerically equal strings as duplicate', () => {
     expect(ledgerBalancesAreDuplicateSnapshot('60', '60.00')).toBe(true);
+  });
+});
+
+describe('shouldPreserveGameActivityCreditsWhenMerging', () => {
+  it('returns true when REST credits transitioned and WS sends duplicate credits', () => {
+    expect(
+      shouldPreserveGameActivityCreditsWhenMerging(
+        { previous_credits_balance: 70, new_credits_balance: 60 },
+        { previous_credits_balance: 60, new_credits_balance: 60 },
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('patchGameActivityMergedDataCreditsFromWs', () => {
+  it('sets new_credits_balance from balance when credits snapshot is duplicate', () => {
+    const merged = {
+      previous_credits_balance: 60,
+      new_credits_balance: 60,
+      balance: 50,
+    };
+    patchGameActivityMergedDataCreditsFromWs(merged);
+    expect(merged.new_credits_balance).toBe(50);
   });
 });

@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import { transactionsApi } from '@/lib/api';
+import {
+  patchGameActivityMergedDataCreditsFromWs,
+  shouldPreserveGameActivityCreditsWhenMerging,
+} from '@/lib/utils/transaction-ledger-ws';
 import type { 
   TransactionQueue,
   QueueFilters,
@@ -398,6 +402,39 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
       // Update existing queue (for status changes like pending -> processing)
       // Merge WebSocket update with existing queue to preserve user data from API
       const existingQueue = queues[queueIndex];
+      const existingRaw = existingQueue.data;
+      const incomingRaw = updatedQueue.data;
+      const existingDataRecord =
+        existingRaw && typeof existingRaw === 'object' && !Array.isArray(existingRaw)
+          ? { ...(existingRaw as Record<string, unknown>) }
+          : {};
+      const incomingDataRecord =
+        incomingRaw && typeof incomingRaw === 'object' && !Array.isArray(incomingRaw)
+          ? { ...(incomingRaw as Record<string, unknown>) }
+          : null;
+
+      let mergedData: TransactionQueue['data'];
+      if (incomingDataRecord === null) {
+        mergedData = existingQueue.data;
+      } else {
+        const merged = { ...existingDataRecord, ...incomingDataRecord };
+        if (shouldPreserveGameActivityCreditsWhenMerging(existingDataRecord, incomingDataRecord)) {
+          const ex = existingDataRecord;
+          if (ex.previous_credits_balance !== undefined) {
+            merged.previous_credits_balance = ex.previous_credits_balance;
+          } else if (ex.previous_balance !== undefined) {
+            merged.previous_credits_balance = ex.previous_balance;
+          }
+          if (ex.new_credits_balance !== undefined) {
+            merged.new_credits_balance = ex.new_credits_balance;
+          } else if (ex.new_balance !== undefined) {
+            merged.new_credits_balance = ex.new_balance;
+          }
+        }
+        patchGameActivityMergedDataCreditsFromWs(merged);
+        mergedData = merged as TransactionQueue['data'];
+      }
+
       const mergedQueue: TransactionQueue = {
         ...existingQueue,
         ...updatedQueue,
@@ -410,7 +447,7 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         bonus_amount: updatedQueue.bonus_amount || existingQueue.bonus_amount,
         new_game_balance: updatedQueue.new_game_balance || existingQueue.new_game_balance,
         remarks: updatedQueue.remarks || existingQueue.remarks,
-        data: updatedQueue.data || existingQueue.data,
+        data: mergedData,
       };
       
       const updatedQueues = [...queues];
