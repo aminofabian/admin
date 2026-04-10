@@ -20,6 +20,7 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
           subcategories: [
             {
               id: 1,
+              is_configured: true,
               payment_method: 'visa',
               payment_method_display: 'Visa',
               provider_payment_method: 'binpay',
@@ -27,6 +28,7 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
             },
             {
               id: 2,
+              is_configured: true,
               payment_method: 'tierlock_sub',
               payment_method_display: 'Tierlock Sub',
               provider_payment_method: 'tierlock',
@@ -43,6 +45,7 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
           subcategories: [
             {
               id: 3,
+              is_configured: true,
               payment_method: 'banxa',
               payment_method_display: 'Banxa',
               provider_payment_method: 'banxa',
@@ -54,11 +57,20 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     };
 
     const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
-    expect(opts.map((o) => o.value).sort()).toEqual(['banxa', 'binpay', 'tierlock']);
-    expect(opts.find((o) => o.value === 'banxa')?.label).toBe('Banxa Pay');
+    expect(opts.map((o) => o.value)).toEqual([
+      'banxa',
+      'binpay',
+      'tierlock',
+      'freeplay',
+      'external_deposit',
+      'external_cashout',
+      'void',
+      'signup',
+    ]);
+    expect(opts.find((o) => o.value === 'banxa')?.label).toBe('Banxa');
   });
 
-  it('dedupes case-insensitively and keeps a display name when provided', () => {
+  it('dedupes case-insensitively and uses canonical provider labels', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [
         {
@@ -68,6 +80,7 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
           subcategories: [
             {
               id: 1,
+              is_configured: true,
               payment_method: 'a',
               payment_method_display: 'A',
               provider_payment_method: 'BinPay',
@@ -75,6 +88,7 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
             },
             {
               id: 2,
+              is_configured: true,
               payment_method: 'b',
               payment_method_display: 'B',
               provider_payment_method: 'binpay',
@@ -87,8 +101,10 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     };
 
     const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
-    expect(opts).toHaveLength(1);
-    expect(opts[0]?.label).toBe('BinPay Display');
+    const binpay = opts.filter((o) => o.value.toLowerCase() === 'binpay');
+    expect(binpay).toHaveLength(1);
+    expect(binpay[0]?.label).toBe('Binpay');
+    expect(opts.some((o) => o.value === 'freeplay')).toBe(true);
   });
 
   it('omits paypal from provider filter options', () => {
@@ -101,6 +117,7 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
           subcategories: [
             {
               id: 1,
+              is_configured: true,
               payment_method: 'paypal',
               payment_method_display: 'PayPal',
               provider_payment_method: 'paypal',
@@ -108,6 +125,7 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
             },
             {
               id: 2,
+              is_configured: true,
               payment_method: 'venmo',
               payment_method_display: 'Venmo',
               provider_payment_method: 'binpay',
@@ -122,6 +140,40 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
     expect(opts.map((o) => o.value.toLowerCase())).not.toContain('paypal');
     expect(opts.some((o) => o.value.toLowerCase() === 'binpay')).toBe(true);
+  });
+
+  it('omits integrators when superadmin has disabled the subcategory', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [],
+      purchase: [
+        {
+          payment_method: 'card',
+          payment_method_display: 'Card',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'banxa',
+              payment_method_display: 'Banxa',
+              provider_payment_method: 'banxa',
+              enabled_for_purchase_by_superadmin: false,
+            },
+            {
+              id: 2,
+              is_configured: true,
+              payment_method: 'stripe',
+              payment_method_display: 'Stripe',
+              provider_payment_method: 'stripe',
+            },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
+    expect(opts.some((o) => o.value === 'banxa')).toBe(false);
+    expect(opts.some((o) => o.value === 'stripe')).toBe(true);
   });
 
   it('reads provider_payment_method from flat payment method rows', () => {
@@ -258,20 +310,20 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
     expect(opts.map((o) => o.value)).not.toContain('crypto');
   });
 
-  it('lists parent category even when sub payment_method matches provider slug', () => {
+  it('maps tierlock purchase parent to canonical Tierlock payment-method filter', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [],
       purchase: [
         {
-          payment_method: 'payout',
-          payment_method_display: 'Payout',
+          payment_method: 'tierlock',
+          payment_method_display: 'Tierlock',
           has_subcategories: true,
           subcategories: [
             {
               id: 1,
               is_configured: true,
-              payment_method: 'tierlock',
-              payment_method_display: 'Tierlock',
+              payment_method: 'tierlock_rail',
+              payment_method_display: 'Tierlock Rail',
               provider_payment_method: 'tierlock',
               provider_payment_method_display: 'Tierlock',
             },
@@ -281,8 +333,8 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
     };
 
     const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
-    expect(opts.map((o) => o.value)).toContain('payout');
-    expect(opts.map((o) => o.value)).not.toContain('tierlock');
+    expect(opts.map((o) => o.value)).toContain('tierlock');
+    expect(opts.map((o) => o.value)).not.toContain('payout');
   });
 
   it('keeps provider slugs on provider list only for nested data', () => {
@@ -356,7 +408,7 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
     expect(values).toContain('manual');
   });
 
-  it('appends manual adjustment rails after purchase categories', () => {
+  it('lists freeplay on provider filter, not payment-method filter, when only cashout has free_play', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [
         {
@@ -364,26 +416,30 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
           payment_method_display: 'Misc',
           has_subcategories: true,
           subcategories: [
-            { id: 1, is_configured: true, payment_method: 'free_play', payment_method_display: 'Freeplay' },
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'free_play',
+              payment_method_display: 'Freeplay',
+              provider_payment_method: 'freeplay',
+            },
           ],
         },
       ],
       purchase: [],
     };
 
-    const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
-    expect(opts.some((o) => o.value === 'manual' && o.label === 'Manual')).toBe(true);
-    expect(opts.some((o) => o.value === 'freeplay')).toBe(true);
+    const paymentOpts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    const providerOpts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
+    expect(paymentOpts.some((o) => o.value === 'manual' && o.label === 'Manual')).toBe(true);
+    expect(paymentOpts.some((o) => o.value === 'freeplay')).toBe(false);
+    expect(providerOpts.some((o) => o.value === 'freeplay')).toBe(true);
   });
 
-  it('empty API payload yields manual adjustment options only', () => {
+  it('empty API payload yields manual and signup payment options only', () => {
     const data: PaymentMethodsListResponseRaw = { cashout: [], purchase: [] };
     const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
-    expect(
-      opts.every((o) =>
-        ['freeplay', 'manual', 'seize_tip', 'external_deposit', 'external_cashout', 'void'].includes(o.value),
-      ),
-    ).toBe(true);
+    expect(opts.map((o) => o.value).sort()).toEqual(['manual', 'signup'].sort());
   });
 
   it('parent paypal category on payment list; provider list still omits paypal integrator slug', () => {

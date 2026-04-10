@@ -6,7 +6,9 @@ import type {
 } from '@/types';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
 import {
+  filterCashoutCategoriesLikeSettings,
   filterPurchaseCategoriesLikeSettings,
+  isCashoutAllowedBySuperadmin,
   isPurchaseAllowedBySuperadmin,
 } from '@/lib/utils/payment-methods-category-filters';
 
@@ -26,26 +28,96 @@ function isNestedPurchase(arr: unknown): arr is PurchasePaymentMethod[] {
   );
 }
 
+function normKey(s: string | null | undefined): string {
+  return (s ?? '').trim().toLowerCase().replace(/-/g, '_');
+}
+
 /**
  * Omitted from the provider dropdown and not treated as an integrator slug when splitting
  * payment-method vs provider filters (e.g. PayPal is a rail, not Binpay/Tierlock-style provider).
  */
 const PROVIDER_FILTER_EXCLUDED_SLUGS = new Set(['paypal']);
 
-const MANUAL_ADJUSTMENT_METHOD_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'freeplay', label: 'Freeplay' },
-  { value: 'manual', label: 'Manual' },
-  { value: 'seize_tip', label: 'Seize Tip' },
-  { value: 'external_deposit', label: 'External Deposit' },
-  { value: 'external_cashout', label: 'External Cashout' },
-  { value: 'void', label: 'Void' },
-];
-
 /** API/query param for the card rail (matches backend). */
 export const PAYMENT_METHOD_CARD_QUERY_VALUE = 'card';
 
 /** UI label for the card rail in transaction filters (query value remains `card`). */
 export const PAYMENT_METHOD_CARD_DISPLAY_LABEL = 'Card';
+
+const CRYPTO_PAYMENT_METHOD_KEYS = new Set([
+  'crypto',
+  'cryptocurrency',
+  'bitcoin',
+  'btc',
+  'litecoin',
+  'ltc',
+  'lightning',
+  'ln',
+  'lnbtc',
+  'bitcoin_lightning',
+]);
+
+/**
+ * Canonical payment-method filter: fixed order and labels; options appear only when superadmin-enabled
+ * purchase parents match (plus always-on ledger rails: Manual, Signup).
+ */
+const PAYMENT_METHOD_CANONICAL: Array<{
+  queryValue: string;
+  label: string;
+  matchKeys: string[];
+  alwaysVisible?: boolean;
+}> = [
+  { queryValue: 'crypto', label: 'Crypto', matchKeys: ['crypto'] },
+  { queryValue: 'card', label: 'Card', matchKeys: ['card'] },
+  { queryValue: 'cashapp', label: 'Cashapp', matchKeys: ['cashapp', 'cash_app'] },
+  { queryValue: 'apple_pay', label: 'Apple Pay', matchKeys: ['apple_pay', 'applepay'] },
+  { queryValue: 'google_pay', label: 'Google Pay', matchKeys: ['google_pay', 'googlepay'] },
+  { queryValue: 'paypal', label: 'Paypal', matchKeys: ['paypal'] },
+  { queryValue: 'venmo', label: 'Venmo', matchKeys: ['venmo'] },
+  { queryValue: 'chime', label: 'Chime', matchKeys: ['chime'] },
+  { queryValue: 'zelle', label: 'Zelle', matchKeys: ['zelle'] },
+  { queryValue: 'tierlock', label: 'Tierlock', matchKeys: ['tierlock'] },
+  { queryValue: 'manual', label: 'Manual', matchKeys: ['manual'], alwaysVisible: true },
+  { queryValue: 'signup', label: 'Signup', matchKeys: ['signup'], alwaysVisible: true },
+];
+
+/**
+ * Canonical provider filter order (labels). Shown when an enabled subcategory exposes the integrator
+ * (superadmin + configured) or when the row is a ledger/synthetic provider (always available for history).
+ */
+const PROVIDER_CANONICAL: Array<{
+  label: string;
+  matchKeys: string[];
+  alwaysVisible?: boolean;
+}> = [
+  { label: 'Banxa', matchKeys: ['banxa'] },
+  { label: 'Bitcoin', matchKeys: ['bitcoin'] },
+  { label: 'Litecoin', matchKeys: ['litecoin'] },
+  { label: 'Bitcoin Lightning', matchKeys: ['bitcoin_lightning'] },
+  { label: 'Stripe', matchKeys: ['stripe'] },
+  { label: 'Robinhood', matchKeys: ['robinhood'] },
+  { label: 'Binpay', matchKeys: ['binpay'] },
+  { label: 'Tierlock', matchKeys: ['tierlock'] },
+  { label: 'Cashapp', matchKeys: ['cashapp', 'cash_app'] },
+  { label: 'Cashapp Pay', matchKeys: ['cashapp_pay', 'cashapppay'] },
+  { label: 'Topper', matchKeys: ['topper'] },
+  { label: 'Moonpay', matchKeys: ['moonpay'] },
+  { label: 'Tap', matchKeys: ['tap', 'taparcadia'] },
+  { label: 'Freeplay', matchKeys: ['freeplay', 'free_play'], alwaysVisible: true },
+  { label: 'External Deposit', matchKeys: ['external_deposit'], alwaysVisible: true },
+  { label: 'External Cashout', matchKeys: ['external_cashout'], alwaysVisible: true },
+  { label: 'Void', matchKeys: ['void'], alwaysVisible: true },
+  { label: 'Signup', matchKeys: ['signup'], alwaysVisible: true },
+];
+
+function rollupCryptoPaymentMethodKeys(keys: Set<string>): void {
+  const has = [...keys].some((k) => CRYPTO_PAYMENT_METHOD_KEYS.has(k));
+  if (!has) return;
+  for (const k of [...keys]) {
+    if (CRYPTO_PAYMENT_METHOD_KEYS.has(k)) keys.delete(k);
+  }
+  keys.add('crypto');
+}
 
 /**
  * Map card-style parent slugs to the query value the API expects (`card`).
@@ -74,14 +146,10 @@ export function isCreditDebitCardCategoryDisplay(display: string | null | undefi
   return s.includes('credit') && s.includes('debit') && s.includes('card');
 }
 
-/**
- * Purchase-tab parent categories (Payment Settings → Purchase), then manual / internal rails.
- * No cashout-only parents.
- */
-export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
+function collectPurchaseParentPaymentMethodRows(
   data: PaymentMethodsListResponseRaw,
 ): Array<{ value: string; label: string }> {
-  const result: Array<{ value: string; label: string }> = [];
+  const rows: Array<{ value: string; label: string }> = [];
   const seen = new Set<string>();
 
   const pushParentCategory = (
@@ -95,13 +163,13 @@ export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
       ? PAYMENT_METHOD_CARD_QUERY_VALUE
       : normalizePaymentMethodFilterQueryValue(slug) || slug?.trim() || '';
     if (!queryValue) return;
-    const key = queryValue.toLowerCase();
+    const key = normKey(queryValue);
     if (seen.has(key)) return;
     seen.add(key);
     const label = isCardRail
       ? PAYMENT_METHOD_CARD_DISPLAY_LABEL
       : formatPaymentMethod(display?.trim() ? display.trim() : queryValue);
-    result.push({ value: queryValue, label });
+    rows.push({ value: queryValue, label });
   };
 
   const purchaseRaw = data.purchase ?? [];
@@ -116,30 +184,51 @@ export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
     }
   }
 
-  for (const { value, label } of MANUAL_ADJUSTMENT_METHOD_OPTIONS) {
-    const k = value.toLowerCase();
-    if (!seen.has(k)) {
-      seen.add(k);
-      result.push({ value, label });
+  return rows;
+}
+
+function enabledPaymentMethodKeysFromParents(
+  data: PaymentMethodsListResponseRaw,
+): Set<string> {
+  const parents = collectPurchaseParentPaymentMethodRows(data);
+  const keys = new Set<string>();
+  for (const row of parents) {
+    keys.add(normKey(row.value));
+  }
+  rollupCryptoPaymentMethodKeys(keys);
+  return keys;
+}
+
+/**
+ * Purchase-tab parent categories (Payment Settings → Purchase), superadmin-enabled only, then
+ * canonical order. Manual / Signup are always listed for ledger history filters.
+ */
+export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
+  data: PaymentMethodsListResponseRaw,
+): Array<{ value: string; label: string }> {
+  const enabledKeys = enabledPaymentMethodKeysFromParents(data);
+  const result: Array<{ value: string; label: string }> = [];
+
+  for (const row of PAYMENT_METHOD_CANONICAL) {
+    const visible =
+      row.alwaysVisible === true || row.matchKeys.some((k) => enabledKeys.has(normKey(k)));
+    if (visible) {
+      result.push({ value: row.queryValue, label: row.label });
     }
   }
 
   return result;
 }
 
-/**
- * Unique provider slugs for transaction history `provider` query param, derived from
- * the same admin payment-methods payload used elsewhere (subcategory integrators).
- */
-export function buildProviderFilterOptionsFromPaymentMethodsRaw(
+function collectRawProviderMap(
   data: PaymentMethodsListResponseRaw,
-): Array<{ value: string; label: string }> {
+): Map<string, { value: string; label: string }> {
   const map = new Map<string, { value: string; label: string }>();
 
   const add = (raw: string | null | undefined, displayHint: string | null | undefined) => {
     const v = raw?.trim();
     if (!v) return;
-    const key = v.toLowerCase();
+    const key = normKey(v);
     if (PROVIDER_FILTER_EXCLUDED_SLUGS.has(key)) return;
     const label =
       displayHint?.trim() && displayHint.trim().length > 0
@@ -157,31 +246,58 @@ export function buildProviderFilterOptionsFromPaymentMethodsRaw(
 
   const cashout = data.cashout ?? [];
   if (isNestedCashout(cashout)) {
-    for (const parent of cashout) {
+    const filtered = filterCashoutCategoriesLikeSettings(cashout);
+    for (const parent of filtered) {
       for (const sub of parent.subcategories ?? []) {
+        if (sub.is_configured !== true || sub.id == null) continue;
         add(sub.provider_payment_method, sub.provider_payment_method_display);
       }
     }
   } else {
     for (const m of cashout as PaymentMethod[]) {
+      if (!isCashoutAllowedBySuperadmin(m.enabled_for_cashout_by_superadmin)) continue;
       add(m.provider_payment_method, m.payment_method_display);
     }
   }
 
   const purchase = data.purchase ?? [];
   if (isNestedPurchase(purchase)) {
-    for (const parent of purchase) {
+    const filtered = filterPurchaseCategoriesLikeSettings(purchase);
+    for (const parent of filtered) {
       for (const sub of parent.subcategories ?? []) {
+        if (sub.is_configured !== true || sub.id == null) continue;
         add(sub.provider_payment_method, sub.provider_payment_method_display);
       }
     }
   } else {
     for (const m of purchase as PaymentMethod[]) {
+      if (!isPurchaseAllowedBySuperadmin(m.enabled_for_purchase_by_superadmin)) continue;
       add(m.provider_payment_method, m.payment_method_display);
     }
   }
 
-  return Array.from(map.values()).sort((a, b) =>
-    a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }),
-  );
+  return map;
+}
+
+/**
+ * Provider slugs for transaction history `provider` query param: canonical order, superadmin-enabled
+ * integrators from payment settings, plus ledger providers always available for filtering.
+ */
+export function buildProviderFilterOptionsFromPaymentMethodsRaw(
+  data: PaymentMethodsListResponseRaw,
+): Array<{ value: string; label: string }> {
+  const rawMap = collectRawProviderMap(data);
+  const result: Array<{ value: string; label: string }> = [];
+
+  for (const row of PROVIDER_CANONICAL) {
+    const fromApi = row.matchKeys.map((k) => rawMap.get(normKey(k))).find(Boolean);
+    const visible = row.alwaysVisible === true || fromApi != null;
+    if (!visible) continue;
+
+    const value = fromApi?.value ?? row.matchKeys[0].replace(/-/g, '_');
+
+    result.push({ value, label: row.label });
+  }
+
+  return result;
 }
