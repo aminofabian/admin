@@ -2,6 +2,11 @@
 
 import { Button, Select, DateSelect } from '@/components/ui';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
+import {
+  normalizePaymentMethodFilterQueryValue,
+  PAYMENT_METHOD_CARD_DISPLAY_LABEL,
+  PAYMENT_METHOD_CARD_QUERY_VALUE,
+} from '@/lib/utils/transaction-provider-filter-options';
 
 export interface HistoryTransactionsFiltersState {
   agent: string;
@@ -212,8 +217,23 @@ export function HistoryTransactionsFilters({
                     ...(paymentMethodOptions ?? []),
                     ...(filters.payment_method &&
                     paymentMethodOptions &&
-                    !paymentMethodOptions.some((o) => o.value === filters.payment_method)
-                      ? [{ value: filters.payment_method, label: formatPaymentMethod(filters.payment_method) }]
+                    !paymentMethodOptions.some(
+                      (o) =>
+                        normalizePaymentMethodFilterQueryValue(o.value) ===
+                        normalizePaymentMethodFilterQueryValue(filters.payment_method),
+                    )
+                      ? [
+                          {
+                            value:
+                              normalizePaymentMethodFilterQueryValue(filters.payment_method) ||
+                              filters.payment_method,
+                            label:
+                              normalizePaymentMethodFilterQueryValue(filters.payment_method) ===
+                              PAYMENT_METHOD_CARD_QUERY_VALUE
+                                ? PAYMENT_METHOD_CARD_DISPLAY_LABEL
+                                : formatPaymentMethod(filters.payment_method),
+                          },
+                        ]
                       : []),
                   ]}
                   placeholder="All Methods"

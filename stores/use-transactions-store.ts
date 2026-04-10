@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { normalizePaymentMethodFilterQueryValue } from '@/lib/utils/transaction-provider-filter-options';
 import { transactionsApi } from '@/lib/api';
 import { shouldPreserveLedgerBalancesWhenMerging } from '@/lib/utils/transaction-ledger-ws';
 import type { 
@@ -126,6 +127,14 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
             const trimmedValue = String(value).trim();
             if (trimmedValue) {
               cleanedAdvancedFilters[key] = trimmedValue;
+            }
+          } else if (key === 'payment_method') {
+            const trimmed = String(value).trim();
+            if (trimmed) {
+              const normalized = normalizePaymentMethodFilterQueryValue(trimmed);
+              if (normalized) {
+                cleanedAdvancedFilters[key] = normalized;
+              }
             }
           } else {
             cleanedAdvancedFilters[key] = value;

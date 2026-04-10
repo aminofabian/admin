@@ -9,6 +9,7 @@ import { formatCurrency, formatDate, formatPaymentMethod, getProviderDisplayName
 import {
     buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
     buildProviderFilterOptionsFromPaymentMethodsRaw,
+    normalizePaymentMethodFilterQueryValue,
 } from '@/lib/utils/transaction-provider-filter-options';
 import { getTransactionAmountColorClass, getTransactionTypeBadgeStyle } from '@/lib/utils/transaction-display';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
@@ -54,7 +55,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
         transaction_id: advanced.transaction_id ?? '',
         operator: '', // Operator filter removed for superadmin
         type: derivedType,
-        payment_method: advanced.payment_method ?? '',
+        payment_method: normalizePaymentMethodFilterQueryValue(advanced.payment_method ?? ''),
         provider: advanced.provider ?? '',
         status: advanced.status ?? '',
         game: advanced.game ?? '',
@@ -436,6 +437,10 @@ export function SuperAdminHistoryTransactions() {
                     }
                 }
             }
+        }
+
+        if (sanitized.payment_method) {
+            sanitized.payment_method = normalizePaymentMethodFilterQueryValue(sanitized.payment_method);
         }
 
         // Use setAdvancedFilters to trigger fetch immediately when Apply is clicked

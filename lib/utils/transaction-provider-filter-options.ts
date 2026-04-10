@@ -41,6 +41,31 @@ const MANUAL_ADJUSTMENT_METHOD_OPTIONS: Array<{ value: string; label: string }> 
   { value: 'void', label: 'Void' },
 ];
 
+/** API/query param for the card rail (matches backend). */
+export const PAYMENT_METHOD_CARD_QUERY_VALUE = 'card';
+
+/** UI label for the card rail in transaction filters (query value remains `card`). */
+export const PAYMENT_METHOD_CARD_DISPLAY_LABEL = 'Card';
+
+/**
+ * Map card-style parent slugs to the query value the API expects (`card`).
+ */
+export function normalizePaymentMethodFilterQueryValue(raw: string | null | undefined): string {
+  const s = raw?.trim();
+  if (!s) return '';
+  const k = s.toLowerCase().replace(/-/g, '_');
+  if (
+    k === 'card' ||
+    k === 'credit_card' ||
+    k === 'debit_card' ||
+    k === 'credit_debit_card' ||
+    k === 'credit_and_debit_card'
+  ) {
+    return PAYMENT_METHOD_CARD_QUERY_VALUE;
+  }
+  return s;
+}
+
 /**
  * Purchase-tab parent categories (Payment Settings → Purchase), then manual / internal rails.
  * No cashout-only parents.
@@ -55,13 +80,16 @@ export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
     slug: string | null | undefined,
     display: string | null | undefined,
   ) => {
-    const v = slug?.trim();
-    if (!v) return;
-    const key = v.toLowerCase();
+    const queryValue = normalizePaymentMethodFilterQueryValue(slug);
+    if (!queryValue) return;
+    const key = queryValue.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-    const label = formatPaymentMethod(display?.trim() ? display.trim() : v);
-    result.push({ value: v, label });
+    const label =
+      queryValue === PAYMENT_METHOD_CARD_QUERY_VALUE
+        ? PAYMENT_METHOD_CARD_DISPLAY_LABEL
+        : formatPaymentMethod(display?.trim() ? display.trim() : queryValue);
+    result.push({ value: queryValue, label });
   };
 
   const purchaseRaw = data.purchase ?? [];

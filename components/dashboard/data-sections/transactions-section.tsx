@@ -16,6 +16,7 @@ import {
 import {
   buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
   buildProviderFilterOptionsFromPaymentMethodsRaw,
+  normalizePaymentMethodFilterQueryValue,
 } from '@/lib/utils/transaction-provider-filter-options';
 import {
   getTransactionAmountColorClass,
@@ -116,7 +117,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
     transaction_id: advanced.transaction_id ?? '',
     operator: advanced.operator ?? '',
     type: derivedType,
-    payment_method: advanced.payment_method ?? '',
+    payment_method: normalizePaymentMethodFilterQueryValue(advanced.payment_method ?? ''),
     provider: advanced.provider ?? '',
     status: advanced.status ?? '',
     game: advanced.game ?? '',
@@ -724,6 +725,10 @@ export function TransactionsSection() {
       username: sanitized.username,
       email: sanitized.email,
     });
+
+    if (sanitized.payment_method) {
+      sanitized.payment_method = normalizePaymentMethodFilterQueryValue(sanitized.payment_method);
+    }
 
     setAdvancedFiltersWithoutFetch(sanitized);
   }, [filters, setAdvancedFiltersWithoutFetch, agentIdMap, filter]);

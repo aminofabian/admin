@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
   buildProviderFilterOptionsFromPaymentMethodsRaw,
+  normalizePaymentMethodFilterQueryValue,
+  PAYMENT_METHOD_CARD_DISPLAY_LABEL,
+  PAYMENT_METHOD_CARD_QUERY_VALUE,
 } from '../transaction-provider-filter-options';
 import type { PaymentMethod, PaymentMethodsListResponseRaw } from '@/types';
 
@@ -142,7 +145,44 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
   });
 });
 
+describe('normalizePaymentMethodFilterQueryValue', () => {
+  it('maps card aliases to card', () => {
+    expect(normalizePaymentMethodFilterQueryValue('card')).toBe(PAYMENT_METHOD_CARD_QUERY_VALUE);
+    expect(normalizePaymentMethodFilterQueryValue('credit_debit_card')).toBe(PAYMENT_METHOD_CARD_QUERY_VALUE);
+    expect(normalizePaymentMethodFilterQueryValue('credit-card')).toBe(PAYMENT_METHOD_CARD_QUERY_VALUE);
+  });
+
+  it('leaves other slugs unchanged', () => {
+    expect(normalizePaymentMethodFilterQueryValue('venmo')).toBe('venmo');
+  });
+});
+
 describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
+  it('normalizes card parent slug variants to query value card with Card label', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [],
+      purchase: [
+        {
+          payment_method: 'credit_debit_card',
+          payment_method_display: 'Card',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'stripe',
+              payment_method_display: 'Stripe',
+            },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    const row = opts.find((o) => o.value === PAYMENT_METHOD_CARD_QUERY_VALUE);
+    expect(row?.label).toBe(PAYMENT_METHOD_CARD_DISPLAY_LABEL);
+  });
+
   it('uses parent category slug/label like Payment Settings Purchase tab (not sub-rails)', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [],
@@ -166,8 +206,8 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
     };
 
     const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
-    const card = opts.find((o) => o.value === 'card');
-    expect(card?.label).toBe('Credit & Debit Card');
+    const card = opts.find((o) => o.value === PAYMENT_METHOD_CARD_QUERY_VALUE);
+    expect(card?.label).toBe(PAYMENT_METHOD_CARD_DISPLAY_LABEL);
     expect(opts.map((o) => o.value)).not.toContain('venmo');
     expect(opts.map((o) => o.value)).not.toContain('binpay');
   });
