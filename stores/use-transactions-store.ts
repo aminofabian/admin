@@ -8,6 +8,12 @@ import type {
   PaginatedResponse 
 } from '@/types';
 
+function transactionHistorySortKey(tx: Transaction): number {
+  const raw = tx.created_at || tx.created || '';
+  const n = new Date(raw).getTime();
+  return Number.isFinite(n) ? n : 0;
+}
+
 type FilterType = 
   | 'all' 
   | 'purchases' 
@@ -401,15 +407,61 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       let response: PaginatedResponse<Transaction>;
       
       if (filter === 'history') {
-        // Use transactions-history endpoint
         const historyFilters = { ...apiFilters };
         delete historyFilters.type;
         delete historyFilters.txn;
-        // Preserve txn_type if set (for purchase/cashout filtering in history)
-        // Only delete status__ne as history endpoint excludes pending by default
         delete historyFilters.status__ne;
-        // Keep txn_type if it's set (purchase or cashout) - backend should support this
-        response = await transactionsApi.listHistory(historyFilters);
+
+        const normalizedPaymentMethod = normalizePaymentMethodFilterQueryValue(
+          String(cleanedAdvancedFilters.payment_method ?? ''),
+        );
+        const cardAllTxnTypes =
+          normalizedPaymentMethod === 'card' && !hasAdvancedTypeFilter;
+
+        if (cardAllTxnTypes) {
+          const { page: historyPage, page_size: historyPageSize, txn_type: _omitTxn, ...historyRest } =
+            historyFilters;
+          const page = typeof historyPage === 'number' ? historyPage : Number(historyPage) || 1;
+          const pageSize =
+            typeof historyPageSize === 'number' ? historyPageSize : Number(historyPageSize) || 25;
+          const depth = Math.min(Math.max(1, page) * pageSize, 400);
+
+          const txnTypes = ['purchase', 'cashout', 'add', 'deduct'] as const;
+          const partials = await Promise.all(
+            txnTypes.map((txn_type) =>
+              transactionsApi.listHistory({
+                ...historyRest,
+                txn_type,
+                page: 1,
+                page_size: depth,
+              }),
+            ),
+          );
+
+          const merged = partials.flatMap((p) => p.results);
+          merged.sort((a, b) => transactionHistorySortKey(b) - transactionHistorySortKey(a));
+
+          const seenIds = new Set<string>();
+          const deduped: Transaction[] = [];
+          for (const tx of merged) {
+            if (seenIds.has(tx.id)) continue;
+            seenIds.add(tx.id);
+            deduped.push(tx);
+          }
+
+          const start = (page - 1) * pageSize;
+          const pageRows = deduped.slice(start, start + pageSize);
+          const totalApprox = partials.reduce((sum, p) => sum + (p.count ?? 0), 0);
+
+          response = {
+            count: totalApprox,
+            next: null,
+            previous: null,
+            results: pageRows,
+          };
+        } else {
+          response = await transactionsApi.listHistory(historyFilters);
+        }
       } else if (filter === 'purchases' || filter === 'pending-purchases') {
         // Use transaction-purchases endpoint - remove type/txn/txn_type since endpoint handles it
         const purchaseFilters = { ...apiFilters };

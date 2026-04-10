@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
   buildProviderFilterOptionsFromPaymentMethodsRaw,
+  isCreditDebitCardCategoryDisplay,
   normalizePaymentMethodFilterQueryValue,
   PAYMENT_METHOD_CARD_DISPLAY_LABEL,
   PAYMENT_METHOD_CARD_QUERY_VALUE,
@@ -145,6 +146,14 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
   });
 });
 
+describe('isCreditDebitCardCategoryDisplay', () => {
+  it('detects long-form card category labels', () => {
+    expect(isCreditDebitCardCategoryDisplay('Credit & Debit Card')).toBe(true);
+    expect(isCreditDebitCardCategoryDisplay('credit and debit card')).toBe(true);
+    expect(isCreditDebitCardCategoryDisplay('Banxa')).toBe(false);
+  });
+});
+
 describe('normalizePaymentMethodFilterQueryValue', () => {
   it('maps card aliases to card', () => {
     expect(normalizePaymentMethodFilterQueryValue('card')).toBe(PAYMENT_METHOD_CARD_QUERY_VALUE);
@@ -158,6 +167,26 @@ describe('normalizePaymentMethodFilterQueryValue', () => {
 });
 
 describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
+  it('maps Credit & Debit Card display to query value card and label Card', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [],
+      purchase: [
+        {
+          payment_method: 'custom_card_parent',
+          payment_method_display: 'Credit & Debit Card',
+          has_subcategories: true,
+          subcategories: [
+            { id: 1, is_configured: true, payment_method: 'x', payment_method_display: 'X' },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    const row = opts.find((o) => o.value === PAYMENT_METHOD_CARD_QUERY_VALUE);
+    expect(row?.label).toBe(PAYMENT_METHOD_CARD_DISPLAY_LABEL);
+  });
+
   it('normalizes card parent slug variants to query value card with Card label', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [],

@@ -66,6 +66,14 @@ export function normalizePaymentMethodFilterQueryValue(raw: string | null | unde
   return s;
 }
 
+/** True when API/settings use the long "Credit & Debit Card" style label for the card rail. */
+export function isCreditDebitCardCategoryDisplay(display: string | null | undefined): boolean {
+  const t = display?.trim().toLowerCase() ?? '';
+  if (!t) return false;
+  const s = t.replace(/\s+/g, ' ');
+  return s.includes('credit') && s.includes('debit') && s.includes('card');
+}
+
 /**
  * Purchase-tab parent categories (Payment Settings → Purchase), then manual / internal rails.
  * No cashout-only parents.
@@ -80,15 +88,19 @@ export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
     slug: string | null | undefined,
     display: string | null | undefined,
   ) => {
-    const queryValue = normalizePaymentMethodFilterQueryValue(slug);
+    const isCardRail =
+      normalizePaymentMethodFilterQueryValue(slug) === PAYMENT_METHOD_CARD_QUERY_VALUE ||
+      isCreditDebitCardCategoryDisplay(display);
+    const queryValue = isCardRail
+      ? PAYMENT_METHOD_CARD_QUERY_VALUE
+      : normalizePaymentMethodFilterQueryValue(slug) || slug?.trim() || '';
     if (!queryValue) return;
     const key = queryValue.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-    const label =
-      queryValue === PAYMENT_METHOD_CARD_QUERY_VALUE
-        ? PAYMENT_METHOD_CARD_DISPLAY_LABEL
-        : formatPaymentMethod(display?.trim() ? display.trim() : queryValue);
+    const label = isCardRail
+      ? PAYMENT_METHOD_CARD_DISPLAY_LABEL
+      : formatPaymentMethod(display?.trim() ? display.trim() : queryValue);
     result.push({ value: queryValue, label });
   };
 
