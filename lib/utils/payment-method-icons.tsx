@@ -160,6 +160,10 @@ function resolveIcon(
   if (/^bitcoin$|^btc$/.test(key) || /^bitcoin$|^btc/.test(typeKey)) {
     return <BitcoinIcon className={sizeClass} />;
   }
+  // Synthetic "Crypto" bundle row in payment settings (`__ui_crypto_bundle__` → `uicryptobundle`)
+  if (key === 'uicryptobundle') {
+    return <CryptoIcon className={sizeClass} />;
+  }
   if (/^crypto$|^cryptocurrency|^eth$|^ethereum|^usdt|^usdc/.test(key) || /^crypto/.test(typeKey)) {
     return <CryptoIcon className={sizeClass} />;
   }

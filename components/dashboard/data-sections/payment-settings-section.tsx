@@ -9,6 +9,10 @@ import { PaymentAmountModal } from './payment-amount-modal';
 import type { PaymentMethod, PaymentMethodAction, CashoutPaymentMethod, CashoutSubcategory, PurchasePaymentMethod, PurchaseSubcategory } from '@/types';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
 import { getPaymentMethodIcon } from '@/lib/utils/payment-method-icons';
+import {
+  mergeStandaloneCryptoCashoutCategories,
+  mergeStandaloneCryptoPurchaseCategories,
+} from '@/lib/utils/payment-methods-category-filters';
 
 
 export function PaymentSettingsSection() {
@@ -64,6 +68,23 @@ export function PaymentSettingsSection() {
   }, [paymentMethods]);
 
   const filteredResults = methodsByAction[filterAction] ?? [];
+
+  const purchaseCategoriesForUi = useMemo(
+    () =>
+      purchaseCategories?.length
+        ? mergeStandaloneCryptoPurchaseCategories(purchaseCategories)
+        : null,
+    [purchaseCategories],
+  );
+
+  const cashoutCategoriesForUi = useMemo(
+    () =>
+      cashoutCategories?.length
+        ? mergeStandaloneCryptoCashoutCategories(cashoutCategories)
+        : null,
+    [cashoutCategories],
+  );
+
   useEffect(() => {
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);
@@ -254,10 +275,10 @@ export function PaymentSettingsSection() {
               description="Payment methods will appear here once configured"
             />
           </div>
-        ) : filterAction === 'purchase' && purchaseCategories && purchaseCategories.length > 0 ? (
+        ) : filterAction === 'purchase' && purchaseCategoriesForUi && purchaseCategoriesForUi.length > 0 ? (
           /* Hierarchical Purchase View: Categories + Subcategories */
           <div className="space-y-4 p-6 lg:p-8">
-            {purchaseCategories
+            {purchaseCategoriesForUi
               .filter((category) => {
                 const configuredCount = category.subcategories?.filter((s) => s.is_configured && s.id != null).length ?? 0;
                 return configuredCount > 0;
@@ -430,10 +451,10 @@ export function PaymentSettingsSection() {
               );
             })}
           </div>
-        ) : filterAction === 'cashout' && cashoutCategories && cashoutCategories.length > 0 ? (
+        ) : filterAction === 'cashout' && cashoutCategoriesForUi && cashoutCategoriesForUi.length > 0 ? (
           /* Hierarchical Cashout View: Categories + Subcategories */
           <div className="space-y-4 p-6 lg:p-8">
-            {cashoutCategories
+            {cashoutCategoriesForUi
               .filter((category) => {
                 const configuredCount = category.subcategories?.filter((s) => s.is_configured && s.id != null).length ?? 0;
                 return configuredCount > 0;
