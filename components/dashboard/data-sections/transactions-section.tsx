@@ -935,8 +935,14 @@ function TransactionsTable({
 
   const transactionResults = useMemo(() => transactions?.results ?? [], [transactions?.results]);
   const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
-  const hasNext = useMemo(() => !!transactions?.next, [transactions?.next]);
-  const hasPrevious = useMemo(() => !!transactions?.previous, [transactions?.previous]);
+  const hasNext = useMemo(() => {
+    if (transactions?.next) return true;
+    return totalPages > 0 && currentPage < totalPages;
+  }, [transactions?.next, currentPage, totalPages]);
+  const hasPrevious = useMemo(() => {
+    if (transactions?.previous) return true;
+    return currentPage > 1;
+  }, [transactions?.previous, currentPage]);
 
   return (
     <>

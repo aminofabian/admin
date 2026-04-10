@@ -1148,8 +1148,13 @@ export function SuperAdminHistoryTransactions() {
                                         <Pagination
                                             currentPage={currentPage}
                                             totalPages={totalPages}
-                                            hasNext={Boolean(transactions?.next)}
-                                            hasPrevious={Boolean(transactions?.previous)}
+                                            hasNext={
+                                                Boolean(transactions?.next) ||
+                                                (totalPages > 0 && currentPage < totalPages)
+                                            }
+                                            hasPrevious={
+                                                Boolean(transactions?.previous) || currentPage > 1
+                                            }
                                             onPageChange={handlePageChange}
                                         />
                                     </div>

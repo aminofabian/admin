@@ -14,6 +14,15 @@ function transactionHistorySortKey(tx: Transaction): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Max rows to pull per txn_type when merging card + all types (avoid tiny caps that break deep pages). */
+const CARD_MERGE_MAX_DEPTH = 2500;
+
+/**
+ * Floor per-type fetch size so page-1 merged length isn't tiny vs inflated summed API counts
+ * (otherwise UI shows "Page 1 of 6" while only ~1–2 pages of rows exist).
+ */
+const CARD_MERGE_MIN_DEPTH = 200;
+
 type FilterType = 
   | 'all' 
   | 'purchases' 
@@ -424,7 +433,10 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           const page = typeof historyPage === 'number' ? historyPage : Number(historyPage) || 1;
           const pageSize =
             typeof historyPageSize === 'number' ? historyPageSize : Number(historyPageSize) || 25;
-          const depth = Math.min(Math.max(1, page) * pageSize, 400);
+          const depth = Math.min(
+            Math.max(Math.max(1, page) * pageSize, CARD_MERGE_MIN_DEPTH),
+            CARD_MERGE_MAX_DEPTH,
+          );
 
           const txnTypes = ['purchase', 'cashout', 'add', 'deduct'] as const;
           const partials = await Promise.all(
@@ -452,9 +464,18 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
           const start = (page - 1) * pageSize;
           const pageRows = deduped.slice(start, start + pageSize);
           const totalApprox = partials.reduce((sum, p) => sum + (p.count ?? 0), 0);
+          const mergedLen = deduped.length;
+
+          let displayCount = totalApprox;
+          if (mergedLen < totalApprox) {
+            displayCount = mergedLen;
+          }
+          if (page > 1 && pageRows.length === 0) {
+            displayCount = mergedLen;
+          }
 
           response = {
-            count: totalApprox,
+            count: displayCount,
             next: null,
             previous: null,
             results: pageRows,
