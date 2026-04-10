@@ -3,7 +3,7 @@ import {
   buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
   buildProviderFilterOptionsFromPaymentMethodsRaw,
 } from '../transaction-provider-filter-options';
-import type { PaymentMethodsListResponseRaw } from '@/types';
+import type { PaymentMethod, PaymentMethodsListResponseRaw } from '@/types';
 
 describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
   it('collects unique provider_payment_method from cashout and purchase subcategories', () => {
@@ -120,31 +120,6 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     expect(opts.some((o) => o.value.toLowerCase() === 'binpay')).toBe(true);
   });
 
-  it('still lists paypal as a payment method when API marks it as provider_payment_method', () => {
-    const data: PaymentMethodsListResponseRaw = {
-      cashout: [
-        {
-          payment_method: 'card',
-          payment_method_display: 'Card',
-          has_subcategories: true,
-          subcategories: [
-            {
-              id: 1,
-              payment_method: 'paypal',
-              payment_method_display: 'PayPal',
-              provider_payment_method: 'paypal',
-              provider_payment_method_display: 'PayPal',
-            },
-          ],
-        },
-      ],
-      purchase: [],
-    };
-
-    const paymentOpts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
-    expect(paymentOpts.map((o) => o.value.toLowerCase())).toContain('paypal');
-  });
-
   it('reads provider_payment_method from flat payment method rows', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [
@@ -157,8 +132,8 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
           is_enabled_for_cashout: true,
           created: '',
           modified: '',
-        } as unknown as PaymentMethod,
-      ],
+        } satisfies PaymentMethod,
+      ] as unknown as PaymentMethodsListResponseRaw['cashout'],
       purchase: [],
     };
 
@@ -168,16 +143,18 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
 });
 
 describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
-  it('includes subcategory rails but omits integrator provider_payment_method slugs', () => {
+  it('uses parent category slug/label like Payment Settings Purchase tab (not sub-rails)', () => {
     const data: PaymentMethodsListResponseRaw = {
-      cashout: [
+      cashout: [],
+      purchase: [
         {
           payment_method: 'card',
-          payment_method_display: 'Card',
+          payment_method_display: 'Credit & Debit Card',
           has_subcategories: true,
           subcategories: [
             {
               id: 1,
+              is_configured: true,
               payment_method: 'venmo',
               payment_method_display: 'Venmo',
               provider_payment_method: 'binpay',
@@ -186,19 +163,19 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
           ],
         },
       ],
-      purchase: [],
     };
 
     const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
-    const values = opts.map((o) => o.value);
-    expect(values).not.toContain('card');
-    expect(values).toContain('venmo');
-    expect(values).not.toContain('binpay');
+    const card = opts.find((o) => o.value === 'card');
+    expect(card?.label).toBe('Credit & Debit Card');
+    expect(opts.map((o) => o.value)).not.toContain('venmo');
+    expect(opts.map((o) => o.value)).not.toContain('binpay');
   });
 
-  it('includes parent payment_method when a category has no subcategories', () => {
+  it('omits categories with no configured subcategories', () => {
     const data: PaymentMethodsListResponseRaw = {
-      cashout: [
+      cashout: [],
+      purchase: [
         {
           payment_method: 'crypto',
           payment_method_display: 'Crypto',
@@ -206,16 +183,16 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
           subcategories: [],
         },
       ],
-      purchase: [],
     };
 
     const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
-    expect(opts.map((o) => o.value)).toContain('crypto');
+    expect(opts.map((o) => o.value)).not.toContain('crypto');
   });
 
-  it('drops sub rows where payment_method is the integrator slug', () => {
+  it('lists parent category even when sub payment_method matches provider slug', () => {
     const data: PaymentMethodsListResponseRaw = {
-      cashout: [
+      cashout: [],
+      purchase: [
         {
           payment_method: 'payout',
           payment_method_display: 'Payout',
@@ -223,6 +200,7 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
           subcategories: [
             {
               id: 1,
+              is_configured: true,
               payment_method: 'tierlock',
               payment_method_display: 'Tierlock',
               provider_payment_method: 'tierlock',
@@ -231,16 +209,17 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
           ],
         },
       ],
-      purchase: [],
     };
 
     const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    expect(opts.map((o) => o.value)).toContain('payout');
     expect(opts.map((o) => o.value)).not.toContain('tierlock');
   });
 
-  it('keeps provider and payment lists disjoint for nested data', () => {
+  it('keeps provider slugs on provider list only for nested data', () => {
     const data: PaymentMethodsListResponseRaw = {
-      cashout: [
+      cashout: [],
+      purchase: [
         {
           payment_method: 'zelle',
           payment_method_display: 'Zelle',
@@ -248,6 +227,7 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
           subcategories: [
             {
               id: 1,
+              is_configured: true,
               payment_method: 'chime',
               payment_method_display: 'Chime',
               provider_payment_method: 'taparcadia',
@@ -256,19 +236,58 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
           ],
         },
       ],
-      purchase: [],
     };
 
     const payment = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
     const providers = buildProviderFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
-    expect(payment).not.toContain('zelle');
-    expect(payment).toContain('chime');
+    expect(payment).toContain('zelle');
+    expect(payment).not.toContain('chime');
     expect(payment).not.toContain('taparcadia');
     expect(providers).toContain('taparcadia');
     expect(providers).not.toContain('chime');
   });
 
-  it('merges free_play into freeplay so Freeplay appears once', () => {
+  it('ignores cashout-only categories; purchase order preserved', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      purchase: [
+        {
+          payment_method: 'apple_pay',
+          payment_method_display: 'Apple Pay',
+          has_subcategories: true,
+          subcategories: [
+            { id: 1, is_configured: true, payment_method: 'ap1', payment_method_display: 'Ap1' },
+          ],
+        },
+      ],
+      cashout: [
+        {
+          payment_method: 'venmo',
+          payment_method_display: 'Venmo',
+          has_subcategories: true,
+          subcategories: [
+            { id: 2, is_configured: true, payment_method: 'v1', payment_method_display: 'V1' },
+          ],
+        },
+        {
+          payment_method: 'apple_pay',
+          payment_method_display: 'Apple Pay Cashout',
+          has_subcategories: true,
+          subcategories: [
+            { id: 3, is_configured: true, payment_method: 'ap2', payment_method_display: 'Ap2' },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    const values = opts.map((o) => o.value);
+    expect(values[0]).toBe('apple_pay');
+    expect(values).not.toContain('venmo');
+    expect(opts.find((o) => o.value === 'apple_pay')?.label).toBe('Apple Pay');
+    expect(values).toContain('manual');
+  });
+
+  it('appends manual adjustment rails after purchase categories', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [
         {
@@ -276,7 +295,7 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
           payment_method_display: 'Misc',
           has_subcategories: true,
           subcategories: [
-            { id: 1, payment_method: 'free_play', payment_method_display: 'Freeplay' },
+            { id: 1, is_configured: true, payment_method: 'free_play', payment_method_display: 'Freeplay' },
           ],
         },
       ],
@@ -284,8 +303,45 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
     };
 
     const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
-    const freeplayRows = opts.filter((o) => o.label === 'Freeplay');
-    expect(freeplayRows).toHaveLength(1);
-    expect(freeplayRows[0]?.value).toBe('freeplay');
+    expect(opts.some((o) => o.value === 'manual' && o.label === 'Manual')).toBe(true);
+    expect(opts.some((o) => o.value === 'freeplay')).toBe(true);
+  });
+
+  it('empty API payload yields manual adjustment options only', () => {
+    const data: PaymentMethodsListResponseRaw = { cashout: [], purchase: [] };
+    const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
+    expect(
+      opts.every((o) =>
+        ['freeplay', 'manual', 'seize_tip', 'external_deposit', 'external_cashout', 'void'].includes(o.value),
+      ),
+    ).toBe(true);
+  });
+
+  it('parent paypal category on payment list; provider list still omits paypal integrator slug', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      purchase: [
+        {
+          payment_method: 'paypal',
+          payment_method_display: 'Paypal',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'paypal_wallet',
+              payment_method_display: 'PayPal',
+              provider_payment_method: 'paypal',
+              provider_payment_method_display: 'PayPal',
+            },
+          ],
+        },
+      ],
+      cashout: [],
+    };
+
+    const payment = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
+    const providers = buildProviderFilterOptionsFromPaymentMethodsRaw(data).map((o) => o.value.toLowerCase());
+    expect(payment).toContain('paypal');
+    expect(providers).not.toContain('paypal');
   });
 });

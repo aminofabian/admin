@@ -5,6 +5,10 @@ import type {
   PurchasePaymentMethod,
 } from '@/types';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
+import {
+  filterPurchaseCategoriesLikeSettings,
+  isPurchaseAllowedBySuperadmin,
+} from '@/lib/utils/payment-methods-category-filters';
 
 function isNestedCashout(arr: unknown): arr is CashoutPaymentMethod[] {
   return (
@@ -28,66 +32,6 @@ function isNestedPurchase(arr: unknown): arr is PurchasePaymentMethod[] {
  */
 const PROVIDER_FILTER_EXCLUDED_SLUGS = new Set(['paypal']);
 
-/** Slugs used for `transaction.provider` / integrator — exclude from payment-method filter. */
-function collectProviderSlugSet(data: PaymentMethodsListResponseRaw): Set<string> {
-  const slugs = new Set<string>();
-  const addSlug = (raw: string | null | undefined) => {
-    const v = raw?.trim();
-    if (!v) return;
-    const key = v.toLowerCase();
-    if (PROVIDER_FILTER_EXCLUDED_SLUGS.has(key)) return;
-    slugs.add(key);
-  };
-
-  const cashout = data.cashout ?? [];
-  if (isNestedCashout(cashout)) {
-    for (const parent of cashout) {
-      for (const sub of parent.subcategories ?? []) {
-        addSlug(sub.provider_payment_method);
-        const pm = sub.payment_method?.trim();
-        const ppm = sub.provider_payment_method?.trim();
-        if (pm && ppm && pm.toLowerCase() === ppm.toLowerCase()) {
-          addSlug(pm);
-        }
-      }
-    }
-  } else {
-    for (const m of cashout as PaymentMethod[]) {
-      addSlug(m.provider_payment_method);
-      const pm = m.payment_method?.trim();
-      const ppm = m.provider_payment_method?.trim();
-      if (pm && ppm && pm.toLowerCase() === ppm.toLowerCase()) {
-        addSlug(pm);
-      }
-    }
-  }
-
-  const purchase = data.purchase ?? [];
-  if (isNestedPurchase(purchase)) {
-    for (const parent of purchase) {
-      for (const sub of parent.subcategories ?? []) {
-        addSlug(sub.provider_payment_method);
-        const pm = sub.payment_method?.trim();
-        const ppm = sub.provider_payment_method?.trim();
-        if (pm && ppm && pm.toLowerCase() === ppm.toLowerCase()) {
-          addSlug(pm);
-        }
-      }
-    }
-  } else {
-    for (const m of purchase as PaymentMethod[]) {
-      addSlug(m.provider_payment_method);
-      const pm = m.payment_method?.trim();
-      const ppm = m.provider_payment_method?.trim();
-      if (pm && ppm && pm.toLowerCase() === ppm.toLowerCase()) {
-        addSlug(pm);
-      }
-    }
-  }
-
-  return slugs;
-}
-
 const MANUAL_ADJUSTMENT_METHOD_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'freeplay', label: 'Freeplay' },
   { value: 'manual', label: 'Manual' },
@@ -97,91 +41,50 @@ const MANUAL_ADJUSTMENT_METHOD_OPTIONS: Array<{ value: string; label: string }> 
   { value: 'void', label: 'Void' },
 ];
 
-/** Same rail, different API spellings — one dropdown row, one query value. */
-const PAYMENT_METHOD_FILTER_VALUE_ALIASES: Record<string, string> = {
-  free_play: 'freeplay',
-};
-
-function canonicalPaymentMethodFilterValue(slug: string): string {
-  const trimmed = slug.trim();
-  const k = trimmed.toLowerCase();
-  return PAYMENT_METHOD_FILTER_VALUE_ALIASES[k] ?? trimmed;
-}
-
 /**
- * Payment rails for history `payment_method` query param — subcategory `payment_method`
- * when subcategories exist (parent is only a UI group, e.g. Card vs Credit and Debit Card),
- * never `provider_payment_method` integrator slugs.
+ * Purchase-tab parent categories (Payment Settings → Purchase), then manual / internal rails.
+ * No cashout-only parents.
  */
 export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
   data: PaymentMethodsListResponseRaw,
 ): Array<{ value: string; label: string }> {
-  const providerSlugs = collectProviderSlugSet(data);
-  const map = new Map<string, { value: string; label: string }>();
+  const result: Array<{ value: string; label: string }> = [];
+  const seen = new Set<string>();
 
-  const addMethod = (raw: string | null | undefined, displayHint: string | null | undefined) => {
-    const v = raw?.trim();
+  const pushParentCategory = (
+    slug: string | null | undefined,
+    display: string | null | undefined,
+  ) => {
+    const v = slug?.trim();
     if (!v) return;
-    const canonical = canonicalPaymentMethodFilterValue(v);
-    const key = canonical.toLowerCase();
-    if (providerSlugs.has(key)) return;
-    const label =
-      displayHint?.trim() && displayHint.trim().length > 0
-        ? displayHint.trim()
-        : formatPaymentMethod(canonical);
-    const prev = map.get(key);
-    if (!prev) {
-      map.set(key, { value: canonical, label });
-      return;
-    }
-    if (displayHint?.trim() && displayHint.trim().length > 0) {
-      map.set(key, { value: prev.value, label: displayHint.trim() });
-    }
+    const key = v.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    const label = formatPaymentMethod(display?.trim() ? display.trim() : v);
+    result.push({ value: v, label });
   };
 
-  const cashout = data.cashout ?? [];
-  if (isNestedCashout(cashout)) {
-    for (const parent of cashout) {
-      const subs = parent.subcategories ?? [];
-      if (subs.length === 0) {
-        addMethod(parent.payment_method, parent.payment_method_display);
-      }
-      for (const sub of subs) {
-        addMethod(sub.payment_method, sub.payment_method_display);
-      }
+  const purchaseRaw = data.purchase ?? [];
+  if (isNestedPurchase(purchaseRaw)) {
+    for (const cat of filterPurchaseCategoriesLikeSettings(purchaseRaw)) {
+      pushParentCategory(cat.payment_method, cat.payment_method_display);
     }
   } else {
-    for (const m of cashout as PaymentMethod[]) {
-      addMethod(m.payment_method, m.payment_method_display);
-    }
-  }
-
-  const purchase = data.purchase ?? [];
-  if (isNestedPurchase(purchase)) {
-    for (const parent of purchase) {
-      const subs = parent.subcategories ?? [];
-      if (subs.length === 0) {
-        addMethod(parent.payment_method, parent.payment_method_display);
-      }
-      for (const sub of subs) {
-        addMethod(sub.payment_method, sub.payment_method_display);
-      }
-    }
-  } else {
-    for (const m of purchase as PaymentMethod[]) {
-      addMethod(m.payment_method, m.payment_method_display);
+    for (const m of purchaseRaw as PaymentMethod[]) {
+      if (!isPurchaseAllowedBySuperadmin(m.enabled_for_purchase_by_superadmin)) continue;
+      pushParentCategory(m.payment_method, m.payment_method_display);
     }
   }
 
   for (const { value, label } of MANUAL_ADJUSTMENT_METHOD_OPTIONS) {
-    if (!providerSlugs.has(value.toLowerCase())) {
-      map.set(value.toLowerCase(), { value, label });
+    const k = value.toLowerCase();
+    if (!seen.has(k)) {
+      seen.add(k);
+      result.push({ value, label });
     }
   }
 
-  return Array.from(map.values()).sort((a, b) =>
-    a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }),
-  );
+  return result;
 }
 
 /**

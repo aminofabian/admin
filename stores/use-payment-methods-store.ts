@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 import { paymentMethodsApi } from '@/lib/api';
+import {
+  filterCashoutCategoriesLikeSettings,
+  filterPurchaseCategoriesLikeSettings,
+  isCashoutAllowedBySuperadmin,
+  isPurchaseAllowedBySuperadmin,
+} from '@/lib/utils/payment-methods-category-filters';
 import type {
   PaymentMethod,
   PaymentMethodAction,
@@ -49,40 +55,6 @@ const initialState: PaymentMethodsState = {
   isLoading: false,
   error: null,
 };
-
-/** Company admin UI: omit methods the superadmin has disabled (`false`). `undefined` kept for older API responses. */
-const isPurchaseAllowedBySuperadmin = (flag: boolean | undefined): boolean => flag !== false;
-
-const isCashoutAllowedBySuperadmin = (flag: boolean | undefined): boolean => flag !== false;
-
-/** Trim nested trees so settings / processing never surface gated-off providers. */
-const filterPurchaseCategoriesForStore = (
-  purchase: PurchasePaymentMethod[],
-): PurchasePaymentMethod[] =>
-  purchase
-    .filter((parent) => isPurchaseAllowedBySuperadmin(parent.enabled_for_purchase_by_superadmin))
-    .map((parent) => ({
-      ...parent,
-      subcategories: (parent.subcategories ?? []).filter((sub) =>
-        isPurchaseAllowedBySuperadmin(sub.enabled_for_purchase_by_superadmin),
-      ),
-    }))
-    .filter((parent) =>
-      (parent.subcategories ?? []).some((s) => s.is_configured === true && s.id != null),
-    );
-
-const filterCashoutCategoriesForStore = (cashout: CashoutPaymentMethod[]): CashoutPaymentMethod[] =>
-  cashout
-    .filter((parent) => isCashoutAllowedBySuperadmin(parent.enabled_for_cashout_by_superadmin))
-    .map((parent) => ({
-      ...parent,
-      subcategories: (parent.subcategories ?? []).filter((sub) =>
-        isCashoutAllowedBySuperadmin(sub.enabled_for_cashout_by_superadmin),
-      ),
-    }))
-    .filter((parent) =>
-      (parent.subcategories ?? []).some((s) => s.is_configured === true && s.id != null),
-    );
 
 const normalizeMethods = (methods: PaymentMethod[]): PaymentMethod[] =>
   methods.map((method) => ({
@@ -197,10 +169,10 @@ export const usePaymentMethodsStore = create<PaymentMethodsStore>((set, get) => 
           purchase: normalizeMethods(purchaseFlat),
         },
         cashoutCategories: isNestedCashout(cashoutRaw)
-          ? filterCashoutCategoriesForStore(cashoutRaw)
+          ? filterCashoutCategoriesLikeSettings(cashoutRaw)
           : null,
         purchaseCategories: isNestedPurchase(purchaseRaw)
-          ? filterPurchaseCategoriesForStore(purchaseRaw)
+          ? filterPurchaseCategoriesLikeSettings(purchaseRaw)
           : null,
         isLoading: false,
         error: null,
