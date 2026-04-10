@@ -104,7 +104,8 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
     /purchased via/i,
     /purchased \(credited by admin\)/i,
     /credited by admin/i,
-    /cashed out/i,
+    // Do not match colloquial "cashed out" in player chat (e.g. "someone cashed out my winnings")
+    /successfully cashed out/i,
     /recharged to/i,
     /redeemed from/i,
     /added to your (credit|winning) balance/i,
@@ -433,7 +434,7 @@ export const parseTransactionMessage = (
   // Rule 1: Always check for specific automated transaction keywords first
   if (cleanText.includes('credited by admin')) {
     result.type = 'credit_added';
-  } else if (cleanText.includes('successfully cashed out') || cleanText.includes('cashed out')) {
+  } else if (cleanText.includes('successfully cashed out')) {
     result.type = 'cashout';
   } else if (cleanText.includes('successfully purchased') || (cleanText.includes('purchased') && cleanText.includes('credit'))) {
     result.type = 'credit_purchase';
