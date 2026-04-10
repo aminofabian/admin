@@ -97,9 +97,30 @@ export const useBonusesStore = create<BonusesStore>((set, get) => ({
     }));
 
     try {
-      const data = await bonusesApi.purchase.list();
-      
-      set((state) => ({ 
+      const pageSize = 100;
+      const maxPages = 50;
+      const allResults: PurchaseBonus[] = [];
+      let page = 1;
+      let totalCount = 0;
+
+      for (let i = 0; i < maxPages; i++) {
+        const chunk = await bonusesApi.purchase.list({ page, page_size: pageSize });
+        totalCount = chunk.count;
+        allResults.push(...chunk.results);
+        if (!chunk.next || chunk.results.length === 0) {
+          break;
+        }
+        page += 1;
+      }
+
+      const data: PaginatedResponse<PurchaseBonus> = {
+        count: totalCount,
+        next: null,
+        previous: null,
+        results: allResults,
+      };
+
+      set((state) => ({
         purchaseBonuses: data,
         operationLoading: { ...state.operationLoading, purchase: false },
         error: null,

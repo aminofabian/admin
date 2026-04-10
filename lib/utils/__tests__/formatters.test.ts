@@ -1,4 +1,11 @@
-import { formatDate, formatCurrency, formatPercentage, getPaymentDetailsForDisplay } from '../formatters';
+import {
+  formatDate,
+  formatCurrency,
+  formatPercentage,
+  getPaymentDetailsForDisplay,
+  getProviderDisplayName,
+  getPurchaseBonusPaymentLabel,
+} from '../formatters';
 
 describe('formatters', () => {
   describe('formatDate', () => {
@@ -119,6 +126,93 @@ describe('formatters', () => {
       });
       const venmoRow = rows.find(([label]) => label === 'Venmo username');
       expect(venmoRow?.[1]).toBe('@Alex-Pay-Venmo');
+    });
+  });
+
+  describe('getProviderDisplayName', () => {
+    it('should map bitcoin-lightning plus cashapp category to Cashapp Pay', () => {
+      expect(getProviderDisplayName('bitcoin-lightning', 'cashapp')).toBe('Cashapp Pay');
+    });
+
+    it('should map bitcoin_lightning plus cashapp category to Cashapp Pay', () => {
+      expect(getProviderDisplayName('bitcoin_lightning', 'cashapp')).toBe('Cashapp Pay');
+    });
+
+    it('should not treat cashapp topup alone as Cashapp Pay', () => {
+      expect(getProviderDisplayName('cashapp', 'cashapp')).toBe('Cashapp');
+    });
+  });
+
+  describe('getPurchaseBonusPaymentLabel', () => {
+    it('should use Cashapp Pay for lightning+cashapp without repeating the BTC rail name', () => {
+      expect(
+        getPurchaseBonusPaymentLabel({
+          topup_method: 'bitcoin-lightning',
+          purchase_category: 'cashapp',
+          purchase_category_display: 'Cashapp Pay',
+        }),
+      ).toBe('Cashapp Pay');
+    });
+
+    it('should use lightning+cashapp when display is absent', () => {
+      expect(
+        getPurchaseBonusPaymentLabel({
+          topup_method: 'bitcoin-lightning',
+          purchase_category: 'cashapp',
+        }),
+      ).toBe('Cashapp Pay');
+    });
+
+    it('should format plain cashapp topup when no category display', () => {
+      expect(
+        getPurchaseBonusPaymentLabel({
+          topup_method: 'cashapp',
+          purchase_category: 'cashapp',
+        }),
+      ).toBe('Cashapp');
+    });
+
+    it('should use Cash App display without redundant rail suffix when it matches cashapp topup', () => {
+      expect(
+        getPurchaseBonusPaymentLabel({
+          topup_method: 'cashapp',
+          purchase_category: 'cashapp',
+          purchase_category_display: 'Cash App',
+        }),
+      ).toBe('Cash App');
+    });
+
+    it('should disambiguate a shared category with the topup rail (e.g. card providers)', () => {
+      expect(
+        getPurchaseBonusPaymentLabel({
+          topup_method: 'banxa',
+          purchase_category_display: 'Credit Debit Card',
+        }),
+      ).toBe('Credit Debit Card (Banxa)');
+    });
+
+    it('should not duplicate when category display already matches the formatted topup', () => {
+      expect(
+        getPurchaseBonusPaymentLabel({
+          topup_method: 'stripe',
+          purchase_category_display: 'Stripe',
+        }),
+      ).toBe('Stripe');
+    });
+
+    it('should disambiguate two rails that share a broad Crypto label', () => {
+      expect(
+        getPurchaseBonusPaymentLabel({
+          topup_method: 'bitcoin',
+          purchase_category_display: 'Crypto',
+        }),
+      ).toBe('Crypto (Bitcoin)');
+      expect(
+        getPurchaseBonusPaymentLabel({
+          topup_method: 'ethereum',
+          purchase_category_display: 'Crypto',
+        }),
+      ).toBe('Crypto (Ethereum)');
     });
   });
 });

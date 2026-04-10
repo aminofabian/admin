@@ -514,13 +514,49 @@ export function getProviderDisplayName(
   paymentMethod?: string | null
 ): string {
   if (!provider) return '—';
-  if (
-    provider.toLowerCase() === 'bitcoin_lightning' &&
-    paymentMethod?.toLowerCase() === 'cashapp'
-  ) {
+  const normalizedProvider = provider.trim().toLowerCase().replace(/-/g, '_');
+  const normalizedMethod = paymentMethod?.trim().toLowerCase();
+  if (normalizedProvider === 'bitcoin_lightning' && normalizedMethod === 'cashapp') {
     return 'Cashapp Pay';
   }
   return formatPaymentMethod(provider);
+}
+
+/**
+ * Label for purchase-bonus rows. APIs often send the same `purchase_category_display`
+ * for many rails (e.g. "Credit Debit Card" for Banxa, Stripe, …) — include `topup_method`
+ * when the category string does not already identify that rail.
+ */
+/** Compare display vs formatted topup when spacing/punctuation differ (e.g. "Cash App" vs "Cashapp"). */
+function purchaseBonusLabelsSameRail(display: string, topupFormatted: string): boolean {
+  const norm = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, '');
+  return norm(display) === norm(topupFormatted);
+}
+
+export function getPurchaseBonusPaymentLabel(bonus: {
+  topup_method: string;
+  purchase_category?: string | null;
+  purchase_category_display?: string | null;
+}): string {
+  const topupFormatted = formatPaymentMethod(bonus.topup_method);
+  const display = bonus.purchase_category_display?.trim();
+  const providerCombo = getProviderDisplayName(bonus.topup_method, bonus.purchase_category);
+
+  if (providerCombo && providerCombo !== '—' && providerCombo !== topupFormatted) {
+    return providerCombo;
+  }
+
+  if (display) {
+    const d = display.toLowerCase();
+    const t = topupFormatted.toLowerCase();
+    if (d === t) return display;
+    if (purchaseBonusLabelsSameRail(display, topupFormatted)) return display;
+    if (d.includes(t) || t.includes(d)) return display;
+    return `${display} (${topupFormatted})`;
+  }
+
+  if (providerCombo && providerCombo !== '—') return providerCombo;
+  return topupFormatted;
 }
 
 export const formatPaymentMethod = (method: string | null | undefined): string => {

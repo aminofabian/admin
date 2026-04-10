@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useBonusesStore } from '@/stores';
 import { 
   Table, 
@@ -17,6 +17,7 @@ import {
 import { PurchaseBonusForm, ErrorState, EmptyState } from '@/components/features';
 import { Skeleton } from '@/components/ui';
 import { formatCurrency, formatPaymentMethod } from '@/lib/utils/formatters';
+import { groupPurchaseBonusesForDisplay } from '@/lib/utils/purchase-bonuses-organize';
 import type { CreatePurchaseBonusRequest, PurchaseBonus } from '@/types';
 
 interface PurchaseBonusManagerProps {
@@ -44,6 +45,7 @@ export function PurchaseBonusManager({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingBonus, setEditingBonus] = useState<PurchaseBonus | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set());
 
   // Initial load
   useEffect(() => {
@@ -91,6 +93,23 @@ export function PurchaseBonusManager({
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false);
     setEditingBonus(null);
+  };
+
+  const groupedBonuses = useMemo(
+    () =>
+      purchaseBonuses?.results?.length
+        ? groupPurchaseBonusesForDisplay(purchaseBonuses.results)
+        : [],
+    [purchaseBonuses?.results],
+  );
+
+  const toggleGroupExpanded = (category: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
   };
 
   if (isLoading || operationLoading.purchase || !purchaseBonuses) {
@@ -202,7 +221,7 @@ export function PurchaseBonusManager({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Top-up method</TableHead>
                   <TableHead>Bonus Type</TableHead>
                   <TableHead>Bonus Value</TableHead>
                   <TableHead>Status</TableHead>
@@ -210,49 +229,101 @@ export function PurchaseBonusManager({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {purchaseBonuses?.results.map((bonus) => {
-                  const paymentMethodLabel = formatPaymentMethod(bonus.topup_method);
-                  
+                {groupedBonuses.map((group) => {
+                  const expanded = expandedGroups.has(group.category);
                   return (
-                  <TableRow key={bonus.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <TableCell>
-                      <Badge variant="info">
-                        {paymentMethodLabel}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={bonus.bonus_type === 'percentage' ? 'success' : 'warning'}>
-                        {bonus.bonus_type === 'percentage' ? 'Percentage' : 'Fixed'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-bold text-gray-900 dark:text-gray-100">
-                      {bonus.bonus_type === 'percentage' 
-                        ? `${bonus.bonus}%` 
-                        : formatCurrency(bonus.bonus.toString())
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={bonus.is_enabled ? 'success' : 'default'}>
-                        {bonus.is_enabled ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditBonus(bonus)}
-                          disabled={operationLoading.purchase}
-                          className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                  <Fragment key={group.category}>
+                    <TableRow className="bg-slate-100/90 dark:bg-slate-800/80 border-y border-slate-200 dark:border-slate-700">
+                      <TableCell colSpan={5} className="p-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleGroupExpanded(group.category)}
+                          aria-expanded={expanded}
+                          aria-label={
+                            expanded
+                              ? `Collapse ${group.category}, ${group.items.length} bonuses`
+                              : `Expand ${group.category}, ${group.items.length} bonuses`
+                          }
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-200/80 dark:text-slate-100 dark:hover:bg-slate-700/60"
                         >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          <svg
+                            className={`h-4 w-4 shrink-0 text-slate-500 transition-transform dark:text-slate-400 ${expanded ? '' : '-rotate-90'}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            aria-hidden
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
                           </svg>
-                          Edit
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                          <span className="min-w-0 flex-1 truncate">{group.category}</span>
+                          <span className="shrink-0 tabular-nums text-slate-500 dark:text-slate-400 normal-case">
+                            {group.items.length}
+                          </span>
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                    {expanded &&
+                      group.items.map((bonus) => {
+                      const topupLabel = formatPaymentMethod(bonus.topup_method);
+
+                      return (
+                        <TableRow
+                          key={bonus.id}
+                          className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                        >
+                          <TableCell>
+                            <Badge variant="info">{topupLabel}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={bonus.bonus_type === 'percentage' ? 'success' : 'warning'}>
+                              {bonus.bonus_type === 'percentage' ? 'Percentage' : 'Fixed'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-bold text-gray-900 dark:text-gray-100">
+                            {bonus.bonus_type === 'percentage'
+                              ? `${bonus.bonus}%`
+                              : formatCurrency(bonus.bonus.toString())}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={bonus.is_enabled ? 'success' : 'default'}>
+                              {bonus.is_enabled ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditBonus(bonus)}
+                                disabled={operationLoading.purchase}
+                                className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                              >
+                                <svg
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                                Edit
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </Fragment>
                   );
                 })}
               </TableBody>

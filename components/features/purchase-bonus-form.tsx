@@ -158,13 +158,23 @@ export function PurchaseBonusForm({
 
       <div className="space-y-4">
         {/* Payment Method - Display only in edit mode */}
-        {mode === 'edit' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Payment Method
-            </label>
-            <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-              {formatPaymentMethod(formData.topup_method)}
+        {mode === 'edit' && initialData && (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Category
+              </label>
+              <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+                {initialData.purchase_category_display?.trim() || '—'}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Top-up method
+              </label>
+              <div className="w-full px-3 py-2 border rounded-md bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+                {formatPaymentMethod(initialData.topup_method)}
+              </div>
             </div>
           </div>
         )}

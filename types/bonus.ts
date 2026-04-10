@@ -16,9 +16,13 @@ export interface PurchaseBonus {
   id: number;
   user: number;
   topup_method: string;
+  /** Distinguishes variants that share the same topup_method (e.g. Cash App vs Cashapp Pay). */
+  purchase_category?: string | null;
+  purchase_category_display?: string | null;
   bonus_type: BonusType;
   bonus: number;
   is_enabled?: boolean;
+  is_visible?: boolean;
 }
 
 export interface RechargeBonus extends BaseBonus {

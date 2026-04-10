@@ -12,10 +12,22 @@ import type {
 } from '@/types';
 import type { AffiliateDefaults, UpdateAffiliateDefaultsRequest } from '@/types/affiliate';
 
+const DEFAULT_PURCHASE_BONUS_PAGE_SIZE = 100;
+
+export type PurchaseBonusListParams = {
+  page?: number;
+  page_size?: number;
+};
+
 export const bonusesApi = {
   purchase: {
-    list: () =>
-      apiClient.get<PaginatedResponse<PurchaseBonus>>('api/admin/purchase-bonuses'),
+    list: (params?: PurchaseBonusListParams) =>
+      apiClient.get<PaginatedResponse<PurchaseBonus>>('api/admin/purchase-bonuses', {
+        params: {
+          page: params?.page ?? 1,
+          page_size: params?.page_size ?? DEFAULT_PURCHASE_BONUS_PAGE_SIZE,
+        },
+      }),
 
     create: (data: CreatePurchaseBonusRequest) =>
       apiClient.post<PurchaseBonus>('api/admin/purchase-bonuses', data),
