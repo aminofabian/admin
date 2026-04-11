@@ -1,5 +1,8 @@
 import { create } from 'zustand';
-import { normalizePaymentMethodFilterQueryValue } from '@/lib/utils/transaction-provider-filter-options';
+import {
+  CASHAPP_PAY_PROVIDER_FILTER_VALUE,
+  normalizePaymentMethodFilterQueryValue,
+} from '@/lib/utils/transaction-provider-filter-options';
 import { transactionsApi } from '@/lib/api';
 import { shouldPreserveLedgerBalancesWhenMerging } from '@/lib/utils/transaction-ledger-ws';
 import type { 
@@ -110,7 +113,8 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
 
       // Clean and process advanced filters
       const cleanedAdvancedFilters: Record<string, string | number> = {};
-      
+      let cashappPayProviderLocksPaymentMethod = false;
+
       Object.entries(advancedFilters).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
           // Convert agent_id to number if it's a valid number
@@ -143,7 +147,22 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
             if (trimmedValue) {
               cleanedAdvancedFilters[key] = trimmedValue;
             }
+          } else if (key === 'provider') {
+            const trimmed = String(value).trim();
+            if (trimmed === CASHAPP_PAY_PROVIDER_FILTER_VALUE) {
+              cleanedAdvancedFilters.provider = 'bitcoin_lightning';
+              const normalizedPm = normalizePaymentMethodFilterQueryValue('cashapp');
+              if (normalizedPm) {
+                cleanedAdvancedFilters.payment_method = normalizedPm;
+              }
+              cashappPayProviderLocksPaymentMethod = true;
+            } else if (trimmed) {
+              cleanedAdvancedFilters[key] = trimmed;
+            }
           } else if (key === 'payment_method') {
+            if (cashappPayProviderLocksPaymentMethod) {
+              return;
+            }
             const trimmed = String(value).trim();
             if (trimmed) {
               const normalized = normalizePaymentMethodFilterQueryValue(trimmed);

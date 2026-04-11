@@ -10,6 +10,7 @@ import {
     buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
     buildProviderFilterOptionsFromPaymentMethodsRaw,
     normalizePaymentMethodFilterQueryValue,
+    resolveHistoryTransactionProviderFilterForUi,
 } from '@/lib/utils/transaction-provider-filter-options';
 import { getTransactionAmountColorClass, getTransactionTypeBadgeStyle } from '@/lib/utils/transaction-display';
 import { EmptyState, TransactionDetailsModal } from '@/components/features';
@@ -56,7 +57,10 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
         operator: '', // Operator filter removed for superadmin
         type: derivedType,
         payment_method: normalizePaymentMethodFilterQueryValue(advanced.payment_method ?? ''),
-        provider: advanced.provider ?? '',
+        provider: resolveHistoryTransactionProviderFilterForUi(
+            advanced.provider,
+            advanced.payment_method,
+        ),
         status: advanced.status ?? '',
         game: advanced.game ?? '',
         date_from: advanced.date_from ?? '',

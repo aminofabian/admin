@@ -38,6 +38,13 @@ function normKey(s: string | null | undefined): string {
  */
 const PROVIDER_FILTER_EXCLUDED_SLUGS = new Set(['paypal']);
 
+/**
+ * Internal provider-filter value for history API: same integrator slug as Bitcoin Lightning
+ * (`bitcoin_lightning`) but scoped to Cash App topups. The store expands this to
+ * `provider=bitcoin_lightning&payment_method=cashapp` on fetch.
+ */
+export const CASHAPP_PAY_PROVIDER_FILTER_VALUE = '__cashapp_pay__';
+
 /** API/query param for the card rail (matches backend). */
 export const PAYMENT_METHOD_CARD_QUERY_VALUE = 'card';
 
@@ -89,6 +96,8 @@ const PROVIDER_CANONICAL: Array<{
   label: string;
   matchKeys: string[];
   alwaysVisible?: boolean;
+  /** When set, this row's filter value is fixed (not the API slug from settings). */
+  fixedFilterValue?: string;
 }> = [
   { label: 'Banxa', matchKeys: ['banxa'] },
   { label: 'Bitcoin', matchKeys: ['bitcoin'] },
@@ -99,7 +108,11 @@ const PROVIDER_CANONICAL: Array<{
   { label: 'Binpay', matchKeys: ['binpay'] },
   { label: 'Tierlock', matchKeys: ['tierlock'] },
   { label: 'Cashapp', matchKeys: ['cashapp', 'cash_app'] },
-  { label: 'Cashapp Pay', matchKeys: ['cashapp_pay', 'cashapppay'] },
+  {
+    label: 'Cashapp Pay',
+    matchKeys: ['bitcoin_lightning', 'cashapp_pay', 'cashapppay'],
+    fixedFilterValue: CASHAPP_PAY_PROVIDER_FILTER_VALUE,
+  },
   { label: 'Topper', matchKeys: ['topper'] },
   { label: 'Moonpay', matchKeys: ['moonpay'] },
   { label: 'Tap', matchKeys: ['tap', 'taparcadia'] },
@@ -122,6 +135,25 @@ function rollupCryptoPaymentMethodKeys(keys: Set<string>): void {
 /**
  * Map card-style parent slugs to the query value the API expects (`card`).
  */
+/**
+ * Provider dropdown value for history filters: maps API-style `bitcoin_lightning` + `cashapp`
+ * payment method to the composite Cashapp Pay option.
+ */
+export function resolveHistoryTransactionProviderFilterForUi(
+  rawProvider: string | null | undefined,
+  rawPaymentMethod: string | null | undefined,
+): string {
+  const p = normKey(rawProvider);
+  if (String(rawProvider ?? '').trim() === CASHAPP_PAY_PROVIDER_FILTER_VALUE) {
+    return CASHAPP_PAY_PROVIDER_FILTER_VALUE;
+  }
+  const pm = normKey(normalizePaymentMethodFilterQueryValue(rawPaymentMethod ?? ''));
+  if (p === 'bitcoin_lightning' && pm === 'cashapp') {
+    return CASHAPP_PAY_PROVIDER_FILTER_VALUE;
+  }
+  return String(rawProvider ?? '').trim();
+}
+
 export function normalizePaymentMethodFilterQueryValue(raw: string | null | undefined): string {
   const s = raw?.trim();
   if (!s) return '';
@@ -294,7 +326,8 @@ export function buildProviderFilterOptionsFromPaymentMethodsRaw(
     const visible = row.alwaysVisible === true || fromApi != null;
     if (!visible) continue;
 
-    const value = fromApi?.value ?? row.matchKeys[0].replace(/-/g, '_');
+    const value =
+      row.fixedFilterValue ?? fromApi?.value ?? row.matchKeys[0].replace(/-/g, '_');
 
     result.push({ value, label: row.label });
   }

@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
   buildProviderFilterOptionsFromPaymentMethodsRaw,
+  CASHAPP_PAY_PROVIDER_FILTER_VALUE,
   isCreditDebitCardCategoryDisplay,
   normalizePaymentMethodFilterQueryValue,
   PAYMENT_METHOD_CARD_DISPLAY_LABEL,
   PAYMENT_METHOD_CARD_QUERY_VALUE,
+  resolveHistoryTransactionProviderFilterForUi,
 } from '../transaction-provider-filter-options';
 import type { PaymentMethod, PaymentMethodsListResponseRaw } from '@/types';
 
@@ -176,6 +178,35 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     expect(opts.some((o) => o.value === 'stripe')).toBe(true);
   });
 
+  it('uses composite filter value for Cashapp Pay when bitcoin_lightning is configured', () => {
+    const data: PaymentMethodsListResponseRaw = {
+      cashout: [],
+      purchase: [
+        {
+          payment_method: 'crypto',
+          payment_method_display: 'Crypto',
+          has_subcategories: true,
+          subcategories: [
+            {
+              id: 1,
+              is_configured: true,
+              payment_method: 'ln',
+              payment_method_display: 'Lightning',
+              provider_payment_method: 'bitcoin_lightning',
+              provider_payment_method_display: 'Bitcoin Lightning',
+            },
+          ],
+        },
+      ],
+    };
+
+    const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
+    const cashappPay = opts.find((o) => o.label === 'Cashapp Pay');
+    const lightning = opts.find((o) => o.label === 'Bitcoin Lightning');
+    expect(cashappPay?.value).toBe(CASHAPP_PAY_PROVIDER_FILTER_VALUE);
+    expect(lightning?.value).toBe('bitcoin_lightning');
+  });
+
   it('reads provider_payment_method from flat payment method rows', () => {
     const data: PaymentMethodsListResponseRaw = {
       cashout: [
@@ -195,6 +226,26 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
 
     const opts = buildProviderFilterOptionsFromPaymentMethodsRaw(data);
     expect(opts.some((o) => o.value === 'taparcadia')).toBe(true);
+  });
+});
+
+describe('resolveHistoryTransactionProviderFilterForUi', () => {
+  it('returns sentinel when provider filter is the Cashapp Pay composite value', () => {
+    expect(
+      resolveHistoryTransactionProviderFilterForUi(CASHAPP_PAY_PROVIDER_FILTER_VALUE, ''),
+    ).toBe(CASHAPP_PAY_PROVIDER_FILTER_VALUE);
+  });
+
+  it('maps bitcoin_lightning + cashapp payment method to Cashapp Pay filter value', () => {
+    expect(
+      resolveHistoryTransactionProviderFilterForUi('bitcoin_lightning', 'cashapp'),
+    ).toBe(CASHAPP_PAY_PROVIDER_FILTER_VALUE);
+  });
+
+  it('does not map bitcoin_lightning without cashapp payment method', () => {
+    expect(resolveHistoryTransactionProviderFilterForUi('bitcoin_lightning', '')).toBe(
+      'bitcoin_lightning',
+    );
   });
 });
 

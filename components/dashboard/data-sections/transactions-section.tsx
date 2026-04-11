@@ -17,6 +17,7 @@ import {
   buildPaymentMethodFilterOptionsFromPaymentMethodsRaw,
   buildProviderFilterOptionsFromPaymentMethodsRaw,
   normalizePaymentMethodFilterQueryValue,
+  resolveHistoryTransactionProviderFilterForUi,
 } from '@/lib/utils/transaction-provider-filter-options';
 import {
   getTransactionAmountColorClass,
@@ -118,7 +119,10 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
     operator: advanced.operator ?? '',
     type: derivedType,
     payment_method: normalizePaymentMethodFilterQueryValue(advanced.payment_method ?? ''),
-    provider: advanced.provider ?? '',
+    provider: resolveHistoryTransactionProviderFilterForUi(
+      advanced.provider,
+      advanced.payment_method,
+    ),
     status: advanced.status ?? '',
     game: advanced.game ?? '',
     date_from: advanced.date_from ?? '',
