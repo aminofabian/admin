@@ -20,7 +20,7 @@ export function getTransactionAmountColorClass(
 ): string {
   const t = (type || '').toLowerCase();
   if (t === 'add' || t === 'purchase') return AMOUNT_GREEN;
-  if (t === 'deduct') return AMOUNT_RED;
+  if (t === 'deduct' || t === 'cashout') return AMOUNT_RED;
   const amountValue = parseFloat(String(amount ?? 0));
   return amountValue >= 0 ? AMOUNT_GREEN : AMOUNT_RED;
 }

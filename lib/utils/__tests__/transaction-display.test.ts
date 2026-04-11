@@ -35,9 +35,15 @@ describe('transaction-display', () => {
       expect(getTransactionAmountColorClass('DEDUCT', '5')).toContain('rose');
     });
 
-    it('should fall back to amount sign for other types', () => {
-      expect(getTransactionAmountColorClass('cashout', '5')).toContain('emerald');
+    it('should use red for cashout regardless of amount sign', () => {
+      expect(getTransactionAmountColorClass('cashout', '5')).toContain('rose');
+      expect(getTransactionAmountColorClass('CASHOUT', '5')).toContain('rose');
       expect(getTransactionAmountColorClass('cashout', '-3')).toContain('rose');
+    });
+
+    it('should fall back to amount sign for other types', () => {
+      expect(getTransactionAmountColorClass('unknown', '5')).toContain('emerald');
+      expect(getTransactionAmountColorClass('unknown', '-3')).toContain('rose');
     });
   });
 
