@@ -62,12 +62,12 @@ describe('buildProviderFilterOptionsFromPaymentMethodsRaw', () => {
     expect(opts.map((o) => o.value)).toEqual([
       'banxa',
       'binpay',
-      'tierlock',
-      'freeplay',
-      'external_deposit',
       'external_cashout',
-      'void',
+      'external_deposit',
+      'freeplay',
       'signup',
+      'tierlock',
+      'void',
     ]);
     expect(opts.find((o) => o.value === 'banxa')?.label).toBe('Banxa');
   });
@@ -419,7 +419,7 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
     expect(providers).not.toContain('chime');
   });
 
-  it('ignores cashout-only categories; purchase order preserved', () => {
+  it('ignores cashout-only categories; purchase parents appear alphabetically with ledger rails', () => {
     const data: PaymentMethodsListResponseRaw = {
       purchase: [
         {
@@ -453,10 +453,9 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
 
     const opts = buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(data);
     const values = opts.map((o) => o.value);
-    expect(values[0]).toBe('apple_pay');
+    expect(values).toEqual(['apple_pay', 'manual', 'signup']);
     expect(values).not.toContain('venmo');
     expect(opts.find((o) => o.value === 'apple_pay')?.label).toBe('Apple Pay');
-    expect(values).toContain('manual');
   });
 
   it('lists freeplay on provider filter, not payment-method filter, when only cashout has free_play', () => {

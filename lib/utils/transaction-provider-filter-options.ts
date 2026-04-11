@@ -32,6 +32,15 @@ function normKey(s: string | null | undefined): string {
   return (s ?? '').trim().toLowerCase().replace(/-/g, '_');
 }
 
+/** Sort dropdown options A–Z by visible label (stable tie-break on value). */
+function sortFilterOptionsByLabel<T extends { label: string; value: string }>(options: T[]): T[] {
+  return [...options].sort((a, b) => {
+    const byLabel = a.label.localeCompare(b.label, undefined, { sensitivity: 'base', numeric: true });
+    if (byLabel !== 0) return byLabel;
+    return a.value.localeCompare(b.value, undefined, { sensitivity: 'base', numeric: true });
+  });
+}
+
 /**
  * Omitted from the provider dropdown and not treated as an integrator slug when splitting
  * payment-method vs provider filters (e.g. PayPal is a rail, not Binpay/Tierlock-style provider).
@@ -65,8 +74,9 @@ const CRYPTO_PAYMENT_METHOD_KEYS = new Set([
 ]);
 
 /**
- * Canonical payment-method filter: fixed order and labels; options appear only when superadmin-enabled
- * purchase parents match (plus always-on ledger rails: Manual, Signup).
+ * Canonical payment-method filter: known query values and labels; options appear only when
+ * superadmin-enabled purchase parents match (plus always-on ledger rails: Manual, Signup).
+ * Returned options are sorted alphabetically by label.
  */
 const PAYMENT_METHOD_CANONICAL: Array<{
   queryValue: string;
@@ -89,8 +99,9 @@ const PAYMENT_METHOD_CANONICAL: Array<{
 ];
 
 /**
- * Canonical provider filter order (labels). Shown when an enabled subcategory exposes the integrator
- * (superadmin + configured) or when the row is a ledger/synthetic provider (always available for history).
+ * Canonical provider filter rows (labels / match keys). Shown when an enabled subcategory exposes the
+ * integrator (superadmin + configured) or when the row is a ledger/synthetic provider (always available).
+ * Returned options are sorted alphabetically by label.
  */
 const PROVIDER_CANONICAL: Array<{
   label: string;
@@ -233,7 +244,7 @@ function enabledPaymentMethodKeysFromParents(
 
 /**
  * Purchase-tab parent categories (Payment Settings → Purchase), superadmin-enabled only, then
- * canonical order. Manual / Signup are always listed for ledger history filters.
+ * sorted A–Z by label. Manual / Signup are always listed for ledger history filters.
  */
 export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
   data: PaymentMethodsListResponseRaw,
@@ -249,7 +260,7 @@ export function buildPaymentMethodFilterOptionsFromPaymentMethodsRaw(
     }
   }
 
-  return result;
+  return sortFilterOptionsByLabel(result);
 }
 
 function collectRawProviderMap(
@@ -312,8 +323,8 @@ function collectRawProviderMap(
 }
 
 /**
- * Provider slugs for transaction history `provider` query param: canonical order, superadmin-enabled
- * integrators from payment settings, plus ledger providers always available for filtering.
+ * Provider slugs for transaction history `provider` query param: superadmin-enabled integrators from
+ * payment settings plus ledger providers always available; sorted A–Z by label.
  */
 export function buildProviderFilterOptionsFromPaymentMethodsRaw(
   data: PaymentMethodsListResponseRaw,
@@ -332,5 +343,5 @@ export function buildProviderFilterOptionsFromPaymentMethodsRaw(
     result.push({ value, label: row.label });
   }
 
-  return result;
+  return sortFilterOptionsByLabel(result);
 }
