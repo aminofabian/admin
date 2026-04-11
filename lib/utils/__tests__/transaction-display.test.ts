@@ -1,7 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { getTransactionAmountColorClass, getTransactionTypeBadgeStyle } from '../transaction-display';
+import {
+  getTransactionAmountColorClass,
+  getTransactionKind,
+  getTransactionTypeBadgeStyle,
+} from '../transaction-display';
 
 describe('transaction-display', () => {
+  describe('getTransactionKind', () => {
+    it('uses txn_type when type is missing', () => {
+      expect(getTransactionKind({ type: '', txn_type: 'add' })).toBe('add');
+    });
+
+    it('prefers type when both are set', () => {
+      expect(getTransactionKind({ type: 'deduct', txn_type: 'purchase' })).toBe('deduct');
+    });
+
+    it('normalizes casing on type', () => {
+      expect(getTransactionKind({ type: 'ADD', txn_type: undefined })).toBe('add');
+    });
+  });
+
   describe('getTransactionAmountColorClass', () => {
     it('should use green for add regardless of positive amount', () => {
       expect(getTransactionAmountColorClass('add', '5')).toContain('emerald');

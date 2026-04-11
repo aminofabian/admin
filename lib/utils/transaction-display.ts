@@ -1,6 +1,19 @@
 const AMOUNT_GREEN = 'text-emerald-600 dark:text-emerald-400';
 const AMOUNT_RED = 'text-rose-600 dark:text-rose-400';
 
+/**
+ * History / list payloads may expose the row kind as `type` and/or `txn_type`.
+ * Prefer `type` when present; otherwise use `txn_type`. Normalized to lowercase.
+ */
+export function getTransactionKind(transaction: {
+  type?: string | null;
+  txn_type?: string | null;
+}): string {
+  const primary = String(transaction.type ?? '').trim();
+  if (primary !== '') return primary.toLowerCase();
+  return String(transaction.txn_type ?? '').trim().toLowerCase();
+}
+
 export function getTransactionAmountColorClass(
   type: string | undefined | null,
   amount: string | number | undefined | null,

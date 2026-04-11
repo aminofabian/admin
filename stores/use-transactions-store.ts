@@ -5,6 +5,7 @@ import {
 } from '@/lib/utils/transaction-provider-filter-options';
 import { transactionsApi } from '@/lib/api';
 import { shouldPreserveLedgerBalancesWhenMerging } from '@/lib/utils/transaction-ledger-ws';
+import { getTransactionKind } from '@/lib/utils/transaction-display';
 import type { 
   Transaction,
   TransactionFilters,
@@ -523,74 +524,47 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
       
       // Normalize API response to ensure user data is at top level (similar to game activities)
       let normalizedTransactions: Transaction[] = response.results.map((transaction: Transaction) => {
+        const kind = getTransactionKind(transaction);
+        const withKind =
+          kind !== ''
+            ? { ...transaction, type: kind as Transaction['type'] }
+            : { ...transaction };
+
         // If transaction has nested data, check for user info there
-        if (transaction && typeof transaction === 'object') {
+        if (withKind && typeof withKind === 'object') {
           // Check if user data might be in a nested user object
-          const anyTxn = transaction as any;
+          const anyTxn = withKind as Transaction & { user?: Record<string, unknown> };
           if (anyTxn.user && typeof anyTxn.user === 'object') {
             return {
-              ...transaction,
-              user_username: transaction.user_username || anyTxn.user.username || anyTxn.user.user_username || '',
-              user_email: transaction.user_email || anyTxn.user.email || anyTxn.user.user_email || '',
+              ...withKind,
+              user_username:
+                withKind.user_username ||
+                (anyTxn.user.username as string) ||
+                (anyTxn.user.user_username as string) ||
+                '',
+              user_email:
+                withKind.user_email ||
+                (anyTxn.user.email as string) ||
+                (anyTxn.user.user_email as string) ||
+                '',
               // Explicitly preserve company fields from API response
-              company_id: transaction.company_id,
-              company_username: transaction.company_username,
+              company_id: withKind.company_id,
+              company_username: withKind.company_username,
             };
           }
         }
         // Ensure company fields are preserved even when there's no nested user object
         return {
-          ...transaction,
-          company_id: transaction.company_id,
-          company_username: transaction.company_username,
+          ...withKind,
+          company_id: withKind.company_id,
+          company_username: withKind.company_username,
         };
       });
 
-      // Client-side filtering for type and status in history view
-      // This is a fallback in case the API doesn't support status__ne parameter
-      if (
-        isHistoryFilter &&
-        (cleanedAdvancedFilters.type === 'purchase' ||
-          cleanedAdvancedFilters.type === 'cashout' ||
-          cleanedAdvancedFilters.type === 'add' ||
-          cleanedAdvancedFilters.type === 'deduct')
-      ) {
-        const expectedType = cleanedAdvancedFilters.type;
-        const beforeCount = normalizedTransactions.length;
-        
-        normalizedTransactions = normalizedTransactions.filter((transaction: Transaction) => {
-          // Filter by type
-          if (transaction.type !== expectedType) {
-            return false;
-          }
-          
-          // Exclude pending transactions in history view
-          if (transaction.status === 'pending') {
-            return false;
-          }
-          
-          return true;
-        });
-        
-        const afterCount = normalizedTransactions.length;
-        if (beforeCount !== afterCount) {
-          console.log('🔍 Client-side filtering applied (history + type filter):', {
-            expectedType,
-            beforeCount,
-            afterCount,
-            filteredOut: beforeCount - afterCount,
-          });
-        }
-      }
-      
-      // Preserve the original API count for pagination
-      // When client-side filtering is applied, we still need the total count from the API
-      // to properly calculate pagination. The filtered results length is only for the current page.
       set({ 
         transactions: {
           ...response,
           results: normalizedTransactions,
-          // Keep the original API count for pagination, not the filtered length
           count: response.count ?? normalizedTransactions.length,
         }, 
         isLoading: false,

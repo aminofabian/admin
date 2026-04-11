@@ -14,6 +14,8 @@ export interface Transaction {
   bonus_amount: string;
   status: TransactionStatus;
   type: TransactionType;
+  /** Some history APIs send the row kind here when `type` is omitted or redundant. */
+  txn_type?: TransactionType | string;
   operator: string;
   payment_method: string;
   provider?: string | null;

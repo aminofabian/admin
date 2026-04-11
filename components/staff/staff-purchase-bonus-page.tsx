@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useBonusesStore } from '@/stores';
 import { 
   Table, 
@@ -13,8 +13,8 @@ import {
 } from '@/components/ui';
 import { ErrorState, EmptyState } from '@/components/features';
 import { Skeleton } from '@/components/ui';
-import { formatCurrency, formatPaymentMethod } from '@/lib/utils/formatters';
-import { groupPurchaseBonusesForDisplay } from '@/lib/utils/purchase-bonuses-organize';
+import { formatCurrency, getPurchaseBonusPaymentLabel } from '@/lib/utils/formatters';
+import { sortPurchaseBonusesForDisplay } from '@/lib/utils/purchase-bonuses-organize';
 
 export function StaffPurchaseBonusPage() {
   const { 
@@ -31,24 +31,13 @@ export function StaffPurchaseBonusPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const groupedBonuses = useMemo(
+  const sortedBonuses = useMemo(
     () =>
       purchaseBonuses?.results?.length
-        ? groupPurchaseBonusesForDisplay(purchaseBonuses.results)
+        ? sortPurchaseBonusesForDisplay(purchaseBonuses.results)
         : [],
     [purchaseBonuses?.results],
   );
-
-  const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set());
-
-  const toggleGroupExpanded = (category: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(category)) next.delete(category);
-      else next.add(category);
-      return next;
-    });
-  };
 
   if (isLoading || operationLoading.purchase || !purchaseBonuses) {
     return (
@@ -158,77 +147,31 @@ export function StaffPurchaseBonusPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {groupedBonuses.map((group) => {
-                  const expanded = expandedGroups.has(group.category);
-                  return (
-                  <Fragment key={group.category}>
-                    <TableRow className="bg-slate-100/90 dark:bg-slate-800/80 border-y border-slate-200 dark:border-slate-700">
-                      <TableCell colSpan={4} className="p-0">
-                        <button
-                          type="button"
-                          onClick={() => toggleGroupExpanded(group.category)}
-                          aria-expanded={expanded}
-                          aria-label={
-                            expanded
-                              ? `Collapse ${group.category}, ${group.items.length} bonuses`
-                              : `Expand ${group.category}, ${group.items.length} bonuses`
-                          }
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-200/80 dark:text-slate-100 dark:hover:bg-slate-700/60"
-                        >
-                          <svg
-                            className={`h-4 w-4 shrink-0 text-slate-500 transition-transform dark:text-slate-400 ${expanded ? '' : '-rotate-90'}`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            aria-hidden
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                          <span className="min-w-0 flex-1 truncate">{group.category}</span>
-                          <span className="shrink-0 tabular-nums text-slate-500 dark:text-slate-400 normal-case">
-                            {group.items.length}
-                          </span>
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                    {expanded &&
-                      group.items.map((bonus) => {
-                      const topupLabel = formatPaymentMethod(bonus.topup_method);
-
-                      return (
-                        <TableRow
-                          key={bonus.id}
-                          className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                        >
-                          <TableCell>
-                            <Badge variant="info">{topupLabel}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={bonus.bonus_type === 'percentage' ? 'success' : 'warning'}>
-                              {bonus.bonus_type === 'percentage' ? 'Percentage' : 'Fixed'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-bold text-gray-900 dark:text-gray-100">
-                            {bonus.bonus_type === 'percentage'
-                              ? `${bonus.bonus}%`
-                              : formatCurrency(bonus.bonus.toString())}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={bonus.is_enabled ? 'success' : 'default'}>
-                              {bonus.is_enabled ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </Fragment>
-                  );
-                })}
+                {sortedBonuses.map((bonus) => (
+                  <TableRow
+                    key={bonus.id}
+                    className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  >
+                    <TableCell>
+                      <Badge variant="info">{getPurchaseBonusPaymentLabel(bonus)}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={bonus.bonus_type === 'percentage' ? 'success' : 'warning'}>
+                        {bonus.bonus_type === 'percentage' ? 'Percentage' : 'Fixed'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-bold text-gray-900 dark:text-gray-100">
+                      {bonus.bonus_type === 'percentage'
+                        ? `${bonus.bonus}%`
+                        : formatCurrency(bonus.bonus.toString())}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={bonus.is_enabled ? 'success' : 'default'}>
+                        {bonus.is_enabled ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
