@@ -50,11 +50,19 @@ describe('formatters', () => {
     it('should format numbers correctly', () => {
       expect(formatCurrency(123.45)).toBe('$123.45');
       expect(formatCurrency(0)).toBe('$0.00');
+      expect(formatCurrency(50)).toBe('$50.00');
+      expect(formatCurrency(100.1)).toBe('$100.10');
     });
 
     it('should format string numbers correctly', () => {
       expect(formatCurrency('123.45')).toBe('$123.45');
       expect(formatCurrency('0')).toBe('$0.00');
+      expect(formatCurrency('100.0000')).toBe('$100.00');
+    });
+
+    it('should treat non-finite values as zero', () => {
+      expect(formatCurrency('not-a-number')).toBe('$0.00');
+      expect(formatCurrency(Number.NaN)).toBe('$0.00');
     });
   });
 

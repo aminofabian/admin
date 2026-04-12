@@ -12,6 +12,8 @@ describe('prepareChatMessageHtmlForDisplay', () => {
     expect(out).not.toMatch(/Winnings/i);
     expect(out).not.toMatch(/Credits/i);
     expect(out).toMatch(/Balance/);
+    expect(out).toContain('$100.00');
+    expect(out).toContain('$300.00');
   });
 
   it('formatTransactionMessage output has no Winnings or Credits label', () => {

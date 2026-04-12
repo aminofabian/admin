@@ -11,12 +11,19 @@ export function cn(...inputs: (string | undefined | null | boolean)[]): string {
     .trim();
 }
 
+const USD_TWO_DECIMALS: Intl.NumberFormatOptions = {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+};
+
 export const formatCurrency = (amount: string | number): string => {
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(numAmount);
+  if (typeof numAmount !== 'number' || Number.isNaN(numAmount) || !Number.isFinite(numAmount)) {
+    return new Intl.NumberFormat('en-US', USD_TWO_DECIMALS).format(0);
+  }
+  return new Intl.NumberFormat('en-US', USD_TWO_DECIMALS).format(numAmount);
 };
 
 export const formatDate = (dateString: string | null | undefined): string => {

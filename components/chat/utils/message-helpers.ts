@@ -1,5 +1,16 @@
+import { formatCurrency } from '@/lib/utils/formatters';
+
 // URL regex to detect image links
 const IMAGE_URL_REGEX = /https?:\/\/[^\s<>"]+\.(jpg|jpeg|png|gif|bmp|webp|svg)/gi;
+
+/** USD amounts in chat HTML from the server often use 1 or 4+ fraction digits; normalize to two. */
+export function normalizeDollarAmountsInChatHtml(html: string): string {
+  if (!html) return html;
+  return html.replace(/\$[\d,]+(?:\.\d+)?/g, (token) => {
+    const n = parseFloat(token.slice(1).replace(/,/g, ''));
+    return Number.isFinite(n) ? formatCurrency(n) : token;
+  });
+}
 
 // Check if a URL points to an image
 export const isImageUrl = (url: string | null | undefined): boolean => {
@@ -70,7 +81,9 @@ export function relabelCreditsToBalanceInChatMessage(text: string): string {
 
 /** Strip winnings line + relabel credits→balance for any rendered chat HTML. */
 export function prepareChatMessageHtmlForDisplay(text: string): string {
-  return relabelCreditsToBalanceInChatMessage(stripWinningsLineFromChatMessage(text));
+  return normalizeDollarAmountsInChatHtml(
+    relabelCreditsToBalanceInChatMessage(stripWinningsLineFromChatMessage(text)),
+  );
 }
 
 // Message HTML content classes
