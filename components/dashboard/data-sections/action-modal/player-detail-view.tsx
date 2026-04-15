@@ -8,12 +8,14 @@ import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi, agentsApi } from '@/lib/api';
 import { Badge, Button, Input, DateSelect } from '@/components/ui';
 import type { UpdateUserRequest } from '@/types';
+import type { TransactionDetailsNavigation } from './transaction-details-modal';
 
 interface PlayerDetailViewProps {
   isOpen: boolean;
   onClose: () => void;
   player: Player | null;
   onPlayerUpdated?: () => void;
+  navigation?: TransactionDetailsNavigation;
 }
 
 interface EditableFields {
@@ -28,7 +30,8 @@ export function PlayerDetailView({
   isOpen, 
   onClose, 
   player,
-  onPlayerUpdated 
+  onPlayerUpdated,
+  navigation,
 }: PlayerDetailViewProps) {
   const router = useRouter();
   const { addToast } = useToast();
@@ -85,6 +88,31 @@ export function PlayerDetailView({
         });
     }
   }, [isOpen, player, addToast]);
+
+  useEffect(() => {
+    if (!isOpen || !navigation || navigation.total <= 1) {
+      return;
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      if (navigation.isLoading) {
+        return;
+      }
+      if (e.key === 'ArrowLeft' && navigation.currentPosition > 1) {
+        e.preventDefault();
+        navigation.onPrevious();
+      } else if (e.key === 'ArrowRight' && navigation.currentPosition < navigation.total) {
+        e.preventDefault();
+        navigation.onNext();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, navigation]);
 
   const handleFieldChange = useCallback((field: keyof EditableFields, value: string) => {
     setEditableFields((prev) => ({ ...prev, [field]: value }));
@@ -245,6 +273,9 @@ export function PlayerDetailView({
     return null;
   }
 
+  const showNavigation =
+    navigation != null && navigation.total > 1 && navigation.currentPosition >= 1 && navigation.currentPosition <= navigation.total;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative h-full w-full overflow-y-auto bg-gray-50 dark:bg-gray-950">
@@ -293,6 +324,31 @@ export function PlayerDetailView({
                 )}
               </div>
             </div>
+            {showNavigation && (
+              <div className="flex items-center justify-between gap-2 border-t border-gray-200 px-3 py-2 dark:border-gray-800 sm:px-6">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={navigation.isLoading || navigation.currentPosition <= 1}
+                  onClick={navigation.onPrevious}
+                >
+                  Previous
+                </Button>
+                <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                  {navigation.isLoading ? 'Loading...' : `${navigation.currentPosition} / ${navigation.total}`}
+                </span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={navigation.isLoading || navigation.currentPosition >= navigation.total}
+                  onClick={navigation.onNext}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 

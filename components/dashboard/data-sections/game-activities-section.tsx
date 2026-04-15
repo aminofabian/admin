@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
@@ -615,6 +615,7 @@ function HistoryGameActivitiesLayout({
         pagination={pagination}
         totalPages={totalPages}
         shouldShowPagination={shouldShowPagination}
+        isLoading={isLoading}
       />
     </>
   );
@@ -625,16 +626,19 @@ interface HistoryGameActivitiesTableProps {
   pagination: HistoryPaginationState;
   totalPages: number;
   shouldShowPagination: boolean;
+  isLoading: boolean;
 }
 
 function HistoryGameActivitiesTable({
   queues,
   pagination,
   totalPages,
-  shouldShowPagination
+  shouldShowPagination,
+  isLoading,
 }: HistoryGameActivitiesTableProps) {
   const [selectedActivity, setSelectedActivity] = useState<TransactionQueue | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [pendingDrawerPage, setPendingDrawerPage] = useState<{ page: number; focus: 'first' | 'last' } | null>(null);
 
   const handleViewActivity = useCallback((activity: TransactionQueue) => {
     setSelectedActivity(activity);
@@ -645,6 +649,92 @@ function HistoryGameActivitiesTable({
     setIsViewModalOpen(false);
     setSelectedActivity(null);
   }, []);
+
+  const handleNavigateToPreviousActivity = useCallback(() => {
+    if (!selectedActivity || isLoading || pendingDrawerPage) {
+      return;
+    }
+    const idx = queues.findIndex((a) => a.id === selectedActivity.id);
+    if (idx < 0) {
+      return;
+    }
+    if (idx > 0) {
+      setSelectedActivity(queues[idx - 1]);
+      return;
+    }
+    if (pagination.currentPage <= 1) {
+      return;
+    }
+    setPendingDrawerPage({ page: pagination.currentPage - 1, focus: 'last' });
+    pagination.onPageChange(pagination.currentPage - 1);
+  }, [selectedActivity, isLoading, pendingDrawerPage, queues, pagination]);
+
+  const handleNavigateToNextActivity = useCallback(() => {
+    if (!selectedActivity || isLoading || pendingDrawerPage) {
+      return;
+    }
+    const idx = queues.findIndex((a) => a.id === selectedActivity.id);
+    if (idx < 0) {
+      return;
+    }
+    if (idx < queues.length - 1) {
+      setSelectedActivity(queues[idx + 1]);
+      return;
+    }
+    if (pagination.currentPage >= totalPages) {
+      return;
+    }
+    setPendingDrawerPage({ page: pagination.currentPage + 1, focus: 'first' });
+    pagination.onPageChange(pagination.currentPage + 1);
+  }, [selectedActivity, isLoading, pendingDrawerPage, queues, pagination, totalPages]);
+
+  useEffect(() => {
+    if (!pendingDrawerPage || !isViewModalOpen || isLoading) {
+      return;
+    }
+    if (pagination.currentPage !== pendingDrawerPage.page) {
+      return;
+    }
+    if (queues.length === 0) {
+      setPendingDrawerPage(null);
+      return;
+    }
+    const nextActivity =
+      pendingDrawerPage.focus === 'first'
+        ? queues[0]
+        : queues[queues.length - 1];
+    if (nextActivity) {
+      setSelectedActivity(nextActivity);
+    }
+    setPendingDrawerPage(null);
+  }, [pendingDrawerPage, isViewModalOpen, isLoading, pagination.currentPage, queues]);
+
+  const activityDrawerNavigation = useMemo(() => {
+    if (!selectedActivity || pagination.totalCount <= 0) {
+      return undefined;
+    }
+    const idx = queues.findIndex((a) => a.id === selectedActivity.id);
+    if (idx < 0) {
+      return undefined;
+    }
+    return {
+      currentPosition: (pagination.currentPage - 1) * pagination.pageSize + idx + 1,
+      total: pagination.totalCount,
+      onPrevious: handleNavigateToPreviousActivity,
+      onNext: handleNavigateToNextActivity,
+      isLoading: isLoading || pendingDrawerPage != null,
+    };
+  }, [
+    selectedActivity,
+    pagination.totalCount,
+    pagination.currentPage,
+    pagination.pageSize,
+    queues,
+    handleNavigateToPreviousActivity,
+    handleNavigateToNextActivity,
+    isLoading,
+    pendingDrawerPage,
+  ]);
 
   return (
     <>
@@ -712,6 +802,7 @@ function HistoryGameActivitiesTable({
           activity={selectedActivity}
           isOpen={isViewModalOpen}
           onClose={handleCloseModal}
+          navigation={activityDrawerNavigation}
         />
       )}
     </>

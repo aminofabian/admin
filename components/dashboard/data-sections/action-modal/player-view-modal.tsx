@@ -6,14 +6,16 @@ import { useToast } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi } from '@/lib/api';
 import { Modal, Badge } from '@/components/ui';
+import type { TransactionDetailsNavigation } from './transaction-details-modal';
 
 interface PlayerViewModalProps {
   isOpen: boolean;
   onClose: () => void;
   player: Player | null;
+  navigation?: TransactionDetailsNavigation;
 }
 
-export function PlayerViewModal({ isOpen, onClose, player }: PlayerViewModalProps) {
+export function PlayerViewModal({ isOpen, onClose, player, navigation }: PlayerViewModalProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(player);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const { addToast } = useToast();
@@ -49,6 +51,31 @@ export function PlayerViewModal({ isOpen, onClose, player }: PlayerViewModalProp
     }
   }, [isOpen, player, addToast]);
 
+  useEffect(() => {
+    if (!isOpen || !navigation || navigation.total <= 1) {
+      return;
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      if (navigation.isLoading) {
+        return;
+      }
+      if (e.key === 'ArrowLeft' && navigation.currentPosition > 1) {
+        e.preventDefault();
+        navigation.onPrevious();
+      } else if (e.key === 'ArrowRight' && navigation.currentPosition < navigation.total) {
+        e.preventDefault();
+        navigation.onNext();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, navigation]);
+
   const usernameInitial = useMemo(() => {
     const username = selectedPlayer?.username;
     if (!username) {
@@ -78,9 +105,37 @@ export function PlayerViewModal({ isOpen, onClose, player }: PlayerViewModalProp
     return null;
   }
 
+  const showNavigation =
+    navigation != null && navigation.total > 1 && navigation.currentPosition >= 1 && navigation.currentPosition <= navigation.total;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Player Details" size="md">
       <div className="space-y-6">
+        {showNavigation && (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+            <button
+              type="button"
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs disabled:opacity-50"
+              disabled={navigation.isLoading || navigation.currentPosition <= 1}
+              onClick={navigation.onPrevious}
+              aria-label="Previous player"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {navigation.isLoading ? 'Loading...' : `${navigation.currentPosition} / ${navigation.total}`}
+            </span>
+            <button
+              type="button"
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs disabled:opacity-50"
+              disabled={navigation.isLoading || navigation.currentPosition >= navigation.total}
+              onClick={navigation.onNext}
+              aria-label="Next player"
+            >
+              Next
+            </button>
+          </div>
+        )}
         <section className="flex items-center gap-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-xl p-4 border border-purple-200 dark:border-purple-800/50">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 dark:from-purple-600 dark:to-indigo-500 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-purple-500/20">
             {usernameInitial}

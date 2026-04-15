@@ -222,6 +222,7 @@ export default function PlayerDetailPage() {
   const [isEditingGame, setIsEditingGame] = useState(false);
   const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
   const [isSavedPaymentMethodsOpen, setIsSavedPaymentMethodsOpen] = useState(false);
+  const [playerNavDirection, setPlayerNavDirection] = useState<'previous' | 'next' | null>(null);
   const [editableFields, setEditableFields] = useState<EditableFields>({
     email: '',
     full_name: '',
@@ -749,6 +750,96 @@ export default function PlayerDetailPage() {
     }
   }, [selectedPlayer, router]);
 
+  const findAdjacentPlayerId = useCallback(async (currentId: number, direction: 'previous' | 'next') => {
+    const PAGE_SIZE = 100;
+    const MAX_PAGES_TO_SCAN = 100;
+    let page = 1;
+    let hasNext = true;
+    let scannedPages = 0;
+    let adjacentId: number | null = null;
+
+    while (hasNext && scannedPages < MAX_PAGES_TO_SCAN) {
+      const response = await playersApi.list({ page, page_size: PAGE_SIZE });
+      const results = Array.isArray(response?.results) ? response.results : [];
+
+      for (const player of results) {
+        if (typeof player.id !== 'number') {
+          continue;
+        }
+        if (direction === 'next' && player.id > currentId) {
+          adjacentId = adjacentId == null ? player.id : Math.min(adjacentId, player.id);
+        }
+        if (direction === 'previous' && player.id < currentId) {
+          adjacentId = adjacentId == null ? player.id : Math.max(adjacentId, player.id);
+        }
+      }
+
+      hasNext = Boolean(response?.next);
+      page += 1;
+      scannedPages += 1;
+    }
+
+    return adjacentId;
+  }, []);
+
+  const handleNavigateToAdjacentPlayer = useCallback(async (direction: 'previous' | 'next') => {
+    if (!selectedPlayer || playerNavDirection) {
+      return;
+    }
+
+    setPlayerNavDirection(direction);
+    try {
+      const adjacentId = await findAdjacentPlayerId(selectedPlayer.id, direction);
+
+      if (adjacentId == null) {
+        addToast({
+          type: 'info',
+          title: 'No more players',
+          description: direction === 'next' ? 'No next player found.' : 'No previous player found.',
+        });
+        return;
+      }
+
+      router.push(`/dashboard/players/${adjacentId}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load adjacent player';
+      addToast({
+        type: 'error',
+        title: 'Navigation failed',
+        description: message,
+      });
+    } finally {
+      setPlayerNavDirection(null);
+    }
+  }, [selectedPlayer, playerNavDirection, findAdjacentPlayerId, addToast, router]);
+
+  useEffect(() => {
+    if (!selectedPlayer || playerNavDirection !== null) {
+      return;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      if (e.key === '[') {
+        e.preventDefault();
+        void handleNavigateToAdjacentPlayer('previous');
+      } else if (e.key === ']') {
+        e.preventDefault();
+        void handleNavigateToAdjacentPlayer('next');
+      } else if (e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        handleNavigateToChat();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedPlayer, playerNavDirection, handleNavigateToAdjacentPlayer, handleNavigateToChat]);
+
   const handleDeleteGame = useCallback(async () => {
     if (!gameToDelete || !selectedPlayer) return;
 
@@ -942,24 +1033,20 @@ export default function PlayerDetailPage() {
               </svg>
             </button>
             <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 flex-1 min-w-0">
-              <button
-                onClick={handleNavigateToChat}
-                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors cursor-pointer active:scale-95"
-                title="Open chat with this player"
-                aria-label="Open chat"
+              <div
+                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base"
+                aria-label="Player avatar"
               >
                 {usernameInitial}
-              </button>
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-                  <button
-                    onClick={handleNavigateToChat}
-                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer text-left"
-                    title="Open chat with this player"
-                    aria-label="Open chat"
+                  <span
+                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate text-left"
+                    aria-label="Player username"
                   >
                     {selectedPlayer.username}
-                  </button>
+                  </span>
                   <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
                     #{selectedPlayer.id}
                   </span>
@@ -979,17 +1066,52 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setIsEditDrawerOpen(true)}
-              className="flex items-center gap-1 sm:gap-1.5 shrink-0 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-            >
-              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
-            </Button>
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleNavigateToAdjacentPlayer('previous')}
+                disabled={playerNavDirection !== null}
+                isLoading={playerNavDirection === 'previous'}
+                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <span className="hidden sm:inline text-xs sm:text-sm">Prev</span>
+                <span className="sm:hidden text-xs">◀</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleNavigateToAdjacentPlayer('next')}
+                disabled={playerNavDirection !== null}
+                isLoading={playerNavDirection === 'next'}
+                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <span className="hidden sm:inline text-xs sm:text-sm">Next</span>
+                <span className="sm:hidden text-xs">▶</span>
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleNavigateToChat}
+                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="hidden sm:inline text-xs sm:text-sm">Chat</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsEditDrawerOpen(true)}
+                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
