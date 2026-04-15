@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { DashboardSectionContainer } from '@/components/dashboard/layout';
 import { Card, CardContent, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Skeleton, Pagination, Button } from '@/components/ui';
@@ -13,9 +13,14 @@ import {
     resolveHistoryTransactionProviderFilterForUi,
 } from '@/lib/utils/transaction-provider-filter-options';
 import { getTransactionAmountColorClass, getTransactionTypeBadgeStyle } from '@/lib/utils/transaction-display';
-import { EmptyState, TransactionDetailsModal } from '@/components/features';
+import {
+    EmptyState,
+    TransactionDetailsModal,
+    type TransactionDetailsNavigation,
+} from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
+import { transactionsApi } from '@/lib/api/transactions';
 import type { Agent, Company, Transaction } from '@/types';
 
 const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
@@ -478,7 +483,150 @@ export function SuperAdminHistoryTransactions() {
         setSelectedTransaction(null);
     }, []);
 
-    const transactionList = transactions?.results || [];
+    const transactionList = useMemo(() => transactions?.results || [], [transactions?.results]);
+    const totalTransactionCount = transactions?.count ?? 0;
+    const totalTransactionPages = useMemo(
+        () => (pageSize > 0 ? Math.max(1, Math.ceil(totalTransactionCount / pageSize)) : 1),
+        [totalTransactionCount, pageSize]
+    );
+    const [pendingDrawerPage, setPendingDrawerPage] = useState<{ page: number; focus: 'first' | 'last' } | null>(null);
+    const prefetchedDrawerPagesRef = useRef<Set<number>>(new Set());
+    const prefetchingDrawerPagesRef = useRef<Set<number>>(new Set());
+
+    const handleNavigateToPreviousTransaction = useCallback(() => {
+        if (!selectedTransaction || isLoading || pendingDrawerPage) {
+            return;
+        }
+        const idx = transactionList.findIndex((t) => t.id === selectedTransaction.id);
+        if (idx < 0) {
+            return;
+        }
+        if (idx > 0) {
+            setSelectedTransaction(transactionList[idx - 1]);
+            return;
+        }
+        if (currentPage <= 1) {
+            return;
+        }
+        setPendingDrawerPage({ page: currentPage - 1, focus: 'last' });
+        setPage(currentPage - 1);
+    }, [selectedTransaction, isLoading, pendingDrawerPage, transactionList, currentPage, setPage]);
+
+    const handleNavigateToNextTransaction = useCallback(() => {
+        if (!selectedTransaction || isLoading || pendingDrawerPage) {
+            return;
+        }
+        const idx = transactionList.findIndex((t) => t.id === selectedTransaction.id);
+        if (idx < 0) {
+            return;
+        }
+        if (idx < transactionList.length - 1) {
+            setSelectedTransaction(transactionList[idx + 1]);
+            return;
+        }
+        if (currentPage >= totalTransactionPages) {
+            return;
+        }
+        setPendingDrawerPage({ page: currentPage + 1, focus: 'first' });
+        setPage(currentPage + 1);
+    }, [selectedTransaction, isLoading, pendingDrawerPage, transactionList, currentPage, totalTransactionPages, setPage]);
+
+    useEffect(() => {
+        if (!pendingDrawerPage || !isViewModalOpen || isLoading) {
+            return;
+        }
+        if (currentPage !== pendingDrawerPage.page) {
+            return;
+        }
+        if (transactionList.length === 0) {
+            setPendingDrawerPage(null);
+            return;
+        }
+        const nextTransaction =
+            pendingDrawerPage.focus === 'first'
+                ? transactionList[0]
+                : transactionList[transactionList.length - 1];
+        if (nextTransaction) {
+            setSelectedTransaction(nextTransaction);
+        }
+        setPendingDrawerPage(null);
+    }, [pendingDrawerPage, isViewModalOpen, isLoading, currentPage, transactionList]);
+
+    const transactionDrawerNavigation = useMemo((): TransactionDetailsNavigation | undefined => {
+        if (!selectedTransaction || totalTransactionCount <= 0) {
+            return undefined;
+        }
+        const idx = transactionList.findIndex((t) => t.id === selectedTransaction.id);
+        if (idx < 0) {
+            return undefined;
+        }
+        return {
+            currentPosition: (currentPage - 1) * pageSize + idx + 1,
+            total: totalTransactionCount,
+            onPrevious: handleNavigateToPreviousTransaction,
+            onNext: handleNavigateToNextTransaction,
+            isLoading: isLoading || pendingDrawerPage != null,
+        };
+    }, [
+        selectedTransaction,
+        totalTransactionCount,
+        transactionList,
+        currentPage,
+        pageSize,
+        handleNavigateToPreviousTransaction,
+        handleNavigateToNextTransaction,
+        isLoading,
+        pendingDrawerPage,
+    ]);
+
+    const parseFiltersFromPageUrl = useCallback((pageUrl: string): Record<string, string> => {
+        const url = new URL(pageUrl, window.location.origin);
+        const filters: Record<string, string> = {};
+        url.searchParams.forEach((value, key) => {
+            filters[key] = value;
+        });
+        return filters;
+    }, []);
+
+    const prefetchDrawerPage = useCallback(
+        async (page: number, pageUrl: string | null | undefined) => {
+            if (!pageUrl || prefetchedDrawerPagesRef.current.has(page) || prefetchingDrawerPagesRef.current.has(page)) {
+                return;
+            }
+            prefetchingDrawerPagesRef.current.add(page);
+            try {
+                const filters = parseFiltersFromPageUrl(pageUrl);
+                await transactionsApi.listHistory(filters);
+                prefetchedDrawerPagesRef.current.add(page);
+            } catch {
+                // Prefetch is best-effort only.
+            } finally {
+                prefetchingDrawerPagesRef.current.delete(page);
+            }
+        },
+        [parseFiltersFromPageUrl]
+    );
+
+    useEffect(() => {
+        if (!isViewModalOpen || !selectedTransaction || isLoading) {
+            return;
+        }
+        if (currentPage < totalTransactionPages) {
+            void prefetchDrawerPage(currentPage + 1, transactions?.next);
+        }
+        if (currentPage > 1) {
+            void prefetchDrawerPage(currentPage - 1, transactions?.previous);
+        }
+    }, [
+        isViewModalOpen,
+        selectedTransaction,
+        isLoading,
+        currentPage,
+        totalTransactionPages,
+        transactions?.next,
+        transactions?.previous,
+        prefetchDrawerPage,
+    ]);
 
     // Filter companies based on search term
     const filteredCompanies = useMemo(() => {
@@ -1174,6 +1322,7 @@ export function SuperAdminHistoryTransactions() {
                     transaction={selectedTransaction}
                     isOpen={isViewModalOpen}
                     onClose={handleCloseModal}
+                    navigation={transactionDrawerNavigation}
                 />
             )}
         </DashboardSectionContainer>

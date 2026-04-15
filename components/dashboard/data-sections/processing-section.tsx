@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import type { JSX } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
@@ -19,9 +19,10 @@ import {
   DashboardActionBar,
   DashboardSectionContainer,
 } from '@/components/dashboard/layout';
-import { 
+import {
   EmptyState,
-  TransactionDetailsModal
+  TransactionDetailsModal,
+  type TransactionDetailsNavigation,
 } from '@/components/features';
 import { ActionModal } from './action-modal/game-activity-history';
 import { GameActivityTable } from './game-activity-table';
@@ -514,6 +515,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     subscribeToTransactionUpdates 
   } = useProcessingWebSocketContext();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pendingDrawerPage, setPendingDrawerPage] = useState<{ page: number; focus: 'first' | 'last' } | null>(null);
+  const prefetchedDrawerPagesRef = useRef<Set<number>>(new Set());
+  const prefetchingDrawerPagesRef = useRef<Set<number>>(new Set());
 
   const cashoutCategories = usePaymentMethodsStore((state) => state.cashoutCategories);
   const fetchPaymentMethods = usePaymentMethodsStore((state) => state.fetchPaymentMethods);
@@ -961,6 +965,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     [transactions?.results]
   );
   const transactionCount = transactions?.count ?? 0;
+  const totalTransactionPages = useMemo(
+    () => (transactionsPageSize > 0 ? Math.max(1, Math.ceil(transactionCount / transactionsPageSize)) : 1),
+    [transactionCount, transactionsPageSize]
+  );
 
   useEffect(() => {
     if (viewType === 'purchases') {
@@ -1299,6 +1307,167 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
     return buttons;
   }, [selectedTransaction, cashoutCategories]);
+
+  const handleNavigateToPreviousTransaction = useCallback(() => {
+    if (!selectedTransaction || transactionsLoading || pendingDrawerPage) {
+      return;
+    }
+    const idx = transactionResults.findIndex((t) => t.id === selectedTransaction.id);
+    if (idx < 0) {
+      return;
+    }
+    if (idx > 0) {
+      setSelectedTransaction(transactionResults[idx - 1]);
+      return;
+    }
+    if (transactionsPage <= 1) {
+      return;
+    }
+    setPendingDrawerPage({ page: transactionsPage - 1, focus: 'last' });
+    void setTransactionsPage(transactionsPage - 1);
+  }, [
+    selectedTransaction,
+    transactionsLoading,
+    pendingDrawerPage,
+    transactionResults,
+    transactionsPage,
+    setTransactionsPage,
+  ]);
+
+  const handleNavigateToNextTransaction = useCallback(() => {
+    if (!selectedTransaction || transactionsLoading || pendingDrawerPage) {
+      return;
+    }
+    const idx = transactionResults.findIndex((t) => t.id === selectedTransaction.id);
+    if (idx < 0) {
+      return;
+    }
+    if (idx < transactionResults.length - 1) {
+      setSelectedTransaction(transactionResults[idx + 1]);
+      return;
+    }
+    if (transactionsPage >= totalTransactionPages) {
+      return;
+    }
+    setPendingDrawerPage({ page: transactionsPage + 1, focus: 'first' });
+    void setTransactionsPage(transactionsPage + 1);
+  }, [
+    selectedTransaction,
+    transactionsLoading,
+    pendingDrawerPage,
+    transactionResults,
+    transactionsPage,
+    totalTransactionPages,
+    setTransactionsPage,
+  ]);
+
+  useEffect(() => {
+    if (!pendingDrawerPage || !isViewModalOpen || transactionsLoading) {
+      return;
+    }
+    if (transactionsPage !== pendingDrawerPage.page) {
+      return;
+    }
+    if (transactionResults.length === 0) {
+      setPendingDrawerPage(null);
+      return;
+    }
+    const nextTransaction =
+      pendingDrawerPage.focus === 'first'
+        ? transactionResults[0]
+        : transactionResults[transactionResults.length - 1];
+    if (nextTransaction) {
+      setSelectedTransaction(nextTransaction);
+    }
+    setPendingDrawerPage(null);
+  }, [
+    pendingDrawerPage,
+    isViewModalOpen,
+    transactionsLoading,
+    transactionsPage,
+    transactionResults,
+  ]);
+
+  const transactionDrawerNavigation = useMemo((): TransactionDetailsNavigation | undefined => {
+    if (!selectedTransaction || transactionCount <= 0) {
+      return undefined;
+    }
+    const idx = transactionResults.findIndex((t) => t.id === selectedTransaction.id);
+    if (idx < 0) {
+      return undefined;
+    }
+    const currentPosition = (transactionsPage - 1) * transactionsPageSize + idx + 1;
+    return {
+      currentPosition,
+      total: transactionCount,
+      onPrevious: handleNavigateToPreviousTransaction,
+      onNext: handleNavigateToNextTransaction,
+      isLoading: transactionsLoading || pendingDrawerPage != null,
+    };
+  }, [
+    selectedTransaction,
+    transactionCount,
+    transactionResults,
+    transactionsPage,
+    transactionsPageSize,
+    handleNavigateToPreviousTransaction,
+    handleNavigateToNextTransaction,
+    transactionsLoading,
+    pendingDrawerPage,
+  ]);
+
+  const parseFiltersFromPageUrl = useCallback((pageUrl: string): Record<string, string> => {
+    const url = new URL(pageUrl, window.location.origin);
+    const filters: Record<string, string> = {};
+    url.searchParams.forEach((value, key) => {
+      filters[key] = value;
+    });
+    return filters;
+  }, []);
+
+  const prefetchDrawerPage = useCallback(
+    async (page: number, pageUrl: string | null | undefined) => {
+      if (!pageUrl || prefetchedDrawerPagesRef.current.has(page) || prefetchingDrawerPagesRef.current.has(page)) {
+        return;
+      }
+      prefetchingDrawerPagesRef.current.add(page);
+      try {
+        const filters = parseFiltersFromPageUrl(pageUrl);
+        if (viewType === 'purchases') {
+          await transactionsApi.listPurchases(filters);
+        } else if (viewType === 'cashouts') {
+          await transactionsApi.listCashouts(filters);
+        }
+        prefetchedDrawerPagesRef.current.add(page);
+      } catch {
+        // Prefetch is best-effort only.
+      } finally {
+        prefetchingDrawerPagesRef.current.delete(page);
+      }
+    },
+    [parseFiltersFromPageUrl, viewType]
+  );
+
+  useEffect(() => {
+    if (!isViewModalOpen || !selectedTransaction || transactionsLoading) {
+      return;
+    }
+    if (transactionsPage < totalTransactionPages) {
+      void prefetchDrawerPage(transactionsPage + 1, transactions?.next);
+    }
+    if (transactionsPage > 1) {
+      void prefetchDrawerPage(transactionsPage - 1, transactions?.previous);
+    }
+  }, [
+    isViewModalOpen,
+    selectedTransaction,
+    transactionsLoading,
+    transactionsPage,
+    totalTransactionPages,
+    transactions?.next,
+    transactions?.previous,
+    prefetchDrawerPage,
+  ]);
 
   const handleQuickAction = useCallback(async (queue: TransactionQueue, action: string) => {
     if (action === 'view') {
@@ -1752,6 +1921,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           transaction={selectedTransaction}
           isOpen={isViewModalOpen}
           onClose={handleCloseViewModal}
+          navigation={transactionDrawerNavigation}
           onComplete={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('completed') : undefined}
           onCancel={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('cancelled') : undefined}
           sendToProviderButtons={

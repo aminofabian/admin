@@ -47,10 +47,21 @@ export interface SendToProviderButton {
   action: string;
 }
 
+/** Previous/Next controls for moving through the current result list without closing the drawer. */
+export interface TransactionDetailsNavigation {
+  currentPosition: number;
+  total: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  isLoading?: boolean;
+}
+
 interface TransactionDetailsModalProps {
   transaction: Transaction;
   isOpen: boolean;
   onClose: () => void;
+  /** When the open transaction is part of a list (e.g. processing table), show prev/next controls. */
+  navigation?: TransactionDetailsNavigation;
   onComplete?: () => void;
   onCancel?: () => void;
   /** @deprecated Use sendToProviderButtons + onSendToProvider instead */
@@ -68,6 +79,7 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   transaction,
   isOpen,
   onClose,
+  navigation,
   onComplete,
   onCancel,
   onSendToBinpay,
@@ -80,9 +92,13 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   const [playerId, setPlayerId] = useState<number | null>(null);
   const [isLoadingPlayerId, setIsLoadingPlayerId] = useState(false);
 
-  // Fetch player ID from username when modal opens
   useEffect(() => {
-    if (!isOpen || !transaction.user_username || playerId) {
+    setPlayerId(null);
+  }, [transaction.id]);
+
+  // Fetch player ID from username when modal opens or transaction changes
+  useEffect(() => {
+    if (!isOpen || !transaction.user_username) {
       return;
     }
 
@@ -102,7 +118,33 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
     };
 
     fetchPlayerId();
-  }, [isOpen, transaction.user_username, playerId]);
+  }, [isOpen, transaction.user_username, transaction.id]);
+
+  useEffect(() => {
+    if (!isOpen || !navigation || navigation.total <= 1) {
+      return;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      if (navigation.isLoading) {
+        return;
+      }
+      if (e.key === 'ArrowLeft' && navigation.currentPosition > 1) {
+        e.preventDefault();
+        navigation.onPrevious();
+      } else if (e.key === 'ArrowRight' && navigation.currentPosition < navigation.total) {
+        e.preventDefault();
+        navigation.onNext();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, navigation]);
 
   // Memoize expensive computations
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
@@ -192,8 +234,46 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   const disableCancel = isActionLoading || !isPending;
   const disableSendToProvider = isActionLoading || !isPending;
 
+  const showNavigation =
+    navigation != null && navigation.total > 1 && navigation.currentPosition >= 1 && navigation.currentPosition <= navigation.total;
+
   return (
     <DetailsModalWrapper isOpen={isOpen} onClose={onClose} title="Transaction Details">
+      {showNavigation && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-8 gap-1 text-xs shrink-0"
+            disabled={navigation.isLoading || navigation.currentPosition <= 1}
+            onClick={navigation.onPrevious}
+            aria-label="Previous transaction"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Previous
+          </Button>
+          <span className="text-xs text-muted-foreground tabular-nums text-center min-w-0">
+            {navigation.isLoading ? 'Loading...' : `${navigation.currentPosition} / ${navigation.total}`}
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-8 gap-1 text-xs shrink-0"
+            disabled={navigation.isLoading || navigation.currentPosition >= navigation.total}
+            onClick={navigation.onNext}
+            aria-label="Next transaction"
+          >
+            Next
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Button>
+        </div>
+      )}
       <DetailsCard id={transaction.id}>
         <div className="space-y-4">
           {/* Header with Type and Status */}

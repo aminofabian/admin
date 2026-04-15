@@ -6,7 +6,11 @@ import {
   DashboardSectionContainer,
 } from '@/components/dashboard/layout';
 import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, useToast, Skeleton } from '@/components/ui';
-import { EmptyState, TransactionDetailsModal } from '@/components/features';
+import {
+  EmptyState,
+  TransactionDetailsModal,
+  type TransactionDetailsNavigation,
+} from '@/components/features';
 import {
   formatCurrency,
   formatDate,
@@ -25,6 +29,7 @@ import {
 } from '@/lib/utils/transaction-display';
 import { useTransactionsStore } from '@/stores';
 import { agentsApi, paymentMethodsApi, staffsApi, managersApi } from '@/lib/api';
+import { transactionsApi } from '@/lib/api/transactions';
 import { storage } from '@/lib/utils/storage';
 import type { Agent, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
@@ -899,33 +904,42 @@ function TransactionsLayout({
       />
 
       <TransactionsTable
+        filter={filter}
         transactions={transactions}
         currentPage={currentPage}
         totalCount={totalCount}
         pageSize={pageSize}
         onPageChange={onPageChange}
+        isLoading={isLoading}
       />
     </>
   );
 }
 
 interface TransactionsTableProps {
+  filter: string;
   transactions: PaginatedResponse<Transaction> | null;
   currentPage: number;
   totalCount: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  isLoading: boolean;
 }
 
 function TransactionsTable({
+  filter,
   transactions,
   currentPage,
   totalCount,
   pageSize,
   onPageChange,
+  isLoading,
 }: TransactionsTableProps) {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [pendingDrawerPage, setPendingDrawerPage] = useState<{ page: number; focus: 'first' | 'last' } | null>(null);
+  const prefetchedDrawerPagesRef = useRef<Set<number>>(new Set());
+  const prefetchingDrawerPagesRef = useRef<Set<number>>(new Set());
 
   const handleViewTransaction = useCallback((transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -938,6 +952,7 @@ function TransactionsTable({
   }, []);
 
   const transactionResults = useMemo(() => transactions?.results ?? [], [transactions?.results]);
+
   const totalPages = useMemo(() => Math.ceil(totalCount / pageSize), [totalCount, pageSize]);
   const hasNext = useMemo(() => {
     if (transactions?.next) return true;
@@ -947,6 +962,150 @@ function TransactionsTable({
     if (transactions?.previous) return true;
     return currentPage > 1;
   }, [transactions?.previous, currentPage]);
+
+  const handleNavigateToPreviousTransaction = useCallback(() => {
+    if (!selectedTransaction || isLoading || pendingDrawerPage) {
+      return;
+    }
+    const idx = transactionResults.findIndex((t) => t.id === selectedTransaction.id);
+    if (idx < 0) {
+      return;
+    }
+    if (idx > 0) {
+      setSelectedTransaction(transactionResults[idx - 1]);
+      return;
+    }
+    if (currentPage <= 1) {
+      return;
+    }
+    setPendingDrawerPage({ page: currentPage - 1, focus: 'last' });
+    onPageChange(currentPage - 1);
+  }, [selectedTransaction, isLoading, pendingDrawerPage, transactionResults, currentPage, onPageChange]);
+
+  const handleNavigateToNextTransaction = useCallback(() => {
+    if (!selectedTransaction || isLoading || pendingDrawerPage) {
+      return;
+    }
+    const idx = transactionResults.findIndex((t) => t.id === selectedTransaction.id);
+    if (idx < 0) {
+      return;
+    }
+    if (idx < transactionResults.length - 1) {
+      setSelectedTransaction(transactionResults[idx + 1]);
+      return;
+    }
+    if (currentPage >= totalPages) {
+      return;
+    }
+    setPendingDrawerPage({ page: currentPage + 1, focus: 'first' });
+    onPageChange(currentPage + 1);
+  }, [selectedTransaction, isLoading, pendingDrawerPage, transactionResults, currentPage, totalPages, onPageChange]);
+
+  useEffect(() => {
+    if (!pendingDrawerPage || !isViewModalOpen || isLoading) {
+      return;
+    }
+    if (currentPage !== pendingDrawerPage.page) {
+      return;
+    }
+    if (transactionResults.length === 0) {
+      setPendingDrawerPage(null);
+      return;
+    }
+    const nextTransaction =
+      pendingDrawerPage.focus === 'first'
+        ? transactionResults[0]
+        : transactionResults[transactionResults.length - 1];
+    if (nextTransaction) {
+      setSelectedTransaction(nextTransaction);
+    }
+    setPendingDrawerPage(null);
+  }, [pendingDrawerPage, isViewModalOpen, isLoading, currentPage, transactionResults]);
+
+  const effectiveTotalCount = totalCount > 0 ? totalCount : transactions?.count ?? transactionResults.length;
+  const transactionDrawerNavigation = useMemo((): TransactionDetailsNavigation | undefined => {
+    if (!selectedTransaction || effectiveTotalCount <= 0) {
+      return undefined;
+    }
+    const idx = transactionResults.findIndex((t) => t.id === selectedTransaction.id);
+    if (idx < 0) {
+      return undefined;
+    }
+    return {
+      currentPosition: (currentPage - 1) * pageSize + idx + 1,
+      total: effectiveTotalCount,
+      onPrevious: handleNavigateToPreviousTransaction,
+      onNext: handleNavigateToNextTransaction,
+      isLoading: isLoading || pendingDrawerPage != null,
+    };
+  }, [
+    selectedTransaction,
+    effectiveTotalCount,
+    transactionResults,
+    currentPage,
+    pageSize,
+    handleNavigateToPreviousTransaction,
+    handleNavigateToNextTransaction,
+    isLoading,
+    pendingDrawerPage,
+  ]);
+
+  const parseFiltersFromPageUrl = useCallback((pageUrl: string): Record<string, string> => {
+    const url = new URL(pageUrl, window.location.origin);
+    const filters: Record<string, string> = {};
+    url.searchParams.forEach((value, key) => {
+      filters[key] = value;
+    });
+    return filters;
+  }, []);
+
+  const prefetchDrawerPage = useCallback(
+    async (page: number, pageUrl: string | null | undefined) => {
+      if (!pageUrl || prefetchedDrawerPagesRef.current.has(page) || prefetchingDrawerPagesRef.current.has(page)) {
+        return;
+      }
+      prefetchingDrawerPagesRef.current.add(page);
+      try {
+        const filters = parseFiltersFromPageUrl(pageUrl);
+        if (filter === 'history') {
+          await transactionsApi.listHistory(filters);
+        } else if (filter === 'purchases' || filter === 'pending-purchases') {
+          await transactionsApi.listPurchases(filters);
+        } else if (filter === 'cashouts' || filter === 'pending-cashouts') {
+          await transactionsApi.listCashouts(filters);
+        } else {
+          await transactionsApi.list(filters);
+        }
+        prefetchedDrawerPagesRef.current.add(page);
+      } catch {
+        // Prefetch is best-effort only.
+      } finally {
+        prefetchingDrawerPagesRef.current.delete(page);
+      }
+    },
+    [parseFiltersFromPageUrl, filter]
+  );
+
+  useEffect(() => {
+    if (!isViewModalOpen || !selectedTransaction || isLoading) {
+      return;
+    }
+    if (currentPage < totalPages) {
+      void prefetchDrawerPage(currentPage + 1, transactions?.next);
+    }
+    if (currentPage > 1) {
+      void prefetchDrawerPage(currentPage - 1, transactions?.previous);
+    }
+  }, [
+    isViewModalOpen,
+    selectedTransaction,
+    isLoading,
+    currentPage,
+    totalPages,
+    transactions?.next,
+    transactions?.previous,
+    prefetchDrawerPage,
+  ]);
 
   return (
     <>
@@ -1016,6 +1175,7 @@ function TransactionsTable({
           transaction={selectedTransaction}
           isOpen={isViewModalOpen}
           onClose={handleCloseModal}
+          navigation={transactionDrawerNavigation}
         />
       )}
     </>
