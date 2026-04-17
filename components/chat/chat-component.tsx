@@ -1548,17 +1548,33 @@ export function ChatComponent() {
     }
   }, [activeTab, isLoadingApiOnlinePlayers, apiOnlinePlayers.length, isOnlinePlayersWSConnected, onlinePlayersError]);
 
-  // Mark all messages as read when WebSocket connects and chat is opened
+  // Mark read once per selected player, not on every selectedPlayer object update
+  const lastMarkedReadPlayerIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (isConnected && selectedPlayer) {
-      if (!IS_PROD) console.log('📬 WebSocket connected, marking all messages as read for player:', selectedPlayer.username);
-      // Use a small delay to ensure the WebSocket is fully ready
-      const timeoutId = setTimeout(() => {
-        markAllAsRead();
-      }, 500);
-      return () => clearTimeout(timeoutId);
+    const selectedPlayerId = selectedPlayer?.user_id ?? null;
+    const selectedPlayerUsername = selectedPlayer?.username ?? '';
+
+    if (!selectedPlayerId) {
+      lastMarkedReadPlayerIdRef.current = null;
+      return;
     }
-  }, [isConnected, selectedPlayer, markAllAsRead]);
+
+    if (!isConnected || lastMarkedReadPlayerIdRef.current === selectedPlayerId) {
+      return;
+    }
+
+    if (!IS_PROD) {
+      console.log('📬 Chat opened, marking messages as read for player:', selectedPlayerUsername);
+    }
+
+    // Use a small delay to ensure the WebSocket is fully ready
+    const timeoutId = setTimeout(() => {
+      markAllAsRead();
+      lastMarkedReadPlayerIdRef.current = selectedPlayerId;
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [isConnected, selectedPlayer?.user_id, selectedPlayer?.username, markAllAsRead]);
 
   const queryPlayerId = searchParams.get('playerId');
   const queryUsername = searchParams.get('username');
