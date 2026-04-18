@@ -209,6 +209,8 @@ interface PlayerListSidebarProps {
   selectedPlayer: ChatUser | null;
   onlinePlayersCount: number;
   activeChatsCount: number;
+  /** From chat list API `pagination.total_count` when present; subtitle falls back to `activeChatsCount`. */
+  playersWithChatsTotalCount: number | null;
   isCurrentTabLoading: boolean;
   isLoadingApiOnlinePlayers: boolean;
   isLoadingMore: boolean;
@@ -229,6 +231,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   selectedPlayer,
   onlinePlayersCount,
   activeChatsCount,
+  playersWithChatsTotalCount,
   isCurrentTabLoading,
   isLoadingApiOnlinePlayers,
   isLoadingMore,
@@ -238,6 +241,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   onRefreshOnlinePlayers,
   onLoadMore,
 }: PlayerListSidebarProps) {
+  const withChatsDisplayCount = playersWithChatsTotalCount ?? activeChatsCount;
   // Refs for infinite scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
@@ -334,7 +338,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
             </div>
             <div>
               <p className="text-[8px] font-semibold uppercase tracking-wide text-foreground">ONLINE PLAYERS</p>
-              <p className="text-[8px] text-muted-foreground">{activeChatsCount} with chats</p>
+              <p className="text-[8px] text-muted-foreground">{withChatsDisplayCount} with chats</p>
             </div>
           </div>
           <button

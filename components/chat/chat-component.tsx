@@ -192,6 +192,7 @@ export function ChatComponent() {
     fetchAllPlayers,
     loadMorePlayers,
     hasMorePlayers,
+    playersWithChatsTotalCount,
     refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
@@ -2131,6 +2132,7 @@ export function ChatComponent() {
             ? activeChatsUsers.filter((user) => user.isOnline).length
             : activeChatsUsers.length
         }
+        playersWithChatsTotalCount={playersWithChatsTotalCount}
         isCurrentTabLoading={isCurrentTabLoading}
         isLoadingApiOnlinePlayers={isLoadingApiOnlinePlayers}
         isLoadingMore={isLoadingMore}

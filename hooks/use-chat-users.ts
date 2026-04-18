@@ -18,6 +18,27 @@ import {
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+function readChatListTotalCount(data: Record<string, unknown>): number | null {
+  const pagination = data.pagination as Record<string, unknown> | undefined;
+  const fromPagination = pagination?.total_count;
+  if (typeof fromPagination === 'number' && Number.isFinite(fromPagination)) {
+    return fromPagination;
+  }
+  if (typeof fromPagination === 'string' && fromPagination.trim() !== '') {
+    const n = Number(fromPagination);
+    if (Number.isFinite(n)) return n;
+  }
+  const count = data.count;
+  if (typeof count === 'number' && Number.isFinite(count)) {
+    return count;
+  }
+  if (typeof count === 'string' && count.trim() !== '') {
+    const n = Number(count);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
 /**
  * Check if two chat objects have meaningful differences
  * Used to prevent unnecessary re-renders
@@ -53,6 +74,8 @@ interface UseChatUsersReturn {
   fetchAllPlayers: () => Promise<void>;
   loadMorePlayers: () => Promise<void>; // Load next page
   hasMorePlayers: boolean; // Whether there are more pages
+  /** Total players with chats from list API pagination when the backend sends it. */
+  playersWithChatsTotalCount: number | null;
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
   markChatAsRead: (params: { chatId?: string; userId?: number }) => void;
@@ -84,6 +107,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMorePlayers, setHasMorePlayers] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
+  const [playersWithChatsTotalCount, setPlayersWithChatsTotalCount] = useState<number | null>(null);
   const pageSize = 50;
 
   //  Track last API refresh to prevent WebSocket from overwriting fresh API data
@@ -567,6 +591,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       const data = await response.json();
+      const listTotal = readChatListTotalCount(data as Record<string, unknown>);
+      if (listTotal != null) {
+        setPlayersWithChatsTotalCount(listTotal);
+      }
       if (!IS_PROD) console.log('🔄 [refreshActiveChats] Raw API response:', {
         hasPlayer: !!data.player,
         playerCount: data.player?.length,
@@ -682,6 +710,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       // Handle both response formats: 'player' array (new endpoint) or 'results' array (old endpoint)
       const playersArray = data.player || data.results;
       const pagination = data.pagination;
+      const listTotal = readChatListTotalCount(data as Record<string, unknown>);
+      if (listTotal != null) {
+        setPlayersWithChatsTotalCount(listTotal);
+      }
       const totalCount = data.count || pagination?.total_count || playersArray?.length || 0;
 
       if (!IS_PROD) console.log(`📊 REST API returned ${playersArray?.length || 0} of ${totalCount} players`);
@@ -751,6 +783,10 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       const data = await response.json();
       const playersArray = data.player || data.results;
       const pagination = data.pagination;
+      const listTotal = readChatListTotalCount(data as Record<string, unknown>);
+      if (listTotal != null) {
+        setPlayersWithChatsTotalCount(listTotal);
+      }
 
       if (!IS_PROD) console.log(`📊 Loaded ${playersArray?.length || 0} more players (page ${nextPage})`);
       if (!IS_PROD) console.log(`📄 Pagination:`, pagination);
@@ -993,6 +1029,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     fetchAllPlayers,
     loadMorePlayers,
     hasMorePlayers,
+    playersWithChatsTotalCount,
     refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
