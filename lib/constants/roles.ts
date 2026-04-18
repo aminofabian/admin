@@ -20,3 +20,9 @@ export const STAFF_ROLES: UserRole[] = [
   USER_ROLES.STAFF,
 ];
 
+/** Company/superadmin (admin) and managers may edit player cashout limit; staff/agents may not. */
+export function canEditPlayerCashoutLimit(role: UserRole | undefined): boolean {
+  if (!role) return false;
+  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
+}
+

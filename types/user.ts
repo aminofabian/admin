@@ -110,6 +110,7 @@ export interface UpdateUserRequest {
   dob?: string;
   state?: string;
   agent_id?: number;
+  cashout_limit?: string;
 }
 
 export interface CheckPlayerGameBalanceRequest {

@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES } from '@/lib/constants/roles';
+import { USER_ROLES, canEditPlayerCashoutLimit } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
@@ -18,6 +18,7 @@ import { Badge, Button, Select, ConfirmModal, DropdownMenu, DropdownMenuItem, In
 import type { UpdateUserRequest, ApiError } from '@/types';
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
+import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals';
@@ -1122,7 +1123,7 @@ export default function PlayerDetailPage() {
         <div className="mb-3 sm:mb-4 md:mb-6 bg-gray-100 dark:bg-gray-900 p-2 sm:p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
           <div
             className={`grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 ${
-              showWinningsHero ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
+              showWinningsHero ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
             }`}
           >
             <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
@@ -1138,6 +1139,14 @@ export default function PlayerDetailPage() {
                 </div>
               </div>
             </div>
+            <PlayerCashoutLimitHeroCard
+              playerId={selectedPlayer.id}
+              cashoutLimit={selectedPlayer.cashout_limit}
+              canEdit={canEditPlayerCashoutLimit(user?.role)}
+              onUpdated={(cashout_limit) =>
+                setSelectedPlayer((prev) => (prev ? { ...prev, cashout_limit } : prev))
+              }
+            />
             {showWinningsHero ? (
               <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">

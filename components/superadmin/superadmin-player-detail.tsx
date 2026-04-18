@@ -16,6 +16,8 @@ import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
+import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
+import { USER_ROLES, canEditPlayerCashoutLimit } from '@/lib/constants/roles';
 
 /**
  * Extracts and formats error messages from API errors
@@ -335,7 +337,7 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         <div className="mb-3 sm:mb-4 md:mb-6 bg-gray-100 dark:bg-gray-900 p-2 sm:p-4 md:p-6 shadow-lg border border-gray-200 dark:border-gray-800 rounded-lg">
           <div
             className={`grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 ${
-              showWinningsHero ? 'lg:grid-cols-3' : 'lg:grid-cols-2'
+              showWinningsHero ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
             }`}
           >
             <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
@@ -351,6 +353,14 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                 </div>
               </div>
             </div>
+            <PlayerCashoutLimitHeroCard
+              playerId={selectedPlayer.id}
+              cashoutLimit={selectedPlayer.cashout_limit}
+              canEdit={canEditPlayerCashoutLimit(USER_ROLES.SUPERADMIN)}
+              onUpdated={(cashout_limit) =>
+                setSelectedPlayer((prev) => (prev ? { ...prev, cashout_limit } : prev))
+              }
+            />
             {showWinningsHero ? (
               <div className="bg-gray-50 dark:bg-gray-800 p-1.5 sm:p-2 md:p-4 border border-gray-200 dark:border-gray-700 rounded">
                 <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 md:mb-2">
