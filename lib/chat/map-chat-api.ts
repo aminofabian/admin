@@ -138,6 +138,18 @@ export function payloadIncludesWinningBalanceFields(
   return false;
 }
 
+/** First non-empty string among API/WS variants (cashout_limit, player_cashout_limit, etc.). */
+export function ledgerStringOrUndefined(...candidates: unknown[]): string | undefined {
+  for (const v of candidates) {
+    if (v === undefined || v === null) continue;
+    const s = String(v).trim();
+    if (s !== '' && s !== 'undefined' && s !== 'null') {
+      return s;
+    }
+  }
+  return undefined;
+}
+
 type BackendChatPayload = {
   player?: {
     id?: string | number;
@@ -180,6 +192,12 @@ type BackendChatPayload = {
   last_message_time?: string;
   /** ISO timestamp from REST `chats[]` / `player[]` */
   last_message_timestamp?: string;
+  cashout_limit?: number | string;
+  player_cashout_limit?: number | string;
+  locked_balance?: number | string;
+  player_locked_balance?: number | string;
+  balance?: number | string;
+  player_bal?: number | string;
 };
 
 /**
@@ -190,6 +208,7 @@ type BackendChatPayload = {
 export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
   const chat = raw as unknown as BackendChatPayload;
   const player = chat.player || {};
+  const ledgerRow = { ...raw, ...(player as Record<string, unknown>) };
 
   const userId = Number(chat.user_id ?? chat.player_id ?? player.id ?? 0);
   const username =
@@ -212,16 +231,18 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
     isOnline: player.is_online || player.isOnline || false,
     lastMessage: chat.last_message || undefined,
     lastMessageTime: validTimestamp,
-    balance: player.balance !== undefined ? String(player.balance) : undefined,
-    ...pickWinningBalanceFromBackend(player as Record<string, unknown>),
-    cashoutLimit:
-      player.cashout_limit !== undefined && player.cashout_limit !== null
-        ? String(player.cashout_limit)
-        : undefined,
-    lockedBalance:
-      player.locked_balance !== undefined && player.locked_balance !== null
-        ? String(player.locked_balance)
-        : undefined,
+    balance: ledgerStringOrUndefined(player.balance, chat.balance, chat.player_bal),
+    ...pickWinningBalanceFromBackend(ledgerRow),
+    cashoutLimit: ledgerStringOrUndefined(
+      player.cashout_limit,
+      chat.cashout_limit,
+      chat.player_cashout_limit,
+    ),
+    lockedBalance: ledgerStringOrUndefined(
+      player.locked_balance,
+      chat.locked_balance,
+      chat.player_locked_balance,
+    ),
     gamesPlayed: player.games_played || player.gamesPlayed || undefined,
     winRate: player.win_rate || player.winRate || undefined,
     phone: player.phone_number || player.mobile_number || player.phone || player.mobile || undefined,

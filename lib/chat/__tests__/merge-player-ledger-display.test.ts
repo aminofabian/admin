@@ -40,4 +40,18 @@ describe('mergeWinningBalanceFromDirectoryRow', () => {
     const merged = mergeWinningBalanceFromDirectoryRow(selected, list);
     expect(merged).toBe(selected);
   });
+
+  it('fills cashoutLimit from directory when selected omits it', () => {
+    const selected = baseUser();
+    const list: ChatUser[] = [baseUser({ user_id: 1, cashoutLimit: '25.00' })];
+    const merged = mergeWinningBalanceFromDirectoryRow(selected, list);
+    expect(merged.cashoutLimit).toBe('25.00');
+  });
+
+  it('fills lockedBalance from directory when selected omits it', () => {
+    const selected = baseUser();
+    const list: ChatUser[] = [baseUser({ user_id: 1, lockedBalance: '5.00' })];
+    const merged = mergeWinningBalanceFromDirectoryRow(selected, list);
+    expect(merged.lockedBalance).toBe('5.00');
+  });
 });

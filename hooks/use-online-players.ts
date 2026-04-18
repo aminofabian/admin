@@ -7,7 +7,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
-import { pickWinningBalanceFromBackend } from '@/lib/chat/map-chat-api';
+import { ledgerStringOrUndefined, pickWinningBalanceFromBackend } from '@/lib/chat/map-chat-api';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -56,6 +56,16 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
       lastMessageTime: validTimestamp,
       balance: data.player_balance !== undefined ? String(data.player_balance) : undefined,
       ...pickWinningBalanceFromBackend(data as Record<string, unknown>),
+      cashoutLimit: ledgerStringOrUndefined(
+        data.player_cashout_limit,
+        data.cashout_limit,
+        (data.player as Record<string, unknown> | undefined)?.cashout_limit,
+      ),
+      lockedBalance: ledgerStringOrUndefined(
+        data.player_locked_balance,
+        data.locked_balance,
+        (data.player as Record<string, unknown> | undefined)?.locked_balance,
+      ),
       gamesPlayed: (data.player_games_played as number | undefined) || undefined,
       winRate: (data.player_win_rate as number | undefined) || undefined,
       phone: data.player_phone_number ? String(data.player_phone_number) : undefined,
@@ -82,6 +92,16 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
     lastMessageTime: validTimestamp,
     balance: player.balance !== undefined ? String(player.balance) : undefined,
     ...pickWinningBalanceFromBackend(player as Record<string, unknown>),
+    cashoutLimit: ledgerStringOrUndefined(
+      player.cashout_limit,
+      data.cashout_limit,
+      data.player_cashout_limit,
+    ),
+    lockedBalance: ledgerStringOrUndefined(
+      player.locked_balance,
+      data.locked_balance,
+      data.player_locked_balance,
+    ),
     gamesPlayed: (player.games_played as number | undefined) || undefined,
     winRate: (player.win_rate as number | undefined) || undefined,
     phone: (player.phone_number || player.mobile_number) ? String(player.phone_number || player.mobile_number) : undefined,
@@ -190,6 +210,8 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
               player_profile_pic: playerDetails.profile_pic || chat.player_profile_pic,
               player_balance: playerDetails.balance,
               player_winning_balance: playerDetails.winning_balance,
+              player_cashout_limit: playerDetails.cashout_limit ?? chat.player_cashout_limit,
+              player_locked_balance: playerDetails.locked_balance ?? chat.player_locked_balance,
               player_phone_number: playerDetails.phone_number,
               player_dob: playerDetails.dob,
               player_gems: playerDetails.gems,

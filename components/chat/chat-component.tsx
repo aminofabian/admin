@@ -1689,6 +1689,14 @@ export function ChatComponent() {
               lastMessageTime: player.last_message_timestamp || undefined,
               balance: player.balance !== undefined ? String(player.balance) : undefined,
               ...pickWinningBalanceFromBackend(player as Record<string, unknown>),
+              cashoutLimit:
+                player.cashout_limit !== undefined && player.cashout_limit !== null
+                  ? String(player.cashout_limit)
+                  : undefined,
+              lockedBalance:
+                player.locked_balance !== undefined && player.locked_balance !== null
+                  ? String(player.locked_balance)
+                  : undefined,
               gamesPlayed: player.games_played || player.gems || undefined,
               winRate: player.win_rate || undefined,
               phone: player.phone_number || player.mobile_number || undefined,

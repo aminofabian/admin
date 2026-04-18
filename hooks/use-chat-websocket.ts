@@ -114,7 +114,7 @@ const mapHistoryMessage = (msg: RawChatMessage): ChatMessage => {
       hour: '2-digit',
       minute: '2-digit',
     }),
-    isRead: msg.is_read ?? true,
+    isRead: Boolean(msg.is_read),
     userId: msg.sender_id,
     type: msg.type,
     isComment: msg.is_comment ?? false,

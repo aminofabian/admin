@@ -30,6 +30,23 @@ describe('map-chat-api', () => {
       expect(u.lastMessageTime).toBe('2026-04-01T16:55:25.690042+00:00');
       expect(u.unreadCount).toBe(0);
     });
+
+    it('should map flat cashout_limit / locked_balance on chat row (no nested player)', () => {
+      const row: Record<string, unknown> = {
+        id: 81,
+        player_id: 93,
+        player_username: 'bitslotbeta',
+        balance: '100.00',
+        cashout_limit: '50.00',
+        locked_balance: '10.00',
+      };
+
+      const u = transformChatToUser(row);
+
+      expect(u.cashoutLimit).toBe('50.00');
+      expect(u.lockedBalance).toBe('10.00');
+      expect(u.balance).toBe('100.00');
+    });
   });
 
   describe('transformPlayerToUser', () => {

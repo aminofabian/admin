@@ -1,9 +1,12 @@
 import type { ChatUser } from '@/types';
 
+function isBlankLedger(value: string | undefined | null): boolean {
+  return value === undefined || value === null || String(value).trim() === '';
+}
+
 /**
- * Overlay directory-row `winningBalance` onto the selected player for sidebar/drawer display.
- * Avoids a one-frame flash where `selectedPlayer` still holds stale winnings while
- * `displayedPlayers` already reflects WS/API corrections.
+ * Overlay directory-row ledger fields onto the selected player for sidebar/drawer display.
+ * Fills cashout/locked when the selected row omitted them (e.g. online list vs all-chats shape).
  */
 export function mergeWinningBalanceFromDirectoryRow(
   selected: ChatUser,
@@ -16,9 +19,28 @@ export function mergeWinningBalanceFromDirectoryRow(
     ? canonical.winningBalance
     : undefined;
 
-  if (listWinnings === selected.winningBalance) {
+  const winningMatches = listWinnings === selected.winningBalance;
+
+  const canonicalCashout =
+    !isBlankLedger(canonical.cashoutLimit) ? String(canonical.cashoutLimit).trim() : undefined;
+  const canonicalLocked =
+    !isBlankLedger(canonical.lockedBalance) ? String(canonical.lockedBalance).trim() : undefined;
+
+  const patch: Partial<ChatUser> = {};
+
+  if (!winningMatches) {
+    patch.winningBalance = listWinnings;
+  }
+  if (isBlankLedger(selected.cashoutLimit) && canonicalCashout !== undefined) {
+    patch.cashoutLimit = canonicalCashout;
+  }
+  if (isBlankLedger(selected.lockedBalance) && canonicalLocked !== undefined) {
+    patch.lockedBalance = canonicalLocked;
+  }
+
+  if (Object.keys(patch).length === 0) {
     return selected;
   }
 
-  return { ...selected, winningBalance: listWinnings };
+  return { ...selected, ...patch };
 }
