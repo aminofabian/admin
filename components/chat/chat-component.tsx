@@ -2116,7 +2116,7 @@ export function ChatComponent() {
   }, []);
 
   return (
-    <div className="h-full flex gap-0 md:gap-4 bg-background">
+    <div className="flex h-full min-h-0 w-full flex-1 gap-0 overflow-hidden bg-background md:gap-4">
       {/* Left Column - Player List */}
       <PlayerListSidebar
         mobileView={mobileView}
@@ -2144,7 +2144,9 @@ export function ChatComponent() {
       />
 
       {/* Middle Column - Chat Conversation */}
-      <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-1 min-w-0 flex-col border-r border-border bg-card w-full md:w-auto overflow-hidden shadow-sm`}>
+      <div
+        className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex h-full min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden border-r border-border bg-card shadow-sm md:w-auto`}
+      >
         {selectedPlayer ? (
           <>
             {/* Chat Header */}
@@ -2161,7 +2163,7 @@ export function ChatComponent() {
 
             {/* Connection Status Banner */}
             {!isConnected && (
-              <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-700 dark:text-amber-400 animate-in fade-in slide-in-from-top-1 duration-300">
+              <div className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-amber-700 animate-in fade-in slide-in-from-top-1 duration-300 dark:text-amber-400">
                 <svg className="w-3.5 h-3.5 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="3" />
                   <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="3" strokeLinecap="round" />
@@ -2186,14 +2188,14 @@ export function ChatComponent() {
               role="log"
               aria-live="polite"
               aria-label="Chat messages"
-              className="relative flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-muted/10 via-transparent to-background scrollbar-smooth"
+              className="relative min-h-0 flex-1 touch-pan-y overflow-y-auto overflow-x-hidden overscroll-y-contain bg-gradient-to-b from-muted/10 via-transparent to-background scrollbar-smooth"
               style={{
                 overscrollBehavior: 'contain',
                 WebkitOverflowScrolling: 'touch',
               }}
               onScroll={handleScroll}
             >
-              <div className="px-4 py-6 md:px-8 md:py-8 space-y-6">
+              <div className="space-y-6 px-3 py-4 sm:px-4 sm:py-5 md:px-8 md:py-8">
 
                 {/* Sentinel for IntersectionObserver-based infinite scroll */}
                 <div ref={sentinelRef} className="h-px w-full shrink-0" aria-hidden="true" />
@@ -2285,8 +2287,8 @@ export function ChatComponent() {
 
               {/* Rule 10 & 11: Scroll-to-bottom button - show when away from bottom, hide when at bottom */}
               {!isUserAtBottom && (
-                <div className="pointer-events-none sticky bottom-12 sm:bottom-16 z-20 flex justify-end pr-0">
-                  <div className="pointer-events-auto mr-2 sm:mr-4">
+                <div className="pointer-events-none sticky bottom-3 z-20 flex justify-end px-2 sm:bottom-4 sm:px-3">
+                  <div className="pointer-events-auto">
                     <button
                       type="button"
                       onClick={() => {
@@ -2294,101 +2296,66 @@ export function ChatComponent() {
                         setHasNewMessagesWhileScrolled(false); // Clear indicator
                       }}
                       aria-label="Jump to latest messages"
-                      className={`group relative flex w-12 flex-col items-center gap-1.5 px-0 py-1.5 text-xs font-semibold transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${hasNewMessagesWhileScrolled
-                        ? 'text-primary'
-                        : 'text-muted-foreground'
-                        }`}
+                      className={`group relative flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-card/95 text-muted-foreground shadow-md backdrop-blur-sm transition-all duration-200 hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-12 sm:w-12 ${hasNewMessagesWhileScrolled ? 'border-primary/40 text-primary' : ''}`}
                     >
-                      <span className="absolute right-full mr-3 hidden translate-x-2 items-center gap-2 rounded-full bg-primary px-3 py-1 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-lg opacity-0 transition-all duration-200 group-hover:flex group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:flex group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
-                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                      <span className="absolute bottom-full right-0 z-30 mb-2 hidden items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-lg group-hover:flex group-focus-visible:flex">
+                        <ArrowDownNarrowWide className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
                         Jump to latest
                       </span>
-                      <span className="relative inline-flex h-20 w-14 items-center justify-center translate-x-12">
-                        <span
-                          className="absolute inset-0 rounded-full bg-gradient-to-b from-primary/15 via-primary/5 to-transparent blur-xl opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:blur-2xl"
-                          aria-hidden="true"
-                        />
-
-                        {/* Pulsing ring */}
-                        <span
-                          className="absolute inset-0 rounded-full border-2 border-primary/30 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                          aria-hidden="true"
-                        />
-
-                        {/* Main content container */}
-                        {/* <span 
-                className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary border-r-secondary opacity-0 group-hover:opacity-100 group-hover:animate-spin transition-opacity"
-                style={{ animationDuration: '3s' }}
-                aria-hidden="true"
-              /> */}
-
-                        {/* Main circle - visible in both light and dark themes */}
-                        <span className="relative flex h-full w-full items-center justify-center rounded-full bg-card/95 backdrop-blur-sm border border-border/60 shadow-md group-hover:border-primary/40 group-hover:bg-primary/10 transition-all duration-200">
-                          {/* Stacked chevrons */}
-                          <span className="flex flex-col -space-y-2 -translate-x-4">
-
-                            <ArrowDownNarrowWide
-                              className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-y-0.5 group-hover:text-primary"
-                              strokeWidth={2.5}
-                            />
-                          </span>
-                        </span>
-                      </span>
-
-                      {/* Label appears below on hover */}
-
-
-
-
-
+                      <ArrowDownNarrowWide className="h-5 w-5" strokeWidth={2.5} />
+                      {hasNewMessagesWhileScrolled && (
+                        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-primary shadow-sm ring-2 ring-card" aria-hidden />
+                      )}
                     </button>
-                  </div>
-                </div>
-              )}
-
-              {remoteTyping && (
-                <div className="flex justify-start mt-2">
-                  <div className="flex items-end gap-2 max-w-[85%] md:max-w-[75%]">
-                    <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10">
-                      {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl rounded-bl-sm px-4 py-3 shadow-lg shadow-blue-500/20">
-                      <div className="flex gap-1.5">
-                        <div className="w-1.5 h-1.5 bg-white/80 rounded-full typing-indicator-smooth" />
-                        <div className="w-1.5 h-1.5 bg-white/80 rounded-full typing-indicator-smooth" />
-                        <div className="w-1.5 h-1.5 bg-white/80 rounded-full typing-indicator-smooth" />
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Message Input */}
-            <MessageInputArea
-              messageInput={messageInput}
-              setMessageInput={setMessageInput}
-              selectedImage={selectedImage}
-              imagePreviewUrl={imagePreviewUrl}
-              isUploadingImage={isUploadingImage}
-              showEmojiPicker={showEmojiPicker}
-              setShowEmojiPicker={setShowEmojiPicker}
-              commonEmojis={commonEmojis}
-              emojiPickerRef={emojiPickerRef}
-              fileInputRef={fileInputRef}
-              onSendMessage={handleSendMessage}
-              onKeyPress={handleKeyPress}
-              onImageSelect={handleImageSelect}
-              onClearImage={handleClearImage}
-              onAttachClick={handleAttachClick}
-              onEmojiSelect={handleEmojiSelect}
-              toggleEmojiPicker={toggleEmojiPicker}
-            />
+            {/* Typing + composer: always above message scroll; z-index avoids overlap; shrink-0 avoids clipping when column is tight */}
+            <div className="relative z-[100] isolate mt-auto flex shrink-0 flex-col bg-card">
+              {remoteTyping && (
+                <div className="shrink-0 border-t border-border/30 bg-card/80 px-4 py-2 backdrop-blur-sm md:px-6">
+                  <div className="flex items-end justify-start gap-2">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-[10px] font-bold text-white shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10 md:h-9 md:w-9">
+                      {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="rounded-2xl rounded-bl-sm bg-gradient-to-br from-blue-500 to-indigo-500 px-3 py-2 shadow-lg shadow-blue-500/20 md:px-4 md:py-3">
+                      <div className="flex gap-1.5">
+                        <div className="h-1.5 w-1.5 rounded-full bg-white/80 typing-indicator-smooth" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-white/80 typing-indicator-smooth" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-white/80 typing-indicator-smooth" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <MessageInputArea
+                messageInput={messageInput}
+                setMessageInput={setMessageInput}
+                selectedImage={selectedImage}
+                imagePreviewUrl={imagePreviewUrl}
+                isUploadingImage={isUploadingImage}
+                showEmojiPicker={showEmojiPicker}
+                setShowEmojiPicker={setShowEmojiPicker}
+                commonEmojis={commonEmojis}
+                emojiPickerRef={emojiPickerRef}
+                fileInputRef={fileInputRef}
+                onSendMessage={handleSendMessage}
+                onKeyPress={handleKeyPress}
+                onImageSelect={handleImageSelect}
+                onClearImage={handleClearImage}
+                onAttachClick={handleAttachClick}
+                onEmojiSelect={handleEmojiSelect}
+                toggleEmojiPicker={toggleEmojiPicker}
+              />
+            </div>
           </>
         ) : (
-          <EmptyState onlinePlayersCount={displayedPlayers.filter(p => p.isOnline).length} />
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain">
+            <EmptyState onlinePlayersCount={displayedPlayers.filter(p => p.isOnline).length} />
+          </div>
         )}
       </div>
 

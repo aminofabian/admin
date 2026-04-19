@@ -8,7 +8,7 @@ interface EmptyStateProps {
 
 export const EmptyState = memo(function EmptyState({ onlinePlayersCount }: EmptyStateProps) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-muted/20 via-transparent to-background">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center bg-gradient-to-b from-muted/20 via-transparent to-background p-4 text-center sm:p-8">
       <div className="relative mb-6">
         <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-primary/15 via-primary/8 to-primary/5 flex items-center justify-center ring-8 ring-primary/5 shadow-inner">
           <svg className="w-12 h-12 md:w-14 md:h-14 text-primary/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -43,7 +43,7 @@ export const MessageInputArea = memo(function MessageInputArea({
   toggleEmojiPicker,
 }: MessageInputAreaProps) {
   return (
-    <div className="px-4 py-3 md:px-6 md:py-4 border-t border-border/40 bg-card/95 backdrop-blur-md sticky bottom-0 shadow-[0_-4px_20px_-8px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.35)]">
+    <div className="shrink-0 border-t border-border/40 bg-card/95 shadow-[0_-4px_20px_-8px_rgba(0,0,0,0.08)] backdrop-blur-md dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.35)]">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -53,6 +53,7 @@ export const MessageInputArea = memo(function MessageInputArea({
         className="hidden"
       />
 
+      <div className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-4">
       {/* Image Preview */}
       {imagePreviewUrl && (
         <div className="mb-3 p-3 bg-muted/40 dark:bg-muted/60 rounded-xl border border-primary/20 dark:border-primary/30 shadow-sm">
@@ -88,48 +89,50 @@ export const MessageInputArea = memo(function MessageInputArea({
       )}
 
       {/* Input Area - Creative: Send button inside textarea */}
-      <div className="flex items-start gap-2 md:gap-2.5">
+      <div className="flex items-start gap-1.5 sm:gap-2 md:gap-2.5">
         {/* Textarea Container with Embedded Send Button */}
-        <div className="flex-1 relative">
+        <div className="relative min-w-0 flex-1">
           <textarea
-            placeholder="Type your message... (Shift+Enter for new line)"
+            placeholder="Message… (Shift+Enter for line)"
             value={messageInput}
             onChange={(e) => {
               setMessageInput(e.target.value);
               // Auto-resize - responsive max height
               e.target.style.height = 'auto';
-              const maxHeight = window.innerWidth >= 768 ? 300 : 200;
+              const maxHeight = window.innerWidth >= 768 ? 300 : 160;
               e.target.style.height = Math.min(e.target.scrollHeight, maxHeight) + 'px';
             }}
             onKeyDown={onKeyPress}
             rows={1}
-            className="w-full min-h-[44px] md:min-h-[100px] lg:min-h-[120px] max-h-[200px] md:max-h-[300px] rounded-2xl bg-background/90 dark:bg-input border border-border/50 dark:border-border/70 focus:border-primary/60 transition-all duration-200 text-sm md:text-base lg:text-lg py-2.5 md:py-4 lg:py-5 px-4 md:px-5 lg:px-6 pr-16 md:pr-20 pb-12 md:pb-14 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/25 placeholder:text-muted-foreground/50 dark:placeholder:text-muted-foreground/70 text-foreground leading-relaxed"
+            className="w-full min-h-[52px] max-h-[160px] resize-none rounded-2xl border border-border/50 bg-background/90 py-2.5 pl-3 pr-3 text-sm leading-relaxed text-foreground shadow-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/60 dark:border-border/70 dark:bg-input dark:placeholder:text-muted-foreground/70 md:min-h-[100px] md:max-h-[300px] md:px-5 md:py-4 md:pr-5 md:pb-14 md:text-base lg:min-h-[120px] lg:px-6 lg:py-5 lg:text-lg pb-[3.25rem] md:pb-14"
             aria-label="Type a message"
           />
           
           {/* Action Bar - Inside Textarea at Bottom */}
-          <div className="absolute bottom-2 md:bottom-3 left-3 right-3 md:left-4 md:right-4 flex items-center justify-between gap-2">
+          <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between gap-1 md:bottom-3 md:left-4 md:right-4 md:gap-2">
             {/* Left: Quick Actions */}
-            <div className="flex items-center gap-1">
+            <div className="flex min-w-0 flex-1 items-center gap-0.5 sm:gap-1">
               <button 
                 onClick={onAttachClick}
-                className="p-1.5 md:p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-95"
+                type="button"
+                className="shrink-0 touch-manipulation rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-95 md:p-2"
                 title="Attach image"
                 aria-label="Attach image"
                 disabled={isUploadingImage}
               >
-                <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 md:h-[18px] md:w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </button>
               <div className="relative">
                 <button 
                   onClick={toggleEmojiPicker}
-                  className="p-1.5 md:p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-95"
+                  type="button"
+                  className="shrink-0 touch-manipulation rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary active:scale-95 md:p-2"
                   title="Emoji"
                   aria-label="Add emoji"
                 >
-                  <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 md:h-[18px] md:w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
@@ -168,35 +171,39 @@ export const MessageInputArea = memo(function MessageInputArea({
               {messageInput && (
                 <button
                   onClick={() => setMessageInput('')}
-                  className="p-1.5 md:p-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all active:scale-95"
+                  type="button"
+                  className="shrink-0 touch-manipulation rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-red-500/10 hover:text-red-500 active:scale-95 md:p-2"
                   aria-label="Clear message"
                 >
-                  <svg className="w-4 h-4 md:w-4.5 md:h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 md:h-[18px] md:w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               )}
             </div>
             
-            {/* Right: Send Button */}
+            {/* Right: Send — icon + label on small screens for clarity */}
             <button
               onClick={onSendMessage}
+              type="button"
               disabled={(!messageInput.trim() && !selectedImage) || isUploadingImage}
-              className="rounded-xl px-4 md:px-5 lg:px-6 py-2 md:py-2.5 transition-all duration-200 hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-md shadow-primary/15 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground font-semibold text-sm md:text-base"
+              className="flex min-h-11 shrink-0 touch-manipulation items-center justify-center gap-1 rounded-xl bg-primary px-2.5 py-2 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/15 transition-all duration-200 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-40 disabled:hover:scale-100 sm:gap-1.5 sm:px-3 sm:text-sm md:min-h-0 md:px-5 md:py-2.5 lg:px-6"
               aria-label="Send message"
             >
               {isUploadingImage ? (
                 <>
-                  <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 shrink-0 animate-spin md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
                     <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
                   </svg>
-                  <span className="hidden sm:inline">Sending...</span>
+                  <span className="max-w-[4.5rem] truncate sm:max-w-none">Sending…</span>
                 </>
               ) : (
                 <>
-                  <span className="hidden sm:inline">SEND</span>
-                  <svg className="w-4.5 h-4.5 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="text-[11px] font-semibold sm:text-xs md:text-sm md:uppercase md:tracking-wide">
+                    Send
+                  </span>
+                  <svg className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
                 </>
@@ -205,10 +212,11 @@ export const MessageInputArea = memo(function MessageInputArea({
           </div>
         </div>
       </div>
+      </div>
 
-      {/* Mobile hint */}
-      <div className="md:hidden mt-2 text-xs text-muted-foreground/60 text-center">
-        Tap Send or Enter to send • Hold Shift for new line
+      {/* Mobile hint — own row + generous bottom inset so it is not clipped by home indicator / overflow */}
+      <div className="border-t border-border/20 bg-card/95 px-3 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] pt-1.5 text-center text-[11px] leading-snug text-muted-foreground/80 md:hidden">
+        Enter to send · Shift+Enter for new line
       </div>
     </div>
   );

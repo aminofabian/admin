@@ -42,7 +42,7 @@ export const ChatHeader = memo(function ChatHeader({
     return false;
   }, [selectedPlayer?.notes, selectedPlayer?.user_id]);
   return (
-    <div className="px-3 py-2 md:px-4 md:py-3 border-b border-border/40 flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)]">
+    <div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-card/80 px-3 py-2 shadow-[0_1px_0_0_rgba(0,0,0,0.05)] backdrop-blur-md dark:shadow-[0_1px_0_0_rgba(255,255,255,0.05)] md:px-4 md:py-3">
       {/* Back button for mobile */}
       <button
         onClick={() => setMobileView('list')}

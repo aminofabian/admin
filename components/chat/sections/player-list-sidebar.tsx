@@ -278,7 +278,9 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
     };
   }, [activeTab, hasMorePlayers, isLoadingMore, isCurrentTabLoading, onLoadMore]);
   return (
-    <div className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-48 lg:w-56 flex-shrink-0 border-r border-border/40 bg-card/95 flex-col`}>
+    <div
+      className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-r border-border/40 bg-card/95 md:w-48 lg:w-56`}
+    >
       {/* Search Bar */}
       <div className="p-1.5 md:p-2 border-b border-border/50">
         <div className="relative">
@@ -362,7 +364,10 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
       </div>
 
       {/* Player List */}
-      <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
+      <div
+        className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain"
+        ref={scrollContainerRef}
+      >
         {isCurrentTabLoading && displayedPlayers.length === 0 && !usersError ? (
           <div className="p-2">
             <PlayerListSkeleton count={5} />

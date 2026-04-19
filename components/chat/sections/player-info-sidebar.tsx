@@ -138,7 +138,9 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
     }
   }, [gameToChange, addToast]);
   return (
-    <div className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex w-full md:w-64 lg:w-72 flex-shrink-0 bg-gradient-to-b from-card to-card/50 flex-col border-l border-border/50`}>
+    <div
+      className={`${mobileView === 'info' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-l border-border/50 bg-gradient-to-b from-card to-card/50 md:w-64 lg:w-72`}
+    >
       {/* Header with Player Avatar - Compact */}
       <div className="p-2 border-b border-border/50 bg-card/50">
         {/* Back button for mobile */}
@@ -180,7 +182,7 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+      <div className="min-h-0 flex-1 touch-pan-y space-y-2 overflow-y-auto overscroll-y-contain p-2">
         {/* Financial Summary - Compact */}
         <div className="rounded-lg border border-border/50 bg-card/50 p-2">
 

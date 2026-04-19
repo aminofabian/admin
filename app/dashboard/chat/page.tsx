@@ -4,7 +4,7 @@ import { ChatComponent } from '@/components/chat/chat-component';
 
 export default function ChatPage() {
   return (
-    <div className="h-[calc(100vh-8rem)]">
+    <div className="flex h-[calc(100dvh-8rem)] min-h-0 max-h-[calc(100dvh-8rem)] flex-col">
       <ChatComponent />
     </div>
   );
