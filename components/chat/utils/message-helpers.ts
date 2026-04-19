@@ -88,8 +88,10 @@ export function prepareChatMessageHtmlForDisplay(text: string): string {
 
 // Message HTML content classes
 export const MESSAGE_HTML_CONTENT_CLASS = {
-  admin: 'text-[13px] md:text-sm leading-relaxed break-words [&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80 [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4',
-  player: 'text-[13px] md:text-sm leading-relaxed break-words [&_a]:text-white [&_a]:underline hover:[&_a]:text-white/80 text-white [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4'
+  admin:
+    'min-w-0 max-w-full text-[13px] md:text-sm leading-relaxed break-words [overflow-wrap:anywhere] [&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80 [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4',
+  player:
+    'min-w-0 max-w-full text-[13px] md:text-sm leading-relaxed break-words [overflow-wrap:anywhere] [&_a]:text-white [&_a]:underline hover:[&_a]:text-white/80 text-white [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4',
 };
 
 // Format a date for display (actual date only, e.g., "Jan 15, 2025")

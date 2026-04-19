@@ -55,9 +55,11 @@ export const MessageBubble = memo(function MessageBubble({
 
   return (
     <div
-      className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-1' : 'mt-4'}`}
+      className={`flex w-full min-w-0 ${isAdmin ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mt-1' : 'mt-4'}`}
     >
-      <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] min-w-0 ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
+      <div
+        className={`flex min-w-0 max-w-[85%] items-end gap-2 md:max-w-[75%] ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}
+      >
         {showAvatar ? (
           <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0 shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10">
             {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
@@ -68,7 +70,7 @@ export const MessageBubble = memo(function MessageBubble({
 
         <div className="relative group flex flex-col min-w-0">
           <div
-            className={`rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 transition-all duration-200 ${isAdmin
+            className={`min-w-0 max-w-full rounded-2xl px-3.5 md:px-4 py-2.5 md:py-3 transition-all duration-200 ${isAdmin
               ? 'bg-card/95 backdrop-blur-sm border border-border/50 text-foreground shadow-[0_2px_8px_-2px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.3)]'
               : 'bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/20'
               } ${isAdmin ? 'rounded-br-sm' : 'rounded-bl-sm'
@@ -141,11 +143,11 @@ function TransactionMessage({ message, isPurchase }: {
   };
 
   return (
-    <div className="flex justify-center my-4">
-      <div className="max-w-[85%] md:max-w-[75%]">
+    <div className="flex w-full min-w-0 justify-center my-4">
+      <div className="min-w-0 w-full max-w-[85%] md:max-w-[75%]">
         <div className={`bg-muted/40 backdrop-blur-sm border border-border/40 rounded-xl px-4 py-3 shadow-sm ${getTransactionBgClass()}`}>
           <div
-            className="text-center text-[13px] md:text-sm leading-relaxed break-words space-y-1 text-foreground [&_b]:not-italic [&_b]:font-bold"
+            className="text-center text-[13px] md:text-sm leading-relaxed break-words [overflow-wrap:anywhere] space-y-1 text-foreground [&_b]:not-italic [&_b]:font-bold"
             dangerouslySetInnerHTML={{ __html: formattedText }}
           />
           {message.time && (
@@ -177,15 +179,15 @@ function KycVerificationMessage({ message }: { message: ChatMessage }) {
   const { link, bodyText } = parseKycMessage(message);
 
   return (
-    <div className="flex justify-center my-4">
-      <div className="max-w-[85%] md:max-w-[75%]">
+    <div className="flex w-full min-w-0 justify-center my-4">
+      <div className="min-w-0 w-full max-w-[85%] md:max-w-[75%]">
         <div
           className="rounded-xl border px-4 py-3 shadow-sm backdrop-blur-sm border-[#F0E6D7] bg-[#fbf2e3] dark:border-gray-700 dark:bg-gray-800/95 dark:shadow-[0_2px_12px_-2px_rgba(0,0,0,0.4)]"
         >
           <p className="text-center font-bold mb-1.5 text-[13px] md:text-sm text-[#B3672C] dark:text-amber-400">
             Binpay
           </p>
-          <p className="text-center leading-relaxed break-words mb-3 text-[13px] md:text-sm text-foreground [&_b]:font-bold [&_b]:text-foreground dark:text-gray-200 [&_b]:dark:text-gray-100">
+          <p className="text-center leading-relaxed break-words [overflow-wrap:anywhere] mb-3 text-[13px] md:text-sm text-foreground [&_b]:font-bold [&_b]:text-foreground dark:text-gray-200 [&_b]:dark:text-gray-100">
             {formatKycBodyWithBoldAction(bodyText)}
           </p>
           {link && (
@@ -357,7 +359,7 @@ function MessageText({ message, isAdmin, messageHasHtml }: {
     />
   ) : (
     <p
-      className={`text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words ${isAdmin ? 'text-foreground' : 'text-white'}`}
+      className={`min-w-0 max-w-full text-[13px] md:text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${isAdmin ? 'text-foreground' : 'text-white'}`}
     >
       {displayText}
     </p>

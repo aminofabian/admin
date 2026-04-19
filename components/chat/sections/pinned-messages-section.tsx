@@ -76,10 +76,10 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
             return (
               <div 
                 key={msg.id} 
-                className="flex items-start gap-2 justify-start"
+                className="flex min-w-0 w-full items-start gap-2 justify-start"
               >
                 <div 
-                  className="text-xs rounded-xl p-2.5 max-w-[85%] flex-1 bg-card/95 backdrop-blur-sm border border-border/40 text-foreground shadow-sm"
+                  className="min-w-0 max-w-[85%] flex-1 rounded-xl border border-border/40 bg-card/95 p-2.5 text-xs text-foreground shadow-sm backdrop-blur-sm"
                 >
                   <div className="flex items-start gap-2">
                     {/* Visual indicator bar */}
@@ -87,7 +87,7 @@ export const PinnedMessagesSection = memo(function PinnedMessagesSection({
                       className="w-1 rounded-full shrink-0 bg-amber-500/60"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="line-clamp-2 text-foreground">
+                      <p className="line-clamp-2 min-w-0 break-words text-foreground [overflow-wrap:anywhere]">
                         {(() => {
                           const raw = prepareChatMessageHtmlForDisplay(msg.text ?? '');
                           const hasHtml = hasHtmlContent(raw);

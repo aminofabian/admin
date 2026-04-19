@@ -2312,7 +2312,7 @@ export function ChatComponent() {
   }, []);
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-1 gap-0 overflow-hidden bg-background md:gap-4">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 gap-0 overflow-hidden bg-background md:gap-4">
       {/* Left Column - Player List */}
       <PlayerListSidebar
         mobileView={mobileView}
@@ -2393,7 +2393,7 @@ export function ChatComponent() {
               }}
               onScroll={handleScroll}
             >
-              <div className="space-y-6 px-3 py-4 sm:px-4 sm:py-5 md:px-8 md:py-8">
+              <div className="min-w-0 space-y-6 px-3 py-4 sm:px-4 sm:py-5 md:px-8 md:py-8">
 
                 {/* Sentinel for IntersectionObserver-based infinite scroll */}
                 <div ref={sentinelRef} className="h-px w-full shrink-0" aria-hidden="true" />
