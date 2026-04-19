@@ -139,7 +139,6 @@ export default function TransactionAnalyticsPage() {
       { fieldKey: 'purchase_bonus', value: bonusAnalytics.purchase_bonus, bar: 'bg-emerald-500' },
       { fieldKey: 'signup_bonus', value: bonusAnalytics.signup_bonus, bar: 'bg-blue-500' },
       { fieldKey: 'first_deposit_bonus', value: bonusAnalytics.first_deposit_bonus, bar: 'bg-violet-500' },
-      { fieldKey: 'transfer_bonus', value: bonusAnalytics.transfer_bonus, bar: 'bg-indigo-500' },
       { fieldKey: 'total_free_play', value: bonusAnalytics.total_free_play, bar: 'bg-cyan-500' },
       { fieldKey: 'seized_or_tipped_fund', value: bonusAnalytics.seized_or_tipped_fund, bar: 'bg-slate-400' },
     ];
@@ -269,14 +268,14 @@ export default function TransactionAnalyticsPage() {
 
       {/* ── Filtered transaction summary + bonus (unified card) ── */}
       <p className="text-[10px] text-muted-foreground px-0.5">
-        Filtered: {apiFieldLabel('total_purchase')}, {apiFieldLabel('total_cashout')}, {apiFieldLabel('total_transfer')}; payment{' '}
+        Filtered: {apiFieldLabel('total_purchase')}, {apiFieldLabel('total_cashout')}; payment{' '}
         {apiFieldLabel('data.purchases')} / {apiFieldLabel('data.cashouts')}; bonus fields.
       </p>
       <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
         {/* Revenue row */}
         {loadingSummary ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4">
-            {[0, 1, 2, 3].map(i => (
+          <div className="grid grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map(i => (
               <div key={i} className="bg-card px-5 py-4 animate-pulse border-r border-border/10 last:border-r-0">
                 <div className="h-2.5 w-14 bg-muted/40 rounded mb-2.5" />
                 <div className="h-5 w-20 bg-muted/40 rounded" />
@@ -288,7 +287,7 @@ export default function TransactionAnalyticsPage() {
             {summaryError}
           </div>
         ) : transactionSummary ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3">
             <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-emerald-500 border-r border-border/10">
               <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_purchase')}</p>
               <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">{formatCurrency(transactionSummary.total_purchase)}</p>
@@ -296,10 +295,6 @@ export default function TransactionAnalyticsPage() {
             <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-rose-500 border-r border-border/10">
               <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_cashout')}</p>
               <p className="text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400 mt-0.5">{formatCurrency(transactionSummary.total_cashout)}</p>
-            </div>
-            <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-blue-500 border-r border-border/10">
-              <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_transfer')}</p>
-              <p className="text-lg font-bold tabular-nums text-blue-600 dark:text-blue-400 mt-0.5">{formatCurrency(transactionSummary.total_transfer)}</p>
             </div>
             {netRevenue !== null && (
               <div className={`px-5 py-3.5 ${
@@ -323,8 +318,8 @@ export default function TransactionAnalyticsPage() {
         {/* Bonus breakdown */}
         {loadingBonus ? (
           <div className="border-t border-border/15 bg-card px-5 py-4">
-            <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
-              {[0, 1, 2, 3, 4, 5].map(i => (
+            <div className="grid grid-cols-3 lg:grid-cols-5 gap-4">
+              {[0, 1, 2, 3, 4].map(i => (
                 <div key={i} className="animate-pulse">
                   <div className="h-2 w-12 bg-muted/40 rounded mb-2" />
                   <div className="h-4 w-14 bg-muted/40 rounded mb-2" />
@@ -350,7 +345,7 @@ export default function TransactionAnalyticsPage() {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-3">
               {bonusBreakdown.map(({ fieldKey, value, bar, pct }) => (
                 <div key={fieldKey} className="group">
                   <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">{apiFieldLabel(fieldKey)}</p>
@@ -370,9 +365,6 @@ export default function TransactionAnalyticsPage() {
               <span className="text-border/50">&middot;</span>
               <span className="text-[9px] font-medium">{apiFieldLabel('average_signup_bonus')}</span>
               <strong className="text-foreground">{formatCurrency(bonusAnalytics.average_signup_bonus)}</strong>
-              <span className="text-border/50">&middot;</span>
-              <span className="text-[9px] font-medium">{apiFieldLabel('average_transfer_bonus_pct')}</span>
-              <strong className="text-foreground">{bonusAnalytics.average_transfer_bonus_pct.toFixed(2)}%</strong>
               <span className="text-border/50">&middot;</span>
               <span className="text-[9px] font-medium">{apiFieldLabel('average_first_deposit_bonus_pct')}</span>
               <strong className="text-foreground">{bonusAnalytics.average_first_deposit_bonus_pct.toFixed(2)}%</strong>
