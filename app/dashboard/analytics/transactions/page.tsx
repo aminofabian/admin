@@ -96,8 +96,13 @@ export default function TransactionAnalyticsPage() {
 
   const { data: transactionSummary, loading: loadingSummary, error: summaryError } =
     useTransactionSummary(filters);
-  const { data: paymentMethods, loading: loadingPaymentMethods, error: paymentMethodsError } =
-    usePaymentMethods(filters);
+  const {
+    data: paymentMethods,
+    purchaseMethodsGrouped,
+    cashoutMethodsGrouped,
+    loading: loadingPaymentMethods,
+    error: paymentMethodsError,
+  } = usePaymentMethods(filters);
   const { data: bonusAnalytics, loading: loadingBonus, error: bonusError } = useBonusAnalytics(filters);
 
   useEffect(() => {
@@ -125,6 +130,8 @@ export default function TransactionAnalyticsPage() {
 
   const hasActiveFilters = username || state || gender || datePreset !== 'last_3_months';
   const fmtMethod = (n: string) => n.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const groupedMethodLabel = (paymentMethod: string, display?: string) =>
+    (display && display.trim()) ? display.trim() : fmtMethod(paymentMethod);
   const purchaseMethods = paymentMethods.filter(m => m.type === 'purchase');
   const cashoutMethods = paymentMethods.filter(m => m.type === 'cashout');
 
@@ -269,7 +276,8 @@ export default function TransactionAnalyticsPage() {
       {/* ── Filtered transaction summary + bonus (unified card) ── */}
       <p className="text-[10px] text-muted-foreground px-0.5">
         Filtered: {apiFieldLabel('total_purchase')}, {apiFieldLabel('total_cashout')}; payment{' '}
-        {apiFieldLabel('data.purchases')} / {apiFieldLabel('data.cashouts')}; bonus fields.
+        {apiFieldLabel('data.purchases')} / {apiFieldLabel('data.cashouts')}; {apiFieldLabel('purchase_methods')} /{' '}
+        {apiFieldLabel('cashout_methods')}; bonus fields.
       </p>
       <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
         {/* Revenue row */}
@@ -486,6 +494,131 @@ export default function TransactionAnalyticsPage() {
           ) : (
             <div className="p-6 text-center text-xs text-muted-foreground">No cashout data</div>
           )}
+        </div>
+      </div>
+
+      {/* ── Grouped by payment method (`purchase_methods` / `cashout_methods`) ── */}
+      <div className="rounded-2xl border border-border/30 bg-card/40 overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-border/15 bg-muted/5">
+          <h2 className="text-sm font-semibold text-foreground">By payment method</h2>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            {apiFieldLabel('purchase_methods')} / {apiFieldLabel('cashout_methods')} from the payment-methods response.
+          </p>
+        </div>
+        <div className="grid gap-3 p-3 lg:grid-cols-2 lg:p-4">
+          <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-sm font-semibold text-foreground">Purchases</span>
+              <span className="text-[9px] font-medium text-muted-foreground hidden sm:inline">{apiFieldLabel('purchase_methods')}</span>
+              {purchaseMethodsGrouped.length > 0 && (
+                <span className="ml-auto text-[10px] font-medium text-muted-foreground tabular-nums">{purchaseMethodsGrouped.length}</span>
+              )}
+            </div>
+            {loadingPaymentMethods ? (
+              <TableSkel />
+            ) : paymentMethodsError ? (
+              <div className="p-6 text-center text-xs text-rose-600 dark:text-rose-400">{paymentMethodsError}</div>
+            ) : purchaseMethodsGrouped.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border/10 bg-muted/5">
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('payment_method_display')}</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('purchase')}</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('bonus')}</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('average_bonus_pct')}</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('average_transaction_size')}</th>
+                      <th className="text-right px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('usage_distribution_pct')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/5">
+                    {purchaseMethodsGrouped.map((m, i) => {
+                      const label = groupedMethodLabel(m.payment_method, m.payment_method_display);
+                      return (
+                        <tr key={`pg-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-[9px] shrink-0">{label.charAt(0)}</span>
+                              <span className="font-medium text-foreground text-xs">{label}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(m.purchase)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {m.bonus > 0
+                              ? <span className="text-amber-600 dark:text-amber-400">{formatCurrency(m.bonus)}</span>
+                              : <span className="text-muted-foreground/25">&mdash;</span>}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                            {m.average_bonus_pct > 0
+                              ? `${m.average_bonus_pct.toFixed(1)}%`
+                              : <span className="text-muted-foreground/25">&mdash;</span>}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate.toFixed(1)}%</span></td>
+                          <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(m.average_transaction_size)}</td>
+                          <td className="px-4 py-2 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct.toFixed(1)}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs text-muted-foreground">No grouped purchase data</div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+              <span className="text-sm font-semibold text-foreground">Cashouts</span>
+              <span className="text-[9px] font-medium text-muted-foreground hidden sm:inline">{apiFieldLabel('cashout_methods')}</span>
+              {cashoutMethodsGrouped.length > 0 && (
+                <span className="ml-auto text-[10px] font-medium text-muted-foreground tabular-nums">{cashoutMethodsGrouped.length}</span>
+              )}
+            </div>
+            {loadingPaymentMethods ? (
+              <TableSkel />
+            ) : paymentMethodsError ? (
+              <div className="p-6 text-center text-xs text-rose-600 dark:text-rose-400">{paymentMethodsError}</div>
+            ) : cashoutMethodsGrouped.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border/10 bg-muted/5">
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('payment_method_display')}</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('cashout')}</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('average_transaction_size')}</th>
+                      <th className="text-right px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('usage_distribution_pct')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/5">
+                    {cashoutMethodsGrouped.map((m, i) => {
+                      const label = groupedMethodLabel(m.payment_method, m.payment_method_display);
+                      return (
+                        <tr key={`cg-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-[9px] shrink-0">{label.charAt(0)}</span>
+                              <span className="font-medium text-foreground text-xs">{label}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(m.cashout)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate.toFixed(1)}%</span></td>
+                          <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(m.average_transaction_size)}</td>
+                          <td className="px-4 py-2 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct.toFixed(1)}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs text-muted-foreground">No grouped cashout data</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

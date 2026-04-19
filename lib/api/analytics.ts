@@ -45,6 +45,28 @@ export interface PaymentMethodMetrics {
   usage_distribution_pct: number;
 }
 
+/** One row from `data.purchase_methods` (totals grouped by payment method, e.g. Card, Cashapp). */
+export interface PurchaseMethodGroupedRow {
+  payment_method: string;
+  payment_method_display?: string;
+  purchase: number;
+  bonus: number;
+  average_bonus_pct: number;
+  success_rate: number;
+  average_transaction_size: number;
+  usage_distribution_pct: number;
+}
+
+/** One row from `data.cashout_methods` (totals grouped by payment method). */
+export interface CashoutMethodGroupedRow {
+  payment_method: string;
+  payment_method_display?: string;
+  cashout: number;
+  success_rate: number;
+  average_transaction_size: number;
+  usage_distribution_pct: number;
+}
+
 export interface PaymentMethodsResponseData {
   purchases: {
     [key: string]: PaymentMethodMetrics;
@@ -52,6 +74,9 @@ export interface PaymentMethodsResponseData {
   cashouts: {
     [key: string]: PaymentMethodMetrics;
   };
+  /** Optional grouped rows; when present, shown in a dedicated analytics section. */
+  purchase_methods?: PurchaseMethodGroupedRow[];
+  cashout_methods?: CashoutMethodGroupedRow[];
 }
 
 /** Bonus analytics `data` object from GET …/transactions/bonus (all numeric fields). */

@@ -4,6 +4,8 @@ import type {
   TransactionSummary,
   PaymentMethodBreakdown,
   BonusAnalytics,
+  PurchaseMethodGroupedRow,
+  CashoutMethodGroupedRow,
 } from '@/lib/api/analytics';
 
 /** Maps API payload to a consistent TransactionSummary (handles missing keys and total_cash_in alias). */
@@ -20,6 +22,42 @@ function normalizeTransactionSummary(raw: TransactionSummary | Record<string, un
     total_purchase: purchase,
     total_cashout: num(o.total_cashout),
     total_transfer: num(o.total_transfer),
+  };
+}
+
+function normalizePurchaseMethodGrouped(raw: unknown): PurchaseMethodGroupedRow | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const s = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const payment_method = s(o.payment_method);
+  if (!payment_method) return null;
+  return {
+    payment_method,
+    payment_method_display: typeof o.payment_method_display === 'string' ? o.payment_method_display : undefined,
+    purchase: n(o.purchase),
+    bonus: n(o.bonus),
+    average_bonus_pct: n(o.average_bonus_pct),
+    success_rate: n(o.success_rate),
+    average_transaction_size: n(o.average_transaction_size),
+    usage_distribution_pct: n(o.usage_distribution_pct),
+  };
+}
+
+function normalizeCashoutMethodGrouped(raw: unknown): CashoutMethodGroupedRow | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const s = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const payment_method = s(o.payment_method);
+  if (!payment_method) return null;
+  return {
+    payment_method,
+    payment_method_display: typeof o.payment_method_display === 'string' ? o.payment_method_display : undefined,
+    cashout: n(o.cashout),
+    success_rate: n(o.success_rate),
+    average_transaction_size: n(o.average_transaction_size),
+    usage_distribution_pct: n(o.usage_distribution_pct),
   };
 }
 
@@ -78,6 +116,8 @@ export function useTransactionSummary(filters?: AnalyticsFilters) {
 
 export function usePaymentMethods(filters?: AnalyticsFilters) {
   const [data, setData] = useState<PaymentMethodBreakdown[]>([]);
+  const [purchaseMethodsGrouped, setPurchaseMethodsGrouped] = useState<PurchaseMethodGroupedRow[]>([]);
+  const [cashoutMethodsGrouped, setCashoutMethodsGrouped] = useState<CashoutMethodGroupedRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -124,7 +164,20 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
             });
           }
 
+          const purchaseGrouped: PurchaseMethodGroupedRow[] = Array.isArray(response.data.purchase_methods)
+            ? response.data.purchase_methods
+                .map(normalizePurchaseMethodGrouped)
+                .filter((row): row is PurchaseMethodGroupedRow => row !== null)
+            : [];
+          const cashoutGrouped: CashoutMethodGroupedRow[] = Array.isArray(response.data.cashout_methods)
+            ? response.data.cashout_methods
+                .map(normalizeCashoutMethodGrouped)
+                .filter((row): row is CashoutMethodGroupedRow => row !== null)
+            : [];
+
           setData(paymentMethodsArray);
+          setPurchaseMethodsGrouped(purchaseGrouped);
+          setCashoutMethodsGrouped(cashoutGrouped);
         } else {
           throw new Error(response.message || 'Failed to fetch payment methods');
         }
@@ -134,6 +187,8 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
         console.warn('⚠️ Payment methods failed:', errorMessage);
         setError(errorMessage);
         setData([]);
+        setPurchaseMethodsGrouped([]);
+        setCashoutMethodsGrouped([]);
       } finally {
         setLoading(false);
       }
@@ -142,7 +197,7 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
     void fetchData();
   }, [JSON.stringify(filters)]);
 
-  return { data, loading, error };
+  return { data, purchaseMethodsGrouped, cashoutMethodsGrouped, loading, error };
 }
 
 export function useBonusAnalytics(filters?: AnalyticsFilters) {
