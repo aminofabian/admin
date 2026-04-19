@@ -93,6 +93,8 @@ export const API_ENDPOINTS = {
     PURCHASES: 'api/chat-purchases', // Purchase history (proxy – avoids CORS)
     CASHOUTS: 'api/chat-cashouts', // Cashouts list (proxy – avoids CORS)
     GAME_ACTIVITIES: 'api/chat-game-activities', // Game activities (proxy – avoids CORS)
+    /** Next.js proxy → GET {API}/api/v1/admin/chat/?request_type=search_players&query=… */
+    SEARCH_PLAYERS: 'api/chat-search-players',
     ADMIN_CHAT: `${API_PREFIX}/admin/chat/`, // Backend direct (use proxy endpoints above from browser)
     WEBSOCKET_BASE: '/ws/cschat/', // WebSocket endpoint base (backend)
   },
@@ -101,6 +103,19 @@ export const API_ENDPOINTS = {
     DETAIL: (id: number) => `${API_PREFIX}/chat-links/${id}/`,
   },
 } as const;
+
+/**
+ * Path + query for the external admin chat player search API (no origin).
+ * Contract: GET /api/v1/admin/chat/?request_type=search_players&query=<search text>
+ * Examples: …/query=bivera, …/query=john
+ */
+export function buildAdminChatSearchPlayersPathAndQuery(searchText: string): string {
+  const params = new URLSearchParams({
+    request_type: 'search_players',
+    query: searchText,
+  });
+  return `${API_PREFIX}/admin/chat/?${params.toString()}`;
+}
 
 export const TOKEN_KEY = 'auth_token';
 export const REFRESH_TOKEN_KEY = 'refresh_token';

@@ -9,7 +9,7 @@ import { useChatUsersContext } from '@/contexts/chat-users-context';
 import { useChatWebSocket } from '@/hooks/use-chat-websocket';
 import { useOnlinePlayers } from '@/hooks/use-online-players';
 import { storage } from '@/lib/utils/storage';
-import { TOKEN_KEY } from '@/lib/constants/api';
+import { API_ENDPOINTS, TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatUser, ChatMessage } from '@/types';
 import { EditProfileDrawer, EditBalanceDrawer, NotesDrawer, ExpandedImageModal } from './modals';
 import {
@@ -19,7 +19,12 @@ import {
   type ManualAdjustmentKind,
   type ManualPaymentResponse,
 } from '@/lib/api/manual-adjustment-payload';
-import { normalizeWinningBalanceFromRealtime, pickWinningBalanceFromBackend } from '@/lib/chat/map-chat-api';
+import {
+  normalizeWinningBalanceFromRealtime,
+  pickWinningBalanceFromBackend,
+  extractPlayerArrayFromAdminChatResponse,
+  mapAdminSearchRowToChatUser,
+} from '@/lib/chat/map-chat-api';
 import { mergeWinningBalanceFromDirectoryRow } from '@/lib/chat/merge-player-ledger-display';
 import { PlayerListSidebar, ChatHeader, PlayerInfoSidebar, EmptyState, PinnedMessagesSection, MessageInputArea } from './sections';
 import { MessageBubble } from './components/message-bubble';
@@ -111,6 +116,12 @@ export function ChatComponent() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [activeTab, setActiveTab] = useState<'online' | 'all-chats'>('online');
   const [searchQuery, setSearchQuery] = useState('');
+  const [serverSearchPlayers, setServerSearchPlayers] = useState<Player[]>([]);
+  const [serverSearchForQuery, setServerSearchForQuery] = useState('');
+  const [isPlayerSearchLoading, setIsPlayerSearchLoading] = useState(false);
+  const playerSearchAbortRef = useRef<AbortController | null>(null);
+  /** Bumps when clearing search or starting a new debounced fetch so stale/aborted requests cannot leave loading stuck. */
+  const playerSearchEpochRef = useRef(0);
   const [messageInput, setMessageInput] = useState('');
   const [pendingPinMessageId, setPendingPinMessageId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'info'>('list');
@@ -193,6 +204,8 @@ export function ChatComponent() {
     loadMorePlayers,
     hasMorePlayers,
     playersWithChatsTotalCount,
+    chatListOnlinePlayersCount,
+    chatListAllPlayersCount,
     refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,
@@ -202,6 +215,8 @@ export function ChatComponent() {
   // ✨ OPTIMIZED: Fetch online players using hybrid REST + WebSocket approach
   const {
     onlinePlayers: apiOnlinePlayers,
+    onlinePlayersTotalCount: onlinePlayersApiTotalCount,
+    allPlayersTotalCount: allPlayersApiTotalCount,
     isLoading: isLoadingApiOnlinePlayers,
     error: onlinePlayersError,
     refetch: refetchOnlinePlayers,
@@ -210,6 +225,14 @@ export function ChatComponent() {
     adminId: adminUserId,
     enabled: hasValidAdminUser, // Keep always enabled to preserve data and timestamps
   });
+
+  const displayOnlinePlayersTotal = useMemo(
+    () =>
+      onlinePlayersApiTotalCount ??
+      chatListOnlinePlayersCount ??
+      onlinePlayers.length,
+    [onlinePlayersApiTotalCount, chatListOnlinePlayersCount, onlinePlayers.length],
+  );
 
   // WebSocket connection for real-time chat
   const {
@@ -477,6 +500,105 @@ export function ChatComponent() {
 
   const groupedMessages = useMemo(() => groupMessagesByDate(visibleMessages), [visibleMessages]);
 
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    const token = storage.get(TOKEN_KEY);
+    if (!trimmed) {
+      playerSearchEpochRef.current += 1;
+      playerSearchAbortRef.current?.abort();
+      playerSearchAbortRef.current = null;
+      setServerSearchPlayers([]);
+      setServerSearchForQuery('');
+      setIsPlayerSearchLoading(false);
+      return;
+    }
+
+    if (!token) {
+      playerSearchEpochRef.current += 1;
+      playerSearchAbortRef.current?.abort();
+      setServerSearchPlayers([]);
+      setServerSearchForQuery('');
+      setIsPlayerSearchLoading(false);
+      return;
+    }
+
+    playerSearchEpochRef.current += 1;
+    const epochAtSchedule = playerSearchEpochRef.current;
+    setIsPlayerSearchLoading(true);
+
+    const timer = setTimeout(() => {
+      if (epochAtSchedule !== playerSearchEpochRef.current) {
+        return;
+      }
+      const ac = new AbortController();
+      playerSearchAbortRef.current?.abort();
+      playerSearchAbortRef.current = ac;
+
+      void (async () => {
+        try {
+          const res = await fetch(
+            `/${API_ENDPOINTS.CHAT.SEARCH_PLAYERS}?query=${encodeURIComponent(trimmed)}`,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token && { Authorization: `Bearer ${token}` }),
+              },
+              signal: ac.signal,
+            },
+          );
+
+          if (!res.ok) {
+            const errJson = (await res.json().catch(() => ({}))) as { message?: string };
+            throw new Error(errJson.message || `Search failed (${res.status})`);
+          }
+
+          const data = (await res.json()) as Record<string, unknown>;
+          const arr = extractPlayerArrayFromAdminChatResponse(data);
+          const mapped = arr.map((row) => mapAdminSearchRowToChatUser(row));
+
+          if (!IS_PROD && mapped.length === 0) {
+            console.debug(
+              '[chat-search-players] No rows after parse. Keys:',
+              Object.keys(data),
+              'sample:',
+              JSON.stringify(data).slice(0, 800),
+            );
+          }
+
+          if (!ac.signal.aborted && epochAtSchedule === playerSearchEpochRef.current) {
+            setServerSearchPlayers(mapped);
+            setServerSearchForQuery(trimmed);
+          }
+        } catch (e) {
+          if (e instanceof Error && e.name === 'AbortError') {
+            return;
+          }
+          console.error('Player search failed:', e);
+          addToast({
+            type: 'error',
+            title: 'Search failed',
+            description: e instanceof Error ? e.message : 'Could not search players',
+          });
+          if (!ac.signal.aborted && epochAtSchedule === playerSearchEpochRef.current) {
+            setServerSearchPlayers([]);
+            // Mark query complete so the list stays server-driven (empty) instead of a mismatched-query state.
+            setServerSearchForQuery(trimmed);
+          }
+        } finally {
+          if (epochAtSchedule === playerSearchEpochRef.current) {
+            setIsPlayerSearchLoading(false);
+          }
+        }
+      })();
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      playerSearchAbortRef.current?.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- addToast is stable; omitting avoids aborting search on toast identity churn
+  }, [searchQuery]);
+
   const displayedPlayers = useMemo(() => {
     if (!IS_PROD) {
       console.log('🔄 [displayedPlayers] Memo recalculating...', {
@@ -726,33 +848,107 @@ export function ChatComponent() {
       }
     }
 
-    if (!searchQuery.trim()) {
+    const trimmedSearch = searchQuery.trim();
+    if (!trimmedSearch) {
       return players;
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = players.filter((player) => {
-      const username = player.username.toLowerCase();
-      const email = player.email.toLowerCase();
-      return username.includes(query) || email.includes(query);
-    });
+    // Player list search is server-only: never filter the loaded directory client-side.
+    const serverResultsReady =
+      !isPlayerSearchLoading && serverSearchForQuery === trimmedSearch;
 
-    // If we have a query param player, ensure they're always included even if filtered out
-    // This prevents them from disappearing when search filters or pagination loads
-    if (queryParamPlayerRef.current && queryParamPlayerRef.current.user_id) {
+    if (!serverResultsReady) {
+      return [];
+    }
+
+    const mergeSearchRowWithChats = (apiPlayer: Player): Player => {
+      const ws = activeChatsUsers.find((a) => a.user_id === apiPlayer.user_id);
+      const apiOn = apiOnlinePlayers.find((a) => a.user_id === apiPlayer.user_id);
+
+      if (activeTab === 'all-chats') {
+        if (ws) {
+          return {
+            ...ws,
+            fullName: apiPlayer.fullName || ws.fullName,
+            email: apiPlayer.email || ws.email,
+            avatar: apiPlayer.avatar || ws.avatar,
+            balance: apiPlayer.balance || ws.balance,
+            winningBalance: Object.prototype.hasOwnProperty.call(apiPlayer, 'winningBalance')
+              ? apiPlayer.winningBalance
+              : undefined,
+            gamesPlayed: apiPlayer.gamesPlayed || ws.gamesPlayed,
+            winRate: apiPlayer.winRate || ws.winRate,
+            phone: apiPlayer.phone || ws.phone,
+            notes: apiPlayer.notes || ws.notes,
+            lastMessage: ws.lastMessage || apiPlayer.lastMessage,
+            lastMessageTime: isValidTimestamp(ws.lastMessageTime)
+              ? ws.lastMessageTime
+              : apiPlayer.lastMessageTime,
+            isOnline: ws.isOnline ?? apiPlayer.isOnline,
+          };
+        }
+        return apiPlayer;
+      }
+
+      if (apiOn) {
+        if (ws) {
+          return {
+            ...apiOn,
+            lastMessage: ws.lastMessage || apiOn.lastMessage,
+            lastMessageTime: isValidTimestamp(ws.lastMessageTime)
+              ? ws.lastMessageTime
+              : apiOn.lastMessageTime,
+            unreadCount: ws.unreadCount ?? apiOn.unreadCount ?? 0,
+            isOnline: ws.isOnline ?? apiOn.isOnline ?? apiPlayer.isOnline,
+            notes: apiOn.notes || ws.notes,
+          };
+        }
+        return {
+          ...apiOn,
+          fullName: apiPlayer.fullName || apiOn.fullName,
+          email: apiPlayer.email || apiOn.email,
+          notes: apiPlayer.notes || apiOn.notes,
+        };
+      }
+
+      if (ws?.isOnline) {
+        return {
+          ...ws,
+          fullName: apiPlayer.fullName || ws.fullName,
+          email: apiPlayer.email || ws.email,
+          balance: apiPlayer.balance || ws.balance,
+          notes: apiPlayer.notes || ws.notes,
+        };
+      }
+
+      return { ...apiPlayer, isOnline: apiPlayer.isOnline ?? false };
+    };
+
+    // Server search must not hide matches when `is_online` is omitted from search_players
+    // (merge above still sets green/red from REST + WebSocket when available).
+    const fromServer = serverSearchPlayers.map(mergeSearchRowWithChats);
+
+    if (queryParamPlayerRef.current?.user_id) {
       const queryPlayerId = queryParamPlayerRef.current.user_id;
-      const queryPlayerInFiltered = filtered.find(p => p.user_id === queryPlayerId);
-
-      // If the query param player is not in filtered results, add them at the top
-      if (!queryPlayerInFiltered) {
-        // Find the player in the full list or use the ref
-        const queryPlayerInList = players.find(p => p.user_id === queryPlayerId) || queryParamPlayerRef.current;
-        return [queryPlayerInList, ...filtered];
+      if (!fromServer.find((p) => p.user_id === queryPlayerId)) {
+        const qp = mergeSearchRowWithChats(queryParamPlayerRef.current);
+        if (activeTab !== 'online' || qp.isOnline) {
+          return [qp, ...fromServer];
+        }
       }
     }
 
-    return filtered;
-  }, [activeTab, apiOnlinePlayers, activeChatsUsers, allPlayers, searchQuery]);
+    return fromServer;
+  }, [
+    activeTab,
+    apiOnlinePlayers,
+    activeChatsUsers,
+    allPlayers,
+    searchQuery,
+    serverSearchPlayers,
+    serverSearchForQuery,
+    isPlayerSearchLoading,
+  ]);
 
   /** Sidebar/drawer: align winnings with directory row on the same render (no `useEffect` flash). */
   const selectedPlayerLedgerView = useMemo(
@@ -2126,14 +2322,16 @@ export function ChatComponent() {
         setActiveTab={setActiveTab}
         displayedPlayers={displayedPlayers}
         selectedPlayer={selectedPlayer}
-        onlinePlayersCount={onlinePlayers.length}
+        onlinePlayersCount={displayOnlinePlayersTotal}
         activeChatsCount={
           activeTab === 'online'
-            ? activeChatsUsers.filter((user) => user.isOnline).length
+            ? displayOnlinePlayersTotal
             : activeChatsUsers.length
         }
+        directoryAllPlayersCount={allPlayersApiTotalCount ?? chatListAllPlayersCount}
         playersWithChatsTotalCount={playersWithChatsTotalCount}
         isCurrentTabLoading={isCurrentTabLoading}
+        isPlayerSearchLoading={isPlayerSearchLoading}
         isLoadingApiOnlinePlayers={isLoadingApiOnlinePlayers}
         isLoadingMore={isLoadingMore}
         hasMorePlayers={hasMorePlayers}
@@ -2354,7 +2552,7 @@ export function ChatComponent() {
           </>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain">
-            <EmptyState onlinePlayersCount={displayedPlayers.filter(p => p.isOnline).length} />
+            <EmptyState onlinePlayersCount={displayOnlinePlayersTotal} />
           </div>
         )}
       </div>

@@ -7,7 +7,11 @@ import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
-import { ledgerStringOrUndefined, pickWinningBalanceFromBackend } from '@/lib/chat/map-chat-api';
+import {
+  extractChatListServerCounts,
+  ledgerStringOrUndefined,
+  pickWinningBalanceFromBackend,
+} from '@/lib/chat/map-chat-api';
 
 // Production mode check
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -24,6 +28,10 @@ interface UseOnlinePlayersParams {
 
 interface UseOnlinePlayersReturn {
   onlinePlayers: ChatUser[];
+  /** From `/api/chat-online-players` `counts.online_players_count` when the backend sends it. */
+  onlinePlayersTotalCount: number | null;
+  /** From `/api/chat-online-players` `counts.all_players_count` when the backend sends it. */
+  allPlayersTotalCount: number | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -121,6 +129,8 @@ function transformPlayerToUser(data: Record<string, any>): ChatUser {
  */
 export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersParams): UseOnlinePlayersReturn {
   const [onlinePlayers, setOnlinePlayers] = useState<ChatUser[]>([]);
+  const [onlinePlayersTotalCount, setOnlinePlayersTotalCount] = useState<number | null>(null);
+  const [allPlayersTotalCount, setAllPlayersTotalCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -131,7 +141,12 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
   // WebSocket management refs
   const wsUrlRef = useRef<string>('');
   const listenersRef = useRef<Set<WebSocketListeners>>(new Set());
-  const cacheRef = useRef<{ data: ChatUser[]; timestamp: number } | null>(null);
+  const cacheRef = useRef<{
+    data: ChatUser[];
+    timestamp: number;
+    onlinePlayersTotalCount: number | null;
+    allPlayersTotalCount: number | null;
+  } | null>(null);
   const isMountedRef = useRef(true);
 
   /**
@@ -144,6 +159,12 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
     // Check cache first (unless force refresh)
     if (!forceRefresh && cacheRef.current && (now - cacheRef.current.timestamp) < CACHE_TTL) {
       !IS_PROD && console.log(' [Online Players] Using cached data');
+      if (cacheRef.current.onlinePlayersTotalCount != null) {
+        setOnlinePlayersTotalCount(cacheRef.current.onlinePlayersTotalCount);
+      }
+      if (cacheRef.current.allPlayersTotalCount != null) {
+        setAllPlayersTotalCount(cacheRef.current.allPlayersTotalCount);
+      }
       return cacheRef.current.data;
     }
 
@@ -163,6 +184,13 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       }
 
       const data = await response.json();
+      const serverCounts = extractChatListServerCounts(data as Record<string, unknown>);
+      if (serverCounts.onlinePlayersCount != null) {
+        setOnlinePlayersTotalCount(serverCounts.onlinePlayersCount);
+      }
+      if (serverCounts.allPlayersCount != null) {
+        setAllPlayersTotalCount(serverCounts.allPlayersCount);
+      }
       !IS_PROD && console.log('📊 [Online Players] API response structure:', {
         hasChats: !!data.chats,
         hasPlayer: !!data.player,
@@ -280,6 +308,8 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
       cacheRef.current = {
         data: transformedPlayers,
         timestamp: now,
+        onlinePlayersTotalCount: serverCounts.onlinePlayersCount,
+        allPlayersTotalCount: serverCounts.allPlayersCount,
       };
 
       !IS_PROD && console.log(` [Online Players] Loaded ${transformedPlayers.length} players from API`);
@@ -530,6 +560,8 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
 
   return {
     onlinePlayers,
+    onlinePlayersTotalCount,
+    allPlayersTotalCount,
     isLoading,
     error,
     refetch,

@@ -20,6 +20,8 @@ interface ChatUsersContextType {
   loadMorePlayers: () => Promise<void>;
   hasMorePlayers: boolean;
   playersWithChatsTotalCount: number | null;
+  chatListOnlinePlayersCount: number | null;
+  chatListAllPlayersCount: number | null;
   refreshActiveChats: () => Promise<void>;
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
   markChatAsRead: (params: { chatId?: string; userId?: number }) => void;

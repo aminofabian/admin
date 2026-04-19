@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  extractChatListServerCounts,
+  extractPlayerArrayFromAdminChatResponse,
+  mapAdminSearchRowToChatUser,
   mergeWinningBalanceFromPartialPayload,
   normalizeWinningBalanceFromRealtime,
   payloadIncludesWinningBalanceFields,
@@ -101,6 +104,95 @@ describe('map-chat-api', () => {
         winning_balance: '0.00',
       });
       expect('winningBalance' in u).toBe(false);
+    });
+
+    it('should map search_players-style row using user_id / player_id when id is absent', () => {
+      const u = transformPlayerToUser({
+        user_id: 42,
+        username: 'yero1',
+        chatroom_id: 99,
+      });
+      expect(u.user_id).toBe(42);
+      expect(u.id).toBe('99');
+    });
+
+    it('should treat 1 as online for is_online from API', () => {
+      const u = transformPlayerToUser({
+        id: 1,
+        username: 'a',
+        chatroom_id: 1,
+        is_online: 1,
+      });
+      expect(u.isOnline).toBe(true);
+    });
+  });
+
+  describe('extractChatListServerCounts', () => {
+    it('should read counts from admin chat list response', () => {
+      expect(
+        extractChatListServerCounts({
+          counts: { all_players_count: 43, online_players_count: 4 },
+          chats: [],
+        }),
+      ).toEqual({ allPlayersCount: 43, onlinePlayersCount: 4 });
+    });
+
+    it('should accept numeric strings and return null when counts missing', () => {
+      expect(
+        extractChatListServerCounts({
+          counts: { all_players_count: '10', online_players_count: '2' },
+        }),
+      ).toEqual({ allPlayersCount: 10, onlinePlayersCount: 2 });
+
+      expect(extractChatListServerCounts({})).toEqual({
+        allPlayersCount: null,
+        onlinePlayersCount: null,
+      });
+    });
+  });
+
+  describe('extractPlayerArrayFromAdminChatResponse', () => {
+    it('should skip empty player[] and use results[]', () => {
+      const rows = extractPlayerArrayFromAdminChatResponse({
+        player: [],
+        results: [{ id: 1, username: 'x', chatroom_id: 1 }],
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].username).toBe('x');
+    });
+
+    it('should find arrays nested under arbitrary keys', () => {
+      const rows = extractPlayerArrayFromAdminChatResponse({
+        status: 'ok',
+        payload: {
+          items: [{ user_id: 7, username: 'nested', chatroom_id: 2 }],
+        },
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].username).toBe('nested');
+    });
+
+    it('should accept a single object in `player` (not only arrays)', () => {
+      const rows = extractPlayerArrayFromAdminChatResponse({
+        status: 'ok',
+        player: { id: 12, username: 'solo', chatroom_id: 9 },
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].username).toBe('solo');
+    });
+  });
+
+  describe('mapAdminSearchRowToChatUser', () => {
+    it('should map flat chats[] row via transformChatToUser when user id is on player_id', () => {
+      const row: Record<string, unknown> = {
+        id: 81,
+        player_id: 93,
+        player_username: 'bitslotbeta',
+        last_message: 'hi',
+      };
+      const u = mapAdminSearchRowToChatUser(row);
+      expect(u.user_id).toBe(93);
+      expect(u.username).toBe('bitslotbeta');
     });
   });
 

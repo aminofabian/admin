@@ -209,9 +209,13 @@ interface PlayerListSidebarProps {
   selectedPlayer: ChatUser | null;
   onlinePlayersCount: number;
   activeChatsCount: number;
+  /** From chat APIs `counts.all_players_count` when present; improves “with chats” when pagination total is missing. */
+  directoryAllPlayersCount?: number | null;
   /** From chat list API `pagination.total_count` when present; subtitle falls back to `activeChatsCount`. */
   playersWithChatsTotalCount: number | null;
   isCurrentTabLoading: boolean;
+  /** True while server-side player search request is in flight */
+  isPlayerSearchLoading?: boolean;
   isLoadingApiOnlinePlayers: boolean;
   isLoadingMore: boolean;
   hasMorePlayers: boolean;
@@ -231,8 +235,10 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   selectedPlayer,
   onlinePlayersCount,
   activeChatsCount,
+  directoryAllPlayersCount = null,
   playersWithChatsTotalCount,
   isCurrentTabLoading,
+  isPlayerSearchLoading = false,
   isLoadingApiOnlinePlayers,
   isLoadingMore,
   hasMorePlayers,
@@ -241,7 +247,14 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   onRefreshOnlinePlayers,
   onLoadMore,
 }: PlayerListSidebarProps) {
-  const withChatsDisplayCount = playersWithChatsTotalCount ?? activeChatsCount;
+  const withChatsDisplayCount =
+    playersWithChatsTotalCount ?? directoryAllPlayersCount ?? activeChatsCount;
+
+  const onlinePlayersBadgeCount =
+    activeTab === 'online' && searchQuery.trim().length > 0
+      ? displayedPlayers.length
+      : onlinePlayersCount;
+
   // Refs for infinite scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
@@ -249,7 +262,13 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   // Intersection Observer for infinite scroll
   useEffect(() => {
     // Only observe when on all-chats tab and there's more to load
-    if (activeTab !== 'all-chats' || !hasMorePlayers || isLoadingMore || isCurrentTabLoading) {
+    if (
+      activeTab !== 'all-chats' ||
+      !hasMorePlayers ||
+      isLoadingMore ||
+      isCurrentTabLoading ||
+      searchQuery.trim().length > 0
+    ) {
       return;
     }
 
@@ -276,7 +295,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
     return () => {
       observer.disconnect();
     };
-  }, [activeTab, hasMorePlayers, isLoadingMore, isCurrentTabLoading, onLoadMore]);
+  }, [activeTab, hasMorePlayers, isLoadingMore, isCurrentTabLoading, searchQuery, onLoadMore]);
   return (
     <div
       className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-r border-border/40 bg-card/95 md:w-48 lg:w-56`}
@@ -329,30 +348,64 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
         </div>
       </div>
 
-      {/* Player Count */}
-      <div className="px-1.5 md:px-2 py-1.5 border-b border-border/50 bg-muted/20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <div className="w-5 h-5 rounded bg-green-500/10 flex items-center justify-center">
-              <span className="text-[10px] font-bold text-green-600 dark:text-green-400">
-                {activeTab === 'online' ? displayedPlayers.length : onlinePlayersCount}
+      {/* One row: live online (green) | directory total (neutral); refresh at end */}
+      <div className="border-b border-border/50 bg-muted/20 px-1.5 py-1.5 md:px-2">
+        <div className="flex items-center gap-1">
+          <div
+            className="flex min-w-0 flex-1 items-center justify-between gap-0.5 rounded-md border border-green-500/25 bg-green-500/[0.08] px-1 py-1 dark:border-green-500/30 dark:bg-green-500/10"
+            title="Players connected right now"
+          >
+            <div className="flex min-w-0 items-center gap-0.5">
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.65)] animate-pulse"
+                aria-hidden
+              />
+              <span className="truncate text-[7px] font-semibold uppercase tracking-wide text-green-800 dark:text-green-300">
+                Online
               </span>
             </div>
-            <div>
-              <p className="text-[8px] font-semibold uppercase tracking-wide text-foreground">ONLINE PLAYERS</p>
-              <p className="text-[8px] text-muted-foreground">{withChatsDisplayCount} with chats</p>
+            <span className="shrink-0 text-[10px] font-bold tabular-nums leading-none text-green-700 dark:text-green-400">
+              {onlinePlayersBadgeCount}
+            </span>
+          </div>
+          <div className="h-5 w-px shrink-0 bg-border/70" aria-hidden />
+          <div
+            className="flex min-w-0 flex-1 items-center justify-between gap-0.5 rounded-md border border-border/70 bg-background/80 px-1 py-1 shadow-sm dark:border-border dark:bg-muted/30"
+            title={`${withChatsDisplayCount} players have an active chat in the directory`}
+          >
+            <div className="flex min-w-0 items-center gap-0.5">
+              <svg
+                className="h-2.5 w-2.5 shrink-0 text-muted-foreground opacity-85"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+              <span className="truncate text-[7px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Chats
+              </span>
             </div>
+            <span className="shrink-0 text-[10px] font-bold tabular-nums leading-none text-foreground">
+              {withChatsDisplayCount}
+            </span>
           </div>
           <button
+            type="button"
             onClick={onRefreshOnlinePlayers}
             disabled={isLoadingApiOnlinePlayers}
-            className="p-1 hover:bg-muted rounded transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
+            className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Refresh online players"
             title="Refresh online players"
           >
             <svg
-              className={`w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors ${isLoadingApiOnlinePlayers ? 'animate-spin' : ''
-                }`}
+              className={`h-4 w-4 ${isLoadingApiOnlinePlayers ? 'animate-spin' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -384,6 +437,26 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
               {usersError}
             </p>
           </div>
+        ) : displayedPlayers.length === 0 && searchQuery.trim() && isPlayerSearchLoading ? (
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+              <svg
+                className="w-8 h-8 text-muted-foreground animate-spin"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">Searching players…</p>
+            <p className="text-xs text-muted-foreground">Looking up matches on the server</p>
+          </div>
         ) : displayedPlayers.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
             <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
@@ -398,7 +471,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
           <div className="p-1 space-y-1">
             {displayedPlayers.map((player, index) => (
               <div
-                key={`${player.user_id}-${player.id}`}
+                key={`${player.user_id}-${player.id}-${index}`}
                 className="transition-all duration-500 ease-out"
                 style={{
                   animationDelay: `${index * 20}ms`,

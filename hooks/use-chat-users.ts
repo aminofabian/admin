@@ -9,10 +9,12 @@ import { websocketManager, createWebSocketUrl, debounce, type WebSocketListeners
 import type { ChatUser } from '@/types';
 import {
   extractUnreadCount,
+  extractChatListServerCounts,
+  extractPlayerArrayFromAdminChatResponse,
+  mapAdminSearchRowToChatUser,
   mergeWinningBalanceFromPartialPayload,
   payloadIncludesWinningBalanceFields,
   transformChatToUser,
-  transformPlayerToUser,
 } from '@/lib/chat/map-chat-api';
 
 // Production mode check
@@ -34,6 +36,15 @@ function readChatListTotalCount(data: Record<string, unknown>): number | null {
   }
   if (typeof count === 'string' && count.trim() !== '') {
     const n = Number(count);
+    if (Number.isFinite(n)) return n;
+  }
+  const counts = data.counts as Record<string, unknown> | undefined;
+  const fromCounts = counts?.all_players_count;
+  if (typeof fromCounts === 'number' && Number.isFinite(fromCounts)) {
+    return fromCounts;
+  }
+  if (typeof fromCounts === 'string' && fromCounts.trim() !== '') {
+    const n = Number(fromCounts);
     if (Number.isFinite(n)) return n;
   }
   return null;
@@ -76,6 +87,10 @@ interface UseChatUsersReturn {
   hasMorePlayers: boolean; // Whether there are more pages
   /** Total players with chats from list API pagination when the backend sends it. */
   playersWithChatsTotalCount: number | null;
+  /** From last `/api/chat-all-players` response `counts.online_players_count` when present. */
+  chatListOnlinePlayersCount: number | null;
+  /** From last `/api/chat-all-players` response `counts.all_players_count` when present. */
+  chatListAllPlayersCount: number | null;
   refreshActiveChats: () => Promise<void>; // Refresh chat list from API
   updateChatLastMessage: (userId: number, chatId: string, lastMessage: string, lastMessageTime: string) => void;
   markChatAsRead: (params: { chatId?: string; userId?: number }) => void;
@@ -100,7 +115,12 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const listenersRef = useRef<Set<WebSocketListeners>>(new Set());
 
   //  PERFORMANCE: Cache for fetchAllPlayers (5 min TTL)
-  const playersCacheRef = useRef<{ data: ChatUser[]; timestamp: number } | null>(null);
+  const playersCacheRef = useRef<{
+    data: ChatUser[];
+    timestamp: number;
+    onlinePlayersCount: number | null;
+    allPlayersCount: number | null;
+  } | null>(null);
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   //  Pagination state
@@ -108,6 +128,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
   const [hasMorePlayers, setHasMorePlayers] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [playersWithChatsTotalCount, setPlayersWithChatsTotalCount] = useState<number | null>(null);
+  const [chatListOnlinePlayersCount, setChatListOnlinePlayersCount] = useState<number | null>(null);
+  const [chatListAllPlayersCount, setChatListAllPlayersCount] = useState<number | null>(null);
   const pageSize = 50;
 
   //  Track last API refresh to prevent WebSocket from overwriting fresh API data
@@ -595,6 +617,13 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (listTotal != null) {
         setPlayersWithChatsTotalCount(listTotal);
       }
+      const counts = extractChatListServerCounts(data as Record<string, unknown>);
+      if (counts.onlinePlayersCount != null) {
+        setChatListOnlinePlayersCount(counts.onlinePlayersCount);
+      }
+      if (counts.allPlayersCount != null) {
+        setChatListAllPlayersCount(counts.allPlayersCount);
+      }
       if (!IS_PROD) console.log('🔄 [refreshActiveChats] Raw API response:', {
         hasPlayer: !!data.player,
         playerCount: data.player?.length,
@@ -603,24 +632,23 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         hasPagination: !!data.pagination,
       });
 
-      //  Use the 'player' array - it has complete data including chat context
-      if (data.player && Array.isArray(data.player)) {
+      const playerRows = extractPlayerArrayFromAdminChatResponse(data as Record<string, unknown>);
+      if (playerRows.length > 0) {
         let transformedUsers: ChatUser[];
         try {
-          transformedUsers = data.player.map(transformPlayerToUser);
+          transformedUsers = playerRows.map(mapAdminSearchRowToChatUser);
         } catch (transformError) {
-          console.error('❌ [refreshActiveChats] transformPlayerToUser failed:', transformError);
+          console.error('❌ [refreshActiveChats] mapAdminSearchRowToChatUser failed:', transformError);
           return;
         }
         if (!IS_PROD) console.log(` [refreshActiveChats] Fetched ${transformedUsers.length} players with chat data`);
 
-        // Log raw data for first player to verify unread_messages_count is present
-        if (!IS_PROD && data.player.length > 0) {
+        if (!IS_PROD && playerRows.length > 0) {
           console.log('🔍 [refreshActiveChats] Sample player data:', {
-            username: data.player[0].username,
-            unread_messages_count: data.player[0].unread_messages_count,
-            last_message: data.player[0].last_message?.substring(0, 30),
-            chatroom_id: data.player[0].chatroom_id,
+            username: playerRows[0].username,
+            unread_messages_count: playerRows[0].unread_messages_count,
+            last_message: (playerRows[0].last_message as string | undefined)?.substring(0, 30),
+            chatroom_id: playerRows[0].chatroom_id,
           });
         }
 
@@ -684,6 +712,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (playersCacheRef.current && (now - playersCacheRef.current.timestamp) < CACHE_TTL) {
         if (!IS_PROD) console.log(' Using cached chats data, count:', playersCacheRef.current.data.length);
         setAllPlayers(playersCacheRef.current.data);
+        setChatListOnlinePlayersCount(playersCacheRef.current.onlinePlayersCount);
+        setChatListAllPlayersCount(playersCacheRef.current.allPlayersCount);
         // Small delay to show skeleton briefly even with cache
         await new Promise(resolve => setTimeout(resolve, 150));
         return;
@@ -708,11 +738,18 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       const data = await response.json();
 
       // Handle both response formats: 'player' array (new endpoint) or 'results' array (old endpoint)
-      const playersArray = data.player || data.results;
+      const playersArray = extractPlayerArrayFromAdminChatResponse(data as Record<string, unknown>);
       const pagination = data.pagination;
       const listTotal = readChatListTotalCount(data as Record<string, unknown>);
       if (listTotal != null) {
         setPlayersWithChatsTotalCount(listTotal);
+      }
+      const counts = extractChatListServerCounts(data as Record<string, unknown>);
+      if (counts.onlinePlayersCount != null) {
+        setChatListOnlinePlayersCount(counts.onlinePlayersCount);
+      }
+      if (counts.allPlayersCount != null) {
+        setChatListAllPlayersCount(counts.allPlayersCount);
       }
       const totalCount = data.count || pagination?.total_count || playersArray?.length || 0;
 
@@ -720,7 +757,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       if (!IS_PROD) console.log(`📄 Pagination:`, pagination);
 
       if (playersArray && Array.isArray(playersArray)) {
-        const transformedUsers = playersArray.map(transformPlayerToUser);
+        const transformedUsers = playersArray.map(mapAdminSearchRowToChatUser);
         setAllPlayers(transformedUsers);
 
         // Update pagination state
@@ -737,6 +774,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         playersCacheRef.current = {
           data: transformedUsers,
           timestamp: now,
+          onlinePlayersCount: counts.onlinePlayersCount,
+          allPlayersCount: counts.allPlayersCount,
         };
       } else {
         console.warn('⚠️ No player or results array in response');
@@ -781,18 +820,25 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
       }
 
       const data = await response.json();
-      const playersArray = data.player || data.results;
+      const playersArray = extractPlayerArrayFromAdminChatResponse(data as Record<string, unknown>);
       const pagination = data.pagination;
       const listTotal = readChatListTotalCount(data as Record<string, unknown>);
       if (listTotal != null) {
         setPlayersWithChatsTotalCount(listTotal);
+      }
+      const counts = extractChatListServerCounts(data as Record<string, unknown>);
+      if (counts.onlinePlayersCount != null) {
+        setChatListOnlinePlayersCount(counts.onlinePlayersCount);
+      }
+      if (counts.allPlayersCount != null) {
+        setChatListAllPlayersCount(counts.allPlayersCount);
       }
 
       if (!IS_PROD) console.log(`📊 Loaded ${playersArray?.length || 0} more players (page ${nextPage})`);
       if (!IS_PROD) console.log(`📄 Pagination:`, pagination);
 
       if (playersArray && Array.isArray(playersArray)) {
-        const transformedUsers = playersArray.map(transformPlayerToUser);
+        const transformedUsers = playersArray.map(mapAdminSearchRowToChatUser);
 
         // Append new players to existing list
         setAllPlayers((prev) => [...prev, ...transformedUsers]);
@@ -1030,6 +1076,8 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
     loadMorePlayers,
     hasMorePlayers,
     playersWithChatsTotalCount,
+    chatListOnlinePlayersCount,
+    chatListAllPlayersCount,
     refreshActiveChats,
     updateChatLastMessage,
     markChatAsRead,

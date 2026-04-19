@@ -1,6 +1,40 @@
 import { isValidTimestamp } from '@/lib/utils/formatters';
 import type { ChatUser } from '@/types';
 
+/** Totals from admin chat list / online endpoints (`counts` on JSON). */
+export type ChatListServerCounts = {
+  allPlayersCount: number | null;
+  onlinePlayersCount: number | null;
+};
+
+function readNonNegativeInt(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    if (Number.isFinite(n) && n >= 0) {
+      return n;
+    }
+  }
+  return null;
+}
+
+/**
+ * Read `counts.all_players_count` / `counts.online_players_count` when the backend sends them.
+ */
+export function extractChatListServerCounts(data: Record<string, unknown>): ChatListServerCounts {
+  const raw = data.counts;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { allPlayersCount: null, onlinePlayersCount: null };
+  }
+  const c = raw as Record<string, unknown>;
+  return {
+    allPlayersCount: readNonNegativeInt(c.all_players_count),
+    onlinePlayersCount: readNonNegativeInt(c.online_players_count),
+  };
+}
+
 /**
  * Extract unread count from various field names consistently
  * Handles both unread_message_count and unread_messages_count fields
@@ -14,6 +48,186 @@ export const extractUnreadCount = (data: Record<string, unknown>): number => {
 
   return Math.max(validCount1, validCount2);
 };
+
+/** Backend booleans may be 0/1 or string flags. */
+function coercedBooleanOnline(value: unknown): boolean {
+  if (value === true || value === 1) {
+    return true;
+  }
+  if (typeof value === 'string') {
+    const s = value.toLowerCase().trim();
+    return s === '1' || s === 'true' || s === 'yes';
+  }
+  return false;
+}
+
+/**
+ * Admin chat payloads sometimes nest profile under `player` or mix chat + user fields.
+ */
+export function flattenAdminChatPlayerRow(raw: Record<string, unknown>): Record<string, unknown> {
+  const nested = raw.player;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return { ...(nested as Record<string, unknown>), ...raw };
+  }
+  return raw;
+}
+
+/**
+ * Normalize API value to player rows (array of objects, or a single player/chat object).
+ */
+function coercePlayerRowsFromValue(value: unknown): Record<string, unknown>[] | null {
+  if (Array.isArray(value)) {
+    const rows = value.filter((item): item is Record<string, unknown> => item !== null && typeof item === 'object');
+    return rows.length > 0 ? rows : null;
+  }
+  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+    const row = value as Record<string, unknown>;
+    if (playerLikeRowScore(row) >= 1) {
+      return [row];
+    }
+  }
+  return null;
+}
+
+/**
+ * Player rows from admin chat JSON (`all_players`, `search_players`, etc.).
+ * Different endpoints use different array keys; some return a single `player` object.
+ */
+export function extractPlayerArrayFromAdminChatResponse(
+  data: Record<string, unknown>,
+  depth = 0,
+): Record<string, unknown>[] {
+  if (depth > 8) {
+    return [];
+  }
+
+  const keys = [
+    'player',
+    'results',
+    'players',
+    'chats',
+    'items',
+    'rows',
+    'list',
+    'users',
+    'records',
+    'data',
+    'search_results',
+    'searchResults',
+  ] as const;
+
+  for (const k of keys) {
+    const v = data[k];
+    const rows = coercePlayerRowsFromValue(v);
+    if (rows && rows.length > 0) {
+      return rows;
+    }
+    if (k === 'data' && v !== null && typeof v === 'object' && !Array.isArray(v)) {
+      const inner = extractPlayerArrayFromAdminChatResponse(v as Record<string, unknown>, depth + 1);
+      if (inner.length > 0) {
+        return inner;
+      }
+    }
+  }
+
+  const deep = extractPlayerLikeArraysDeep(data, 0, 6, new WeakSet());
+  if (deep.length === 0) {
+    return [];
+  }
+  const viable = deep.filter((a) => a.length > 0 && scorePlayerLikeArray(a) >= 1);
+  if (viable.length === 0) {
+    return [];
+  }
+  viable.sort((a, b) => scorePlayerLikeArray(b) - scorePlayerLikeArray(a));
+  return viable[0] ?? [];
+}
+
+function playerLikeRowScore(row: Record<string, unknown>): number {
+  let n = 0;
+  if (typeof row.username === 'string' && row.username.trim()) {
+    n += 2;
+  }
+  if (typeof row.player_username === 'string' && row.player_username.trim()) {
+    n += 2;
+  }
+  const uid = Number(row.user_id ?? row.player_id ?? 0);
+  if (Number.isFinite(uid) && uid > 0) {
+    n += 3;
+  }
+  const idNum = Number(row.id);
+  if (Number.isFinite(idNum) && idNum > 0) {
+    n += 1;
+  }
+  if (row.chatroom_id != null || row.chat_id != null) {
+    n += 1;
+  }
+  return n;
+}
+
+function scorePlayerLikeArray(rows: Record<string, unknown>[]): number {
+  if (rows.length === 0) {
+    return 0;
+  }
+  const sample = Math.min(rows.length, 5);
+  let s = 0;
+  for (let i = 0; i < sample; i += 1) {
+    s += playerLikeRowScore(rows[i]);
+  }
+  return s + rows.length * 0.01;
+}
+
+function extractPlayerLikeArraysDeep(
+  node: unknown,
+  depth: number,
+  maxDepth: number,
+  seen: WeakSet<object>,
+): Record<string, unknown>[][] {
+  if (depth > maxDepth || node === null || node === undefined) {
+    return [];
+  }
+
+  if (Array.isArray(node)) {
+    if (node.length === 0) {
+      return [];
+    }
+    const first = node[0];
+    if (first !== null && typeof first === 'object' && !Array.isArray(first)) {
+      return [node as Record<string, unknown>[]];
+    }
+    return [];
+  }
+
+  if (typeof node !== 'object') {
+    return [];
+  }
+
+  const obj = node as Record<string, unknown>;
+  if (seen.has(obj)) {
+    return [];
+  }
+  seen.add(obj);
+
+  const out: Record<string, unknown>[][] = [];
+  for (const v of Object.values(obj)) {
+    out.push(...extractPlayerLikeArraysDeep(v, depth + 1, maxDepth, seen));
+  }
+  return out;
+}
+
+/**
+ * Map one admin search / list row to ChatUser — supports `player[]` and flat `chats[]` shapes.
+ */
+export function mapAdminSearchRowToChatUser(row: Record<string, unknown>): ChatUser {
+  const usernameStr = typeof row.username === 'string' ? row.username.trim() : '';
+  const looksLikeFlatChatRow =
+    row.player_username != null ||
+    (row.player_id != null && usernameStr.length === 0);
+
+  if (looksLikeFlatChatRow) {
+    return transformChatToUser(row);
+  }
+  return transformPlayerToUser(row);
+}
 
 /** Parsed non-zero ledger string, or null when empty / zero / invalid (single-balance deployments often send 0). */
 function ledgerWinningString(value: unknown): string | null {
@@ -256,41 +470,54 @@ export function transformChatToUser(raw: Record<string, unknown>): ChatUser {
  * REST: player objects from admin chat endpoints (chatroom context + profile)
  */
 export function transformPlayerToUser(player: Record<string, unknown>): ChatUser {
-  const rawTimestamp = player.last_message_timestamp as string | undefined;
+  const row = flattenAdminChatPlayerRow(player);
+
+  const rawTimestamp = row.last_message_timestamp as string | undefined;
   const validTimestamp = isValidTimestamp(rawTimestamp) ? rawTimestamp : undefined;
 
-  const rawLastSeen = player.last_seen_at as string | undefined;
+  const rawLastSeen = row.last_seen_at as string | undefined;
   const validLastSeen = isValidTimestamp(rawLastSeen) ? rawLastSeen : undefined;
 
+  const resolvedUserId = Number(
+    row.user_id ?? row.player_id ?? row.player_user_id ?? row.uid ?? row.id ?? 0,
+  );
+
+  const directoryId =
+    row.chatroom_id ??
+    row.chat_id ??
+    row.chatroomId ??
+    row.id ??
+    (resolvedUserId > 0 ? resolvedUserId : '');
+
   return {
-    id: String(player.chatroom_id || player.id || ''),
-    user_id: Number(player.id || 0),
-    username: (player.username as string | undefined) || (player.full_name as string | undefined) || 'Unknown',
-    fullName: (player.full_name as string | undefined) || (player.name as string | undefined) || undefined,
-    email: (player.email as string | undefined) || '',
+    id: String(directoryId !== '' && directoryId !== undefined && directoryId !== null ? directoryId : ''),
+    user_id: resolvedUserId,
+    username: (row.username as string | undefined) || (row.full_name as string | undefined) || 'Unknown',
+    fullName: (row.full_name as string | undefined) || (row.name as string | undefined) || undefined,
+    email: (row.email as string | undefined) || '',
     avatar:
-      (player.profile_pic as string | undefined) ||
-      (player.profile_image as string | undefined) ||
-      (player.avatar as string | undefined) ||
+      (row.profile_pic as string | undefined) ||
+      (row.profile_image as string | undefined) ||
+      (row.avatar as string | undefined) ||
       undefined,
-    isOnline: (player.is_online as boolean | undefined) || false,
-    lastMessage: (player.last_message as string | undefined) || undefined,
+    isOnline: coercedBooleanOnline(row.is_online) || coercedBooleanOnline(row.isOnline),
+    lastMessage: (row.last_message as string | undefined) || undefined,
     lastMessageTime: validTimestamp,
     playerLastSeenAt: validLastSeen,
-    balance: player.balance !== undefined ? String(player.balance) : undefined,
-    ...pickWinningBalanceFromBackend(player),
+    balance: row.balance !== undefined ? String(row.balance) : undefined,
+    ...pickWinningBalanceFromBackend(row),
     cashoutLimit:
-      player.cashout_limit !== undefined && player.cashout_limit !== null
-        ? String(player.cashout_limit as string | number)
+      row.cashout_limit !== undefined && row.cashout_limit !== null
+        ? String(row.cashout_limit as string | number)
         : undefined,
     lockedBalance:
-      player.locked_balance !== undefined && player.locked_balance !== null
-        ? String(player.locked_balance as string | number)
+      row.locked_balance !== undefined && row.locked_balance !== null
+        ? String(row.locked_balance as string | number)
         : undefined,
-    gamesPlayed: (player.games_played as number | undefined) || (player.gems as number | undefined) || undefined,
-    winRate: (player.win_rate as number | undefined) || undefined,
-    phone: (player.phone_number as string | undefined) || (player.mobile_number as string | undefined) || undefined,
-    unreadCount: extractUnreadCount(player) || 0,
-    notes: (player.notes as string | undefined) || undefined,
+    gamesPlayed: (row.games_played as number | undefined) || (row.gems as number | undefined) || undefined,
+    winRate: (row.win_rate as number | undefined) || undefined,
+    phone: (row.phone_number as string | undefined) || (row.mobile_number as string | undefined) || undefined,
+    unreadCount: extractUnreadCount(row) || 0,
+    notes: (row.notes as string | undefined) || undefined,
   };
 }
