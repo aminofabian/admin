@@ -321,86 +321,50 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="px-1.5 md:px-2 pt-1 pb-1 border-b border-border/40">
-        <div className="flex gap-0.5 p-0.5 bg-muted/40 rounded">
-          <button
-            onClick={() => setActiveTab('online')}
-            className={`flex-1 px-1 py-0.5 text-[8px] md:text-[9px] font-semibold uppercase tracking-wide rounded transition-all duration-200 ${activeTab === 'online'
-              ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-              }`}
-          >
-            <div className="flex items-center justify-center gap-1">
-              <span className={`w-1 h-1 rounded-full shrink-0 ${activeTab === 'online' ? 'bg-white' : 'bg-green-500'}`} />
-              ONLINE
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('all-chats')}
-            className={`flex-1 px-1 py-0.5 text-[8px] md:text-[9px] font-semibold uppercase tracking-wide rounded transition-all duration-200 ${activeTab === 'all-chats'
-              ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
-              }`}
+      {/* Tabs: counts only (no icons); refresh beside strip */}
+      <div className="border-b border-border/40 px-1.5 pb-1 pt-1 md:px-2">
+        <div className="flex items-stretch gap-0.5">
+          <div className="flex min-w-0 flex-1 gap-0.5 rounded-md bg-muted/40 p-0.5">
+            <button
+              type="button"
+              onClick={() => setActiveTab('online')}
+              title="Players connected right now"
+              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded px-0.5 py-1 leading-none transition-all duration-200 ${activeTab === 'online'
+                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                }`}
             >
-            ALL CHATS
-          </button>
-        </div>
-      </div>
-
-      {/* One row: live online (green) | directory total (neutral); refresh at end */}
-      <div className="border-b border-border/50 bg-muted/20 px-1.5 py-1.5 md:px-2">
-        <div className="flex items-center gap-1">
-          <div
-            className="flex min-w-0 flex-1 items-center justify-between gap-0.5 rounded-md border border-green-500/25 bg-green-500/[0.08] px-1 py-1 dark:border-green-500/30 dark:bg-green-500/10"
-            title="Players connected right now"
-          >
-            <div className="flex min-w-0 items-center gap-0.5">
+              <span className="text-[11px] font-bold tabular-nums md:text-xs">{onlinePlayersBadgeCount}</span>
               <span
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.65)] animate-pulse"
-                aria-hidden
-              />
-              <span className="truncate text-[7px] font-semibold uppercase tracking-wide text-green-800 dark:text-green-300">
+                className={`mt-0.5 text-[6px] font-semibold uppercase tracking-wide md:text-[7px] ${activeTab === 'online' ? 'text-primary-foreground/90' : ''
+                  }`}
+              >
                 Online
               </span>
-            </div>
-            <span className="shrink-0 text-[10px] font-bold tabular-nums leading-none text-green-700 dark:text-green-400">
-              {onlinePlayersBadgeCount}
-            </span>
-          </div>
-          <div className="h-5 w-px shrink-0 bg-border/70" aria-hidden />
-          <div
-            className="flex min-w-0 flex-1 items-center justify-between gap-0.5 rounded-md border border-border/70 bg-background/80 px-1 py-1 shadow-sm dark:border-border dark:bg-muted/30"
-            title={`${withChatsDisplayCount} players have an active chat in the directory`}
-          >
-            <div className="flex min-w-0 items-center gap-0.5">
-              <svg
-                className="h-2.5 w-2.5 shrink-0 text-muted-foreground opacity-85"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('all-chats')}
+              title={`${withChatsDisplayCount} players have an active chat in the directory`}
+              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0 rounded px-0.5 py-1 leading-none transition-all duration-200 ${activeTab === 'all-chats'
+                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                }`}
+            >
+              <span className="text-[11px] font-bold tabular-nums md:text-xs">{withChatsDisplayCount}</span>
+              <span
+                className={`mt-0.5 text-[6px] font-semibold uppercase tracking-wide md:text-[7px] ${activeTab === 'all-chats' ? 'text-primary-foreground/90' : ''
+                  }`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-              <span className="truncate text-[7px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Chats
+                All chats
               </span>
-            </div>
-            <span className="shrink-0 text-[10px] font-bold tabular-nums leading-none text-foreground">
-              {withChatsDisplayCount}
-            </span>
+            </button>
           </div>
           <button
             type="button"
             onClick={onRefreshOnlinePlayers}
             disabled={isLoadingApiOnlinePlayers}
-            className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-8 shrink-0 items-center justify-center rounded-md border border-border/50 bg-muted/30 text-muted-foreground transition-colors hover:bg-muted hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-border/50 dark:bg-muted/20"
             aria-label="Refresh online players"
             title="Refresh online players"
           >
