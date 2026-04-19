@@ -145,7 +145,7 @@ export function NotesDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-hidden">
+    <div className="fixed inset-0 z-[110] overflow-hidden">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/80"
@@ -155,7 +155,7 @@ export function NotesDrawer({
       
       {/* Drawer Panel */}
       <div 
-        className="fixed inset-y-0 right-0 z-[60] w-full sm:max-w-lg bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out transform translate-x-0"
+        className="fixed inset-y-0 right-0 z-[110] w-full sm:max-w-lg bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out transform translate-x-0"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex h-full flex-col">

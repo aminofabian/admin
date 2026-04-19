@@ -109,14 +109,14 @@ export function EditBalanceDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-hidden">
+    <div className="fixed inset-0 z-[110] overflow-hidden">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => !isUpdating && onClose()}
         aria-hidden="true"
       />
 
-      <div className="fixed inset-y-0 right-0 z-[60] flex w-full max-w-[400px] flex-col bg-white shadow-xl dark:bg-gray-900 dark:shadow-black/40">
+      <div className="fixed inset-y-0 right-0 z-[110] flex w-full max-w-[400px] flex-col bg-white shadow-xl dark:bg-gray-900 dark:shadow-black/40">
         <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Manual adjustment</h2>
