@@ -58,7 +58,7 @@ export default function GameActivityAnalyticsPage() {
   const router = useRouter();
   const { data: analyticsData, loading: loadingDashboard, error: dashboardError } = useAdminAnalytics();
 
-  const [datePreset, setDatePreset] = useState('last_3_months');
+  const [datePreset, setDatePreset] = useState('today');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [username, setUsername] = useState('');
@@ -99,8 +99,8 @@ export default function GameActivityAnalyticsPage() {
   };
 
   const handleClearFilters = () => {
-    setDatePreset('last_3_months');
-    const range = getDateRange('last_3_months');
+    setDatePreset('today');
+    const range = getDateRange('today');
     setStartDate(range.start);
     setEndDate(range.end);
     setUsername('');
@@ -108,12 +108,7 @@ export default function GameActivityAnalyticsPage() {
     setGender('');
   };
 
-  const hasActiveFilters = Boolean(username || state || gender || datePreset !== 'last_3_months');
-
-  const maxGameRecharge = useMemo(
-    () => (gamesByGame.length > 0 ? Math.max(...gamesByGame.map(g => g.recharge ?? 0)) : 0),
-    [gamesByGame],
-  );
+  const hasActiveFilters = Boolean(username || state || gender || datePreset !== 'today');
 
   if (loadingDashboard) {
     return (
@@ -351,19 +346,10 @@ export default function GameActivityAnalyticsPage() {
                       {apiFieldLabel('game_title')}
                     </th>
                     <th className="px-3 py-2 text-left text-[9px] font-medium text-muted-foreground">
-                      {apiFieldLabel('game_id')}
-                    </th>
-                    <th className="px-3 py-2 text-left text-[9px] font-medium text-muted-foreground">
                       {apiFieldLabel('game_code')}
                     </th>
                     <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
                       {apiFieldLabel('recharge')}
-                    </th>
-                    <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
-                      {apiFieldLabel('bonus')}
-                    </th>
-                    <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
-                      {apiFieldLabel('average_bonus_pct')}
                     </th>
                     <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
                       {apiFieldLabel('redeem')}
@@ -371,17 +357,10 @@ export default function GameActivityAnalyticsPage() {
                     <th className="px-3 py-2 text-right text-[9px] font-medium text-muted-foreground">
                       {apiFieldLabel('net_game_activity')}
                     </th>
-                    <th
-                      className="w-24 px-4 py-2 text-left text-[9px] font-medium text-muted-foreground"
-                      title="Bar length is recharge relative to the max recharge in the filtered result set (UI only)."
-                    >
-                      ···
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/5">
                   {gamesByGame.map((game, idx) => {
-                    const pct = maxGameRecharge > 0 ? Math.min(((game.recharge ?? 0) / maxGameRecharge) * 100, 100) : 0;
                     const title = game.game_title || game.game_code || '—';
                     const rowKey = game.game_code ?? game.game_id ?? `${title}-${idx}`;
                     return (
@@ -395,23 +374,10 @@ export default function GameActivityAnalyticsPage() {
                           </div>
                         </td>
                         <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">
-                          {game.game_id != null ? game.game_id : <span className="text-muted-foreground/25">&mdash;</span>}
-                        </td>
-                        <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">
                           {game.game_code ?? <span className="text-muted-foreground/25">&mdash;</span>}
                         </td>
                         <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
                           {formatCurrency(game.recharge)}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">
-                          {(game.bonus ?? 0) > 0 ? (
-                            <span className="text-amber-600 dark:text-amber-400">{formatCurrency(game.bonus ?? 0)}</span>
-                          ) : (
-                            <span className="text-muted-foreground">{formatCurrency(game.bonus ?? 0)}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                          {`${(game.average_bonus_pct ?? 0).toFixed(1)}%`}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">
                           {(game.redeem ?? 0) > 0 ? (
@@ -430,14 +396,6 @@ export default function GameActivityAnalyticsPage() {
                           >
                             {formatCurrency(game.net_game_activity)}
                           </span>
-                        </td>
-                        <td className="px-4 py-2">
-                          <div className="h-1 w-full overflow-hidden rounded-full bg-muted/30">
-                            <div
-                              className="h-full rounded-full bg-violet-500/50 transition-all duration-700 ease-out"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
                         </td>
                       </tr>
                     );
