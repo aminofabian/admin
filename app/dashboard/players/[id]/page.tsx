@@ -1452,9 +1452,6 @@ export default function PlayerDetailPage() {
                 )}
               </div>
               <div className="rounded-lg border border-purple-200/50 bg-white/60 p-3 backdrop-blur-sm dark:border-purple-700/50 dark:bg-white/10 sm:p-4">
-                <p className="mb-3 text-xs text-purple-800 dark:text-purple-200">
-                  Open detailed analytics for this player with username locked to prevent staff misuse.
-                </p>
                 <Button
                   type="button"
                   variant="primary"
