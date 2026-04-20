@@ -49,7 +49,7 @@ export default function TransactionAnalyticsPage() {
   const { user } = useAuth();
   const router = useRouter();
 
-  const [datePreset, setDatePreset] = useState('last_3_months');
+  const [datePreset, setDatePreset] = useState('today');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [username, setUsername] = useState('');
@@ -98,8 +98,8 @@ export default function TransactionAnalyticsPage() {
   };
 
   const handleClearFilters = () => {
-    setDatePreset('last_3_months');
-    const range = getDateRange('last_3_months');
+    setDatePreset('today');
+    const range = getDateRange('today');
     setStartDate(range.start);
     setEndDate(range.end);
     setUsername('');
@@ -107,7 +107,7 @@ export default function TransactionAnalyticsPage() {
     setGender('');
   };
 
-  const hasActiveFilters = username || state || gender || datePreset !== 'last_3_months';
+  const hasActiveFilters = username || state || gender || datePreset !== 'today';
   const fmtMethod = (n: string) => n.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const groupedMethodLabel = (paymentMethod: string, display?: string) =>
     (display && display.trim()) ? display.trim() : fmtMethod(paymentMethod);
@@ -449,12 +449,7 @@ export default function TransactionAnalyticsPage() {
                   <thead>
                     <tr className="border-b border-border/10 bg-muted/5">
                       <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('payment_method_display')}</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('purchase')}</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('bonus')}</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('average_bonus_pct')}</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('average_transaction_size')}</th>
-                      <th className="text-right px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('usage_distribution_pct')}</th>
+                      <th className="text-right px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('purchase')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/5">
@@ -468,20 +463,7 @@ export default function TransactionAnalyticsPage() {
                               <span className="font-medium text-foreground text-xs">{label}</span>
                             </div>
                           </td>
-                          <td className="px-3 py-2 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(m.purchase)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {m.bonus > 0
-                              ? <span className="text-amber-600 dark:text-amber-400">{formatCurrency(m.bonus)}</span>
-                              : <span className="text-muted-foreground/25">&mdash;</span>}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                            {m.average_bonus_pct > 0
-                              ? `${m.average_bonus_pct.toFixed(1)}%`
-                              : <span className="text-muted-foreground/25">&mdash;</span>}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate.toFixed(1)}%</span></td>
-                          <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(m.average_transaction_size)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct.toFixed(1)}%</td>
+                          <td className="px-4 py-2 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(m.purchase)}</td>
                         </tr>
                       );
                     })}
@@ -512,10 +494,7 @@ export default function TransactionAnalyticsPage() {
                   <thead>
                     <tr className="border-b border-border/10 bg-muted/5">
                       <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('payment_method_display')}</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('cashout')}</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('average_transaction_size')}</th>
-                      <th className="text-right px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('usage_distribution_pct')}</th>
+                      <th className="text-right px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('cashout')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/5">
@@ -529,10 +508,7 @@ export default function TransactionAnalyticsPage() {
                               <span className="font-medium text-foreground text-xs">{label}</span>
                             </div>
                           </td>
-                          <td className="px-3 py-2 text-right font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(m.cashout)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate.toFixed(1)}%</span></td>
-                          <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(m.average_transaction_size)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums text-muted-foreground text-[10px]">{m.usage_distribution_pct.toFixed(1)}%</td>
+                          <td className="px-4 py-2 text-right font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(m.cashout)}</td>
                         </tr>
                       );
                     })}
