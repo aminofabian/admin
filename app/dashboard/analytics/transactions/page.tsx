@@ -2,28 +2,18 @@
 
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { useAdminAnalytics } from '@/hooks/use-admin-analytics';
 import {
   useTransactionSummary,
   usePaymentMethods,
   useBonusAnalytics,
 } from '@/hooks/use-analytics-transactions';
-import { Button, Select, DateSelect } from '@/components/ui';
+import { Select, DateSelect } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo, type ReactNode } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { AnalyticsFilters } from '@/lib/api/analytics';
 
 import { US_STATES, getDateRange } from '../analytics-utils';
-
-function CardSkel() {
-  return (
-    <div className="rounded-xl border border-border/30 bg-card p-4 animate-pulse">
-      <div className="h-3 bg-muted/40 rounded w-20 mb-3" />
-      <div className="h-7 bg-muted/40 rounded w-28" />
-    </div>
-  );
-}
 
 function TableSkel() {
   return (
@@ -55,20 +45,9 @@ function apiFieldLabel(apiKey: string): string {
     .join(' ');
 }
 
-/** Label from API key; value = formatted as in the payload. */
-function ApiLabeledValue({ apiKey, children }: { apiKey: string; children: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel(apiKey)}</p>
-      <div className="mt-1 text-sm font-semibold tabular-nums text-foreground">{children}</div>
-    </div>
-  );
-}
-
 export default function TransactionAnalyticsPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const { data: analyticsData, loading: loadingDashboard, error: dashboardError } = useAdminAnalytics();
 
   const [datePreset, setDatePreset] = useState('last_3_months');
   const [startDate, setStartDate] = useState('');
@@ -140,45 +119,6 @@ export default function TransactionAnalyticsPage() {
     return transactionSummary.total_purchase - transactionSummary.total_cashout;
   }, [transactionSummary]);
 
-  const bonusBreakdown = useMemo(() => {
-    if (!bonusAnalytics) return [];
-    const items = [
-      { fieldKey: 'purchase_bonus', value: bonusAnalytics.purchase_bonus, bar: 'bg-emerald-500' },
-      { fieldKey: 'signup_bonus', value: bonusAnalytics.signup_bonus, bar: 'bg-blue-500' },
-      { fieldKey: 'first_deposit_bonus', value: bonusAnalytics.first_deposit_bonus, bar: 'bg-violet-500' },
-      { fieldKey: 'total_free_play', value: bonusAnalytics.total_free_play, bar: 'bg-cyan-500' },
-      { fieldKey: 'seized_or_tipped_fund', value: bonusAnalytics.seized_or_tipped_fund, bar: 'bg-slate-400' },
-    ];
-    const max = Math.max(...items.map(i => i.value), 1);
-    return items.map(i => ({ ...i, pct: (i.value / max) * 100 }));
-  }, [bonusAnalytics]);
-
-  if (loadingDashboard) {
-    return (
-      <div className="space-y-4">
-        <div className="h-14 rounded-xl bg-muted/20 animate-pulse" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[0, 1, 2, 3].map(i => <CardSkel key={i} />)}
-        </div>
-      </div>
-    );
-  }
-
-  if (dashboardError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-8">
-        <div className="p-4 rounded-2xl bg-rose-500/10 text-rose-500 mb-4">
-          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-          </svg>
-        </div>
-        <h2 className="text-lg font-semibold mb-1 text-foreground">Unable to Load Analytics</h2>
-        <p className="text-sm text-muted-foreground max-w-sm mb-5">{dashboardError}</p>
-        <Button onClick={() => window.location.reload()} variant="primary" size="sm">Try Again</Button>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
 
@@ -186,9 +126,6 @@ export default function TransactionAnalyticsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-foreground">Transactions</h1>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Organization totals come from the dashboard <span className="font-medium">{apiFieldLabel('data')}</span> object; filtered blocks use the transaction analytics endpoints.
-          </p>
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
@@ -253,26 +190,6 @@ export default function TransactionAnalyticsPage() {
         </div>
       )}
 
-      {/* ── Organization dashboard `data` (not filtered) ── */}
-      {analyticsData ? (
-        <div className="rounded-xl border border-border/30 bg-card overflow-hidden shadow-sm p-4 sm:p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Dashboard <span className="font-normal normal-case">{apiFieldLabel('data')}</span>
-            <span className="block font-normal normal-case text-[9px] opacity-80 mt-0.5">
-              Same fields as the API response {apiFieldLabel('status')} / {apiFieldLabel('data')}
-            </span>
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <ApiLabeledValue apiKey="total_cash_in">{formatCurrency(analyticsData.total_cash_in)}</ApiLabeledValue>
-            <ApiLabeledValue apiKey="total_cashout">{formatCurrency(analyticsData.total_cashout)}</ApiLabeledValue>
-            <ApiLabeledValue apiKey="total_players">{analyticsData.total_players}</ApiLabeledValue>
-            <ApiLabeledValue apiKey="total_agents">{analyticsData.total_agents}</ApiLabeledValue>
-            <ApiLabeledValue apiKey="total_managers">{analyticsData.total_managers}</ApiLabeledValue>
-            <ApiLabeledValue apiKey="total_staffs">{analyticsData.total_staffs}</ApiLabeledValue>
-          </div>
-        </div>
-      ) : null}
-
       {/* ── Filtered transaction summary + bonus (unified card) ── */}
       <p className="text-[10px] text-muted-foreground px-0.5">
         Filtered: {apiFieldLabel('total_purchase')}, {apiFieldLabel('total_cashout')}; payment{' '}
@@ -326,8 +243,8 @@ export default function TransactionAnalyticsPage() {
         {/* Bonus breakdown */}
         {loadingBonus ? (
           <div className="border-t border-border/15 bg-card px-5 py-4">
-            <div className="grid grid-cols-3 lg:grid-cols-5 gap-4">
-              {[0, 1, 2, 3, 4].map(i => (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[0, 1, 2, 3].map(i => (
                 <div key={i} className="animate-pulse">
                   <div className="h-2 w-12 bg-muted/40 rounded mb-2" />
                   <div className="h-4 w-14 bg-muted/40 rounded mb-2" />
@@ -353,32 +270,39 @@ export default function TransactionAnalyticsPage() {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-3">
-              {bonusBreakdown.map(({ fieldKey, value, bar, pct }) => (
-                <div key={fieldKey} className="group">
-                  <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">{apiFieldLabel(fieldKey)}</p>
-                  <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(value)}</p>
-                  <div className="mt-1.5 h-1 bg-muted/15 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${bar} transition-all duration-700 ease-out`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3.5 pt-3 border-t border-border/10 text-[10px] text-muted-foreground">
-              <span className="text-[9px] font-medium">{apiFieldLabel('average_purchase_bonus_pct')}</span>
-              <strong className="text-foreground">{bonusAnalytics.average_purchase_bonus_pct.toFixed(2)}%</strong>
-              <span className="text-border/50">&middot;</span>
-              <span className="text-[9px] font-medium">{apiFieldLabel('average_signup_bonus')}</span>
-              <strong className="text-foreground">{formatCurrency(bonusAnalytics.average_signup_bonus)}</strong>
-              <span className="text-border/50">&middot;</span>
-              <span className="text-[9px] font-medium">{apiFieldLabel('average_first_deposit_bonus_pct')}</span>
-              <strong className="text-foreground">{bonusAnalytics.average_first_deposit_bonus_pct.toFixed(2)}%</strong>
-              <span className="text-border/50">&middot;</span>
-              <span className="text-[9px] font-medium">{apiFieldLabel('average_free_play')}</span>
-              <strong className="text-foreground">{formatCurrency(bonusAnalytics.average_free_play)}</strong>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
+              <div>
+                <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">
+                  {apiFieldLabel('purchase_bonus')}
+                </p>
+                <p className="text-sm font-bold tabular-nums text-foreground">
+                  {formatCurrency(bonusAnalytics.purchase_bonus)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">
+                  {apiFieldLabel('signup_bonus')}
+                </p>
+                <p className="text-sm font-bold tabular-nums text-foreground">
+                  {formatCurrency(bonusAnalytics.signup_bonus)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">
+                  {apiFieldLabel('first_deposit_bonus')}
+                </p>
+                <p className="text-sm font-bold tabular-nums text-foreground">
+                  {formatCurrency(bonusAnalytics.first_deposit_bonus)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">
+                  {apiFieldLabel('total_bonus')}
+                </p>
+                <p className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                  {formatCurrency(bonusAnalytics.total_bonus)}
+                </p>
+              </div>
             </div>
           </div>
         ) : null}
