@@ -1937,8 +1937,7 @@ function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerT
   const [datePreset, setDatePreset] = useState('last_3_months');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [state, setState] = useState('');
-  const [gender, setGender] = useState<'male' | 'female' | ''>('');
+  const [showFilters, setShowFilters] = useState(true);
 
   useEffect(() => {
     const range = getDateRange(datePreset);
@@ -1954,10 +1953,8 @@ function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerT
     const activeFilters: AnalyticsFilters = { username };
     if (startDate) activeFilters.start_date = startDate;
     if (endDate) activeFilters.end_date = endDate;
-    if (state) activeFilters.state = state;
-    if (gender) activeFilters.gender = gender;
     return activeFilters;
-  }, [username, startDate, endDate, state, gender]);
+  }, [username, startDate, endDate]);
 
   const { data: transactionSummary, loading: loadingSummary, error: summaryError } = useTransactionSummary(filters);
   const {
@@ -2002,11 +1999,9 @@ function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerT
     const range = getDateRange('last_3_months');
     setStartDate(range.start);
     setEndDate(range.end);
-    setState('');
-    setGender('');
   };
 
-  const hasActiveFilters = state || gender || datePreset !== 'last_3_months';
+  const hasActiveFilters = datePreset !== 'last_3_months';
   const fmtMethod = (n: string) => n.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   if (!isOpen) {
@@ -2036,57 +2031,70 @@ function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerT
 
           <div className="h-[calc(92vh-64px)] overflow-y-auto p-4 sm:p-6">
             <div className="space-y-4">
-              <div className="relative z-20 flex items-center gap-2.5 rounded-lg border border-border/40 bg-card px-3 py-2 shadow-sm flex-wrap lg:flex-nowrap">
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
-                  {hasActiveFilters && (
-                    <button onClick={handleClearFilters} className="text-[10px] font-medium text-rose-500 hover:text-rose-600 transition-colors">
-                      clear
-                    </button>
-                  )}
-                </div>
-                <div className="flex-1 grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                  <Select
-                    value={datePreset}
-                    onChange={(v: string) => handlePresetChange(v)}
-                    options={[
-                      { value: 'today', label: 'Today' },
-                      { value: 'yesterday', label: 'Yesterday' },
-                      { value: 'this_month', label: 'This Month' },
-                      { value: 'last_month', label: 'Last Month' },
-                      { value: 'last_30_days', label: 'Last 30 Days' },
-                      { value: 'last_3_months', label: 'Last 3 Months' },
-                      { value: 'custom', label: 'Custom Range' },
-                    ]}
-                  />
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={username}
-                      disabled
-                      placeholder="Username"
-                      className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-2.5 py-2 pr-9 text-sm text-gray-600 shadow-sm dark:border-gray-700 dark:bg-slate-900 dark:text-slate-300"
-                    />
-                    <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 10-8 0v4M5 11h14v10H5V11z" />
-                    </svg>
-                  </div>
-                  <Select value={state} onChange={(v: string) => setState(v)} options={US_STATES} placeholder="All States" />
-                  <Select
-                    value={gender}
-                    onChange={(v: string) => setGender(v as 'male' | 'female' | '')}
-                    options={[{ value: '', label: 'All' }, { value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]}
-                    placeholder="Gender"
-                  />
-                </div>
-                {datePreset === 'custom' && (
-                  <div className="grid grid-cols-2 gap-2 mt-2 max-w-xs w-full lg:w-auto lg:mt-0">
-                    <DateSelect label="Start" value={startDate} onChange={setStartDate} />
-                    <DateSelect label="End" value={endDate} onChange={setEndDate} />
-                  </div>
-                )}
+              <div className="flex items-center justify-between">
+                <div />
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    showFilters
+                      ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                  </svg>
+                  Filters
+                  {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                </button>
               </div>
 
+              {showFilters && (
+                <div className="relative z-20 flex items-center gap-2.5 rounded-lg border border-border/40 bg-card px-3 py-2 shadow-sm flex-wrap lg:flex-nowrap">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
+                    {hasActiveFilters && (
+                      <button onClick={handleClearFilters} className="text-[10px] font-medium text-rose-500 hover:text-rose-600 transition-colors">
+                        clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 grid gap-2 grid-cols-1 sm:grid-cols-2">
+                    <Select
+                      value={datePreset}
+                      onChange={(v: string) => handlePresetChange(v)}
+                      options={[
+                        { value: 'today', label: 'Today' },
+                        { value: 'yesterday', label: 'Yesterday' },
+                        { value: 'this_month', label: 'This Month' },
+                        { value: 'last_month', label: 'Last Month' },
+                        { value: 'last_30_days', label: 'Last 30 Days' },
+                        { value: 'last_3_months', label: 'Last 3 Months' },
+                        { value: 'custom', label: 'Custom Range' },
+                      ]}
+                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={username}
+                        disabled
+                        placeholder="Username"
+                        className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-2.5 py-2 pr-9 text-sm text-gray-600 shadow-sm dark:border-gray-700 dark:bg-slate-900 dark:text-slate-300"
+                      />
+                      <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 10-8 0v4M5 11h14v10H5V11z" />
+                      </svg>
+                    </div>
+                  </div>
+                  {datePreset === 'custom' && (
+                    <div className="grid grid-cols-2 gap-2 mt-2 max-w-xs w-full lg:w-auto lg:mt-0">
+                      <DateSelect label="Start" value={startDate} onChange={setStartDate} />
+                      <DateSelect label="End" value={endDate} onChange={setEndDate} />
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
                 {loadingSummary ? (
                   <div className="grid grid-cols-2 lg:grid-cols-3">
@@ -2283,8 +2291,8 @@ function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerT
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <ApiLabeledValue apiKey="username">{username}</ApiLabeledValue>
                   <ApiLabeledValue apiKey="date_preset">{datePreset}</ApiLabeledValue>
-                  <ApiLabeledValue apiKey="state">{state || 'All States'}</ApiLabeledValue>
-                  <ApiLabeledValue apiKey="gender">{gender || 'All'}</ApiLabeledValue>
+                  <ApiLabeledValue apiKey="start_date">{startDate || '—'}</ApiLabeledValue>
+                  <ApiLabeledValue apiKey="end_date">{endDate || '—'}</ApiLabeledValue>
                 </div>
               </div>
             </div>
