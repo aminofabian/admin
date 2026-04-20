@@ -79,6 +79,7 @@ export default function TransactionAnalyticsPage() {
     data: paymentMethods,
     purchaseMethodsGrouped,
     cashoutMethodsGrouped,
+    manualAdjustments,
     loading: loadingPaymentMethods,
     error: paymentMethodsError,
   } = usePaymentMethods(filters);
@@ -520,6 +521,48 @@ export default function TransactionAnalyticsPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── Manual adjustments (`manual_adjustments`) ── */}
+      <div className="rounded-2xl border border-border/30 bg-card/40 overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-border/15 bg-muted/5">
+          <h2 className="text-sm font-semibold text-foreground">Manual adjustments</h2>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            {apiFieldLabel('manual_adjustments')} from the payment-methods response.
+          </p>
+        </div>
+        {loadingPaymentMethods ? (
+          <TableSkel />
+        ) : paymentMethodsError ? (
+          <div className="p-6 text-center text-xs text-rose-600 dark:text-rose-400">{paymentMethodsError}</div>
+        ) : manualAdjustments.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border/10 bg-muted/5">
+                  <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('adjustment_display')}</th>
+                  <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('adjustment_type')}</th>
+                  <th className="text-right px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('amount')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/5">
+                {manualAdjustments.map((item, i) => (
+                  <tr key={`ma-${item.adjustment_type}-${i}`} className="hover:bg-muted/10 transition-colors">
+                    <td className="px-4 py-2 text-foreground font-medium">
+                      {item.adjustment_display?.trim() || fmtMethod(item.adjustment_type)}
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground">{item.adjustment_type}</td>
+                    <td className="px-4 py-2 text-right font-semibold tabular-nums text-foreground">
+                      {formatCurrency(item.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-6 text-center text-xs text-muted-foreground">No manual adjustment data</div>
+        )}
       </div>
     </div>
   );

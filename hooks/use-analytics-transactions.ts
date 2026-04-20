@@ -6,6 +6,7 @@ import type {
   BonusAnalytics,
   PurchaseMethodGroupedRow,
   CashoutMethodGroupedRow,
+  ManualAdjustmentRow,
 } from '@/lib/api/analytics';
 
 /** Maps API payload to a consistent TransactionSummary (handles missing keys and total_cash_in alias). */
@@ -58,6 +59,20 @@ function normalizeCashoutMethodGrouped(raw: unknown): CashoutMethodGroupedRow | 
     success_rate: n(o.success_rate),
     average_transaction_size: n(o.average_transaction_size),
     usage_distribution_pct: n(o.usage_distribution_pct),
+  };
+}
+
+function normalizeManualAdjustment(raw: unknown): ManualAdjustmentRow | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const s = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const adjustment_type = s(o.adjustment_type);
+  if (!adjustment_type) return null;
+  return {
+    adjustment_type,
+    adjustment_display: typeof o.adjustment_display === 'string' ? o.adjustment_display : undefined,
+    amount: n(o.amount),
   };
 }
 
@@ -118,6 +133,7 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
   const [data, setData] = useState<PaymentMethodBreakdown[]>([]);
   const [purchaseMethodsGrouped, setPurchaseMethodsGrouped] = useState<PurchaseMethodGroupedRow[]>([]);
   const [cashoutMethodsGrouped, setCashoutMethodsGrouped] = useState<CashoutMethodGroupedRow[]>([]);
+  const [manualAdjustments, setManualAdjustments] = useState<ManualAdjustmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -174,10 +190,16 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
                 .map(normalizeCashoutMethodGrouped)
                 .filter((row): row is CashoutMethodGroupedRow => row !== null)
             : [];
+          const manualAdjustmentRows: ManualAdjustmentRow[] = Array.isArray(response.data.manual_adjustments)
+            ? response.data.manual_adjustments
+                .map(normalizeManualAdjustment)
+                .filter((row): row is ManualAdjustmentRow => row !== null)
+            : [];
 
           setData(paymentMethodsArray);
           setPurchaseMethodsGrouped(purchaseGrouped);
           setCashoutMethodsGrouped(cashoutGrouped);
+          setManualAdjustments(manualAdjustmentRows);
         } else {
           throw new Error(response.message || 'Failed to fetch payment methods');
         }
@@ -189,6 +211,7 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
         setData([]);
         setPurchaseMethodsGrouped([]);
         setCashoutMethodsGrouped([]);
+        setManualAdjustments([]);
       } finally {
         setLoading(false);
       }
@@ -197,7 +220,7 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
     void fetchData();
   }, [JSON.stringify(filters)]);
 
-  return { data, purchaseMethodsGrouped, cashoutMethodsGrouped, loading, error };
+  return { data, purchaseMethodsGrouped, cashoutMethodsGrouped, manualAdjustments, loading, error };
 }
 
 export function useBonusAnalytics(filters?: AnalyticsFilters) {
