@@ -14,6 +14,7 @@ const DASHBOARD_GAMES_URL = `${BACKEND_URL}/users/dashboard-games/`;
  */
 const DOMAIN_OVERRIDES: Record<string, string> = {
   'bitslot.serverhub.biz': 'https://staging.bitslot.cc',
+  'playltc-beta.serverhub.biz': 'https://beta.playltc.com',
 };
 
 /**

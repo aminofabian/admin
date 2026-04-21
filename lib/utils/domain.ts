@@ -37,6 +37,8 @@ export function extractDomainFromUrl(url: string): string {
  */
 const DOMAIN_MAPPINGS: Record<string, string> = {
   'bitslot.serverhub.biz': 'https://staging.bitslot.cc',
+  /** Admin host → project domain (dashboard-games looks up by project domain, not admin URL) */
+  'playltc-beta.serverhub.biz': 'https://beta.playltc.com',
 };
 
 /**
