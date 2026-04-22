@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player, UpdateUserRequest } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
 import { playersApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input } from '@/components/ui';
+import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input, Select, DateSelect } from '@/components/ui';
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
+import { useTransactionSummary, usePaymentMethods, useBonusAnalytics } from '@/hooks/use-analytics-transactions';
+import type { AnalyticsFilters } from '@/lib/api/analytics';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
@@ -17,6 +19,7 @@ import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { USER_ROLES, canEditPlayerCashoutLimit } from '@/lib/constants/roles';
+import { getDateRange } from '@/app/dashboard/analytics/analytics-utils';
 
 
 interface StaffPlayerDetailProps {
@@ -49,7 +52,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   // State
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [selectedGameForBalance, setSelectedGameForBalance] = useState<PlayerGame | null>(null);
@@ -64,6 +66,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const [isEditingGame, setIsEditingGame] = useState(false);
   const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
   const [isSavedPaymentMethodsOpen, setIsSavedPaymentMethodsOpen] = useState(false);
+  const [isTransactionAnalyticsModalOpen, setIsTransactionAnalyticsModalOpen] = useState(false);
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
   const [editableFields, setEditableFields] = useState<EditableFields>({
@@ -104,24 +107,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           is_active: player.is_active ?? true,
         });
 
-        // Load transaction details
-        setIsLoadingDetails(true);
-        try {
-          const details = await playersApi.viewDetails(player.id);
-          setSelectedPlayer((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              total_purchases: details.total_purchases,
-              total_cashouts: details.total_cashouts,
-              total_transfers: details.total_transfers,
-            };
-          });
-        } catch (err) {
-          console.error('Failed to load player details:', err);
-        } finally {
-          setIsLoadingDetails(false);
-        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load player';
         setError(message);
@@ -368,10 +353,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
 
   const creditBalance = formatCurrency(selectedPlayer.balance ?? 0);
   const showWinningsHero = hasMeaningfulWinningBalance(selectedPlayer.winning_balance);
-  const purchasesTotal = formatCurrency(selectedPlayer.total_purchases ?? 0);
-  const cashoutsTotal = formatCurrency(selectedPlayer.total_cashouts ?? 0);
-  const transfersTotal = formatCurrency(selectedPlayer.total_transfers ?? 0);
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
@@ -631,66 +612,24 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           <div className="space-y-3 sm:space-y-4 md:space-y-6 order-2 lg:order-2">
             {/* Transaction Summary Card */}
             <section className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 border border-purple-200 dark:border-purple-800/50 shadow-sm">
-              <div className="mb-3 sm:mb-4 md:mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <h2 className="text-sm sm:text-base md:text-lg font-bold text-purple-900 dark:text-purple-200">Transaction Summary</h2>
-                </div>
-                {isLoadingDetails && (
-                  <svg className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                )}
+              <div className="mb-3 sm:mb-4 md:mb-5 flex items-center gap-2 sm:gap-3">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <h2 className="text-sm sm:text-base md:text-lg font-bold text-purple-900 dark:text-purple-200">Transaction Summary</h2>
               </div>
-              <div className="flex flex-col 2xl:grid 2xl:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-purple-200/50 dark:border-purple-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-purple-700 dark:text-purple-300 break-words min-w-0">Purchases</h5>
-                  </div>
-                  {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-purple-300/30 dark:bg-purple-700/30 rounded w-full animate-pulse" />
-                  ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 break-words min-w-0">{purchasesTotal}</p>
-                  )}
-                </div>
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-indigo-200/50 dark:border-indigo-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-indigo-700 dark:text-indigo-300 break-words min-w-0">Cashouts</h5>
-                  </div>
-                  {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-indigo-300/30 dark:bg-indigo-700/30 rounded w-full animate-pulse" />
-                  ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-indigo-600 dark:text-indigo-400 transition-all duration-300 break-words min-w-0">{cashoutsTotal}</p>
-                  )}
-                </div>
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-violet-200/50 dark:border-violet-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-violet-500/20 dark:bg-violet-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
-                    </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-violet-700 dark:text-violet-300 break-words min-w-0">Transfers</h5>
-                  </div>
-                  {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-violet-300/30 dark:bg-violet-700/30 rounded w-full animate-pulse" />
-                  ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-violet-600 dark:text-violet-400 transition-all duration-300 break-words min-w-0">{transfersTotal}</p>
-                  )}
-                </div>
+              <div className="rounded-lg border border-purple-200/50 bg-white/60 p-3 backdrop-blur-sm dark:border-purple-700/50 dark:bg-white/10 sm:p-4">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => setIsTransactionAnalyticsModalOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition-all hover:shadow-md"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 13l3-3 2 2 5-5" />
+                  </svg>
+                  Open Player Transaction Analytics
+                </Button>
               </div>
             </section>
           </div>
@@ -700,7 +639,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
             {/* Player Games Card */}
             <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
               <div className="mb-4 sm:mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
@@ -721,7 +660,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                   <span className="sm:hidden">Add</span>
                 </Button>
               </div>
-
               {isLoadingGames ? (
                 <div className="space-y-2">
                   {[...Array(3)].map((_, i) => (
@@ -861,6 +799,11 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         playerUsername={selectedPlayer.username}
         savedPaymentMethods={selectedPlayer.saved_payment_methods ?? []}
       />
+      <PlayerTransactionsAnalyticsModal
+        isOpen={isTransactionAnalyticsModalOpen}
+        onClose={() => setIsTransactionAnalyticsModalOpen(false)}
+        username={selectedPlayer.username}
+      />
 
       {/* Edit Game Drawer */}
       {gameToEdit && (
@@ -892,6 +835,406 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function rateColor(rate: number | undefined): string {
+  if (!rate) return 'text-muted-foreground';
+  if (rate >= 90) return 'text-emerald-600 dark:text-emerald-400';
+  if (rate >= 70) return 'text-amber-600 dark:text-amber-400';
+  return 'text-rose-600 dark:text-rose-400';
+}
+
+function apiFieldLabel(apiKey: string): string {
+  return apiKey
+    .split(/[._]+/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function ApiLabeledValue({ apiKey, children }: { apiKey: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel(apiKey)}</p>
+      <div className="mt-1 text-sm font-semibold tabular-nums text-foreground">{children}</div>
+    </div>
+  );
+}
+
+interface PlayerTransactionsAnalyticsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  username: string;
+}
+
+function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerTransactionsAnalyticsModalProps) {
+  const [datePreset, setDatePreset] = useState('last_3_months');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showFilters, setShowFilters] = useState(true);
+
+  useEffect(() => {
+    const range = getDateRange(datePreset);
+    setStartDate(range.start);
+    setEndDate(range.end);
+  }, [datePreset]);
+
+  const filters = useMemo<AnalyticsFilters>(() => {
+    if (!username) {
+      return {};
+    }
+
+    const activeFilters: AnalyticsFilters = { username };
+    if (startDate) activeFilters.start_date = startDate;
+    if (endDate) activeFilters.end_date = endDate;
+    return activeFilters;
+  }, [username, startDate, endDate]);
+
+  const { data: transactionSummary, loading: loadingSummary, error: summaryError } = useTransactionSummary(filters);
+  const {
+    data: paymentMethods,
+    loading: loadingPaymentMethods,
+    error: paymentMethodsError,
+  } = usePaymentMethods(filters);
+  const { data: bonusAnalytics, loading: loadingBonus, error: bonusError } = useBonusAnalytics(filters);
+
+  const purchaseMethods = paymentMethods.filter(m => m.type === 'purchase');
+  const cashoutMethods = paymentMethods.filter(m => m.type === 'cashout');
+
+  const netRevenue = useMemo(() => {
+    if (!transactionSummary) return null;
+    return transactionSummary.total_purchase - transactionSummary.total_cashout;
+  }, [transactionSummary]);
+
+  const bonusBreakdown = useMemo(() => {
+    if (!bonusAnalytics) return [];
+    const items = [
+      { fieldKey: 'purchase_bonus', value: bonusAnalytics.purchase_bonus, bar: 'bg-emerald-500' },
+      { fieldKey: 'signup_bonus', value: bonusAnalytics.signup_bonus, bar: 'bg-blue-500' },
+      { fieldKey: 'first_deposit_bonus', value: bonusAnalytics.first_deposit_bonus, bar: 'bg-violet-500' },
+      { fieldKey: 'total_free_play', value: bonusAnalytics.total_free_play, bar: 'bg-cyan-500' },
+      { fieldKey: 'seized_or_tipped_fund', value: bonusAnalytics.seized_or_tipped_fund, bar: 'bg-slate-400' },
+    ];
+    const max = Math.max(...items.map(i => i.value), 1);
+    return items.map(i => ({ ...i, pct: (i.value / max) * 100 }));
+  }, [bonusAnalytics]);
+
+  const handlePresetChange = (preset: string) => {
+    setDatePreset(preset);
+    if (preset !== 'custom') {
+      const range = getDateRange(preset);
+      setStartDate(range.start);
+      setEndDate(range.end);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setDatePreset('last_3_months');
+    const range = getDateRange('last_3_months');
+    setStartDate(range.start);
+    setEndDate(range.end);
+  };
+
+  const hasActiveFilters = datePreset !== 'last_3_months';
+  const fmtMethod = (n: string) => n.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70]">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-6">
+        <div className="relative h-[92vh] w-full max-w-7xl overflow-hidden rounded-2xl border border-border/30 bg-card shadow-2xl">
+          <div className="flex items-center justify-between border-b border-border/20 px-4 py-3 sm:px-6">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Player Transaction Analytics</h2>
+              <p className="text-xs text-muted-foreground">Locked to username: {username}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+              aria-label="Close analytics modal"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="h-[calc(92vh-64px)] overflow-y-auto p-4 sm:p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div />
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    showFilters
+                      ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                  </svg>
+                  Filters
+                  {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                </button>
+              </div>
+
+              {showFilters && (
+                <div className="relative z-20 flex items-center gap-2.5 rounded-lg border border-border/40 bg-card px-3 py-2 shadow-sm flex-wrap lg:flex-nowrap">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
+                    {hasActiveFilters && (
+                      <button onClick={handleClearFilters} className="text-[10px] font-medium text-rose-500 hover:text-rose-600 transition-colors">
+                        clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 grid gap-2 grid-cols-1 sm:grid-cols-2">
+                    <Select
+                      value={datePreset}
+                      onChange={(v: string) => handlePresetChange(v)}
+                      options={[
+                        { value: 'today', label: 'Today' },
+                        { value: 'yesterday', label: 'Yesterday' },
+                        { value: 'this_month', label: 'This Month' },
+                        { value: 'last_month', label: 'Last Month' },
+                        { value: 'last_30_days', label: 'Last 30 Days' },
+                        { value: 'last_3_months', label: 'Last 3 Months' },
+                        { value: 'custom', label: 'Custom Range' },
+                      ]}
+                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={username}
+                        disabled
+                        placeholder="Username"
+                        className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-2.5 py-2 pr-9 text-sm text-gray-600 shadow-sm dark:border-gray-700 dark:bg-slate-900 dark:text-slate-300"
+                      />
+                      <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 10-8 0v4M5 11h14v10H5V11z" />
+                      </svg>
+                    </div>
+                  </div>
+                  {datePreset === 'custom' && (
+                    <div className="grid grid-cols-2 gap-2 mt-2 max-w-xs w-full lg:w-auto lg:mt-0">
+                      <DateSelect label="Start" value={startDate} onChange={setStartDate} />
+                      <DateSelect label="End" value={endDate} onChange={setEndDate} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
+                {loadingSummary ? (
+                  <div className="grid grid-cols-2 lg:grid-cols-3">
+                    {[0, 1, 2].map(i => (
+                      <div key={i} className="bg-card px-5 py-4 animate-pulse border-r border-border/10 last:border-r-0">
+                        <div className="h-2.5 w-14 bg-muted/40 rounded mb-2.5" />
+                        <div className="h-5 w-20 bg-muted/40 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : summaryError ? (
+                  <div className="bg-card px-5 py-8 text-center text-sm text-rose-600 dark:text-rose-400">{summaryError}</div>
+                ) : transactionSummary ? (
+                  <div className="grid grid-cols-2 lg:grid-cols-3">
+                    <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-emerald-500 border-r border-border/10">
+                      <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_purchase')}</p>
+                      <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">{formatCurrency(transactionSummary.total_purchase)}</p>
+                    </div>
+                    <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-rose-500 border-r border-border/10">
+                      <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_cashout')}</p>
+                      <p className="text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400 mt-0.5">{formatCurrency(transactionSummary.total_cashout)}</p>
+                    </div>
+                    {netRevenue !== null && (
+                      <div className={`${netRevenue >= 0
+                        ? 'bg-gradient-to-br from-emerald-900 to-emerald-950 dark:from-emerald-900/80 dark:to-emerald-950/90'
+                        : 'bg-gradient-to-br from-rose-900 to-rose-950 dark:from-rose-900/80 dark:to-rose-950/90'} px-5 py-3.5`}>
+                        <p className="text-[10px] font-medium leading-snug text-white/70 break-words">
+                          {apiFieldLabel('total_purchase')} - {apiFieldLabel('total_cashout')}
+                        </p>
+                        <p className="text-lg font-bold tabular-nums text-white mt-0.5">
+                          {netRevenue >= 0 ? '+' : ''}{formatCurrency(netRevenue)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-card px-5 py-8 text-center text-sm text-muted-foreground">No transaction data available</div>
+                )}
+
+                {loadingBonus ? (
+                  <div className="border-t border-border/15 bg-card px-5 py-4">
+                    <div className="grid grid-cols-3 lg:grid-cols-5 gap-4">
+                      {[0, 1, 2, 3, 4].map(i => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-2 w-12 bg-muted/40 rounded mb-2" />
+                          <div className="h-4 w-14 bg-muted/40 rounded mb-2" />
+                          <div className="h-1 bg-muted/20 rounded-full" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : bonusError ? (
+                  <div className="border-t border-border/15 bg-card px-5 py-4">
+                    <p className="text-center text-sm text-rose-600 dark:text-rose-400">{bonusError}</p>
+                  </div>
+                ) : bonusAnalytics ? (
+                  <div className="border-t border-border/15 bg-card px-5 py-4">
+                    <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Bonus <span className="font-normal normal-case">{apiFieldLabel('data')}</span>
+                      </p>
+                      <div className="text-right">
+                        <p className="text-[9px] font-medium text-muted-foreground">{apiFieldLabel('total_bonus')}</p>
+                        <p className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                          {formatCurrency(bonusAnalytics.total_bonus)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-x-4 gap-y-3">
+                      {bonusBreakdown.map(({ fieldKey, value, bar, pct }) => (
+                        <div key={fieldKey} className="group">
+                          <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">{apiFieldLabel(fieldKey)}</p>
+                          <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(value)}</p>
+                          <div className="mt-1.5 h-1 bg-muted/15 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${bar} transition-all duration-700 ease-out`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-2">
+                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="text-sm font-semibold text-foreground">Purchases</span>
+                  </div>
+                  {loadingPaymentMethods ? (
+                    <div className="p-5 space-y-3">
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="flex items-center gap-3 animate-pulse">
+                          <div className="w-7 h-7 rounded-lg bg-muted/30 shrink-0" />
+                          <div className="flex-1 h-3 bg-muted/20 rounded" />
+                          <div className="w-16 h-3 bg-muted/30 rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : paymentMethodsError ? (
+                    <div className="p-6 text-center text-xs text-rose-600 dark:text-rose-400">{paymentMethodsError}</div>
+                  ) : purchaseMethods.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border/10 bg-muted/5">
+                            <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('key')}</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('purchase')}</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('bonus')}</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/5">
+                          {purchaseMethods.map((m, i) => (
+                            <tr key={`p-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
+                              <td className="px-4 py-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-[9px] shrink-0">
+                                    {fmtMethod(m.payment_method).charAt(0)}
+                                  </span>
+                                  <span className="font-medium text-foreground text-xs">{fmtMethod(m.payment_method)}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(m.purchase ?? 0)}</td>
+                              <td className="px-3 py-2 text-right tabular-nums">
+                                {m.bonus && m.bonus > 0
+                                  ? <span className="text-amber-600 dark:text-amber-400">{formatCurrency(m.bonus)}</span>
+                                  : <span className="text-muted-foreground/25">&mdash;</span>}
+                              </td>
+                              <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate?.toFixed(1) ?? 0}%</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-xs text-muted-foreground">No purchase data</div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+                    <span className="text-sm font-semibold text-foreground">Cashouts</span>
+                  </div>
+                  {loadingPaymentMethods ? (
+                    <div className="p-5 space-y-3">
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className="flex items-center gap-3 animate-pulse">
+                          <div className="w-7 h-7 rounded-lg bg-muted/30 shrink-0" />
+                          <div className="flex-1 h-3 bg-muted/20 rounded" />
+                          <div className="w-16 h-3 bg-muted/30 rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : paymentMethodsError ? (
+                    <div className="p-6 text-center text-xs text-rose-600 dark:text-rose-400">{paymentMethodsError}</div>
+                  ) : cashoutMethods.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border/10 bg-muted/5">
+                            <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('key')}</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('cashout')}</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/5">
+                          {cashoutMethods.map((m, i) => (
+                            <tr key={`c-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
+                              <td className="px-4 py-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-[9px] shrink-0">
+                                    {fmtMethod(m.payment_method).charAt(0)}
+                                  </span>
+                                  <span className="font-medium text-foreground text-xs">{fmtMethod(m.payment_method)}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-right font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(m.cashout ?? 0)}</td>
+                              <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate?.toFixed(1) ?? 0}%</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-xs text-muted-foreground">No cashout data</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/30 bg-card p-4 sm:p-5">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Locked player context</p>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <ApiLabeledValue apiKey="username">{username}</ApiLabeledValue>
+                  <ApiLabeledValue apiKey="date_preset">{datePreset}</ApiLabeledValue>
+                  <ApiLabeledValue apiKey="start_date">{startDate || '—'}</ApiLabeledValue>
+                  <ApiLabeledValue apiKey="end_date">{endDate || '—'}</ApiLabeledValue>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
