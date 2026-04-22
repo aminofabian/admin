@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!BACKEND_URL) {
-  throw new Error('NEXT_PUBLIC_API_URL is not defined in environment variables');
-}
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.serverhub.biz';
 
 const DASHBOARD_GAMES_URL = `${BACKEND_URL}/users/dashboard-games/`;
 
