@@ -375,7 +375,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     roles: [USER_ROLES.STAFF],
     submenu: [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
-      { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },
