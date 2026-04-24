@@ -6,19 +6,7 @@ import { usePaymentMethodsStore } from '@/stores';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell, Skeleton } from '@/components/ui';
 import type { PaymentMethod, PaymentMethodAction } from '@/types';
 import { formatPaymentMethod } from '@/lib/utils/formatters';
-
-// Get payment method initials
-const getPaymentMethodInitials = (paymentMethodDisplay: string): string => {
-  const words = paymentMethodDisplay.trim().split(/\s+/);
-  
-  if (words.length === 1) {
-    return words[0].substring(0, 2).toUpperCase();
-  } else if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
-  
-  return 'PM';
-};
+import { getPaymentMethodIcon } from '@/lib/utils/payment-method-icons';
 
 // Format amount for display
 const formatAmount = (amount: string | null | undefined): string => {
@@ -73,22 +61,16 @@ export function StaffPaymentSettingsSection() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        {/* Header Skeleton */}
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-          <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-            <Skeleton className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 rounded-lg shrink-0" />
-            <Skeleton className="h-6 sm:h-7 md:h-8 lg:h-9 w-40 shrink-0" />
-            <div className="flex-1 min-w-0" />
-            <div className="flex items-center gap-2 shrink-0">
-              <Skeleton className="h-9 w-24 rounded-lg" />
-              <Skeleton className="h-9 w-24 rounded-lg" />
-            </div>
+      <div className="space-y-8 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <Skeleton className="h-8 w-48 rounded-md" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-28 rounded-lg" />
+            <Skeleton className="h-10 w-28 rounded-lg" />
           </div>
         </div>
 
-        {/* Table Skeleton */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <div className="min-w-full">
               {/* Table Header Skeleton */}
@@ -141,73 +123,57 @@ export function StaffPaymentSettingsSection() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
-          {/* Icon */}
-          <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
-            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
-          </div>
-          
-          {/* Title */}
-          <div className="flex flex-col shrink-0">
-            <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900 dark:text-gray-100">
-              Payment Methods
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-              View payment method configurations (read-only)
-            </p>
-          </div>
-          
-          {/* Spacer */}
-          <div className="flex-1 min-w-0" />
-          
-          {/* Filter Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-            {(['purchase', 'cashout'] as PaymentMethodAction[]).map((action) => {
-              const isActive = filterAction === action;
-              return (
-                <button
-                  key={action}
-                  type="button"
-                  onClick={() => setFilterAction(action)}
-                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium capitalize transition-all ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90'
-                      : 'bg-white dark:bg-gray-900 text-muted-foreground border-gray-200 dark:border-gray-800 hover:text-primary hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/10'
-                  }`}
-                >
-                  {action}
-                </button>
-              );
-            })}
-          </div>
+    <div className="space-y-8 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+            Payment methods
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Purchase and cashout configuration (read-only)
+          </p>
+        </div>
+        <div className="inline-flex rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/80 p-1 shadow-sm">
+          {(['purchase', 'cashout'] as PaymentMethodAction[]).map((action) => {
+            const isActive = filterAction === action;
+            return (
+              <button
+                key={action}
+                type="button"
+                onClick={() => setFilterAction(action)}
+                className={`rounded-lg px-4 py-2 text-sm font-medium capitalize transition-all ${
+                  isActive
+                    ? action === 'purchase'
+                      ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-600'
+                      : 'bg-rose-600 text-white shadow-sm dark:bg-rose-600'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/80'
+                }`}
+              >
+                {action}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Payment Methods Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
         {!paymentMethods || filteredResults.length === 0 ? (
-          <div className="py-12">
-            <EmptyState 
-              title="No Payment Methods" 
+          <div className="py-16 px-8">
+            <EmptyState
+              title="No payment methods"
               description="Payment methods will appear here once configured"
             />
           </div>
         ) : (
           <>
-            {/* Desktop Table View */}
             <div className="hidden lg:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Payment Method</TableHead>
+                    <TableHead>Payment method</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Usage</TableHead>
-                    <TableHead>Amount Limits</TableHead>
+                    <TableHead>Amount limits</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -216,23 +182,29 @@ export function StaffPaymentSettingsSection() {
                     <TableRow key={method.loadingKey} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-sm">
-                          {getPaymentMethodInitials(method.payment_method_display || formatPaymentMethod(method.payment_method))}
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-gray-100">
-                            {formatPaymentMethod(method.payment_method_display || method.payment_method)}
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white dark:border-gray-600 dark:bg-slate-800">
+                            {getPaymentMethodIcon(method.payment_method, { size: 'lg', asInitialFallback: true })}
                           </div>
-                        </div>
+                          <div className="min-w-0">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
+                              {formatPaymentMethod(method.payment_method_display || method.payment_method)}
+                            </div>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 text-xs font-medium capitalize">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md border border-amber-200 bg-amber-50 text-xs font-medium capitalize text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
                           {method.method_type}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 capitalize">
+                        <span
+                          className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium capitalize ${
+                            method.action === 'purchase'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
+                              : 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300'
+                          }`}
+                        >
                           {method.action}
                         </span>
                       </TableCell>
@@ -262,25 +234,23 @@ export function StaffPaymentSettingsSection() {
               </Table>
             </div>
 
-            {/* Mobile Card View */}
-            <div className="lg:hidden space-y-2">
+            <div className="space-y-3 p-4 lg:hidden">
               {sortedResults.map((method) => (
                 <div
                   key={method.loadingKey}
-                  className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+                  className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800/80"
                 >
                   <div className="p-4">
-                    <div className="flex items-center justify-between gap-6">
-                      {/* Left: Icon + Info */}
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-md">
-                            {getPaymentMethodInitials(method.payment_method_display || formatPaymentMethod(method.payment_method))}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-gray-900 dark:text-gray-100 leading-tight truncate">
-                              {formatPaymentMethod(method.payment_method_display || method.payment_method)}
-                            </h3>
-                          </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white dark:border-gray-600 dark:bg-slate-800">
+                          {getPaymentMethodIcon(method.payment_method, { size: 'lg', asInitialFallback: true })}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate font-medium leading-tight text-gray-900 dark:text-gray-100">
+                            {formatPaymentMethod(method.payment_method_display || method.payment_method)}
+                          </h3>
+                        </div>
                       </div>
                     </div>
 
@@ -306,11 +276,17 @@ export function StaffPaymentSettingsSection() {
                     </div>
 
                     {/* Mobile badges */}
-                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <span className="inline-flex items-center px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 text-xs font-medium capitalize">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-3 dark:border-gray-700">
+                      <span className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium capitalize text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
                         {method.method_type}
                       </span>
-                      <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800 text-xs font-medium capitalize">
+                      <span
+                        className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium capitalize ${
+                          method.action === 'purchase'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
+                            : 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300'
+                        }`}
+                      >
                         {method.action}
                       </span>
                       
