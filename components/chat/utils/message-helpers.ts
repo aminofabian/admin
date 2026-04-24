@@ -119,6 +119,8 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
     /purchased via/i,
     /purchased \(credited by admin\)/i,
     /credited by admin/i,
+    /sign[\s-]?up bonus/i,
+    /added as sign[\s-]?up bonus/i,
     // Do not match colloquial "cashed out" in player chat (e.g. "someone cashed out my winnings")
     /successfully cashed out/i,
     /recharged to/i,
@@ -230,6 +232,7 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
     /<b>recharge<\/b>/i,
     /^recharge$/i, // Only exact "recharge" word, not "purchased"
     /successfully recharged/i, // But not "successfully purchased"
+    /sign[\s-]?up bonus/i,
     /^system:/i,
     /^auto:/i,
     /^notification:/i,
