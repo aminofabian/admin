@@ -352,6 +352,14 @@ function pickTopTwoIdentifiers(paymentDetails: Record<string, unknown>): [string
   return out;
 }
 
+/** Crypto rails (and lightning): provider is tied to the method, unlike card cashouts where admins pick at send time. */
+const CRYPTO_PAYMENT_METHOD_SUBSTRINGS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'] as const;
+
+export function isCryptoPaymentMethod(paymentMethod: string | null | undefined): boolean {
+  const lower = (paymentMethod ?? '').trim().toLowerCase();
+  return CRYPTO_PAYMENT_METHOD_SUBSTRINGS.some((m) => lower.includes(m));
+}
+
 /** Fallback when no identity fields: Provider + Payment Method. */
 function getProviderPaymentMethodFallback(transaction: {
   payment_method?: string | null;
@@ -501,6 +509,25 @@ export function getPaymentDetailsForDisplay(
         if (!alreadyListed) {
           entries.push(['Venmo username', displayHandle]);
         }
+      }
+    }
+  }
+
+  const rawMethodForCrypto = transaction.payment_method ?? resolvedMethod;
+  if (isCryptoPaymentMethod(rawMethodForCrypto)) {
+    const providerRaw =
+      transaction.provider ??
+      (paymentDetails && typeof paymentDetails === 'object'
+        ? findPaymentDetailValue(paymentDetails, ['provider'])
+        : null);
+    const providerDisplay = getProviderDisplayName(
+      providerRaw != null ? String(providerRaw) : null,
+      resolvedMethod ?? transaction.payment_method
+    );
+    if (providerDisplay !== '—' && String(providerDisplay).trim() !== '') {
+      const hasProviderRow = entries.some(([label]) => label.toLowerCase() === 'provider');
+      if (!hasProviderRow) {
+        entries.push(['Provider', providerDisplay]);
       }
     }
   }

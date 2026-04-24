@@ -3,7 +3,13 @@
 import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatCurrency, formatDate, formatPaymentMethod, getPaymentDetailsForDisplay } from '@/lib/utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  formatPaymentMethod,
+  getPaymentDetailsForDisplay,
+  isCryptoPaymentMethod,
+} from '@/lib/utils/formatters';
 import type { Transaction } from '@/types';
 import { PROJECT_DOMAIN } from '@/lib/constants/api';
 import { playersApi } from '@/lib/api';
@@ -18,8 +24,6 @@ import {
   DetailsRemarks,
   DetailsCloseButton,
 } from './details-modal-wrapper';
-
-const CRYPTO_PAYMENT_METHODS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'];
 
 const parseNumericValue = (value: string | number | null | undefined): number | null => {
   if (value === null || value === undefined) {
@@ -183,11 +187,7 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   );
 
   const paymentMethod = useMemo(() => transaction.payment_method ?? '', [transaction.payment_method]);
-  const lowerPaymentMethod = useMemo(() => paymentMethod.toLowerCase(), [paymentMethod]);
-  const isCryptoPayment = useMemo(
-    () => CRYPTO_PAYMENT_METHODS.some((method) => lowerPaymentMethod.includes(method)),
-    [lowerPaymentMethod]
-  );
+  const isCryptoPayment = useMemo(() => isCryptoPaymentMethod(paymentMethod), [paymentMethod]);
 
   const explicitInvoiceUrl = useMemo(() => transaction.payment_url ?? transaction.invoice_url, [transaction.payment_url, transaction.invoice_url]);
   const sanitizedInvoiceUrl = useMemo(() => typeof explicitInvoiceUrl === 'string' ? explicitInvoiceUrl.trim() : '', [explicitInvoiceUrl]);

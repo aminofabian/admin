@@ -135,6 +135,26 @@ describe('formatters', () => {
       const venmoRow = rows.find(([label]) => label === 'Venmo username');
       expect(venmoRow?.[1]).toBe('@Alex-Pay-Venmo');
     });
+
+    it('includes Provider for crypto when payment_details already has wallet (provider not from fallback)', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'bitcoin',
+        provider: 'opennode',
+        payment_details: {
+          wallet_address: 'bc1qexample000000000000000000000000000000',
+        },
+      });
+      expect(rows.find(([label]) => label === 'Provider')?.[1]).toBe('Opennode');
+    });
+
+    it('does not add Provider row for card when identity fields already fill the panel', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        provider: 'binpay',
+        payment_details: { email: 'player@example.com', last4: '7887' },
+      });
+      expect(rows.some(([label]) => label === 'Provider')).toBe(false);
+    });
   });
 
   describe('getProviderDisplayName', () => {
