@@ -293,8 +293,24 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         return;
       }
 
-      // Handle "message" type from chat list WebSocket
-      if (messageType === 'message' && (data.player_id || (messageWrapper as Record<string, unknown>)?.player_id)) {
+      // Handle "message" type from chat list WebSocket.
+      // Some "message"-typed events also embed ledger updates under a nested `payload`
+      // (e.g. game_redeem, game_recharge). We fall through to the ledger branch in that case.
+      const messageHasEmbeddedLedger = (() => {
+        const pl = (data as Record<string, unknown>).payload as Record<string, unknown> | undefined;
+        if (!pl) return false;
+        return (
+          pl.credits_balance !== undefined ||
+          pl.balance !== undefined ||
+          pl.cashout_limit !== undefined ||
+          pl.locked_balance !== undefined
+        );
+      })();
+      if (
+        messageType === 'message' &&
+        (data.player_id || (messageWrapper as Record<string, unknown>)?.player_id) &&
+        !messageHasEmbeddedLedger
+      ) {
         const msg = (messageWrapper || data) as Record<string, unknown>;
         const playerId = data.player_id ?? msg.player_id;
         const messageText = typeof data.message === 'string' ? data.message.substring(0, 30) : String(data.message ?? msg.message ?? '').substring(0, 30);
@@ -310,16 +326,44 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
         return;
       }
 
-      // Handle "balanceUpdated" or "balance_updated" message type
-      if (messageType === 'balanceUpdated' || messageType === 'balance_updated') {
+      // Handle "balanceUpdated" / "balance_updated" OR any message that carries ledger
+      // data in a nested `payload` (game_redeem, game_recharge, recharge, cashout_completed, ...).
+      const dataRecord = data as Record<string, unknown>;
+      const nestedPayload = (dataRecord.payload as Record<string, unknown>) || undefined;
+      const hasLedgerInPayload = !!(
+        nestedPayload &&
+        (nestedPayload.credits_balance !== undefined ||
+          nestedPayload.balance !== undefined ||
+          nestedPayload.cashout_limit !== undefined ||
+          nestedPayload.locked_balance !== undefined)
+      );
+      const hasTopLevelLedger =
+        data.balance !== undefined ||
+        data.player_bal !== undefined ||
+        (dataRecord.credits_balance as unknown) !== undefined ||
+        data.cashout_limit !== undefined ||
+        data.locked_balance !== undefined;
+      if (
+        messageType === 'balanceUpdated' ||
+        messageType === 'balance_updated' ||
+        hasLedgerInPayload ||
+        hasTopLevelLedger
+      ) {
         const playerId = data.player_id || data.user_id;
-        const dataRecord = data as Record<string, unknown>;
         const nestedPlayer = (dataRecord.player as Record<string, unknown>) || undefined;
-        const balance = data.balance ?? data.player_bal;
+        const balance =
+          data.balance ??
+          data.player_bal ??
+          (dataRecord.credits_balance as unknown) ??
+          nestedPayload?.credits_balance ??
+          nestedPayload?.balance ??
+          nestedPayload?.user_balance ??
+          nestedPayload?.player_bal;
         const cashoutLimit =
           data.cashout_limit ??
           data.player_cashout_limit ??
           dataRecord.cashoutLimit ??
+          nestedPayload?.cashout_limit ??
           nestedPlayer?.cashout_limit ??
           nestedPlayer?.player_cashout_limit ??
           nestedPlayer?.cashoutLimit;
@@ -327,6 +371,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
           data.locked_balance ??
           data.player_locked_balance ??
           dataRecord.lockedBalance ??
+          nestedPayload?.locked_balance ??
           nestedPlayer?.locked_balance ??
           nestedPlayer?.player_locked_balance ??
           nestedPlayer?.lockedBalance;

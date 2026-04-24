@@ -78,6 +78,7 @@ interface RawChatMessage {
   player_locked_balance?: string | number | null;
   cashoutLimit?: string | number | null;
   lockedBalance?: string | number | null;
+  credits_balance?: string | number | null;
   player?: {
     cashout_limit?: string | number | null;
     player_cashout_limit?: string | number | null;
@@ -85,6 +86,19 @@ interface RawChatMessage {
     player_locked_balance?: string | number | null;
     cashoutLimit?: string | number | null;
     lockedBalance?: string | number | null;
+    credits_balance?: string | number | null;
+  };
+  payload?: {
+    event?: string;
+    credits_balance?: string | number | null;
+    cashout_limit?: string | number | null;
+    locked_balance?: string | number | null;
+    winning_balance?: string | number | null;
+    balance?: string | number | null;
+    user_balance?: string | number | null;
+    player_bal?: string | number | null;
+    player_winning_bal?: string | number | null;
+    [key: string]: unknown;
   };
 }
 
@@ -522,13 +536,29 @@ export function useChatWebSocket({
   // FIX #8: Centralized balance update handler (single source of truth)
   const handleBalanceUpdate = useCallback((rawData: RawChatMessage) => {
     const playerId = rawData.player_id || rawData.user_id || userId;
-    const balance = rawData.user_balance ?? rawData.balance ?? rawData.player_bal;
-    const winningBalance = rawData.winning_balance ?? rawData.player_winning_bal;
     const p = rawData.player;
+    // Some events (e.g. game_recharge / game_redeem) embed ledger fields under `payload`.
+    const pl = rawData.payload;
+    const balance =
+      rawData.user_balance ??
+      rawData.balance ??
+      rawData.player_bal ??
+      rawData.credits_balance ??
+      pl?.credits_balance ??
+      pl?.user_balance ??
+      pl?.balance ??
+      pl?.player_bal ??
+      p?.credits_balance;
+    const winningBalance =
+      rawData.winning_balance ??
+      rawData.player_winning_bal ??
+      pl?.winning_balance ??
+      pl?.player_winning_bal;
     const cashoutRaw =
       rawData.cashout_limit ??
       rawData.player_cashout_limit ??
       rawData.cashoutLimit ??
+      pl?.cashout_limit ??
       p?.cashout_limit ??
       p?.player_cashout_limit ??
       p?.cashoutLimit;
@@ -536,6 +566,7 @@ export function useChatWebSocket({
       rawData.locked_balance ??
       rawData.player_locked_balance ??
       rawData.lockedBalance ??
+      pl?.locked_balance ??
       p?.locked_balance ??
       p?.player_locked_balance ??
       p?.lockedBalance;
@@ -659,7 +690,36 @@ export function useChatWebSocket({
             type: messageType,
             messagePreview: rawData.message?.substring(0, 30),
             sender: rawData.is_player_sender ? 'player' : 'admin',
+            hasPayload: !!rawData.payload,
+            payloadEvent: rawData.payload?.event,
           });
+
+          // Universal ledger extraction: run on ANY incoming message, independent of `type`.
+          // Backend events like game_redeem / game_recharge / recharge / cashout_completed
+          // deliver ledger changes inside a nested `payload` and may not use a `balanceUpdated`
+          // type. This guarantees the selected-player ledger is always in sync.
+          {
+            const pl = rawData.payload;
+            const hasLedger =
+              rawData.user_balance !== undefined ||
+              rawData.balance !== undefined ||
+              rawData.player_bal !== undefined ||
+              rawData.credits_balance !== undefined ||
+              rawData.cashout_limit !== undefined ||
+              rawData.locked_balance !== undefined ||
+              !!(
+                pl &&
+                (pl.credits_balance !== undefined ||
+                  pl.balance !== undefined ||
+                  pl.user_balance !== undefined ||
+                  pl.player_bal !== undefined ||
+                  pl.cashout_limit !== undefined ||
+                  pl.locked_balance !== undefined)
+              );
+            if (hasLedger) {
+              handleBalanceUpdate(rawData);
+            }
+          }
 
           const hasMessageContent = !!(rawData.message || rawData.text || rawData.is_file);
           const isMessageType = messageType === 'message' ||
@@ -731,10 +791,7 @@ export function useChatWebSocket({
               }
             }
 
-            // FIX #8: Single balance handler call
-            if (rawData.user_balance !== undefined || rawData.balance !== undefined || rawData.player_bal !== undefined) {
-              handleBalanceUpdate(rawData);
-            }
+            // Ledger extraction happens universally at the top of onMessage now.
           } else if (messageType === 'typing') {
             // FIX #2: Clear previous timeout before setting new one
             if (typingTimeoutRef.current) {

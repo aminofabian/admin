@@ -277,84 +277,85 @@ export function ChatComponent() {
         cashoutLimit?: string;
         lockedBalance?: string;
       }) => {
+        const incomingPlayerId = Number(data.playerId);
+
+        setSelectedPlayer((prev) => {
+          if (!prev || !Number.isFinite(incomingPlayerId) || Number(prev.user_id) !== incomingPlayerId) {
+            return prev;
+          }
+
+          const rawBalance = data.balance !== undefined && data.balance !== null ? String(data.balance).trim() : '';
+          // Accept "0" as a valid realtime value; only ignore empty/invalid placeholders.
+          const newBalance =
+            rawBalance !== '' && rawBalance !== 'undefined' ? rawBalance : prev.balance;
+          const newWinningBalance =
+            data.winningBalance !== undefined
+              ? normalizeWinningBalanceFromRealtime(data.winningBalance, prev.winningBalance)
+              : prev.winningBalance;
+
+          const rawCashout =
+            data.cashoutLimit !== undefined && data.cashoutLimit !== null
+              ? String(data.cashoutLimit).trim()
+              : undefined;
+          const rawLocked =
+            data.lockedBalance !== undefined && data.lockedBalance !== null
+              ? String(data.lockedBalance).trim()
+              : undefined;
+
+          const nextCashout =
+            rawCashout !== undefined && rawCashout !== 'undefined' ? rawCashout : prev.cashoutLimit;
+          const nextLocked =
+            rawLocked !== undefined && rawLocked !== 'undefined' ? rawLocked : prev.lockedBalance;
+
+          if (
+            newBalance === prev.balance &&
+            newWinningBalance === prev.winningBalance &&
+            nextCashout === prev.cashoutLimit &&
+            nextLocked === prev.lockedBalance
+          ) {
+            return prev;
+          }
+
+          const updated = {
+            ...prev,
+            balance: newBalance,
+            winningBalance: newWinningBalance,
+            cashoutLimit: nextCashout,
+            lockedBalance: nextLocked,
+          };
+
+          if (!IS_PROD) {
+            console.log('✅ [Chat Component] Updated selected player balance from websocket:', {
+              playerId: incomingPlayerId,
+              before: {
+                balance: prev.balance,
+                winningBalance: prev.winningBalance,
+                cashoutLimit: prev.cashoutLimit,
+                lockedBalance: prev.lockedBalance,
+              },
+              after: {
+                balance: updated.balance,
+                winningBalance: updated.winningBalance,
+                cashoutLimit: updated.cashoutLimit,
+                lockedBalance: updated.lockedBalance,
+              },
+            });
+          }
+
+          return updated;
+        });
+
         if (!IS_PROD) {
-          console.log('💰 [Chat Component] Balance updated via WebSocket callback:', {
+          console.log('💰 [Chat Component] Balance update received via WebSocket:', {
             playerId: data.playerId,
             balance: data.balance,
             winningBalance: data.winningBalance,
             cashoutLimit: data.cashoutLimit,
             lockedBalance: data.lockedBalance,
-            selectedPlayerId: selectedPlayer?.user_id,
-            matchesSelectedPlayer: selectedPlayer?.user_id === data.playerId,
           });
         }
-
-        // Update selected player's balance if this is the current player
-        // Always create a new object to ensure React detects the change
-        if (selectedPlayer && selectedPlayer.user_id === data.playerId) {
-          setSelectedPlayer((prev) => {
-            if (!prev) return null;
-
-            // Parse balance values - handle both string and number formats
-            const newBalance =
-              data.balance && data.balance !== '0' && data.balance !== 'undefined'
-                ? String(data.balance)
-                : prev.balance;
-            const newWinningBalance =
-              data.winningBalance !== undefined
-                ? normalizeWinningBalanceFromRealtime(data.winningBalance, prev.winningBalance)
-                : undefined;
-
-            const nextCashout =
-              data.cashoutLimit !== undefined ? String(data.cashoutLimit) : prev.cashoutLimit;
-            const nextLocked =
-              data.lockedBalance !== undefined ? String(data.lockedBalance) : prev.lockedBalance;
-
-            // Only update if values actually changed to avoid unnecessary re-renders
-            if (
-              newBalance === prev.balance &&
-              newWinningBalance === prev.winningBalance &&
-              nextCashout === prev.cashoutLimit &&
-              nextLocked === prev.lockedBalance
-            ) {
-              if (!IS_PROD) console.log('⏭️ [Chat Component] Balance values unchanged, skipping update');
-              return prev;
-            }
-
-            const updated = {
-              ...prev,
-              balance: newBalance,
-              winningBalance: newWinningBalance,
-              cashoutLimit: nextCashout,
-              lockedBalance: nextLocked,
-            };
-
-            if (!IS_PROD) {
-              console.log('✅ [Chat Component] Updated selected player balance:', {
-                before: {
-                  balance: prev.balance,
-                  winningBalance: prev.winningBalance,
-                  cashoutLimit: prev.cashoutLimit,
-                  lockedBalance: prev.lockedBalance,
-                },
-                after: {
-                  balance: updated.balance,
-                  winningBalance: updated.winningBalance,
-                  cashoutLimit: updated.cashoutLimit,
-                  lockedBalance: updated.lockedBalance,
-                },
-                objectReferenceChanged: prev !== updated,
-              });
-            }
-
-            return updated;
-          });
-        }
-
-        // Balance updates are handled by websocket in real-time, no need to refresh
-        // The chat list websocket will update balances automatically
       },
-      [selectedPlayer],
+      [],
     ),
   });
 
@@ -956,6 +957,58 @@ export function ChatComponent() {
       selectedPlayer ? mergeWinningBalanceFromDirectoryRow(selectedPlayer, displayedPlayers) : null,
     [selectedPlayer, displayedPlayers],
   );
+
+  // Keep `selectedPlayer` ledger fields (balance / winningBalance / cashoutLimit / lockedBalance)
+  // in sync with realtime chat-list WebSocket updates. The chat-list WS always runs while chat
+  // is open and updates `activeChatsUsers` + `allPlayers` on balanceUpdated events, even when
+  // the change originates on the player side. Without this, merges in `displayedPlayers` can
+  // prefer stale REST data and the manual-balance UI stays stale until reload.
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    const userId = selectedPlayer.user_id;
+    const canonical =
+      activeChatsUsers.find((p) => p.user_id === userId) ||
+      allPlayers.find((p) => p.user_id === userId);
+    if (!canonical) return;
+
+    const toTrimmed = (value: string | undefined | null): string | undefined => {
+      if (value === undefined || value === null) return undefined;
+      const trimmed = String(value).trim();
+      return trimmed === '' ? undefined : trimmed;
+    };
+
+    const nextBalance = toTrimmed(canonical.balance);
+    const nextCashout = toTrimmed(canonical.cashoutLimit);
+    const nextLocked = toTrimmed(canonical.lockedBalance);
+    const nextWinning = Object.prototype.hasOwnProperty.call(canonical, 'winningBalance')
+      ? canonical.winningBalance
+      : undefined;
+
+    const currentBalance = toTrimmed(selectedPlayer.balance);
+    const currentCashout = toTrimmed(selectedPlayer.cashoutLimit);
+    const currentLocked = toTrimmed(selectedPlayer.lockedBalance);
+    const currentWinning = selectedPlayer.winningBalance;
+
+    const balanceChanged = nextBalance !== undefined && nextBalance !== currentBalance;
+    const cashoutChanged = nextCashout !== undefined && nextCashout !== currentCashout;
+    const lockedChanged = nextLocked !== undefined && nextLocked !== currentLocked;
+    const winningChanged =
+      Object.prototype.hasOwnProperty.call(canonical, 'winningBalance') &&
+      nextWinning !== currentWinning;
+
+    if (!balanceChanged && !cashoutChanged && !lockedChanged && !winningChanged) return;
+
+    setSelectedPlayer((prev) => {
+      if (!prev || prev.user_id !== userId) return prev;
+      return {
+        ...prev,
+        ...(balanceChanged ? { balance: nextBalance } : {}),
+        ...(cashoutChanged ? { cashoutLimit: nextCashout } : {}),
+        ...(lockedChanged ? { lockedBalance: nextLocked } : {}),
+        ...(winningChanged ? { winningBalance: nextWinning } : {}),
+      };
+    });
+  }, [selectedPlayer, activeChatsUsers, allPlayers]);
 
   // Determine which loading state to show based on active tab
   const isCurrentTabLoading = useMemo(() => {
