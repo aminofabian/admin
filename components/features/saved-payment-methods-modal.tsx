@@ -42,6 +42,16 @@ function cardDisplayLine(method: SavedPaymentMethod): string | null {
   return null;
 }
 
+function firstNonEmpty(...values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return null;
+}
+
 function savedMethodDetailLines(method: SavedPaymentMethod): string[] {
   const lines: string[] = [];
   const holder =
@@ -54,9 +64,14 @@ function savedMethodDetailLines(method: SavedPaymentMethod): string[] {
   const accountLine =
     method.account_number?.trim() ||
     method.account_info?.trim() ||
+    firstNonEmpty(method.paypal_email, method.payer_email, method.customer_email, method.email) ||
     cardDisplayLine(method);
   if (accountLine) {
     lines.push(accountLine);
+  }
+  const providerReference = firstNonEmpty(method.provider_ref_id, method.provider_player_ref);
+  if (providerReference) {
+    lines.push(`Ref: ${providerReference}`);
   }
   if (method.expiry_date?.trim()) {
     lines.push(`Expires ${method.expiry_date.trim()}`);
