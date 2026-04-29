@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import { WEBSOCKET_BASE_URL } from '@/lib/constants/api';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
+import { websocketManager, createAuthenticatedWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { TransactionQueue, Transaction } from '@/types';
 import {
   patchGameActivityMergedDataCreditsFromWs,
@@ -255,7 +255,7 @@ export function useProcessingWebSocket({
 
     // Fix security issue: encode username to prevent injection
     const encodedUsername = encodeURIComponent(user.username);
-    const wsUrl = createWebSocketUrl(WEBSOCKET_BASE_URL, `/ws/notifications/${encodedUsername}/`);
+    const wsUrl = createAuthenticatedWebSocketUrl(WEBSOCKET_BASE_URL, `/ws/notifications/${encodedUsername}/`);
 
     console.log('🔌 WebSocket URL:', wsUrl);
     return wsUrl;

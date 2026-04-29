@@ -5,7 +5,7 @@ import { TOKEN_KEY } from '@/lib/constants/api';
 import { isValidTimestamp } from '@/lib/utils/formatters';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { websocketManager, createWebSocketUrl, debounce, type WebSocketListeners } from '@/lib/websocket-manager';
+import { websocketManager, createAuthenticatedWebSocketUrl, debounce, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
 import {
   extractUnreadCount,
@@ -219,7 +219,7 @@ export function useChatUsers({ adminId, enabled = true }: UseChatUsersParams): U
 
     try {
       // Build WebSocket URL for chat list
-      const wsUrl = createWebSocketUrl(WEBSOCKET_BASE_URL, '/ws/chatlist/', { user_id: adminId });
+      const wsUrl = createAuthenticatedWebSocketUrl(WEBSOCKET_BASE_URL, '/ws/chatlist/', { user_id: adminId });
       wsUrlRef.current = wsUrl;
 
       if (!IS_PROD) console.log('🔌 [Chat Users] Connecting to managed WebSocket:', wsUrl);

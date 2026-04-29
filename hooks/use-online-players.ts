@@ -5,7 +5,7 @@ import { TOKEN_KEY } from '@/lib/constants/api';
 import { isValidTimestamp } from '@/lib/utils/formatters';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
+import { websocketManager, createAuthenticatedWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatUser } from '@/types';
 import {
   extractChatListServerCounts,
@@ -330,7 +330,7 @@ export function useOnlinePlayers({ adminId, enabled = true }: UseOnlinePlayersPa
 
     try {
       // Use the same URL as useChatUsers to share connection
-      const wsUrl = createWebSocketUrl(WEBSOCKET_BASE_URL, '/ws/chatlist/', { user_id: adminId });
+      const wsUrl = createAuthenticatedWebSocketUrl(WEBSOCKET_BASE_URL, '/ws/chatlist/', { user_id: adminId });
       wsUrlRef.current = wsUrl;
 
       !IS_PROD && console.log('🔌 [Online Players] Connecting to managed WebSocket:', wsUrl);

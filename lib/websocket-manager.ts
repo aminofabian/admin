@@ -3,6 +3,12 @@
  * Eliminates duplicate connections and provides consistent reconnection logic
  */
 
+import { TOKEN_KEY } from '@/lib/constants/api';
+import { storage } from '@/lib/utils/storage';
+
+/** Query parameter name expected by the backend WebSocket gateways for JWT validation */
+const WEBSOCKET_ACCESS_TOKEN_QUERY = 'token' as const;
+
 export interface WebSocketConfig {
   url: string;
   maxReconnectAttempts?: number;
@@ -318,6 +324,23 @@ export function createWebSocketUrl(base: string, path: string, params: Record<st
   });
 
   return url.toString();
+}
+
+/**
+ * Same as {@link createWebSocketUrl}, but adds `token=<JWT>` from localStorage
+ * so the backend can authenticate the connecting user (Bearer equivalent on WS handshake).
+ */
+export function createAuthenticatedWebSocketUrl(
+  base: string,
+  path: string,
+  params: Record<string, string | number> = {},
+): string {
+  const accessToken = storage.get(TOKEN_KEY);
+  const merged: Record<string, string | number> = { ...params };
+  if (accessToken) {
+    merged[WEBSOCKET_ACCESS_TOKEN_QUERY] = accessToken;
+  }
+  return createWebSocketUrl(base, path, merged);
 }
 
 // Debounce utility for rapid updates

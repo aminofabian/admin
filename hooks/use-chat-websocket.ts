@@ -3,7 +3,7 @@ import { API_BASE_URL, WEBSOCKET_BASE_URL, TOKEN_KEY } from '@/lib/constants/api
 import { storage } from '@/lib/utils/storage';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { websocketManager, createWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
+import { websocketManager, createAuthenticatedWebSocketUrl, type WebSocketListeners } from '@/lib/websocket-manager';
 import type { ChatMessage, WebSocketMessage } from '@/types';
 
 // Production mode check
@@ -630,7 +630,9 @@ export function useChatWebSocket({
       activeConnectionKeyRef.current = connectionKey;
 
       const roomName = `P${userId}Chat`;
-      const wsUrl = createWebSocketUrl(WEBSOCKET_BASE_URL, `/ws/cschat/${roomName}/`, { user_id: adminId });
+      const wsUrl = createAuthenticatedWebSocketUrl(WEBSOCKET_BASE_URL, `/ws/cschat/${roomName}/`, {
+        user_id: adminId,
+      });
       wsUrlRef.current = wsUrl;
 
       !IS_PROD && console.log('🔌 Connecting to chat WebSocket via manager:', wsUrl);

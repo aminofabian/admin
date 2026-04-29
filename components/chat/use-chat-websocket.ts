@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { API_BASE_URL, WEBSOCKET_BASE_URL } from '@/lib/constants/api';
+import { API_BASE_URL, WEBSOCKET_BASE_URL, TOKEN_KEY } from '@/lib/constants/api';
+import { createAuthenticatedWebSocketUrl } from '@/lib/websocket-manager';
 import { storage } from '@/lib/utils/storage';
-import { TOKEN_KEY } from '@/lib/constants/api';
 import type { ChatMessage } from '@/types';
 import { useMessageCache } from './hooks/use-message-cache';
 
@@ -603,9 +603,10 @@ export function useChatReset({
       const connectionKey = `${userId}:${chatId ?? 'none'}`;
       activeConnectionKeyRef.current = connectionKey;
 
-      // Build WebSocket URL
       const roomName = `P${userId}Chat`;
-      const wsUrl = `${WEBSOCKET_BASE_URL}/ws/cschat/${roomName}/?user_id=${adminId}`;
+      const wsUrl = createAuthenticatedWebSocketUrl(WEBSOCKET_BASE_URL, `/ws/cschat/${roomName}/`, {
+        user_id: adminId,
+      });
 
       if (!IS_PROD) console.log('🔌 Connecting to chat WebSocket:', wsUrl);
 
