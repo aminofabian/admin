@@ -9,6 +9,16 @@ export const USER_ROLES = {
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
+/** Human-readable dashboard labels aligned with backend `role` codes. */
+export const USER_ROLE_LABELS: Record<UserRole, string> = {
+  [USER_ROLES.SUPERADMIN]: 'Superadmin',
+  [USER_ROLES.COMPANY]: 'Company',
+  [USER_ROLES.MANAGER]: 'Manager',
+  [USER_ROLES.AGENT]: 'Agent',
+  [USER_ROLES.STAFF]: 'Staff',
+  [USER_ROLES.PLAYER]: 'Player',
+};
+
 export const ADMIN_ROLES: UserRole[] = [
   USER_ROLES.SUPERADMIN,
   USER_ROLES.COMPANY,

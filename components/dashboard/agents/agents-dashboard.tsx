@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { dashboardPaths } from '@/lib/constants/dashboard-paths';
 import { agentsApi, transactionsApi, affiliatesApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
 import { validatePassword } from '@/lib/utils/password-validation';
@@ -432,19 +433,30 @@ function AgentCard({ agent, onOpenActions }: AgentCardProps) {
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
-              {agent.username.charAt(0).toUpperCase()}
-            </div>
+            <Link
+              href={dashboardPaths.agentDetail(agent.id)}
+              className="block touch-manipulation"
+              aria-label={`View agent ${agent.username}`}
+            >
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md hover:opacity-90 transition-opacity">
+                {agent.username.charAt(0).toUpperCase()}
+              </div>
+            </Link>
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                  {agent.username}
-                </h3>
-                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-0.5">
-                  {agent.role}
-                </p>
+                <Link
+                  href={dashboardPaths.agentDetail(agent.id)}
+                  className="block group touch-manipulation"
+                >
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    {agent.username}
+                  </h3>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mt-0.5">
+                    {agent.role}
+                  </p>
+                </Link>
               </div>
               <Badge 
                 variant={styles.statusVariant} 
@@ -591,17 +603,20 @@ function AgentRow({ agent, onOpenActions }: AgentRowProps) {
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <TableCell>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm">
+        <Link
+          href={dashboardPaths.agentDetail(agent.id)}
+          className="flex items-center gap-3 group cursor-pointer"
+        >
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm group-hover:opacity-90 transition-opacity">
             {agent.username.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="font-medium text-gray-900 dark:text-gray-100">
+            <div className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
               {agent.username}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">{agent.role}</div>
           </div>
-        </div>
+        </Link>
       </TableCell>
       <TableCell>
         <div className="text-sm text-gray-700 dark:text-gray-300">{agent.email}</div>
@@ -936,6 +951,7 @@ type AgentActionsDrawerProps = {
   isOpen: boolean;
   agent: Agent | null;
   onClose: () => void;
+  onOpenDetailPage: () => void;
   onViewTransactions: () => void;
   onViewPlayers: () => void;
   onEditProfile: () => void;
@@ -947,6 +963,7 @@ function AgentActionsDrawer({
   isOpen,
   agent,
   onClose,
+  onOpenDetailPage,
   onViewTransactions,
   onViewPlayers,
   onEditProfile,
@@ -958,6 +975,21 @@ function AgentActionsDrawer({
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={`Actions for ${agent.username}`} size="sm">
       <div className="space-y-3">
+        <Button
+          variant="ghost"
+          onClick={onOpenDetailPage}
+          className="w-full justify-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <span>Agent profile</span>
+        </Button>
         <Button
           variant="ghost"
           onClick={onViewTransactions}
@@ -1086,6 +1118,7 @@ type AgentsDashboardViewProps = {
   onUpdateCommission: (data: UpdateAffiliateRequest) => Promise<void>;
   onOpenViewStats: (agent: Agent) => void;
   onCloseViewStats: () => void;
+  onNavigateToDetail: (agent: Agent) => void;
 };
 
 function AgentsDashboardView({
@@ -1128,6 +1161,7 @@ function AgentsDashboardView({
   onUpdateCommission,
   onOpenViewStats,
   onCloseViewStats,
+  onNavigateToDetail,
 }: AgentsDashboardViewProps) {
   if (isLoading) {
     return (
@@ -1226,6 +1260,10 @@ function AgentsDashboardView({
         isOpen={actionDrawerState.isOpen}
         agent={agent}
         onClose={onCloseActions}
+        onOpenDetailPage={() => {
+          onCloseActions();
+          if (agent) onNavigateToDetail(agent);
+        }}
         onViewTransactions={() => {
           onCloseActions();
           if (agent) void onViewTransactions(agent);
@@ -1346,7 +1384,7 @@ export default function AgentsDashboard() {
       } else {
         // Transactions exist - redirect to transactions page with agent filter
         console.log('🔀 Redirecting to transactions page');
-        router.push(`/dashboard/transactions?agent=${encodeURIComponent(agent.username)}`);
+        router.push(dashboardPaths.transactionsWithAgentUsernameQuery(agent.username));
       }
     } catch (error) {
       console.error('❌ Failed to check agent transactions:', error);
@@ -1361,8 +1399,15 @@ export default function AgentsDashboard() {
 
   const viewPlayers = useCallback((agent: Agent) => {
     // Redirect to players page with agent filter (using username like in players page filter)
-    router.push(`/dashboard/players?agent=${encodeURIComponent(agent.username)}`);
+    router.push(dashboardPaths.playersWithAgentUsernameQuery(agent.username));
   }, [router]);
+
+  const navigateToAgentDetail = useCallback(
+    (agent: Agent) => {
+      router.push(dashboardPaths.agentDetail(agent.id));
+    },
+    [router],
+  );
 
   const handleOpenEditProfile = useCallback((agent: Agent) => {
     // Agent may have optional fields from API that aren't in the type definition
@@ -1761,6 +1806,7 @@ export default function AgentsDashboard() {
       onUpdateCommission={handleUpdateCommission}
       onOpenViewStats={handleOpenViewStats}
       onCloseViewStats={handleCloseViewStats}
+      onNavigateToDetail={navigateToAgentDetail}
     />
   );
 }

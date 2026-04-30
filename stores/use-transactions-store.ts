@@ -27,6 +27,9 @@ const CARD_MERGE_MAX_DEPTH = 2500;
  */
 const CARD_MERGE_MIN_DEPTH = 200;
 
+/** When a fetch runs while another is in flight, rerun once afterward with latest filters. */
+let deferTransactionsFetch = false;
+
 type FilterType = 
   | 'all' 
   | 'purchases' 
@@ -83,10 +86,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   ...initialState,
 
   fetchTransactions: async () => {
-    // Skip fetch if we're already loading (prevent concurrent requests)
+    // Skip concurrent requests — schedule one follow-up with the newest filter/page state.
     const currentState = get();
     if (currentState.isLoading) {
-      console.log('⏭️ Skipping transactions fetch - already loading');
+      deferTransactionsFetch = true;
+      console.log('⏭️ Skipping transactions fetch - already loading (scheduled refetch)');
       return;
     }
 
@@ -561,32 +565,38 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         };
       });
 
-      set({ 
+      set({
         transactions: {
           ...response,
           results: normalizedTransactions,
           count: response.count ?? normalizedTransactions.length,
-        }, 
+        },
         isLoading: false,
         error: null,
       });
     } catch (err: unknown) {
       let errorMessage = 'Failed to load transactions';
-      
+
       if (err && typeof err === 'object' && 'detail' in err) {
         errorMessage = String(err.detail);
-        
+
         if (errorMessage.toLowerCase().includes('permission')) {
           errorMessage = 'Access Denied: You need appropriate privileges to view transactions.';
         }
       } else if (err instanceof Error) {
         errorMessage = err.message;
       }
-      
-      set({ 
+
+      set({
         error: errorMessage,
         isLoading: false,
       });
+    }
+
+    const shouldRefetchAfter = deferTransactionsFetch;
+    deferTransactionsFetch = false;
+    if (shouldRefetchAfter) {
+      void get().fetchTransactions();
     }
   },
 

@@ -621,6 +621,19 @@ export const formatPercentage = (value: string | number): string => {
   return `${numValue.toFixed(2)}%`;
 };
 
+const EMPTY_DISPLAY_DASH = '\u2014';
+
+/** Percentage placeholder when API omits or returns non-numeric values. */
+export const formatPercentageOrEmpty = (
+  value: string | number | null | undefined,
+  emptyDisplay: string = EMPTY_DISPLAY_DASH,
+): string => {
+  if (value === null || value === undefined || value === '') return emptyDisplay;
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (!Number.isFinite(numValue)) return emptyDisplay;
+  return formatPercentage(numValue);
+};
+
 /** API ledger N/A is often "-" or empty (e.g. cashout limit on purchases). */
 export function formatLedgerAmountDisplay(raw: string | number | null | undefined): string | null {
   if (raw === null || raw === undefined) return null;

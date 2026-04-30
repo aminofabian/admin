@@ -45,6 +45,8 @@ export const agentsApi = {
       params: filters,
     }),
 
+  get: (id: number) => apiClient.get<Agent>(`api/admin/agents/${id}`),
+
   create: (data: CreateUserRequest) => 
     apiClient.post<Agent>('api/admin/agents', data),
 

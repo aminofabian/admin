@@ -2,6 +2,7 @@ import {
   formatDate,
   formatCurrency,
   formatPercentage,
+  formatPercentageOrEmpty,
   getPaymentDetailsForDisplay,
   getProviderDisplayName,
   getPurchaseBonusPaymentLabel,
@@ -75,6 +76,20 @@ describe('formatters', () => {
     it('should format string numbers correctly', () => {
       expect(formatPercentage('12.34')).toBe('12.34%');
       expect(formatPercentage('0')).toBe('0.00%');
+    });
+  });
+
+  describe('formatPercentageOrEmpty', () => {
+    it('returns em dash for missing or invalid input', () => {
+      expect(formatPercentageOrEmpty(undefined)).toBe('\u2014');
+      expect(formatPercentageOrEmpty(null)).toBe('\u2014');
+      expect(formatPercentageOrEmpty('')).toBe('\u2014');
+      expect(formatPercentageOrEmpty('x')).toBe('\u2014');
+    });
+
+    it('formats finite numbers like formatPercentage', () => {
+      expect(formatPercentageOrEmpty(5)).toBe('5.00%');
+      expect(formatPercentageOrEmpty('3.25')).toBe('3.25%');
     });
   });
 

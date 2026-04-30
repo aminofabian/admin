@@ -53,6 +53,9 @@ interface TransactionQueuesActions {
 
 type TransactionQueuesStore = TransactionQueuesState & TransactionQueuesActions;
 
+/** When fetchQueues runs while another is in flight, rerun once with latest filters. */
+let deferQueuesFetch = false;
+
 const initialState: TransactionQueuesState = {
   queues: null,
   isLoading: false,
@@ -73,10 +76,10 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
   ...initialState,
 
   fetchQueues: async () => {
-    // Skip fetch if we're already loading (prevent concurrent requests)
     const currentState = get();
     if (currentState.isLoading) {
-      console.log('⏭️ Skipping fetch - already loading');
+      deferQueuesFetch = true;
+      console.log('⏭️ Skipping fetch - already loading (scheduled refetch)');
       return;
     }
 
@@ -263,10 +266,16 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
         errorMessage = err.message;
       }
       
-      set({ 
+      set({
         error: errorMessage,
         isLoading: false,
       });
+    }
+
+    const shouldRefetchQueuesAfter = deferQueuesFetch;
+    deferQueuesFetch = false;
+    if (shouldRefetchQueuesAfter) {
+      void get().fetchQueues();
     }
   },
 
