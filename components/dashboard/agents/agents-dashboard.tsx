@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { dashboardPaths } from '@/lib/constants/dashboard-paths';
 import { agentsApi, transactionsApi, affiliatesApi } from '@/lib/api';
 import { usePagination } from '@/lib/hooks';
