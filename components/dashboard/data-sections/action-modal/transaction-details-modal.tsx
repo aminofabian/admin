@@ -11,7 +11,6 @@ import {
   isCryptoPaymentMethod,
 } from '@/lib/utils/formatters';
 import type { Transaction } from '@/types';
-import { PROJECT_DOMAIN } from '@/lib/constants/api';
 import { playersApi } from '@/lib/api';
 import {
   DetailsModalWrapper,
@@ -191,14 +190,10 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
   const explicitInvoiceUrl = useMemo(() => transaction.payment_url ?? transaction.invoice_url, [transaction.payment_url, transaction.invoice_url]);
   const sanitizedInvoiceUrl = useMemo(() => typeof explicitInvoiceUrl === 'string' ? explicitInvoiceUrl.trim() : '', [explicitInvoiceUrl]);
-  const invoiceUrl = useMemo(() => {
-    if (sanitizedInvoiceUrl.length > 0) {
-      return sanitizedInvoiceUrl;
-    }
-    return transaction.id
-      ? `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${transaction.id}/invoice/`
-      : undefined;
-  }, [sanitizedInvoiceUrl, transaction.id]);
+  const invoiceUrl = useMemo(
+    () => (sanitizedInvoiceUrl.length > 0 ? sanitizedInvoiceUrl : undefined),
+    [sanitizedInvoiceUrl],
+  );
 
   const formattedCreatedAt = useMemo(() => formatDate(transaction.created_at), [transaction.created_at]);
   const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated_at), [transaction.updated_at]);
