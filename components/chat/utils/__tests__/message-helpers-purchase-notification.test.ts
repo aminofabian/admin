@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPurchaseNotification, parseTransactionMessage } from '../message-helpers';
+import { isAutoMessage, isPurchaseNotification, parseTransactionMessage } from '../message-helpers';
 
 describe('isPurchaseNotification', () => {
   it('should not treat colloquial player text about cashing out as a purchase notification', () => {
@@ -20,6 +20,26 @@ describe('isPurchaseNotification', () => {
         sender: 'player',
       }),
     ).toBe(true);
+  });
+
+  it('should not treat signup bonus welcome copy as a purchase/transaction card', () => {
+    const msg = {
+      text: 'Added 20 signup bonus for u',
+      type: 'purchase_notification' as const,
+      userId: 0,
+    };
+    expect(isPurchaseNotification(msg)).toBe(false);
+    expect(isAutoMessage(msg)).toBe(false);
+  });
+
+  it('should treat ledger-style signup bonus (amount + balance) as a transaction card', () => {
+    const msg = {
+      text: '$2.00 added as Sign Up Bonus.<br />Balance: $2.00',
+      type: 'message' as const,
+      sender: 'player' as const,
+    };
+    expect(isPurchaseNotification(msg)).toBe(true);
+    expect(isAutoMessage(msg)).toBe(false);
   });
 });
 

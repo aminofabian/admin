@@ -53,6 +53,26 @@ export const stripHtml = (html: string): string => {
 };
 
 /**
+ * Informal signup-bonus chat (e.g. "Added 20 signup bonus for u") — regular bubble.
+ * Ledger-style copy (amount + "added as Sign Up Bonus", Balance:/Credits:/Winnings:) stays a transaction card.
+ */
+function isSignupBonusChatCopy(message: { text: string }): boolean {
+  if (!message.text) return false;
+  const plain = stripHtml(message.text);
+  if (!/sign[\s-]?up bonus/i.test(plain) && !/sign[\s-]?up bonus/i.test(message.text)) {
+    return false;
+  }
+  const lower = plain.toLowerCase();
+  if (/\bbalance\s*:/i.test(lower) || /\bcredits?\s*:/i.test(lower) || /winnings?\s*:/i.test(lower)) {
+    return false;
+  }
+  if (/\$[\d,]+\.?\d*\s+added as\s+sign[\s-]?up bonus/i.test(plain)) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Remove "Winnings: …" lines from server chat templates (single-balance product).
  * Handles HTML `<br>` blocks and plain newlines.
  */
@@ -108,6 +128,7 @@ export const formatMessageDate = (dateString: string): string => {
 // Check if a message is a purchase notification (should be displayed centered)
 export const isPurchaseNotification = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
   if (!message.text) return false;
+  if (isSignupBonusChatCopy(message)) return false;
 
   // Strip HTML tags for pattern matching
   const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
@@ -119,8 +140,10 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
     /purchased via/i,
     /purchased \(credited by admin\)/i,
     /credited by admin/i,
-    /sign[\s-]?up bonus/i,
-    /added as sign[\s-]?up bonus/i,
+    /\$[\d,]+\.?\d*\s+added as\s+sign[\s-]?up bonus/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bbalance\s*:/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bcredits?\s*:/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bwinnings?\s*:/i,
     // Do not match colloquial "cashed out" in player chat (e.g. "someone cashed out my winnings")
     /successfully cashed out/i,
     /recharged to/i,
@@ -222,6 +245,7 @@ export const removeAutomatedMessageHeading = (text: string): string => {
 // Check if a message is an auto/system message (not sent by staff)
 export const isAutoMessage = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
   if (!message.text) return false;
+  if (isSignupBonusChatCopy(message)) return false;
 
   // Strip HTML tags for pattern matching
   const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
@@ -232,7 +256,10 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
     /<b>recharge<\/b>/i,
     /^recharge$/i, // Only exact "recharge" word, not "purchased"
     /successfully recharged/i, // But not "successfully purchased"
-    /sign[\s-]?up bonus/i,
+    /\$[\d,]+\.?\d*\s+added as\s+sign[\s-]?up bonus/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bbalance\s*:/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bcredits?\s*:/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bwinnings?\s*:/i,
     /^system:/i,
     /^auto:/i,
     /^notification:/i,
