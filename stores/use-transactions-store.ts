@@ -5,6 +5,7 @@ import {
 } from '@/lib/utils/transaction-provider-filter-options';
 import { transactionsApi } from '@/lib/api';
 import { shouldPreserveLedgerBalancesWhenMerging } from '@/lib/utils/transaction-ledger-ws';
+import { mergeTransactionTextSnapshot } from '@/lib/utils/transaction-ws-merge';
 import { getTransactionKind } from '@/lib/utils/transaction-display';
 import type { 
   Transaction,
@@ -748,11 +749,21 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         const v = updatedTransaction[key];
         return v != null && String(v).trim() !== '';
       };
+      const mergedDescription = mergeTransactionTextSnapshot(
+        existingTransaction.description,
+        updatedTransaction.description,
+      );
+      const mergedRemarksRaw = mergeTransactionTextSnapshot(
+        existingTransaction.remarks,
+        updatedTransaction.remarks,
+      );
       const mergedTransaction: Transaction = {
         ...existingTransaction,
         ...updatedTransaction,
         user_username: updatedTransaction.user_username || existingTransaction.user_username || '',
         user_email: updatedTransaction.user_email || existingTransaction.user_email || '',
+        description: mergedDescription,
+        remarks: mergedRemarksRaw === '' ? null : mergedRemarksRaw,
         provider: hasWsProvider ? updatedTransaction.provider : existingTransaction.provider,
         payment_details: hasWsPaymentDetails ? updatedTransaction.payment_details : existingTransaction.payment_details,
         payment_method: hasWsPaymentMethod ? updatedTransaction.payment_method : existingTransaction.payment_method,

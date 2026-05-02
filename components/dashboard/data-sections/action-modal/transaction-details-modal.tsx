@@ -12,6 +12,7 @@ import {
 } from '@/lib/utils/formatters';
 import type { Transaction } from '@/types';
 import { playersApi } from '@/lib/api';
+import { mergeTransactionTextSnapshot } from '@/lib/utils/transaction-ws-merge';
 import {
   DetailsModalWrapper,
   DetailsCard,
@@ -198,6 +199,11 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   const formattedCreatedAt = useMemo(() => formatDate(transaction.created_at), [transaction.created_at]);
   const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated_at), [transaction.updated_at]);
 
+  const remarksForDisplay = useMemo(
+    () => mergeTransactionTextSnapshot(transaction.description, transaction.remarks),
+    [transaction.description, transaction.remarks],
+  );
+
   const handleOpenInvoice = useCallback(() => {
     if (invoiceUrl) {
       window.open(invoiceUrl, '_blank', 'noopener,noreferrer');
@@ -377,8 +383,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
               <DetailsField label="Updated" value={formattedUpdatedAt} />
             </DetailsRow>
 
-            {/* Remarks/Description */}
-            {transaction.description && <DetailsRemarks remarks={transaction.description} />}
+            {/* Remarks: API `description` (and optional `remarks`) — merged so list + WS snapshots stay aligned */}
+            {remarksForDisplay.trim().length > 0 ? <DetailsRemarks remarks={remarksForDisplay} /> : null}
 
             {/* View Invoice Button for Crypto Payments - Only for Purchases */}
             {isPurchase && isCryptoPayment && invoiceUrl && (
