@@ -9,7 +9,12 @@ import { formatCurrency } from '@/lib/utils/formatters';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo, type ReactNode } from 'react';
 import type { AnalyticsFilters } from '@/lib/api/analytics';
-import { US_STATES, getDateRange } from '../analytics-utils';
+import {
+  US_STATES,
+  getDateRange,
+  buildAnalyticsFiltersWithDatePreset,
+} from '../analytics-utils';
+import { useUserIanaTimezone } from '@/hooks/use-user-iana-timezone';
 
 function CardSkel() {
   return (
@@ -65,6 +70,7 @@ export default function GameActivityAnalyticsPage() {
   const [state, setState] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | ''>('');
   const [showFilters, setShowFilters] = useState(true);
+  const timezone = useUserIanaTimezone();
 
   useEffect(() => {
     const range = getDateRange(datePreset);
@@ -72,15 +78,19 @@ export default function GameActivityAnalyticsPage() {
     setEndDate(range.end);
   }, [datePreset]);
 
-  const filters = useMemo<AnalyticsFilters>(() => {
-    const f: AnalyticsFilters = {};
-    if (startDate) f.start_date = startDate;
-    if (endDate) f.end_date = endDate;
-    if (username) f.username = username;
-    if (state) f.state = state;
-    if (gender) f.gender = gender;
-    return f;
-  }, [startDate, endDate, username, state, gender]);
+  const filters = useMemo(
+    (): AnalyticsFilters =>
+      buildAnalyticsFiltersWithDatePreset({
+        datePreset,
+        startDate,
+        endDate,
+        timezone,
+        username,
+        state,
+        gender,
+      }),
+    [datePreset, startDate, endDate, timezone, username, state, gender],
+  );
 
   const { data: gameSummary, loading: loadingGameSummary, error: gameSummaryError } = useGameSummary(filters);
   const { data: gamesByGame, loading: loadingGamesByGame, error: gamesByGameError } = useGamesByGame(filters);

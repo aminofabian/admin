@@ -1,3 +1,5 @@
+import type { AnalyticsFilters } from '@/lib/api/analytics';
+
 // US States for filter
 export const US_STATES = [
   { value: '', label: 'All States' },
@@ -53,6 +55,47 @@ export const US_STATES = [
   { value: 'WY', label: 'Wyoming' },
 ];
 
+/** Calendar date in the user's local timezone (YYYY-MM-DD). Never use toISOString().split('T')[0] for this — it shifts the day across UTC boundaries. */
+export function formatLocalCalendarDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Builds query params for analytics APIs: preset+timezone for today/yesterday,
+ * otherwise start_date+end_date+timezone (calendar dates in local TZ).
+ */
+export function buildAnalyticsFiltersWithDatePreset(input: {
+  datePreset: string;
+  startDate: string;
+  endDate: string;
+  timezone: string;
+  username?: string;
+  state?: string;
+  gender?: 'male' | 'female' | '';
+}): AnalyticsFilters {
+  const f: AnalyticsFilters = { timezone: input.timezone };
+
+  if (input.username?.trim()) f.username = input.username.trim();
+  if (input.state) f.state = input.state;
+  if (input.gender) f.gender = input.gender;
+
+  if (input.datePreset === 'today') {
+    f.preset = 'today';
+    return f;
+  }
+  if (input.datePreset === 'yesterday') {
+    f.preset = 'yesterday';
+    return f;
+  }
+
+  if (input.startDate) f.start_date = input.startDate;
+  if (input.endDate) f.end_date = input.endDate;
+  return f;
+}
+
 // Helper to get date range for preset
 export function getDateRange(preset: string): { start: string; end: string } {
   const today = new Date();
@@ -97,7 +140,8 @@ export function getDateRange(preset: string): { start: string; end: string } {
   }
 
   return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
+    start: formatLocalCalendarDate(start),
+    end: formatLocalCalendarDate(end),
   };
 }
+

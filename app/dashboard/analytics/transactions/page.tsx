@@ -13,7 +13,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import type { AnalyticsFilters } from '@/lib/api/analytics';
 
-import { US_STATES, getDateRange } from '../analytics-utils';
+import {
+  US_STATES,
+  getDateRange,
+  buildAnalyticsFiltersWithDatePreset,
+} from '../analytics-utils';
+import { useUserIanaTimezone } from '@/hooks/use-user-iana-timezone';
 
 function TableSkel() {
   return (
@@ -45,6 +50,49 @@ function apiFieldLabel(apiKey: string): string {
     .join(' ');
 }
 
+function parseYmdLocal(ymd: string): Date | null {
+  if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Human-readable range + current local time for the filter hint line. */
+function describeTransactionFilterRange(
+  datePreset: string,
+  startDate: string,
+  endDate: string,
+  timezone: string,
+): string {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const dateStr = (d: Date) =>
+    d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+  if (datePreset === 'today') {
+    const day = parseYmdLocal(startDate) ?? now;
+    const midnight = new Date(day);
+    midnight.setHours(0, 0, 0, 0);
+    const fromStr = midnight.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return `Range: Today — ${dateStr(day)}, ${fromStr} → now (${timeStr}). Time zone: ${timezone}.`;
+  }
+
+  if (datePreset === 'yesterday') {
+    const day = parseYmdLocal(startDate) ?? now;
+    return `Range: Yesterday — ${dateStr(day)} (full calendar day). Time zone: ${timezone}. As of ${timeStr}.`;
+  }
+
+  const s = parseYmdLocal(startDate);
+  const e = parseYmdLocal(endDate);
+  if (s && e) {
+    if (startDate === endDate) {
+      return `Range: ${dateStr(s)} (full calendar day). Time zone: ${timezone}. As of ${timeStr}.`;
+    }
+    return `Range: ${dateStr(s)} → ${dateStr(e)} (inclusive days). Time zone: ${timezone}. As of ${timeStr}.`;
+  }
+
+  return `Time zone: ${timezone}. As of ${timeStr}.`;
+}
+
 export default function TransactionAnalyticsPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -56,6 +104,7 @@ export default function TransactionAnalyticsPage() {
   const [state, setState] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | ''>('');
   const [showFilters, setShowFilters] = useState(true);
+  const timezone = useUserIanaTimezone();
 
   useEffect(() => {
     const range = getDateRange(datePreset);
@@ -63,15 +112,19 @@ export default function TransactionAnalyticsPage() {
     setEndDate(range.end);
   }, [datePreset]);
 
-  const filters = useMemo<AnalyticsFilters>(() => {
-    const f: AnalyticsFilters = {};
-    if (startDate) f.start_date = startDate;
-    if (endDate) f.end_date = endDate;
-    if (username) f.username = username;
-    if (state) f.state = state;
-    if (gender) f.gender = gender;
-    return f;
-  }, [startDate, endDate, username, state, gender]);
+  const filters = useMemo(
+    (): AnalyticsFilters =>
+      buildAnalyticsFiltersWithDatePreset({
+        datePreset,
+        startDate,
+        endDate,
+        timezone,
+        username,
+        state,
+        gender,
+      }),
+    [datePreset, startDate, endDate, timezone, username, state, gender],
+  );
 
   const { data: transactionSummary, loading: loadingSummary, error: summaryError } =
     useTransactionSummary(filters);
@@ -119,6 +172,8 @@ export default function TransactionAnalyticsPage() {
     if (!transactionSummary) return null;
     return transactionSummary.total_purchase - transactionSummary.total_cashout;
   }, [transactionSummary]);
+
+  const filterRangeCaption = describeTransactionFilterRange(datePreset, startDate, endDate, timezone);
 
   return (
     <div className="space-y-4">
@@ -192,11 +247,14 @@ export default function TransactionAnalyticsPage() {
       )}
 
       {/* ── Filtered transaction summary + bonus (unified card) ── */}
-      <p className="text-[10px] text-muted-foreground px-0.5">
-        Filtered: {apiFieldLabel('total_purchase')}, {apiFieldLabel('total_cashout')}; payment{' '}
-        {apiFieldLabel('data.purchases')} / {apiFieldLabel('data.cashouts')}; {apiFieldLabel('purchase_methods')} /{' '}
-        {apiFieldLabel('cashout_methods')}; bonus fields.
-      </p>
+      <div className="text-[10px] text-muted-foreground px-0.5 space-y-0.5">
+        <p className="text-foreground/85 font-medium leading-snug">{filterRangeCaption}</p>
+        <p className="leading-snug">
+          Filtered: {apiFieldLabel('total_purchase')}, {apiFieldLabel('total_cashout')}; payment{' '}
+          {apiFieldLabel('data.purchases')} / {apiFieldLabel('data.cashouts')}; {apiFieldLabel('purchase_methods')} /{' '}
+          {apiFieldLabel('cashout_methods')}; bonus fields.
+        </p>
+      </div>
       <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
         {/* Revenue row */}
         {loadingSummary ? (

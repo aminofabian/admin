@@ -125,6 +125,10 @@ export interface GameByGame {
 
 // Filter Types
 export interface AnalyticsFilters extends Record<string, string | number | boolean | undefined> {
+  /** Backend interprets rolling calendar day boundaries in `timezone`; only with today/yesterday. */
+  preset?: 'today' | 'yesterday';
+  /** IANA zone, e.g. America/New_York — sent on every analytics range request. */
+  timezone?: string;
   start_date?: string;
   end_date?: string;
   username?: string;
