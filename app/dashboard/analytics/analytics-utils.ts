@@ -63,6 +63,50 @@ export function formatLocalCalendarDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Parse YYYY-MM-DD as a local calendar date (no UTC shift). */
+export function parseYmdLocal(ymd: string): Date | null {
+  if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Human-readable analytics range + current local time (for filter hint UI). */
+export function describeAnalyticsFilterRange(
+  datePreset: string,
+  startDate: string,
+  endDate: string,
+  timezone: string,
+): string {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const dateStr = (d: Date) =>
+    d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+  if (datePreset === 'today') {
+    const day = parseYmdLocal(startDate) ?? now;
+    const midnight = new Date(day);
+    midnight.setHours(0, 0, 0, 0);
+    const fromStr = midnight.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return `Range: Today — ${dateStr(day)}, ${fromStr} → now (${timeStr}). Time zone: ${timezone}.`;
+  }
+
+  if (datePreset === 'yesterday') {
+    const day = parseYmdLocal(startDate) ?? now;
+    return `Range: Yesterday — ${dateStr(day)} (full calendar day). Time zone: ${timezone}. As of ${timeStr}.`;
+  }
+
+  const s = parseYmdLocal(startDate);
+  const e = parseYmdLocal(endDate);
+  if (s && e) {
+    if (startDate === endDate) {
+      return `Range: ${dateStr(s)} (full calendar day). Time zone: ${timezone}. As of ${timeStr}.`;
+    }
+    return `Range: ${dateStr(s)} → ${dateStr(e)} (inclusive days). Time zone: ${timezone}. As of ${timeStr}.`;
+  }
+
+  return `Time zone: ${timezone}. As of ${timeStr}.`;
+}
+
 /**
  * Builds query params for analytics APIs: preset+timezone for today/yesterday,
  * otherwise start_date+end_date+timezone (calendar dates in local TZ).

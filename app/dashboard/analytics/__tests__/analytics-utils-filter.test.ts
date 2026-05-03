@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildAnalyticsFiltersWithDatePreset,
+  describeAnalyticsFilterRange,
   formatLocalCalendarDate,
 } from '@/app/dashboard/analytics/analytics-utils';
 
@@ -50,5 +51,28 @@ describe('buildAnalyticsFiltersWithDatePreset', () => {
     });
     expect(f.username).toBe('alice');
     expect(f.gender).toBeUndefined();
+  });
+});
+
+describe('describeAnalyticsFilterRange', () => {
+  const tz = 'America/New_York';
+
+  it('describes preset today', () => {
+    const s = describeAnalyticsFilterRange('today', '2026-05-03', '2026-05-03', tz);
+    expect(s.startsWith('Range: Today')).toBe(true);
+    expect(s).toContain(tz);
+    expect(s).toContain('→ now');
+  });
+
+  it('describes preset yesterday', () => {
+    const s = describeAnalyticsFilterRange('yesterday', '2026-05-02', '2026-05-02', tz);
+    expect(s).toContain('Yesterday');
+    expect(s).toContain(tz);
+  });
+
+  it('describes an inclusive multi-day span', () => {
+    const s = describeAnalyticsFilterRange('custom', '2026-05-01', '2026-05-07', tz);
+    expect(s).toContain('inclusive days');
+    expect(s).toContain('→');
   });
 });

@@ -13,6 +13,7 @@ import {
   US_STATES,
   getDateRange,
   buildAnalyticsFiltersWithDatePreset,
+  describeAnalyticsFilterRange,
 } from '../analytics-utils';
 import { useUserIanaTimezone } from '@/hooks/use-user-iana-timezone';
 
@@ -119,6 +120,8 @@ export default function GameActivityAnalyticsPage() {
   };
 
   const hasActiveFilters = Boolean(username || state || gender || datePreset !== 'today');
+
+  const filterRangeCaption = describeAnalyticsFilterRange(datePreset, startDate, endDate, timezone);
 
   if (loadingDashboard) {
     return (
@@ -257,11 +260,14 @@ export default function GameActivityAnalyticsPage() {
         </div>
       ) : null}
 
-      <p className="px-0.5 text-[10px] text-muted-foreground">
-        Filtered: {apiFieldLabel('total_recharge')}, {apiFieldLabel('total_bonus')}, {apiFieldLabel('average_bonus_pct')},{' '}
-        {apiFieldLabel('total_redeem')}, {apiFieldLabel('net_game_activity')}; per row: {apiFieldLabel('game_title')},{' '}
-        {apiFieldLabel('game_code')}, {apiFieldLabel('game_id')}, …
-      </p>
+      <div className="space-y-0.5 px-0.5 text-[10px] text-muted-foreground">
+        <p className="font-medium leading-snug text-foreground/85">{filterRangeCaption}</p>
+        <p className="leading-snug">
+          Filtered: {apiFieldLabel('total_recharge')}, {apiFieldLabel('total_bonus')}, {apiFieldLabel('average_bonus_pct')},{' '}
+          {apiFieldLabel('total_redeem')}, {apiFieldLabel('net_game_activity')}; per row: {apiFieldLabel('game_title')},{' '}
+          {apiFieldLabel('game_code')}, {apiFieldLabel('game_id')}, …
+        </p>
+      </div>
 
       <div className="overflow-hidden rounded-2xl border border-border/30 shadow-sm">
         {loadingGameSummary ? (
