@@ -19,7 +19,12 @@ import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { USER_ROLES, canEditPlayerCashoutLimit } from '@/lib/constants/roles';
-import { getDateRange } from '@/app/dashboard/analytics/analytics-utils';
+import {
+  getDateRange,
+  buildAnalyticsFiltersWithDatePreset,
+  describeAnalyticsFilterRange,
+} from '@/app/dashboard/analytics/analytics-utils';
+import { useUserIanaTimezone } from '@/hooks/use-user-iana-timezone';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 
 
@@ -926,6 +931,7 @@ function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerT
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(true);
+  const timezone = useUserIanaTimezone();
 
   useEffect(() => {
     const range = getDateRange(datePreset);
@@ -933,16 +939,22 @@ function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerT
     setEndDate(range.end);
   }, [datePreset]);
 
-  const filters = useMemo<AnalyticsFilters>(() => {
-    if (!username) {
-      return {};
-    }
+  const filters = useMemo((): AnalyticsFilters | undefined => {
+    const trimmed = username?.trim();
+    if (!trimmed || timezone === null) return undefined;
+    return buildAnalyticsFiltersWithDatePreset({
+      datePreset,
+      startDate,
+      endDate,
+      timezone,
+      username: trimmed,
+    });
+  }, [username, timezone, datePreset, startDate, endDate]);
 
-    const activeFilters: AnalyticsFilters = { username };
-    if (startDate) activeFilters.start_date = startDate;
-    if (endDate) activeFilters.end_date = endDate;
-    return activeFilters;
-  }, [username, startDate, endDate]);
+  const queryRangeLabel =
+    datePreset === 'today' || datePreset === 'yesterday'
+      ? `preset=${datePreset}`
+      : `${startDate || '—'} → ${endDate || '—'}`;
 
   const { data: transactionSummary, loading: loadingSummary, error: summaryError } = useTransactionSummary(filters);
   const {
@@ -1082,6 +1094,16 @@ function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerT
                   )}
                 </div>
               )}
+
+              <div className="space-y-0.5 px-0.5 text-[10px] text-muted-foreground">
+                <p className="font-medium leading-snug text-foreground/85">
+                  {describeAnalyticsFilterRange(datePreset, startDate, endDate, timezone)}
+                </p>
+                <p className="leading-snug">
+                  Filtered: {apiFieldLabel('total_purchase')}, {apiFieldLabel('total_cashout')}; payment{' '}
+                  {apiFieldLabel('data.purchases')} / {apiFieldLabel('data.cashouts')}; bonus fields.
+                </p>
+              </div>
 
               <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
                 {loadingSummary ? (
@@ -1279,8 +1301,8 @@ function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerT
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <ApiLabeledValue apiKey="username">{username}</ApiLabeledValue>
                   <ApiLabeledValue apiKey="date_preset">{datePreset}</ApiLabeledValue>
-                  <ApiLabeledValue apiKey="start_date">{startDate || '—'}</ApiLabeledValue>
-                  <ApiLabeledValue apiKey="end_date">{endDate || '—'}</ApiLabeledValue>
+                  <ApiLabeledValue apiKey="timezone">{timezone ?? '—'}</ApiLabeledValue>
+                  <ApiLabeledValue apiKey="query_range">{queryRangeLabel}</ApiLabeledValue>
                 </div>
               </div>
             </div>

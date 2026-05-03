@@ -1,22 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-const FALLBACK_TZ = 'UTC';
+import { useLayoutEffect, useState } from 'react';
 
 /**
- * IANA timezone for the current browser (e.g. America/New_York).
- * Starts as UTC, then updates after mount to avoid SSR/client hydration mismatch.
+ * IANA timezone (e.g. America/New_York). `null` until resolved on the client so
+ * analytics requests are not sent with a bogus UTC default first.
  */
-export function useUserIanaTimezone(): string {
-  const [timezone, setTimezone] = useState(FALLBACK_TZ);
+export function useUserIanaTimezone(): string | null {
+  const [timezone, setTimezone] = useState<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (tz) setTimezone(tz);
+      setTimezone(tz && tz.length > 0 ? tz : 'UTC');
     } catch {
-      /* keep fallback */
+      setTimezone('UTC');
     }
   }, []);
 

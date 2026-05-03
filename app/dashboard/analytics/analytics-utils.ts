@@ -75,8 +75,12 @@ export function describeAnalyticsFilterRange(
   datePreset: string,
   startDate: string,
   endDate: string,
-  timezone: string,
+  timezone: string | null,
 ): string {
+  if (timezone === null || timezone === '') {
+    return 'Resolving your time zone…';
+  }
+
   const now = new Date();
   const timeStr = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   const dateStr = (d: Date) =>

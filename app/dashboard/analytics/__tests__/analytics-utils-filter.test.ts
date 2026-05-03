@@ -75,4 +75,8 @@ describe('describeAnalyticsFilterRange', () => {
     expect(s).toContain('inclusive days');
     expect(s).toContain('→');
   });
+
+  it('shows a placeholder when timezone is not resolved', () => {
+    expect(describeAnalyticsFilterRange('today', '2026-05-03', '2026-05-03', null)).toContain('Resolving');
+  });
 });

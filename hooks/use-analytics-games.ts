@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { analyticsApi, type AnalyticsFilters } from '@/lib/api/analytics';
 import type { GameSummary, GameByGame } from '@/lib/api/analytics';
 
+function analyticsFiltersEffectKey(filters?: AnalyticsFilters): string {
+  if (filters === undefined) return '__pending__';
+  return JSON.stringify(filters);
+}
+
 function normalizeGameSummary(raw: unknown): GameSummary {
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
@@ -34,8 +39,16 @@ export function useGameSummary(filters?: AnalyticsFilters) {
   const [data, setData] = useState<GameSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filterEffectKey = analyticsFiltersEffectKey(filters);
 
   useEffect(() => {
+    if (filters === undefined) {
+      setLoading(true);
+      setError(null);
+      setData(null);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -58,7 +71,7 @@ export function useGameSummary(filters?: AnalyticsFilters) {
     };
 
     void fetchData();
-  }, [JSON.stringify(filters)]);
+  }, [filterEffectKey, filters]);
 
   return { data, loading, error };
 }
@@ -67,8 +80,16 @@ export function useGamesByGame(filters?: AnalyticsFilters) {
   const [data, setData] = useState<GameByGame[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filterEffectKey = analyticsFiltersEffectKey(filters);
 
   useEffect(() => {
+    if (filters === undefined) {
+      setLoading(true);
+      setError(null);
+      setData([]);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -92,7 +113,7 @@ export function useGamesByGame(filters?: AnalyticsFilters) {
     };
 
     void fetchData();
-  }, [JSON.stringify(filters)]);
+  }, [filterEffectKey, filters]);
 
   return { data, loading, error };
 }

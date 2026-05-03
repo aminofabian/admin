@@ -79,19 +79,18 @@ export default function GameActivityAnalyticsPage() {
     setEndDate(range.end);
   }, [datePreset]);
 
-  const filters = useMemo(
-    (): AnalyticsFilters =>
-      buildAnalyticsFiltersWithDatePreset({
-        datePreset,
-        startDate,
-        endDate,
-        timezone,
-        username,
-        state,
-        gender,
-      }),
-    [datePreset, startDate, endDate, timezone, username, state, gender],
-  );
+  const filters = useMemo((): AnalyticsFilters | undefined => {
+    if (timezone === null) return undefined;
+    return buildAnalyticsFiltersWithDatePreset({
+      datePreset,
+      startDate,
+      endDate,
+      timezone,
+      username,
+      state,
+      gender,
+    });
+  }, [datePreset, startDate, endDate, timezone, username, state, gender]);
 
   const { data: gameSummary, loading: loadingGameSummary, error: gameSummaryError } = useGameSummary(filters);
   const { data: gamesByGame, loading: loadingGamesByGame, error: gamesByGameError } = useGamesByGame(filters);
