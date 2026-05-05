@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
-import { playersApi } from '@/lib/api';
+import { playersApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
 import { Badge, Button, ConfirmModal, DropdownMenu, DropdownMenuItem } from '@/components/ui';
 import type { ApiError } from '@/types';
-import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal } from '@/components/features';
+import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
+import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
+import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
 
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
@@ -197,13 +199,19 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
   const [isDeletingGame, setIsDeletingGame] = useState(false);
   const [gameToChange, setGameToChange] = useState<PlayerGame | null>(null);
   const [isChangingGame, setIsChangingGame] = useState(false);
+  const [isAddGameDrawerOpen, setIsAddGameDrawerOpen] = useState(false);
+  const [isAddingGame, setIsAddingGame] = useState(false);
+  const [gameForRecharge, setGameForRecharge] = useState<PlayerGame | null>(null);
+  const [gamePendingRedeem, setGamePendingRedeem] = useState<PlayerGame | null>(null);
+  const [gamePendingResetPassword, setGamePendingResetPassword] = useState<PlayerGame | null>(null);
+  const [isGameOperationSubmitting, setIsGameOperationSubmitting] = useState(false);
 
   const handleDeleteGame = useCallback(async () => {
     if (!gameToDelete || !selectedPlayer) return;
     setIsDeletingGame(true);
     try {
       await playersApi.deleteGame(gameToDelete.id);
-      await refreshGames();
+      await refreshGames({ silent: true });
       addToast({
         type: 'success',
         title: 'Game removed',
@@ -231,7 +239,7 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         username: gameToChange.username,
         status: newStatus
       });
-      await refreshGames();
+      await refreshGames({ silent: true });
       addToast({
         type: 'success',
         title: 'Game updated',
@@ -249,6 +257,124 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
       setIsChangingGame(false);
     }
   }, [gameToChange, refreshGames, addToast]);
+
+  const handleOpenAddGame = useCallback(() => {
+    setIsAddGameDrawerOpen(true);
+  }, []);
+
+  const handleAddGame = useCallback(
+    async (data: { game_id: number }) => {
+      if (!selectedPlayer || isAddingGame) return;
+      setIsAddingGame(true);
+      try {
+        const result = await gameOperationsApi.addUserGame({
+          player_id: selectedPlayer.id,
+          game_id: data.game_id,
+        });
+        addToast({
+          type: 'success',
+          title: result.message,
+        });
+        setIsAddGameDrawerOpen(false);
+        void refreshGames({ silent: true });
+      } catch (error) {
+        const { title, message } = extractErrorMessage(error);
+        addToast({
+          type: 'error',
+          title: title || 'Failed to add game',
+          description: message,
+        });
+      } finally {
+        setIsAddingGame(false);
+      }
+    },
+    [selectedPlayer, isAddingGame, addToast, refreshGames],
+  );
+
+  const submitGameRecharge = useCallback(
+    async (amount: number) => {
+      if (!selectedPlayer || !gameForRecharge) return;
+      setIsGameOperationSubmitting(true);
+      try {
+        const result = await gameOperationsApi.recharge({
+          player_id: selectedPlayer.id,
+          game_id: gameForRecharge.game__id,
+          amount,
+        });
+        addToast({
+          type: 'success',
+          title: 'Recharge queued',
+          description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+        });
+        setGameForRecharge(null);
+        await refreshGames({ silent: true });
+      } catch (error) {
+        const { title, message } = extractErrorMessage(error);
+        addToast({
+          type: 'error',
+          title: title || 'Recharge failed',
+          description: message,
+        });
+      } finally {
+        setIsGameOperationSubmitting(false);
+      }
+    },
+    [selectedPlayer, gameForRecharge, addToast, refreshGames],
+  );
+
+  const confirmRedeemGame = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingRedeem) return;
+    setIsGameOperationSubmitting(true);
+    try {
+      const result = await gameOperationsApi.redeem({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingRedeem.game__id,
+      });
+      addToast({
+        type: 'success',
+        title: 'Redeem queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+      });
+      setGamePendingRedeem(null);
+      await refreshGames({ silent: true });
+    } catch (error) {
+      const { title, message } = extractErrorMessage(error);
+      addToast({
+        type: 'error',
+        title: title || 'Redeem failed',
+        description: message,
+      });
+    } finally {
+      setIsGameOperationSubmitting(false);
+    }
+  }, [selectedPlayer, gamePendingRedeem, addToast, refreshGames]);
+
+  const confirmResetGamePassword = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingResetPassword) return;
+    setIsGameOperationSubmitting(true);
+    try {
+      const result = await gameOperationsApi.resetPassword({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingResetPassword.game__id,
+      });
+      addToast({
+        type: 'success',
+        title: 'Password reset queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+      });
+      setGamePendingResetPassword(null);
+      await refreshGames({ silent: true });
+    } catch (error) {
+      const { title, message } = extractErrorMessage(error);
+      addToast({
+        type: 'error',
+        title: title || 'Reset failed',
+        description: message,
+      });
+    } finally {
+      setIsGameOperationSubmitting(false);
+    }
+  }, [selectedPlayer, gamePendingResetPassword, addToast, refreshGames]);
 
 
   if (isLoadingPlayer) {
@@ -565,19 +691,32 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
 
             {/* Player Games Card */}
             <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-              <div className="mb-4 sm:mb-5 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div className="mb-4 sm:mb-5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Player Games</h2>
+                    {games.length > 0 && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{games.length} {games.length === 1 ? 'game' : 'games'}</p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleOpenAddGame}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all hover:shadow-md active:scale-95"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                   </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Player Games</h2>
-                  {games.length > 0 && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{games.length} {games.length === 1 ? 'game' : 'games'}</p>
-                  )}
-                </div>
+                  Add Game
+                </Button>
               </div>
 
               {isLoadingGames ? (
@@ -672,6 +811,12 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                             }
                             align="right"
                           >
+                            <PlayerGameOperationMenuItems
+                              game={game}
+                              onRecharge={setGameForRecharge}
+                              onRedeem={setGamePendingRedeem}
+                              onResetPassword={setGamePendingResetPassword}
+                            />
                             <DropdownMenuItem
                               onClick={() => setGameToDelete(game)}
                               className="flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
@@ -739,6 +884,46 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
         confirmText="Change"
         variant="info"
         isLoading={isChangingGame}
+      />
+
+      <GameRechargeModal
+        isOpen={!!gameForRecharge}
+        onClose={() => !isGameOperationSubmitting && setGameForRecharge(null)}
+        gameTitle={gameForRecharge?.game__title ?? ''}
+        onConfirm={submitGameRecharge}
+        isSubmitting={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingRedeem}
+        onClose={() => !isGameOperationSubmitting && setGamePendingRedeem(null)}
+        onConfirm={confirmRedeemGame}
+        title="Redeem full game balance"
+        description={`Queue a redeem for all funds in "${gamePendingRedeem?.game__title}" for ${selectedPlayer.username}? This runs in the background.`}
+        confirmText="Redeem"
+        variant="warning"
+        isLoading={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingResetPassword}
+        onClose={() => !isGameOperationSubmitting && setGamePendingResetPassword(null)}
+        onConfirm={confirmResetGamePassword}
+        title="Reset game password"
+        description={`Submit a password reset for "${gamePendingResetPassword?.game__title}"? Processing runs in the background.`}
+        confirmText="Reset password"
+        variant="info"
+        isLoading={isGameOperationSubmitting}
+      />
+
+      <AddGameDrawer
+        isOpen={isAddGameDrawerOpen}
+        onClose={() => setIsAddGameDrawerOpen(false)}
+        playerId={selectedPlayer.id}
+        playerUsername={selectedPlayer.username}
+        playerGames={games}
+        onSubmit={handleAddGame}
+        isSubmitting={isAddingGame}
       />
 
       <SavedPaymentMethodsModal

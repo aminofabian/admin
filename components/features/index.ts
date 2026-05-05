@@ -17,6 +17,7 @@ export * from './signup-bonus-form';
 export * from './first-purchase-bonus-form';
 export * from './store-balance-modal';
 export * from './player-game-balance-modal';
+export * from './game-recharge-modal';
 export * from './saved-payment-methods-modal';
 export * from '../dashboard/data-sections/action-modal/transaction-details-modal';
 export * from './company-settings-form';

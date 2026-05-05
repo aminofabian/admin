@@ -16,4 +16,5 @@ export * from './game-settings';
 export * from './payment-methods';
 export * from './chat-links';
 export * from './chat';
+export * from './game-operations';
 

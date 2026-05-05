@@ -7,33 +7,43 @@ export const usePlayerGames = (playerId: number | null) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGames = useCallback(async () => {
-    console.log('🎮 fetchGames called for playerId:', playerId);
-    if (!playerId) {
-      setGames([]);
-      return;
-    }
+  const refreshGames = useCallback(
+    async (options?: { silent?: boolean }): Promise<PlayerGame[]> => {
+      const silent = options?.silent ?? false;
 
-    setIsLoading(true);
-    setError(null);
+      if (!playerId) {
+        setGames([]);
+        return [];
+      }
 
-    try {
-      console.log('📡 Fetching games for player:', playerId);
-      const data = await playersApi.games(playerId);
-      console.log('🎮 Games fetched:', data.length);
-      setGames(data);
-    } catch (err) {
-      console.error('Failed to fetch player games:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch games');
-      setGames([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [playerId]);
+      if (!silent) {
+        setIsLoading(true);
+        setError(null);
+      }
+
+      try {
+        const data = await playersApi.games(playerId);
+        setGames(data);
+        return data;
+      } catch (err) {
+        console.error('Failed to fetch player games:', err);
+        if (!silent) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch games');
+          setGames([]);
+        }
+        return [];
+      } finally {
+        if (!silent) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [playerId],
+  );
 
   useEffect(() => {
-    fetchGames();
-  }, [fetchGames]);
+    void refreshGames({ silent: false });
+  }, [refreshGames]);
 
-  return { games, isLoading, error, refreshGames: fetchGames };
+  return { games, isLoading, error, refreshGames };
 };

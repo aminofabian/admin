@@ -4,16 +4,17 @@ import { useEffect, useState, useCallback, useMemo, type ReactNode } from 'react
 import { useRouter } from 'next/navigation';
 import type { Player, UpdateUserRequest } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
-import { playersApi } from '@/lib/api';
+import { playersApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
 import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input, Select, DateSelect } from '@/components/ui';
-import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal } from '@/components/features';
+import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { useTransactionSummary, usePaymentMethods, useBonusAnalytics } from '@/hooks/use-analytics-transactions';
 import type { AnalyticsFilters } from '@/lib/api/analytics';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
+import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
@@ -75,6 +76,10 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const [isTransactionAnalyticsModalOpen, setIsTransactionAnalyticsModalOpen] = useState(false);
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
+  const [gameForRecharge, setGameForRecharge] = useState<PlayerGame | null>(null);
+  const [gamePendingRedeem, setGamePendingRedeem] = useState<PlayerGame | null>(null);
+  const [gamePendingResetPassword, setGamePendingResetPassword] = useState<PlayerGame | null>(null);
+  const [isGameOperationSubmitting, setIsGameOperationSubmitting] = useState(false);
   const [editableFields, setEditableFields] = useState<EditableFields>({
     email: '',
     full_name: '',
@@ -188,34 +193,120 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     setIsAddGameDrawerOpen(true);
   }, []);
 
-  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
-    if (!selectedPlayer || isAddingGame) {
-      return;
-    }
+  const handleAddGame = useCallback(
+    async (data: { game_id: number }) => {
+      if (!selectedPlayer || isAddingGame) return;
 
-    setIsAddingGame(true);
+      setIsAddingGame(true);
+      try {
+        const result = await gameOperationsApi.addUserGame({
+          player_id: selectedPlayer.id,
+          game_id: data.game_id,
+        });
+        addToast({
+          type: 'success',
+          title: result.message,
+        });
+        setIsAddGameDrawerOpen(false);
+        void refreshGames({ silent: true });
+      } catch (error) {
+        const description =
+          error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+            ? (error as { message: string }).message
+            : 'Unknown error';
+        addToast({
+          type: 'error',
+          title: 'Failed to add game',
+          description,
+        });
+      } finally {
+        setIsAddingGame(false);
+      }
+    },
+    [selectedPlayer, isAddingGame, addToast, refreshGames],
+  );
+
+  const submitGameRecharge = useCallback(
+    async (amount: number) => {
+      if (!selectedPlayer || !gameForRecharge) return;
+      setIsGameOperationSubmitting(true);
+      try {
+        const result = await gameOperationsApi.recharge({
+          player_id: selectedPlayer.id,
+          game_id: gameForRecharge.game__id,
+          amount,
+        });
+        addToast({
+          type: 'success',
+          title: 'Recharge queued',
+          description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+        });
+        setGameForRecharge(null);
+        await refreshGames({ silent: true });
+      } catch (error) {
+        const description =
+          error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+            ? (error as { message: string }).message
+            : 'Recharge failed';
+        addToast({ type: 'error', title: 'Recharge failed', description });
+      } finally {
+        setIsGameOperationSubmitting(false);
+      }
+    },
+    [selectedPlayer, gameForRecharge, addToast, refreshGames],
+  );
+
+  const confirmRedeemGame = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingRedeem) return;
+    setIsGameOperationSubmitting(true);
     try {
-      const result = await playersApi.createGame(data);
-
+      const result = await gameOperationsApi.redeem({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingRedeem.game__id,
+      });
       addToast({
         type: 'success',
-        title: 'Game added successfully',
-        description: `${result.game_name} account created for ${result.username}`,
+        title: 'Redeem queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
       });
-
-      setIsAddGameDrawerOpen(false);
-      await refreshGames();
+      setGamePendingRedeem(null);
+      await refreshGames({ silent: true });
     } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to add game',
-        description,
-      });
+      const description =
+        error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Redeem failed';
+      addToast({ type: 'error', title: 'Redeem failed', description });
     } finally {
-      setIsAddingGame(false);
+      setIsGameOperationSubmitting(false);
     }
-  }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
+  }, [selectedPlayer, gamePendingRedeem, addToast, refreshGames]);
+
+  const confirmResetGamePassword = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingResetPassword) return;
+    setIsGameOperationSubmitting(true);
+    try {
+      const result = await gameOperationsApi.resetPassword({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingResetPassword.game__id,
+      });
+      addToast({
+        type: 'success',
+        title: 'Password reset queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+      });
+      setGamePendingResetPassword(null);
+      await refreshGames({ silent: true });
+    } catch (error) {
+      const description =
+        error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Reset failed';
+      addToast({ type: 'error', title: 'Reset failed', description });
+    } finally {
+      setIsGameOperationSubmitting(false);
+    }
+  }, [selectedPlayer, gamePendingResetPassword, addToast, refreshGames]);
 
   const handleEditGame = useCallback(async (data: { username: string; password: string }) => {
     if (!gameToEdit || isEditingGame) {
@@ -237,7 +328,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
 
       setIsEditGameDrawerOpen(false);
       setGameToEdit(null);
-      await refreshGames();
+      await refreshGames({ silent: true });
     } catch (error) {
       const description = error instanceof Error ? error.message : 'Unknown error';
       addToast({
@@ -256,7 +347,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     setIsDeletingGame(true);
     try {
       await playersApi.deleteGame(gameToDelete.id);
-      await refreshGames();
+      await refreshGames({ silent: true });
       addToast({
         type: 'success',
         title: 'Game removed',
@@ -766,6 +857,12 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                             }
                             align="right"
                           >
+                            <PlayerGameOperationMenuItems
+                              game={game}
+                              onRecharge={setGameForRecharge}
+                              onRedeem={setGamePendingRedeem}
+                              onResetPassword={setGamePendingResetPassword}
+                            />
                             <DropdownMenuItem
                               onClick={() => {
                                 setGameToEdit(game);
@@ -813,6 +910,36 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         balanceData={balanceData}
         isLoading={isCheckingBalance}
         error={balanceError}
+      />
+
+      <GameRechargeModal
+        isOpen={!!gameForRecharge}
+        onClose={() => !isGameOperationSubmitting && setGameForRecharge(null)}
+        gameTitle={gameForRecharge?.game__title ?? ''}
+        onConfirm={submitGameRecharge}
+        isSubmitting={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingRedeem}
+        onClose={() => !isGameOperationSubmitting && setGamePendingRedeem(null)}
+        onConfirm={confirmRedeemGame}
+        title="Redeem full game balance"
+        description={`Queue a redeem for all funds in "${gamePendingRedeem?.game__title}" for ${selectedPlayer.username}? This runs in the background.`}
+        confirmText="Redeem"
+        variant="warning"
+        isLoading={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingResetPassword}
+        onClose={() => !isGameOperationSubmitting && setGamePendingResetPassword(null)}
+        onConfirm={confirmResetGamePassword}
+        title="Reset game password"
+        description={`Submit a password reset for "${gamePendingResetPassword?.game__title}"? Processing runs in the background.`}
+        confirmText="Reset password"
+        variant="info"
+        isLoading={isGameOperationSubmitting}
       />
 
       {/* Add Game Drawer */}

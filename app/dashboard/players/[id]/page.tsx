@@ -11,12 +11,12 @@ import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
-import { playersApi, agentsApi } from '@/lib/api';
+import { playersApi, agentsApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
 import { Badge, Button, Select, DateSelect, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
 import type { UpdateUserRequest, ApiError } from '@/types';
-import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal } from '@/components/features';
+import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { usePlayerGames } from '@/hooks/use-player-games';
@@ -25,6 +25,7 @@ import { useTransactionSummary, usePaymentMethods, useBonusAnalytics } from '@/h
 import type { AnalyticsFilters } from '@/lib/api/analytics';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals';
+import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
 import {
   getDateRange,
   buildAnalyticsFiltersWithDatePreset,
@@ -233,6 +234,10 @@ export default function PlayerDetailPage() {
   const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
   const [isSavedPaymentMethodsOpen, setIsSavedPaymentMethodsOpen] = useState(false);
   const [isTransactionAnalyticsModalOpen, setIsTransactionAnalyticsModalOpen] = useState(false);
+  const [gameForRecharge, setGameForRecharge] = useState<PlayerGame | null>(null);
+  const [gamePendingRedeem, setGamePendingRedeem] = useState<PlayerGame | null>(null);
+  const [gamePendingResetPassword, setGamePendingResetPassword] = useState<PlayerGame | null>(null);
+  const [isGameOperationSubmitting, setIsGameOperationSubmitting] = useState(false);
   const [editableFields, setEditableFields] = useState<EditableFields>({
     email: '',
     full_name: '',
@@ -771,7 +776,7 @@ export default function PlayerDetailPage() {
     setIsDeletingGame(true);
     try {
       await playersApi.deleteGame(gameToDelete.id);
-      await refreshGames();
+      await refreshGames({ silent: true });
       addToast({
         type: 'success',
         title: 'Game removed',
@@ -802,7 +807,7 @@ export default function PlayerDetailPage() {
         username: gameToChange.username,
         status: newStatus
       });
-      await refreshGames();
+      await refreshGames({ silent: true });
       addToast({
         type: 'success',
         title: 'Game updated',
@@ -826,34 +831,124 @@ export default function PlayerDetailPage() {
     setIsAddGameDrawerOpen(true);
   }, []);
 
-  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
-    if (!selectedPlayer || isAddingGame) {
-      return;
-    }
+  const handleAddGame = useCallback(
+    async (data: { game_id: number }) => {
+      if (!selectedPlayer || isAddingGame) {
+        return;
+      }
 
-    setIsAddingGame(true);
+      setIsAddingGame(true);
+      try {
+        const result = await gameOperationsApi.addUserGame({
+          player_id: selectedPlayer.id,
+          game_id: data.game_id,
+        });
+
+        addToast({
+          type: 'success',
+          title: result.message,
+        });
+
+        setIsAddGameDrawerOpen(false);
+        void refreshGames({ silent: true });
+      } catch (error) {
+        const { title, message } = extractErrorMessage(error);
+        addToast({
+          type: 'error',
+          title: title || 'Failed to add game',
+          description: message,
+        });
+      } finally {
+        setIsAddingGame(false);
+      }
+    },
+    [selectedPlayer, isAddingGame, addToast, refreshGames],
+  );
+
+  const submitGameRecharge = useCallback(
+    async (amount: number) => {
+      if (!selectedPlayer || !gameForRecharge) return;
+      setIsGameOperationSubmitting(true);
+      try {
+        const result = await gameOperationsApi.recharge({
+          player_id: selectedPlayer.id,
+          game_id: gameForRecharge.game__id,
+          amount,
+        });
+        addToast({
+          type: 'success',
+          title: 'Recharge queued',
+          description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+        });
+        setGameForRecharge(null);
+        await refreshGames({ silent: true });
+      } catch (error) {
+        const { title, message } = extractErrorMessage(error);
+        addToast({
+          type: 'error',
+          title: title || 'Recharge failed',
+          description: message,
+        });
+      } finally {
+        setIsGameOperationSubmitting(false);
+      }
+    },
+    [selectedPlayer, gameForRecharge, addToast, refreshGames],
+  );
+
+  const confirmRedeemGame = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingRedeem) return;
+    setIsGameOperationSubmitting(true);
     try {
-      const result = await playersApi.createGame(data);
-
+      const result = await gameOperationsApi.redeem({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingRedeem.game__id,
+      });
       addToast({
         type: 'success',
-        title: 'Game added successfully',
-        description: `${result.game_name} account created for ${result.username}`,
+        title: 'Redeem queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
       });
-
-      setIsAddGameDrawerOpen(false);
-      await refreshGames();
+      setGamePendingRedeem(null);
+      await refreshGames({ silent: true });
     } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
+      const { title, message } = extractErrorMessage(error);
       addToast({
         type: 'error',
-        title: 'Failed to add game',
-        description,
+        title: title || 'Redeem failed',
+        description: message,
       });
     } finally {
-      setIsAddingGame(false);
+      setIsGameOperationSubmitting(false);
     }
-  }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
+  }, [selectedPlayer, gamePendingRedeem, addToast, refreshGames]);
+
+  const confirmResetGamePassword = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingResetPassword) return;
+    setIsGameOperationSubmitting(true);
+    try {
+      const result = await gameOperationsApi.resetPassword({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingResetPassword.game__id,
+      });
+      addToast({
+        type: 'success',
+        title: 'Password reset queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+      });
+      setGamePendingResetPassword(null);
+      await refreshGames({ silent: true });
+    } catch (error) {
+      const { title, message } = extractErrorMessage(error);
+      addToast({
+        type: 'error',
+        title: title || 'Reset failed',
+        description: message,
+      });
+    } finally {
+      setIsGameOperationSubmitting(false);
+    }
+  }, [selectedPlayer, gamePendingResetPassword, addToast, refreshGames]);
 
   const handleEditGame = useCallback(async (data: { username: string; password: string }) => {
     if (!gameToEdit || isEditingGame) {
@@ -875,7 +970,7 @@ export default function PlayerDetailPage() {
 
       setIsEditGameDrawerOpen(false);
       setGameToEdit(null);
-      await refreshGames();
+      await refreshGames({ silent: true });
     } catch (error) {
       const description = error instanceof Error ? error.message : 'Unknown error';
       addToast({
@@ -1517,6 +1612,12 @@ export default function PlayerDetailPage() {
                             }
                             align="right"
                           >
+                            <PlayerGameOperationMenuItems
+                              game={game}
+                              onRecharge={setGameForRecharge}
+                              onRedeem={setGamePendingRedeem}
+                              onResetPassword={setGamePendingResetPassword}
+                            />
                             <DropdownMenuItem
                               onClick={() => {
                                 setGameToEdit(game);
@@ -1618,6 +1719,36 @@ export default function PlayerDetailPage() {
         isLoading={isChangingGame}
       />
 
+
+      <GameRechargeModal
+        isOpen={!!gameForRecharge}
+        onClose={() => !isGameOperationSubmitting && setGameForRecharge(null)}
+        gameTitle={gameForRecharge?.game__title ?? ''}
+        onConfirm={submitGameRecharge}
+        isSubmitting={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingRedeem}
+        onClose={() => !isGameOperationSubmitting && setGamePendingRedeem(null)}
+        onConfirm={confirmRedeemGame}
+        title="Redeem full game balance"
+        description={`Queue a redeem for all funds in "${gamePendingRedeem?.game__title}" for ${selectedPlayer.username}? This runs in the background.`}
+        confirmText="Redeem"
+        variant="warning"
+        isLoading={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingResetPassword}
+        onClose={() => !isGameOperationSubmitting && setGamePendingResetPassword(null)}
+        onConfirm={confirmResetGamePassword}
+        title="Reset game password"
+        description={`Submit a password reset for "${gamePendingResetPassword?.game__title}"? Processing runs in the background.`}
+        confirmText="Reset password"
+        variant="info"
+        isLoading={isGameOperationSubmitting}
+      />
 
       {selectedPlayer && (
         <AddGameDrawer
