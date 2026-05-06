@@ -831,7 +831,34 @@ export default function PlayerDetailPage() {
     setIsAddGameDrawerOpen(true);
   }, []);
 
-  const handleAddGame = useCallback(
+  const handleAddGameDashboardRecord = useCallback(
+    async (data: { username: string; password: string; code: string; user_id: number }) => {
+      if (!selectedPlayer || isAddingGame) return;
+
+      setIsAddingGame(true);
+      try {
+        const result = await playersApi.createGame(data);
+        addToast({
+          type: 'success',
+          title: result.message || `Added ${result.game_name}`,
+        });
+        setIsAddGameDrawerOpen(false);
+        void refreshGames({ silent: true });
+      } catch (error) {
+        const { title, message } = extractErrorMessage(error);
+        addToast({
+          type: 'error',
+          title: title || 'Failed to add game',
+          description: message,
+        });
+      } finally {
+        setIsAddingGame(false);
+      }
+    },
+    [selectedPlayer, isAddingGame, addToast, refreshGames],
+  );
+
+  const handleAddGamePlatform = useCallback(
     async (data: { game_id: number }) => {
       if (!selectedPlayer || isAddingGame) {
         return;
@@ -1757,7 +1784,8 @@ export default function PlayerDetailPage() {
           playerId={selectedPlayer.id}
           playerUsername={selectedPlayer.username}
           playerGames={games}
-          onSubmit={handleAddGame}
+          onSubmitDashboardRecord={handleAddGameDashboardRecord}
+          onSubmitGamePlatform={handleAddGamePlatform}
           isSubmitting={isAddingGame}
         />
       )}

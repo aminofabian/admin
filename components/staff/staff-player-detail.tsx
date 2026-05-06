@@ -193,7 +193,37 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     setIsAddGameDrawerOpen(true);
   }, []);
 
-  const handleAddGame = useCallback(
+  const handleAddGameDashboardRecord = useCallback(
+    async (data: { username: string; password: string; code: string; user_id: number }) => {
+      if (!selectedPlayer || isAddingGame) return;
+
+      setIsAddingGame(true);
+      try {
+        const result = await playersApi.createGame(data);
+        addToast({
+          type: 'success',
+          title: result.message || `Added ${result.game_name}`,
+        });
+        setIsAddGameDrawerOpen(false);
+        void refreshGames({ silent: true });
+      } catch (error) {
+        const description =
+          error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+            ? (error as { message: string }).message
+            : 'Unknown error';
+        addToast({
+          type: 'error',
+          title: 'Failed to add game',
+          description,
+        });
+      } finally {
+        setIsAddingGame(false);
+      }
+    },
+    [selectedPlayer, isAddingGame, addToast, refreshGames],
+  );
+
+  const handleAddGamePlatform = useCallback(
     async (data: { game_id: number }) => {
       if (!selectedPlayer || isAddingGame) return;
 
@@ -950,7 +980,8 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           playerId={selectedPlayer.id}
           playerUsername={selectedPlayer.username}
           playerGames={games}
-          onSubmit={handleAddGame}
+          onSubmitDashboardRecord={handleAddGameDashboardRecord}
+          onSubmitGamePlatform={handleAddGamePlatform}
           isSubmitting={isAddingGame}
         />
       )}
