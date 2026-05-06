@@ -84,6 +84,8 @@ export interface TransactionFilters {
   txn?: 'purchases' | 'cashouts';
   page?: number;
   page_size?: number;
+  /** IANA zone; set client-side for correct date_from/date_to interpretation. */
+  timezone?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -91,6 +93,8 @@ export interface QueueFilters {
   type?: 'processing' | 'history' | QueueType;
   status?: TransactionStatus;
   user_id?: number;
+  /** IANA zone; set client-side for correct date_from/date_to interpretation. */
+  timezone?: string;
   [key: string]: string | number | boolean | undefined;
 }
 

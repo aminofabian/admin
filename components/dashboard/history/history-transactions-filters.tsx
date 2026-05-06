@@ -7,6 +7,7 @@ import {
   PAYMENT_METHOD_CARD_DISPLAY_LABEL,
   PAYMENT_METHOD_CARD_QUERY_VALUE,
 } from '@/lib/utils/transaction-provider-filter-options';
+import { LIST_DATE_PRESET_OPTIONS } from '@/lib/utils/list-filter-date-preset';
 
 export interface HistoryTransactionsFiltersState {
   agent: string;
@@ -20,6 +21,8 @@ export interface HistoryTransactionsFiltersState {
   provider: string;
   status: string;
   game: string;
+  /** Preset id; not sent to the API (only date_from/date_to are). */
+  date_preset: string;
   date_from: string;
   date_to: string;
   amount_min: string;
@@ -306,17 +309,30 @@ export function HistoryTransactionsFilters({
               Date range
             </h4>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <DateSelect
-                label="From date"
-                value={filters.date_from}
-                onChange={(v) => onFilterChange('date_from', v)}
-              />
-              <DateSelect
-                label="To date"
-                value={filters.date_to}
-                onChange={(v) => onFilterChange('date_to', v)}
-              />
+              <div className="sm:col-span-2">
+                <label className={labelClasses}>Period</label>
+                <Select
+                  value={filters.date_preset}
+                  onChange={(v) => onFilterChange('date_preset', v)}
+                  options={LIST_DATE_PRESET_OPTIONS}
+                  placeholder="All time"
+                />
+              </div>
             </div>
+            {filters.date_preset === 'custom' && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mt-3">
+                <DateSelect
+                  label="From date"
+                  value={filters.date_from}
+                  onChange={(v) => onFilterChange('date_from', v)}
+                />
+                <DateSelect
+                  label="To date"
+                  value={filters.date_to}
+                  onChange={(v) => onFilterChange('date_to', v)}
+                />
+              </div>
+            )}
           </section>
 
           <section>

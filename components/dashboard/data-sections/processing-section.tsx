@@ -36,6 +36,10 @@ import {
   useGamesStore,
   usePaymentMethodsStore
 } from '@/stores';
+import {
+  applyListDateFilterChange,
+  inferListDatePreset,
+} from '@/lib/utils/list-filter-date-preset';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
 import {
   formatCurrency,
@@ -255,6 +259,7 @@ const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
   game: '',
   game_username: '',
   status: '',
+  date_preset: '',
   date_from: '',
   date_to: '',
 };
@@ -557,6 +562,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         status: advanced.status ?? '',
         date_from: advanced.date_from ?? '',
         date_to: advanced.date_to ?? '',
+        date_preset: inferListDatePreset(advanced.date_from ?? '', advanced.date_to ?? ''),
       };
     };
 
@@ -776,6 +782,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
   const handleGameFilterChange = useCallback(
     (key: keyof HistoryGameActivitiesFiltersState, value: string) => {
+      if (key === 'date_preset' || key === 'date_from' || key === 'date_to') {
+        setGameFilters((previous) => applyListDateFilterChange(previous, key, value));
+        return;
+      }
       setGameFilters((previous) => ({ ...previous, [key]: value }));
     },
     [],
@@ -783,7 +793,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
   const handleApplyGameFilters = useCallback(() => {
     const sanitized = Object.fromEntries(
-      Object.entries(gameFilters).filter(([, value]) => {
+      Object.entries(gameFilters).filter(([key, value]) => {
+        if (key === 'date_preset') return false;
         if (typeof value === 'string') {
           return value.trim() !== '';
         }

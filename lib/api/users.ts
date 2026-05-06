@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { paramsWithClientTimezone } from '@/lib/utils/browser-timezone';
 import type { ManualPaymentRequestBody, ManualPaymentResponse } from './manual-adjustment-payload';
 
 export type { ManualAdjustmentKind, ManualPaymentRequestBody, ManualPaymentResponse } from './manual-adjustment-payload';
@@ -53,9 +54,9 @@ export const agentsApi = {
   update: (id: number, data: UpdateUserRequest) => 
     apiClient.patch<Agent>(`api/admin/agents/${id}`, data),
 
-  getDashboard: (params?: { date_from?: string; date_to?: string }) =>
+  getDashboard: (params?: { date_from?: string; date_to?: string; timezone?: string }) =>
     apiClient.get<AgentDashboardResponse>('api/admin/agent-dashboard', {
-      params,
+      params: paramsWithClientTimezone(params),
     }),
 
   getStats: (agentId: number) =>

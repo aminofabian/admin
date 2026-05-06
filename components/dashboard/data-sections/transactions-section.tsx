@@ -33,6 +33,10 @@ import { transactionsApi } from '@/lib/api/transactions';
 import { storage } from '@/lib/utils/storage';
 import type { Agent, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
+import {
+  applyListDateFilterChange,
+  inferListDatePreset,
+} from '@/lib/utils/list-filter-date-preset';
 
 const TRANSACTIONS_SKELETON = (
   <div className="space-y-6">
@@ -97,6 +101,7 @@ const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
   provider: '',
   status: '',
   game: '', // Keep in state for compatibility but will be removed when applying
+  date_preset: '',
   date_from: '',
   date_to: '',
   amount_min: '',
@@ -132,6 +137,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
     game: advanced.game ?? '',
     date_from: advanced.date_from ?? '',
     date_to: advanced.date_to ?? '',
+    date_preset: inferListDatePreset(advanced.date_from ?? '', advanced.date_to ?? ''),
     amount_min: advanced.amount_min ?? '',
     amount_max: advanced.amount_max ?? '',
   };
@@ -605,6 +611,11 @@ export function TransactionsSection() {
   }, [operatorOptions.length]);
 
   const handleAdvancedFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
+    if (key === 'date_preset' || key === 'date_from' || key === 'date_to') {
+      setFilters((previous) => applyListDateFilterChange(previous, key, value));
+      return;
+    }
+
     setFilters((previous) => {
       const updated = { ...previous, [key]: value };
 
@@ -634,7 +645,8 @@ export function TransactionsSection() {
 
   const handleApplyAdvancedFilters = useCallback(() => {
     const sanitized = Object.fromEntries(
-      Object.entries(filters).filter(([, value]) => {
+      Object.entries(filters).filter(([key, value]) => {
+        if (key === 'date_preset') return false;
         if (typeof value === 'string') {
           return value.trim() !== '';
         }

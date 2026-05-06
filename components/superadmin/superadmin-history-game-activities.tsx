@@ -14,6 +14,10 @@ import { useTransactionQueuesStore } from '@/stores';
 import { gamesApi, paymentMethodsApi, staffsApi, managersApi, agentsApi } from '@/lib/api';
 import type { TransactionQueue, Game, Company, Staff, Manager, Agent, PaymentMethod } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
+import {
+  applyListDateFilterChange,
+  inferListDatePreset,
+} from '@/lib/utils/list-filter-date-preset';
 
 const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
     username: '',
@@ -24,22 +28,25 @@ const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
     game: '',
     game_username: '',
     status: '',
+    date_preset: '',
     date_from: '',
     date_to: '',
 };
 
 function buildGameActivityFilterState(advanced: Record<string, string>): HistoryGameActivitiesFiltersState {
+    const type = advanced.type === 'change_password' ? 'reset_password' : (advanced.type ?? '');
     return {
         username: advanced.username ?? '',
         email: advanced.email ?? '',
         transaction_id: advanced.transaction_id ?? '',
         operator: advanced.operator ?? '',
-        type: advanced.type ?? '',
+        type,
         game: advanced.game ?? '',
         game_username: advanced.game_username ?? '',
         status: advanced.status ?? '',
         date_from: advanced.date_from ?? '',
         date_to: advanced.date_to ?? '',
+        date_preset: inferListDatePreset(advanced.date_from ?? '', advanced.date_to ?? ''),
     };
 }
 
@@ -418,6 +425,10 @@ export function SuperAdminHistoryGameActivities() {
     };
 
     const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
+        if (key === 'date_preset' || key === 'date_from' || key === 'date_to') {
+            setFilters((previous) => applyListDateFilterChange(previous, key, value));
+            return;
+        }
         setFilters((previous) => ({ ...previous, [key]: value }));
     }, []);
 
@@ -436,7 +447,8 @@ export function SuperAdminHistoryGameActivities() {
     const handleApplyFilters = useCallback(() => {
         // Sanitize filters - keep only non-empty values
         const sanitized = Object.fromEntries(
-            Object.entries(filters).filter(([, value]) => {
+            Object.entries(filters).filter(([key, value]) => {
+                if (key === 'date_preset') return false;
                 if (typeof value === 'string') {
                     return value.trim() !== '';
                 }

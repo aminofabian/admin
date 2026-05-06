@@ -12,6 +12,10 @@ import { staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
 import type { TransactionQueue, Game, Staff, Manager } from '@/types';
 import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
+import {
+  applyListDateFilterChange,
+  inferListDatePreset,
+} from '@/lib/utils/list-filter-date-preset';
 
 
 const GAME_ACTIVITIES_SKELETON = (
@@ -87,6 +91,7 @@ const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
   game: '',
   game_username: '',
   status: '',
+  date_preset: '',
   date_from: '',
   date_to: '',
 };
@@ -106,6 +111,7 @@ function buildGameActivityFilterState(advanced: Record<string, string>): History
     status: advanced.status ?? '',
     date_from: advanced.date_from ?? '',
     date_to: advanced.date_to ?? '',
+    date_preset: inferListDatePreset(advanced.date_from ?? '', advanced.date_to ?? ''),
   };
 }
 
@@ -431,12 +437,17 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   }, [operatorOptions.length]);
 
   const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
+    if (key === 'date_preset' || key === 'date_from' || key === 'date_to') {
+      setFilters((previous) => applyListDateFilterChange(previous, key, value));
+      return;
+    }
     setFilters((previous) => ({ ...previous, [key]: value }));
   }, []);
 
   const handleApplyFilters = useCallback(() => {
     const sanitized = Object.fromEntries(
-      Object.entries(filters).filter(([, value]) => {
+      Object.entries(filters).filter(([key, value]) => {
+        if (key === 'date_preset') return false;
         if (typeof value === 'string') {
           return value.trim() !== '';
         }

@@ -19,6 +19,10 @@ import {
     type TransactionDetailsNavigation,
 } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
+import {
+  applyListDateFilterChange,
+  inferListDatePreset,
+} from '@/lib/utils/list-filter-date-preset';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { Agent, Company, Transaction } from '@/types';
@@ -35,6 +39,7 @@ const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
     provider: '',
     status: '',
     game: '',
+    date_preset: '',
     date_from: '',
     date_to: '',
     amount_min: '',
@@ -70,6 +75,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
         game: advanced.game ?? '',
         date_from: advanced.date_from ?? '',
         date_to: advanced.date_to ?? '',
+        date_preset: inferListDatePreset(advanced.date_from ?? '', advanced.date_to ?? ''),
         amount_min: advanced.amount_min ?? '',
         amount_max: advanced.amount_max ?? '',
     };
@@ -366,6 +372,10 @@ export function SuperAdminHistoryTransactions() {
     };
 
     const handleFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
+        if (key === 'date_preset' || key === 'date_from' || key === 'date_to') {
+            setFilters((previous) => applyListDateFilterChange(previous, key, value));
+            return;
+        }
         setFilters((previous) => ({ ...previous, [key]: value }));
     }, []);
 
@@ -394,6 +404,7 @@ export function SuperAdminHistoryTransactions() {
             Object.entries(filters).filter(([key, value]) => {
                 if (key === 'game') return false; // Remove game filter as it's not used for transactions
                 if (key === 'operator') return false; // Remove operator filter for superadmin
+                if (key === 'date_preset') return false;
                 if (typeof value === 'string') {
                     return value.trim() !== '';
                 }

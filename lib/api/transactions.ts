@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { paramsWithClientTimezone } from '@/lib/utils/browser-timezone';
 import type { 
   Transaction,
   TransactionQueue,
@@ -97,7 +98,7 @@ export const transactionsApi = {
     
     const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
       'api/admin/transactions', 
-      { params: filters }
+      { params: paramsWithClientTimezone(filters) },
     );
     
     const result = await normalizePaginatedResponse(response);
@@ -119,7 +120,7 @@ export const transactionsApi = {
   queues: async (filters?: QueueFilters) => {
     const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
       'api/admin/transaction-queues', 
-      { params: filters }
+      { params: paramsWithClientTimezone(filters) },
     );
     return normalizePaginatedResponse(response);
   },
@@ -128,7 +129,7 @@ export const transactionsApi = {
   listHistory: async (filters?: Omit<TransactionFilters, 'type'>) => {
     const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
       'api/admin/transactions-history', 
-      { params: filters }
+      { params: paramsWithClientTimezone(filters) },
     );
     return normalizePaginatedResponse(response);
   },
@@ -136,7 +137,7 @@ export const transactionsApi = {
   listPurchases: async (filters?: Omit<TransactionFilters, 'type' | 'txn' | 'txn_type'>) => {
     const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
       'api/admin/transaction-purchases', 
-      { params: filters }
+      { params: paramsWithClientTimezone(filters) },
     );
     return normalizePaginatedResponse(response);
   },
@@ -144,7 +145,7 @@ export const transactionsApi = {
   listCashouts: async (filters?: Omit<TransactionFilters, 'type' | 'txn' | 'txn_type'>) => {
     const response = apiClient.get<PaginatedResponse<Transaction> | Transaction[]>(
       'api/admin/transaction-cashouts', 
-      { params: filters }
+      { params: paramsWithClientTimezone(filters) },
     );
     return normalizePaginatedResponse(response);
   },
@@ -152,7 +153,7 @@ export const transactionsApi = {
   queuesHistory: async (filters?: QueueFilters) => {
     const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
       'api/admin/transaction-queues-history', 
-      { params: filters }
+      { params: paramsWithClientTimezone(filters) },
     );
     return normalizePaginatedResponse(response);
   },
@@ -160,7 +161,7 @@ export const transactionsApi = {
   queuesProcessing: async (filters?: QueueFilters) => {
     const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
       'api/admin/transaction-queues-processing', 
-      { params: filters }
+      { params: paramsWithClientTimezone(filters) },
     );
     return normalizePaginatedResponse(response);
   },
