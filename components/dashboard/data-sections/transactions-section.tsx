@@ -33,6 +33,7 @@ import { transactionsApi } from '@/lib/api/transactions';
 import { storage } from '@/lib/utils/storage';
 import type { Agent, Transaction, Staff, Manager, PaginatedResponse } from '@/types';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
+import { TransactionTable } from './transaction-table';
 import {
   applyListDateFilterChange,
   inferListDatePreset,
@@ -869,7 +870,7 @@ function TransactionsLayout({
   const shouldShowFilterBadge = filter !== 'all' && filter !== 'history';
 
   return (
-    <>
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
         <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
           <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
@@ -924,7 +925,7 @@ function TransactionsLayout({
         onPageChange={onPageChange}
         isLoading={isLoading}
       />
-    </>
+    </div>
   );
 }
 
@@ -1131,41 +1132,12 @@ function TransactionsTable({
           </div>
         ) : (
           <>
-            <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
-              {transactionResults.map((transaction) => (
-                <TransactionCard
-                  key={transaction.id}
-                  transaction={transaction}
-                  onView={handleViewTransaction}
-                />
-              ))}
-            </div>
-
-            <div className="hidden lg:block overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Transaction</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Balance</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dates</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactionResults.map((transaction) => (
-                    <TransactionsRow
-                      key={transaction.id}
-                      transaction={transaction}
-                      onView={handleViewTransaction}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <TransactionTable
+              transactions={transactionResults}
+              onView={handleViewTransaction}
+              showProvider
+              mobileVariant="compact"
+            />
 
             {totalCount > pageSize && (
               <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
@@ -1271,7 +1243,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
 
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-      <TableCell>
+      <TableCell className="align-top">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -1279,13 +1251,7 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
             className="flex-shrink-0 touch-manipulation"
             title="View transaction details"
           >
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity ${
-                isFailedOrCancelled
-                  ? 'bg-gradient-to-br from-red-500 to-red-600'
-                  : 'bg-gradient-to-br from-indigo-500 to-indigo-600'
-              }`}
-            >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm cursor-pointer hover:opacity-80 transition-opacity">
               {userInitial}
             </div>
           </button>
@@ -1306,56 +1272,70 @@ const TransactionsRow = memo(function TransactionsRow({ transaction, onView }: T
           </div>
         </div>
       </TableCell>
-      <TableCell>
-        <Badge
-          variant={typeVariant}
-          className={`text-xs uppercase ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
-        >
-          {transaction.type}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <div className={`text-sm font-bold ${amountColorClass}`}>
-          {formattedAmount}
+      <TableCell className="align-top">
+        <div className="rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2 w-fit">
+          <Badge
+            variant={typeVariant}
+            className={`text-xs uppercase font-medium ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
+          >
+            {transaction.type}
+          </Badge>
         </div>
-        {formattedBonus && (
-          <div className={`text-xs font-semibold mt-0.5 ${bonusColorClass}`}>
-            +{formattedBonus} bonus
+      </TableCell>
+      <TableCell className="align-top">
+        <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+          <div className={`text-sm font-bold ${amountColorClass}`}>
+            {formattedAmount}
           </div>
-        )}
-      </TableCell>
-      <TableCell>
-        <div className={`text-xs ${creditColorClass}`}>
-          {creditDisplayText}
+          {formattedBonus && (
+            <div className={`text-xs font-semibold mt-0.5 ${bonusColorClass}`}>
+              +{formattedBonus} bonus
+            </div>
+          )}
         </div>
       </TableCell>
-      <TableCell>
-        {transaction.payment_method?.trim() ? (
-          <Badge variant="info" className="text-xs">
-            {transaction.payment_method.trim()}
+      <TableCell className="align-top">
+        <div className="min-w-[5.5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+          <div className={`text-xs font-medium ${creditColorClass}`}>
+            {creditDisplayText}
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="align-top">
+        <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+          {transaction.payment_method?.trim() ? (
+            <Badge variant="info" className="text-xs font-medium">
+              {transaction.payment_method.trim()}
+            </Badge>
+          ) : (
+            <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="align-top">
+        <div className="min-w-[5rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+          {transaction.provider ? (
+            <Badge variant="info" className="text-xs font-medium">
+              {getProviderDisplayName(transaction.provider, transaction.payment_method)}
+            </Badge>
+          ) : (
+            <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="align-top">
+        <div className="rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2 w-fit">
+          <Badge variant={statusVariant} className="capitalize font-medium">
+            {transaction.status}
           </Badge>
-        ) : (
-          <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
-        )}
+        </div>
       </TableCell>
-      <TableCell>
-        {transaction.provider ? (
-          <Badge variant="info" className="text-xs">
-            {getProviderDisplayName(transaction.provider, transaction.payment_method)}
-          </Badge>
-        ) : (
-          <span className="text-xs text-gray-500 dark:text-gray-400">—</span>
-        )}
-      </TableCell>
-      <TableCell>
-        <Badge variant={statusVariant} className="capitalize">
-          {transaction.status}
-        </Badge>
-      </TableCell>
-      <TableCell>
-        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-          <div>{formattedCreatedAt}</div>
-          <div>{formattedUpdatedAt}</div>
+      <TableCell className="align-top">
+        <div className="min-w-[6rem] rounded-lg border border-gray-200/80 dark:border-gray-600/80 bg-gray-50/60 dark:bg-gray-800/40 px-2.5 py-2">
+          <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+            <div>{formattedCreatedAt}</div>
+            <div>{formattedUpdatedAt}</div>
+          </div>
         </div>
       </TableCell>
     </TableRow>
@@ -1408,11 +1388,6 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
     return transaction.user_username.charAt(0).toUpperCase();
   }, [transaction.user_username]);
 
-  const isFailedOrCancelled = useMemo(
-    () => transaction.status === 'failed' || transaction.status === 'cancelled',
-    [transaction.status],
-  );
-
   const formattedCreatedAt = useMemo(() => formatDate(transaction.created_at), [transaction.created_at]);
 
   const handleOpenTransactionDetails = useCallback(() => {
@@ -1420,7 +1395,7 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
   }, [transaction, onView]);
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900">
       <div className="p-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-start gap-3">
           <button
@@ -1429,13 +1404,7 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
             className="flex-shrink-0 touch-manipulation"
             title="View transaction details"
           >
-            <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold shadow-md cursor-pointer hover:opacity-80 transition-opacity ${
-                isFailedOrCancelled
-                  ? 'bg-gradient-to-br from-red-500 to-red-600'
-                  : 'bg-gradient-to-br from-indigo-500 to-indigo-600'
-              }`}
-            >
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-85">
               {userInitial}
             </div>
           </button>
@@ -1463,34 +1432,40 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
                 {transaction.type}
               </Badge>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <Badge variant={statusVariant} className="h-5 px-2 text-[10px] capitalize">
+                {transaction.status}
+              </Badge>
+              <Badge
+                variant={typeVariant}
+                className={`h-5 px-2 text-[10px] uppercase ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
+              >
+                {transaction.type}
+              </Badge>
               {transaction.payment_method?.trim() ? (
-                <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
+                <Badge variant="info" className="h-5 px-2 text-[10px] truncate">
                   {transaction.payment_method.trim()}
                 </Badge>
               ) : null}
               {transaction.provider && (
-                <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
+                <Badge variant="info" className="h-5 px-2 text-[10px] truncate">
                   {getProviderDisplayName(transaction.provider, transaction.payment_method)}
                 </Badge>
               )}
-              <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
-                {transaction.status}
-              </Badge>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+      <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
+          <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Amount</span>
           <div className="text-right">
-            <div className={`text-base font-bold ${amountColorClass}`}>
+            <div className={`text-sm font-semibold ${amountColorClass}`}>
               {formattedAmount}
             </div>
             {formattedBonus && (
-              <div className={`text-xs font-semibold mt-0.5 ${amountColorClass}`}>
+              <div className={`mt-0.5 text-[11px] font-medium ${amountColorClass}`}>
                 +{formattedBonus} bonus
               </div>
             )}
@@ -1498,7 +1473,7 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
         </div>
       </div>
 
-      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+      <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
         {(() => {
           const prevCredit = transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
             ? parseFloat(transaction.previous_balance)
@@ -1513,8 +1488,8 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
 
           return (
             <div className="min-w-0">
-              <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Credit</div>
-              <div className={`text-xs ${creditColorClass} flex items-center gap-1`}>
+              <div className="mb-0.5 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Balance</div>
+              <div className={`flex items-center gap-1 text-[11px] ${creditColorClass}`}>
                 <span className="truncate">{formatCurrency(String(prevCredit))}</span>
                 <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -1526,13 +1501,20 @@ const TransactionCard = memo(function TransactionCard({ transaction, onView }: T
         })()}
       </div>
 
-      <div className="p-3">
+      <div className="flex items-center justify-between px-3 py-2">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <span>{formattedCreatedAt}</span>
         </div>
+        <button
+          type="button"
+          onClick={handleOpenTransactionDetails}
+          className="rounded-md border border-gray-200 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          Details
+        </button>
       </div>
     </div>
   );
