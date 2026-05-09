@@ -6,6 +6,7 @@ import { Badge, Button, Card, CardContent, Pagination, Table, TableBody, TableCe
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import {
   formatBalanceTransitionDisplay,
+  showsGameCreditsBalanceForActivityType,
   formatCurrency,
   formatDate,
   formatPaymentMethod,
@@ -1272,7 +1273,9 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
             </TableCell>
             <TableCell>
                 <div className={`text-xs ${creditsColorClass}`}>
-                    {creditsDisplayText}
+                    {showsGameCreditsBalanceForActivityType(String(activity.type))
+                        ? creditsDisplayText
+                        : '—'}
                 </div>
             </TableCell>
             <TableCell>

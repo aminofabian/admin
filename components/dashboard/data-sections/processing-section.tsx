@@ -981,6 +981,17 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     [transactionCount, transactionsPageSize]
   );
 
+  const transactionHasNext = useMemo(
+    () =>
+      Boolean(transactions?.next) ||
+      (totalTransactionPages > 0 && transactionsPage < totalTransactionPages),
+    [transactions?.next, totalTransactionPages, transactionsPage],
+  );
+  const transactionHasPrevious = useMemo(
+    () => Boolean(transactions?.previous) || transactionsPage > 1,
+    [transactions?.previous, transactionsPage],
+  );
+
   useEffect(() => {
     if (viewType === 'purchases') {
       setTransactionsFilter('pending-purchases');
@@ -1914,9 +1925,9 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                 <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
                   <Pagination
                     currentPage={transactionsPage}
-                    totalPages={Math.ceil(transactionCount / transactionsPageSize)}
-                    hasNext={!!transactions?.next}
-                    hasPrevious={!!transactions?.previous}
+                    totalPages={totalTransactionPages}
+                    hasNext={transactionHasNext}
+                    hasPrevious={transactionHasPrevious}
                     onPageChange={setTransactionsPage}
                   />
                 </div>
@@ -1983,7 +1994,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   const gameResults = queues ?? [];
   const isGameEmpty = gameResults.length === 0 && !queuesLoading;
   const totalQueuePages = queuePageSize > 0 ? Math.max(1, Math.ceil(queueCount / queuePageSize)) : 1;
-  const shouldShowQueuePagination = queueCount > queuePageSize || Boolean(queueNext) || Boolean(queuePrevious);
+  const queueHasNext =
+    Boolean(queueNext) || (totalQueuePages > 0 && queuePage < totalQueuePages);
+  const queueHasPrevious = Boolean(queuePrevious) || queuePage > 1;
+  const shouldShowQueuePagination =
+    queueCount > queuePageSize || queueHasNext || queueHasPrevious;
   const gameEmptyState = (
     <EmptyState
       title={metadata.emptyTitle}
@@ -2120,8 +2135,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                     <Pagination
                       currentPage={queuePage}
                       totalPages={totalQueuePages}
-                      hasNext={Boolean(queueNext)}
-                      hasPrevious={Boolean(queuePrevious)}
+                      hasNext={queueHasNext}
+                      hasPrevious={queueHasPrevious}
                       onPageChange={handleQueuePageChange}
                     />
                   </div>

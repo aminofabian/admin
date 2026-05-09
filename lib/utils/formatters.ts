@@ -654,6 +654,11 @@ export function formatLedgerArrowDisplay(
   return `${prev ?? '—'} → ${next ?? '—'}`;
 }
 
+/** Credits transition column / blocks apply only to recharge and redeem (not add-user or password reset). */
+export function showsGameCreditsBalanceForActivityType(type: string | undefined | null): boolean {
+  return type === 'recharge_game' || type === 'redeem_game';
+}
+
 /**
  * Game activity history: API often omits `previous_*` on `create_game` / `add_user_game`.
  * When only `new_*` exists, show `$0.00 → $new` instead of hiding balances.

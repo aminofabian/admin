@@ -6,7 +6,12 @@ import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboa
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
-import { formatBalanceTransitionDisplay, formatCurrency, formatDate } from '@/lib/utils/formatters';
+import {
+  formatBalanceTransitionDisplay,
+  formatCurrency,
+  formatDate,
+  showsGameCreditsBalanceForActivityType,
+} from '@/lib/utils/formatters';
 import { useTransactionQueuesStore, useGamesStore } from '@/stores';
 import { staffsApi, managersApi } from '@/lib/api';
 import { storage } from '@/lib/utils/storage';
@@ -966,7 +971,7 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
       </TableCell>
       <TableCell>
         <div className={`text-xs ${creditsColorClass}`}>
-          {creditsDisplayText}
+          {showsGameCreditsBalanceForActivityType(typeStr) ? creditsDisplayText : '—'}
         </div>
       </TableCell>
       <TableCell>
@@ -1142,18 +1147,20 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
         </div>
       </div>
 
-      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex-1 min-w-0">
-          <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
-          <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
-            <span className="truncate">{formatCurrency(String(prevCredit))}</span>
-            <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-            <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
+      {showsGameCreditsBalanceForActivityType(typeStr) && (
+        <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex-1 min-w-0">
+            <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
+            <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
+              <span className="truncate">{formatCurrency(String(prevCredit))}</span>
+              <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="p-3">
         <div className="flex items-center justify-between gap-3 text-[10px] text-gray-500 dark:text-gray-400">

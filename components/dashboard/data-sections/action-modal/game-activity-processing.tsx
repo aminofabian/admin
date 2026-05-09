@@ -3,7 +3,7 @@
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, showsGameCreditsBalanceForActivityType } from '@/lib/utils/formatters';
 import type { TransactionQueue } from '@/types';
 import { playersApi } from '@/lib/api';
 import {
@@ -75,16 +75,6 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
   const formattedBonus = useMemo(() => {
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
   }, [bonusAmount]);
-
-  const formattedBalance = useMemo(() => {
-    return formatCurrency(String(activity.data?.balance ?? '0'));
-  }, [activity.data?.balance]);
-
-  const totalAmountSent = useMemo(() => {
-    const dataAmount = activity.data?.amount;
-    if (dataAmount === undefined || dataAmount === null) return null;
-    return formatCurrency(String(dataAmount));
-  }, [activity.data?.amount]);
 
   const newCreditsBalance = useMemo(() => {
     const credits = activity.data?.new_credits_balance;
@@ -223,8 +213,8 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
               variant={amountVariant}
             />
 
-            {/* Balance Information */}
-            {newCreditsBalance && (
+            {/* Balance Information (recharge / redeem only) */}
+            {showsGameCreditsBalanceForActivityType(activity.type) && newCreditsBalance && (
               <DetailsRow>
                 <DetailsHighlightBox
                   label="Balance"

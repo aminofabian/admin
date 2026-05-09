@@ -11,7 +11,12 @@ import {
   Badge,
 } from '@/components/ui';
 import type { TransactionQueue } from '@/types';
-import { formatBalanceTransitionDisplay, formatCurrency, formatDate } from '@/lib/utils/formatters';
+import {
+  formatBalanceTransitionDisplay,
+  formatCurrency,
+  formatDate,
+  showsGameCreditsBalanceForActivityType,
+} from '@/lib/utils/formatters';
 
 interface GameActivityTableProps {
   activities: TransactionQueue[];
@@ -236,7 +241,7 @@ function GameActivityRow({
       </TableCell>
       <TableCell>
         <div className={`text-xs ${creditsColorClass}`}>
-          {creditsDisplayText}
+          {showsGameCreditsBalanceForActivityType(String(activity.type)) ? creditsDisplayText : '—'}
         </div>
       </TableCell>
       <TableCell>
@@ -535,8 +540,9 @@ const GameActivityCard = memo(function GameActivityCard({
         </div>
       </div>
 
-      {/* Balance Section */}
-      {(formattedPreviousCredits || formattedNewCredits) && (
+      {/* Balance Section (recharge / redeem only) */}
+      {showsGameCreditsBalanceForActivityType(activity.type) &&
+        (formattedPreviousCredits || formattedNewCredits) && (
         <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">

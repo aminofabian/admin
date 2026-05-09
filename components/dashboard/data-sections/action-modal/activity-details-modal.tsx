@@ -3,7 +3,7 @@
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate, showsGameCreditsBalanceForActivityType } from '@/lib/utils/formatters';
 import type { TransactionQueue } from '@/types';
 import { playersApi } from '@/lib/api';
 import {
@@ -314,8 +314,8 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
               variant={amountVariant}
             />
 
-            {/* Balance Information */}
-            {newCreditsBalance && (
+            {/* Balance Information (recharge / redeem only) */}
+            {showsGameCreditsBalanceForActivityType(activity.type) && newCreditsBalance && (
               <DetailsRow>
                 <DetailsHighlightBox
                   label="Balance"
