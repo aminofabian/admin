@@ -3,7 +3,12 @@
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatCurrency, formatDate, showsGameCreditsBalanceForActivityType } from '@/lib/utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  isNonMonetaryGameActivityType,
+  showsGameCreditsBalanceForActivityType,
+} from '@/lib/utils/formatters';
 import type { TransactionQueue } from '@/types';
 import { playersApi } from '@/lib/api';
 import {
@@ -204,8 +209,14 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
             </div>
           </div>
 
-          {/* Financial Information */}
-          <div className="space-y-3">
+          {/* Financial Information (hidden on small screens for add-user / password-reset) */}
+          <div
+            className={
+              isNonMonetaryGameActivityType(activity.type)
+                ? 'space-y-3 max-sm:hidden'
+                : 'space-y-3'
+            }
+          >
             {/* Amount */}
             <DetailsAmountBox
               amount={formattedAmount}

@@ -6,10 +6,12 @@ import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboa
 import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
 import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
+import { GameActivityTable } from './game-activity-table';
 import {
   formatBalanceTransitionDisplay,
   formatCurrency,
   formatDate,
+  isNonMonetaryGameActivityType,
   showsGameCreditsBalanceForActivityType,
 } from '@/lib/utils/formatters';
 import { useTransactionQueuesStore, useGamesStore } from '@/stores';
@@ -591,10 +593,10 @@ function HistoryGameActivitiesLayout({
   const shouldShowPagination = pagination.totalCount > pagination.pageSize || pagination.hasNext || pagination.hasPrevious;
 
   return (
-    <>
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
       {/* Compact Header */}
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sFm:p-3 md:p-4 lg:p-6">
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
           {/* Icon */}
           <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
             <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -633,7 +635,7 @@ function HistoryGameActivitiesLayout({
         shouldShowPagination={shouldShowPagination}
         isLoading={isLoading}
       />
-    </>
+    </div>
   );
 }
 
@@ -764,39 +766,12 @@ function HistoryGameActivitiesTable({
           </div>
         ) : (
           <>
-            {/* Mobile Card View */}
-            <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
-              {queues.map((activity) => (
-                <GameActivityCard
-                  key={activity.id}
-                  activity={activity}
-                  onView={handleViewActivity}
-                />
-              ))}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Game</TableHead>
-                    <TableHead>Game Username</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Balance</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dates</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {queues.map((activity) => (
-                    <HistoryGameActivityRow key={activity.id} activity={activity} onView={handleViewActivity} />
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <GameActivityTable
+              activities={queues}
+              onViewDetails={handleViewActivity}
+              showActions={false}
+              className="border-0"
+            />
 
             {shouldShowPagination && (
               <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
@@ -846,6 +821,7 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
     typeStr === 'reset_password' ||
     typeStr === 'change_password' ||
     typeStr === 'add_user_game';
+  const isAddUserAction = typeStr === 'add_user_game' || typeStr === 'create_game';
   const shouldShowDash = isZeroAmount && isNonMonetaryType;
 
   const bonus = activity.bonus_amount || activity.data?.bonus_amount;
@@ -896,8 +872,6 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
     : (activity.data && typeof activity.data === 'object' && activity.data !== null && typeof activity.data.username === 'string' && activity.data.username.trim()
       ? activity.data.username.trim()
       : null);
-
-  const isAddUserAction = typeStr === 'add_user_game' || typeStr === 'create_game';
 
   const userInitial = websiteUsername
     ? websiteUsername.charAt(0).toUpperCase()
@@ -952,10 +926,13 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="font-medium">{activity.game}</div>
-      </TableCell>
-      <TableCell>
-        <div className="font-medium">{gameUsername || (isAddUserAction ? 'New user added' : '—')}</div>
+        <div className="font-medium">
+          {activity.game}
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {' · '}
+            {gameUsername || (isAddUserAction ? 'New user added' : '—')}
+          </span>
+        </div>
       </TableCell>
       <TableCell>
         <div className="space-y-1">
@@ -1010,6 +987,7 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
     typeStr === 'reset_password' ||
     typeStr === 'change_password' ||
     typeStr === 'add_user_game';
+  const isAddUserAction = typeStr === 'add_user_game' || typeStr === 'create_game';
   const shouldShowDash = isZeroAmount && isNonMonetaryType;
 
   const bonus = activity.bonus_amount || activity.data?.bonus_amount;
@@ -1070,21 +1048,21 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
   const newCredit = newCreditsValue ?? 0;
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-start gap-3">
+    <div className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900">
+      <div className="border-b border-gray-100 px-3 py-2.5 dark:border-gray-800">
+        <div className="flex items-start gap-2.5">
           <button
             type="button"
             onClick={handleOpenDetails}
             className="flex-shrink-0 touch-manipulation"
             title="View activity details"
           >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md cursor-pointer hover:opacity-80 transition-opacity">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-85">
               {userInitial}
             </div>
           </button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1.5">
+            <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <button
                   type="button"
@@ -1092,66 +1070,70 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
                   className="text-left w-full touch-manipulation"
                   title="View activity details"
                 >
-                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  <h3 className="truncate text-sm font-semibold leading-5 text-gray-900 transition-colors hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                     {websiteUsername}
                   </h3>
                 </button>
                 {websiteEmail && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                  <p className="mt-0.5 truncate text-[11px] leading-4 text-gray-500 dark:text-gray-400">
                     {websiteEmail}
                   </p>
                 )}
               </div>
               <Badge 
                 variant={typeVariant} 
-                className="text-[10px] px-2 py-0.5 uppercase shrink-0"
+                className="h-5 shrink-0 px-2 text-[10px] uppercase"
               >
                 {typeLabel}
               </Badge>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <Badge variant={statusVariant} className="h-5 px-2 text-[10px] capitalize">
                 {activity.status}
               </Badge>
               {activity.game && (
                 <Badge
                   variant="info"
-                  className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0"
+                  className="h-5 min-w-0 flex-1 truncate px-2 text-[10px]"
                 >
                   {activity.game}
                 </Badge>
               )}
             </div>
-            {gameUsername && (
-              <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">
-                Game Username: <span className="font-medium text-gray-700 dark:text-gray-300">{gameUsername}</span>
-              </div>
-            )}
+            <div className="mt-1.5 text-[11px] text-gray-600 dark:text-gray-300 truncate">
+              {activity.game}
+              <span className="text-gray-500 dark:text-gray-400">
+                {' · '}
+                {gameUsername || (isAddUserAction ? 'New user added' : '—')}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+      {!isNonMonetaryGameActivityType(typeStr) && (
+      <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
+          <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Amount</span>
           <div className="text-right">
-            <div className={`text-base font-bold ${amountColorClass}`}>
+            <div className={`text-sm font-semibold ${amountColorClass}`}>
               {shouldShowDash ? '—' : formattedAmount}
             </div>
             {formattedBonus && (
-              <div className={`text-xs font-semibold mt-0.5 ${amountColorClass}`}>
+              <div className={`mt-0.5 text-[11px] font-medium ${amountColorClass}`}>
                 +{formattedBonus} bonus
               </div>
             )}
           </div>
         </div>
       </div>
+      )}
 
       {showsGameCreditsBalanceForActivityType(typeStr) && (
-        <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+        <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
           <div className="flex-1 min-w-0">
-            <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
-            <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
+            <div className="mb-0.5 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Balance</div>
+            <div className={`flex items-center gap-1 text-[11px] ${creditsColorClass}`}>
               <span className="truncate">{formatCurrency(String(prevCredit))}</span>
               <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -1162,7 +1144,7 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
         </div>
       )}
 
-      <div className="p-3">
+      <div className="flex items-center justify-between px-3 py-2">
         <div className="flex items-center justify-between gap-3 text-[10px] text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-1.5">
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1177,6 +1159,13 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
             <span>{formattedUpdatedAt}</span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={handleOpenDetails}
+          className="rounded-md border border-gray-200 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          Details
+        </button>
       </div>
     </div>
   );

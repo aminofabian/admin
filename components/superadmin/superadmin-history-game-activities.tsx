@@ -6,6 +6,7 @@ import { Badge, Button, Card, CardContent, Pagination, Table, TableBody, TableCe
 import { ActivityDetailsModal, EmptyState } from '@/components/features';
 import {
   formatBalanceTransitionDisplay,
+  isNonMonetaryGameActivityType,
   showsGameCreditsBalanceForActivityType,
   formatCurrency,
   formatDate,
@@ -970,7 +971,6 @@ function HistoryGameActivitiesTable({
                                         <TableHead>Company</TableHead>
                                         <TableHead>Activity</TableHead>
                                         <TableHead>Game</TableHead>
-                                        <TableHead>Game Username</TableHead>
                                         <TableHead>Amount</TableHead>
                                         <TableHead>Balance</TableHead>
                                         <TableHead>Status</TableHead>
@@ -1240,26 +1240,13 @@ const HistoryGameActivityRow = memo(function HistoryGameActivityRow({ activity, 
                 </Badge>
             </TableCell>
             <TableCell>
-                <div className="font-medium">{activity.game}</div>
-            </TableCell>
-            <TableCell>
-                {gameUsername ? (
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                        {gameUsername}
-                    </div>
-                ) : isAddUserAction ? (
-                    <div className="font-medium text-gray-500 dark:text-gray-400 italic text-sm">
-                        New user added
-                    </div>
-                ) : activity.status === 'cancelled' ? (
-                    <Badge variant="default" className="text-xs">
-                        Cancelled
-                    </Badge>
-                ) : (
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                        —
-                    </div>
-                )}
+                <div className="font-medium text-gray-900 dark:text-gray-100">
+                    {activity.game}
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {' · '}
+                        {gameUsername || (isAddUserAction ? 'New user added' : (activity.status === 'cancelled' ? 'Cancelled' : '—'))}
+                    </span>
+                </div>
             </TableCell>
             <TableCell>
                 <div className={`text-sm font-bold ${amountColorClass}`}>
@@ -1408,19 +1395,20 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
     }, [activity, onView]);
 
     return (
-        <Card className="border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-sm shrink-0">
+        <Card className="overflow-hidden border border-gray-200/90 shadow-sm transition-colors hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900">
+            <CardContent className="p-0">
+                <div className="border-b border-gray-100 px-3 py-2.5 dark:border-gray-800">
+                    <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-sm font-semibold text-white shadow-sm shrink-0">
                             {userInitial}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                            <div className="truncate text-sm font-semibold leading-5 text-gray-900 dark:text-gray-100">
                                 {websiteUsername || `User ${activity.user_id}`}
                             </div>
                             {websiteEmail && (
-                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                <div className="mt-0.5 truncate text-[11px] leading-4 text-gray-500 dark:text-gray-400">
                                     {websiteEmail}
                                 </div>
                             )}
@@ -1431,7 +1419,7 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
 
                                 if (activityCompany) {
                                     return (
-                                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                        <div className="mt-1 truncate text-[11px] text-gray-600 dark:text-gray-400">
                                             {activityCompany.project_name}
                                         </div>
                                     );
@@ -1440,7 +1428,7 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
                                 // Fallback: show company_username if available
                                 if (activity.company_username) {
                                     return (
-                                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                        <div className="mt-1 truncate text-[11px] text-gray-600 dark:text-gray-400">
                                             {activity.company_username}
                                         </div>
                                     );
@@ -1450,49 +1438,53 @@ const GameActivityCard = memo(function GameActivityCard({ activity, onView, comp
                             })()}
                         </div>
                     </div>
-                    <Badge variant={statusVariant} className="capitalize shrink-0">
-                        {activity.status}
-                    </Badge>
-                </div>
-
-                <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Activity:</span>
-                        <Badge variant={typeVariant} className="capitalize">
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <Badge variant={statusVariant} className="h-5 px-2 text-[10px] capitalize">
+                            {activity.status}
+                        </Badge>
+                        <Badge variant={typeVariant} className="h-5 px-2 text-[10px] capitalize">
                             {typeLabel}
                         </Badge>
                     </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Game:</span>
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{activity.game}</span>
-                    </div>
-                    {gameUsername && (
-                        <div className="flex items-center justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Game Username:</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">{gameUsername}</span>
+                </div>
+                </div>
+
+                <div className="px-3 py-2">
+                    <div className="rounded-md bg-gray-50/80 px-2.5 py-2 dark:bg-gray-800/60">
+                        <div className="min-w-0">
+                            <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Game</div>
+                            <div className="mt-0.5 truncate text-xs font-medium text-gray-900 dark:text-gray-100">
+                                {activity.game}
+                                <span className="text-gray-500 dark:text-gray-400">
+                                    {' · '}
+                                    {gameUsername || (isAddUserAction ? 'New user added' : '—')}
+                                </span>
+                            </div>
                         </div>
-                    )}
-                    <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Amount:</span>
-                        <span className={`font-bold ${isRedeem ? 'text-red-600 dark:text-red-400' : isRecharge ? 'text-green-600 dark:text-green-400' : ''}`}>
+                    </div>
+                    {!isNonMonetaryGameActivityType(activity.type) && (
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-2 dark:border-gray-800">
+                        <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Amount</span>
+                        <span className={`text-sm font-semibold ${isRedeem ? 'text-red-600 dark:text-red-400' : isRecharge ? 'text-green-600 dark:text-green-400' : ''}`}>
                             {formattedAmount}
                         </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Date:</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                    )}
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-2 dark:border-gray-800">
+                        <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</span>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400">
                             {formattedCreatedAt}
                             {showUpdatedAt && ` (Updated: ${formattedUpdatedAt})`}
                         </span>
                     </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="border-t border-gray-100 px-3 py-2 dark:border-gray-800">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleViewClick}
-                        className="w-full flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                        className="w-full flex items-center justify-center gap-2 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
                     >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

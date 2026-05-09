@@ -659,6 +659,18 @@ export function showsGameCreditsBalanceForActivityType(type: string | undefined 
   return type === 'recharge_game' || type === 'redeem_game';
 }
 
+/** Add-user / create-game / password-reset activities have no meaningful wallet amount on mobile summaries. */
+export function isNonMonetaryGameActivityType(type: string | undefined | null): boolean {
+  if (!type) return false;
+  const t = String(type);
+  return (
+    t === 'create_game' ||
+    t === 'reset_password' ||
+    t === 'change_password' ||
+    t === 'add_user_game'
+  );
+}
+
 /**
  * Game activity history: API often omits `previous_*` on `create_game` / `add_user_game`.
  * When only `new_*` exists, show `$0.00 → $new` instead of hiding balances.

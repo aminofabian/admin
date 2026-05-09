@@ -15,6 +15,7 @@ import {
   formatBalanceTransitionDisplay,
   formatCurrency,
   formatDate,
+  isNonMonetaryGameActivityType,
   showsGameCreditsBalanceForActivityType,
 } from '@/lib/utils/formatters';
 
@@ -452,22 +453,22 @@ const GameActivityCard = memo(function GameActivityCard({
   }, [activity, onViewDetails]);
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
-      {/* Top Section: User, Activity Type & Status */}
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-start gap-3">
+    <div className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900">
+      {/* Top Section: User + status */}
+      <div className="px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-start gap-2.5">
           <button
             type="button"
             onClick={handleOpenDetails}
             className="flex-shrink-0 touch-manipulation"
             title="View activity details"
           >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md cursor-pointer hover:opacity-80 transition-opacity">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-85">
               {userInitial}
             </div>
           </button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1.5">
+            <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <button
                   type="button"
@@ -475,70 +476,67 @@ const GameActivityCard = memo(function GameActivityCard({
                   className="text-left w-full touch-manipulation"
                   title="View activity details"
                 >
-                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  <h3 className="truncate text-sm font-semibold leading-5 text-gray-900 transition-colors hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                     {websiteUsername || `User ${activity.user_id}`}
                   </h3>
                 </button>
                 {websiteEmail && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                  <p className="mt-0.5 truncate text-[11px] leading-4 text-gray-500 dark:text-gray-400">
                     {websiteEmail}
                   </p>
                 )}
               </div>
-              <Badge variant={typeVariant} className="text-[10px] px-2 py-0.5 capitalize shrink-0">
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <Badge variant={statusVariant} className="h-5 px-2 text-[10px] capitalize">
+                {activity.status}
+              </Badge>
+              <Badge variant={typeVariant} className="h-5 px-2 text-[10px] capitalize">
                 {typeLabel}
               </Badge>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
-                {activity.status}
-              </Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* Key Info */}
+      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+        <div className="rounded-md bg-gray-50/80 px-2.5 py-2 dark:bg-gray-800/60">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Game</p>
+              <p className="mt-0.5 truncate text-xs font-medium text-gray-900 dark:text-gray-100">
+                {activity.game || 'Unknown Game'}
+              </p>
+            </div>
+            <div className="min-w-0 text-right">
+              <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Username</p>
+              <p className="mt-0.5 truncate text-xs font-medium text-gray-700 dark:text-gray-300">
+                {gameUsername || '—'}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Middle Section: Game Info */}
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800 space-y-2">
-        {/* Game Name */}
-        <div className="flex items-center gap-2">
-          <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z" />
-          </svg>
-          <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
-            {activity.game || 'Unknown Game'}
-          </span>
-        </div>
-
-        {/* Game Username */}
-        {gameUsername && (
-          <div className="flex items-center gap-2">
-            <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">
-              {gameUsername}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Amount Section */}
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+      {/* Amount Section (omit on mobile cards for add-user / password-reset) */}
+      {!isNonMonetaryGameActivityType(activity.type) && (
+      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
+          <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Amount</span>
           <div className="text-right">
-            <div className={`text-base font-bold ${amountColorClassFinal}`}>
+            <div className={`text-sm font-semibold ${amountColorClassFinal}`}>
               {shouldShowDash ? '—' : formattedAmount}
             </div>
             {!shouldShowDash && formattedBonus && (
-              <div className={`text-xs font-semibold mt-0.5 ${bonusColorClassFinal}`}>
+              <div className={`mt-0.5 text-[11px] font-medium ${bonusColorClassFinal}`}>
                 +{formattedBonus} bonus
               </div>
             )}
           </div>
         </div>
       </div>
+      )}
 
       {/* Balance Section (recharge / redeem only) */}
       {showsGameCreditsBalanceForActivityType(activity.type) &&
@@ -546,8 +544,8 @@ const GameActivityCard = memo(function GameActivityCard({
         <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
-              <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
+              <div className="mb-0.5 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">Balance</div>
+              <div className={`flex items-center gap-1 text-[11px] ${creditsColorClass}`}>
                 <span className="truncate">{formattedPreviousCredits || zeroCurrency}</span>
                 <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -559,14 +557,21 @@ const GameActivityCard = memo(function GameActivityCard({
         </div>
       )}
 
-      {/* Bottom Section: Date */}
-      <div className="p-3">
+      {/* Bottom Section: Date + action */}
+      <div className="flex items-center justify-between px-3 py-2">
         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <span>{formattedCreatedAt}</span>
         </div>
+        <button
+          type="button"
+          onClick={handleOpenDetails}
+          className="rounded-md border border-gray-200 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          Details
+        </button>
       </div>
     </div>
   );
