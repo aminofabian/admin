@@ -11,7 +11,6 @@ interface ChatHeaderProps {
   connectionError: string | null;
   mobileView: 'list' | 'chat' | 'info';
   setMobileView: (view: 'list' | 'chat' | 'info') => void;
-  onNavigateToPlayer: () => void;
   onOpenNotesDrawer: () => void;
   playerLastSeenAt?: string | null;
 }
@@ -21,7 +20,6 @@ export const ChatHeader = memo(function ChatHeader({
   isConnected,
   connectionError,
   setMobileView,
-  onNavigateToPlayer,
   onOpenNotesDrawer,
   playerLastSeenAt,
 }: ChatHeaderProps) {
@@ -54,39 +52,37 @@ export const ChatHeader = memo(function ChatHeader({
         </svg>
       </button>
       
-      <div className="flex items-center gap-2 flex-1 min-w-0 rounded-lg border border-border/70 dark:border-transparent bg-muted/20 dark:bg-transparent px-2 py-1.5">
-        <div className="relative flex-shrink-0">
-          <button
-            onClick={onNavigateToPlayer}
-            className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] md:text-xs font-bold shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10 hover:ring-2 hover:ring-primary/40 transition-all duration-200 cursor-pointer active:scale-95"
-            title="View player profile"
-          >
+      <button
+        type="button"
+        onClick={() => setMobileView('info')}
+        className="flex min-h-[44px] w-full min-w-0 flex-1 items-center gap-2 rounded-lg border border-border/70 bg-muted/20 px-2 py-1.5 text-left transition-colors hover:bg-muted/40 active:bg-muted/50 dark:border-transparent dark:bg-transparent md:min-h-0"
+        aria-label="Open player info"
+        title="Player info"
+      >
+        <div className="relative shrink-0">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-[10px] font-bold text-white shadow-md shadow-blue-500/20 ring-2 ring-white/20 dark:ring-white/10 md:h-8 md:w-8 md:text-xs">
             {selectedPlayer.avatar || selectedPlayer.username.charAt(0).toUpperCase()}
-          </button>
-          <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-card shadow-sm ${selectedPlayer.isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+          </div>
+          <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-card shadow-sm ${selectedPlayer.isOnline ? 'animate-pulse bg-green-500' : 'bg-red-500'}`} />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onNavigateToPlayer}
-              className="font-semibold text-foreground text-xs md:text-sm truncate hover:text-primary transition-colors cursor-pointer"
-              title="View player profile"
-            >
-              <span className="capitalize">{selectedPlayer.username}</span>
-            </button>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="block min-w-0 flex-1 truncate text-left font-semibold capitalize text-foreground text-xs md:text-sm">
+              {selectedPlayer.username}
+            </span>
             {isConnected ? (
-              <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-px bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-[8px] font-semibold uppercase tracking-wide">
-                <span className="w-1 h-1 bg-green-500 rounded-full shrink-0" />
+              <span className="hidden shrink-0 sm:inline-flex items-center gap-0.5 px-1.5 py-px bg-green-500/10 text-green-600 dark:text-green-400 rounded-full text-[8px] font-semibold uppercase tracking-wide">
+                <span className="h-1 w-1 shrink-0 rounded-full bg-green-500" />
                 CONNECTED
               </span>
             ) : (
-              <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-px bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-[8px] font-semibold uppercase tracking-wide">
-                <span className="w-1 h-1 bg-amber-500 rounded-full shrink-0" />
+              <span className="hidden shrink-0 sm:inline-flex items-center gap-0.5 px-1.5 py-px bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full text-[8px] font-semibold uppercase tracking-wide">
+                <span className="h-1 w-1 shrink-0 rounded-full bg-amber-500" />
                 CONNECTING
               </span>
             )}
           </div>
-          <div className="text-[10px] text-muted-foreground truncate min-h-[1rem] flex items-center">
+          <div className="flex min-h-[1rem] items-center truncate text-[10px] text-muted-foreground">
             {connectionError
               ? `Error: ${connectionError}`
               : selectedPlayer.isOnline
@@ -96,18 +92,9 @@ export const ChatHeader = memo(function ChatHeader({
                   : <Skeleton className="h-3 w-24" />}
           </div>
         </div>
-      </div>
+      </button>
       
       <div className="flex items-center gap-1 flex-shrink-0">
-        <button 
-          onClick={() => setMobileView('info')}
-          className="md:hidden p-2 hover:bg-muted/80 rounded-lg transition-colors duration-200 active:scale-95"
-          aria-label="View info"
-        >
-          <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
         <button 
           onClick={onOpenNotesDrawer}
           className="relative p-2 hover:bg-muted/80 rounded-lg transition-colors duration-200 active:scale-95" 

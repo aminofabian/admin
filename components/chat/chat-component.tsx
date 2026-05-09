@@ -2407,7 +2407,6 @@ export function ChatComponent() {
               connectionError={connectionError}
               mobileView={mobileView}
               setMobileView={setMobileView}
-              onNavigateToPlayer={handleNavigateToPlayer}
               onOpenNotesDrawer={handleOpenNotesDrawer}
               playerLastSeenAt={playerLastSeenAt}
             />
@@ -2614,7 +2613,6 @@ export function ChatComponent() {
       {selectedPlayerLedgerView && (
         <PlayerInfoSidebar
           selectedPlayer={selectedPlayerLedgerView}
-          isConnected={isConnected}
           mobileView={mobileView}
           setMobileView={setMobileView}
           notes={notes}
