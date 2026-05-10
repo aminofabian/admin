@@ -13,6 +13,7 @@ import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
 import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
+import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-game-password-reveal';
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
@@ -71,6 +72,9 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
   const [gamePendingRedeem, setGamePendingRedeem] = useState<PlayerGame | null>(null);
   const [gamePendingResetPassword, setGamePendingResetPassword] = useState<PlayerGame | null>(null);
   const [isGameOperationSubmitting, setIsGameOperationSubmitting] = useState(false);
+  const [visiblePlayerGamePasswordIds, setVisiblePlayerGamePasswordIds] = useState<
+    Record<number, boolean>
+  >({});
   const [editableFields, setEditableFields] = useState<EditableFields>({
     email: '',
     full_name: '',
@@ -136,6 +140,10 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
     };
 
     loadPlayer();
+  }, [playerId]);
+
+  useEffect(() => {
+    setVisiblePlayerGamePasswordIds({});
   }, [playerId]);
 
   const handleBack = useCallback(() => {
@@ -867,6 +875,17 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {game.username}
                         </p>
+                        <PlayerGamePasswordReveal
+                          layout="compact"
+                          game={game}
+                          isVisible={!!visiblePlayerGamePasswordIds[game.id]}
+                          onToggleVisibility={() =>
+                            setVisiblePlayerGamePasswordIds((prev) => ({
+                              ...prev,
+                              [game.id]: !prev[game.id],
+                            }))
+                          }
+                        />
                       </div>
                       <div className="flex items-center gap-2">
                         <Button

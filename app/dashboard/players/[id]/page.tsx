@@ -26,6 +26,7 @@ import type { AnalyticsFilters } from '@/lib/api/analytics';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals';
 import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
+import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-game-password-reveal';
 import {
   getDateRange,
   buildAnalyticsFiltersWithDatePreset,
@@ -238,6 +239,9 @@ export default function PlayerDetailPage() {
   const [gamePendingRedeem, setGamePendingRedeem] = useState<PlayerGame | null>(null);
   const [gamePendingResetPassword, setGamePendingResetPassword] = useState<PlayerGame | null>(null);
   const [isGameOperationSubmitting, setIsGameOperationSubmitting] = useState(false);
+  const [visiblePlayerGamePasswordIds, setVisiblePlayerGamePasswordIds] = useState<
+    Record<number, boolean>
+  >({});
   const [editableFields, setEditableFields] = useState<EditableFields>({
     email: '',
     full_name: '',
@@ -472,6 +476,9 @@ export default function PlayerDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId]); // addToast is stable from context, no need to include in deps
 
+  useEffect(() => {
+    setVisiblePlayerGamePasswordIds({});
+  }, [playerId]);
 
   const handleSave = useCallback(async () => {
     if (!selectedPlayer) return;
@@ -1572,6 +1579,16 @@ export default function PlayerDetailPage() {
                             {game.game__title}
                           </h3>
                           <p className="text-xs text-gray-500 dark:text-gray-400"> {game.username}</p>
+                          <PlayerGamePasswordReveal
+                            game={game}
+                            isVisible={!!visiblePlayerGamePasswordIds[game.id]}
+                            onToggleVisibility={() =>
+                              setVisiblePlayerGamePasswordIds((prev) => ({
+                                ...prev,
+                                [game.id]: !prev[game.id],
+                              }))
+                            }
+                          />
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
                           <div className={`h-2 w-2 rounded-full ${game.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />

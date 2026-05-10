@@ -15,6 +15,7 @@ import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
 import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
+import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-game-password-reveal';
 
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
@@ -205,6 +206,13 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
   const [gamePendingRedeem, setGamePendingRedeem] = useState<PlayerGame | null>(null);
   const [gamePendingResetPassword, setGamePendingResetPassword] = useState<PlayerGame | null>(null);
   const [isGameOperationSubmitting, setIsGameOperationSubmitting] = useState(false);
+  const [visiblePlayerGamePasswordIds, setVisiblePlayerGamePasswordIds] = useState<
+    Record<number, boolean>
+  >({});
+
+  useEffect(() => {
+    setVisiblePlayerGamePasswordIds({});
+  }, [playerId]);
 
   const handleDeleteGame = useCallback(async () => {
     if (!gameToDelete || !selectedPlayer) return;
@@ -774,6 +782,16 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
                             {game.game__title}
                           </h3>
                           <p className="text-xs text-gray-500 dark:text-gray-400"> {game.username}</p>
+                          <PlayerGamePasswordReveal
+                            game={game}
+                            isVisible={!!visiblePlayerGamePasswordIds[game.id]}
+                            onToggleVisibility={() =>
+                              setVisiblePlayerGamePasswordIds((prev) => ({
+                                ...prev,
+                                [game.id]: !prev[game.id],
+                              }))
+                            }
+                          />
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
                           <div className={`h-2 w-2 rounded-full ${game.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
