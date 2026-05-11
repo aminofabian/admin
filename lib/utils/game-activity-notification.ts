@@ -58,7 +58,13 @@ function extractGameActivityData(message: Record<string, unknown>): Record<strin
   return null;
 }
 
-export function isGameActivityNotificationMessage(message: unknown): boolean {
+type GameActivityNotificationMessage = Record<string, unknown> & {
+  type: 'send_notification';
+};
+
+export function isGameActivityNotificationMessage(
+  message: unknown,
+): message is GameActivityNotificationMessage {
   if (!isRecord(message)) {
     return false;
   }
