@@ -4,19 +4,21 @@ import { useEffect, useRef } from 'react';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import { useToast } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { buildGameActivityNotificationToast } from '@/lib/utils/game-activity-notification';
 import type { Transaction } from '@/types';
 
 /**
  * GlobalTransactionNotifications
  *
- * Subscribes to WebSocket updates for transactions (cashout, purchase) and shows toasts.
- * Queue / game-activity WebSocket events are not surfaced here.
+ * Subscribes to WebSocket updates for transactions (cashout, purchase) and game-activity
+ * status notifications, then shows short-lived toasts.
  */
 export function GlobalTransactionNotifications() {
-  const { subscribeToTransactionUpdates } = useProcessingWebSocketContext();
+  const { subscribeToTransactionUpdates, subscribeToMessages } = useProcessingWebSocketContext();
   const { addToast } = useToast();
 
   const processedTransactionIdsRef = useRef<Set<string>>(new Set());
+  const processedGameActivityNotificationsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const unsubscribeTransaction = subscribeToTransactionUpdates(
@@ -79,6 +81,43 @@ export function GlobalTransactionNotifications() {
 
     return unsubscribeTransaction;
   }, [subscribeToTransactionUpdates, addToast]);
+
+  useEffect(() => {
+    const unsubscribeMessages = subscribeToMessages((message) => {
+      const notification = buildGameActivityNotificationToast(message);
+
+      if (!notification) {
+        return;
+      }
+
+      if (processedGameActivityNotificationsRef.current.has(notification.dedupeKey)) {
+        return;
+      }
+
+      processedGameActivityNotificationsRef.current.add(notification.dedupeKey);
+
+      if (processedGameActivityNotificationsRef.current.size > 100) {
+        const entries = Array.from(processedGameActivityNotificationsRef.current);
+        processedGameActivityNotificationsRef.current = new Set(entries.slice(-50));
+      }
+
+      addToast({
+        type: notification.type,
+        title: notification.title,
+        description: notification.description,
+        duration: notification.duration,
+      });
+
+      console.log('🔔 Global notification: Game activity status', {
+        dedupeKey: notification.dedupeKey,
+        type: notification.type,
+        title: notification.title,
+        description: notification.description,
+      });
+    });
+
+    return unsubscribeMessages;
+  }, [subscribeToMessages, addToast]);
 
   return null;
 }
