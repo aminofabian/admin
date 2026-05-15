@@ -14,8 +14,10 @@ import {
   isKycVerificationMessage,
   parseKycMessage,
   formatTransactionMessage,
+  getTransactionCardClass,
   parseTransactionMessage,
   prepareChatMessageHtmlForDisplay,
+  transactionTypeToVisualKind,
 } from '../utils/message-helpers';
 
 interface MessageBubbleProps {
@@ -130,16 +132,8 @@ function TransactionMessage({ message, isPurchase }: {
     .replace(/<br\s*\/?>/gi, '<br />');
 
   const getTransactionBgClass = () => {
-    if (details.type === 'recharge' || details.type === 'credit_purchase') {
-      return 'bg-green-500/10 border-green-500/30';
-    }
-    if (details.type === 'cashout' || details.type === 'redeem') {
-      return 'bg-red-500/10 border-red-500/30';
-    }
-    if (details.type) {
-      return 'bg-purple-500/10 border-purple-500/30';
-    }
-    return '';
+    if (!details.type) return '';
+    return getTransactionCardClass(transactionTypeToVisualKind(details.type));
   };
 
   return (

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { isAutoMessage, isPurchaseNotification, parseTransactionMessage } from '../message-helpers';
+import {
+  getTransactionCardClass,
+  getTransactionTextColorClass,
+  isAutoMessage,
+  isPurchaseNotification,
+  parseTransactionMessage,
+  transactionTypeToVisualKind,
+} from '../message-helpers';
 
 describe('isPurchaseNotification', () => {
   it('should not treat colloquial player text about cashing out as a purchase notification', () => {
@@ -16,6 +23,16 @@ describe('isPurchaseNotification', () => {
     expect(
       isPurchaseNotification({
         text: 'You successfully cashed out $25.00 to your wallet.',
+        type: 'message',
+        sender: 'player',
+      }),
+    ).toBe(true);
+  });
+
+  it('should treat ledger-style cashout via payment method as a purchase notification', () => {
+    expect(
+      isPurchaseNotification({
+        text: '<b>$3.00</b> cashed out via <b>Bitcoin Lightning.</b><br />Balance: <b>$704.29</b>',
         type: 'message',
         sender: 'player',
       }),
@@ -58,5 +75,27 @@ describe('parseTransactionMessage', () => {
       null,
     );
     expect(system.type).toBe('cashout');
+
+    const viaMethod = parseTransactionMessage(
+      '<b>$3.00</b> cashed out via <b>Bitcoin Lightning.</b><br />Balance: <b>$704.29</b>',
+      'message',
+      null,
+    );
+    expect(viaMethod.type).toBe('cashout');
+    expect(viaMethod.paymentMethod).toBe('Bitcoin Lightning');
+  });
+});
+
+describe('transaction visual colors', () => {
+  it('maps transaction types to purchase / withdraw / recharge / redeem colors', () => {
+    expect(transactionTypeToVisualKind('credit_purchase')).toBe('purchase');
+    expect(transactionTypeToVisualKind('cashout')).toBe('withdraw');
+    expect(transactionTypeToVisualKind('recharge')).toBe('recharge');
+    expect(transactionTypeToVisualKind('redeem')).toBe('redeem');
+    expect(getTransactionTextColorClass('purchase')).toContain('green');
+    expect(getTransactionTextColorClass('withdraw')).toContain('red');
+    expect(getTransactionTextColorClass('recharge')).toContain('purple');
+    expect(getTransactionTextColorClass('redeem')).toContain('orange');
+    expect(getTransactionCardClass('redeem')).toContain('orange');
   });
 });

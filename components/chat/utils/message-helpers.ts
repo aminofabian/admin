@@ -146,6 +146,7 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
     /sign[\s-]?up bonus[\s\S]{0,240}\bwinnings?\s*:/i,
     // Do not match colloquial "cashed out" in player chat (e.g. "someone cashed out my winnings")
     /successfully cashed out/i,
+    /cashed out via/i,
     /recharged to/i,
     /redeemed from/i,
     /added to your (credit|winning) balance/i,
@@ -459,14 +460,14 @@ export const parseTransactionMessage = (
 
   // Extract payment method (for purchase) - look for "via {Payment Method}"
   const paymentPatterns = [
-    /via\s+<b>([\w\s]+)<\/b>/i,
+    /via\s+<b>([^<]+)<\/b>/i,
     /via\s+([\w\s]+?)(?:\.|$|<br)/i,
   ];
 
   for (const pattern of paymentPatterns) {
     const match = originalText.match(pattern);
     if (match && match[1]) {
-      const method = stripHtml(match[1]).trim();
+      const method = stripHtml(match[1]).trim().replace(/\.+$/, '');
       if (method && method.length > 1 && !/^\d+$/.test(method)) {
         result.paymentMethod = method;
         break;
@@ -479,7 +480,10 @@ export const parseTransactionMessage = (
   // Rule 1: Always check for specific automated transaction keywords first
   if (cleanText.includes('credited by admin')) {
     result.type = 'credit_added';
-  } else if (cleanText.includes('successfully cashed out')) {
+  } else if (
+    cleanText.includes('successfully cashed out') ||
+    cleanText.includes('cashed out via')
+  ) {
     result.type = 'cashout';
   } else if (cleanText.includes('successfully purchased') || (cleanText.includes('purchased') && cleanText.includes('credit'))) {
     result.type = 'credit_purchase';
@@ -514,6 +518,58 @@ export const parseTransactionMessage = (
   return result;
 };
 
+/** UI color bucket for ledger / transaction chat cards. */
+export type TransactionVisualKind = 'purchase' | 'withdraw' | 'recharge' | 'redeem' | 'manual';
+
+export function transactionTypeToVisualKind(
+  type: TransactionDetails['type'],
+): TransactionVisualKind {
+  switch (type) {
+    case 'credit_purchase':
+      return 'purchase';
+    case 'cashout':
+      return 'withdraw';
+    case 'recharge':
+      return 'recharge';
+    case 'redeem':
+      return 'redeem';
+    default:
+      return 'manual';
+  }
+}
+
+/** Bold amount / label accent in transaction HTML. */
+export function getTransactionTextColorClass(kind: TransactionVisualKind): string {
+  switch (kind) {
+    case 'purchase':
+      return 'text-green-600 dark:text-green-400';
+    case 'withdraw':
+      return 'text-red-600 dark:text-red-400';
+    case 'recharge':
+      return 'text-purple-600 dark:text-purple-400';
+    case 'redeem':
+      return 'text-orange-600 dark:text-orange-400';
+    default:
+      return 'text-purple-600 dark:text-purple-400';
+  }
+}
+
+/** Centered transaction card tint on admin chat. */
+export function getTransactionCardClass(kind: TransactionVisualKind): string {
+  switch (kind) {
+    case 'purchase':
+      return 'bg-green-500/10 border-green-500/30';
+    case 'withdraw':
+      return 'bg-red-500/10 border-red-500/30';
+    case 'recharge':
+      return 'bg-purple-500/10 border-purple-500/30';
+    case 'redeem':
+      return 'bg-orange-500/10 border-orange-500/30';
+    default:
+      return 'bg-purple-500/10 border-purple-500/30';
+  }
+}
+
 /**
  * Formats a transaction message according to the specified format.
  * Now simplified to show the message as it appears from the source,
@@ -538,22 +594,8 @@ export const formatTransactionMessage = (
   );
 
   const details = parseTransactionMessage(message.text, message.type, message.operationType);
-
-  // Identify the color based on transaction type:
-  // Red: Cashout, Redeem (money leaving the system)
-  // Green: Purchase, Recharge (money entering the system)
-  // Purple: Manual transactions from chat (add/deduct credit & add/deduct winnings)
-  let colorClass = 'text-purple-600 dark:text-purple-400'; // Default: manual transactions
-
-  if (details.type === 'recharge' || details.type === 'credit_purchase') {
-    // Green for purchase and recharge
-    colorClass = 'text-green-600 dark:text-green-400';
-  } else if (details.type === 'cashout' || details.type === 'redeem') {
-    // Red for cashout and redeem
-    colorClass = 'text-red-600 dark:text-red-400';
-  }
-  // Purple is default for: credit_added, credit_deducted, winning_added, winning_deducted (manual operations)
-
+  const visualKind = transactionTypeToVisualKind(details.type);
+  const colorClass = getTransactionTextColorClass(visualKind);
   const boldClass = `text-[0.92em] font-bold ${colorClass}`;
 
   // Unbold labels before wrapping amounts so "Balance:" stays plain while $ amounts get color
