@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Button, useToast } from '@/components/ui';
 import { storage } from '@/lib/utils/storage';
 import { TOKEN_KEY } from '@/lib/constants/api';
@@ -23,9 +24,14 @@ export function NotesDrawer({
 }: NotesDrawerProps) {
   const [editedNotes, setEditedNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { addToast } = useToast();
   const isSavingRef = useRef(false);
   const lastToastRef = useRef<{ type: string; title: string; timestamp: number } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync editedNotes with notes from props when drawer opens or notes change
   // Priority: selectedPlayer.notes > localStorage > notes prop (WebSocket)
@@ -33,7 +39,7 @@ export function NotesDrawer({
     if (isOpen && selectedPlayer) {
       // First check selectedPlayer.notes (most up-to-date)
       let notesToUse = selectedPlayer.notes;
-      
+
       // Fallback to localStorage if selectedPlayer doesn't have notes
       if (!notesToUse || !notesToUse.trim()) {
         const storageKey = `player_notes_${selectedPlayer.user_id}`;
@@ -42,12 +48,12 @@ export function NotesDrawer({
           notesToUse = storedNotes;
         }
       }
-      
+
       // Final fallback to notes prop from WebSocket
       if (!notesToUse || !notesToUse.trim()) {
         notesToUse = notes;
       }
-      
+
       setEditedNotes(notesToUse || '');
     }
   }, [isOpen, notes, selectedPlayer?.notes, selectedPlayer?.user_id]);
@@ -98,7 +104,7 @@ export function NotesDrawer({
       const toastKey = 'success-notes-saved';
       const now = Date.now();
       const lastToast = lastToastRef.current;
-      
+
       // Only show toast if it's been more than 1 second since the last identical toast
       if (!lastToast || lastToast.type !== toastKey || now - lastToast.timestamp > 1000) {
         addToast({
@@ -108,7 +114,7 @@ export function NotesDrawer({
         });
         lastToastRef.current = { type: toastKey, title: 'You have successfully saved your note', timestamp: now };
       }
-      
+
       // Store notes in localStorage as fallback (or remove if empty)
       if (selectedPlayer?.user_id) {
         const storageKey = `player_notes_${selectedPlayer.user_id}`;
@@ -142,98 +148,120 @@ export function NotesDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayer, editedNotes, addToast, onNotesSaved]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-[110] overflow-hidden">
+  const drawer = (
+    <div
+      className="fixed inset-0 z-[120] overflow-hidden max-lg:top-16 max-lg:bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="player-notes-title"
+    >
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/80"
         onClick={onClose}
         aria-hidden="true"
       />
-      
-      {/* Drawer Panel */}
-      <div 
-        className="fixed inset-y-0 right-0 z-[110] w-full sm:max-w-lg bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl transition-transform duration-300 ease-in-out transform translate-x-0"
+
+      {/* Drawer Panel — portaled above layout chrome; mobile fits between header & bottom nav */}
+      <div
+        className="absolute inset-0 flex w-full flex-col bg-white shadow-2xl dark:bg-gray-900 lg:left-auto lg:right-0 lg:w-full lg:max-w-lg lg:border-l lg:border-gray-200 dark:lg:border-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex h-full flex-col">
+        <div className="flex h-full min-h-0 flex-col">
           {/* Drawer Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-b border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-between z-10 backdrop-blur-sm">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <div className="sticky top-0 z-10 flex shrink-0 items-center gap-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-4 backdrop-blur-sm dark:border-gray-800 dark:from-purple-950/20 dark:to-indigo-950/20 sm:px-6 sm:py-5">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSavingNotes}
+              aria-label="Close player notes"
+              className="flex shrink-0 items-center gap-1 rounded-xl px-2 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-white/60 disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800/60 lg:hidden"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg sm:h-12 sm:w-12">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Player Notes</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">Add private notes about this player</p>
+              <div className="min-w-0">
+                <h2 id="player-notes-title" className="truncate text-lg font-bold text-gray-900 dark:text-gray-100 sm:text-xl">
+                  Player Notes
+                </h2>
+                <p className="mt-0.5 truncate text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
+                  Add private notes about this player
+                </p>
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-xl transition-all duration-200 hover:rotate-90 disabled:opacity-50"
+              className="hidden shrink-0 rounded-xl p-2 transition-all duration-200 hover:rotate-90 hover:bg-white/50 disabled:opacity-50 dark:hover:bg-gray-800/50 lg:block"
               disabled={isSavingNotes}
               aria-label="Close drawer"
             >
-              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <svg className="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24 md:pb-6">
-          {selectedPlayer ? (
-            <div className="space-y-4">
-              {/* Player Info */}
-              <div className="flex items-center gap-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border/70 dark:border-transparent">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-primary">
-                    {selectedPlayer.username.charAt(0).toUpperCase()}
-                  </span>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-6 pb-4 sm:p-6 sm:pb-6">
+            {selectedPlayer ? (
+              <div className="space-y-4">
+                {/* Player Info */}
+                <div className="flex items-center gap-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border/70 dark:border-transparent">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-primary">
+                      {selectedPlayer.username.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate capitalize">{selectedPlayer.username}</p>
+                    <p className="text-xs text-muted-foreground truncate">{selectedPlayer.email}</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate capitalize">{selectedPlayer.username}</p>
-                  <p className="text-xs text-muted-foreground truncate">{selectedPlayer.email}</p>
-                </div>
-              </div>
 
-              {/* Notes Editor */}
-              <div>
-                <label className="text-sm font-medium text-muted-foreground block mb-2">
-                  Notes
-                </label>
-                <textarea
-                  value={editedNotes}
-                  onChange={(e) => setEditedNotes(e.target.value)}
-                  onKeyDown={(e) => {
-                    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-                      e.preventDefault();
-                      handleSaveNotes();
-                    }
-                  }}
-                  placeholder="Add private notes about this player..."
-                  className="w-full min-h-[200px] p-3 border border-border rounded-lg bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-muted-foreground"
-                  autoComplete="off"
-                />
+                {/* Notes Editor */}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground block mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    value={editedNotes}
+                    onChange={(e) => setEditedNotes(e.target.value)}
+                    onKeyDown={(e) => {
+                      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                        e.preventDefault();
+                        handleSaveNotes();
+                      }
+                    }}
+                    placeholder="Add private notes about this player..."
+                    className="w-full min-h-[200px] p-3 border border-border rounded-lg bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-muted-foreground"
+                    autoComplete="off"
+                  />
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12">
-              <svg className="w-16 h-16 text-muted-foreground/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <p className="text-sm text-muted-foreground">No player selected</p>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12">
+                <svg className="w-16 h-16 text-muted-foreground/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <p className="text-sm text-muted-foreground">No player selected</p>
+              </div>
+            )}
+          </div>
 
           {/* Drawer Footer */}
           {selectedPlayer && (
-            <div className="sticky bottom-0 z-10 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-6 py-5 flex items-center justify-end gap-3 shadow-lg">
+            <div className="shrink-0 border-t border-gray-200 bg-white px-4 py-4 flex items-center justify-end gap-3 shadow-lg dark:border-gray-800 dark:bg-gray-900 sm:px-6 sm:py-5">
               <Button
                 variant="ghost"
                 onClick={() => setEditedNotes('')}
@@ -242,8 +270,8 @@ export function NotesDrawer({
               >
                 Clear
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -261,4 +289,6 @@ export function NotesDrawer({
       </div>
     </div>
   );
+
+  return createPortal(drawer, document.body);
 }
