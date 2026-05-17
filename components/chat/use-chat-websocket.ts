@@ -243,6 +243,8 @@ export function useChatReset({
   const historyRequestRef = useRef(0);
   const purchaseRequestRef = useRef(0);
   const activeConnectionKeyRef = useRef("");
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const PING_INTERVAL_MS = 25000;
 
   //  MESSAGE CACHE: Initialize cache hook
   const messageCache = useMessageCache();
@@ -698,6 +700,16 @@ export function useChatReset({
         reconnectAttemptsRef.current = 0;
 
         // Fetch message history after connecting
+
+        // Start client-side heartbeat to keep connection alive
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+        }
+        pingIntervalRef.current = setInterval(() => {
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "ping", timestamp: Date.now() }));
+          }
+        }, PING_INTERVAL_MS);
         void fetchMessageHistory(1, "replace");
       };
 
@@ -721,6 +733,25 @@ export function useChatReset({
 
           // Handle different message types from backend
           const messageType = rawData.type;
+
+          // Heartbeat / keepalive
+          // Respond to server-initiated pings to prevent idle disconnect.
+          // Also swallow client-initiated pong echoes.
+          if (messageType === "ping") {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(
+                JSON.stringify({
+                  type: "pong",
+                  timestamp: Date.now(),
+                }),
+              );
+            }
+            return;
+          }
+          if (messageType === "pong") {
+            // Heartbeat response, connection is alive
+            return;
+          }
           const hasMessageContent = !!(
             rawData.message ||
             rawData.text ||
@@ -944,6 +975,12 @@ export function useChatReset({
         setIsConnected(false);
         wsRef.current = null;
 
+        // Clear heartbeat on close
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+          pingIntervalRef.current = null;
+        }
+
         // Don't attempt reconnection if backend returned 404 or similar
         if (event.code === 1006 || event.code === 1001) {
           if (!IS_PROD)
@@ -990,6 +1027,13 @@ export function useChatReset({
       if (!IS_PROD) console.log("🔌 Disconnecting chat WebSocket");
       wsRef.current.close();
       wsRef.current = null;
+    }
+
+
+    // Clear heartbeat on disconnect
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
     }
 
     setIsConnected(false);

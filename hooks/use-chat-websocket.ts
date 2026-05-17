@@ -774,6 +774,22 @@ export function useChatWebSocket({
           const rawData = data as RawChatMessage;
           const messageType = rawData.type;
 
+          // Heartbeat / keepalive
+          // Respond to server-initiated pings to prevent idle disconnect.
+          // Also swallow client-initiated pong echoes so they do not fall
+          // through to the unhandled message type branch.
+          if (messageType === "ping") {
+            websocketManager.send(wsUrl, {
+              type: "pong",
+              timestamp: Date.now(),
+            });
+            return;
+          }
+          if (messageType === "pong") {
+            // Heartbeat response, connection is alive
+            return;
+          }
+
           !IS_PROD &&
             console.log("📨 [Chat WS] Received:", {
               type: messageType,

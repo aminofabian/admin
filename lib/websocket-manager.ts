@@ -39,6 +39,10 @@ class WebSocketManager {
   private connections = new Map<string, ManagedWebSocket>();
   private reconnectTimeouts = new Map<string, NodeJS.Timeout>();
   private connectionTimeouts = new Map<string, NodeJS.Timeout>();
+  private pingIntervals = new Map<string, NodeJS.Timeout>();
+
+  /** How often the client sends a ping to keep the connection alive (ms) */
+  private readonly PING_INTERVAL_MS = 25000;
 
   private readonly DEFAULT_CONFIG: Required<Omit<WebSocketConfig, "url">> = {
     maxReconnectAttempts: 5,
@@ -156,6 +160,9 @@ class WebSocketManager {
       // Clear connection timeout
       this.clearConnectionTimeout(managed.url);
 
+      // Start client-side heartbeat to keep the connection alive
+      this.startHeartbeat(managed);
+
       // Notify all listeners
       managed.listeners.forEach((listener) => {
         try {
@@ -234,6 +241,9 @@ class WebSocketManager {
 
       managed.isConnecting = false;
       this.clearConnectionTimeout(managed.url);
+
+      // Stop heartbeat on close
+      this.stopHeartbeat(managed.url);
 
       // Notify all listeners
       managed.listeners.forEach((listener) => {
@@ -336,12 +346,48 @@ class WebSocketManager {
     this.reconnectTimeouts.set(managed.url, timeoutId);
   }
 
+  /**
+   * Start a client-side heartbeat ping interval.
+   * Sends a JSON ping every PING_INTERVAL_MS to prevent proxy/server idle timeouts.
+   * This complements any server-initiated pings your backend may already send.
+   */
+  private startHeartbeat(managed: ManagedWebSocket): void {
+    this.stopHeartbeat(managed.url);
+
+    const intervalId = setInterval(() => {
+      if (managed.ws.readyState !== WebSocket.OPEN) {
+        this.stopHeartbeat(managed.url);
+        return;
+      }
+      try {
+        managed.ws.send(
+          JSON.stringify({ type: "ping", timestamp: Date.now() }),
+        );
+      } catch {
+        // Socket may have died silently — stop heartbeat, let onclose/onerror handle it
+        this.stopHeartbeat(managed.url);
+      }
+    }, this.PING_INTERVAL_MS);
+
+    this.pingIntervals.set(managed.url, intervalId);
+  }
+
+  /** Stop the heartbeat ping interval for a given URL. */
+  private stopHeartbeat(url: string): void {
+    const intervalId = this.pingIntervals.get(url);
+    if (intervalId) {
+      clearInterval(intervalId);
+      this.pingIntervals.delete(url);
+    }
+  }
+
   private closeConnection(url: string): void {
     const managed = this.connections.get(url);
     if (!managed) return;
 
-    // Clear all timeouts
+    // Clear all timeouts & heartbeat
     this.clearConnectionTimeout(url);
+    this.stopHeartbeat(url);
     const reconnectTimeoutId = this.reconnectTimeouts.get(url);
     if (reconnectTimeoutId) {
       clearTimeout(reconnectTimeoutId);
