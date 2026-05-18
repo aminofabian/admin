@@ -158,6 +158,14 @@ export const transactionsApi = {
     return normalizePaginatedResponse(response);
   },
 
+  playerTimelineHistory: async (filters?: QueueFilters & { username?: string }) => {
+    const response = apiClient.get<PaginatedResponse<Record<string, unknown>> | Record<string, unknown>[]>(
+      'api/admin/player-timeline-history',
+      { params: paramsWithClientTimezone(filters) },
+    );
+    return normalizePaginatedResponse(response);
+  },
+
   queuesProcessing: async (filters?: QueueFilters) => {
     const response = apiClient.get<PaginatedResponse<TransactionQueue> | TransactionQueue[]>(
       'api/admin/transaction-queues-processing', 

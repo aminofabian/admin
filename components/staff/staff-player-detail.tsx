@@ -175,6 +175,11 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     router.push('/dashboard/history/game-activities?preserveFilters=true');
   }, [selectedPlayer, router]);
 
+  const handleViewTimeline = useCallback(() => {
+    if (!selectedPlayer) return;
+    router.push(`/dashboard/players/${selectedPlayer.id}/timeline`);
+  }, [selectedPlayer, router]);
+
   const handleCheckBalance = useCallback(async (game: PlayerGame) => {
     if (!selectedPlayer) return;
 
@@ -706,7 +711,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                 </div>
                 <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
                 <Button
                   onClick={handleViewTransactions}
                   variant="primary"
@@ -729,9 +734,19 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                   <span className="text-center leading-tight">Activities</span>
                 </Button>
                 <Button
+                  onClick={handleViewTimeline}
+                  variant="primary"
+                  className="group col-span-2 flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px] sm:col-span-1"
+                >
+                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-center leading-tight">Timeline</span>
+                </Button>
+                <Button
                   onClick={() => setIsSavedPaymentMethodsOpen(true)}
                   variant="secondary"
-                  className="group col-span-2 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98] touch-manipulation"
+                  className="group col-span-2 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98] touch-manipulation sm:col-span-3"
                 >
                   <svg className="h-5 w-5 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
