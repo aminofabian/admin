@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 const TABS = [
   { href: '/dashboard/history/transactions', label: 'Transactions' },
   { href: '/dashboard/history/game-activities', label: 'Game Activities' },
+  { href: '/dashboard/history/roulette-rewards', label: 'Prize Wheel' },
 ];
 
 export function HistoryTabs() {

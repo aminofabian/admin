@@ -51,6 +51,7 @@ export const API_ENDPOINTS = {
     QUEUES_HISTORY: `${API_PREFIX}/transaction-queues-history/`,
     QUEUES_PROCESSING: `${API_PREFIX}/transaction-queues-processing/`,
     PLAYER_TIMELINE_HISTORY: `${API_PREFIX}/player-timeline-history/`,
+    ROULETTE_REWARDS: `${API_PREFIX}/roulette/rewards/`,
     HANDLE_GAME_ACTION: 'api/handle-game-action', // Using Next.js API route to proxy request
     ACTION: 'api/transaction-action', // Using Next.js API route to proxy request for cancel/complete
   },
