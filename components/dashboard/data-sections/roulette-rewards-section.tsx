@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { format } from 'date-fns';
 import { EmptyState } from '@/components/features';
+import { formatDate } from '@/lib/utils/formatters';
 import { Pagination } from '@/components/ui/pagination';
 import {
   Table,
@@ -124,9 +124,7 @@ export function RouletteRewardsSection() {
                     </TableCell>
                     <TableCell className="tabular-nums">{reward.position}</TableCell>
                     <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                      {reward.created_at
-                        ? format(new Date(reward.created_at), 'MMM d, yyyy h:mm a')
-                        : '—'}
+                      {reward.created_at ? formatDate(reward.created_at) : '—'}
                     </TableCell>
                   </TableRow>
                 ))}
