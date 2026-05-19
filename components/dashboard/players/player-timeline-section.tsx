@@ -43,6 +43,7 @@ import {
   mapPlayerTimelineResult,
   playerTimelineItemToTransaction,
   playerTimelineItemToTransactionQueue,
+  resolvePlayerTimelineBonusAmount,
   type PlayerTimelineItem,
 } from '@/lib/utils/player-timeline';
 import type { Transaction, TransactionQueue } from '@/types';
@@ -388,6 +389,8 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
     item.kind === 'game_activity' && isNonMonetaryGameActivityType(item.type)
   );
   const amountColor = getTransactionAmountColorClass(item.type, item.amount);
+  const bonusAmount = resolvePlayerTimelineBonusAmount(item);
+  const formattedBonus = bonusAmount ? formatCurrency(bonusAmount) : null;
   const { variant: typeVariant, isTransfer } = getTransactionTypeBadgeStyle(
     item.type,
     item.payment_method,
@@ -426,9 +429,14 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
       <TableCell className="align-middle">
         {showAmount ? (
           <div className="rounded-lg border border-gray-200/80 bg-gray-50/60 px-2.5 py-2 dark:border-gray-600/80 dark:bg-gray-800/40">
-            <span className={`text-sm font-bold tabular-nums ${amountColor}`}>
+            <div className={`text-sm font-bold tabular-nums ${amountColor}`}>
               {formatCurrency(item.amount ?? '0')}
-            </span>
+            </div>
+            {formattedBonus && (
+              <div className={`mt-0.5 text-xs font-semibold tabular-nums ${amountColor}`}>
+                +{formattedBonus} bonus
+              </div>
+            )}
           </div>
         ) : (
           <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
@@ -455,6 +463,8 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
     item.kind === 'game_activity' && isNonMonetaryGameActivityType(item.type)
   );
   const amountColor = getTransactionAmountColorClass(item.type, item.amount);
+  const bonusAmount = resolvePlayerTimelineBonusAmount(item);
+  const formattedBonus = bonusAmount ? formatCurrency(bonusAmount) : null;
   const detailLabel =
     item.kind === 'game_activity'
       ? item.game || item.game_code
@@ -507,9 +517,16 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
         </p>
       </div>
       {showAmount && (
-        <p className={`shrink-0 self-center text-sm font-bold tabular-nums ${amountColor}`}>
-          {formatCurrency(item.amount ?? '0')}
-        </p>
+        <div className="shrink-0 self-center text-right">
+          <p className={`text-sm font-bold tabular-nums ${amountColor}`}>
+            {formatCurrency(item.amount ?? '0')}
+          </p>
+          {formattedBonus && (
+            <p className={`mt-0.5 text-xs font-semibold tabular-nums ${amountColor}`}>
+              +{formattedBonus} bonus
+            </p>
+          )}
+        </div>
       )}
       {CHEVRON_ICON}
     </button>

@@ -57,6 +57,13 @@ export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTim
   );
   const updatedAt = String(raw.updated_at ?? raw.updated ?? createdAt);
 
+  const data =
+    raw.data && typeof raw.data === 'object' && raw.data !== null
+      ? (raw.data as Record<string, unknown>)
+      : null;
+  const bonusRaw =
+    raw.bonus_amount ?? (data?.bonus_amount != null ? data.bonus_amount : undefined);
+
   return {
     id: String(raw.id ?? ''),
     kind,
@@ -72,9 +79,7 @@ export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTim
     user_email: typeof raw.user_email === 'string' ? raw.user_email : undefined,
     amount: normalizeAmount(raw.amount),
     bonus_amount:
-      raw.bonus_amount != null && raw.bonus_amount !== ''
-        ? normalizeAmount(raw.bonus_amount)
-        : undefined,
+      bonusRaw != null && bonusRaw !== '' ? normalizeAmount(bonusRaw) : undefined,
     game: typeof raw.game === 'string' ? raw.game : undefined,
     game_code: typeof raw.game_code === 'string' ? raw.game_code : undefined,
     payment_method:
@@ -84,6 +89,17 @@ export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTim
     updated_at: updatedAt,
     raw,
   };
+}
+
+/** Returns bonus amount string when present and > 0, otherwise null. */
+export function resolvePlayerTimelineBonusAmount(
+  item: PlayerTimelineItem,
+): string | null {
+  const bonusRaw = item.bonus_amount;
+  if (bonusRaw == null || bonusRaw === '') return null;
+  const bonusValue = parseFloat(bonusRaw);
+  if (Number.isNaN(bonusValue) || bonusValue <= 0) return null;
+  return bonusRaw;
 }
 
 export function playerTimelineItemToTransactionQueue(
