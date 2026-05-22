@@ -22,6 +22,7 @@ export interface PlayerTimelineItem {
   user_email?: string;
   amount?: string;
   bonus_amount?: string;
+  new_balance?: string;
   game?: string;
   game_code?: string;
   payment_method?: string;
@@ -80,6 +81,12 @@ export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTim
     amount: normalizeAmount(raw.amount),
     bonus_amount:
       bonusRaw != null && bonusRaw !== '' ? normalizeAmount(bonusRaw) : undefined,
+    new_balance:
+      raw.new_balance != null && raw.new_balance !== ''
+        ? normalizeAmount(raw.new_balance)
+        : raw.new_credits_balance != null && raw.new_credits_balance !== ''
+          ? normalizeAmount(raw.new_credits_balance)
+          : undefined,
     game: typeof raw.game === 'string' ? raw.game : undefined,
     game_code: typeof raw.game_code === 'string' ? raw.game_code : undefined,
     payment_method:
