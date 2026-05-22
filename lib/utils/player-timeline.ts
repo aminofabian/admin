@@ -1,4 +1,5 @@
 import type { Transaction, TransactionQueue } from '@/types';
+import { formatCurrency } from '@/lib/utils/formatters';
 import { getTransactionKind } from '@/lib/utils/transaction-display';
 
 const GAME_ACTIVITY_TIMELINE_TYPES = new Set([
@@ -22,6 +23,7 @@ export interface PlayerTimelineItem {
   user_email?: string;
   amount?: string;
   bonus_amount?: string;
+  previous_balance?: string;
   new_balance?: string;
   game?: string;
   game_code?: string;
@@ -81,6 +83,12 @@ export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTim
     amount: normalizeAmount(raw.amount),
     bonus_amount:
       bonusRaw != null && bonusRaw !== '' ? normalizeAmount(bonusRaw) : undefined,
+    previous_balance:
+      raw.previous_balance != null && raw.previous_balance !== ''
+        ? normalizeAmount(raw.previous_balance)
+        : raw.previous_credits_balance != null && raw.previous_credits_balance !== ''
+          ? normalizeAmount(raw.previous_credits_balance)
+          : undefined,
     new_balance:
       raw.new_balance != null && raw.new_balance !== ''
         ? normalizeAmount(raw.new_balance)
@@ -95,6 +103,35 @@ export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTim
     created_at: createdAt,
     updated_at: updatedAt,
     raw,
+  };
+}
+
+/** Balance transition label and styling, matching transactions history table. */
+export function resolvePlayerTimelineBalanceDisplay(
+  item: PlayerTimelineItem,
+): { displayText: string; colorClass: string } | null {
+  const hasPrevious = item.previous_balance != null && item.previous_balance !== '';
+  const hasNew = item.new_balance != null && item.new_balance !== '';
+  if (!hasPrevious && !hasNew) return null;
+
+  const previousValue =
+    hasPrevious && !Number.isNaN(parseFloat(item.previous_balance!))
+      ? parseFloat(item.previous_balance!)
+      : 0;
+  const newValue =
+    hasNew && !Number.isNaN(parseFloat(item.new_balance!))
+      ? parseFloat(item.new_balance!)
+      : 0;
+
+  const previousFormatted = formatCurrency(String(previousValue));
+  const newFormatted = formatCurrency(String(newValue));
+  const creditChanged = previousValue !== newValue;
+
+  return {
+    displayText: `${previousFormatted} → ${newFormatted}`,
+    colorClass: creditChanged
+      ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+      : 'text-gray-600 dark:text-gray-400',
   };
 }
 

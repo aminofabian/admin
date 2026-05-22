@@ -43,6 +43,7 @@ import {
   mapPlayerTimelineResult,
   playerTimelineItemToTransaction,
   playerTimelineItemToTransactionQueue,
+  resolvePlayerTimelineBalanceDisplay,
   resolvePlayerTimelineBonusAmount,
   type PlayerTimelineItem,
 } from '@/lib/utils/player-timeline';
@@ -391,10 +392,7 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
   const amountColor = getTransactionAmountColorClass(item.type, item.amount);
   const bonusAmount = resolvePlayerTimelineBonusAmount(item);
   const formattedBonus = bonusAmount ? formatCurrency(bonusAmount) : null;
-  const formattedNewBalance =
-    item.new_balance != null && item.new_balance !== ''
-      ? formatCurrency(item.new_balance)
-      : null;
+  const balanceDisplay = resolvePlayerTimelineBalanceDisplay(item);
   const { variant: typeVariant, isTransfer } = getTransactionTypeBadgeStyle(
     item.type,
     item.payment_method,
@@ -447,10 +445,12 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
         )}
       </TableCell>
       <TableCell className="align-middle">
-        {formattedNewBalance ? (
-          <span className="text-sm font-semibold tabular-nums text-gray-800 dark:text-gray-200">
-            {formattedNewBalance}
-          </span>
+        {balanceDisplay ? (
+          <div className="min-w-[5.5rem] rounded-lg border border-gray-200/80 bg-gray-50/60 px-2.5 py-2 dark:border-gray-600/80 dark:bg-gray-800/40">
+            <div className={`text-xs font-medium tabular-nums ${balanceDisplay.colorClass}`}>
+              {balanceDisplay.displayText}
+            </div>
+          </div>
         ) : (
           <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
         )}
@@ -478,10 +478,7 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
   const amountColor = getTransactionAmountColorClass(item.type, item.amount);
   const bonusAmount = resolvePlayerTimelineBonusAmount(item);
   const formattedBonus = bonusAmount ? formatCurrency(bonusAmount) : null;
-  const formattedNewBalance =
-    item.new_balance != null && item.new_balance !== ''
-      ? formatCurrency(item.new_balance)
-      : null;
+  const balanceDisplay = resolvePlayerTimelineBalanceDisplay(item);
   const detailLabel =
     item.kind === 'game_activity'
       ? item.game || item.game_code
@@ -533,7 +530,7 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
           {formatDate(item.created_at)}
         </p>
       </div>
-      {(showAmount || formattedNewBalance) && (
+      {(showAmount || balanceDisplay) && (
         <div className="shrink-0 self-center text-right">
           {showAmount && (
             <>
@@ -547,9 +544,9 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
               )}
             </>
           )}
-          {formattedNewBalance && (
-            <p className="mt-0.5 text-xs font-medium tabular-nums text-gray-600 dark:text-gray-400">
-              Bal {formattedNewBalance}
+          {balanceDisplay && (
+            <p className={`mt-0.5 text-xs font-medium tabular-nums ${balanceDisplay.colorClass}`}>
+              {balanceDisplay.displayText}
             </p>
           )}
         </div>
@@ -854,7 +851,7 @@ export function PlayerTimelineSection({
                   <TableHead className="font-semibold">Category</TableHead>
                   <TableHead className="font-semibold">Game / Payment</TableHead>
                   <TableHead className="font-semibold">Amount</TableHead>
-                  <TableHead className="font-semibold">New balance</TableHead>
+                  <TableHead className="font-semibold">Balance</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Date</TableHead>
                   <TableHead className="w-10" aria-hidden />
