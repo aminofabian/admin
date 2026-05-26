@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES } from '@/lib/constants/roles';
+import { USER_ROLES, canEditRouletteRewards } from '@/lib/constants/roles';
 import { useRouletteSpinAllowanceStore } from '@/stores';
 import { Input } from '@/components/ui/input';
 import { Button, Switch, useToast, Badge } from '@/components/ui';
 import { LoadingState, ErrorState } from '@/components/features';
 import { formatDate } from '@/lib/utils/formatters';
+import { RouletteRewardConfigsEditor } from '@/components/dashboard/settings/roulette-reward-configs-editor';
 
 export default function RouletteSettingsPage() {
   const router = useRouter();
@@ -109,7 +110,7 @@ export default function RouletteSettingsPage() {
           <div className="min-w-0 flex-1">
             <h2 className="text-3xl font-bold text-foreground">Prize Wheel Settings</h2>
             <p className="mt-1 text-muted-foreground">
-              Configure how many free spins each player receives per day
+              Configure daily free spins and the dynamic prize wheel rewards
             </p>
           </div>
           <Badge variant={isEnabled ? 'success' : 'default'}>
@@ -178,6 +179,8 @@ export default function RouletteSettingsPage() {
           </Button>
         </div>
       </form>
+
+      <RouletteRewardConfigsEditor canEdit={canEditRouletteRewards(user?.role)} />
     </div>
   );
 }

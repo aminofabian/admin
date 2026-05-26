@@ -59,7 +59,7 @@ const settingsCategories = [
   {
     id: 'roulette',
     title: 'Prize Wheel Settings',
-    description: 'Configure daily free spins for the prize wheel',
+    description: 'Configure daily free spins and dynamic prize rewards for the prize wheel',
     icon: (
       <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <circle cx="12" cy="12" r="9" strokeWidth={2} />
@@ -206,6 +206,7 @@ export default function SettingsPage() {
             <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
               <li>• Daily free spins per player</li>
               <li>• Enable or disable prize wheel spins</li>
+              <li>• Dynamic wheel rewards (prizes, amounts, chances)</li>
             </ul>
           </div>
         </div>

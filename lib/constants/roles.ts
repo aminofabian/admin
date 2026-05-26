@@ -42,3 +42,9 @@ export function canEditPlayerRouletteAllowance(role: UserRole | undefined): bool
   return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
 }
 
+/** Company/superadmin and managers may edit the company-wide prize wheel rewards; staff/agents may not. */
+export function canEditRouletteRewards(role: UserRole | undefined): boolean {
+  if (!role) return false;
+  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
+}
+
