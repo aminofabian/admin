@@ -6,6 +6,7 @@ interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
@@ -15,6 +16,7 @@ export const Drawer = ({
   isOpen, 
   onClose, 
   title, 
+  subtitle,
   children, 
   footer,
   size = 'lg' 
@@ -75,7 +77,7 @@ export const Drawer = ({
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{title}</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">Fill in the details below to continue</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{subtitle ?? 'Fill in the details below to continue'}</p>
               </div>
             </div>
             <button
