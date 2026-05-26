@@ -36,3 +36,9 @@ export function canEditPlayerCashoutLimit(role: UserRole | undefined): boolean {
   return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
 }
 
+/** Company/superadmin and managers may override a player's daily prize wheel spins; staff/agents may not. */
+export function canEditPlayerRouletteAllowance(role: UserRole | undefined): boolean {
+  if (!role) return false;
+  return role === USER_ROLES.MANAGER || ADMIN_ROLES.includes(role);
+}
+

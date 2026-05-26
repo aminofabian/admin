@@ -21,7 +21,12 @@ import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
-import { USER_ROLES, canEditPlayerCashoutLimit } from '@/lib/constants/roles';
+import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
+import {
+  USER_ROLES,
+  canEditPlayerCashoutLimit,
+  canEditPlayerRouletteAllowance,
+} from '@/lib/constants/roles';
 
 /**
  * Extracts and formats error messages from API errors
@@ -638,6 +643,12 @@ export function SuperAdminPlayerDetail({ playerId }: SuperAdminPlayerDetailProps
               state={selectedPlayer.state}
               mobileNumber={selectedPlayer.mobile_number}
               companyUsername={selectedPlayer.company_username}
+            />
+
+            <PlayerRouletteSpinAllowanceSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerRouletteAllowance(USER_ROLES.SUPERADMIN)}
             />
           </div>
 

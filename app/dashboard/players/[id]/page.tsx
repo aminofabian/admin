@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES, canEditPlayerCashoutLimit } from '@/lib/constants/roles';
+import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
@@ -20,6 +20,7 @@ import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsMo
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
+import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 import { useTransactionSummary, usePaymentMethods, useBonusAnalytics } from '@/hooks/use-analytics-transactions';
@@ -1397,6 +1398,12 @@ export default function PlayerDetailPage() {
               created={selectedPlayer.created}
               createdByUsername={selectedPlayer.created_by?.username}
               formatDate={formatDate}
+            />
+
+            <PlayerRouletteSpinAllowanceSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerRouletteAllowance(user?.role)}
             />
           </div>
 

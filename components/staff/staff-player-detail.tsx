@@ -21,7 +21,12 @@ import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
 import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
-import { USER_ROLES, canEditPlayerCashoutLimit } from '@/lib/constants/roles';
+import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
+import {
+  USER_ROLES,
+  canEditPlayerCashoutLimit,
+  canEditPlayerRouletteAllowance,
+} from '@/lib/constants/roles';
 import {
   getDateRange,
   buildAnalyticsFiltersWithDatePreset,
@@ -767,6 +772,12 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
               dob={selectedPlayer.dob}
               state={selectedPlayer.state}
               mobileNumber={selectedPlayer.mobile_number}
+            />
+
+            <PlayerRouletteSpinAllowanceSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerRouletteAllowance(USER_ROLES.STAFF)}
             />
           </div>
 
