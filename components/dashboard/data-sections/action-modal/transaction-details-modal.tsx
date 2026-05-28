@@ -403,13 +403,13 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
           {/* Action Buttons */}
           {showActions && (
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
-              <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-row flex-wrap gap-2">
                 {hasComplete && (
                   <Button
                     variant="primary"
                     size="sm"
-                    className={hasCancel ? 'flex-1 font-semibold' : 'flex-1 font-semibold'}
+                    className="flex-1 min-w-0 font-semibold"
                     disabled={disableComplete}
                     onClick={onComplete}
                   >
@@ -420,53 +420,49 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
                   <Button
                     variant="danger"
                     size="sm"
-                    className={hasComplete ? 'flex-1 font-semibold' : 'flex-1 font-semibold'}
+                    className="flex-1 min-w-0 font-semibold"
                     disabled={disableCancel}
                     onClick={onCancel}
                   >
                     {isActionLoading ? 'Processing...' : 'Cancel Transaction'}
                   </Button>
                 )}
+                {hasDynamicSendButtons &&
+                  sendToProviderButtons!.map((btn) => (
+                    <Button
+                      key={btn.action}
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1 min-w-0 font-semibold"
+                      disabled={disableSendToProvider}
+                      onClick={() => onSendToProvider!(btn.action)}
+                    >
+                      {isActionLoading ? 'Processing...' : btn.label}
+                    </Button>
+                  ))}
+                {!hasDynamicSendButtons && hasSendToBinpay && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1 min-w-0 font-semibold"
+                    disabled={disableSendToProvider}
+                    onClick={onSendToBinpay}
+                  >
+                    {isActionLoading ? 'Processing...' : 'Send to Binpay'}
+                  </Button>
+                )}
+                {!hasDynamicSendButtons && hasSendToTierlock && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1 min-w-0 font-semibold"
+                    disabled={disableSendToProvider}
+                    onClick={onSendToTierlock}
+                  >
+                    {isActionLoading ? 'Processing...' : 'Send to Tierlock'}
+                  </Button>
+                )}
               </div>
-              {(hasDynamicSendButtons || hasSendToBinpay || hasSendToTierlock) && (
-                <div className="flex flex-col gap-2 sm:flex-row flex-wrap">
-                  {hasDynamicSendButtons &&
-                    sendToProviderButtons!.map((btn) => (
-                      <Button
-                        key={btn.action}
-                        variant="secondary"
-                        size="sm"
-                        className="flex-1 min-w-0 font-semibold"
-                        disabled={disableSendToProvider}
-                        onClick={() => onSendToProvider!(btn.action)}
-                      >
-                        {isActionLoading ? 'Processing...' : btn.label}
-                      </Button>
-                    ))}
-                  {!hasDynamicSendButtons && hasSendToBinpay && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="flex-1 font-semibold"
-                      disabled={disableSendToProvider}
-                      onClick={onSendToBinpay}
-                    >
-                      {isActionLoading ? 'Processing...' : 'Send to Binpay'}
-                    </Button>
-                  )}
-                  {!hasDynamicSendButtons && hasSendToTierlock && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="flex-1 font-semibold"
-                      disabled={disableSendToProvider}
-                      onClick={onSendToTierlock}
-                    >
-                      {isActionLoading ? 'Processing...' : 'Send to Tierlock'}
-                    </Button>
-                  )}
-                </div>
-              )}
             </div>
           )}
         </div>

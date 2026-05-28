@@ -1331,6 +1331,13 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     return buttons;
   }, [selectedTransaction, cashoutCategories]);
 
+  /** Tierlock cashouts must be sent via Tierlock — staff must not manually complete them. */
+  const isTierlockCashoutRequest = useMemo(() => {
+    const txn = selectedTransaction;
+    if (!txn || txn.type !== 'cashout') return false;
+    return /tierlock/i.test(txn.payment_method ?? '');
+  }, [selectedTransaction]);
+
   const handleNavigateToPreviousTransaction = useCallback(() => {
     if (!selectedTransaction || transactionsLoading || pendingDrawerPage) {
       return;
@@ -1786,7 +1793,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           isOpen={isViewModalOpen}
           onClose={handleCloseViewModal}
           navigation={transactionDrawerNavigation}
-          onComplete={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('completed') : undefined}
+          onComplete={
+            selectedTransaction.status === 'pending' && !isTierlockCashoutRequest
+              ? () => handleTransactionDetailsAction('completed')
+              : undefined
+          }
           onCancel={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('cancelled') : undefined}
           sendToProviderButtons={
             sendToProviderButtons.length > 0 ? sendToProviderButtons : undefined
