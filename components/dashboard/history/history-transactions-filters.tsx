@@ -111,6 +111,7 @@ export function HistoryTransactionsFilters({
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
     { value: 'failed', label: 'Failed' },
+    { value: 'expired', label: 'Expired' },
   ];
 
   return (

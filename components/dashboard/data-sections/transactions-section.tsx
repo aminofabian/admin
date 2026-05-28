@@ -904,6 +904,7 @@ function TransactionsLayout({
           { value: 'completed', label: 'Completed' },
           { value: 'cancelled', label: 'Cancelled' },
           { value: 'failed', label: 'Failed' },
+          { value: 'expired', label: 'Expired' },
         ]}
         agentOptions={agentOptions}
         isAgentLoading={isAgentLoadingAgents}
