@@ -503,31 +503,6 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
     });
   };
 
-  const appendBundle = (bundle: BundlePreset | CustomBundle) => {
-    const room = Math.max(0, maxRewards - rewards.length);
-    if (room === 0) {
-      addToast({
-        type: 'error',
-        title: 'No room to append',
-        description: `Wheel already has the maximum ${maxRewards} slots.`,
-      });
-      return;
-    }
-    const toAppend = bundle.slots.slice(0, room);
-    const next = [
-      ...rewards,
-      ...toAppend.map((s) => ({ ...s } as RouletteRewardSlot)),
-    ].map((s, i) => ({ ...s, position: i + 1 }));
-    setRewards(next);
-    setFormError(null);
-    setIsBundleDrawerOpen(false);
-    addToast({
-      type: 'success',
-      title: 'Bundle appended',
-      description: `${toAppend.length} slot${toAppend.length === 1 ? '' : 's'} added from "${bundle.name}".`,
-    });
-  };
-
   const handleSaveCurrentAsBundle = () => {
     if (!saveBundleName.trim()) {
       addToast({
@@ -904,10 +879,7 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
       >
         <BundlesContent
           customBundles={customBundles}
-          maxRewards={maxRewards}
-          slotsRemaining={Math.max(0, maxRewards - rewards.length)}
           onApply={applyBundle}
-          onAppend={appendBundle}
           onDeleteCustom={handleDeleteCustomBundle}
         />
       </Drawer>
@@ -1150,19 +1122,13 @@ function SlotCard({
 
 interface BundlesContentProps {
   customBundles: CustomBundle[];
-  maxRewards: number;
-  slotsRemaining: number;
   onApply: (bundle: BundlePreset | CustomBundle) => void;
-  onAppend: (bundle: BundlePreset | CustomBundle) => void;
   onDeleteCustom: (id: string) => void;
 }
 
 function BundlesContent({
   customBundles,
-  maxRewards,
-  slotsRemaining,
   onApply,
-  onAppend,
   onDeleteCustom,
 }: BundlesContentProps) {
   const [tab, setTab] = useState<'curated' | 'custom'>('curated');
@@ -1206,10 +1172,7 @@ function BundlesContent({
               description={bundle.description}
               badge={bundle.badge}
               slots={bundle.slots}
-              maxRewards={maxRewards}
-              slotsRemaining={slotsRemaining}
               onApply={() => onApply(bundle)}
-              onAppend={() => onAppend(bundle)}
             />
           ))}
         </div>
@@ -1234,10 +1197,7 @@ function BundlesContent({
               tagline={bundle.description ?? 'Custom bundle'}
               description={`${bundle.slots.length} slots`}
               slots={bundle.slots}
-              maxRewards={maxRewards}
-              slotsRemaining={slotsRemaining}
               onApply={() => onApply(bundle)}
-              onAppend={() => onAppend(bundle)}
               onDelete={() => onDeleteCustom(bundle.id)}
               custom
             />
@@ -1254,10 +1214,7 @@ interface BundleCardProps {
   description?: string;
   badge?: string;
   slots: BundleSlot[];
-  maxRewards: number;
-  slotsRemaining: number;
   onApply: () => void;
-  onAppend: () => void;
   onDelete?: () => void;
   custom?: boolean;
 }
@@ -1268,10 +1225,7 @@ function BundleCard({
   description,
   badge,
   slots,
-  maxRewards,
-  slotsRemaining,
   onApply,
-  onAppend,
   onDelete,
   custom,
 }: BundleCardProps) {
@@ -1347,23 +1301,9 @@ function BundleCard({
       )}
 
       {/* Actions */}
-      <div className="mt-3 flex items-center gap-2 pt-0.5">
-        <Button type="button" size="sm" onClick={onApply} className="flex-1">
+      <div className="mt-3 pt-0.5">
+        <Button type="button" size="sm" onClick={onApply} className="w-full">
           Apply as wheel
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          onClick={onAppend}
-          disabled={slots.length === 0 || slotsRemaining === 0}
-          title={
-            slotsRemaining === 0
-              ? `Already at maximum ${maxRewards} slots`
-              : `Append up to ${Math.min(slots.length, slotsRemaining)} slot(s)`
-          }
-        >
-          Append
         </Button>
       </div>
     </div>
