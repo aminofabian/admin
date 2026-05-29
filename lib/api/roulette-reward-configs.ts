@@ -3,10 +3,11 @@ import type { ApiResponse } from '@/types';
 
 /**
  * Reward types the prize wheel can award.
- *  - main_balance        → awards money on the player's main balance
- *  - cashoutable_balance → awards money on the player's cashoutable balance
- *  - respin              → grants an extra spin (quantity ≥ 1)
- *  - try_again           → ends the turn with no reward
+ *  - main_balance → awards money on the player's main balance (value in `amount`)
+ *  - respin       → grants extra spins (`quantity` ≥ 1)
+ *  - try_again    → ends the turn with no reward
+ *
+ * Legacy configs may still return `cashoutable_balance`; the admin UI maps those to main_balance.
  */
 export type RouletteRewardType =
   | 'main_balance'

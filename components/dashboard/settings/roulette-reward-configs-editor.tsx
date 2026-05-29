@@ -34,19 +34,6 @@ const REWARD_TYPE_OPTIONS: RewardTypeOption[] = [
     ),
   },
   {
-    value: 'cashoutable_balance',
-    label: 'Cashoutable Balance',
-    shortLabel: 'Cashout',
-    prizeTypeLabel: 'Cashoutable Balance',
-    balanceType: 'cashoutable',
-    defaultPrize: (s) => `$${formatAmountForPrize(s.amount)}`,
-    icon: (
-      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M5 6h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" />
-      </svg>
-    ),
-  },
-  {
     value: 'respin',
     label: 'Respin',
     shortLabel: 'Respin',
@@ -81,15 +68,39 @@ function formatAmountForPrize(amount: string): string {
 }
 
 function normalizeRewardType(value: string): RouletteRewardType {
-  if (
-    value === 'main_balance' ||
-    value === 'cashoutable_balance' ||
-    value === 'respin' ||
-    value === 'try_again'
-  ) {
+  if (value === 'cashoutable_balance') return 'main_balance';
+  if (value === 'main_balance' || value === 'respin' || value === 'try_again') {
     return value;
   }
   return 'main_balance';
+}
+
+function slotQuantityDisplay(slot: RouletteRewardSlot, reward: RouletteRewardType): string {
+  if (reward === 'main_balance') {
+    const n = parseFloat(slot.amount);
+    if (Number.isNaN(n)) return '';
+    return Number.isInteger(n) ? String(n) : n.toString();
+  }
+  if (reward === 'respin') return String(slot.quantity ?? 1);
+  return '';
+}
+
+function applyQuantityChange(
+  slot: RouletteRewardSlot,
+  reward: RouletteRewardType,
+  raw: string,
+): Partial<RouletteRewardSlot> {
+  if (reward === 'main_balance') {
+    const n = parseFloat(raw);
+    const amount = Number.isNaN(n)
+      ? '0.00'
+      : Number(Math.max(0, n).toFixed(2)).toFixed(2);
+    return { amount };
+  }
+  if (reward === 'respin') {
+    return { quantity: Math.max(1, parseInt(raw, 10) || 1) };
+  }
+  return {};
 }
 
 function balanceTypeFor(reward: RouletteRewardType): RouletteBalanceType {
@@ -143,18 +154,14 @@ interface BundlePreset {
   slots: BundleSlot[];
 }
 
-function moneySlot(
-  reward_type: 'main_balance' | 'cashoutable_balance',
-  amount: string,
-  chance: string,
-): BundleSlot {
+function moneySlot(amount: string, chance: string): BundleSlot {
   return {
-    prize_type: reward_type === 'main_balance' ? 'Main Balance' : 'Cashoutable Balance',
+    prize_type: 'Main Balance',
     prize: `$${formatAmountForPrize(amount)}`,
     backend_chance: chance,
     amount,
-    balance_type: reward_type === 'main_balance' ? 'main' : 'cashoutable',
-    reward_type,
+    balance_type: 'main',
+    reward_type: 'main_balance',
   };
 }
 
@@ -189,13 +196,13 @@ const BUNDLE_PRESETS: BundlePreset[] = [
     description: '8 slots tuned for new platforms. Modest rewards, generous respins.',
     badge: 'Recommended',
     slots: [
-      moneySlot('main_balance', '5.00', '20%'),
-      moneySlot('main_balance', '10.00', '10%'),
-      moneySlot('cashoutable_balance', '2.00', '10%'),
+      moneySlot('5.00', '20%'),
+      moneySlot('10.00', '10%'),
+      moneySlot('2.00', '10%'),
       respinSlot(1, '20%'),
       respinSlot(2, '10%'),
       tryAgainSlot('20%'),
-      moneySlot('main_balance', '1.00', '5%'),
+      moneySlot('1.00', '5%'),
       tryAgainSlot('5%'),
     ],
   },
@@ -205,12 +212,12 @@ const BUNDLE_PRESETS: BundlePreset[] = [
     tagline: 'A bit of everything for engaged players',
     description: '10 slots blending money rewards, respins and the occasional try-again.',
     slots: [
-      moneySlot('main_balance', '2.00', '15%'),
-      moneySlot('main_balance', '5.00', '12%'),
-      moneySlot('main_balance', '10.00', '8%'),
-      moneySlot('main_balance', '20.00', '5%'),
-      moneySlot('cashoutable_balance', '2.00', '10%'),
-      moneySlot('cashoutable_balance', '5.00', '5%'),
+      moneySlot('2.00', '15%'),
+      moneySlot('5.00', '12%'),
+      moneySlot('10.00', '8%'),
+      moneySlot('20.00', '5%'),
+      moneySlot('2.00', '10%'),
+      moneySlot('5.00', '5%'),
       respinSlot(1, '20%'),
       respinSlot(2, '10%'),
       tryAgainSlot('10%'),
@@ -223,13 +230,13 @@ const BUNDLE_PRESETS: BundlePreset[] = [
     tagline: 'High-value rewards with lower hit-rates',
     description: '12 slots geared for retention and excitement with bigger payouts.',
     slots: [
-      moneySlot('main_balance', '10.00', '15%'),
-      moneySlot('main_balance', '25.00', '8%'),
-      moneySlot('main_balance', '50.00', '4%'),
-      moneySlot('main_balance', '100.00', '2%'),
-      moneySlot('cashoutable_balance', '5.00', '10%'),
-      moneySlot('cashoutable_balance', '10.00', '6%'),
-      moneySlot('cashoutable_balance', '25.00', '3%'),
+      moneySlot('10.00', '15%'),
+      moneySlot('25.00', '8%'),
+      moneySlot('50.00', '4%'),
+      moneySlot('100.00', '2%'),
+      moneySlot('5.00', '10%'),
+      moneySlot('10.00', '6%'),
+      moneySlot('25.00', '3%'),
       respinSlot(1, '15%'),
       respinSlot(2, '10%'),
       respinSlot(3, '5%'),
@@ -240,16 +247,16 @@ const BUNDLE_PRESETS: BundlePreset[] = [
   {
     id: 'promo',
     name: 'Holiday Promo',
-    tagline: 'Festive cashoutable boost for promotions',
-    description: '10 slots that lean into cashoutable rewards for short-term campaigns.',
+    tagline: 'High-value main balance boost for promotions',
+    description: '10 slots with larger main-balance prizes for short-term campaigns.',
     badge: 'Limited',
     slots: [
-      moneySlot('cashoutable_balance', '5.00', '15%'),
-      moneySlot('cashoutable_balance', '10.00', '10%'),
-      moneySlot('cashoutable_balance', '20.00', '5%'),
-      moneySlot('cashoutable_balance', '50.00', '2%'),
-      moneySlot('main_balance', '5.00', '15%'),
-      moneySlot('main_balance', '10.00', '8%'),
+      moneySlot('5.00', '15%'),
+      moneySlot('10.00', '10%'),
+      moneySlot('20.00', '5%'),
+      moneySlot('50.00', '2%'),
+      moneySlot('5.00', '15%'),
+      moneySlot('10.00', '8%'),
       respinSlot(1, '15%'),
       respinSlot(2, '10%'),
       tryAgainSlot('15%'),
@@ -266,8 +273,8 @@ const BUNDLE_PRESETS: BundlePreset[] = [
       respinSlot(2, '20%'),
       respinSlot(3, '10%'),
       respinSlot(5, '5%'),
-      moneySlot('main_balance', '2.00', '15%'),
-      moneySlot('main_balance', '5.00', '5%'),
+      moneySlot('2.00', '15%'),
+      moneySlot('5.00', '5%'),
       tryAgainSlot('15%'),
       tryAgainSlot('5%'),
     ],
@@ -341,7 +348,17 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
 
   useEffect(() => {
     if (loaded && config) {
-      setRewards(config.rewards);
+      setRewards(
+        config.rewards.map((slot) => {
+          const reward = normalizeRewardType(String(slot.reward_type));
+          return {
+            ...slot,
+            reward_type: reward,
+            balance_type: balanceTypeFor(reward),
+            prize_type: prizeTypeLabelFor(reward),
+          };
+        }),
+      );
     }
   }, [config, loaded]);
 
@@ -372,13 +389,13 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
       prev.map((slot, i) => {
         if (i !== index) return slot;
         const balanceType = balanceTypeFor(reward);
-        const isMoneyReward = reward === 'main_balance' || reward === 'cashoutable_balance';
+        const isMainBalance = reward === 'main_balance';
         const nextSlot: RouletteRewardSlot = {
           ...slot,
           reward_type: reward,
           prize_type: prizeTypeLabelFor(reward),
           balance_type: balanceType,
-          amount: isMoneyReward ? slot.amount : '0.00',
+          amount: isMainBalance ? slot.amount : '0.00',
           quantity: reward === 'respin' ? Math.max(1, slot.quantity ?? 1) : undefined,
         };
         if (opt && (slot.prize === '' || slot.prize === opt.defaultPrize(slot))) {
@@ -427,12 +444,10 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
       if (Number.isNaN(chance) || chance < 0) {
         return `Slot ${slot.position}: Chance must be a non-negative number.`;
       }
-      const isMoney =
-        slot.reward_type === 'main_balance' || slot.reward_type === 'cashoutable_balance';
-      if (isMoney) {
+      if (normalizeRewardType(String(slot.reward_type)) === 'main_balance') {
         const amount = parseFloat(slot.amount);
         if (Number.isNaN(amount) || amount < 0) {
-          return `Slot ${slot.position}: Amount must be a non-negative number.`;
+          return `Slot ${slot.position}: Quantity must be a non-negative number.`;
         }
       }
       if (slot.reward_type === 'respin' && (slot.quantity ?? 0) < 1) {
@@ -455,8 +470,8 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
 
     const payload = rewards.map((slot, i) => {
       const reward = normalizeRewardType(String(slot.reward_type));
-      const isMoney = reward === 'main_balance' || reward === 'cashoutable_balance';
-      const amount = isMoney
+      const isMainBalance = reward === 'main_balance';
+      const amount = isMainBalance
         ? Number(parseFloat(slot.amount).toFixed(2)).toFixed(2)
         : '0.00';
       const base = {
@@ -669,24 +684,23 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
         {/* Slots - Desktop table */}
         <div className="hidden px-5 py-3 sm:block sm:px-6">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] border-separate border-spacing-y-1 text-sm">
+            <table className="w-full min-w-[720px] border-separate border-spacing-y-1 text-sm">
               <thead className="text-left text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 w-12">#</th>
                   <th className="px-3 py-2 w-44">Reward type</th>
                   <th className="px-3 py-2">Prize label</th>
-                  <th className="px-3 py-2 w-28">Amount</th>
-                  <th className="px-3 py-2 w-20">Qty</th>
+                  <th className="px-3 py-2 w-28">Quantity</th>
                   <th className="px-3 py-2 w-24">Chance</th>
                   <th className="px-3 py-2 w-28 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rewards.map((slot, index) => {
-                  const isMoney =
-                    slot.reward_type === 'main_balance' ||
-                    slot.reward_type === 'cashoutable_balance';
-                  const isRespin = slot.reward_type === 'respin';
+                  const reward = normalizeRewardType(String(slot.reward_type));
+                  const isMainBalance = reward === 'main_balance';
+                  const isRespin = reward === 'respin';
+                  const qtyEnabled = isMainBalance || isRespin;
                   const canRemove = canEdit && !isSaving && rewards.length > minRewards;
 
                   return (
@@ -716,27 +730,14 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
                       <td className="border-y border-border bg-muted/30 px-3 py-2">
                         <Input
                           type="number"
-                          step="0.01"
-                          min="0"
-                          value={isMoney ? slot.amount : '0'}
-                          onChange={(e) => updateSlot(index, { amount: e.target.value })}
-                          disabled={!canEdit || isSaving || !isMoney}
-                          placeholder="0.00"
-                        />
-                      </td>
-                      <td className="border-y border-border bg-muted/30 px-3 py-2">
-                        <Input
-                          type="number"
-                          step="1"
-                          min="1"
-                          value={isRespin ? String(slot.quantity ?? 1) : ''}
+                          step={isMainBalance ? '0.01' : '1'}
+                          min={isMainBalance ? '0' : '1'}
+                          value={slotQuantityDisplay(slot, reward)}
                           onChange={(e) =>
-                            updateSlot(index, {
-                              quantity: Math.max(1, parseInt(e.target.value, 10) || 1),
-                            })
+                            updateSlot(index, applyQuantityChange(slot, reward, e.target.value))
                           }
-                          disabled={!canEdit || isSaving || !isRespin}
-                          placeholder="—"
+                          disabled={!canEdit || isSaving || !qtyEnabled}
+                          placeholder={qtyEnabled ? (isMainBalance ? '0.00' : '1') : '—'}
                         />
                       </td>
                       <td className="border-y border-border bg-muted/30 px-3 py-2">
@@ -984,8 +985,9 @@ function SlotCard({
 }: SlotCardProps) {
   const reward = normalizeRewardType(String(slot.reward_type));
   const opt = optionFor(reward);
-  const isMoney = reward === 'main_balance' || reward === 'cashoutable_balance';
+  const isMainBalance = reward === 'main_balance';
   const isRespin = reward === 'respin';
+  const qtyEnabled = isMainBalance || isRespin;
   const canRemove = canEdit && !isSaving && total > minRewards;
   const [expanded, setExpanded] = useState(false);
 
@@ -1009,7 +1011,12 @@ function SlotCard({
           </div>
           <div className="mt-0.5 truncate text-xs text-muted-foreground">
             {slot.backend_chance || '0%'} chance
-            {isRespin && slot.quantity ? ` · ${slot.quantity} respin${slot.quantity > 1 ? 's' : ''}` : ''}
+            {isMainBalance && slot.amount && parseFloat(slot.amount) > 0
+              ? ` · $${formatAmountForPrize(slot.amount)}`
+              : ''}
+            {isRespin && slot.quantity
+              ? ` · ${slot.quantity} respin${slot.quantity > 1 ? 's' : ''}`
+              : ''}
           </div>
         </div>
         <svg
@@ -1045,32 +1052,16 @@ function SlotCard({
             disabled={!canEdit || isSaving}
           />
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Amount"
-              type="number"
-              step="0.01"
-              min="0"
-              value={isMoney ? slot.amount : '0'}
-              onChange={(e) => onUpdate({ amount: e.target.value })}
-              disabled={!canEdit || isSaving || !isMoney}
-              placeholder="0.00"
-            />
-            <Input
-              label="Quantity"
-              type="number"
-              step="1"
-              min="1"
-              value={isRespin ? String(slot.quantity ?? 1) : ''}
-              onChange={(e) =>
-                onUpdate({
-                  quantity: Math.max(1, parseInt(e.target.value, 10) || 1),
-                })
-              }
-              disabled={!canEdit || isSaving || !isRespin}
-              placeholder="—"
-            />
-          </div>
+          <Input
+            label="Quantity"
+            type="number"
+            step={isMainBalance ? '0.01' : '1'}
+            min={isMainBalance ? '0' : '1'}
+            value={slotQuantityDisplay(slot, reward)}
+            onChange={(e) => onUpdate(applyQuantityChange(slot, reward, e.target.value))}
+            disabled={!canEdit || isSaving || !qtyEnabled}
+            placeholder={qtyEnabled ? (isMainBalance ? '0.00' : '1') : '—'}
+          />
 
           <Input
             label="Chance %"
