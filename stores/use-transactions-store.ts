@@ -514,6 +514,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         delete purchaseFilters.type;
         delete purchaseFilters.txn;
         delete purchaseFilters.txn_type;
+        // Processing purchase endpoint returns the full pending list (no server-side pagination).
+        if (filter === 'pending-purchases') {
+          delete purchaseFilters.page;
+          delete purchaseFilters.page_size;
+        }
         response = await transactionsApi.listPurchases(purchaseFilters);
       } else if (filter === 'cashouts' || filter === 'pending-cashouts') {
         // Use transaction-cashouts endpoint - remove type/txn/txn_type since endpoint handles it
@@ -521,6 +526,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         delete cashoutFilters.type;
         delete cashoutFilters.txn;
         delete cashoutFilters.txn_type;
+        // Processing cashout endpoint returns the full pending list (no server-side pagination).
+        if (filter === 'pending-cashouts') {
+          delete cashoutFilters.page;
+          delete cashoutFilters.page_size;
+        }
         response = await transactionsApi.listCashouts(cashoutFilters);
       } else {
         // Use legacy endpoint for other filters (all, processing, etc.)
@@ -566,11 +576,18 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         };
       });
 
+      const isProcessingPendingView =
+        filter === 'pending-purchases' || filter === 'pending-cashouts';
+
       set({
         transactions: {
           ...response,
           results: normalizedTransactions,
-          count: response.count ?? normalizedTransactions.length,
+          count: isProcessingPendingView
+            ? normalizedTransactions.length
+            : (response.count ?? normalizedTransactions.length),
+          next: isProcessingPendingView ? null : response.next,
+          previous: isProcessingPendingView ? null : response.previous,
         },
         isLoading: false,
         error: null,
