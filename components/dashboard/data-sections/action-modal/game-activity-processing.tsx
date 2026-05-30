@@ -122,12 +122,18 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
   const amountVariant: 'positive' | 'negative' = activity.type === 'redeem_game' ? 'negative' : 'positive';
 
   const handleOpenChat = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/chat?playerId=${playerId}`);
+      onClose();
+      return;
+    }
     if (activity.user_username) {
-      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`;
-      router.push(chatUrl);
+      router.push(
+        `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`,
+      );
       onClose();
     }
-  }, [router, activity.user_username, onClose]);
+  }, [router, playerId, activity.user_username, onClose]);
 
   const handleGoToPlayerDetails = useCallback(() => {
     if (playerId) {

@@ -204,6 +204,7 @@ export function ChatComponent() {
   const processedQueryUsernameRef = useRef<string | null>(null); // Track which username we've already processed
   const lastSetSearchQueryRef = useRef<string>(""); // Track last search query we set to avoid unnecessary updates
   const queryParamPlayerRef = useRef<Player | null>(null); // Store the player selected via query params to ensure they stay visible
+  const queryUsernameResolveInFlightRef = useRef<string | null>(null);
   // Track last manual payment operation to help determine message type for balanceUpdated messages
   const lastManualPaymentRef = useRef<{
     playerId: number;
@@ -2553,6 +2554,16 @@ export function ChatComponent() {
       return;
     }
 
+    // Prime server-side player search so deep links work beyond paginated directory pages
+    const displayUsername = queryUsername.trim();
+    if (
+      displayUsername &&
+      lastSetSearchQueryRef.current !== displayUsername
+    ) {
+      lastSetSearchQueryRef.current = displayUsername;
+      setSearchQuery(displayUsername);
+    }
+
     // When a player is selected via query params, ensure we have all players loaded
     if (allPlayers.length === 0 && !isLoadingAllPlayers) {
       void fetchAllPlayers();
@@ -2670,12 +2681,227 @@ export function ChatComponent() {
           }, 100);
         }
       }
+    } else if (queryUsernameResolveInFlightRef.current !== targetUsername) {
+      // Not in the first page of the directory — resolve via AJAX (same as manual search)
+      queryUsernameResolveInFlightRef.current = targetUsername;
+
+      const resolvePlayerByUsername = async () => {
+        try {
+          if (processedQueryUsernameRef.current === targetUsername) {
+            return;
+          }
+
+          const token = storage.get(TOKEN_KEY);
+          const trimmed = queryUsername.trim();
+
+          const searchRes = await fetch(
+            `/${API_ENDPOINTS.CHAT.SEARCH_PLAYERS}?query=${encodeURIComponent(trimmed)}`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                ...(token && { Authorization: `Bearer ${token}` }),
+              },
+            },
+          );
+
+          let resolved: Player | null = null;
+
+          if (searchRes.ok) {
+            const data = (await searchRes.json()) as Record<string, unknown>;
+            const arr = extractPlayerArrayFromAdminChatResponse(data);
+            resolved =
+              arr
+                .map((row) => mapAdminSearchRowToChatUser(row))
+                .find(
+                  (p) =>
+                    (p.username || "").trim().toLowerCase() === targetUsername,
+                ) ?? null;
+          }
+
+          if (!resolved) {
+            const playersRes = await fetch(
+              `/api/admin/players?username=${encodeURIComponent(trimmed)}&page_size=1`,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(token && { Authorization: `Bearer ${token}` }),
+                },
+              },
+            );
+
+            if (playersRes.ok) {
+              const body = (await playersRes.json()) as {
+                results?: Record<string, unknown>[];
+              };
+              const row = body.results?.[0];
+              if (row) {
+                const userId = Number(row.id ?? row.user_id ?? 0);
+                if (Number.isFinite(userId) && userId > 0) {
+                  resolved = {
+                    id: String(row.chatroom_id ?? row.chat_id ?? row.id ?? ""),
+                    user_id: userId,
+                    username: String(row.username ?? row.full_name ?? "Unknown"),
+                    fullName: row.full_name
+                      ? String(row.full_name)
+                      : undefined,
+                    email: String(row.email ?? ""),
+                    avatar:
+                      row.profile_pic || row.profile_image || row.avatar
+                        ? String(
+                            row.profile_pic ||
+                              row.profile_image ||
+                              row.avatar,
+                          )
+                        : undefined,
+                    isOnline: Boolean(row.is_online ?? false),
+                    balance:
+                      row.balance !== undefined
+                        ? String(row.balance)
+                        : undefined,
+                    ...pickWinningBalanceFromBackend(row),
+                    cashoutLimit:
+                      row.cashout_limit !== undefined &&
+                      row.cashout_limit !== null
+                        ? String(row.cashout_limit)
+                        : undefined,
+                    lockedBalance:
+                      row.locked_balance !== undefined &&
+                      row.locked_balance !== null
+                        ? String(row.locked_balance)
+                        : undefined,
+                    gamesPlayed:
+                      (row.games_played as number | undefined) || undefined,
+                    winRate: (row.win_rate as number | undefined) || undefined,
+                    phone:
+                      row.phone_number || row.mobile_number
+                        ? String(row.phone_number || row.mobile_number)
+                        : undefined,
+                    unreadCount: Number(row.unread_messages_count ?? 0),
+                    notes: row.notes ? String(row.notes) : undefined,
+                  };
+                }
+              }
+            }
+          }
+
+          if (
+            !resolved ||
+            processedQueryUsernameRef.current === targetUsername
+          ) {
+            if (!IS_PROD) {
+              console.warn(
+                `[Query Param Username] Could not resolve player "${trimmed}" via search API`,
+              );
+            }
+            return;
+          }
+
+          processedQueryUsernameRef.current = targetUsername;
+          queryParamPlayerRef.current = resolved;
+
+          if (
+            resolved.username &&
+            lastSetSearchQueryRef.current !== resolved.username
+          ) {
+            lastSetSearchQueryRef.current = resolved.username;
+            setSearchQuery(resolved.username);
+          }
+
+          setActiveTab("all-chats");
+          setSelectedPlayer(resolved);
+          setPendingPinMessageId(null);
+          setMobileView("chat");
+
+          if (resolved.id) {
+            markChatAsReadDebounced({
+              chatId: resolved.id,
+              userId: resolved.user_id,
+            });
+          }
+
+          setTimeout(() => {
+            router.replace("/dashboard/chat", { scroll: false });
+          }, 100);
+        } catch (error) {
+          console.error(
+            "❌ [Query Param Username] Error resolving player:",
+            error,
+          );
+        } finally {
+          if (queryUsernameResolveInFlightRef.current === targetUsername) {
+            queryUsernameResolveInFlightRef.current = null;
+          }
+        }
+      };
+
+      void resolvePlayerByUsername();
     }
   }, [
     queryUsername,
     queryPlayerId,
     allPlayers,
     activeChatsUsers,
+    selectedPlayer,
+    markChatAsReadDebounced,
+    router,
+  ]);
+
+  // Select deep-linked player once debounced server search returns (directory pagination)
+  useEffect(() => {
+    if (queryPlayerId || !queryUsername) {
+      return;
+    }
+
+    const targetUsername = queryUsername.trim().toLowerCase();
+    if (!targetUsername || processedQueryUsernameRef.current === targetUsername) {
+      return;
+    }
+
+    const trimmedSearch = searchQuery.trim();
+    if (!trimmedSearch) {
+      return;
+    }
+
+    const serverReady =
+      !isPlayerSearchLoading && serverSearchForQuery === trimmedSearch;
+    if (!serverReady) {
+      return;
+    }
+
+    const fromServer = serverSearchPlayers.find(
+      (p) => (p.username || "").trim().toLowerCase() === targetUsername,
+    );
+    if (!fromServer) {
+      return;
+    }
+
+    processedQueryUsernameRef.current = targetUsername;
+    queryParamPlayerRef.current = fromServer;
+
+    if (!selectedPlayer || selectedPlayer.user_id !== fromServer.user_id) {
+      setActiveTab("all-chats");
+      setSelectedPlayer(fromServer);
+      setPendingPinMessageId(null);
+      setMobileView("chat");
+
+      if (fromServer.id) {
+        markChatAsReadDebounced({
+          chatId: fromServer.id,
+          userId: fromServer.user_id,
+        });
+      }
+
+      setTimeout(() => {
+        router.replace("/dashboard/chat", { scroll: false });
+      }, 100);
+    }
+  }, [
+    queryUsername,
+    queryPlayerId,
+    searchQuery,
+    serverSearchPlayers,
+    serverSearchForQuery,
+    isPlayerSearchLoading,
     selectedPlayer,
     markChatAsReadDebounced,
     router,

@@ -188,12 +188,18 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     navigation != null && navigation.total > 1 && navigation.currentPosition >= 1 && navigation.currentPosition <= navigation.total;
 
   const handleOpenChat = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/chat?playerId=${playerId}`);
+      onClose();
+      return;
+    }
     if (activity.user_username) {
-      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`;
-      router.push(chatUrl);
+      router.push(
+        `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`,
+      );
       onClose();
     }
-  }, [router, activity.user_username, onClose]);
+  }, [router, playerId, activity.user_username, onClose]);
 
   const handleGoToPlayerDetails = useCallback(() => {
     if (playerId) {

@@ -211,12 +211,18 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   }, [invoiceUrl]);
 
   const handleOpenChat = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/chat?playerId=${playerId}`);
+      onClose();
+      return;
+    }
     if (transaction.user_username) {
-      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`;
-      router.push(chatUrl);
+      router.push(
+        `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`,
+      );
       onClose();
     }
-  }, [router, transaction.user_username, onClose]);
+  }, [router, playerId, transaction.user_username, onClose]);
 
   const handleGoToPlayerDetails = useCallback(() => {
     if (playerId) {
