@@ -26,7 +26,7 @@ const REWARD_TYPE_OPTIONS: RewardTypeOption[] = [
     shortLabel: 'Main',
     prizeTypeLabel: 'Main Balance',
     balanceType: 'main',
-    defaultPrize: (s) => `$${formatAmountForPrize(s.amount)}`,
+    defaultPrize: (s) => `$${formatAmountForPrize(mainBalanceAmount(s))}`,
     icon: (
       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
@@ -75,14 +75,41 @@ function normalizeRewardType(value: string): RouletteRewardType {
   return 'main_balance';
 }
 
+function mainBalanceAmount(slot: RouletteRewardSlot): string {
+  const fromAmount = slot.amount != null && slot.amount !== '' ? parseFloat(slot.amount) : NaN;
+  if (!Number.isNaN(fromAmount)) {
+    return Number(Math.max(0, fromAmount).toFixed(2)).toFixed(2);
+  }
+  if (slot.quantity != null) {
+    const fromQuantity = Number(slot.quantity);
+    if (!Number.isNaN(fromQuantity)) {
+      return Number(Math.max(0, fromQuantity).toFixed(2)).toFixed(2);
+    }
+  }
+  return '0.00';
+}
+
 function slotQuantityDisplay(slot: RouletteRewardSlot, reward: RouletteRewardType): string {
   if (reward === 'main_balance') {
-    const n = parseFloat(slot.amount);
+    const n = parseFloat(mainBalanceAmount(slot));
     if (Number.isNaN(n)) return '';
     return Number.isInteger(n) ? String(n) : n.toString();
   }
   if (reward === 'respin') return String(slot.quantity ?? 1);
   return '';
+}
+
+function quantityForSavePayload(
+  slot: RouletteRewardSlot,
+  reward: RouletteRewardType,
+): number {
+  if (reward === 'main_balance') {
+    return parseFloat(mainBalanceAmount(slot));
+  }
+  if (reward === 'respin') {
+    return Math.max(1, slot.quantity ?? 1);
+  }
+  return 0;
 }
 
 function applyQuantityChange(
@@ -351,12 +378,19 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
       setRewards(
         config.rewards.map((slot) => {
           const reward = normalizeRewardType(String(slot.reward_type));
-          return {
+          const normalized: RouletteRewardSlot = {
             ...slot,
             reward_type: reward,
             balance_type: balanceTypeFor(reward),
             prize_type: prizeTypeLabelFor(reward),
           };
+          if (reward === 'main_balance') {
+            normalized.amount = mainBalanceAmount(slot);
+          }
+          if (reward === 'respin' && normalized.quantity == null) {
+            normalized.quantity = 1;
+          }
+          return normalized;
         }),
       );
     }
@@ -445,7 +479,7 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
         return `Slot ${slot.position}: Chance must be a non-negative number.`;
       }
       if (normalizeRewardType(String(slot.reward_type)) === 'main_balance') {
-        const amount = parseFloat(slot.amount);
+        const amount = parseFloat(mainBalanceAmount(slot));
         if (Number.isNaN(amount) || amount < 0) {
           return `Slot ${slot.position}: Quantity must be a non-negative number.`;
         }
@@ -470,22 +504,15 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
 
     const payload = rewards.map((slot, i) => {
       const reward = normalizeRewardType(String(slot.reward_type));
-      const isMainBalance = reward === 'main_balance';
-      const amount = isMainBalance
-        ? Number(parseFloat(slot.amount).toFixed(2)).toFixed(2)
-        : '0.00';
-      const base = {
+      return {
         position: i + 1,
         prize_type: prizeTypeLabelFor(reward),
         prize: slot.prize.trim(),
         backend_chance: formatChanceForApi(slot.backend_chance),
-        amount,
+        quantity: quantityForSavePayload(slot, reward),
         balance_type: balanceTypeFor(reward),
         reward_type: reward,
       };
-      return reward === 'respin'
-        ? { ...base, quantity: Math.max(1, slot.quantity ?? 1) }
-        : base;
     });
 
     try {
@@ -1011,8 +1038,8 @@ function SlotCard({
           </div>
           <div className="mt-0.5 truncate text-xs text-muted-foreground">
             {slot.backend_chance || '0%'} chance
-            {isMainBalance && slot.amount && parseFloat(slot.amount) > 0
-              ? ` · $${formatAmountForPrize(slot.amount)}`
+            {isMainBalance && parseFloat(mainBalanceAmount(slot)) > 0
+              ? ` · $${formatAmountForPrize(mainBalanceAmount(slot))}`
               : ''}
             {isRespin && slot.quantity
               ? ` · ${slot.quantity} respin${slot.quantity > 1 ? 's' : ''}`

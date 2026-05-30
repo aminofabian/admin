@@ -3,7 +3,7 @@ import type { ApiResponse } from '@/types';
 
 /**
  * Reward types the prize wheel can award.
- *  - main_balance → awards money on the player's main balance (value in `amount`)
+ *  - main_balance → awards money on the player's main balance (value in `quantity`)
  *  - respin       → grants extra spins (`quantity` ≥ 1)
  *  - try_again    → ends the turn with no reward
  *
@@ -27,11 +27,11 @@ export type RouletteRewardSlot = {
   prize: string;
   /** Win probability formatted as a percentage string (e.g. "27%", "1.2%"). */
   backend_chance: string;
-  /** Monetary amount as a fixed-2 string (e.g. "11.00"). 0.00 for non-money rewards. */
-  amount: string;
+  /** Legacy GET field; prefer `quantity` when present. */
+  amount?: string;
   balance_type: RouletteBalanceType;
   reward_type: RouletteRewardType | string;
-  /** Only meaningful for respin rewards (number of free spins granted). */
+  /** Reward value: dollars for main_balance, spin count for respin, 0 for try_again. */
   quantity?: number;
 
   // ----- Server-only metadata (present on GET / POST response, ignored on submit) -----
@@ -66,10 +66,9 @@ export type SaveRouletteRewardConfigRequest = {
       | 'prize_type'
       | 'prize'
       | 'backend_chance'
-      | 'amount'
       | 'balance_type'
       | 'reward_type'
-    > & { quantity?: number }
+    > & { quantity: number }
   >;
 };
 
