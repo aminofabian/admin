@@ -26,6 +26,88 @@ export const formatCurrency = (amount: string | number): string => {
   return new Intl.NumberFormat('en-US', USD_TWO_DECIMALS).format(numAmount);
 };
 
+/** True when the string ends with Z or a numeric UTC offset (±HH:MM). */
+const HAS_EXPLICIT_TIMEZONE_RE = /(?:Z|[+-]\d{2}(?::?\d{2})?)$/i;
+
+/**
+ * Parse API / Django timestamp strings into a Date instant.
+ * Naive datetimes (no offset) are treated as UTC; display uses the browser locale/TZ.
+ */
+export function parseApiTimestampToDate(dateString: string): Date | null {
+  const trimmed = dateString.trim();
+  if (!trimmed) return null;
+
+  const ddmmyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/;
+  const ddmmMatch = trimmed.match(ddmmyyyyPattern);
+  if (ddmmMatch) {
+    const [, day, month, year, hour, minute, second] = ddmmMatch;
+    return new Date(
+      Date.UTC(
+        parseInt(year, 10),
+        parseInt(month, 10) - 1,
+        parseInt(day, 10),
+        parseInt(hour, 10),
+        parseInt(minute, 10),
+        parseInt(second, 10),
+      ),
+    );
+  }
+
+  const ymdHmsSpacePattern = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/;
+  const spaceMatch = trimmed.match(ymdHmsSpacePattern);
+  if (spaceMatch) {
+    const [, year, month, day, hour, minute, second] = spaceMatch;
+    return new Date(
+      Date.UTC(
+        parseInt(year, 10),
+        parseInt(month, 10) - 1,
+        parseInt(day, 10),
+        parseInt(hour, 10),
+        parseInt(minute, 10),
+        parseInt(second, 10),
+      ),
+    );
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [year, month, day] = trimmed.split('-').map((part) => parseInt(part, 10));
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.getUTCFullYear() !== year ||
+      date.getUTCMonth() + 1 !== month ||
+      date.getUTCDate() !== day
+    ) {
+      return null;
+    }
+    return date;
+  }
+
+  if (trimmed.includes('T')) {
+    const iso = HAS_EXPLICIT_TIMEZONE_RE.test(trimmed) ? trimmed : `${trimmed}Z`;
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (trimmed.includes('-')) {
+    const date = new Date(`${trimmed}T00:00:00.000Z`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (trimmed.includes('/')) {
+    const date = new Date(trimmed);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (/^\d+$/.test(trimmed)) {
+    const date = new Date(parseInt(trimmed, 10));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const date = new Date(trimmed);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString || dateString.trim() === '') {
     return 'N/A';
@@ -35,37 +117,9 @@ export const formatDate = (dateString: string | null | undefined): string => {
     return 'N/A';
   }
 
-  let date: Date;
+  const date = parseApiTimestampToDate(dateString);
 
-  const ddmmyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/;
-  const match = dateString.match(ddmmyyyyPattern);
-
-  if (match) {
-    const [, day, month, year, hour, minute, second] = match;
-    date = new Date(
-      parseInt(year),
-      parseInt(month) - 1,
-      parseInt(day),
-      parseInt(hour),
-      parseInt(minute),
-      parseInt(second)
-    );
-  } else if (dateString.includes('T')) {
-    date = new Date(dateString);
-  } else if (dateString.includes('-')) {
-    date = new Date(dateString + 'T00:00:00Z');
-  } else if (dateString.includes('/')) {
-    date = new Date(dateString);
-  } else {
-    const timestamp = parseInt(dateString);
-    if (!isNaN(timestamp)) {
-      date = new Date(timestamp);
-    } else {
-      date = new Date(dateString);
-    }
-  }
-
-  if (isNaN(date.getTime())) {
+  if (!date || Number.isNaN(date.getTime())) {
     console.warn('Invalid date string:', dateString);
     return 'N/A';
   }

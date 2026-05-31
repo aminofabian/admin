@@ -6,6 +6,7 @@ import {
   getPaymentDetailsForDisplay,
   getProviderDisplayName,
   getPurchaseBonusPaymentLabel,
+  parseApiTimestampToDate,
 } from '../formatters';
 
 describe('formatters', () => {
@@ -30,9 +31,9 @@ describe('formatters', () => {
     });
 
     it('should handle invalid date strings', () => {
-      expect(formatDate('invalid-date')).toBe('Invalid Date');
-      expect(formatDate('2024-13-45')).toBe('Invalid Date');
-      expect(formatDate('not-a-date')).toBe('Invalid Date');
+      expect(formatDate('invalid-date')).toBe('N/A');
+      expect(formatDate('2024-13-45')).toBe('N/A');
+      expect(formatDate('not-a-date')).toBe('N/A');
     });
 
     it('should handle various date formats', () => {
@@ -44,6 +45,33 @@ describe('formatters', () => {
       
       // Timestamp
       expect(formatDate('1705312200000')).toMatch(/Jan 15, 2024/);
+    });
+
+    it('should treat naive ISO datetimes as UTC and format in local time', () => {
+      const parsed = parseApiTimestampToDate('2026-05-30T04:45:00');
+      expect(parsed).not.toBeNull();
+      const formatted = formatDate('2026-05-30T04:45:00');
+      const expected = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).format(parsed!);
+      expect(formatted).toBe(expected);
+      expect(formatted).not.toBe('May 30, 2026, 04:45:00');
+    });
+
+    it('should parse DD/MM/YYYY HH:mm:ss as UTC', () => {
+      const parsed = parseApiTimestampToDate('29/05/2026 23:45:00');
+      expect(parsed?.toISOString()).toBe('2026-05-29T23:45:00.000Z');
+    });
+
+    it('should parse YYYY-MM-DD HH:mm:ss as UTC', () => {
+      const parsed = parseApiTimestampToDate('2026-05-30 00:15:01');
+      expect(parsed?.toISOString()).toBe('2026-05-30T00:15:01.000Z');
     });
   });
 
