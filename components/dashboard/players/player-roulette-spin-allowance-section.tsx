@@ -177,7 +177,7 @@ export function PlayerRouletteSpinAllowanceSection({
                 <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
                   Stacked balance: {spinBalance}
                   {spinInfo?.has_completed_purchase === false
-                    ? ' · accrual paused (no completed purchase)'
+                    ? ' · daily spins pending first purchase today'
                     : ''}
                 </p>
               ) : null}
@@ -227,7 +227,8 @@ export function PlayerRouletteSpinAllowanceSection({
                   disabled={isSaving || !isEnabled}
                 />
                 <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
-                  Daily accrual amount for this player. Set to 0 with override enabled to block accrual.
+                  Maximum free spins earned per day for this player (credited after first purchase).
+                  Set to 0 with override enabled to block daily spins.
                 </p>
               </div>
 

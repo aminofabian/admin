@@ -53,7 +53,7 @@ export function PlayerRouletteSpinStatusDisplay({
               </span>
               {dailyAccrual > 0 ? (
                 <p className="text-[10px] text-muted-foreground md:text-[9px]">
-                  +{dailyAccrual}/day when eligible
+                  +{dailyAccrual}/day on first purchase
                 </p>
               ) : null}
             </div>
@@ -79,7 +79,7 @@ export function PlayerRouletteSpinStatusDisplay({
         ) : null}
         {!isLoading && !error && !hasPurchase ? (
           <p className="text-[10px] font-medium text-amber-700 dark:text-amber-400 md:text-[9px]">
-            Needs a completed purchase to accrue spins
+            Complete a purchase to receive daily spins
           </p>
         ) : null}
       </div>
@@ -127,9 +127,9 @@ export function PlayerRouletteSpinStatusDisplay({
           </div>
           {dailyAccrual > 0 ? (
             <div className="col-span-2">
-              <dt className="text-gray-500 dark:text-gray-400">Daily accrual</dt>
+              <dt className="text-gray-500 dark:text-gray-400">Daily allowance</dt>
               <dd className="font-semibold text-gray-900 dark:text-gray-100">
-                {dailyAccrual} per day (stacks when unused)
+                {dailyAccrual} per day — credited after first purchase; unused spins accumulate
               </dd>
             </div>
           ) : null}
@@ -140,15 +140,18 @@ export function PlayerRouletteSpinStatusDisplay({
         <div className="mt-2 space-y-1">
           {!hasPurchase ? (
             <p className="text-[10px] font-medium text-amber-800 dark:text-amber-300">
-              No completed purchase yet — daily spins will not accrue until the player completes one.
+              No completed purchase yet — daily spins are credited after the player&apos;s first
+              purchase of the day.
             </p>
           ) : !dailyGranted && dailyAccrual > 0 ? (
             <p className="text-[10px] text-gray-600 dark:text-gray-400">
-              Today&apos;s grant not applied yet ({dailyAccrual}/day configured).
+              Waiting for today&apos;s first purchase to credit {dailyAccrual} spin
+              {dailyAccrual === 1 ? '' : 's'}.
             </p>
           ) : (
             <p className="text-[10px] text-indigo-900/70 dark:text-indigo-200/60">
-              Unused spins stack daily after at least one completed purchase.
+              Unused spins accumulate. Each day, spins are credited after the player&apos;s first
+              purchase.
             </p>
           )}
         </div>

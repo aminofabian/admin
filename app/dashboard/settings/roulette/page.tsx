@@ -133,7 +133,7 @@ export default function RouletteSettingsPage() {
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-                Configure daily free spins and the rewards players can win.
+                Configure daily free spins and prize wheel rewards.
               </p>
             </div>
           </div>
@@ -156,7 +156,8 @@ export default function RouletteSettingsPage() {
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-foreground sm:text-base">Daily free spins</h2>
             <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-              Each player can use up to this many free spins per calendar day. Resets at midnight.
+              Maximum free spins earned per day. Spins are credited after the first purchase of the
+              day and unused spins accumulate.
             </p>
           </div>
           <Switch
@@ -179,7 +180,7 @@ export default function RouletteSettingsPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="w-full sm:max-w-[200px]">
               <Input
-                label="Free spins per day"
+                label="Maximum free spins per day"
                 type="number"
                 min="0"
                 step="1"
