@@ -17,6 +17,15 @@ const TONE_ON: Record<SwitchTone, string> = {
   emerald: 'bg-emerald-600 focus:ring-emerald-500',
 };
 
+const TONE_OFF: Record<SwitchTone, string> = {
+  default:
+    'border border-gray-400/50 bg-gray-300 focus:ring-gray-400 dark:border-gray-500 dark:bg-gray-600',
+  violet:
+    'border border-violet-300 bg-violet-200 focus:ring-violet-400 dark:border-violet-700 dark:bg-violet-950',
+  emerald:
+    'border border-emerald-300 bg-emerald-200 focus:ring-emerald-400 dark:border-emerald-700 dark:bg-emerald-950',
+};
+
 export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
   (
     { checked, onChange, disabled = false, label, className = '', tone = 'default' },
@@ -40,12 +49,13 @@ export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
             relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors
             focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background
             disabled:cursor-not-allowed disabled:opacity-50
-            ${checked ? TONE_ON[tone] : 'bg-muted-foreground/30 focus:ring-muted-foreground'}
+            ${checked ? TONE_ON[tone] : TONE_OFF[tone]}
           `}
         >
           <span
             className={`
-              inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+              inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-1 ring-black/10 transition-transform
+              dark:ring-white/20
               ${checked ? 'translate-x-6' : 'translate-x-1'}
             `}
           />

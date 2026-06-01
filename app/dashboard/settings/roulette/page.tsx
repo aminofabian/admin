@@ -21,6 +21,7 @@ export default function RouletteSettingsPage() {
   const [rouletteEnabled, setRouletteEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingRoulette, setIsSavingRoulette] = useState(false);
+  const [isSavingSpins, setIsSavingSpins] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const { allowance, isLoading, error, fetchAllowance, saveAllowance } =
@@ -47,14 +48,15 @@ export default function RouletteSettingsPage() {
     }
   }, [allowance]);
 
-  const validateForm = () => {
-    const value = parseInt(spinsPerDay, 10);
+  const parseSpinsPerDay = () => parseInt(spinsPerDay, 10);
+
+  const validateSpinsPerDay = (enabled: boolean, value = parseSpinsPerDay()) => {
     if (Number.isNaN(value) || value < 0) {
-      setFormError('Spins per day must be a whole number of 0 or greater');
+      setFormError('Spins per day must be 0 or greater');
       return false;
     }
-    if (isEnabled && value < 1) {
-      setFormError('When enabled, spins per day must be at least 1');
+    if (enabled && value < 1) {
+      setFormError('Set at least 1 spin per day when enabled');
       return false;
     }
     setFormError(null);
@@ -89,21 +91,61 @@ export default function RouletteSettingsPage() {
     }
   };
 
+  const handleSpinsToggle = async (enabled: boolean) => {
+    const previous = isEnabled;
+    let spins = parseSpinsPerDay();
+
+    if (enabled && (Number.isNaN(spins) || spins < 1)) {
+      const fallback =
+        allowance?.spins_per_day && allowance.spins_per_day >= 1
+          ? allowance.spins_per_day
+          : 1;
+      spins = fallback;
+      setSpinsPerDay(String(fallback));
+    }
+
+    if (!validateSpinsPerDay(enabled, spins)) return;
+
+    setIsEnabled(enabled);
+    setIsSavingSpins(true);
+
+    try {
+      await saveAllowance({
+        spins_per_day: spins,
+        is_enabled: enabled,
+        roulette_enabled: rouletteEnabled,
+      });
+      addToast({
+        type: 'success',
+        title: enabled ? 'Free spins on' : 'Free spins off',
+      });
+    } catch (err) {
+      setIsEnabled(previous);
+      const message = err instanceof Error ? err.message : 'Failed to update free spins';
+      addToast({
+        type: 'error',
+        title: 'Update failed',
+        description: message,
+      });
+    } finally {
+      setIsSavingSpins(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateSpinsPerDay(isEnabled)) return;
 
     setIsSubmitting(true);
     try {
       await saveAllowance({
-        spins_per_day: parseInt(spinsPerDay, 10),
+        spins_per_day: parseSpinsPerDay(),
         is_enabled: isEnabled,
         roulette_enabled: rouletteEnabled,
       });
       addToast({
         type: 'success',
         title: 'Saved',
-        description: 'Saved.',
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save settings';
@@ -133,7 +175,7 @@ export default function RouletteSettingsPage() {
       }`
     : null;
 
-  const controlsDisabled = isSubmitting || isSavingRoulette;
+  const controlsDisabled = isSubmitting || isSavingRoulette || isSavingSpins;
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5 pb-24 sm:pb-6">
@@ -178,8 +220,9 @@ export default function RouletteSettingsPage() {
             title="Daily free spins"
             description="After first purchase each day; unused spins stack."
             checked={isEnabled}
-            onChange={setIsEnabled}
-            disabled={isSubmitting}
+            onChange={handleSpinsToggle}
+            disabled={controlsDisabled}
+            saving={isSavingSpins}
           >
             {formError && (
               <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-600 dark:text-red-300 sm:text-sm">
@@ -210,7 +253,7 @@ export default function RouletteSettingsPage() {
                   value={spinsPerDay}
                   onChange={(e) => setSpinsPerDay(e.target.value)}
                   placeholder="e.g. 3"
-                  disabled={isSubmitting || !isEnabled}
+                  disabled={controlsDisabled || !isEnabled}
                 />
               </div>
 
@@ -218,8 +261,8 @@ export default function RouletteSettingsPage() {
                 {lastUpdatedLabel && (
                   <p className="hidden text-xs text-muted-foreground sm:block">{lastUpdatedLabel}</p>
                 )}
-                <Button type="submit" disabled={isSubmitting} size="sm">
-                  {isSubmitting ? 'Saving…' : 'Save'}
+                <Button type="submit" disabled={controlsDisabled || !isEnabled} size="sm">
+                  {isSubmitting ? 'Saving…' : 'Save limit'}
                 </Button>
               </div>
             </div>
