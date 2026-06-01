@@ -7,6 +7,7 @@ export type RouletteSpinAllowance = {
   company_username?: string;
   spins_per_day: number;
   is_enabled: boolean;
+  roulette_enabled: boolean;
   project_id?: number;
   set_by_id?: number;
   set_by_username?: string;
@@ -17,6 +18,7 @@ export type RouletteSpinAllowance = {
 export type SaveRouletteSpinAllowanceRequest = {
   spins_per_day: number;
   is_enabled: boolean;
+  roulette_enabled: boolean;
 };
 
 type SpinAllowanceEnvelope = ApiResponse<
@@ -31,6 +33,8 @@ function normalizeAllowanceRow(raw: Record<string, unknown>): RouletteSpinAllowa
       typeof raw.company_username === 'string' ? raw.company_username : undefined,
     spins_per_day: typeof raw.spins_per_day === 'number' ? raw.spins_per_day : 0,
     is_enabled: typeof raw.is_enabled === 'boolean' ? raw.is_enabled : false,
+    roulette_enabled:
+      typeof raw.roulette_enabled === 'boolean' ? raw.roulette_enabled : true,
     project_id: typeof raw.project_id === 'number' ? raw.project_id : undefined,
     set_by_id: typeof raw.set_by_id === 'number' ? raw.set_by_id : undefined,
     set_by_username:
