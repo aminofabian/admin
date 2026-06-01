@@ -67,6 +67,13 @@ export interface CashoutMethodGroupedRow {
   usage_distribution_pct: number;
 }
 
+/** One row from `data.manual_adjustments` (totals grouped by adjustment type). */
+export interface ManualAdjustmentRow {
+  adjustment_type: string;
+  adjustment_display?: string;
+  amount: number;
+}
+
 export interface PaymentMethodsResponseData {
   purchases: {
     [key: string]: PaymentMethodMetrics;
@@ -77,6 +84,7 @@ export interface PaymentMethodsResponseData {
   /** Optional grouped rows; when present, shown in a dedicated analytics section. */
   purchase_methods?: PurchaseMethodGroupedRow[];
   cashout_methods?: CashoutMethodGroupedRow[];
+  manual_adjustments?: ManualAdjustmentRow[];
 }
 
 /** Bonus analytics `data` object from GET …/transactions/bonus (all numeric fields). */
