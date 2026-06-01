@@ -2,9 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRoulettePlayerSpinAllowanceStore } from '@/stores';
+import { usePlayerRouletteSpinInfo } from '@/hooks/use-player-roulette-spin-info';
 import { Button, Input, Switch, useToast } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
 import type { PlayerRouletteSpinAllowance } from '@/lib/api/roulette-player-spin-allowances';
+import { PlayerRouletteSpinStatusDisplay } from '@/components/dashboard/players/player-roulette-spin-status-display';
+import { dailyAccrualFromSpinInfo } from '@/lib/roulette/player-spin-allowance-info';
+import type { PlayerRouletteSpinInfo } from '@/lib/roulette/player-spin-allowance-info';
 
 export interface PlayerRouletteSpinAllowanceSectionProps {
   playerId: number;
@@ -14,11 +18,12 @@ export interface PlayerRouletteSpinAllowanceSectionProps {
 
 function describeSource(
   allowance: PlayerRouletteSpinAllowance | null,
+  spinInfo: PlayerRouletteSpinInfo | null,
 ): { label: string; tone: 'override' | 'inherited' | 'unset' } {
-  const source = allowance?.usage?.allowance_source;
+  const source = spinInfo?.allowance_source;
   if (source === 'player') return { label: 'Player override', tone: 'override' };
   if (source === 'company') return { label: 'Inherited from company default', tone: 'inherited' };
-  if (!allowance) return { label: 'No override set', tone: 'unset' };
+  if (!allowance && !spinInfo) return { label: 'No override set', tone: 'unset' };
   return { label: 'Player override', tone: 'override' };
 }
 
@@ -28,43 +33,42 @@ export function PlayerRouletteSpinAllowanceSection({
   canEdit,
 }: PlayerRouletteSpinAllowanceSectionProps) {
   const { addToast } = useToast();
-  const { byPlayerId, fetchForPlayer, saveForPlayer } =
-    useRoulettePlayerSpinAllowanceStore();
+  const { byPlayerId, saveForPlayer } = useRoulettePlayerSpinAllowanceStore();
 
   const entry = byPlayerId[playerId];
   const allowance = entry?.allowance ?? null;
-  const isLoading = entry?.isLoading ?? false;
   const isSaving = entry?.isSaving ?? false;
-  const error = entry?.error ?? null;
+  const storeError = entry?.error ?? null;
+
+  const { spinInfo, isLoading, error: spinError } = usePlayerRouletteSpinInfo(playerId);
+  const error = storeError ?? spinError;
 
   const [spinsPerDay, setSpinsPerDay] = useState<string>('0');
   const [isEnabled, setIsEnabled] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetchForPlayer(playerId);
-  }, [fetchForPlayer, playerId]);
-
-  useEffect(() => {
     if (allowance) {
       setSpinsPerDay(String(allowance.spins_per_day ?? 0));
       setIsEnabled(Boolean(allowance.is_enabled));
     } else if (entry && !isLoading) {
-      // No override exists — start from a sensible empty form.
       setSpinsPerDay('0');
       setIsEnabled(false);
     }
   }, [allowance, entry, isLoading]);
 
-  const usage = allowance?.usage;
-  const sourceInfo = useMemo(() => describeSource(allowance), [allowance]);
+  const sourceInfo = useMemo(
+    () => describeSource(allowance, spinInfo),
+    [allowance, spinInfo],
+  );
 
-  const usedSpins = usage?.used_spins ?? 0;
-  const totalSpins = usage?.spins_per_day ?? allowance?.spins_per_day ?? 0;
-  const remainingSpins = usage?.remaining_spins;
-  const isUnlimited = Boolean(usage?.is_unlimited);
+  const isUnlimited = Boolean(spinInfo?.is_unlimited);
+  const usedSpins = spinInfo?.used_spins ?? 0;
+  const dailyAccrual = dailyAccrualFromSpinInfo(spinInfo);
+  const remainingSpins = spinInfo?.remaining_spins;
+  const spinBalance = spinInfo?.spin_balance ?? 0;
   const usagePercent =
-    totalSpins > 0 ? Math.min(100, Math.round((usedSpins / totalSpins) * 100)) : 0;
+    dailyAccrual > 0 ? Math.min(100, Math.round((usedSpins / dailyAccrual) * 100)) : 0;
 
   const validate = (): boolean => {
     const value = parseInt(spinsPerDay, 10);
@@ -103,7 +107,7 @@ export function PlayerRouletteSpinAllowanceSection({
     }
   };
 
-  const hasUsageData = Boolean(usage);
+  const hasSpinInfo = Boolean(spinInfo);
 
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-3">
@@ -131,19 +135,25 @@ export function PlayerRouletteSpinAllowanceSection({
         </span>
       </div>
 
-      {isLoading && !entry?.allowance ? (
+      {isLoading && !allowance && !spinInfo ? (
         <div className="rounded-md border border-gray-100 bg-gray-50/50 px-3 py-4 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-800/30 dark:text-gray-400">
           Loading spin allowance…
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Today's usage */}
-          {hasUsageData ? (
+          <PlayerRouletteSpinStatusDisplay
+            spinInfo={spinInfo}
+            isLoading={isLoading && !spinInfo}
+            error={error}
+            variant="card"
+          />
+
+          {hasSpinInfo ? (
             <div className="rounded-md border border-gray-100 bg-gray-50/50 p-2.5 dark:border-gray-800 dark:bg-gray-800/30">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Today
-                  {usage?.date ? ` · ${usage.date}` : ''}
+                  {spinInfo?.date ? ` · ${spinInfo.date}` : ''}
                 </p>
                 {isUnlimited ? (
                   <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
@@ -151,11 +161,11 @@ export function PlayerRouletteSpinAllowanceSection({
                   </span>
                 ) : (
                   <span className="text-[11px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
-                    {usedSpins} / {totalSpins} used
+                    {usedSpins} used · {remainingSpins ?? 0} ready
                   </span>
                 )}
               </div>
-              {!isUnlimited && totalSpins > 0 ? (
+              {!isUnlimited && dailyAccrual > 0 ? (
                 <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
@@ -163,15 +173,17 @@ export function PlayerRouletteSpinAllowanceSection({
                   />
                 </div>
               ) : null}
-              {!isUnlimited && remainingSpins != null ? (
+              {!isUnlimited ? (
                 <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
-                  {remainingSpins} remaining today
+                  Stacked balance: {spinBalance}
+                  {spinInfo?.has_completed_purchase === false
+                    ? ' · accrual paused (no completed purchase)'
+                    : ''}
                 </p>
               ) : null}
             </div>
           ) : null}
 
-          {/* Editor */}
           {canEdit ? (
             <div className="space-y-3 rounded-md border border-gray-100 bg-white p-2.5 dark:border-gray-800 dark:bg-gray-900">
               {formError ? (
@@ -215,7 +227,7 @@ export function PlayerRouletteSpinAllowanceSection({
                   disabled={isSaving || !isEnabled}
                 />
                 <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
-                  Resets daily. Set to 0 with override enabled to block this player.
+                  Daily accrual amount for this player. Set to 0 with override enabled to block accrual.
                 </p>
               </div>
 
@@ -232,7 +244,6 @@ export function PlayerRouletteSpinAllowanceSection({
             </div>
           ) : null}
 
-          {/* Footer metadata */}
           {allowance?.updated_at ? (
             <div className="rounded-md border border-gray-100 bg-gray-50/50 px-2.5 py-1.5 text-[10px] text-gray-500 dark:border-gray-800 dark:bg-gray-800/30 dark:text-gray-400">
               {allowance.set_by_username ? (

@@ -11,6 +11,7 @@ import { PlayerGameBalanceModal } from '@/components/features';
 import { playersApi } from '@/lib/api/users';
 import type { ChatUser, PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
+import { PlayerRouletteSpinBalanceDisplay } from '@/components/dashboard/players/player-roulette-spin-balance-display';
 
 interface PlayerInfoSidebarProps {
   selectedPlayer: ChatUser;
@@ -239,6 +240,10 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               </p>
             </div>
           ) : null}
+          <PlayerRouletteSpinBalanceDisplay
+            playerId={selectedPlayer.user_id}
+            variant="inline"
+          />
         </section>
 
         <div className="w-full">

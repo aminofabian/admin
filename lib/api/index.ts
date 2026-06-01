@@ -20,5 +20,6 @@ export * from './game-operations';
 export * from './roulette-rewards';
 export * from './roulette-spin-allowances';
 export * from './roulette-player-spin-allowances';
+export * from './roulette-player-spin-balances';
 export * from './roulette-reward-configs';
 
