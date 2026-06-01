@@ -5,6 +5,45 @@ const BACKEND_URL = RAW_BACKEND_URL.replace(/\/$/, '');
 
 const BACKEND_PATH = '/api/v1/admin/roulette/player-spin-balances/';
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const authHeader = request.headers.get('authorization');
+
+    const response = await fetch(`${BACKEND_URL}${BACKEND_PATH}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { raw: text || null };
+    }
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error('❌ Player spin-balances proxy (POST) error:', error);
+
+    return NextResponse.json(
+      {
+        status: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update player roulette spin balance',
+      },
+      { status: 500 },
+    );
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

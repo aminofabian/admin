@@ -14,6 +14,7 @@ import type { ChatUser, ChatMessage } from "@/types";
 import {
   EditProfileDrawer,
   EditBalanceDrawer,
+  EditSpinsDrawer,
   NotesDrawer,
   ExpandedImageModal,
 } from "./modals";
@@ -175,11 +176,17 @@ export function ChatComponent() {
     confirmPassword: "",
   });
   const [isEditBalanceModalOpen, setIsEditBalanceModalOpen] = useState(false);
+  const [isEditSpinsModalOpen, setIsEditSpinsModalOpen] = useState(false);
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
+  const [isUpdatingSpins, setIsUpdatingSpins] = useState(false);
+  const [spinBalanceRefreshKey, setSpinBalanceRefreshKey] = useState(0);
   const [balanceValue, setBalanceValue] = useState(0);
   const [balanceAdjustmentKind, setBalanceAdjustmentKind] =
     useState<ManualAdjustmentKind>("freeplay");
   const [balanceRemarks, setBalanceRemarks] = useState("");
+  const [spinsAdjustmentType, setSpinsAdjustmentType] = useState<"add" | "deduct">("add");
+  const [spinsQuantity, setSpinsQuantity] = useState(0);
+  const [spinsReason, setSpinsReason] = useState("Spin adjustment");
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -1969,6 +1976,88 @@ export function ChatComponent() {
     setIsEditBalanceModalOpen(true);
   }, [selectedPlayer]);
 
+  const handleOpenEditSpins = useCallback(() => {
+    if (!selectedPlayer) return;
+    setSpinsQuantity(0);
+    setSpinsAdjustmentType("add");
+    setSpinsReason("Spin adjustment");
+    setIsEditSpinsModalOpen(true);
+  }, [selectedPlayer]);
+
+  const handleAdjustSpinsPrimary = useCallback(async () => {
+    if (!selectedPlayer || isUpdatingSpins) return;
+
+    if (spinsQuantity <= 0) {
+      addToast({
+        type: "error",
+        title: "Invalid amount",
+        description: "Please enter a number of spins greater than 0.",
+      });
+      return;
+    }
+
+    const reason = spinsReason.trim();
+    if (!reason) {
+      addToast({
+        type: "error",
+        title: "Reason required",
+        description: "Please enter a reason for this adjustment.",
+      });
+      return;
+    }
+
+    setIsUpdatingSpins(true);
+    try {
+      const { playerRouletteSpinBalancesApi } = await import(
+        "@/lib/api/roulette-player-spin-balances"
+      );
+
+      const updated = await playerRouletteSpinBalancesApi.adjust({
+        player_id: selectedPlayer.user_id,
+        type: spinsAdjustmentType,
+        quantity: spinsQuantity,
+        reason,
+      });
+
+      const newBalance =
+        updated?.balance ??
+        updated?.usage?.spin_balance ??
+        updated?.spin_allowance?.spin_balance;
+
+      addToast({
+        type: "success",
+        title:
+          spinsAdjustmentType === "add"
+            ? `${spinsQuantity} spin${spinsQuantity === 1 ? "" : "s"} added`
+            : `${spinsQuantity} spin${spinsQuantity === 1 ? "" : "s"} deducted`,
+        description:
+          newBalance != null
+            ? `Prize wheel balance: ${newBalance} spin${newBalance === 1 ? "" : "s"}`
+            : "Prize wheel spin balance updated successfully.",
+      });
+
+      setSpinBalanceRefreshKey((k) => k + 1);
+      setIsEditSpinsModalOpen(false);
+    } catch (error) {
+      const description =
+        error instanceof Error ? error.message : "Failed to adjust player spins.";
+      addToast({
+        type: "error",
+        title: "Could not adjust spins",
+        description,
+      });
+    } finally {
+      setIsUpdatingSpins(false);
+    }
+  }, [
+    selectedPlayer,
+    isUpdatingSpins,
+    spinsQuantity,
+    spinsReason,
+    spinsAdjustmentType,
+    addToast,
+  ]);
+
   const handleManualAdjustmentPrimary = useCallback(async () => {
     if (!selectedPlayer || isUpdatingBalance) return;
 
@@ -3380,6 +3469,8 @@ export function ChatComponent() {
           notes={notes}
           onNavigateToPlayer={handleNavigateToPlayer}
           onOpenEditBalance={handleOpenEditBalance}
+          onOpenEditSpins={handleOpenEditSpins}
+          spinBalanceRefreshKey={spinBalanceRefreshKey}
           onOpenEditProfile={handleOpenEditProfile}
           onOpenNotesDrawer={handleOpenNotesDrawer}
         />
@@ -3410,6 +3501,22 @@ export function ChatComponent() {
         isUpdating={isUpdatingBalance}
         onPrimaryAction={handleManualAdjustmentPrimary}
       />
+
+      {selectedPlayerLedgerView ? (
+        <EditSpinsDrawer
+          isOpen={isEditSpinsModalOpen}
+          onClose={() => setIsEditSpinsModalOpen(false)}
+          playerId={selectedPlayerLedgerView.user_id}
+          adjustmentType={spinsAdjustmentType}
+          setAdjustmentType={setSpinsAdjustmentType}
+          quantity={spinsQuantity}
+          setQuantity={setSpinsQuantity}
+          reason={spinsReason}
+          setReason={setSpinsReason}
+          isUpdating={isUpdatingSpins}
+          onPrimaryAction={handleAdjustSpinsPrimary}
+        />
+      ) : null}
 
       <NotesDrawer
         isOpen={isNotesDrawerOpen}

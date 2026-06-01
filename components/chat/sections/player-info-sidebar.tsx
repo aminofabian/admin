@@ -20,7 +20,9 @@ interface PlayerInfoSidebarProps {
   notes: string;
   onNavigateToPlayer: () => void;
   onOpenEditBalance: () => void;
+  onOpenEditSpins: () => void;
   onOpenEditProfile: () => void;
+  spinBalanceRefreshKey?: number;
   onOpenNotesDrawer: () => void;
 }
 
@@ -32,6 +34,8 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
   notes: _notes,
   onNavigateToPlayer,
   onOpenEditBalance,
+  onOpenEditSpins,
+  spinBalanceRefreshKey,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onOpenEditProfile: _onOpenEditProfile,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -243,10 +247,11 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
           <PlayerRouletteSpinBalanceDisplay
             playerId={selectedPlayer.user_id}
             variant="inline"
+            refreshKey={spinBalanceRefreshKey}
           />
         </section>
 
-        <div className="w-full">
+        <div className="flex w-full flex-col gap-2">
           <Button
             variant="primary"
             className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-8 md:rounded-md md:text-xs md:shadow-none"
@@ -256,6 +261,18 @@ export const PlayerInfoSidebar = memo(function PlayerInfoSidebar({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Adjust balance
+          </Button>
+          <Button
+            variant="primary"
+            className="h-12 w-full rounded-xl text-sm font-semibold shadow-md shadow-primary/20 md:h-8 md:rounded-md md:text-xs md:shadow-none"
+            onClick={onOpenEditSpins}
+          >
+            <svg className="mr-2 h-4 w-4 md:mr-1 md:h-3 md:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <circle cx="12" cy="12" r="9" />
+              <path strokeLinecap="round" d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Adjust spins
           </Button>
         </div>
 

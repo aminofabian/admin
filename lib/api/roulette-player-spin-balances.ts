@@ -63,7 +63,41 @@ function normalizeBalanceRow(
  *
  * GET /api/admin/roulette/player-spin-balances?player_id=… → first result (or null)
  */
+export type PlayerSpinBalanceAdjustmentType = 'add' | 'deduct';
+
+export type AdjustPlayerSpinBalancePayload = {
+  player_id: number;
+  type: PlayerSpinBalanceAdjustmentType;
+  quantity: number;
+  reason: string;
+};
+
+type AdjustPlayerSpinBalanceEnvelope = ApiResponse<{
+  balance?: Record<string, unknown>;
+}>;
+
 export const playerRouletteSpinBalancesApi = {
+  adjust: async (
+    payload: AdjustPlayerSpinBalancePayload,
+  ): Promise<PlayerRouletteSpinBalance | null> => {
+    const response = await apiClient.post<AdjustPlayerSpinBalanceEnvelope>(
+      'api/admin/roulette/player-spin-balances',
+      payload,
+    );
+
+    if (response?.status === 'error') {
+      throw new Error(response.message || 'Failed to adjust player spin balance');
+    }
+
+    const data = response?.data as Record<string, unknown> | undefined;
+    const balanceRaw = data?.balance;
+    if (balanceRaw && typeof balanceRaw === 'object') {
+      return normalizeBalanceRow(balanceRaw as Record<string, unknown>, payload.player_id);
+    }
+
+    return null;
+  },
+
   get: async (playerId: number): Promise<PlayerRouletteSpinBalance | null> => {
     const response = await apiClient.get<PlayerSpinBalanceListEnvelope>(
       'api/admin/roulette/player-spin-balances',
