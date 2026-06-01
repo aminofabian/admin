@@ -15,7 +15,12 @@ import {
 } from '@/lib/utils/payment-methods-category-filters';
 
 
-export function PaymentSettingsSection() {
+export type PaymentSettingsSectionProps = {
+  /** When true, hides enable/disable and edit-limit actions (e.g. staff view). */
+  readOnly?: boolean;
+};
+
+export function PaymentSettingsSection({ readOnly = false }: PaymentSettingsSectionProps = {}) {
   const paymentMethods = usePaymentMethodsStore((state) => state.paymentMethods);
   const cashoutCategories = usePaymentMethodsStore((state) => state.cashoutCategories);
   const purchaseCategories = usePaymentMethodsStore((state) => state.purchaseCategories);
@@ -379,67 +384,69 @@ export function PaymentSettingsSection() {
                                     <span className="text-gray-300 dark:text-gray-600">·</span>
                                     <span>Max <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums">{formatAmount(sub.max_amount_purchase)}</span></span>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="secondary"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditAmounts(purchaseSubToRow(sub));
-                                      }}
-                                      disabled={isUpdatingAmounts}
-                                      className="h-8 text-xs"
-                                    >
-                                      Edit Limits
-                                    </Button>
-                                    <button
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (loadingIds.has(loadingKey)) return;
-                                        setLoadingIds((prev) => new Set(prev).add(loadingKey));
-                                        try {
-                                          const newStatus = !sub.is_enabled_for_purchase;
-                                          await usePaymentMethodsStore.getState().updatePaymentMethod({
-                                            id: sub.id!,
-                                            action: 'purchase',
-                                            value: newStatus,
-                                          });
-                                          addToast({
-                                            type: 'success',
-                                            title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
-                                            description: `${sub.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
-                                          });
-                                        } catch (err) {
-                                          addToast({
-                                            type: 'error',
-                                            title: 'Update failed',
-                                            description: `Failed to ${sub.is_enabled_for_purchase ? 'disable' : 'enable'} ${sub.payment_method_display}.`,
-                                          });
-                                        } finally {
-                                          setLoadingIds((prev) => {
-                                            const next = new Set(prev);
-                                            next.delete(loadingKey);
-                                            return next;
-                                          });
-                                        }
-                                      }}
-                                      disabled={loadingIds.has(loadingKey)}
-                                      className={`h-8 px-3 rounded-md text-xs font-medium border transition-colors ${
-                                        sub.is_enabled_for_purchase
-                                          ? 'border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
-                                          : 'border-green-200 dark:border-green-900/50 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20'
-                                      }`}
-                                    >
-                                      {loadingIds.has(loadingKey) ? (
-                                        <>
-                                          <span className="animate-spin mr-1.5 inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
-                                          {sub.is_enabled_for_purchase ? 'Disabling...' : 'Enabling...'}
-                                        </>
-                                      ) : (
-                                        sub.is_enabled_for_purchase ? 'Disable' : 'Enable'
-                                      )}
-                                    </button>
-                                  </div>
+                                  {!readOnly && (
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditAmounts(purchaseSubToRow(sub));
+                                        }}
+                                        disabled={isUpdatingAmounts}
+                                        className="h-8 text-xs"
+                                      >
+                                        Edit Limits
+                                      </Button>
+                                      <button
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          if (loadingIds.has(loadingKey)) return;
+                                          setLoadingIds((prev) => new Set(prev).add(loadingKey));
+                                          try {
+                                            const newStatus = !sub.is_enabled_for_purchase;
+                                            await usePaymentMethodsStore.getState().updatePaymentMethod({
+                                              id: sub.id!,
+                                              action: 'purchase',
+                                              value: newStatus,
+                                            });
+                                            addToast({
+                                              type: 'success',
+                                              title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
+                                              description: `${sub.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+                                            });
+                                          } catch (err) {
+                                            addToast({
+                                              type: 'error',
+                                              title: 'Update failed',
+                                              description: `Failed to ${sub.is_enabled_for_purchase ? 'disable' : 'enable'} ${sub.payment_method_display}.`,
+                                            });
+                                          } finally {
+                                            setLoadingIds((prev) => {
+                                              const next = new Set(prev);
+                                              next.delete(loadingKey);
+                                              return next;
+                                            });
+                                          }
+                                        }}
+                                        disabled={loadingIds.has(loadingKey)}
+                                        className={`h-8 px-3 rounded-md text-xs font-medium border transition-colors ${
+                                          sub.is_enabled_for_purchase
+                                            ? 'border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
+                                            : 'border-green-200 dark:border-green-900/50 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20'
+                                        }`}
+                                      >
+                                        {loadingIds.has(loadingKey) ? (
+                                          <>
+                                            <span className="animate-spin mr-1.5 inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+                                            {sub.is_enabled_for_purchase ? 'Disabling...' : 'Enabling...'}
+                                          </>
+                                        ) : (
+                                          sub.is_enabled_for_purchase ? 'Disable' : 'Enable'
+                                        )}
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                             </div>
                             );
@@ -555,67 +562,69 @@ export function PaymentSettingsSection() {
                                     <span className="text-gray-300 dark:text-gray-600">·</span>
                                     <span>Max <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums">{formatAmount(sub.max_amount_cashout)}</span></span>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="secondary"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditAmounts(subToRow(sub));
-                                      }}
-                                      disabled={isUpdatingAmounts}
-                                      className="h-8 text-xs"
-                                    >
-                                      Edit Limits
-                                    </Button>
-                                    <button
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (loadingIds.has(loadingKey)) return;
-                                        setLoadingIds((prev) => new Set(prev).add(loadingKey));
-                                        try {
-                                          const newStatus = !sub.is_enabled_for_cashout;
-                                          await usePaymentMethodsStore.getState().updatePaymentMethod({
-                                            id: sub.id!,
-                                            action: 'cashout',
-                                            value: newStatus,
-                                          });
-                                          addToast({
-                                            type: 'success',
-                                            title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
-                                            description: `${sub.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
-                                          });
-                                        } catch (err) {
-                                          addToast({
-                                            type: 'error',
-                                            title: 'Update failed',
-                                            description: `Failed to ${sub.is_enabled_for_cashout ? 'disable' : 'enable'} ${sub.payment_method_display}.`,
-                                          });
-                                        } finally {
-                                          setLoadingIds((prev) => {
-                                            const next = new Set(prev);
-                                            next.delete(loadingKey);
-                                            return next;
-                                          });
-                                        }
-                                      }}
-                                      disabled={loadingIds.has(loadingKey)}
-                                      className={`h-8 px-3 rounded-md text-xs font-medium border transition-colors ${
-                                        sub.is_enabled_for_cashout
-                                          ? 'border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
-                                          : 'border-green-200 dark:border-green-900/50 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20'
-                                      }`}
-                                    >
-                                      {loadingIds.has(loadingKey) ? (
-                                        <>
-                                          <span className="animate-spin mr-1.5 inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
-                                          {sub.is_enabled_for_cashout ? 'Disabling...' : 'Enabling...'}
-                                        </>
-                                      ) : (
-                                        sub.is_enabled_for_cashout ? 'Disable' : 'Enable'
-                                      )}
-                                    </button>
-                                  </div>
+                                  {!readOnly && (
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditAmounts(subToRow(sub));
+                                        }}
+                                        disabled={isUpdatingAmounts}
+                                        className="h-8 text-xs"
+                                      >
+                                        Edit Limits
+                                      </Button>
+                                      <button
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          if (loadingIds.has(loadingKey)) return;
+                                          setLoadingIds((prev) => new Set(prev).add(loadingKey));
+                                          try {
+                                            const newStatus = !sub.is_enabled_for_cashout;
+                                            await usePaymentMethodsStore.getState().updatePaymentMethod({
+                                              id: sub.id!,
+                                              action: 'cashout',
+                                              value: newStatus,
+                                            });
+                                            addToast({
+                                              type: 'success',
+                                              title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
+                                              description: `${sub.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+                                            });
+                                          } catch (err) {
+                                            addToast({
+                                              type: 'error',
+                                              title: 'Update failed',
+                                              description: `Failed to ${sub.is_enabled_for_cashout ? 'disable' : 'enable'} ${sub.payment_method_display}.`,
+                                            });
+                                          } finally {
+                                            setLoadingIds((prev) => {
+                                              const next = new Set(prev);
+                                              next.delete(loadingKey);
+                                              return next;
+                                            });
+                                          }
+                                        }}
+                                        disabled={loadingIds.has(loadingKey)}
+                                        className={`h-8 px-3 rounded-md text-xs font-medium border transition-colors ${
+                                          sub.is_enabled_for_cashout
+                                            ? 'border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20'
+                                            : 'border-green-200 dark:border-green-900/50 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20'
+                                        }`}
+                                      >
+                                        {loadingIds.has(loadingKey) ? (
+                                          <>
+                                            <span className="animate-spin mr-1.5 inline-block h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+                                            {sub.is_enabled_for_cashout ? 'Disabling...' : 'Enabling...'}
+                                          </>
+                                        ) : (
+                                          sub.is_enabled_for_cashout ? 'Disable' : 'Enable'
+                                        )}
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                             </div>
                             );
@@ -646,7 +655,7 @@ export function PaymentSettingsSection() {
                     <TableHead>Usage</TableHead>
                     <TableHead>Amount Limits</TableHead>
                     <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {!readOnly && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -695,74 +704,76 @@ export function PaymentSettingsSection() {
                         {method.isEnabled ? 'Active' : 'Inactive'}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEditAmounts(method)}
-                          className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0"
-                          title="Edit amount limits"
-                        >
-                          Edit Min/Max
-                        </button>
-                        <button
-                          onClick={async () => {
-                            const isCurrentlyLoading = loadingIds.has(method.loadingKey);
-                            if (isCurrentlyLoading) return;
+                    {!readOnly && (
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEditAmounts(method)}
+                            className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0"
+                            title="Edit amount limits"
+                          >
+                            Edit Min/Max
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const isCurrentlyLoading = loadingIds.has(method.loadingKey);
+                              if (isCurrentlyLoading) return;
 
-                            setLoadingIds((prev) => new Set(prev).add(method.loadingKey));
-                            
-                            try {
-                              const newStatus = !method.isEnabled;
-                              await usePaymentMethodsStore.getState().updatePaymentMethod({
-                                id: method.id,
-                                action: method.action,
-                                value: newStatus,
-                              });
+                              setLoadingIds((prev) => new Set(prev).add(method.loadingKey));
                               
-                              addToast({
-                                type: 'success',
-                                title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
-                                description: `${method.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
-                              });
-                            } catch (error) {
-                              console.error('Failed to update payment method:', error);
-                              addToast({
-                                type: 'error',
-                                title: 'Update failed',
-                                description: `Failed to ${method.isEnabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
-                              });
-                            } finally {
-                              setLoadingIds((prev) => {
-                                const next = new Set(prev);
-                                next.delete(method.loadingKey);
-                                return next;
-                              });
-                            }
-                          }}
-                          disabled={loadingIds.has(method.loadingKey)}
-                          className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                            method.isEnabled
-                              ? loadingIds.has(method.loadingKey)
-                                ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 cursor-not-allowed opacity-70'
-                                : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
-                              : loadingIds.has(method.loadingKey)
-                                ? 'bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 cursor-not-allowed opacity-70'
-                                : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
-                          }`}
-                        >
-                          {loadingIds.has(method.loadingKey) ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
-                              <span className="whitespace-nowrap">
-                                {method.isEnabled ? 'Disabling...' : 'Enabling...'}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="whitespace-nowrap">{method.isEnabled ? 'Disable' : 'Enable'}</span>
-                          )}
-                        </button>
-                      </div>
-                    </TableCell>
+                              try {
+                                const newStatus = !method.isEnabled;
+                                await usePaymentMethodsStore.getState().updatePaymentMethod({
+                                  id: method.id,
+                                  action: method.action,
+                                  value: newStatus,
+                                });
+                                
+                                addToast({
+                                  type: 'success',
+                                  title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
+                                  description: `${method.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+                                });
+                              } catch (error) {
+                                console.error('Failed to update payment method:', error);
+                                addToast({
+                                  type: 'error',
+                                  title: 'Update failed',
+                                  description: `Failed to ${method.isEnabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
+                                });
+                              } finally {
+                                setLoadingIds((prev) => {
+                                  const next = new Set(prev);
+                                  next.delete(method.loadingKey);
+                                  return next;
+                                });
+                              }
+                            }}
+                            disabled={loadingIds.has(method.loadingKey)}
+                            className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                              method.isEnabled
+                                ? loadingIds.has(method.loadingKey)
+                                  ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 cursor-not-allowed opacity-70'
+                                  : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
+                                : loadingIds.has(method.loadingKey)
+                                  ? 'bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 cursor-not-allowed opacity-70'
+                                  : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
+                            }`}
+                          >
+                            {loadingIds.has(method.loadingKey) ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                                <span className="whitespace-nowrap">
+                                  {method.isEnabled ? 'Disabling...' : 'Enabling...'}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="whitespace-nowrap">{method.isEnabled ? 'Disable' : 'Enable'}</span>
+                            )}
+                          </button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -791,75 +802,79 @@ export function PaymentSettingsSection() {
                     </div>
 
                     {/* Right: Action Button */}
-                    <button
-                      onClick={async () => {
-                        const isCurrentlyLoading = loadingIds.has(method.loadingKey);
-                        if (isCurrentlyLoading) return;
+                    {!readOnly && (
+                      <button
+                        onClick={async () => {
+                          const isCurrentlyLoading = loadingIds.has(method.loadingKey);
+                          if (isCurrentlyLoading) return;
 
-                        setLoadingIds((prev) => new Set(prev).add(method.loadingKey));
-                        
-                        try {
-                          const newStatus = !method.isEnabled;
-                          await usePaymentMethodsStore.getState().updatePaymentMethod({
-                            id: method.id,
-                            action: method.action,
-                            value: newStatus,
-                          });
+                          setLoadingIds((prev) => new Set(prev).add(method.loadingKey));
                           
-                          addToast({
-                            type: 'success',
-                            title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
-                            description: `${method.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
-                          });
-                        } catch (error) {
-                          console.error('Failed to update payment method:', error);
-                          addToast({
-                            type: 'error',
-                            title: 'Update failed',
-                            description: `Failed to ${method.isEnabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
-                          });
-                        } finally {
-                          setLoadingIds((prev) => {
-                            const next = new Set(prev);
-                            next.delete(method.loadingKey);
-                            return next;
-                          });
-                        }
-                      }}
-                      disabled={loadingIds.has(method.loadingKey)}
-                      className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                        method.isEnabled
-                          ? loadingIds.has(method.loadingKey)
-                            ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 cursor-not-allowed opacity-70'
-                            : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
-                          : loadingIds.has(method.loadingKey)
-                            ? 'bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 cursor-not-allowed opacity-70'
-                            : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
-                      }`}
-                    >
-                      {loadingIds.has(method.loadingKey) ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
-                          <span className="whitespace-nowrap">
-                            {method.isEnabled ? 'Disabling...' : 'Enabling...'}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="whitespace-nowrap">{method.isEnabled ? 'Disable' : 'Enable'}</span>
-                      )}
-                    </button>
+                          try {
+                            const newStatus = !method.isEnabled;
+                            await usePaymentMethodsStore.getState().updatePaymentMethod({
+                              id: method.id,
+                              action: method.action,
+                              value: newStatus,
+                            });
+                            
+                            addToast({
+                              type: 'success',
+                              title: newStatus ? 'Payment method enabled' : 'Payment method disabled',
+                              description: `${method.payment_method_display} has been ${newStatus ? 'enabled' : 'disabled'} successfully.`,
+                            });
+                          } catch (error) {
+                            console.error('Failed to update payment method:', error);
+                            addToast({
+                              type: 'error',
+                              title: 'Update failed',
+                              description: `Failed to ${method.isEnabled ? 'disable' : 'enable'} ${method.payment_method_display}.`,
+                            });
+                          } finally {
+                            setLoadingIds((prev) => {
+                              const next = new Set(prev);
+                              next.delete(method.loadingKey);
+                              return next;
+                            });
+                          }
+                        }}
+                        disabled={loadingIds.has(method.loadingKey)}
+                        className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                          method.isEnabled
+                            ? loadingIds.has(method.loadingKey)
+                              ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 cursor-not-allowed opacity-70'
+                              : 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
+                            : loadingIds.has(method.loadingKey)
+                              ? 'bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-300 border border-green-200 dark:border-green-800 cursor-not-allowed opacity-70'
+                              : 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0'
+                        }`}
+                      >
+                        {loadingIds.has(method.loadingKey) ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
+                            <span className="whitespace-nowrap">
+                              {method.isEnabled ? 'Disabling...' : 'Enabling...'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="whitespace-nowrap">{method.isEnabled ? 'Disable' : 'Enable'}</span>
+                        )}
+                      </button>
+                    )}
                   </div>
 
                   {/* Mobile Amount Limits */}
                   <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Amount Limits</span>
-                      <button
-                        onClick={() => handleEditAmounts(method)}
-                        className="px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50"
-                      >
-                        Edit
-                      </button>
+                      {!readOnly && (
+                        <button
+                          onClick={() => handleEditAmounts(method)}
+                          className="px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-200 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/50"
+                        >
+                          Edit
+                        </button>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/90 dark:bg-slate-800 dark:border dark:border-slate-600/50 border border-gray-200 dark:border-slate-600/50 shadow-sm dark:shadow-none w-fit">
                       <div className="text-xs">
@@ -900,19 +915,20 @@ export function PaymentSettingsSection() {
       )}
       </div>
 
-      {/* Amount Modal */}
-      <PaymentAmountModal
-        isOpen={amountModalOpen}
-        onClose={() => {
-          setAmountModalOpen(false);
-          setSelectedPaymentMethod(null);
-        }}
-        paymentMethod={selectedPaymentMethod as PaymentMethod | null}
-        action={filterAction}
-        onSave={handleSaveAmounts}
-        isLoading={isUpdatingAmounts}
-        scope="admin"
-      />
+      {!readOnly && (
+        <PaymentAmountModal
+          isOpen={amountModalOpen}
+          onClose={() => {
+            setAmountModalOpen(false);
+            setSelectedPaymentMethod(null);
+          }}
+          paymentMethod={selectedPaymentMethod as PaymentMethod | null}
+          action={filterAction}
+          onSave={handleSaveAmounts}
+          isLoading={isUpdatingAmounts}
+          scope="admin"
+        />
+      )}
     </div>
   );
 }
