@@ -10,6 +10,8 @@ import { API_ENDPOINTS } from '@/lib/constants/api';
 import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input } from '@/components/ui';
 import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
+import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
+import { PlayerTransactionAnalyticsModal } from '@/components/analytics/player-transaction-analytics-modal';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
 import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
@@ -57,8 +59,8 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
   // State
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTransactionAnalyticsModalOpen, setIsTransactionAnalyticsModalOpen] = useState(false);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [selectedGameForBalance, setSelectedGameForBalance] = useState<PlayerGame | null>(null);
   const [balanceData, setBalanceData] = useState<CheckPlayerGameBalanceResponse | null>(null);
@@ -119,24 +121,6 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
           is_active: player.is_active ?? true,
         });
 
-        // Load transaction details
-        setIsLoadingDetails(true);
-        try {
-          const details = await playersApi.viewDetails(player.id);
-          setSelectedPlayer((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              total_purchases: details.total_purchases,
-              total_cashouts: details.total_cashouts,
-              total_transfers: details.total_transfers,
-            };
-          });
-        } catch (err) {
-          console.error('Failed to load player details:', err);
-        } finally {
-          setIsLoadingDetails(false);
-        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load player';
         setError(message);
@@ -161,6 +145,11 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
     const chatUrl = `/dashboard/chat?playerId=${selectedPlayer.id}`;
     router.push(chatUrl);
   }, [selectedPlayer, router]);
+
+  const { playerNavDirection, handleNavigateToAdjacentPlayer } = usePlayerAdjacentNavigation({
+    selectedPlayer,
+    onNavigateToChat: handleNavigateToChat,
+  });
 
   const handleViewTransactions = useCallback(() => {
     if (!selectedPlayer?.username) {
@@ -508,9 +497,6 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
 
   const creditBalance = formatCurrency(selectedPlayer.balance ?? 0);
   const showWinningsHero = hasMeaningfulWinningBalance(selectedPlayer.winning_balance);
-  const purchasesTotal = formatCurrency(selectedPlayer.total_purchases ?? 0);
-  const cashoutsTotal = formatCurrency(selectedPlayer.total_cashouts ?? 0);
-  const transfersTotal = formatCurrency(selectedPlayer.total_transfers ?? 0);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -538,24 +524,20 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
               </svg>
             </button>
             <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 flex-1 min-w-0">
-              <button
-                onClick={handleNavigateToChat}
-                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors cursor-pointer active:scale-95"
-                title="Open chat with this player"
-                aria-label="Open chat"
+              <div
+                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base"
+                aria-label="Player avatar"
               >
                 {usernameInitial}
-              </button>
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-                  <button
-                    onClick={handleNavigateToChat}
-                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer text-left"
-                    title="Open chat with this player"
-                    aria-label="Open chat"
+                  <span
+                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate text-left"
+                    aria-label="Player username"
                   >
                     {selectedPlayer.username}
-                  </button>
+                  </span>
                   <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
                     #{selectedPlayer.id}
                   </span>
@@ -575,17 +557,52 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
                 </div>
               </div>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setIsEditDrawerOpen(true)}
-              className="flex items-center gap-1 sm:gap-1.5 shrink-0 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-            >
-              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
-            </Button>
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleNavigateToAdjacentPlayer('previous')}
+                disabled={playerNavDirection !== null}
+                isLoading={playerNavDirection === 'previous'}
+                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <span className="hidden sm:inline text-xs sm:text-sm">Prev</span>
+                <span className="sm:hidden text-xs">◀</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleNavigateToAdjacentPlayer('next')}
+                disabled={playerNavDirection !== null}
+                isLoading={playerNavDirection === 'next'}
+                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <span className="hidden sm:inline text-xs sm:text-sm">Next</span>
+                <span className="sm:hidden text-xs">▶</span>
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleNavigateToChat}
+                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="hidden sm:inline text-xs sm:text-sm">Chat</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsEditDrawerOpen(true)}
+                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -768,59 +785,19 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
                   </svg>
                   <h2 className="text-sm sm:text-base md:text-lg font-bold text-purple-900 dark:text-purple-200">Transaction Summary</h2>
                 </div>
-                {isLoadingDetails && (
-                  <svg className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                )}
               </div>
-              <div className="flex flex-col 2xl:grid 2xl:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-purple-200/50 dark:border-purple-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-purple-700 dark:text-purple-300 break-words min-w-0">Purchases</h5>
-                  </div>
-                  {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-purple-300/30 dark:bg-purple-700/30 rounded w-full animate-pulse" />
-                  ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 break-words min-w-0">{purchasesTotal}</p>
-                  )}
-                </div>
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-indigo-200/50 dark:border-indigo-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-indigo-700 dark:text-indigo-300 break-words min-w-0">Cashouts</h5>
-                  </div>
-                  {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-indigo-300/30 dark:bg-indigo-700/30 rounded w-full animate-pulse" />
-                  ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-indigo-600 dark:text-indigo-400 transition-all duration-300 break-words min-w-0">{cashoutsTotal}</p>
-                  )}
-                </div>
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-violet-200/50 dark:border-violet-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-violet-500/20 dark:bg-violet-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
-                    </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-violet-700 dark:text-violet-300 break-words min-w-0">Transfers</h5>
-                  </div>
-                  {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-violet-300/30 dark:bg-violet-700/30 rounded w-full animate-pulse" />
-                  ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-violet-600 dark:text-violet-400 transition-all duration-300 break-words min-w-0">{transfersTotal}</p>
-                  )}
-                </div>
+              <div className="rounded-lg border border-purple-200/50 bg-white/60 p-3 backdrop-blur-sm dark:border-purple-700/50 dark:bg-white/10 sm:p-4">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => setIsTransactionAnalyticsModalOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition-all hover:shadow-md"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 13l3-3 2 2 5-5" />
+                  </svg>
+                  Open Player Transaction Analytics
+                </Button>
               </div>
             </section>
           </div>
@@ -1038,6 +1015,12 @@ export function ManagerPlayerDetail({ playerId }: ManagerPlayerDetailProps) {
         onClose={() => setIsSavedPaymentMethodsOpen(false)}
         playerUsername={selectedPlayer.username}
         savedPaymentMethods={selectedPlayer.saved_payment_methods ?? []}
+      />
+
+      <PlayerTransactionAnalyticsModal
+        isOpen={isTransactionAnalyticsModalOpen}
+        onClose={() => setIsTransactionAnalyticsModalOpen(false)}
+        username={selectedPlayer.username}
       />
 
       {/* Edit Game Drawer */}
