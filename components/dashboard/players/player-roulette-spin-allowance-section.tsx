@@ -7,7 +7,6 @@ import { Button, Input, Switch, useToast } from '@/components/ui';
 import { formatDate } from '@/lib/utils/formatters';
 import type { PlayerRouletteSpinAllowance } from '@/lib/api/roulette-player-spin-allowances';
 import { PlayerRouletteSpinStatusDisplay } from '@/components/dashboard/players/player-roulette-spin-status-display';
-import { dailyAccrualFromSpinInfo } from '@/lib/roulette/player-spin-allowance-info';
 import type { PlayerRouletteSpinInfo } from '@/lib/roulette/player-spin-allowance-info';
 
 export interface PlayerRouletteSpinAllowanceSectionProps {
@@ -62,14 +61,6 @@ export function PlayerRouletteSpinAllowanceSection({
     [allowance, spinInfo],
   );
 
-  const isUnlimited = Boolean(spinInfo?.is_unlimited);
-  const usedSpins = spinInfo?.used_spins ?? 0;
-  const dailyAccrual = dailyAccrualFromSpinInfo(spinInfo);
-  const remainingSpins = spinInfo?.remaining_spins;
-  const spinBalance = spinInfo?.spin_balance ?? 0;
-  const usagePercent =
-    dailyAccrual > 0 ? Math.min(100, Math.round((usedSpins / dailyAccrual) * 100)) : 0;
-
   const validate = (): boolean => {
     const value = parseInt(spinsPerDay, 10);
     if (Number.isNaN(value) || value < 0) {
@@ -106,8 +97,6 @@ export function PlayerRouletteSpinAllowanceSection({
       });
     }
   };
-
-  const hasSpinInfo = Boolean(spinInfo);
 
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-3">
@@ -147,42 +136,6 @@ export function PlayerRouletteSpinAllowanceSection({
             error={error}
             variant="card"
           />
-
-          {hasSpinInfo ? (
-            <div className="rounded-md border border-gray-100 bg-gray-50/50 p-2.5 dark:border-gray-800 dark:bg-gray-800/30">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Today
-                  {spinInfo?.date ? ` · ${spinInfo.date}` : ''}
-                </p>
-                {isUnlimited ? (
-                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
-                    Unlimited
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
-                    {usedSpins} used · {remainingSpins ?? 0} ready
-                  </span>
-                )}
-              </div>
-              {!isUnlimited && dailyAccrual > 0 ? (
-                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
-                    style={{ width: `${usagePercent}%` }}
-                  />
-                </div>
-              ) : null}
-              {!isUnlimited ? (
-                <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
-                  Stacked balance: {spinBalance}
-                  {spinInfo?.has_completed_purchase === false
-                    ? ' · daily spins pending first purchase today'
-                    : ''}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
 
           {canEdit ? (
             <div className="space-y-3 rounded-md border border-gray-100 bg-white p-2.5 dark:border-gray-800 dark:bg-gray-900">

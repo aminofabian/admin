@@ -1,7 +1,6 @@
 'use client';
 
 import type { PlayerRouletteSpinInfo } from '@/lib/roulette/player-spin-allowance-info';
-import { dailyAccrualFromSpinInfo } from '@/lib/roulette/player-spin-allowance-info';
 
 export interface PlayerRouletteSpinStatusDisplayProps {
   spinInfo: PlayerRouletteSpinInfo | null;
@@ -20,11 +19,6 @@ export function PlayerRouletteSpinStatusDisplay({
 }: PlayerRouletteSpinStatusDisplayProps) {
   const isUnlimited = Boolean(spinInfo?.is_unlimited);
   const spinBalance = spinInfo?.spin_balance ?? 0;
-  const remainingSpins = spinInfo?.remaining_spins ?? 0;
-  const usedSpins = spinInfo?.used_spins ?? 0;
-  const dailyAccrual = dailyAccrualFromSpinInfo(spinInfo);
-  const hasPurchase = spinInfo?.has_completed_purchase ?? false;
-  const dailyGranted = spinInfo?.daily_grant_awarded ?? false;
 
   if (variant === 'inline') {
     return (
@@ -47,16 +41,9 @@ export function PlayerRouletteSpinStatusDisplay({
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </span>
-            <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Prize wheel spins
-              </span>
-              {dailyAccrual > 0 ? (
-                <p className="text-[10px] text-muted-foreground md:text-[9px]">
-                  +{dailyAccrual}/day on first purchase
-                </p>
-              ) : null}
-            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Spin balance
+            </span>
           </div>
           {isLoading ? (
             <span className="text-xs text-muted-foreground">…</span>
@@ -72,16 +59,6 @@ export function PlayerRouletteSpinStatusDisplay({
             </p>
           )}
         </div>
-        {!isLoading && !error && !isUnlimited ? (
-          <p className="text-[10px] text-muted-foreground md:text-[9px]">
-            {remainingSpins} ready now · {usedSpins} used today
-          </p>
-        ) : null}
-        {!isLoading && !error && !hasPurchase ? (
-          <p className="text-[10px] font-medium text-amber-700 dark:text-amber-400 md:text-[9px]">
-            Complete a purchase to receive daily spins
-          </p>
-        ) : null}
       </div>
     );
   }
@@ -109,53 +86,6 @@ export function PlayerRouletteSpinStatusDisplay({
           </span>
         )}
       </div>
-
-      {!isLoading && !error && !isUnlimited ? (
-        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
-          <div>
-            <dt className="text-gray-500 dark:text-gray-400">Ready to spin</dt>
-            <dd className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-              {remainingSpins}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-gray-500 dark:text-gray-400">Used today</dt>
-            <dd className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-              {usedSpins}
-              {dailyAccrual > 0 ? ` / ${dailyAccrual}` : ''}
-            </dd>
-          </div>
-          {dailyAccrual > 0 ? (
-            <div className="col-span-2">
-              <dt className="text-gray-500 dark:text-gray-400">Daily allowance</dt>
-              <dd className="font-semibold text-gray-900 dark:text-gray-100">
-                {dailyAccrual} per day — credited after first purchase; unused spins accumulate
-              </dd>
-            </div>
-          ) : null}
-        </dl>
-      ) : null}
-
-      {!isLoading && !error ? (
-        <div className="mt-2 space-y-1">
-          {!hasPurchase ? (
-            <p className="text-[10px] font-medium text-amber-800 dark:text-amber-300">
-              No completed purchase yet — daily spins are credited after the player&apos;s first
-              purchase of the day.
-            </p>
-          ) : !dailyGranted && dailyAccrual > 0 ? (
-            <p className="text-[10px] text-gray-600 dark:text-gray-400">
-              Waiting for today&apos;s first purchase to credit {dailyAccrual} spin
-              {dailyAccrual === 1 ? '' : 's'}.
-            </p>
-          ) : (
-            <p className="text-[10px] text-indigo-900/70 dark:text-indigo-200/60">
-              Unused spins accumulate. Each day, spins are credited after the player&apos;s first
-              purchase.
-            </p>
-          )}
-        </div>
-      ) : null}
     </div>
   );
 }
