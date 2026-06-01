@@ -6,7 +6,6 @@ import type {
   BonusAnalytics,
   PurchaseMethodGroupedRow,
   CashoutMethodGroupedRow,
-  ManualAdjustmentRow,
 } from '@/lib/api/analytics';
 
 /** Maps API payload to a consistent TransactionSummary (handles missing keys and total_cash_in alias). */
@@ -62,20 +61,6 @@ function normalizeCashoutMethodGrouped(raw: unknown): CashoutMethodGroupedRow | 
   };
 }
 
-function normalizeManualAdjustment(raw: unknown): ManualAdjustmentRow | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const o = raw as Record<string, unknown>;
-  const n = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
-  const s = (v: unknown): string => (typeof v === 'string' ? v : '');
-  const adjustment_type = s(o.adjustment_type);
-  if (!adjustment_type) return null;
-  return {
-    adjustment_type,
-    adjustment_display: typeof o.adjustment_display === 'string' ? o.adjustment_display : undefined,
-    amount: n(o.amount),
-  };
-}
-
 /** Ensures every bonus analytics field is a finite number (matches API snake_case payload). */
 function normalizeBonusAnalytics(raw: unknown): BonusAnalytics {
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
@@ -90,8 +75,6 @@ function normalizeBonusAnalytics(raw: unknown): BonusAnalytics {
     average_first_deposit_bonus_pct: n(o.average_first_deposit_bonus_pct),
     transfer_bonus: n(o.transfer_bonus),
     average_transfer_bonus_pct: n(o.average_transfer_bonus_pct),
-    total_free_play: n(o.total_free_play),
-    average_free_play: n(o.average_free_play),
     seized_or_tipped_fund: n(o.seized_or_tipped_fund),
   };
 }
@@ -146,7 +129,6 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
   const [data, setData] = useState<PaymentMethodBreakdown[]>([]);
   const [purchaseMethodsGrouped, setPurchaseMethodsGrouped] = useState<PurchaseMethodGroupedRow[]>([]);
   const [cashoutMethodsGrouped, setCashoutMethodsGrouped] = useState<CashoutMethodGroupedRow[]>([]);
-  const [manualAdjustments, setManualAdjustments] = useState<ManualAdjustmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const filterEffectKey = analyticsFiltersEffectKey(filters);
@@ -158,7 +140,6 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
       setData([]);
       setPurchaseMethodsGrouped([]);
       setCashoutMethodsGrouped([]);
-      setManualAdjustments([]);
       return;
     }
 
@@ -214,16 +195,9 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
                 .map(normalizeCashoutMethodGrouped)
                 .filter((row): row is CashoutMethodGroupedRow => row !== null)
             : [];
-          const manualAdjustmentRows: ManualAdjustmentRow[] = Array.isArray(response.data.manual_adjustments)
-            ? response.data.manual_adjustments
-                .map(normalizeManualAdjustment)
-                .filter((row): row is ManualAdjustmentRow => row !== null)
-            : [];
-
           setData(paymentMethodsArray);
           setPurchaseMethodsGrouped(purchaseGrouped);
           setCashoutMethodsGrouped(cashoutGrouped);
-          setManualAdjustments(manualAdjustmentRows);
         } else {
           throw new Error(response.message || 'Failed to fetch payment methods');
         }
@@ -235,7 +209,6 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
         setData([]);
         setPurchaseMethodsGrouped([]);
         setCashoutMethodsGrouped([]);
-        setManualAdjustments([]);
       } finally {
         setLoading(false);
       }
@@ -244,7 +217,7 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
     void fetchData();
   }, [filterEffectKey, filters]);
 
-  return { data, purchaseMethodsGrouped, cashoutMethodsGrouped, manualAdjustments, loading, error };
+  return { data, purchaseMethodsGrouped, cashoutMethodsGrouped, loading, error };
 }
 
 export function useBonusAnalytics(filters?: AnalyticsFilters) {
