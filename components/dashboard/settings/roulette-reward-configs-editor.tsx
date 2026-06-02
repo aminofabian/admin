@@ -213,6 +213,23 @@ function tryAgainSlot(chance: string): BundleSlot {
 
 const BUNDLE_PRESETS: BundlePreset[] = [
   {
+    id: 'default-june-2026',
+    name: 'Default Wheel (June)',
+    tagline: 'Current default used by ops',
+    description: '8 slots with high $1/$2 hit rates, respins, and a controlled high-value top prize.',
+    badge: 'Default',
+    slots: [
+      moneySlot('1.00', '28%'),
+      respinSlot(1, '10%'),
+      moneySlot('5.00', '5%'),
+      moneySlot('1.00', '14%'),
+      tryAgainSlot('12%'),
+      moneySlot('2.00', '22%'),
+      respinSlot(1, '7%'),
+      moneySlot('10.00', '2%'),
+    ],
+  },
+  {
     id: 'starter',
     name: 'Starter Wheel',
     tagline: 'Lean & balanced — perfect to launch with',
@@ -360,6 +377,7 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
   const [isSaveBundleOpen, setIsSaveBundleOpen] = useState(false);
   const [saveBundleName, setSaveBundleName] = useState('');
   const [saveBundleDescription, setSaveBundleDescription] = useState('');
+  const [initialServedBundle, setInitialServedBundle] = useState<BundlePreset | null>(null);
 
   const minRewards = config?.min_rewards ?? 6;
   const maxRewards = config?.max_rewards ?? 15;
@@ -392,6 +410,23 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
       );
     }
   }, [config, loaded]);
+
+  useEffect(() => {
+    if (!loaded || !config || initialServedBundle || !Array.isArray(config.rewards)) return;
+    const slots: BundleSlot[] = config.rewards.map((slot) => {
+      const { id, ...rest } = slot as RouletteRewardSlot & { id?: number };
+      void id;
+      return rest;
+    });
+    setInitialServedBundle({
+      id: 'initial-served-wheel',
+      name: `Initially Served (${slots.length} Slots)`,
+      tagline: 'Snapshot of the wheel loaded when this page opened',
+      description: 'Useful to re-apply the original server-served wheel after trying other bundles.',
+      badge: 'Initial',
+      slots,
+    });
+  }, [loaded, config, initialServedBundle]);
 
   useEffect(() => {
     setCustomBundles(readCustomBundles());
@@ -906,6 +941,7 @@ export function RouletteRewardConfigsEditor({ canEdit }: RouletteRewardConfigsEd
         }
       >
         <BundlesContent
+          initialBundle={initialServedBundle}
           customBundles={customBundles}
           onApply={applyBundle}
           onDeleteCustom={handleDeleteCustomBundle}
@@ -1139,17 +1175,20 @@ function SlotCard({
 // ---------- Bundles drawer content ----------
 
 interface BundlesContentProps {
+  initialBundle?: BundlePreset | null;
   customBundles: CustomBundle[];
   onApply: (bundle: BundlePreset | CustomBundle) => void;
   onDeleteCustom: (id: string) => void;
 }
 
 function BundlesContent({
+  initialBundle,
   customBundles,
   onApply,
   onDeleteCustom,
 }: BundlesContentProps) {
   const [tab, setTab] = useState<'curated' | 'custom'>('curated');
+  const curatedBundles = initialBundle ? [initialBundle, ...BUNDLE_PRESETS] : BUNDLE_PRESETS;
 
   return (
     <div className="space-y-4">
@@ -1164,7 +1203,7 @@ function BundlesContent({
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          Curated <span className="ml-0.5 opacity-60">({BUNDLE_PRESETS.length})</span>
+          Curated <span className="ml-0.5 opacity-60">({curatedBundles.length})</span>
         </button>
         <button
           type="button"
@@ -1182,7 +1221,7 @@ function BundlesContent({
       {/* Lists */}
       {tab === 'curated' ? (
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          {BUNDLE_PRESETS.map((bundle) => (
+          {curatedBundles.map((bundle) => (
             <BundleCard
               key={bundle.id}
               name={bundle.name}
