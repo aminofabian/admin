@@ -15,7 +15,7 @@ interface BannerFormProps {
 export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps) {
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
-    banner_type: initialData?.banner_type || 'HOMEPAGE' as const,
+    banner_type: initialData?.banner_type || 'PROMOTIONAL',
     redirect_url: initialData?.redirect_url || '',
     is_active: initialData?.is_active ?? true,
   });
@@ -695,8 +695,8 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           onChange={(e) => setFormData({ ...formData, banner_type: e.target.value as 'HOMEPAGE' | 'PROMOTIONAL' })}
           className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6366f1]"
         >
-          <option value="HOMEPAGE">Homepage</option>
           <option value="PROMOTIONAL">Promotional</option>
+          <option value="HOMEPAGE">Homepage</option>
         </select>
       </div>
 
