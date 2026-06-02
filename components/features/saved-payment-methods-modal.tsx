@@ -61,6 +61,10 @@ function savedMethodDetailLines(method: SavedPaymentMethod): string[] {
   if (holder) {
     lines.push(holder);
   }
+  const venmoUsername = method.venmo_username?.trim();
+  if (venmoUsername) {
+    lines.push(venmoUsername);
+  }
   const accountLine =
     method.account_number?.trim() ||
     method.account_info?.trim() ||
