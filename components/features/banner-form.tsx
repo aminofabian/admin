@@ -69,6 +69,51 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
     return Object.keys(newErrors).length === 0;
   };
 
+  const resizeImageToCover = (
+    img: HTMLImageElement,
+    targetWidth: number,
+    targetHeight: number,
+    file: File
+  ): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not resize image'));
+        return;
+      }
+
+      const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const x = (targetWidth - scaledWidth) / 2;
+      const y = (targetHeight - scaledHeight) / 2;
+
+      ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
+      const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      const quality = mimeType === 'image/jpeg' ? 0.92 : undefined;
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Failed to resize image'));
+            return;
+          }
+          const baseName = file.name.replace(/\.[^.]+$/, '') || 'banner';
+          const ext = mimeType === 'image/png' ? 'png' : 'jpg';
+          resolve(
+            new File([blob], `${baseName}-${targetWidth}x${targetHeight}.${ext}`, { type: mimeType })
+          );
+        },
+        mimeType,
+        quality
+      );
+    });
+  };
+
   const validateImageDimensions = (
     file: File,
     field: 'web_banner' | 'mobile_banner',
@@ -139,7 +184,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               return;
             }
           } else if (bannerType === 'PROMOTIONAL') {
-            // PROMOTIONAL: 1150 × 400px (tolerance ±50px)
+            // PROMOTIONAL: 1150 × 400px (exact or auto-resized from matching aspect ratio)
             const targetWidth = 1150;
             const targetHeight = 400;
             const minWidth = 1100;
@@ -149,27 +194,6 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             const minRatio = 2.6;
             const maxRatio = 3.2;
 
-            if (width < minWidth) {
-              resolve({
-                valid: false,
-                error: `Your image is ${width}x${height}px. The width is too narrow. Required: ${targetWidth} × ${targetHeight}px.`,
-              });
-              return;
-            }
-            if (height < minHeight) {
-              resolve({
-                valid: false,
-                error: `Your image is ${width}x${height}px. The height is too short. Required: ${targetWidth} × ${targetHeight}px.`,
-              });
-              return;
-            }
-            if (width > maxWidth || height > maxHeight) {
-              resolve({
-                valid: false,
-                error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Promotional).`,
-              });
-              return;
-            }
             if (aspectRatio < minRatio || aspectRatio > maxRatio) {
               resolve({
                 valid: false,
@@ -177,6 +201,27 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               });
               return;
             }
+
+            const inTargetRange =
+              width >= minWidth &&
+              width <= maxWidth &&
+              height >= minHeight &&
+              height <= maxHeight;
+
+            if (inTargetRange) {
+              resolve({ valid: true });
+              return;
+            }
+
+            resizeImageToCover(img, targetWidth, targetHeight, file)
+              .then((resizedFile) => resolve({ valid: true, resizedFile }))
+              .catch(() =>
+                resolve({
+                  valid: false,
+                  error: `Could not resize your image to ${targetWidth} × ${targetHeight}px. Please try another file.`,
+                })
+              );
+            return;
           }
         } else if (field === 'mobile_banner') {
           if (bannerType === 'HOMEPAGE') {
@@ -686,7 +731,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             </p>
           ) : (
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Required: 1150 × 400px (Promotional web banner).
+              Target: 1150 × 400px (Promotional web banner). Larger images with a similar wide aspect ratio are resized automatically on upload.
             </p>
           )}
           <input
@@ -698,7 +743,9 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           />
           {validating.web_banner && (
             <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">
-              Validating image dimensions...
+              {formData.banner_type === 'PROMOTIONAL'
+                ? 'Validating and resizing image if needed...'
+                : 'Validating image dimensions...'}
             </p>
           )}
           

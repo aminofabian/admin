@@ -218,7 +218,7 @@ export default function RouletteSettingsPage() {
           <SettingRow
             variant="spins"
             title="Daily free spins"
-            description="After first purchase each day; unused spins stack."
+            description="After first deposit each day; unused spins stack."
             checked={isEnabled}
             onChange={handleSpinsToggle}
             disabled={controlsDisabled}
