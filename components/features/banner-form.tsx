@@ -245,27 +245,42 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               return;
             }
           } else if (bannerType === 'PROMOTIONAL') {
-            // PROMOTIONAL mobile: 680 × 380px (exact, ±5px tolerance)
+            // PROMOTIONAL mobile: 680 × 380px (exact or auto-cropped to fit)
             const targetWidth = 680;
             const targetHeight = 380;
             const minWidth = 675;
             const maxWidth = 685;
             const minHeight = 375;
             const maxHeight = 385;
-            if (width < minWidth || width > maxWidth) {
+
+            if (width <= height) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Promotional mobile).`,
+                error: `Your image is ${width}x${height}px. Promotional mobile banners must be landscape (wider than tall). Target: ${targetWidth} × ${targetHeight}px.`,
               });
               return;
             }
-            if (height < minHeight || height > maxHeight) {
-              resolve({
-                valid: false,
-                error: `Your image is ${width}x${height}px. Required: ${targetWidth} × ${targetHeight}px (Promotional mobile).`,
-              });
+
+            const inTargetRange =
+              width >= minWidth &&
+              width <= maxWidth &&
+              height >= minHeight &&
+              height <= maxHeight;
+
+            if (inTargetRange) {
+              resolve({ valid: true });
               return;
             }
+
+            resizeImageToCover(img, targetWidth, targetHeight, file)
+              .then((resizedFile) => resolve({ valid: true, resizedFile }))
+              .catch(() =>
+                resolve({
+                  valid: false,
+                  error: `Could not resize your image to ${targetWidth} × ${targetHeight}px. Please try another file.`,
+                })
+              );
+            return;
           }
         }
 
@@ -791,7 +806,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             </p>
           ) : (
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Required: 680 × 380px (Promotional mobile banner).
+              Target: 680 × 380px (Promotional mobile banner). Landscape images are cropped and resized to fit automatically on upload.
             </p>
           )}
           <input
@@ -803,7 +818,9 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
           />
           {validating.mobile_banner && (
             <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">
-              Validating image dimensions...
+              {formData.banner_type === 'PROMOTIONAL'
+                ? 'Validating and resizing image if needed...'
+                : 'Validating image dimensions...'}
             </p>
           )}
           
