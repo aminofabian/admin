@@ -184,20 +184,18 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
               return;
             }
           } else if (bannerType === 'PROMOTIONAL') {
-            // PROMOTIONAL: 1150 × 400px (exact or auto-resized from matching aspect ratio)
+            // PROMOTIONAL: 1150 × 400px (exact or auto-cropped to fit)
             const targetWidth = 1150;
             const targetHeight = 400;
             const minWidth = 1100;
             const maxWidth = 1200;
             const minHeight = 375;
             const maxHeight = 425;
-            const minRatio = 2.6;
-            const maxRatio = 3.2;
 
-            if (aspectRatio < minRatio || aspectRatio > maxRatio) {
+            if (width <= height) {
               resolve({
                 valid: false,
-                error: `Your image is ${width}x${height}px (aspect ratio ${aspectRatio.toFixed(2)}:1). Required: ${targetWidth} × ${targetHeight}px (Promotional).`,
+                error: `Your image is ${width}x${height}px. Promotional web banners must be landscape (wider than tall). Target: ${targetWidth} × ${targetHeight}px.`,
               });
               return;
             }
@@ -731,7 +729,7 @@ export function BannerForm({ onSubmit, onCancel, initialData }: BannerFormProps)
             </p>
           ) : (
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Target: 1150 × 400px (Promotional web banner). Larger images with a similar wide aspect ratio are resized automatically on upload.
+              Target: 1150 × 400px (Promotional web banner). Landscape images are cropped and resized to fit automatically on upload.
             </p>
           )}
           <input
