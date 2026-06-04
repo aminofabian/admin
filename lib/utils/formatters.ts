@@ -452,6 +452,29 @@ const PROVIDER_STATUS_KEYS: [string, string[]][] = [
   ['Tierlock status', ['tierlock_status', 'tierlockStatus']],
 ];
 
+const TIERLOCK_ORDER_ID_KEYS = ['tierlock_order_id', 'tierlockOrderId'] as const;
+
+function getTierlockOrderIdEntry(
+  transaction: Pick<Transaction, 'tierlock_order_id' | 'payment_details'>
+): [string, string] | null {
+  const tx = transaction as Record<string, unknown>;
+  const pd = transaction.payment_details && typeof transaction.payment_details === 'object'
+    ? transaction.payment_details
+    : null;
+
+  let val: unknown = null;
+  for (const key of TIERLOCK_ORDER_ID_KEYS) {
+    val = tx[key] ?? (pd && typeof pd === 'object' ? (pd as Record<string, unknown>)[key] : undefined);
+    if (val != null && String(val).trim() !== '') break;
+  }
+
+  const str = formatDetailValue(val);
+  if (str !== '—' && String(str).trim() !== '') {
+    return ['Tierlock order ID', str];
+  }
+  return null;
+}
+
 function getProviderStatusEntries(
   transaction: Pick<Transaction, 'payment_details' | 'binpay_status' | 'tierlock_status' | 'taparcadia_status'>
 ): [string, string][] {
@@ -484,6 +507,7 @@ export function getPaymentDetailsForDisplay(
     | 'provider'
     | 'binpay_status'
     | 'tierlock_status'
+    | 'tierlock_order_id'
     | 'taparcadia_status'
     | 'user_username'
   >
@@ -584,6 +608,12 @@ export function getPaymentDetailsForDisplay(
         entries.push(['Provider', providerDisplay]);
       }
     }
+  }
+
+  const tierlockOrderEntry = getTierlockOrderIdEntry(transaction);
+  if (tierlockOrderEntry) {
+    const alreadyHasOrderId = entries.some(([label]) => label.toLowerCase() === 'tierlock order id');
+    if (!alreadyHasOrderId) entries.push(tierlockOrderEntry);
   }
 
   const providerStatusEntries = getProviderStatusEntries(transaction);

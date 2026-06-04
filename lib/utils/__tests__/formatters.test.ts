@@ -198,6 +198,15 @@ describe('formatters', () => {
       });
       expect(rows.some(([label]) => label === 'Provider')).toBe(false);
     });
+
+    it('includes Tierlock order ID when present on the transaction', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        provider: 'tierlock',
+        tierlock_order_id: 'tierlock_71',
+      });
+      expect(rows.find(([label]) => label === 'Tierlock order ID')?.[1]).toBe('tierlock_71');
+    });
   });
 
   describe('getProviderDisplayName', () => {

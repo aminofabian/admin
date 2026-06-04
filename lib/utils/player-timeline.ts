@@ -257,6 +257,8 @@ export function playerTimelineItemToTransaction(item: PlayerTimelineItem): Trans
     binpay_status: typeof raw.binpay_status === 'string' ? raw.binpay_status : null,
     tierlock_status:
       typeof raw.tierlock_status === 'string' ? raw.tierlock_status : null,
+    tierlock_order_id:
+      typeof raw.tierlock_order_id === 'string' ? raw.tierlock_order_id : null,
     taparcadia_status:
       typeof raw.taparcadia_status === 'string' ? raw.taparcadia_status : null,
   };
