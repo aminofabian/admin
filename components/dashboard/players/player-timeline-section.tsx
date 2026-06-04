@@ -33,6 +33,7 @@ import {
   getTransactionAmountColorClass,
   getTransactionTypeBadgeStyle,
 } from '@/lib/utils/transaction-display';
+import { getDateRange } from '@/lib/utils/calendar-date-range';
 import {
   applyListDateFilterChange,
   LIST_DATE_PRESET_OPTIONS,
@@ -134,7 +135,18 @@ const TIMELINE_SKELETON = <TimelineLoadingSkeleton />;
 
 type TimelineDateFilters = ListFilterDateFields;
 
-const DEFAULT_DATE_FILTERS: TimelineDateFilters = {
+function createDefaultTimelineDateFilters(): TimelineDateFilters {
+  const { start, end } = getDateRange('today');
+  return {
+    date_preset: 'today',
+    date_from: start,
+    date_to: end,
+  };
+}
+
+const DEFAULT_DATE_FILTERS: TimelineDateFilters = createDefaultTimelineDateFilters();
+
+const ALL_TIME_DATE_FILTERS: TimelineDateFilters = {
   date_preset: '',
   date_from: '',
   date_to: '',
@@ -659,8 +671,8 @@ export function PlayerTimelineSection({
   }, [dateFilters]);
 
   const handleClearFilters = useCallback(() => {
-    setDateFilters(DEFAULT_DATE_FILTERS);
-    setAppliedDateFilters(DEFAULT_DATE_FILTERS);
+    setDateFilters(ALL_TIME_DATE_FILTERS);
+    setAppliedDateFilters(ALL_TIME_DATE_FILTERS);
     setCurrentPage(1);
   }, []);
 
