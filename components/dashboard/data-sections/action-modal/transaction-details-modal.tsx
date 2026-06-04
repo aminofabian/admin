@@ -14,6 +14,13 @@ import type { Transaction } from '@/types';
 import { playersApi } from '@/lib/api';
 import { mergeTransactionTextSnapshot } from '@/lib/utils/transaction-ws-merge';
 import {
+  getRouletteTransactionDetailEntries,
+  isRouletteTransaction,
+  parseRouletteTimelineSpins,
+  resolvePlayerTimelineAmountDisplay,
+  type PlayerTimelineItem,
+} from '@/lib/utils/player-timeline';
+import {
   DetailsModalWrapper,
   DetailsCard,
   DetailsHeader,
@@ -152,10 +159,43 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
   // Memoize expensive computations
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
-  const formattedAmount = useMemo(
-    () => formatCurrency(parseNumericValue(transaction.amount) ?? 0),
-    [transaction.amount]
+  const isRoulette = useMemo(() => isRouletteTransaction(transaction), [transaction]);
+
+  const rouletteDetailEntries = useMemo(
+    () => getRouletteTransactionDetailEntries(transaction),
+    [transaction],
   );
+
+  const timelineAmountPreview = useMemo(() => {
+    if (!isRoulette) return null;
+    const spins = parseRouletteTimelineSpins({
+      roulette_spins:
+        transaction.payment_details &&
+        typeof transaction.payment_details === 'object'
+          ? transaction.payment_details.roulette_spins
+          : undefined,
+    });
+    const preview: PlayerTimelineItem = {
+      id: transaction.id,
+      kind: 'transaction',
+      type: transaction.type,
+      status: transaction.status,
+      amount: transaction.amount,
+      bonus_amount: transaction.bonus_amount,
+      roulette_spins: spins,
+      provider: transaction.provider ?? 'roulette',
+      created_at: transaction.created_at,
+      raw: {},
+    };
+    return resolvePlayerTimelineAmountDisplay(preview);
+  }, [isRoulette, transaction]);
+
+  const formattedAmount = useMemo(() => {
+    if (timelineAmountPreview && !timelineAmountPreview.showAsCurrency) {
+      return timelineAmountPreview.primaryText;
+    }
+    return formatCurrency(parseNumericValue(transaction.amount) ?? 0);
+  }, [transaction.amount, timelineAmountPreview]);
   const isPending = useMemo(() => transaction.status === 'pending', [transaction.status]);
   const hasComplete = typeof onComplete === 'function';
   const hasCancel = typeof onCancel === 'function';
@@ -174,6 +214,19 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   const formattedBonus = useMemo(() => {
     return bonusAmount ? formatCurrency(bonusAmount) : null;
   }, [bonusAmount]);
+
+  const rouletteSpinsMeta = useMemo(() => {
+    const pd = transaction.payment_details;
+    if (!pd || typeof pd !== 'object') return undefined;
+    return parseRouletteTimelineSpins(pd as Record<string, unknown>);
+  }, [transaction.payment_details]);
+
+  const showSpinBalanceInModal = Boolean(
+    isRoulette &&
+      rouletteSpinsMeta &&
+      (rouletteSpinsMeta.previous_balance != null || rouletteSpinsMeta.new_balance != null) &&
+      !((parseNumericValue(transaction.amount) ?? 0) > 0 || (bonusAmount ?? 0) > 0),
+  );
 
   const amountVariant: 'positive' | 'negative' = transaction.type === 'cashout' ? 'negative' : 'positive';
 
@@ -336,6 +389,26 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
             </div>
           </div>
 
+          {rouletteDetailEntries.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Prize wheel
+              </div>
+              <div className="bg-violet-50 dark:bg-violet-950/30 rounded-md p-3 space-y-2">
+                {rouletteDetailEntries.map(([label, value]) => (
+                  <div key={label} className="flex items-start justify-between gap-3">
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300 min-w-0 flex-shrink-0">
+                      {label}:
+                    </span>
+                    <span className="text-xs text-gray-900 dark:text-gray-100 text-right break-all min-w-0">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Payment Details (provider-specific: email, account name, cashtag, etc.) */}
           {(() => {
             const entries = getPaymentDetailsForDisplay(transaction);
@@ -369,16 +442,33 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
             {/* Balance Information */}
             <DetailsRow>
-              <DetailsHighlightBox
-                label="Previous Balance"
-                value={formatCurrency(previousBalanceValue)}
-                variant="blue"
-              />
-              <DetailsHighlightBox
-                label="New Balance"
-                value={formatCurrency(newBalanceValue)}
-                variant="green"
-              />
+              {showSpinBalanceInModal && rouletteSpinsMeta ? (
+                <>
+                  <DetailsHighlightBox
+                    label="Spin balance (before)"
+                    value={String(rouletteSpinsMeta.previous_balance ?? 0)}
+                    variant="blue"
+                  />
+                  <DetailsHighlightBox
+                    label="Spin balance (after)"
+                    value={String(rouletteSpinsMeta.new_balance ?? 0)}
+                    variant="green"
+                  />
+                </>
+              ) : (
+                <>
+                  <DetailsHighlightBox
+                    label="Previous Balance"
+                    value={formatCurrency(previousBalanceValue)}
+                    variant="blue"
+                  />
+                  <DetailsHighlightBox
+                    label="New Balance"
+                    value={formatCurrency(newBalanceValue)}
+                    variant="green"
+                  />
+                </>
+              )}
             </DetailsRow>
           </div>
 

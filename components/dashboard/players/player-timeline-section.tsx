@@ -27,7 +27,6 @@ import { transactionsApi } from '@/lib/api';
 import {
   formatCurrency,
   formatDate,
-  formatPaymentMethod,
   isNonMonetaryGameActivityType,
 } from '@/lib/utils/formatters';
 import {
@@ -40,11 +39,14 @@ import {
   type ListFilterDateFields,
 } from '@/lib/utils/list-filter-date-preset';
 import {
+  formatPlayerTimelineDetailLabel,
+  formatRouletteTimelineTypeLabel,
+  isRouletteTimelineItem,
   mapPlayerTimelineResult,
   playerTimelineItemToTransaction,
   playerTimelineItemToTransactionQueue,
+  resolvePlayerTimelineAmountDisplay,
   resolvePlayerTimelineBalanceDisplay,
-  resolvePlayerTimelineBonusAmount,
   type PlayerTimelineItem,
 } from '@/lib/utils/player-timeline';
 import type { Transaction, TransactionQueue } from '@/types';
@@ -162,6 +164,9 @@ function mapGameTypeToLabel(type: string): string {
 function formatTimelineTypeLabel(item: PlayerTimelineItem): string {
   if (item.kind === 'game_activity') {
     return mapGameTypeToLabel(item.type);
+  }
+  if (isRouletteTimelineItem(item)) {
+    return formatRouletteTimelineTypeLabel(item);
   }
   const { isTransfer } = getTransactionTypeBadgeStyle(item.type, item.payment_method);
   if (isTransfer) return 'Transfer';
@@ -381,17 +386,13 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
   const statusVariant = mapStatusToVariant(item.status);
   const typeLabel = formatTimelineTypeLabel(item);
   const kindStyles = getKindStyles(item.kind);
-  const detailLabel =
-    item.kind === 'game_activity'
-      ? item.game || item.game_code || '—'
-      : formatPaymentMethod(item.payment_method || '—');
+  const detailLabel = formatPlayerTimelineDetailLabel(item);
 
   const showAmount = !(
     item.kind === 'game_activity' && isNonMonetaryGameActivityType(item.type)
   );
+  const amountDisplay = resolvePlayerTimelineAmountDisplay(item);
   const amountColor = getTransactionAmountColorClass(item.type, item.amount);
-  const bonusAmount = resolvePlayerTimelineBonusAmount(item);
-  const formattedBonus = bonusAmount ? formatCurrency(bonusAmount) : null;
   const balanceDisplay = resolvePlayerTimelineBalanceDisplay(item);
   const { variant: typeVariant, isTransfer } = getTransactionTypeBadgeStyle(
     item.type,
@@ -422,21 +423,18 @@ const TimelineTableRow = memo(function TimelineTableRow({ item, onView }: Timeli
       </TableCell>
       <TableCell className="align-middle">
         <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{detailLabel}</span>
-        {item.id && (
-          <p className="mt-0.5 font-mono text-[10px] text-gray-400 dark:text-gray-500">
-            {item.id.length > 12 ? `${item.id.slice(0, 12)}…` : item.id}
-          </p>
-        )}
       </TableCell>
       <TableCell className="align-middle">
         {showAmount ? (
           <div className="rounded-lg border border-gray-200/80 bg-gray-50/60 px-2.5 py-2 dark:border-gray-600/80 dark:bg-gray-800/40">
-            <div className={`text-sm font-bold tabular-nums ${amountColor}`}>
-              {formatCurrency(item.amount ?? '0')}
+            <div
+              className={`text-sm font-bold ${amountDisplay.showAsCurrency ? 'tabular-nums' : ''} ${amountColor}`}
+            >
+              {amountDisplay.primaryText}
             </div>
-            {formattedBonus && (
+            {amountDisplay.secondaryText && (
               <div className={`mt-0.5 text-xs font-semibold tabular-nums ${amountColor}`}>
-                +{formattedBonus} bonus
+                {amountDisplay.secondaryText}
               </div>
             )}
           </div>
@@ -475,14 +473,10 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
   const showAmount = !(
     item.kind === 'game_activity' && isNonMonetaryGameActivityType(item.type)
   );
+  const amountDisplay = resolvePlayerTimelineAmountDisplay(item);
   const amountColor = getTransactionAmountColorClass(item.type, item.amount);
-  const bonusAmount = resolvePlayerTimelineBonusAmount(item);
-  const formattedBonus = bonusAmount ? formatCurrency(bonusAmount) : null;
   const balanceDisplay = resolvePlayerTimelineBalanceDisplay(item);
-  const detailLabel =
-    item.kind === 'game_activity'
-      ? item.game || item.game_code
-      : formatPaymentMethod(item.payment_method || '');
+  const detailLabel = formatPlayerTimelineDetailLabel(item);
 
   return (
     <button
@@ -534,12 +528,14 @@ const TimelineMobileCard = memo(function TimelineMobileCard({ item, onView }: Ti
         <div className="shrink-0 self-center text-right">
           {showAmount && (
             <>
-              <p className={`text-sm font-bold tabular-nums ${amountColor}`}>
-                {formatCurrency(item.amount ?? '0')}
+              <p
+                className={`text-sm font-bold ${amountDisplay.showAsCurrency ? 'tabular-nums' : ''} ${amountColor}`}
+              >
+                {amountDisplay.primaryText}
               </p>
-              {formattedBonus && (
+              {amountDisplay.secondaryText && (
                 <p className={`mt-0.5 text-xs font-semibold tabular-nums ${amountColor}`}>
-                  +{formattedBonus} bonus
+                  {amountDisplay.secondaryText}
                 </p>
               )}
             </>
@@ -658,7 +654,7 @@ export function PlayerTimelineSection({
   );
 
   const handleApplyFilters = useCallback(() => {
-    setAppliedDateFilters(dateFilters);
+    setAppliedDateFilters(sanitizeDateFilters(dateFilters));
     setCurrentPage(1);
   }, [dateFilters]);
 
@@ -756,10 +752,19 @@ export function PlayerTimelineSection({
   }, [selectedItem]);
 
   const hasActiveDateFilters =
+    appliedDateFilters.date_preset.trim() !== '' ||
     appliedDateFilters.date_from.trim() !== '' ||
     appliedDateFilters.date_to.trim() !== '';
 
-  const appliedRangeLabel = formatDateRangeLabel(appliedDateFilters);
+  const appliedRangeLabel = useMemo(() => {
+    if (appliedDateFilters.date_preset && appliedDateFilters.date_preset !== 'custom') {
+      const preset = LIST_DATE_PRESET_OPTIONS.find(
+        (o) => o.value === appliedDateFilters.date_preset,
+      );
+      if (preset?.label) return preset.label;
+    }
+    return formatDateRangeLabel(appliedDateFilters);
+  }, [appliedDateFilters]);
   const pageStart = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const pageEnd = Math.min(currentPage * PAGE_SIZE, totalCount);
 
@@ -849,7 +854,7 @@ export function PlayerTimelineSection({
                 <TableRow className="bg-gray-50/90 hover:bg-gray-50/90 dark:bg-gray-800/60 dark:hover:bg-gray-800/60">
                   <TableHead className="w-[140px] font-semibold">Type</TableHead>
                   <TableHead className="font-semibold">Category</TableHead>
-                  <TableHead className="font-semibold">Game / Payment</TableHead>
+                  <TableHead className="font-semibold">Details</TableHead>
                   <TableHead className="font-semibold">Amount</TableHead>
                   <TableHead className="font-semibold">Balance</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
