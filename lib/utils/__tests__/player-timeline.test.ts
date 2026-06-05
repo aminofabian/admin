@@ -129,6 +129,36 @@ describe('player-timeline roulette entries', () => {
     expect(formatPlayerTimelineDetailLabel(item)).toBe('Prize wheel · Slot 2');
   });
 
+  it('shows provider in details instead of payment method for card purchases', () => {
+    const item = mapPlayerTimelineResult({
+      id: '71',
+      type: 'purchase',
+      status: 'completed',
+      payment_method: 'card',
+      payment_details: {
+        provider: 'binpay',
+        payment_method: 'card',
+        purchase_category: 'card',
+      },
+      created_at: '2026-06-01T17:42:08Z',
+    });
+
+    expect(item.provider).toBe('binpay');
+    expect(formatPlayerTimelineDetailLabel(item)).toBe('Binpay');
+  });
+
+  it('falls back to payment method when provider is missing', () => {
+    const item = mapPlayerTimelineResult({
+      id: '72',
+      type: 'purchase',
+      status: 'completed',
+      payment_method: 'chime',
+      created_at: '2026-06-01T17:42:08Z',
+    });
+
+    expect(formatPlayerTimelineDetailLabel(item)).toBe('Chime');
+  });
+
   it('labels spin usage as deduct', () => {
     const item = mapPlayerTimelineResult({
       id: '75',

@@ -1,5 +1,9 @@
 import type { Transaction, TransactionQueue } from '@/types';
-import { formatCurrency, formatPaymentMethod } from '@/lib/utils/formatters';
+import {
+  formatCurrency,
+  formatPaymentMethod,
+  getProviderDisplayName,
+} from '@/lib/utils/formatters';
 import { getTransactionKind } from '@/lib/utils/transaction-display';
 
 const GAME_ACTIVITY_TIMELINE_TYPES = new Set([
@@ -180,6 +184,22 @@ function normalizeAmount(value: unknown): string {
   return '0';
 }
 
+function resolveProviderFromRaw(raw: Record<string, unknown>): string | undefined {
+  if (typeof raw.provider === 'string' && raw.provider.trim()) {
+    return raw.provider.trim();
+  }
+
+  const paymentDetails = raw.payment_details;
+  if (paymentDetails && typeof paymentDetails === 'object' && paymentDetails !== null) {
+    const nestedProvider = (paymentDetails as Record<string, unknown>).provider;
+    if (typeof nestedProvider === 'string' && nestedProvider.trim()) {
+      return nestedProvider.trim();
+    }
+  }
+
+  return undefined;
+}
+
 export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTimelineItem {
   const type = String(raw.type ?? raw.txn_type ?? '').trim();
   const kind: PlayerTimelineKind = isPlayerTimelineGameActivity(type)
@@ -233,7 +253,7 @@ export function mapPlayerTimelineResult(raw: Record<string, unknown>): PlayerTim
     payment_method:
       typeof raw.payment_method === 'string' ? raw.payment_method : undefined,
     operator: typeof raw.operator === 'string' ? raw.operator : undefined,
-    provider: typeof raw.provider === 'string' ? raw.provider : undefined,
+    provider: resolveProviderFromRaw(raw),
     reason: typeof raw.reason === 'string' ? raw.reason : undefined,
     reason_display:
       typeof raw.reason_display === 'string' ? raw.reason_display : undefined,
@@ -424,6 +444,9 @@ export function formatPlayerTimelineDetailLabel(item: PlayerTimelineItem): strin
 
     return 'Prize wheel';
   }
+
+  const providerDisplay = getProviderDisplayName(item.provider, item.payment_method);
+  if (providerDisplay !== '—') return providerDisplay;
 
   const method = item.payment_method?.trim();
   return method ? formatPaymentMethod(method) : '—';
