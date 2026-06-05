@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ReactElement } from 'react';
+import { createPortal } from 'react-dom';
+import type { ReactElement, RefObject } from 'react';
 
 interface SelectOption {
   value: string;
@@ -19,6 +20,70 @@ interface SelectProps {
   className?: string;
 }
 
+interface MenuPosition {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+}
+
+function useSelectMenuPosition(
+  isOpen: boolean,
+  triggerRef: RefObject<HTMLButtonElement | null>,
+  menuRef: RefObject<HTMLDivElement | null>,
+) {
+  const [position, setPosition] = useState<MenuPosition | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const menuHeight = menuRef.current?.getBoundingClientRect().height ?? 240;
+      const gap = 4;
+      const viewportPadding = 8;
+      const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+      const spaceAbove = rect.top - viewportPadding;
+      const openAbove = spaceBelow < Math.min(menuHeight, 240) && spaceAbove > spaceBelow;
+
+      const maxHeight = openAbove
+        ? Math.max(120, spaceAbove - gap)
+        : Math.max(120, spaceBelow - gap);
+
+      const top = openAbove
+        ? Math.max(viewportPadding, rect.top - Math.min(menuHeight, maxHeight) - gap)
+        : rect.bottom + gap;
+
+      setPosition({
+        top,
+        left: rect.left,
+        width: rect.width,
+        maxHeight,
+      });
+    };
+
+    updatePosition();
+    const frameId = requestAnimationFrame(updatePosition);
+
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen, triggerRef, menuRef]);
+
+  return position;
+}
+
 export function Select({
   value,
   onChange,
@@ -29,8 +94,9 @@ export function Select({
   className = '',
 }: SelectProps): ReactElement {
   const [isOpen, setIsOpen] = useState(false);
-  const selectRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const position = useSelectMenuPosition(isOpen, buttonRef, menuRef);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -51,17 +117,20 @@ export function Select({
     [onChange, options],
   );
 
-  // Close dropdown when clicking outside
+  const closeMenu = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
-        selectRef.current &&
-        !selectRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
+        menuRef.current?.contains(target) ||
+        buttonRef.current?.contains(target)
       ) {
-        setIsOpen(false);
+        return;
       }
+      closeMenu();
     };
 
     if (isOpen) {
@@ -71,13 +140,12 @@ export function Select({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, closeMenu]);
 
-  // Close dropdown on Escape key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
-        setIsOpen(false);
+        closeMenu();
       }
     };
 
@@ -88,11 +156,77 @@ export function Select({
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen]);
+  }, [isOpen, closeMenu]);
 
   const buttonClasses = `w-full appearance-none px-3 py-2 pr-9 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-950 text-gray-900 dark:text-slate-100 text-sm shadow-sm transition-all duration-150 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-500/30 ${
+    isOpen ? 'border-blue-500 dark:border-blue-500 ring-2 ring-blue-500/20 dark:ring-blue-500/30' : ''
+  } ${
     disabled || isLoading ? 'opacity-75 cursor-not-allowed' : 'cursor-pointer'
   } ${className}`;
+
+  const menu =
+    isOpen && !disabled && !isLoading && position ? (
+      <div
+        ref={menuRef}
+        className="fixed overflow-auto rounded-lg border border-gray-300 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:border-gray-700 dark:bg-slate-950"
+        style={{
+          zIndex: 9999,
+          top: position.top,
+          left: position.left,
+          width: position.width,
+          maxHeight: position.maxHeight,
+        }}
+        role="listbox"
+      >
+        {options.length === 0 ? (
+          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+            No options available
+          </div>
+        ) : (
+          options.map((option) => {
+            const isSelected = option.value === value;
+            const isOptionDisabled = option.disabled;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => handleSelect(option.value)}
+                disabled={isOptionDisabled}
+                className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                  isSelected
+                    ? 'bg-blue-50 font-medium text-blue-900 dark:bg-blue-900/30 dark:text-blue-100'
+                    : 'text-gray-900 hover:bg-gray-50 dark:text-slate-100 dark:hover:bg-slate-900'
+                } ${
+                  isOptionDisabled
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'cursor-pointer'
+                }`}
+                role="option"
+                aria-selected={isSelected}
+              >
+                <div className="flex items-center justify-between">
+                  <span>{option.label}</span>
+                  {isSelected && (
+                    <svg
+                      className="h-4 w-4 text-blue-600 dark:text-blue-400"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+    ) : null;
 
   return (
     <div className="relative">
@@ -105,7 +239,7 @@ export function Select({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <span className="block text-left truncate">
+        <span className="block truncate text-left">
           {isLoading ? (
             <span className="text-gray-500 dark:text-gray-400">Loading...</span>
           ) : selectedOption ? (
@@ -136,56 +270,7 @@ export function Select({
         </div>
       </button>
 
-      {isOpen && !disabled && !isLoading && (
-        <div
-          ref={selectRef}
-          className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-950 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-          role="listbox"
-        >
-          {options.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">No options available</div>
-          ) : (
-            options.map((option) => {
-              const isSelected = option.value === value;
-              const isDisabled = option.disabled;
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleSelect(option.value)}
-                  disabled={isDisabled}
-                  className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                    isSelected
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100 font-medium'
-                      : 'text-gray-900 dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-900'
-                  } ${
-                    isDisabled
-                      ? 'opacity-50 cursor-not-allowed'
-                      : 'cursor-pointer'
-                  }`}
-                  role="option"
-                  aria-selected={isSelected}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>{option.label}</span>
-                    {isSelected && (
-                      <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
-      )}
+      {typeof window !== 'undefined' && menu ? createPortal(menu, document.body) : null}
     </div>
   );
 }
-

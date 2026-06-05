@@ -146,6 +146,14 @@ function createDefaultTimelineDateFilters(): TimelineDateFilters {
 
 const DEFAULT_DATE_FILTERS: TimelineDateFilters = createDefaultTimelineDateFilters();
 
+const QUICK_PERIOD_PRESETS = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'this_month', label: 'This month' },
+  { value: 'last_30_days', label: 'Last 30 days' },
+  { value: '', label: 'All time' },
+] as const;
+
 const ALL_TIME_DATE_FILTERS: TimelineDateFilters = {
   date_preset: '',
   date_from: '',
@@ -288,6 +296,8 @@ interface TimelineFilterPanelProps {
   dateFilters: TimelineDateFilters;
   filtersOpen: boolean;
   hasActiveDateFilters: boolean;
+  hasPendingFilters: boolean;
+  appliedRangeLabel: string | null;
   onToggle: () => void;
   onDateFilterChange: (key: keyof TimelineDateFilters, value: string) => void;
   onApply: () => void;
@@ -298,24 +308,41 @@ function TimelineFilterPanel({
   dateFilters,
   filtersOpen,
   hasActiveDateFilters,
+  hasPendingFilters,
+  appliedRangeLabel,
   onToggle,
   onDateFilterChange,
   onApply,
   onClear,
 }: TimelineFilterPanelProps) {
+  const showFooter =
+    hasPendingFilters || hasActiveDateFilters || dateFilters.date_preset === 'custom';
+
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3 dark:border-slate-700/80">
-        <h2 className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
-          {FILTER_ICON}
-          Date filters
-        </h2>
+    <section className="relative z-10 isolate rounded-xl border border-border bg-card shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 dark:border-slate-700/80">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h2 className="flex items-center gap-2.5 text-sm font-semibold text-foreground">
+            {FILTER_ICON}
+            Date filters
+          </h2>
+          {hasActiveDateFilters && appliedRangeLabel && (
+            <span className="inline-flex items-center rounded-full border border-indigo-200/80 bg-indigo-50/90 px-2.5 py-0.5 text-[11px] font-medium text-indigo-800 dark:border-indigo-800/50 dark:bg-indigo-950/40 dark:text-indigo-200">
+              {appliedRangeLabel}
+            </span>
+          )}
+          {hasPendingFilters && (
+            <span className="inline-flex items-center rounded-full border border-amber-200/80 bg-amber-50/90 px-2.5 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-200">
+              Unsaved changes
+            </span>
+          )}
+        </div>
         <Button
           variant="ghost"
           size="sm"
           type="button"
           onClick={onToggle}
-          className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground dark:hover:bg-slate-800"
+          className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground dark:hover:bg-slate-800"
           aria-expanded={filtersOpen}
         >
           {filtersOpen ? (
@@ -341,7 +368,34 @@ function TimelineFilterPanel({
           <section>
             <h3 className={sectionHeadingClasses}>
               <span className="h-4 w-1 rounded-full bg-primary/60" aria-hidden />
-              Period
+              Quick period
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {QUICK_PERIOD_PRESETS.map((preset) => {
+                const isActive = dateFilters.date_preset === preset.value;
+                return (
+                  <button
+                    key={preset.value || 'all-time'}
+                    type="button"
+                    onClick={() => onDateFilterChange('date_preset', preset.value)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'border-indigo-300 bg-indigo-100 text-indigo-900 shadow-sm dark:border-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-100'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-200 hover:bg-indigo-50/60 dark:border-gray-700 dark:bg-slate-950 dark:text-gray-300 dark:hover:border-indigo-800 dark:hover:bg-indigo-950/30'
+                    }`}
+                    aria-pressed={isActive}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <h3 className={sectionHeadingClasses}>
+              <span className="h-4 w-1 rounded-full bg-primary/60" aria-hidden />
+              All periods
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="sm:col-span-2 lg:col-span-4">
@@ -370,19 +424,25 @@ function TimelineFilterPanel({
             </div>
           </section>
 
-          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4 dark:border-slate-700/80">
-            <Button variant="primary" size="sm" type="button" onClick={onApply}>
-              Apply filters
-            </Button>
-            {hasActiveDateFilters && (
-              <Button variant="secondary" size="sm" type="button" onClick={onClear}>
-                Clear dates
-              </Button>
-            )}
-            <p className="ml-auto hidden text-xs text-muted-foreground sm:block dark:text-slate-500">
-              Filters apply to both transactions and game activities
-            </p>
-          </div>
+          {showFooter && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4 dark:border-slate-700/80">
+              {hasPendingFilters && (
+                <Button variant="primary" size="sm" type="button" onClick={onApply}>
+                  Apply filters
+                </Button>
+              )}
+              {hasActiveDateFilters && (
+                <Button variant="secondary" size="sm" type="button" onClick={onClear}>
+                  Clear dates
+                </Button>
+              )}
+              <p className="ml-auto hidden text-xs text-muted-foreground sm:block dark:text-slate-500">
+                {dateFilters.date_preset === 'custom'
+                  ? 'Pick a custom range, then apply'
+                  : 'Preset changes apply immediately'}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </section>
@@ -658,11 +718,14 @@ export function PlayerTimelineSection({
 
   const handleDateFilterChange = useCallback(
     (key: keyof TimelineDateFilters, value: string) => {
-      setDateFilters((prev) =>
-        applyListDateFilterChange(prev, key, value) as TimelineDateFilters,
-      );
+      const next = applyListDateFilterChange(dateFilters, key, value) as TimelineDateFilters;
+      setDateFilters(next);
+      if (key === 'date_preset' && value !== 'custom') {
+        setAppliedDateFilters(sanitizeDateFilters(next));
+        setCurrentPage(1);
+      }
     },
-    [],
+    [dateFilters],
   );
 
   const handleApplyFilters = useCallback(() => {
@@ -777,6 +840,16 @@ export function PlayerTimelineSection({
     }
     return formatDateRangeLabel(appliedDateFilters);
   }, [appliedDateFilters]);
+
+  const hasPendingFilters = useMemo(() => {
+    const draft = sanitizeDateFilters(dateFilters);
+    const applied = sanitizeDateFilters(appliedDateFilters);
+    return (
+      draft.date_preset !== applied.date_preset ||
+      draft.date_from !== applied.date_from ||
+      draft.date_to !== applied.date_to
+    );
+  }, [dateFilters, appliedDateFilters]);
   const pageStart = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const pageEnd = Math.min(currentPage * PAGE_SIZE, totalCount);
 
@@ -815,6 +888,8 @@ export function PlayerTimelineSection({
         dateFilters={dateFilters}
         filtersOpen={filtersOpen}
         hasActiveDateFilters={hasActiveDateFilters}
+        hasPendingFilters={hasPendingFilters}
+        appliedRangeLabel={appliedRangeLabel}
         onToggle={() => setFiltersOpen((o) => !o)}
         onDateFilterChange={handleDateFilterChange}
         onApply={handleApplyFilters}
