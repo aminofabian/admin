@@ -8,6 +8,7 @@ import type { ChatUser } from '@/types';
 import {
   isAutoMessage,
   isPurchaseNotification,
+  isPrizeWheelMessage,
   isKycVerificationMessage,
   formatTransactionMessage,
   prepareChatMessageHtmlForDisplay,
@@ -130,6 +131,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
             const mockMessage = { text: player.lastMessage };
             const isAuto = isAutoMessage(mockMessage);
             const isPurchase = isPurchaseNotification(mockMessage);
+            const isPrizeWheel = isPrizeWheelMessage(mockMessage);
             const isKyc = isKycVerificationMessage(mockMessage);
 
             if (isKyc) {
@@ -142,7 +144,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
                 </p>
               );
             }
-            if (isAuto || isPurchase) {
+            if (isAuto || isPurchase || isPrizeWheel) {
               // Format the transaction message
               const formatted = formatTransactionMessage(mockMessage as { text: string; type?: string });
 

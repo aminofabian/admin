@@ -44,6 +44,7 @@ import { MessageBubble } from "./components/message-bubble";
 import {
   isAutoMessage,
   isPurchaseNotification,
+  isPrizeWheelMessage,
   isKycVerificationMessage,
   parseTransactionMessage,
 } from "./utils/message-helpers";
@@ -3323,8 +3324,9 @@ export function ChatComponent() {
                         idx > 0 ? dateMessages[idx - 1] : null;
                       const isAuto = isAutoMessage(message);
                       const isPurchase = isPurchaseNotification(message);
+                      const isPrizeWheel = isPrizeWheelMessage(message);
                       const isKyc = isKycVerificationMessage(message);
-                      const isSystemMessage = isAuto || isPurchase || isKyc;
+                      const isSystemMessage = isAuto || isPurchase || isPrizeWheel || isKyc;
                       const showAvatar =
                         !isSystemMessage &&
                         message.sender === "player" &&
@@ -3346,6 +3348,7 @@ export function ChatComponent() {
                         prevMessage &&
                         !isAutoMessage(prevMessage) &&
                         !isPurchaseNotification(prevMessage) &&
+                        !isPrizeWheelMessage(prevMessage) &&
                         !isKycVerificationMessage(prevMessage) &&
                         prevMessage.sender === message.sender;
                       const isAdmin =

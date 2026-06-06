@@ -11,12 +11,14 @@ import {
   MESSAGE_HTML_CONTENT_CLASS,
   isAutoMessage,
   isPurchaseNotification,
+  isPrizeWheelMessage,
   isKycVerificationMessage,
   parseKycMessage,
   formatTransactionMessage,
   getTransactionCardClass,
   parseTransactionMessage,
   prepareChatMessageHtmlForDisplay,
+  parsePrizeWheelMessage,
   transactionTypeToVisualKind,
 } from '../utils/message-helpers';
 
@@ -45,9 +47,13 @@ export const MessageBubble = memo(function MessageBubble({
   const isKyc = isKycVerificationMessage(message);
   const isAuto = isAutoMessage(message);
   const isPurchase = isPurchaseNotification(message);
+  const isPrizeWheel = isPrizeWheelMessage(message);
 
   if (isKyc) {
     return <KycVerificationMessage message={message} />;
+  }
+  if (isPrizeWheel) {
+    return <PrizeWheelMessage message={message} />;
   }
   if (isAuto || isPurchase) {
     return (
@@ -113,6 +119,131 @@ export const MessageBubble = memo(function MessageBubble({
   );
 });
 
+function PrizeWheelIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.25" opacity="0.35" />
+      <path d="M12 2.5 A9.5 9.5 0 0 1 21.5 12 L12 12 Z" fill="currentColor" opacity="0.95" />
+      <path d="M12 12 L21.5 12 A9.5 9.5 0 0 1 12 21.5 Z" fill="currentColor" opacity="0.7" />
+      <path d="M12 21.5 A9.5 9.5 0 0 1 2.5 12 L12 12 Z" fill="currentColor" opacity="0.5" />
+      <path d="M12 12 L2.5 12 A9.5 9.5 0 0 1 12 2.5 Z" fill="currentColor" opacity="0.82" />
+      <circle cx="12" cy="12" r="2.25" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PrizeWheelSparkle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 8 8" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M4 0L4.6 3.4L8 4L4.6 4.6L4 8L3.4 4.6L0 4L3.4 3.4L4 0Z" />
+    </svg>
+  );
+}
+
+function PrizeWheelMessage({ message }: { message: ChatMessage }) {
+  const parsed = parsePrizeWheelMessage(message.text);
+
+  return (
+    <div
+      className="flex w-full min-w-0 justify-center my-4"
+      data-chat-message-kind="prize-wheel"
+      data-prize-wheel-variant={parsed.kind}
+    >
+      <div className="relative min-w-0 w-full max-w-[85%] md:max-w-[70%]">
+        <div
+          className={`pointer-events-none absolute -inset-1 rounded-[1.35rem] bg-gradient-to-r opacity-90 blur-lg ${parsed.glowClass}`}
+          aria-hidden="true"
+        />
+
+        <div
+          className={`relative overflow-hidden rounded-[1.25rem] border-2 px-4 py-4 shadow-lg backdrop-blur-sm ${parsed.cardClass}`}
+        >
+          <div
+            className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-30 blur-2xl"
+            style={{
+              background:
+                "conic-gradient(from 0deg, #f59e0b, #a855f7, #0ea5e9, #f59e0b)",
+            }}
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute -bottom-10 -left-8 h-20 w-20 rounded-full opacity-25 blur-2xl"
+            style={{
+              background:
+                "conic-gradient(from 120deg, #fbbf24, #c084fc, #38bdf8, #fbbf24)",
+            }}
+            aria-hidden="true"
+          />
+
+          <PrizeWheelSparkle className={`absolute right-4 top-3 h-3 w-3 opacity-70 ${parsed.iconClass}`} />
+          <PrizeWheelSparkle className={`absolute left-4 bottom-10 h-2.5 w-2.5 opacity-50 ${parsed.iconClass}`} />
+          <PrizeWheelSparkle className={`absolute right-10 bottom-4 h-2 w-2 opacity-40 ${parsed.iconClass}`} />
+
+          <div className="mb-3 flex items-center gap-2">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-current/20 to-transparent" />
+          </div>
+
+          <div className="mb-3 flex items-center justify-center gap-2.5">
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-current/25 bg-background/70 shadow-md ring-2 ring-current/10 ${parsed.iconClass}`}
+            >
+              <PrizeWheelIcon className="h-6 w-6" />
+            </div>
+            <span
+              className={`text-xs font-extrabold uppercase tracking-[0.18em] md:text-sm ${parsed.accentClass}`}
+            >
+              {parsed.title}
+            </span>
+          </div>
+
+          {parsed.spinCount && parsed.kind === 'daily_bonus' && (
+            <div className="mb-2 flex justify-center">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold tabular-nums ${parsed.prizeChipClass}`}
+              >
+                +{parsed.spinCount} spin{parsed.spinCount === '1' ? '' : 's'}
+              </span>
+            </div>
+          )}
+
+          <div
+            className="text-center text-[13px] leading-relaxed break-words [overflow-wrap:anywhere] text-foreground md:text-sm [&_b]:not-italic [&_b]:font-bold"
+            dangerouslySetInnerHTML={{ __html: parsed.bodyHtml }}
+          />
+
+          {parsed.prizeLabel && (
+            <div className="mt-2.5 flex justify-center">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${parsed.prizeChipClass}`}
+              >
+                <PrizeWheelSparkle className="h-2.5 w-2.5 shrink-0 opacity-80" />
+                Prize: {parsed.prizeLabel}
+              </span>
+            </div>
+          )}
+
+          {message.time && (
+            <div className="mt-2.5 flex items-center justify-center gap-1.5">
+              <span className="text-[10px] font-medium text-muted-foreground/80 md:text-xs">
+                {message.time}
+              </span>
+            </div>
+          )}
+
+          <div className="mt-3 flex items-center gap-2">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-current/20 to-transparent" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TransactionMessage({ message, isPurchase }: {
   message: ChatMessage;
   isPurchase: boolean;
@@ -121,6 +252,7 @@ function TransactionMessage({ message, isPurchase }: {
   const isRecharge = details.type === 'recharge';
   const isRedeem = details.type === 'redeem';
   const isCashout = details.type === 'cashout';
+  const isPrizeWheel = details.type === 'prize_wheel';
 
   const formattedMessage = formatTransactionMessage({
     ...message,
@@ -146,7 +278,7 @@ function TransactionMessage({ message, isPurchase }: {
           />
           {message.time && (
             <div className="flex items-center justify-center gap-1.5 mt-1.5">
-              <span className={`text-[10px] md:text-xs font-medium ${isPurchase || isRecharge || isRedeem || isCashout ? 'text-muted-foreground/80' : 'text-muted-foreground/60 italic'}`}>
+              <span className={`text-[10px] md:text-xs font-medium ${isPurchase || isRecharge || isRedeem || isCashout || isPrizeWheel ? 'text-muted-foreground/80' : 'text-muted-foreground/60 italic'}`}>
                 {message.time}
               </span>
             </div>

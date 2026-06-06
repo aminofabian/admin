@@ -54,11 +54,24 @@ export const linkifyText = (text: string): string => {
   });
 };
 
-// Strip HTML tags for preview text
+// Strip HTML tags for preview text (SSR-safe fallback when document is unavailable)
 export const stripHtml = (html: string): string => {
-  const tmp = document.createElement("DIV");
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || "";
+  if (!html) return "";
+  if (typeof document !== "undefined") {
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
 };
 
 /**
@@ -145,6 +158,205 @@ export const formatMessageDate = (dateString: string): string => {
     year: sameYear ? undefined : "numeric",
   });
 };
+
+/** Prize wheel / roulette auto chat (daily bonus, spin wins, balance prizes). */
+export const isPrizeWheelMessage = (message: {
+  text: string;
+  type?: string;
+}): boolean => {
+  if (!message.text) return false;
+
+  const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
+  const textWithHtml = message.text.toLowerCase();
+
+  const prizeWheelPatterns = [
+    /won from (?:the\s+)?(?:prize\s*wheel|roulette(?:\s+wheel)?)/i,
+    /spin(?:s)? added as daily bonus/i,
+    /spin(?:s)? (?:added|deducted) (?:to|from) (?:your )?(?:prize\s*wheel|roulette)/i,
+    /(?:prize\s*wheel|roulette) (?:balance|spin)/i,
+    /spin(?:s)? won from (?:the\s+)?(?:prize\s*wheel|roulette)/i,
+    /(?:prize|reward):\s*(?:\$\d|(?:\d+\s*)?respin|try\s*again|free\s*spin)/i,
+    /\d+\s*spin(?:s)?\s+won\b/i,
+    /try\s*again.*(?:spin|wheel|roulette)/i,
+    /free\s*respin/i,
+  ];
+
+  const messageTypeLower = message.type?.toLowerCase() ?? "";
+  if (
+    messageTypeLower === "roulette" ||
+    messageTypeLower.includes("roulette") ||
+    messageTypeLower.includes("prize_wheel") ||
+    messageTypeLower === "spin_reward" ||
+    messageTypeLower === "prize_wheel_notification"
+  ) {
+    return true;
+  }
+
+  return prizeWheelPatterns.some(
+    (pattern) => pattern.test(textWithHtml) || pattern.test(textWithoutHtml),
+  );
+};
+
+export type PrizeWheelMessageKind =
+  | "daily_bonus"
+  | "cash_win"
+  | "respin"
+  | "spin_adjustment"
+  | "generic";
+
+export interface PrizeWheelMessageParsed {
+  kind: PrizeWheelMessageKind;
+  title: string;
+  spinCount: string | null;
+  amount: string | null;
+  balance: string | null;
+  prizeLabel: string | null;
+  bodyHtml: string;
+  cardClass: string;
+  glowClass: string;
+  accentClass: string;
+  iconClass: string;
+  prizeChipClass: string;
+}
+
+const PRIZE_WHEEL_THEMES: Record<
+  PrizeWheelMessageKind,
+  Omit<
+    PrizeWheelMessageParsed,
+    | "spinCount"
+    | "amount"
+    | "balance"
+    | "prizeLabel"
+    | "bodyHtml"
+    | "kind"
+  >
+> = {
+  daily_bonus: {
+    title: "Daily Bonus",
+    cardClass:
+      "border-sky-500/35 bg-gradient-to-br from-sky-500/12 via-cyan-500/8 to-blue-500/10 dark:from-sky-950/50 dark:via-cyan-950/35 dark:to-blue-950/40",
+    glowClass: "from-sky-400/25 via-cyan-300/20 to-blue-400/25",
+    accentClass: "text-sky-600 dark:text-sky-400",
+    iconClass: "text-sky-500 dark:text-sky-400",
+    prizeChipClass:
+      "bg-sky-500/15 border-sky-500/30 text-sky-700 dark:text-sky-300",
+  },
+  cash_win: {
+    title: "Prize Won",
+    cardClass:
+      "border-amber-500/35 bg-gradient-to-br from-amber-500/14 via-yellow-500/10 to-orange-500/12 dark:from-amber-950/55 dark:via-yellow-950/40 dark:to-orange-950/45",
+    glowClass: "from-amber-400/30 via-yellow-300/25 to-orange-400/30",
+    accentClass: "text-amber-600 dark:text-amber-400",
+    iconClass: "text-amber-500 dark:text-amber-400",
+    prizeChipClass:
+      "bg-amber-500/18 border-amber-500/35 text-amber-800 dark:text-amber-200",
+  },
+  respin: {
+    title: "Lucky Spin",
+    cardClass:
+      "border-violet-500/35 bg-gradient-to-br from-violet-500/12 via-purple-500/10 to-fuchsia-500/10 dark:from-violet-950/50 dark:via-purple-950/40 dark:to-fuchsia-950/40",
+    glowClass: "from-violet-400/25 via-purple-300/20 to-fuchsia-400/25",
+    accentClass: "text-violet-600 dark:text-violet-400",
+    iconClass: "text-violet-500 dark:text-violet-400",
+    prizeChipClass:
+      "bg-violet-500/15 border-violet-500/30 text-violet-700 dark:text-violet-300",
+  },
+  spin_adjustment: {
+    title: "Spin Balance",
+    cardClass:
+      "border-emerald-500/35 bg-gradient-to-br from-emerald-500/12 via-teal-500/8 to-green-500/10 dark:from-emerald-950/50 dark:via-teal-950/35 dark:to-green-950/40",
+    glowClass: "from-emerald-400/25 via-teal-300/20 to-green-400/25",
+    accentClass: "text-emerald-600 dark:text-emerald-400",
+    iconClass: "text-emerald-500 dark:text-emerald-400",
+    prizeChipClass:
+      "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300",
+  },
+  generic: {
+    title: "Prize Wheel",
+    cardClass:
+      "border-amber-500/35 bg-gradient-to-br from-amber-500/12 via-yellow-500/8 to-orange-500/10 dark:from-amber-950/50 dark:via-yellow-950/35 dark:to-orange-950/40",
+    glowClass: "from-amber-400/25 via-yellow-300/20 to-orange-400/25",
+    accentClass: "text-amber-600 dark:text-amber-400",
+    iconClass: "text-amber-500 dark:text-amber-400",
+    prizeChipClass:
+      "bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-300",
+  },
+};
+
+function inferPrizeWheelKind(plain: string): PrizeWheelMessageKind {
+  const lower = plain.toLowerCase();
+  if (/spin(?:s)? added as daily bonus/.test(lower)) return "daily_bonus";
+  if (
+    (/respin|try\s*again|free\s*spin/i.test(lower) && /prize\s*:/i.test(lower)) ||
+    (/respin|try\s*again/i.test(lower) &&
+      /(?:prize\s*wheel|roulette|spin)/i.test(lower))
+  ) {
+    return "respin";
+  }
+  if (
+    /won from (?:the\s+)?(?:prize\s*wheel|roulette)/i.test(lower) &&
+    /\$/.test(lower)
+  ) {
+    return "cash_win";
+  }
+  if (/won from (?:the\s+)?(?:prize\s*wheel|roulette)/i.test(lower)) {
+    return "respin";
+  }
+  if (/spin(?:s)? (?:added|deducted)/.test(lower)) return "spin_adjustment";
+  return "generic";
+}
+
+/** Structured prize wheel copy for the dedicated chat card UI. */
+export function parsePrizeWheelMessage(text: string): PrizeWheelMessageParsed {
+  const plain = stripHtml(text);
+  const kind = inferPrizeWheelKind(plain);
+  const theme = PRIZE_WHEEL_THEMES[kind];
+
+  const spinCount =
+    plain.match(/(\d+)\s*spins?\s+added as daily bonus/i)?.[1] ??
+    plain.match(
+      /(\d+)\s*spin(?:s)?\s+won from (?:the\s+)?(?:prize\s*wheel|roulette)/i,
+    )?.[1] ??
+    null;
+
+  const amount =
+    plain.match(/\$([\d,]+(?:\.\d+)?)/)?.[1]?.replace(/,/g, "") ?? null;
+
+  const balance =
+    plain.match(/balance:\s*\$?([\d,]+(?:\.\d+)?)/i)?.[1]?.replace(/,/g, "") ??
+    null;
+
+  const prizeMatch = plain.match(/prize:\s*(.+)/i);
+  const prizeLabel =
+    prizeMatch?.[1]?.trim().replace(/\.$/, "") ?? null;
+
+  let bodySource = text;
+  if (prizeLabel) {
+    bodySource = bodySource.replace(
+      /\s*\.?\s*prize:\s*[^.<]+(?:\.|<br\s*\/?>)?/gi,
+      "",
+    );
+  }
+
+  const bodyHtml = formatTransactionMessage({
+    text: bodySource,
+    type: "prize_wheel",
+  })
+    .replace(/\n/g, "<br />")
+    .replace(/<br\s*\/?>/gi, "<br />")
+    .replace(/(<br\s*\/?>\s*)+$/gi, "")
+    .trim();
+
+  return {
+    kind,
+    ...theme,
+    spinCount,
+    amount,
+    balance,
+    prizeLabel,
+    bodyHtml,
+  };
+}
 
 // Check if a message is a purchase notification (should be displayed centered)
 export const isPurchaseNotification = (message: {
@@ -325,8 +537,8 @@ export const isAutoMessage = (message: {
     /manual withdraw/i,
   ];
 
-  // Don't treat purchase messages as auto messages - they have their own handler
-  if (isPurchaseNotification(message)) {
+  // Don't treat purchase / prize wheel messages as auto messages - they have their own handler
+  if (isPurchaseNotification(message) || isPrizeWheelMessage(message)) {
     return false;
   }
 
@@ -375,7 +587,8 @@ export const isAutoMessage = (message: {
   // But ONLY if it's not a purchase notification
   if (
     (message.userId === 0 || message.userId === undefined) &&
-    !isPurchaseNotification(message)
+    !isPurchaseNotification(message) &&
+    !isPrizeWheelMessage(message)
   ) {
     return true;
   }
@@ -399,6 +612,7 @@ interface TransactionDetails {
     | "winning_deducted"
     | "recharge"
     | "redeem"
+    | "prize_wheel"
     | null;
   amount: string | null;
   credits: string | null;
@@ -583,6 +797,17 @@ export const parseTransactionMessage = (
     cleanText.includes("redeemed")
   ) {
     result.type = "redeem";
+  } else if (
+    /won from (?:the\s+)?(?:prize wheel|roulette)/.test(cleanText) ||
+    cleanText.includes("added as daily bonus") ||
+    /(?:prize wheel|roulette) balance/.test(cleanText) ||
+    /spin(?:s)? (?:added|deducted) (?:to|from) (?:your )?(?:prize wheel|roulette)/.test(
+      cleanText,
+    ) ||
+    (/prize\s*:/.test(cleanText) &&
+      /(?:respin|try again|free spin)/.test(cleanText))
+  ) {
+    result.type = "prize_wheel";
   }
   // Rule 2: Handle manual operations or generic balance updates
   else if (
@@ -621,6 +846,7 @@ export type TransactionVisualKind =
   | "withdraw"
   | "recharge"
   | "redeem"
+  | "prize_wheel"
   | "manual";
 
 export function transactionTypeToVisualKind(
@@ -635,6 +861,8 @@ export function transactionTypeToVisualKind(
       return "recharge";
     case "redeem":
       return "redeem";
+    case "prize_wheel":
+      return "prize_wheel";
     default:
       return "manual";
   }
@@ -653,6 +881,8 @@ export function getTransactionTextColorClass(
       return "text-purple-600 dark:text-purple-400";
     case "redeem":
       return "text-orange-600 dark:text-orange-400";
+    case "prize_wheel":
+      return "text-amber-600 dark:text-amber-400";
     default:
       return "text-purple-600 dark:text-purple-400";
   }
@@ -669,6 +899,8 @@ export function getTransactionCardClass(kind: TransactionVisualKind): string {
       return "bg-purple-500/10 border-purple-500/30";
     case "redeem":
       return "bg-orange-500/10 border-orange-500/30";
+    case "prize_wheel":
+      return "bg-amber-500/10 border-amber-500/30";
     default:
       return "bg-purple-500/10 border-purple-500/30";
   }

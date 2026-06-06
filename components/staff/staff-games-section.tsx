@@ -288,6 +288,7 @@ function GamesTable({ games, onCheckBalance }: GamesTableProps) {
             <TableRow>
               <TableHead>Game</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Operation Mode</TableHead>
               <TableHead>Dashboard URL</TableHead>
               <TableHead>Playing URL</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -306,6 +307,15 @@ function GamesTable({ games, onCheckBalance }: GamesTableProps) {
                   <Badge variant={game.game_status ? 'success' : 'danger'}>
                     {game.game_status ? 'Active' : 'Inactive'}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {game.game_operation_mode ? (
+                    <Badge variant="info">
+                      {game.game_operation_mode.charAt(0).toUpperCase() + game.game_operation_mode.slice(1)}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {(() => {
@@ -395,12 +405,19 @@ function GameCard({ game, onCheckBalance }: GameCardProps) {
               {game.title}
             </h3>
           </div>
-          <Badge
-            variant={game.game_status ? 'success' : 'danger'}
-            className="text-[10px] px-2 py-0.5 shrink-0"
-          >
-            {game.game_status ? 'Active' : 'Inactive'}
-          </Badge>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {game.game_operation_mode && (
+              <Badge variant="info" className="text-[10px] px-2 py-0.5">
+                {game.game_operation_mode.charAt(0).toUpperCase() + game.game_operation_mode.slice(1)}
+              </Badge>
+            )}
+            <Badge
+              variant={game.game_status ? 'success' : 'danger'}
+              className="text-[10px] px-2 py-0.5"
+            >
+              {game.game_status ? 'Active' : 'Inactive'}
+            </Badge>
+          </div>
         </div>
       </div>
 

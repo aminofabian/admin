@@ -4,6 +4,7 @@ export interface Game {
   code: string;
   game_category: string;
   game_status: boolean;
+  game_operation_mode?: string;
   dashboard_url?: string;
   playing_url?: string;
   created: string;

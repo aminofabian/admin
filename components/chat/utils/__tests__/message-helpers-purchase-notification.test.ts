@@ -4,6 +4,8 @@ import {
   getTransactionTextColorClass,
   isAutoMessage,
   isPurchaseNotification,
+  isPrizeWheelMessage,
+  parsePrizeWheelMessage,
   parseTransactionMessage,
   transactionTypeToVisualKind,
 } from '../message-helpers';
@@ -60,6 +62,77 @@ describe('isPurchaseNotification', () => {
   });
 });
 
+describe('isPrizeWheelMessage', () => {
+  it('should treat daily bonus spin credits as a centered transaction card', () => {
+    const msg = {
+      text: '3 spins added as daily bonus.',
+      type: 'message' as const,
+      sender: 'admin' as const,
+    };
+    expect(isPrizeWheelMessage(msg)).toBe(true);
+    expect(isPurchaseNotification(msg)).toBe(false);
+    expect(isAutoMessage(msg)).toBe(false);
+  });
+
+  it('should treat prize wheel wins as a centered transaction card', () => {
+    const msg = {
+      text: '<b>$1.00</b> won from prize wheel. Balance: <b>$82.00</b> Prize: <b>$1.00</b>',
+      type: 'message' as const,
+      sender: 'admin' as const,
+    };
+    expect(isPrizeWheelMessage(msg)).toBe(true);
+    expect(parseTransactionMessage(msg.text).type).toBe('prize_wheel');
+  });
+
+  it('should treat respin wins as a centered transaction card', () => {
+    const msg = {
+      text: '1 spin won from prize wheel. Prize: 1 Respin',
+      type: 'message' as const,
+      sender: 'admin' as const,
+    };
+    expect(isPrizeWheelMessage(msg)).toBe(true);
+  });
+});
+
+describe('parsePrizeWheelMessage', () => {
+  it('classifies daily bonus spins with sky theme', () => {
+    const parsed = parsePrizeWheelMessage('3 spins added as daily bonus.');
+    expect(parsed.kind).toBe('daily_bonus');
+    expect(parsed.title).toBe('Daily Bonus');
+    expect(parsed.spinCount).toBe('3');
+    expect(parsed.cardClass).toContain('sky');
+  });
+
+  it('classifies cash wins and extracts prize chip', () => {
+    const parsed = parsePrizeWheelMessage(
+      '<b>$1.00</b> won from prize wheel. Balance: <b>$82.00</b> Prize: <b>$1.00</b>',
+    );
+    expect(parsed.kind).toBe('cash_win');
+    expect(parsed.title).toBe('Prize Won');
+    expect(parsed.prizeLabel).toBe('$1.00');
+    expect(parsed.bodyHtml).not.toMatch(/prize:/i);
+  });
+
+  it('classifies respin wins with violet theme', () => {
+    const parsed = parsePrizeWheelMessage(
+      '1 spin won from prize wheel. Prize: 1 Respin',
+    );
+    expect(parsed.kind).toBe('respin');
+    expect(parsed.title).toBe('Lucky Spin');
+    expect(parsed.prizeLabel).toBe('1 Respin');
+    expect(parsed.cardClass).toContain('violet');
+  });
+
+  it('matches roulette wording from alternate backend copy', () => {
+    expect(
+      isPrizeWheelMessage({
+        text: '$2.00 won from roulette. Balance: $84.00 Prize: $2.00',
+        type: 'message',
+      }),
+    ).toBe(true);
+  });
+});
+
 describe('parseTransactionMessage', () => {
   it('should classify cashout only when copy matches successful cashout', () => {
     const informal = parseTransactionMessage(
@@ -97,5 +170,8 @@ describe('transaction visual colors', () => {
     expect(getTransactionTextColorClass('recharge')).toContain('purple');
     expect(getTransactionTextColorClass('redeem')).toContain('orange');
     expect(getTransactionCardClass('redeem')).toContain('orange');
+    expect(transactionTypeToVisualKind('prize_wheel')).toBe('prize_wheel');
+    expect(getTransactionTextColorClass('prize_wheel')).toContain('amber');
+    expect(getTransactionCardClass('prize_wheel')).toContain('amber');
   });
 });
