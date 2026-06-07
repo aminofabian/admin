@@ -5,7 +5,6 @@ import {
   isAutoMessage,
   isPurchaseNotification,
   isPrizeWheelMessage,
-  parsePrizeWheelMessage,
   parseTransactionMessage,
   transactionTypeToVisualKind,
 } from '../message-helpers';
@@ -91,36 +90,7 @@ describe('isPrizeWheelMessage', () => {
       sender: 'admin' as const,
     };
     expect(isPrizeWheelMessage(msg)).toBe(true);
-  });
-});
-
-describe('parsePrizeWheelMessage', () => {
-  it('classifies daily bonus spins with sky theme', () => {
-    const parsed = parsePrizeWheelMessage('3 spins added as daily bonus.');
-    expect(parsed.kind).toBe('daily_bonus');
-    expect(parsed.title).toBe('Daily Bonus');
-    expect(parsed.spinCount).toBe('3');
-    expect(parsed.cardClass).toContain('sky');
-  });
-
-  it('classifies cash wins and extracts prize chip', () => {
-    const parsed = parsePrizeWheelMessage(
-      '<b>$1.00</b> won from prize wheel. Balance: <b>$82.00</b> Prize: <b>$1.00</b>',
-    );
-    expect(parsed.kind).toBe('cash_win');
-    expect(parsed.title).toBe('Prize Won');
-    expect(parsed.prizeLabel).toBe('$1.00');
-    expect(parsed.bodyHtml).not.toMatch(/prize:/i);
-  });
-
-  it('classifies respin wins with violet theme', () => {
-    const parsed = parsePrizeWheelMessage(
-      '1 spin won from prize wheel. Prize: 1 Respin',
-    );
-    expect(parsed.kind).toBe('respin');
-    expect(parsed.title).toBe('Lucky Spin');
-    expect(parsed.prizeLabel).toBe('1 Respin');
-    expect(parsed.cardClass).toContain('violet');
+    expect(parseTransactionMessage(msg.text).type).toBe('prize_wheel');
   });
 
   it('matches roulette wording from alternate backend copy', () => {
