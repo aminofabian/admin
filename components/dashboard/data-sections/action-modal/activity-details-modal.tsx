@@ -3,7 +3,12 @@
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  isNonMonetaryGameActivityType,
+  showsGameCreditsBalanceForActivityType,
+} from '@/lib/utils/formatters';
 import type { TransactionQueue } from '@/types';
 import { playersApi } from '@/lib/api';
 import {
@@ -183,12 +188,18 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
     navigation != null && navigation.total > 1 && navigation.currentPosition >= 1 && navigation.currentPosition <= navigation.total;
 
   const handleOpenChat = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/chat?playerId=${playerId}`);
+      onClose();
+      return;
+    }
     if (activity.user_username) {
-      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`;
-      router.push(chatUrl);
+      router.push(
+        `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`,
+      );
       onClose();
     }
-  }, [router, activity.user_username, onClose]);
+  }, [router, playerId, activity.user_username, onClose]);
 
   const handleGoToPlayerDetails = useCallback(() => {
     if (playerId) {
@@ -305,8 +316,14 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
             </div>
           </div>
 
-          {/* Financial Information */}
-          <div className="space-y-3">
+          {/* Financial Information (hidden on small screens for add-user / password-reset) */}
+          <div
+            className={
+              isNonMonetaryGameActivityType(activity.type)
+                ? 'space-y-3 max-sm:hidden'
+                : 'space-y-3'
+            }
+          >
             {/* Amount */}
             <DetailsAmountBox
               amount={formattedAmount}
@@ -314,8 +331,8 @@ export const ActivityDetailsModal = memo(function ActivityDetailsModal({
               variant={amountVariant}
             />
 
-            {/* Balance Information */}
-            {newCreditsBalance && (
+            {/* Balance Information (recharge / redeem only) */}
+            {showsGameCreditsBalanceForActivityType(activity.type) && newCreditsBalance && (
               <DetailsRow>
                 <DetailsHighlightBox
                   label="Balance"

@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button, Input } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatters';
 import {
@@ -79,6 +80,12 @@ export function EditBalanceDrawer({
   isUpdating,
   onPrimaryAction,
 }: EditBalanceDrawerProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const meta = useMemo(
     () => ADJUSTMENT_OPTIONS.find((o) => o.kind === adjustmentKind) ?? ADJUSTMENT_OPTIONS[0],
     [adjustmentKind],
@@ -106,35 +113,58 @@ export function EditBalanceDrawer({
     return `Deduct $${balanceValue}`;
   }, [balanceValue, meta.direction, amountBlocked]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-[110] overflow-hidden">
+  const drawer = (
+    <div
+      className="fixed inset-0 z-[120] overflow-hidden max-lg:top-16 max-lg:bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="manual-adjustment-title"
+    >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm dark:bg-black/70"
         onClick={() => !isUpdating && onClose()}
         aria-hidden="true"
       />
 
-      <div className="fixed inset-y-0 right-0 z-[110] flex w-full max-w-[400px] flex-col bg-white shadow-xl dark:bg-gray-900 dark:shadow-black/40">
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Manual adjustment</h2>
+      <div
+        className="absolute inset-0 flex w-full flex-col bg-white shadow-xl dark:bg-gray-900 dark:shadow-black/40 lg:left-auto lg:right-0 lg:max-w-[400px] lg:border-l lg:border-gray-200 dark:lg:border-gray-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="sticky top-0 z-10 flex shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-4 py-4 dark:border-gray-800 dark:bg-gray-900 sm:px-5">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isUpdating}
+              aria-label="Close manual adjustment"
+              className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800 lg:hidden"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div className="min-w-0 flex-1">
+              <h2 id="manual-adjustment-title" className="truncate text-lg font-semibold text-gray-900 dark:text-gray-50">
+                Manual adjustment
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="hidden shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 dark:hover:bg-gray-800 dark:hover:text-gray-300 lg:block"
+              disabled={isUpdating}
+              aria-label="Close"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300 disabled:opacity-50"
-            disabled={isUpdating}
-            aria-label="Close"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5 pb-44">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
           <div className="mb-5 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-800/40">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Player balances
@@ -304,7 +334,7 @@ export function EditBalanceDrawer({
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 px-5 py-4 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95">
+          <div className="shrink-0 border-t border-gray-200 bg-white px-4 py-4 dark:border-gray-800 dark:bg-gray-900 sm:px-5">
           {!amountBlocked && (
             <p className="mb-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
               {adjustmentKind === 'freeplay' &&
@@ -337,7 +367,10 @@ export function EditBalanceDrawer({
             </Button>
           </div>
         </div>
+        </div>
       </div>
     </div>
   );
+
+  return createPortal(drawer, document.body);
 }

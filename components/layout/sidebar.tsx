@@ -184,6 +184,14 @@ const GameSettingsIcon = () => (
   </svg>
 );
 
+const RouletteSettingsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9" strokeWidth={2} />
+    <path strokeLinecap="round" strokeWidth={2} d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+    <circle cx="12" cy="12" r="3" strokeWidth={2} />
+  </svg>
+);
+
 const HistoryTransactionIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -273,6 +281,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
     submenu: [
       { name: 'Transactions', href: '/dashboard/history/transactions', icon: <HistoryTransactionIcon /> },
       { name: 'Game Activities', href: '/dashboard/history/game-activities', icon: <HistoryGameActivityIcon /> },
+      { name: 'Prize Wheel', href: '/dashboard/history/roulette-rewards', icon: <HistoryGameActivityIcon /> },
     ],
   },
   // Admin/Other roles menu items
@@ -324,6 +333,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
     submenu: [
       { name: 'Transactions', href: '/dashboard/history/transactions', icon: <HistoryTransactionIcon /> },
       { name: 'Game Activities', href: '/dashboard/history/game-activities', icon: <HistoryGameActivityIcon /> },
+      { name: 'Prize Wheel', href: '/dashboard/history/roulette-rewards', icon: <HistoryGameActivityIcon /> },
     ],
   },
   {
@@ -366,6 +376,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
       { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
       { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
+      { name: 'Prize Wheel', href: '/dashboard/settings/roulette', icon: <RouletteSettingsIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },
@@ -375,7 +386,6 @@ const MENU_CATEGORIES: MenuCategory[] = [
     roles: [USER_ROLES.STAFF],
     submenu: [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
-      { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },
@@ -387,6 +397,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
       { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
       { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
+      { name: 'Prize Wheel', href: '/dashboard/settings/roulette', icon: <RouletteSettingsIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },

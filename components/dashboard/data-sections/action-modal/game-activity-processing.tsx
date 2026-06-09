@@ -3,7 +3,12 @@
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatCurrency, formatDate } from '@/lib/utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  isNonMonetaryGameActivityType,
+  showsGameCreditsBalanceForActivityType,
+} from '@/lib/utils/formatters';
 import type { TransactionQueue } from '@/types';
 import { playersApi } from '@/lib/api';
 import {
@@ -76,16 +81,6 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
   }, [bonusAmount]);
 
-  const formattedBalance = useMemo(() => {
-    return formatCurrency(String(activity.data?.balance ?? '0'));
-  }, [activity.data?.balance]);
-
-  const totalAmountSent = useMemo(() => {
-    const dataAmount = activity.data?.amount;
-    if (dataAmount === undefined || dataAmount === null) return null;
-    return formatCurrency(String(dataAmount));
-  }, [activity.data?.amount]);
-
   const newCreditsBalance = useMemo(() => {
     const credits = activity.data?.new_credits_balance;
     if (credits === undefined || credits === null) return null;
@@ -127,12 +122,18 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
   const amountVariant: 'positive' | 'negative' = activity.type === 'redeem_game' ? 'negative' : 'positive';
 
   const handleOpenChat = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/chat?playerId=${playerId}`);
+      onClose();
+      return;
+    }
     if (activity.user_username) {
-      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`;
-      router.push(chatUrl);
+      router.push(
+        `/dashboard/chat?username=${encodeURIComponent(activity.user_username)}`,
+      );
       onClose();
     }
-  }, [router, activity.user_username, onClose]);
+  }, [router, playerId, activity.user_username, onClose]);
 
   const handleGoToPlayerDetails = useCallback(() => {
     if (playerId) {
@@ -214,8 +215,14 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
             </div>
           </div>
 
-          {/* Financial Information */}
-          <div className="space-y-3">
+          {/* Financial Information (hidden on small screens for add-user / password-reset) */}
+          <div
+            className={
+              isNonMonetaryGameActivityType(activity.type)
+                ? 'space-y-3 max-sm:hidden'
+                : 'space-y-3'
+            }
+          >
             {/* Amount */}
             <DetailsAmountBox
               amount={formattedAmount}
@@ -223,8 +230,8 @@ export const GameActivityViewModal = memo(function GameActivityViewModal({
               variant={amountVariant}
             />
 
-            {/* Balance Information */}
-            {newCreditsBalance && (
+            {/* Balance Information (recharge / redeem only) */}
+            {showsGameCreditsBalanceForActivityType(activity.type) && newCreditsBalance && (
               <DetailsRow>
                 <DetailsHighlightBox
                   label="Balance"

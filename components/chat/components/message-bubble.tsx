@@ -11,11 +11,14 @@ import {
   MESSAGE_HTML_CONTENT_CLASS,
   isAutoMessage,
   isPurchaseNotification,
+  isPrizeWheelMessage,
   isKycVerificationMessage,
   parseKycMessage,
   formatTransactionMessage,
+  getTransactionCardClass,
   parseTransactionMessage,
   prepareChatMessageHtmlForDisplay,
+  transactionTypeToVisualKind,
 } from '../utils/message-helpers';
 
 interface MessageBubbleProps {
@@ -43,11 +46,12 @@ export const MessageBubble = memo(function MessageBubble({
   const isKyc = isKycVerificationMessage(message);
   const isAuto = isAutoMessage(message);
   const isPurchase = isPurchaseNotification(message);
+  const isPrizeWheel = isPrizeWheelMessage(message);
 
   if (isKyc) {
     return <KycVerificationMessage message={message} />;
   }
-  if (isAuto || isPurchase) {
+  if (isAuto || isPurchase || isPrizeWheel) {
     return (
       <TransactionMessage message={message} isPurchase={isPurchase} />
     );
@@ -119,6 +123,7 @@ function TransactionMessage({ message, isPurchase }: {
   const isRecharge = details.type === 'recharge';
   const isRedeem = details.type === 'redeem';
   const isCashout = details.type === 'cashout';
+  const isPrizeWheel = details.type === 'prize_wheel';
 
   const formattedMessage = formatTransactionMessage({
     ...message,
@@ -130,16 +135,8 @@ function TransactionMessage({ message, isPurchase }: {
     .replace(/<br\s*\/?>/gi, '<br />');
 
   const getTransactionBgClass = () => {
-    if (details.type === 'recharge' || details.type === 'credit_purchase') {
-      return 'bg-green-500/10 border-green-500/30';
-    }
-    if (details.type === 'cashout' || details.type === 'redeem') {
-      return 'bg-red-500/10 border-red-500/30';
-    }
-    if (details.type) {
-      return 'bg-purple-500/10 border-purple-500/30';
-    }
-    return '';
+    if (!details.type) return '';
+    return getTransactionCardClass(transactionTypeToVisualKind(details.type));
   };
 
   return (
@@ -152,7 +149,7 @@ function TransactionMessage({ message, isPurchase }: {
           />
           {message.time && (
             <div className="flex items-center justify-center gap-1.5 mt-1.5">
-              <span className={`text-[10px] md:text-xs font-medium ${isPurchase || isRecharge || isRedeem || isCashout ? 'text-muted-foreground/80' : 'text-muted-foreground/60 italic'}`}>
+              <span className={`text-[10px] md:text-xs font-medium ${isPurchase || isRecharge || isRedeem || isCashout || isPrizeWheel ? 'text-muted-foreground/80' : 'text-muted-foreground/60 italic'}`}>
                 {message.time}
               </span>
             </div>

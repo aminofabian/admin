@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import type { JSX } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
@@ -26,6 +26,7 @@ import {
 } from '@/components/features';
 import { ActionModal } from './action-modal/game-activity-history';
 import { GameActivityTable } from './game-activity-table';
+import { TransactionTable } from './transaction-table';
 import {
   HistoryGameActivitiesFilters,
   type HistoryGameActivitiesFiltersState,
@@ -36,6 +37,10 @@ import {
   useGamesStore,
   usePaymentMethodsStore
 } from '@/stores';
+import {
+  applyListDateFilterChange,
+  inferListDatePreset,
+} from '@/lib/utils/list-filter-date-preset';
 import type { Transaction, TransactionQueue, GameActionType } from '@/types';
 import {
   formatCurrency,
@@ -119,13 +124,6 @@ function ProcessingTransactionTableSkeleton() {
             </div>
           </div>
         </div>
-      </div>
-      
-      {/* Pagination skeleton */}
-      <div className="flex justify-center gap-2">
-        {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-10 w-10 rounded-md" />
-        ))}
       </div>
     </div>
   );
@@ -255,6 +253,7 @@ const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
   game: '',
   game_username: '',
   status: '',
+  date_preset: '',
   date_from: '',
   date_to: '',
 };
@@ -477,10 +476,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     transactions,
     isLoading: transactionsLoading,
     error: transactionsError,
-    currentPage: transactionsPage,
-    pageSize: transactionsPageSize,
     fetchTransactions,
-    setPage: setTransactionsPage,
     setFilter: setTransactionsFilter,
     updateTransaction,
   } = useTransactionsStore();
@@ -515,9 +511,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     subscribeToTransactionUpdates 
   } = useProcessingWebSocketContext();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pendingDrawerPage, setPendingDrawerPage] = useState<{ page: number; focus: 'first' | 'last' } | null>(null);
-  const prefetchedDrawerPagesRef = useRef<Set<number>>(new Set());
-  const prefetchingDrawerPagesRef = useRef<Set<number>>(new Set());
 
   const cashoutCategories = usePaymentMethodsStore((state) => state.cashoutCategories);
   const fetchPaymentMethods = usePaymentMethodsStore((state) => state.fetchPaymentMethods);
@@ -557,6 +550,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
         status: advanced.status ?? '',
         date_from: advanced.date_from ?? '',
         date_to: advanced.date_to ?? '',
+        date_preset: inferListDatePreset(advanced.date_from ?? '', advanced.date_to ?? ''),
       };
     };
 
@@ -776,6 +770,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
   const handleGameFilterChange = useCallback(
     (key: keyof HistoryGameActivitiesFiltersState, value: string) => {
+      if (key === 'date_preset' || key === 'date_from' || key === 'date_to') {
+        setGameFilters((previous) => applyListDateFilterChange(previous, key, value));
+        return;
+      }
       setGameFilters((previous) => ({ ...previous, [key]: value }));
     },
     [],
@@ -783,7 +781,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
   const handleApplyGameFilters = useCallback(() => {
     const sanitized = Object.fromEntries(
-      Object.entries(gameFilters).filter(([, value]) => {
+      Object.entries(gameFilters).filter(([key, value]) => {
+        if (key === 'date_preset') return false;
         if (typeof value === 'string') {
           return value.trim() !== '';
         }
@@ -963,11 +962,6 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   const transactionResults = useMemo<Transaction[]>(
     () => transactions?.results ?? [],
     [transactions?.results]
-  );
-  const transactionCount = transactions?.count ?? 0;
-  const totalTransactionPages = useMemo(
-    () => (transactionsPageSize > 0 ? Math.max(1, Math.ceil(transactionCount / transactionsPageSize)) : 1),
-    [transactionCount, transactionsPageSize]
   );
 
   useEffect(() => {
@@ -1308,165 +1302,54 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     return buttons;
   }, [selectedTransaction, cashoutCategories]);
 
+  /** Tierlock cashouts must be sent via Tierlock — staff must not manually complete them. */
+  const isTierlockCashoutRequest = useMemo(() => {
+    const txn = selectedTransaction;
+    if (!txn || txn.type !== 'cashout') return false;
+    return /tierlock/i.test(txn.payment_method ?? '');
+  }, [selectedTransaction]);
+
   const handleNavigateToPreviousTransaction = useCallback(() => {
-    if (!selectedTransaction || transactionsLoading || pendingDrawerPage) {
+    if (!selectedTransaction || transactionsLoading) {
       return;
     }
     const idx = transactionResults.findIndex((t) => t.id === selectedTransaction.id);
-    if (idx < 0) {
-      return;
-    }
     if (idx > 0) {
       setSelectedTransaction(transactionResults[idx - 1]);
-      return;
     }
-    if (transactionsPage <= 1) {
-      return;
-    }
-    setPendingDrawerPage({ page: transactionsPage - 1, focus: 'last' });
-    void setTransactionsPage(transactionsPage - 1);
-  }, [
-    selectedTransaction,
-    transactionsLoading,
-    pendingDrawerPage,
-    transactionResults,
-    transactionsPage,
-    setTransactionsPage,
-  ]);
+  }, [selectedTransaction, transactionsLoading, transactionResults]);
 
   const handleNavigateToNextTransaction = useCallback(() => {
-    if (!selectedTransaction || transactionsLoading || pendingDrawerPage) {
+    if (!selectedTransaction || transactionsLoading) {
       return;
     }
     const idx = transactionResults.findIndex((t) => t.id === selectedTransaction.id);
-    if (idx < 0) {
-      return;
-    }
-    if (idx < transactionResults.length - 1) {
+    if (idx >= 0 && idx < transactionResults.length - 1) {
       setSelectedTransaction(transactionResults[idx + 1]);
-      return;
     }
-    if (transactionsPage >= totalTransactionPages) {
-      return;
-    }
-    setPendingDrawerPage({ page: transactionsPage + 1, focus: 'first' });
-    void setTransactionsPage(transactionsPage + 1);
-  }, [
-    selectedTransaction,
-    transactionsLoading,
-    pendingDrawerPage,
-    transactionResults,
-    transactionsPage,
-    totalTransactionPages,
-    setTransactionsPage,
-  ]);
-
-  useEffect(() => {
-    if (!pendingDrawerPage || !isViewModalOpen || transactionsLoading) {
-      return;
-    }
-    if (transactionsPage !== pendingDrawerPage.page) {
-      return;
-    }
-    if (transactionResults.length === 0) {
-      setPendingDrawerPage(null);
-      return;
-    }
-    const nextTransaction =
-      pendingDrawerPage.focus === 'first'
-        ? transactionResults[0]
-        : transactionResults[transactionResults.length - 1];
-    if (nextTransaction) {
-      setSelectedTransaction(nextTransaction);
-    }
-    setPendingDrawerPage(null);
-  }, [
-    pendingDrawerPage,
-    isViewModalOpen,
-    transactionsLoading,
-    transactionsPage,
-    transactionResults,
-  ]);
+  }, [selectedTransaction, transactionsLoading, transactionResults]);
 
   const transactionDrawerNavigation = useMemo((): TransactionDetailsNavigation | undefined => {
-    if (!selectedTransaction || transactionCount <= 0) {
+    if (!selectedTransaction || transactionResults.length === 0) {
       return undefined;
     }
     const idx = transactionResults.findIndex((t) => t.id === selectedTransaction.id);
     if (idx < 0) {
       return undefined;
     }
-    const currentPosition = (transactionsPage - 1) * transactionsPageSize + idx + 1;
     return {
-      currentPosition,
-      total: transactionCount,
+      currentPosition: idx + 1,
+      total: transactionResults.length,
       onPrevious: handleNavigateToPreviousTransaction,
       onNext: handleNavigateToNextTransaction,
-      isLoading: transactionsLoading || pendingDrawerPage != null,
+      isLoading: transactionsLoading,
     };
   }, [
     selectedTransaction,
-    transactionCount,
     transactionResults,
-    transactionsPage,
-    transactionsPageSize,
     handleNavigateToPreviousTransaction,
     handleNavigateToNextTransaction,
     transactionsLoading,
-    pendingDrawerPage,
-  ]);
-
-  const parseFiltersFromPageUrl = useCallback((pageUrl: string): Record<string, string> => {
-    const url = new URL(pageUrl, window.location.origin);
-    const filters: Record<string, string> = {};
-    url.searchParams.forEach((value, key) => {
-      filters[key] = value;
-    });
-    return filters;
-  }, []);
-
-  const prefetchDrawerPage = useCallback(
-    async (page: number, pageUrl: string | null | undefined) => {
-      if (!pageUrl || prefetchedDrawerPagesRef.current.has(page) || prefetchingDrawerPagesRef.current.has(page)) {
-        return;
-      }
-      prefetchingDrawerPagesRef.current.add(page);
-      try {
-        const filters = parseFiltersFromPageUrl(pageUrl);
-        if (viewType === 'purchases') {
-          await transactionsApi.listPurchases(filters);
-        } else if (viewType === 'cashouts') {
-          await transactionsApi.listCashouts(filters);
-        }
-        prefetchedDrawerPagesRef.current.add(page);
-      } catch {
-        // Prefetch is best-effort only.
-      } finally {
-        prefetchingDrawerPagesRef.current.delete(page);
-      }
-    },
-    [parseFiltersFromPageUrl, viewType]
-  );
-
-  useEffect(() => {
-    if (!isViewModalOpen || !selectedTransaction || transactionsLoading) {
-      return;
-    }
-    if (transactionsPage < totalTransactionPages) {
-      void prefetchDrawerPage(transactionsPage + 1, transactions?.next);
-    }
-    if (transactionsPage > 1) {
-      void prefetchDrawerPage(transactionsPage - 1, transactions?.previous);
-    }
-  }, [
-    isViewModalOpen,
-    selectedTransaction,
-    transactionsLoading,
-    transactionsPage,
-    totalTransactionPages,
-    transactions?.next,
-    transactions?.previous,
-    prefetchDrawerPage,
   ]);
 
   const handleQuickAction = useCallback(async (queue: TransactionQueue, action: string) => {
@@ -1733,183 +1616,12 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
             </div>
           ) : (
             <>
-              {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Transaction</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Balance</TableHead>
-                      <TableHead>Payment</TableHead>
-                      {viewType === 'purchases' && (
-                        <TableHead>Provider</TableHead>
-                      )}
-                      <TableHead>Status</TableHead>
-                      <TableHead>Dates</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactionResults.map((transaction) => (
-                      <ProcessingTransactionRow
-                        key={transaction.id}
-                        transaction={transaction}
-                        getStatusVariant={getStatusVariant}
-                        onView={() => handleViewTransaction(transaction)}
-                        isActionPending={pendingTransactionId === transaction.id}
-                        showProvider={viewType === 'purchases'}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile Card View */}
-              <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
-            {transactionResults.map((transaction) => {
-              const isPurchaseTransaction = transaction.type === 'purchase';
-              const amountClass = isPurchaseTransaction ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-              const bonusClass = amountClass;
-              const typeVariant = isPurchaseTransaction ? 'success' : 'danger';
-              const statusVariant = getStatusVariant(transaction.status);
-              const bonusValue = parseFloat(transaction.bonus_amount || '0');
-              const formattedBonus = bonusValue !== 0 ? formatCurrency(String(bonusValue)) : null;
-              const userInitial = transaction.user_username?.charAt(0).toUpperCase() ?? '?';
-
-              const handleOpenDetails = () => {
-                handleViewTransaction(transaction);
-              };
-
-              return (
-                <div
-                  key={transaction.id}
-                  className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden"
-                >
-                  {/* Top Section: User, Type & Status */}
-                  <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-                    <div className="flex items-start gap-3">
-                      <button
-                        type="button"
-                        onClick={handleOpenDetails}
-                        className="flex-shrink-0 touch-manipulation"
-                        title="View transaction details"
-                      >
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md cursor-pointer hover:opacity-80 transition-opacity">
-                          {userInitial}
-                        </div>
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <div className="flex-1 min-w-0">
-                            <button
-                              type="button"
-                              onClick={handleOpenDetails}
-                              className="text-left w-full touch-manipulation"
-                              title="View transaction details"
-                            >
-                              <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                                {transaction.user_username ?? '—'}
-                              </h3>
-                            </button>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                              {transaction.user_email ?? '—'}
-                            </p>
-                          </div>
-                          <Badge variant={typeVariant} className="text-[10px] px-2 py-0.5 uppercase shrink-0">
-                            {transaction.type ?? '—'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
-                            {transaction.status}
-                          </Badge>
-                          {transaction.payment_method?.trim() ? (
-                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                              {transaction.payment_method.trim()}
-                            </Badge>
-                          ) : null}
-                          {viewType === 'purchases' && transaction.provider && (
-                            <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                              {getProviderDisplayName(transaction.provider, transaction.payment_method)}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Middle Section: Amount */}
-                  <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
-                      <div className="text-right">
-                        <div className={`text-base font-bold ${amountClass}`}>
-                          {formatCurrency(transaction.amount || '0')}
-                        </div>
-                        {formattedBonus && (
-                          <div className={`text-xs font-semibold mt-0.5 ${bonusClass}`}>
-                            +{formattedBonus} bonus
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Balance Section */}
-                  <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-                    {(() => {
-                      const prevCredit = transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
-                        ? parseFloat(transaction.previous_balance)
-                        : 0;
-                      const newCredit = transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
-                        ? parseFloat(transaction.new_balance)
-                        : 0;
-                      const creditChanged = prevCredit !== newCredit;
-                      const creditColorClass = creditChanged
-                        ? 'text-indigo-600 dark:text-indigo-400'
-                        : 'text-gray-500 dark:text-gray-400';
-
-                      return (
-                        <div className="min-w-0">
-                          <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
-                          <div className={`text-xs ${creditColorClass} flex items-center gap-1`}>
-                            <span className="truncate">{formatCurrency(String(prevCredit))}</span>
-                            <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                            <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Bottom Section: Date */}
-                  <div className="p-3">
-                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
-                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span>{transaction.created_at ? formatDate(transaction.created_at) : '—'}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-              </div>
-
-              {transactionCount > transactionsPageSize && (
-                <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
-                  <Pagination
-                    currentPage={transactionsPage}
-                    totalPages={Math.ceil(transactionCount / transactionsPageSize)}
-                    hasNext={!!transactions?.next}
-                    hasPrevious={!!transactions?.previous}
-                    onPageChange={setTransactionsPage}
-                  />
-                </div>
-              )}
+              <TransactionTable
+                transactions={transactionResults}
+                onView={handleViewTransaction}
+                showProvider={viewType === 'purchases'}
+                mobileVariant={viewType === 'purchases' || viewType === 'cashouts' ? 'compact' : 'default'}
+              />
             </>
           )}
         </div>
@@ -1922,7 +1634,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           isOpen={isViewModalOpen}
           onClose={handleCloseViewModal}
           navigation={transactionDrawerNavigation}
-          onComplete={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('completed') : undefined}
+          onComplete={
+            selectedTransaction.status === 'pending' && !isTierlockCashoutRequest
+              ? () => handleTransactionDetailsAction('completed')
+              : undefined
+          }
           onCancel={selectedTransaction.status === 'pending' ? () => handleTransactionDetailsAction('cancelled') : undefined}
           sendToProviderButtons={
             sendToProviderButtons.length > 0 ? sendToProviderButtons : undefined
@@ -1972,7 +1688,11 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
   const gameResults = queues ?? [];
   const isGameEmpty = gameResults.length === 0 && !queuesLoading;
   const totalQueuePages = queuePageSize > 0 ? Math.max(1, Math.ceil(queueCount / queuePageSize)) : 1;
-  const shouldShowQueuePagination = queueCount > queuePageSize || Boolean(queueNext) || Boolean(queuePrevious);
+  const queueHasNext =
+    Boolean(queueNext) || (totalQueuePages > 0 && queuePage < totalQueuePages);
+  const queueHasPrevious = Boolean(queuePrevious) || queuePage > 1;
+  const shouldShowQueuePagination =
+    queueCount > queuePageSize || queueHasNext || queueHasPrevious;
   const gameEmptyState = (
     <EmptyState
       title={metadata.emptyTitle}
@@ -2109,8 +1829,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
                     <Pagination
                       currentPage={queuePage}
                       totalPages={totalQueuePages}
-                      hasNext={Boolean(queueNext)}
-                      hasPrevious={Boolean(queuePrevious)}
+                      hasNext={queueHasNext}
+                      hasPrevious={queueHasPrevious}
                       onPageChange={handleQueuePageChange}
                     />
                   </div>

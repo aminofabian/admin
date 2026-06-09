@@ -2,30 +2,32 @@
 
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
-import { USER_ROLES, canEditPlayerCashoutLimit } from '@/lib/constants/roles';
+import { USER_ROLES, canEditPlayerCashoutLimit, canEditPlayerRouletteAllowance } from '@/lib/constants/roles';
 import { SuperAdminPlayerDetail } from '@/components/superadmin/superadmin-player-detail';
 import { StaffPlayerDetail } from '@/components/staff';
 import { ManagerPlayerDetail } from '@/components/manager';
-import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player } from '@/types';
 import { useToast } from '@/components/ui';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
-import { playersApi, agentsApi } from '@/lib/api';
+import { playersApi, agentsApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
 import { Badge, Button, Select, DateSelect, ConfirmModal, DropdownMenu, DropdownMenuItem, Input } from '@/components/ui';
 import type { UpdateUserRequest, ApiError } from '@/types';
-import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal } from '@/components/features';
+import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
+import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
+import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
 import { usePlayerGames } from '@/hooks/use-player-games';
-import { useTransactionSummary, usePaymentMethods, useBonusAnalytics } from '@/hooks/use-analytics-transactions';
-import type { AnalyticsFilters } from '@/lib/api/analytics';
+import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
+import { PlayerTransactionAnalyticsModal } from '@/components/analytics/player-transaction-analytics-modal';
 import { AddGameDrawer } from '@/components/chat/modals';
-import { US_STATES, getDateRange } from '../../analytics/analytics-utils';
-
+import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
+import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-game-password-reveal';
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 
@@ -227,7 +229,13 @@ export default function PlayerDetailPage() {
   const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
   const [isSavedPaymentMethodsOpen, setIsSavedPaymentMethodsOpen] = useState(false);
   const [isTransactionAnalyticsModalOpen, setIsTransactionAnalyticsModalOpen] = useState(false);
-  const [playerNavDirection, setPlayerNavDirection] = useState<'previous' | 'next' | null>(null);
+  const [gameForRecharge, setGameForRecharge] = useState<PlayerGame | null>(null);
+  const [gamePendingRedeem, setGamePendingRedeem] = useState<PlayerGame | null>(null);
+  const [gamePendingResetPassword, setGamePendingResetPassword] = useState<PlayerGame | null>(null);
+  const [isGameOperationSubmitting, setIsGameOperationSubmitting] = useState(false);
+  const [visiblePlayerGamePasswordIds, setVisiblePlayerGamePasswordIds] = useState<
+    Record<number, boolean>
+  >({});
   const [editableFields, setEditableFields] = useState<EditableFields>({
     email: '',
     full_name: '',
@@ -462,6 +470,9 @@ export default function PlayerDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerId]); // addToast is stable from context, no need to include in deps
 
+  useEffect(() => {
+    setVisiblePlayerGamePasswordIds({});
+  }, [playerId]);
 
   const handleSave = useCallback(async () => {
     if (!selectedPlayer) return;
@@ -744,6 +755,11 @@ export default function PlayerDetailPage() {
     router.push('/dashboard/history/game-activities?preserveFilters=true');
   }, [selectedPlayer, router]);
 
+  const handleViewTimeline = useCallback(() => {
+    if (!selectedPlayer) return;
+    router.push(`/dashboard/players/${selectedPlayer.id}/timeline`);
+  }, [selectedPlayer, router]);
+
   const handleBack = useCallback(() => {
     router.push('/dashboard/players');
   }, [router]);
@@ -755,95 +771,10 @@ export default function PlayerDetailPage() {
     }
   }, [selectedPlayer, router]);
 
-  const findAdjacentPlayerId = useCallback(async (currentId: number, direction: 'previous' | 'next') => {
-    const PAGE_SIZE = 100;
-    const MAX_PAGES_TO_SCAN = 100;
-    let page = 1;
-    let hasNext = true;
-    let scannedPages = 0;
-    let adjacentId: number | null = null;
-
-    while (hasNext && scannedPages < MAX_PAGES_TO_SCAN) {
-      const response = await playersApi.list({ page, page_size: PAGE_SIZE });
-      const results = Array.isArray(response?.results) ? response.results : [];
-
-      for (const player of results) {
-        if (typeof player.id !== 'number') {
-          continue;
-        }
-        if (direction === 'next' && player.id > currentId) {
-          adjacentId = adjacentId == null ? player.id : Math.min(adjacentId, player.id);
-        }
-        if (direction === 'previous' && player.id < currentId) {
-          adjacentId = adjacentId == null ? player.id : Math.max(adjacentId, player.id);
-        }
-      }
-
-      hasNext = Boolean(response?.next);
-      page += 1;
-      scannedPages += 1;
-    }
-
-    return adjacentId;
-  }, []);
-
-  const handleNavigateToAdjacentPlayer = useCallback(async (direction: 'previous' | 'next') => {
-    if (!selectedPlayer || playerNavDirection) {
-      return;
-    }
-
-    setPlayerNavDirection(direction);
-    try {
-      const adjacentId = await findAdjacentPlayerId(selectedPlayer.id, direction);
-
-      if (adjacentId == null) {
-        addToast({
-          type: 'info',
-          title: 'No more players',
-          description: direction === 'next' ? 'No next player found.' : 'No previous player found.',
-        });
-        return;
-      }
-
-      router.push(`/dashboard/players/${adjacentId}`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load adjacent player';
-      addToast({
-        type: 'error',
-        title: 'Navigation failed',
-        description: message,
-      });
-    } finally {
-      setPlayerNavDirection(null);
-    }
-  }, [selectedPlayer, playerNavDirection, findAdjacentPlayerId, addToast, router]);
-
-  useEffect(() => {
-    if (!selectedPlayer || playerNavDirection !== null) {
-      return;
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
-        return;
-      }
-
-      if (e.key === '[') {
-        e.preventDefault();
-        void handleNavigateToAdjacentPlayer('previous');
-      } else if (e.key === ']') {
-        e.preventDefault();
-        void handleNavigateToAdjacentPlayer('next');
-      } else if (e.key.toLowerCase() === 'c') {
-        e.preventDefault();
-        handleNavigateToChat();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedPlayer, playerNavDirection, handleNavigateToAdjacentPlayer, handleNavigateToChat]);
+  const { playerNavDirection, handleNavigateToAdjacentPlayer } = usePlayerAdjacentNavigation({
+    selectedPlayer,
+    onNavigateToChat: handleNavigateToChat,
+  });
 
   const handleDeleteGame = useCallback(async () => {
     if (!gameToDelete || !selectedPlayer) return;
@@ -851,7 +782,7 @@ export default function PlayerDetailPage() {
     setIsDeletingGame(true);
     try {
       await playersApi.deleteGame(gameToDelete.id);
-      await refreshGames();
+      await refreshGames({ silent: true });
       addToast({
         type: 'success',
         title: 'Game removed',
@@ -882,7 +813,7 @@ export default function PlayerDetailPage() {
         username: gameToChange.username,
         status: newStatus
       });
-      await refreshGames();
+      await refreshGames({ silent: true });
       addToast({
         type: 'success',
         title: 'Game updated',
@@ -906,34 +837,151 @@ export default function PlayerDetailPage() {
     setIsAddGameDrawerOpen(true);
   }, []);
 
-  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
-    if (!selectedPlayer || isAddingGame) {
-      return;
-    }
+  const handleAddGameDashboardRecord = useCallback(
+    async (data: { username: string; password: string; code: string; user_id: number }) => {
+      if (!selectedPlayer || isAddingGame) return;
 
-    setIsAddingGame(true);
+      setIsAddingGame(true);
+      try {
+        const result = await playersApi.createGame(data);
+        addToast({
+          type: 'success',
+          title: result.message || `Added ${result.game_name}`,
+        });
+        setIsAddGameDrawerOpen(false);
+        void refreshGames({ silent: true });
+      } catch (error) {
+        const { title, message } = extractErrorMessage(error);
+        addToast({
+          type: 'error',
+          title: title || 'Failed to add game',
+          description: message,
+        });
+      } finally {
+        setIsAddingGame(false);
+      }
+    },
+    [selectedPlayer, isAddingGame, addToast, refreshGames],
+  );
+
+  const handleAddGamePlatform = useCallback(
+    async (data: { game_id: number }) => {
+      if (!selectedPlayer || isAddingGame) {
+        return;
+      }
+
+      setIsAddingGame(true);
+      try {
+        const result = await gameOperationsApi.addUserGame({
+          player_id: selectedPlayer.id,
+          game_id: data.game_id,
+        });
+
+        addToast({
+          type: 'success',
+          title: result.message,
+        });
+
+        setIsAddGameDrawerOpen(false);
+        void refreshGames({ silent: true });
+      } catch (error) {
+        const { title, message } = extractErrorMessage(error);
+        addToast({
+          type: 'error',
+          title: title || 'Failed to add game',
+          description: message,
+        });
+      } finally {
+        setIsAddingGame(false);
+      }
+    },
+    [selectedPlayer, isAddingGame, addToast, refreshGames],
+  );
+
+  const submitGameRecharge = useCallback(
+    async (amount: number) => {
+      if (!selectedPlayer || !gameForRecharge) return;
+      setIsGameOperationSubmitting(true);
+      try {
+        const result = await gameOperationsApi.recharge({
+          player_id: selectedPlayer.id,
+          game_id: gameForRecharge.game__id,
+          amount,
+        });
+        addToast({
+          type: 'success',
+          title: 'Recharge queued',
+          description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+        });
+        setGameForRecharge(null);
+        await refreshGames({ silent: true });
+      } catch (error) {
+        const { title, message } = extractErrorMessage(error);
+        addToast({
+          type: 'error',
+          title: title || 'Recharge failed',
+          description: message,
+        });
+      } finally {
+        setIsGameOperationSubmitting(false);
+      }
+    },
+    [selectedPlayer, gameForRecharge, addToast, refreshGames],
+  );
+
+  const confirmRedeemGame = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingRedeem) return;
+    setIsGameOperationSubmitting(true);
     try {
-      const result = await playersApi.createGame(data);
-
+      const result = await gameOperationsApi.redeem({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingRedeem.game__id,
+      });
       addToast({
         type: 'success',
-        title: 'Game added successfully',
-        description: `${result.game_name} account created for ${result.username}`,
+        title: 'Redeem queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
       });
-
-      setIsAddGameDrawerOpen(false);
-      await refreshGames();
+      setGamePendingRedeem(null);
+      await refreshGames({ silent: true });
     } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
+      const { title, message } = extractErrorMessage(error);
       addToast({
         type: 'error',
-        title: 'Failed to add game',
-        description,
+        title: title || 'Redeem failed',
+        description: message,
       });
     } finally {
-      setIsAddingGame(false);
+      setIsGameOperationSubmitting(false);
     }
-  }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
+  }, [selectedPlayer, gamePendingRedeem, addToast, refreshGames]);
+
+  const confirmResetGamePassword = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingResetPassword) return;
+    setIsGameOperationSubmitting(true);
+    try {
+      const result = await gameOperationsApi.resetPassword({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingResetPassword.game__id,
+      });
+      addToast({
+        type: 'success',
+        title: 'Password reset queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+      });
+      setGamePendingResetPassword(null);
+      await refreshGames({ silent: true });
+    } catch (error) {
+      const { title, message } = extractErrorMessage(error);
+      addToast({
+        type: 'error',
+        title: title || 'Reset failed',
+        description: message,
+      });
+    } finally {
+      setIsGameOperationSubmitting(false);
+    }
+  }, [selectedPlayer, gamePendingResetPassword, addToast, refreshGames]);
 
   const handleEditGame = useCallback(async (data: { username: string; password: string }) => {
     if (!gameToEdit || isEditingGame) {
@@ -955,7 +1003,7 @@ export default function PlayerDetailPage() {
 
       setIsEditGameDrawerOpen(false);
       setGameToEdit(null);
-      await refreshGames();
+      await refreshGames({ silent: true });
     } catch (error) {
       const description = error instanceof Error ? error.message : 'Unknown error';
       addToast({
@@ -1220,7 +1268,7 @@ export default function PlayerDetailPage() {
                 </div>
                 <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
                 <Button
                   onClick={handleViewTransactions}
                   variant="primary"
@@ -1243,9 +1291,19 @@ export default function PlayerDetailPage() {
                   <span className="text-center leading-tight">Activities</span>
                 </Button>
                 <Button
+                  onClick={handleViewTimeline}
+                  variant="primary"
+                  className="group col-span-2 flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px] sm:col-span-1"
+                >
+                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-center leading-tight">Timeline</span>
+                </Button>
+                <Button
                   onClick={() => setIsSavedPaymentMethodsOpen(true)}
                   variant="secondary"
-                  className="group col-span-2 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98] touch-manipulation"
+                  className="group col-span-2 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98] touch-manipulation sm:col-span-3"
                 >
                   <svg className="h-5 w-5 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
@@ -1323,51 +1381,22 @@ export default function PlayerDetailPage() {
             </section>
             )}
 
-            {/* Personal Information Card */}
-            <section className="border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-              <div className="mb-2 sm:mb-3 flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Personal Information</h2>
-              </div>
-              <div className="space-y-1.5">
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Email</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100 break-all">{selectedPlayer.email}</p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Full Name</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.full_name || '—'}</p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Date of Birth</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.dob || '—'}</p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">State</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.state || '—'}</p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Phone</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.mobile_number || '—'}</p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Created Date</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                    {selectedPlayer.created ? formatDate(selectedPlayer.created) : '—'}
-                  </p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Created By</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                    {selectedPlayer.created_by?.username || '—'}
-                  </p>
-                </div>
-              </div>
-            </section>
+            <PlayerPersonalInformationCard
+              email={selectedPlayer.email}
+              fullName={selectedPlayer.full_name}
+              dob={selectedPlayer.dob}
+              state={selectedPlayer.state}
+              mobileNumber={selectedPlayer.mobile_number}
+              created={selectedPlayer.created}
+              createdByUsername={selectedPlayer.created_by?.username}
+              formatDate={formatDate}
+            />
+
+            <PlayerRouletteSpinAllowanceSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerRouletteAllowance(user?.role)}
+            />
           </div>
 
           {/* Column 2: Agent Assignment & Transaction Summary - Show second on mobile */}
@@ -1530,6 +1559,16 @@ export default function PlayerDetailPage() {
                             {game.game__title}
                           </h3>
                           <p className="text-xs text-gray-500 dark:text-gray-400"> {game.username}</p>
+                          <PlayerGamePasswordReveal
+                            game={game}
+                            isVisible={!!visiblePlayerGamePasswordIds[game.id]}
+                            onToggleVisibility={() =>
+                              setVisiblePlayerGamePasswordIds((prev) => ({
+                                ...prev,
+                                [game.id]: !prev[game.id],
+                              }))
+                            }
+                          />
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
                           <div className={`h-2 w-2 rounded-full ${game.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -1597,6 +1636,12 @@ export default function PlayerDetailPage() {
                             }
                             align="right"
                           >
+                            <PlayerGameOperationMenuItems
+                              game={game}
+                              onRecharge={setGameForRecharge}
+                              onRedeem={setGamePendingRedeem}
+                              onResetPassword={setGamePendingResetPassword}
+                            />
                             <DropdownMenuItem
                               onClick={() => {
                                 setGameToEdit(game);
@@ -1699,6 +1744,36 @@ export default function PlayerDetailPage() {
       />
 
 
+      <GameRechargeModal
+        isOpen={!!gameForRecharge}
+        onClose={() => !isGameOperationSubmitting && setGameForRecharge(null)}
+        gameTitle={gameForRecharge?.game__title ?? ''}
+        onConfirm={submitGameRecharge}
+        isSubmitting={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingRedeem}
+        onClose={() => !isGameOperationSubmitting && setGamePendingRedeem(null)}
+        onConfirm={confirmRedeemGame}
+        title="Redeem full game balance"
+        description={`Queue a redeem for all funds in "${gamePendingRedeem?.game__title}" for ${selectedPlayer.username}? This runs in the background.`}
+        confirmText="Redeem"
+        variant="warning"
+        isLoading={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingResetPassword}
+        onClose={() => !isGameOperationSubmitting && setGamePendingResetPassword(null)}
+        onConfirm={confirmResetGamePassword}
+        title="Reset game password"
+        description={`Submit a password reset for "${gamePendingResetPassword?.game__title}"? Processing runs in the background.`}
+        confirmText="Reset password"
+        variant="info"
+        isLoading={isGameOperationSubmitting}
+      />
+
       {selectedPlayer && (
         <AddGameDrawer
           isOpen={isAddGameDrawerOpen}
@@ -1706,7 +1781,8 @@ export default function PlayerDetailPage() {
           playerId={selectedPlayer.id}
           playerUsername={selectedPlayer.username}
           playerGames={games}
-          onSubmit={handleAddGame}
+          onSubmitDashboardRecord={handleAddGameDashboardRecord}
+          onSubmitGamePlatform={handleAddGamePlatform}
           isSubmitting={isAddingGame}
         />
       )}
@@ -1718,7 +1794,7 @@ export default function PlayerDetailPage() {
         savedPaymentMethods={selectedPlayer.saved_payment_methods ?? []}
       />
 
-      <PlayerTransactionsAnalyticsModal
+      <PlayerTransactionAnalyticsModal
         isOpen={isTransactionAnalyticsModalOpen}
         onClose={() => setIsTransactionAnalyticsModalOpen(false)}
         username={selectedPlayer.username}
@@ -1902,404 +1978,3 @@ function EditGameDrawerContent({
     </div>
   );
 }
-
-function rateColor(rate: number | undefined): string {
-  if (!rate) return 'text-muted-foreground';
-  if (rate >= 90) return 'text-emerald-600 dark:text-emerald-400';
-  if (rate >= 70) return 'text-amber-600 dark:text-amber-400';
-  return 'text-rose-600 dark:text-rose-400';
-}
-
-function apiFieldLabel(apiKey: string): string {
-  return apiKey
-    .split(/[._]+/)
-    .filter(Boolean)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(' ');
-}
-
-function ApiLabeledValue({ apiKey, children }: { apiKey: string; children: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel(apiKey)}</p>
-      <div className="mt-1 text-sm font-semibold tabular-nums text-foreground">{children}</div>
-    </div>
-  );
-}
-
-interface PlayerTransactionsAnalyticsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  username: string;
-}
-
-function PlayerTransactionsAnalyticsModal({ isOpen, onClose, username }: PlayerTransactionsAnalyticsModalProps) {
-  const [datePreset, setDatePreset] = useState('last_3_months');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [showFilters, setShowFilters] = useState(true);
-
-  useEffect(() => {
-    const range = getDateRange(datePreset);
-    setStartDate(range.start);
-    setEndDate(range.end);
-  }, [datePreset]);
-
-  const filters = useMemo<AnalyticsFilters>(() => {
-    if (!username) {
-      return {};
-    }
-
-    const activeFilters: AnalyticsFilters = { username };
-    if (startDate) activeFilters.start_date = startDate;
-    if (endDate) activeFilters.end_date = endDate;
-    return activeFilters;
-  }, [username, startDate, endDate]);
-
-  const { data: transactionSummary, loading: loadingSummary, error: summaryError } = useTransactionSummary(filters);
-  const {
-    data: paymentMethods,
-    loading: loadingPaymentMethods,
-    error: paymentMethodsError,
-  } = usePaymentMethods(filters);
-  const { data: bonusAnalytics, loading: loadingBonus, error: bonusError } = useBonusAnalytics(filters);
-
-  const purchaseMethods = paymentMethods.filter(m => m.type === 'purchase');
-  const cashoutMethods = paymentMethods.filter(m => m.type === 'cashout');
-
-  const netRevenue = useMemo(() => {
-    if (!transactionSummary) return null;
-    return transactionSummary.total_purchase - transactionSummary.total_cashout;
-  }, [transactionSummary]);
-
-  const bonusBreakdown = useMemo(() => {
-    if (!bonusAnalytics) return [];
-    const items = [
-      { fieldKey: 'purchase_bonus', value: bonusAnalytics.purchase_bonus, bar: 'bg-emerald-500' },
-      { fieldKey: 'signup_bonus', value: bonusAnalytics.signup_bonus, bar: 'bg-blue-500' },
-      { fieldKey: 'first_deposit_bonus', value: bonusAnalytics.first_deposit_bonus, bar: 'bg-violet-500' },
-      { fieldKey: 'total_free_play', value: bonusAnalytics.total_free_play, bar: 'bg-cyan-500' },
-      { fieldKey: 'seized_or_tipped_fund', value: bonusAnalytics.seized_or_tipped_fund, bar: 'bg-slate-400' },
-    ];
-    const max = Math.max(...items.map(i => i.value), 1);
-    return items.map(i => ({ ...i, pct: (i.value / max) * 100 }));
-  }, [bonusAnalytics]);
-
-  const handlePresetChange = (preset: string) => {
-    setDatePreset(preset);
-    if (preset !== 'custom') {
-      const range = getDateRange(preset);
-      setStartDate(range.start);
-      setEndDate(range.end);
-    }
-  };
-
-  const handleClearFilters = () => {
-    setDatePreset('last_3_months');
-    const range = getDateRange('last_3_months');
-    setStartDate(range.start);
-    setEndDate(range.end);
-  };
-
-  const hasActiveFilters = datePreset !== 'last_3_months';
-  const fmtMethod = (n: string) => n.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-  if (!isOpen) {
-    return null;
-  }
-
-  return (
-    <div className="fixed inset-0 z-[70]">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-6">
-        <div className="relative h-[92vh] w-full max-w-7xl overflow-hidden rounded-2xl border border-border/30 bg-card shadow-2xl">
-          <div className="flex items-center justify-between border-b border-border/20 px-4 py-3 sm:px-6">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Player Transaction Analytics</h2>
-              <p className="text-xs text-muted-foreground">Locked to username: {username}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-              aria-label="Close analytics modal"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="h-[calc(92vh-64px)] overflow-y-auto p-4 sm:p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div />
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    showFilters
-                      ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
-                  }`}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-                  </svg>
-                  Filters
-                  {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                </button>
-              </div>
-
-              {showFilters && (
-                <div className="relative z-20 flex items-center gap-2.5 rounded-lg border border-border/40 bg-card px-3 py-2 shadow-sm flex-wrap lg:flex-nowrap">
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
-                    {hasActiveFilters && (
-                      <button onClick={handleClearFilters} className="text-[10px] font-medium text-rose-500 hover:text-rose-600 transition-colors">
-                        clear
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex-1 grid gap-2 grid-cols-1 sm:grid-cols-2">
-                    <Select
-                      value={datePreset}
-                      onChange={(v: string) => handlePresetChange(v)}
-                      options={[
-                        { value: 'today', label: 'Today' },
-                        { value: 'yesterday', label: 'Yesterday' },
-                        { value: 'this_month', label: 'This Month' },
-                        { value: 'last_month', label: 'Last Month' },
-                        { value: 'last_30_days', label: 'Last 30 Days' },
-                        { value: 'last_3_months', label: 'Last 3 Months' },
-                        { value: 'custom', label: 'Custom Range' },
-                      ]}
-                    />
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={username}
-                        disabled
-                        placeholder="Username"
-                        className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-2.5 py-2 pr-9 text-sm text-gray-600 shadow-sm dark:border-gray-700 dark:bg-slate-900 dark:text-slate-300"
-                      />
-                      <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 10-8 0v4M5 11h14v10H5V11z" />
-                      </svg>
-                    </div>
-                  </div>
-                  {datePreset === 'custom' && (
-                    <div className="grid grid-cols-2 gap-2 mt-2 max-w-xs w-full lg:w-auto lg:mt-0">
-                      <DateSelect label="Start" value={startDate} onChange={setStartDate} />
-                      <DateSelect label="End" value={endDate} onChange={setEndDate} />
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className="rounded-2xl border border-border/30 overflow-hidden shadow-sm">
-                {loadingSummary ? (
-                  <div className="grid grid-cols-2 lg:grid-cols-3">
-                    {[0, 1, 2].map(i => (
-                      <div key={i} className="bg-card px-5 py-4 animate-pulse border-r border-border/10 last:border-r-0">
-                        <div className="h-2.5 w-14 bg-muted/40 rounded mb-2.5" />
-                        <div className="h-5 w-20 bg-muted/40 rounded" />
-                      </div>
-                    ))}
-                  </div>
-                ) : summaryError ? (
-                  <div className="bg-card px-5 py-8 text-center text-sm text-rose-600 dark:text-rose-400">{summaryError}</div>
-                ) : transactionSummary ? (
-                  <div className="grid grid-cols-2 lg:grid-cols-3">
-                    <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-emerald-500 border-r border-border/10">
-                      <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_purchase')}</p>
-                      <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">{formatCurrency(transactionSummary.total_purchase)}</p>
-                    </div>
-                    <div className="bg-card px-5 py-3.5 border-l-[3px] border-l-rose-500 border-r border-border/10">
-                      <p className="text-[10px] font-medium leading-snug text-muted-foreground break-words">{apiFieldLabel('total_cashout')}</p>
-                      <p className="text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400 mt-0.5">{formatCurrency(transactionSummary.total_cashout)}</p>
-                    </div>
-                    {netRevenue !== null && (
-                      <div className={`${netRevenue >= 0
-                        ? 'bg-gradient-to-br from-emerald-900 to-emerald-950 dark:from-emerald-900/80 dark:to-emerald-950/90'
-                        : 'bg-gradient-to-br from-rose-900 to-rose-950 dark:from-rose-900/80 dark:to-rose-950/90'} px-5 py-3.5`}>
-                        <p className="text-[10px] font-medium leading-snug text-white/70 break-words">
-                          {apiFieldLabel('total_purchase')} - {apiFieldLabel('total_cashout')}
-                        </p>
-                        <p className="text-lg font-bold tabular-nums text-white mt-0.5">
-                          {netRevenue >= 0 ? '+' : ''}{formatCurrency(netRevenue)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-card px-5 py-8 text-center text-sm text-muted-foreground">No transaction data available</div>
-                )}
-
-                {loadingBonus ? (
-                  <div className="border-t border-border/15 bg-card px-5 py-4">
-                    <div className="grid grid-cols-3 lg:grid-cols-5 gap-4">
-                      {[0, 1, 2, 3, 4].map(i => (
-                        <div key={i} className="animate-pulse">
-                          <div className="h-2 w-12 bg-muted/40 rounded mb-2" />
-                          <div className="h-4 w-14 bg-muted/40 rounded mb-2" />
-                          <div className="h-1 bg-muted/20 rounded-full" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : bonusError ? (
-                  <div className="border-t border-border/15 bg-card px-5 py-4">
-                    <p className="text-center text-sm text-rose-600 dark:text-rose-400">{bonusError}</p>
-                  </div>
-                ) : bonusAnalytics ? (
-                  <div className="border-t border-border/15 bg-card px-5 py-4">
-                    <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Bonus <span className="font-normal normal-case">{apiFieldLabel('data')}</span>
-                      </p>
-                      <div className="text-right">
-                        <p className="text-[9px] font-medium text-muted-foreground">{apiFieldLabel('total_bonus')}</p>
-                        <p className="text-sm font-bold tabular-nums text-amber-600 dark:text-amber-400">
-                          {formatCurrency(bonusAnalytics.total_bonus)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-x-4 gap-y-3">
-                      {bonusBreakdown.map(({ fieldKey, value, bar, pct }) => (
-                        <div key={fieldKey} className="group">
-                          <p className="text-[9px] font-medium leading-snug text-muted-foreground/80 mb-0.5 break-words">{apiFieldLabel(fieldKey)}</p>
-                          <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(value)}</p>
-                          <div className="mt-1.5 h-1 bg-muted/15 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${bar} transition-all duration-700 ease-out`} style={{ width: `${pct}%` }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="grid gap-3 lg:grid-cols-2">
-                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                    <span className="text-sm font-semibold text-foreground">Purchases</span>
-                  </div>
-                  {loadingPaymentMethods ? (
-                    <div className="p-5 space-y-3">
-                      {[0, 1, 2].map(i => (
-                        <div key={i} className="flex items-center gap-3 animate-pulse">
-                          <div className="w-7 h-7 rounded-lg bg-muted/30 shrink-0" />
-                          <div className="flex-1 h-3 bg-muted/20 rounded" />
-                          <div className="w-16 h-3 bg-muted/30 rounded" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : paymentMethodsError ? (
-                    <div className="p-6 text-center text-xs text-rose-600 dark:text-rose-400">{paymentMethodsError}</div>
-                  ) : purchaseMethods.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-border/10 bg-muted/5">
-                            <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('key')}</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('purchase')}</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('bonus')}</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/5">
-                          {purchaseMethods.map((m, i) => (
-                            <tr key={`p-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="w-5 h-5 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-[9px] shrink-0">
-                                    {fmtMethod(m.payment_method).charAt(0)}
-                                  </span>
-                                  <span className="font-medium text-foreground text-xs">{fmtMethod(m.payment_method)}</span>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(m.purchase ?? 0)}</td>
-                              <td className="px-3 py-2 text-right tabular-nums">
-                                {m.bonus && m.bonus > 0
-                                  ? <span className="text-amber-600 dark:text-amber-400">{formatCurrency(m.bonus)}</span>
-                                  : <span className="text-muted-foreground/25">&mdash;</span>}
-                              </td>
-                              <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate?.toFixed(1) ?? 0}%</span></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="p-6 text-center text-xs text-muted-foreground">No purchase data</div>
-                  )}
-                </div>
-
-                <div className="rounded-xl border border-border/30 bg-card overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-border/15 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
-                    <span className="text-sm font-semibold text-foreground">Cashouts</span>
-                  </div>
-                  {loadingPaymentMethods ? (
-                    <div className="p-5 space-y-3">
-                      {[0, 1, 2].map(i => (
-                        <div key={i} className="flex items-center gap-3 animate-pulse">
-                          <div className="w-7 h-7 rounded-lg bg-muted/30 shrink-0" />
-                          <div className="flex-1 h-3 bg-muted/20 rounded" />
-                          <div className="w-16 h-3 bg-muted/30 rounded" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : paymentMethodsError ? (
-                    <div className="p-6 text-center text-xs text-rose-600 dark:text-rose-400">{paymentMethodsError}</div>
-                  ) : cashoutMethods.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-border/10 bg-muted/5">
-                            <th className="text-left px-4 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('key')}</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('cashout')}</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[9px]">{apiFieldLabel('success_rate')}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/5">
-                          {cashoutMethods.map((m, i) => (
-                            <tr key={`c-${m.payment_method}-${i}`} className="hover:bg-muted/10 transition-colors">
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="w-5 h-5 rounded bg-rose-500/10 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-[9px] shrink-0">
-                                    {fmtMethod(m.payment_method).charAt(0)}
-                                  </span>
-                                  <span className="font-medium text-foreground text-xs">{fmtMethod(m.payment_method)}</span>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-right font-semibold text-rose-600 dark:text-rose-400 tabular-nums">{formatCurrency(m.cashout ?? 0)}</td>
-                              <td className="px-3 py-2 text-right tabular-nums"><span className={rateColor(m.success_rate)}>{m.success_rate?.toFixed(1) ?? 0}%</span></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="p-6 text-center text-xs text-muted-foreground">No cashout data</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border/30 bg-card p-4 sm:p-5">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Locked player context</p>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <ApiLabeledValue apiKey="username">{username}</ApiLabeledValue>
-                  <ApiLabeledValue apiKey="date_preset">{datePreset}</ApiLabeledValue>
-                  <ApiLabeledValue apiKey="start_date">{startDate || '—'}</ApiLabeledValue>
-                  <ApiLabeledValue apiKey="end_date">{endDate || '—'}</ApiLabeledValue>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-

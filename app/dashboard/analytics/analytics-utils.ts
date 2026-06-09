@@ -1,3 +1,8 @@
+import type { AnalyticsFilters } from '@/lib/api/analytics';
+import { parseYmdLocal } from '@/lib/utils/calendar-date-range';
+
+export { formatLocalCalendarDate, parseYmdLocal, getDateRange } from '@/lib/utils/calendar-date-range';
+
 // US States for filter
 export const US_STATES = [
   { value: '', label: 'All States' },
@@ -53,51 +58,76 @@ export const US_STATES = [
   { value: 'WY', label: 'Wyoming' },
 ];
 
-// Helper to get date range for preset
-export function getDateRange(preset: string): { start: string; end: string } {
-  const today = new Date();
-  let end = new Date(today);
-  end.setHours(23, 59, 59, 999);
-
-  let start = new Date(today);
-
-  switch (preset) {
-    case 'today':
-      start.setHours(0, 0, 0, 0);
-      break;
-    case 'yesterday':
-      start = new Date(today);
-      start.setDate(start.getDate() - 1);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(today);
-      end.setDate(end.getDate() - 1);
-      end.setHours(23, 59, 59, 999);
-      break;
-    case 'this_month':
-      start = new Date(today.getFullYear(), today.getMonth(), 1);
-      start.setHours(0, 0, 0, 0);
-      break;
-    case 'last_month':
-      start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(today.getFullYear(), today.getMonth(), 0);
-      end.setHours(23, 59, 59, 999);
-      break;
-    case 'last_30_days':
-      start.setDate(start.getDate() - 30);
-      start.setHours(0, 0, 0, 0);
-      break;
-    case 'last_3_months':
-      start.setMonth(start.getMonth() - 3);
-      start.setHours(0, 0, 0, 0);
-      break;
-    default:
-      start.setMonth(start.getMonth() - 3);
-      start.setHours(0, 0, 0, 0);
+/** Human-readable analytics range + current local time (for filter hint UI). */
+export function describeAnalyticsFilterRange(
+  datePreset: string,
+  startDate: string,
+  endDate: string,
+  timezone: string | null,
+): string {
+  if (timezone === null || timezone === '') {
+    return 'Resolving your time zone…';
   }
 
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const dateStr = (d: Date) =>
+    d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+  if (datePreset === 'today') {
+    const day = parseYmdLocal(startDate) ?? now;
+    const midnight = new Date(day);
+    midnight.setHours(0, 0, 0, 0);
+    const fromStr = midnight.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return `Range: Today — ${dateStr(day)}, ${fromStr} → now (${timeStr}). Time zone: ${timezone}.`;
+  }
+
+  if (datePreset === 'yesterday') {
+    const day = parseYmdLocal(startDate) ?? now;
+    return `Range: Yesterday — ${dateStr(day)} (full calendar day). Time zone: ${timezone}. As of ${timeStr}.`;
+  }
+
+  const s = parseYmdLocal(startDate);
+  const e = parseYmdLocal(endDate);
+  if (s && e) {
+    if (startDate === endDate) {
+      return `Range: ${dateStr(s)} (full calendar day). Time zone: ${timezone}. As of ${timeStr}.`;
+    }
+    return `Range: ${dateStr(s)} → ${dateStr(e)} (inclusive days). Time zone: ${timezone}. As of ${timeStr}.`;
+  }
+
+  return `Time zone: ${timezone}. As of ${timeStr}.`;
+}
+
+/**
+ * Builds query params for analytics APIs: preset+timezone for today/yesterday,
+ * otherwise start_date+end_date+timezone (calendar dates in local TZ).
+ */
+export function buildAnalyticsFiltersWithDatePreset(input: {
+  datePreset: string;
+  startDate: string;
+  endDate: string;
+  timezone: string;
+  username?: string;
+  state?: string;
+  gender?: 'male' | 'female' | '';
+}): AnalyticsFilters {
+  const f: AnalyticsFilters = { timezone: input.timezone };
+
+  if (input.username?.trim()) f.username = input.username.trim();
+  if (input.state) f.state = input.state;
+  if (input.gender) f.gender = input.gender;
+
+  if (input.datePreset === 'today') {
+    f.preset = 'today';
+    return f;
+  }
+  if (input.datePreset === 'yesterday') {
+    f.preset = 'yesterday';
+    return f;
+  }
+
+  if (input.startDate) f.start_date = input.startDate;
+  if (input.endDate) f.end_date = input.endDate;
+  return f;
 }

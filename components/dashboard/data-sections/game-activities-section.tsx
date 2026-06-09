@@ -1,18 +1,42 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams, usePathname, useRouter } from 'next/navigation';
-import { DashboardSectionContainer } from '@/components/dashboard/layout/dashboard-section-container';
-import { HistoryTabs } from '@/components/dashboard/layout/history-tabs';
-import { Badge, Pagination, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
-import { ActivityDetailsModal, EmptyState } from '@/components/features';
-import { formatBalanceTransitionDisplay, formatCurrency, formatDate } from '@/lib/utils/formatters';
-import { useTransactionQueuesStore, useGamesStore } from '@/stores';
-import { staffsApi, managersApi } from '@/lib/api';
-import { storage } from '@/lib/utils/storage';
-import type { TransactionQueue, Game, Staff, Manager } from '@/types';
-import { HistoryGameActivitiesFilters, HistoryGameActivitiesFiltersState, QueueFilterOption } from '@/components/dashboard/history/history-game-activities-filters';
-
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { DashboardSectionContainer } from "@/components/dashboard/layout/dashboard-section-container";
+import { HistoryTabs } from "@/components/dashboard/layout/history-tabs";
+import {
+  Badge,
+  Pagination,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Skeleton,
+} from "@/components/ui";
+import { ActivityDetailsModal, EmptyState } from "@/components/features";
+import { GameActivityTable } from "./game-activity-table";
+import {
+  formatBalanceTransitionDisplay,
+  formatCurrency,
+  formatDate,
+  isNonMonetaryGameActivityType,
+  showsGameCreditsBalanceForActivityType,
+} from "@/lib/utils/formatters";
+import { useTransactionQueuesStore, useGamesStore } from "@/stores";
+import { staffsApi, managersApi } from "@/lib/api";
+import { storage } from "@/lib/utils/storage";
+import type { TransactionQueue, Game, Staff, Manager } from "@/types";
+import {
+  HistoryGameActivitiesFilters,
+  HistoryGameActivitiesFiltersState,
+  QueueFilterOption,
+} from "@/components/dashboard/history/history-game-activities-filters";
+import {
+  applyListDateFilterChange,
+  inferListDatePreset,
+} from "@/lib/utils/list-filter-date-preset";
 
 const GAME_ACTIVITIES_SKELETON = (
   <div className="space-y-6">
@@ -79,33 +103,43 @@ const GAME_ACTIVITIES_SKELETON = (
 );
 
 const DEFAULT_GAME_ACTIVITY_FILTERS: HistoryGameActivitiesFiltersState = {
-  username: '',
-  email: '',
-  transaction_id: '',
-  operator: '',
-  type: '',
-  game: '',
-  game_username: '',
-  status: '',
-  date_from: '',
-  date_to: '',
+  username: "",
+  email: "",
+  transaction_id: "",
+  operator: "",
+  type: "",
+  game: "",
+  game_username: "",
+  status: "",
+  date_preset: "",
+  date_from: "",
+  date_to: "",
 };
 
-function buildGameActivityFilterState(advanced: Record<string, string>): HistoryGameActivitiesFiltersState {
+function buildGameActivityFilterState(
+  advanced: Record<string, string>,
+): HistoryGameActivitiesFiltersState {
   // Map change_password back to reset_password for UI display
-  const type = advanced.type === 'change_password' ? 'reset_password' : (advanced.type ?? '');
+  const type =
+    advanced.type === "change_password"
+      ? "reset_password"
+      : (advanced.type ?? "");
 
   return {
-    username: advanced.username ?? '',
-    email: advanced.email ?? '',
-    transaction_id: advanced.transaction_id ?? '',
-    operator: advanced.operator ?? '',
+    username: advanced.username ?? "",
+    email: advanced.email ?? "",
+    transaction_id: advanced.transaction_id ?? "",
+    operator: advanced.operator ?? "",
     type,
-    game: advanced.game ?? '',
-    game_username: advanced.game_username ?? '',
-    status: advanced.status ?? '',
-    date_from: advanced.date_from ?? '',
-    date_to: advanced.date_to ?? '',
+    game: advanced.game ?? "",
+    game_username: advanced.game_username ?? "",
+    status: advanced.status ?? "",
+    date_from: advanced.date_from ?? "",
+    date_to: advanced.date_to ?? "",
+    date_preset: inferListDatePreset(
+      advanced.date_from ?? "",
+      advanced.date_to ?? "",
+    ),
   };
 }
 
@@ -122,7 +156,9 @@ interface HistoryPaginationState {
   onPageChange: (page: number) => void;
 }
 
-export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectionProps) {
+export function GameActivitiesSection({
+  showTabs = false,
+}: GameActivitiesSectionProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   // Store subscriptions
@@ -130,12 +166,20 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const isLoading = useTransactionQueuesStore((state) => state.isLoading);
   const error = useTransactionQueuesStore((state) => state.error);
   const queueFilter = useTransactionQueuesStore((state) => state.filter);
-  const advancedFilters = useTransactionQueuesStore((state) => state.advancedFilters);
+  const advancedFilters = useTransactionQueuesStore(
+    (state) => state.advancedFilters,
+  );
   const setFilter = useTransactionQueuesStore((state) => state.setFilter);
-  const setFilterWithoutFetch = useTransactionQueuesStore((state) => state.setFilterWithoutFetch);
+  const setFilterWithoutFetch = useTransactionQueuesStore(
+    (state) => state.setFilterWithoutFetch,
+  );
   const fetchQueues = useTransactionQueuesStore((state) => state.fetchQueues);
-  const setAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.setAdvancedFiltersWithoutFetch);
-  const clearAdvancedFiltersWithoutFetch = useTransactionQueuesStore((state) => state.clearAdvancedFiltersWithoutFetch);
+  const setAdvancedFiltersWithoutFetch = useTransactionQueuesStore(
+    (state) => state.setAdvancedFiltersWithoutFetch,
+  );
+  const clearAdvancedFiltersWithoutFetch = useTransactionQueuesStore(
+    (state) => state.clearAdvancedFiltersWithoutFetch,
+  );
   const totalCount = useTransactionQueuesStore((state) => state.count);
   const next = useTransactionQueuesStore((state) => state.next);
   const previous = useTransactionQueuesStore((state) => state.previous);
@@ -143,27 +187,31 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   const pageSize = useTransactionQueuesStore((state) => state.pageSize);
   const setPage = useTransactionQueuesStore((state) => state.setPage);
 
-  const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(DEFAULT_GAME_ACTIVITY_FILTERS);
+  const [filters, setFilters] = useState<HistoryGameActivitiesFiltersState>(
+    DEFAULT_GAME_ACTIVITY_FILTERS,
+  );
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
-  const [gameOptions, setGameOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [gameOptions, setGameOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
   const [isGameLoading, setIsGameLoading] = useState(false);
-  const [operatorOptions, setOperatorOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [operatorOptions, setOperatorOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
   const [isOperatorLoading, setIsOperatorLoading] = useState(false);
   const hasInitializedRef = useRef(false);
   const getStoreState = useTransactionQueuesStore.getState;
 
   // Remove preserveFilters query parameter after reading it
   useEffect(() => {
-    const preserveFilters = searchParams.get('preserveFilters');
-    if (preserveFilters === 'true') {
+    const preserveFilters = searchParams.get("preserveFilters");
+    if (preserveFilters === "true") {
       // Remove the parameter from URL after reading
       const params = new URLSearchParams(window.location.search);
-      params.delete('preserveFilters');
+      params.delete("preserveFilters");
       const newSearch = params.toString();
-      const newUrl = newSearch
-        ? `${pathname}?${newSearch}`
-        : pathname;
-      window.history.replaceState({}, '', newUrl);
+      const newUrl = newSearch ? `${pathname}?${newSearch}` : pathname;
+      window.history.replaceState({}, "", newUrl);
     }
   }, [searchParams, pathname]);
 
@@ -178,7 +226,8 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     hasInitializedRef.current = true;
 
     // Check if we should preserve filters (from player details page)
-    const shouldPreserveFilters = searchParams.get('preserveFilters') === 'true';
+    const shouldPreserveFilters =
+      searchParams.get("preserveFilters") === "true";
 
     // Read current values from store to ensure we have the latest state
     const storeState = getStoreState();
@@ -192,14 +241,19 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     }
 
     // Always ensure filter is set to history
-    if (currentFilter !== 'history') {
-      setFilterWithoutFetch('history');
+    if (currentFilter !== "history") {
+      setFilterWithoutFetch("history");
     }
-  }, [clearAdvancedFiltersWithoutFetch, setFilterWithoutFetch, getStoreState, searchParams]);
+  }, [
+    clearAdvancedFiltersWithoutFetch,
+    setFilterWithoutFetch,
+    getStoreState,
+    searchParams,
+  ]);
 
   // Fetch on mount and when filter/advancedFilters change
   useEffect(() => {
-    if (queueFilter === 'history') {
+    if (queueFilter === "history") {
       fetchQueues();
     }
   }, [queueFilter, advancedFilters, fetchQueues]);
@@ -214,7 +268,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
         const parsedDate = new Date(dateFromValue);
         if (!isNaN(parsedDate.getTime())) {
-          filterState.date_from = parsedDate.toISOString().split('T')[0];
+          filterState.date_from = parsedDate.toISOString().split("T")[0];
         }
       }
     }
@@ -224,7 +278,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
         const parsedDate = new Date(dateToValue);
         if (!isNaN(parsedDate.getTime())) {
-          filterState.date_to = parsedDate.toISOString().split('T')[0];
+          filterState.date_to = parsedDate.toISOString().split("T")[0];
         }
       }
     }
@@ -255,7 +309,9 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
         if (!isMounted) return;
 
         const gamesData = useGamesStore.getState().games;
-        const gamesList = Array.isArray(gamesData) ? gamesData : gamesData ?? [];
+        const gamesList = Array.isArray(gamesData)
+          ? gamesData
+          : (gamesData ?? []);
 
         const uniqueGames = new Map<string, string>();
 
@@ -267,13 +323,15 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
 
         const mappedOptions = Array.from(uniqueGames.entries())
           .map(([value, label]) => ({ value, label }))
-          .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+          .sort((a, b) =>
+            a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+          );
 
         if (isMounted) {
           setGameOptions(mappedOptions);
         }
       } catch (error) {
-        console.error('Failed to load games:', error);
+        console.error("Failed to load games:", error);
       } finally {
         if (isMounted) {
           setIsGameLoading(false);
@@ -309,17 +367,17 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
         // Get company name from URL hostname
         // e.g., bitslot.bruii.com -> bitslot, spincash.bruii.com -> spincash
         // For localhost, default to bitslot
-        let companyName = 'bitslot';
-        if (typeof window !== 'undefined') {
+        let companyName = "bitslot";
+        if (typeof window !== "undefined") {
           const hostname = window.location.hostname;
-          if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            companyName = 'bitslot';
-          } else if (hostname.includes('.bruii.com')) {
+          if (hostname === "localhost" || hostname === "127.0.0.1") {
+            companyName = "bitslot";
+          } else if (hostname.includes(".bruii.com")) {
             // Extract subdomain (company name) from hostname
-            companyName = hostname.split('.bruii.com')[0];
+            companyName = hostname.split(".bruii.com")[0];
           } else {
             // Fallback: try to extract subdomain if it exists
-            const parts = hostname.split('.');
+            const parts = hostname.split(".");
             if (parts.length > 1) {
               companyName = parts[0];
             }
@@ -329,7 +387,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
         // Get user role and username from localStorage
         let userRole: string | undefined;
         let username: string | undefined;
-        const userData = storage.get('user');
+        const userData = storage.get("user");
         if (userData) {
           try {
             const user = JSON.parse(userData);
@@ -340,53 +398,70 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
               username = user.username;
             }
           } catch (error) {
-            console.warn('Failed to parse user data from localStorage:', error);
+            console.warn("Failed to parse user data from localStorage:", error);
           }
         }
 
         const operatorMap = new Map<string, { value: string; label: string }>();
 
         // Add "Bot" operator - use 'bot' as value, 'Bot' as label
-        operatorMap.set('bot', { value: 'bot', label: 'Bot' });
+        operatorMap.set("bot", { value: "bot", label: "Bot" });
 
         // Add "Company" - use company name from URL
-        operatorMap.set(companyName, { value: companyName, label: companyName });
+        operatorMap.set(companyName, {
+          value: companyName,
+          label: companyName,
+        });
 
         // Add user's username for managers and staff
-        if ((userRole === 'manager' || userRole === 'staff') && username) {
+        if ((userRole === "manager" || userRole === "staff") && username) {
           operatorMap.set(username, { value: username, label: username });
         }
 
         // Try to fetch active staff (may fail for staff users due to permissions)
         // Skip if current user is staff
-        if (userRole !== 'staff') {
+        if (userRole !== "staff") {
           try {
             const staffResponse = await staffsApi.list({ page_size: 100 });
-            const activeStaff = (staffResponse?.results || []).filter((staff: Staff) => staff.is_active);
+            const activeStaff = (staffResponse?.results || []).filter(
+              (staff: Staff) => staff.is_active,
+            );
             activeStaff.forEach((staff: Staff) => {
               if (staff?.username) {
-                operatorMap.set(staff.username, { value: staff.username, label: staff.username });
+                operatorMap.set(staff.username, {
+                  value: staff.username,
+                  label: staff.username,
+                });
               }
             });
           } catch (error) {
             // Permission denied is expected for staff users - silently skip
-            console.debug('Cannot load staff list (permission denied - expected for staff users)');
+            console.debug(
+              "Cannot load staff list (permission denied - expected for staff users)",
+            );
           }
         }
 
         // Try to fetch active managers (skip if current user is manager)
-        if (userRole !== 'manager') {
+        if (userRole !== "manager") {
           try {
             const managersResponse = await managersApi.list({ page_size: 100 });
-            const activeManagers = (managersResponse?.results || []).filter((manager: Manager) => manager.is_active);
+            const activeManagers = (managersResponse?.results || []).filter(
+              (manager: Manager) => manager.is_active,
+            );
             activeManagers.forEach((manager: Manager) => {
               if (manager?.username) {
-                operatorMap.set(manager.username, { value: manager.username, label: manager.username });
+                operatorMap.set(manager.username, {
+                  value: manager.username,
+                  label: manager.username,
+                });
               }
             });
           } catch (error) {
             // Permission denied is expected for staff users - silently skip
-            console.debug('Cannot load managers list (permission denied - expected for staff users)');
+            console.debug(
+              "Cannot load managers list (permission denied - expected for staff users)",
+            );
           }
         }
 
@@ -400,11 +475,13 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
           const bValue = b[1].value;
           const aLabel = a[1].label;
           const bLabel = b[1].label;
-          if (aValue === 'bot') return -1;
-          if (bValue === 'bot') return 1;
+          if (aValue === "bot") return -1;
+          if (bValue === "bot") return 1;
           if (aValue === companyName) return -1;
           if (bValue === companyName) return 1;
-          return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+          return aLabel.localeCompare(bLabel, undefined, {
+            sensitivity: "base",
+          });
         });
 
         const mappedOptions = sortedEntries.map(([, option]) => option);
@@ -413,7 +490,10 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
           setOperatorOptions(mappedOptions);
         }
       } catch (error) {
-        console.error('Failed to load operators for game activity filters:', error);
+        console.error(
+          "Failed to load operators for game activity filters:",
+          error,
+        );
       } finally {
         if (isMounted && !isCancelled) {
           setIsOperatorLoading(false);
@@ -430,23 +510,33 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [operatorOptions.length]);
 
-  const handleFilterChange = useCallback((key: keyof HistoryGameActivitiesFiltersState, value: string) => {
-    setFilters((previous) => ({ ...previous, [key]: value }));
-  }, []);
+  const handleFilterChange = useCallback(
+    (key: keyof HistoryGameActivitiesFiltersState, value: string) => {
+      if (key === "date_preset" || key === "date_from" || key === "date_to") {
+        setFilters((previous) =>
+          applyListDateFilterChange(previous, key, value),
+        );
+        return;
+      }
+      setFilters((previous) => ({ ...previous, [key]: value }));
+    },
+    [],
+  );
 
   const handleApplyFilters = useCallback(() => {
     const sanitized = Object.fromEntries(
-      Object.entries(filters).filter(([, value]) => {
-        if (typeof value === 'string') {
-          return value.trim() !== '';
+      Object.entries(filters).filter(([key, value]) => {
+        if (key === "date_preset") return false;
+        if (typeof value === "string") {
+          return value.trim() !== "";
         }
         return Boolean(value);
-      })
+      }),
     ) as Record<string, string>;
 
     // Map reset_password to change_password for query params
-    if (sanitized.type === 'reset_password') {
-      sanitized.type = 'change_password';
+    if (sanitized.type === "reset_password") {
+      sanitized.type = "change_password";
     }
 
     // Format dates
@@ -455,7 +545,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       if (dateFromValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateFromValue)) {
         const parsedDate = new Date(dateFromValue);
         if (!isNaN(parsedDate.getTime())) {
-          sanitized.date_from = parsedDate.toISOString().split('T')[0];
+          sanitized.date_from = parsedDate.toISOString().split("T")[0];
         }
       }
     }
@@ -465,7 +555,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
       if (dateToValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateToValue)) {
         const parsedDate = new Date(dateToValue);
         if (!isNaN(parsedDate.getTime())) {
-          sanitized.date_to = parsedDate.toISOString().split('T')[0];
+          sanitized.date_to = parsedDate.toISOString().split("T")[0];
         }
       }
     }
@@ -482,13 +572,19 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
     setAreFiltersOpen((previous) => !previous);
   }, []);
 
-  const handleQueueFilterChange = useCallback((value: QueueFilterOption) => {
-    setFilter(value);
-  }, [setFilter]);
+  const handleQueueFilterChange = useCallback(
+    (value: QueueFilterOption) => {
+      setFilter(value);
+    },
+    [setFilter],
+  );
 
-  const handlePageChange = useCallback((page: number) => {
-    void setPage(page);
-  }, [setPage]);
+  const handlePageChange = useCallback(
+    (page: number) => {
+      void setPage(page);
+    },
+    [setPage],
+  );
 
   const results = queues ?? [];
   const isInitialLoading = isLoading;
@@ -498,7 +594,7 @@ export function GameActivitiesSection({ showTabs = false }: GameActivitiesSectio
   return (
     <DashboardSectionContainer
       isLoading={isInitialLoading}
-      error={error ?? ''}
+      error={error ?? ""}
       onRetry={fetchQueues}
       isEmpty={false}
       emptyState={null}
@@ -537,7 +633,10 @@ interface HistoryGameActivitiesLayoutProps {
   queueFilter: QueueFilterOption;
   onQueueFilterChange: (value: QueueFilterOption) => void;
   filters: HistoryGameActivitiesFiltersState;
-  onFilterChange: (key: keyof HistoryGameActivitiesFiltersState, value: string) => void;
+  onFilterChange: (
+    key: keyof HistoryGameActivitiesFiltersState,
+    value: string,
+  ) => void;
   onApplyFilters: () => void;
   onClearFilters: () => void;
   areFiltersOpen: boolean;
@@ -568,21 +667,35 @@ function HistoryGameActivitiesLayout({
   isOperatorLoading,
   isLoading,
 }: HistoryGameActivitiesLayoutProps) {
-  const totalPages = pagination.pageSize > 0
-    ? Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))
-    : 1;
+  const totalPages =
+    pagination.pageSize > 0
+      ? Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))
+      : 1;
 
-  const shouldShowPagination = pagination.totalCount > pagination.pageSize || pagination.hasNext || pagination.hasPrevious;
+  const shouldShowPagination =
+    pagination.totalCount > pagination.pageSize ||
+    pagination.hasNext ||
+    pagination.hasPrevious;
 
   return (
-    <>
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
       {/* Compact Header */}
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-[#eff3ff] dark:bg-indigo-950/30">
-        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sFm:p-3 md:p-4 lg:p-6">
+        <div className="relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 md:p-4 lg:p-6">
           {/* Icon */}
           <div className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md shrink-0">
-            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z" />
+            <svg
+              className="h-4 w-4 sm:h-5 sm:w-5 text-white"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-4 4h2M7 20l1-4h8l1 4M6 8h12l2 4-2 4H6L4 12l2-4zM9 4h6l1 4H8l1-4z"
+              />
             </svg>
           </div>
 
@@ -617,7 +730,7 @@ function HistoryGameActivitiesLayout({
         shouldShowPagination={shouldShowPagination}
         isLoading={isLoading}
       />
-    </>
+    </div>
   );
 }
 
@@ -636,9 +749,13 @@ function HistoryGameActivitiesTable({
   shouldShowPagination,
   isLoading,
 }: HistoryGameActivitiesTableProps) {
-  const [selectedActivity, setSelectedActivity] = useState<TransactionQueue | null>(null);
+  const [selectedActivity, setSelectedActivity] =
+    useState<TransactionQueue | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [pendingDrawerPage, setPendingDrawerPage] = useState<{ page: number; focus: 'first' | 'last' } | null>(null);
+  const [pendingDrawerPage, setPendingDrawerPage] = useState<{
+    page: number;
+    focus: "first" | "last";
+  } | null>(null);
 
   const handleViewActivity = useCallback((activity: TransactionQueue) => {
     setSelectedActivity(activity);
@@ -665,7 +782,7 @@ function HistoryGameActivitiesTable({
     if (pagination.currentPage <= 1) {
       return;
     }
-    setPendingDrawerPage({ page: pagination.currentPage - 1, focus: 'last' });
+    setPendingDrawerPage({ page: pagination.currentPage - 1, focus: "last" });
     pagination.onPageChange(pagination.currentPage - 1);
   }, [selectedActivity, isLoading, pendingDrawerPage, queues, pagination]);
 
@@ -684,9 +801,16 @@ function HistoryGameActivitiesTable({
     if (pagination.currentPage >= totalPages) {
       return;
     }
-    setPendingDrawerPage({ page: pagination.currentPage + 1, focus: 'first' });
+    setPendingDrawerPage({ page: pagination.currentPage + 1, focus: "first" });
     pagination.onPageChange(pagination.currentPage + 1);
-  }, [selectedActivity, isLoading, pendingDrawerPage, queues, pagination, totalPages]);
+  }, [
+    selectedActivity,
+    isLoading,
+    pendingDrawerPage,
+    queues,
+    pagination,
+    totalPages,
+  ]);
 
   useEffect(() => {
     if (!pendingDrawerPage || !isViewModalOpen || isLoading) {
@@ -700,14 +824,20 @@ function HistoryGameActivitiesTable({
       return;
     }
     const nextActivity =
-      pendingDrawerPage.focus === 'first'
+      pendingDrawerPage.focus === "first"
         ? queues[0]
         : queues[queues.length - 1];
     if (nextActivity) {
       setSelectedActivity(nextActivity);
     }
     setPendingDrawerPage(null);
-  }, [pendingDrawerPage, isViewModalOpen, isLoading, pagination.currentPage, queues]);
+  }, [
+    pendingDrawerPage,
+    isViewModalOpen,
+    isLoading,
+    pagination.currentPage,
+    queues,
+  ]);
 
   const activityDrawerNavigation = useMemo(() => {
     if (!selectedActivity || pagination.totalCount <= 0) {
@@ -718,7 +848,8 @@ function HistoryGameActivitiesTable({
       return undefined;
     }
     return {
-      currentPosition: (pagination.currentPage - 1) * pagination.pageSize + idx + 1,
+      currentPosition:
+        (pagination.currentPage - 1) * pagination.pageSize + idx + 1,
       total: pagination.totalCount,
       onPrevious: handleNavigateToPreviousActivity,
       onNext: handleNavigateToNextActivity,
@@ -748,39 +879,12 @@ function HistoryGameActivitiesTable({
           </div>
         ) : (
           <>
-            {/* Mobile Card View */}
-            <div className="lg:hidden space-y-3 px-3 sm:px-4 pb-4 pt-4">
-              {queues.map((activity) => (
-                <GameActivityCard
-                  key={activity.id}
-                  activity={activity}
-                  onView={handleViewActivity}
-                />
-              ))}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Game</TableHead>
-                    <TableHead>Game Username</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Balance</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dates</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {queues.map((activity) => (
-                    <HistoryGameActivityRow key={activity.id} activity={activity} onView={handleViewActivity} />
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <GameActivityTable
+              activities={queues}
+              onViewDetails={handleViewActivity}
+              showActions={false}
+              className="border-0"
+            />
 
             {shouldShowPagination && (
               <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
@@ -809,57 +913,79 @@ function HistoryGameActivitiesTable({
   );
 }
 
-
 interface HistoryGameActivityRowProps {
   activity: TransactionQueue;
   onView: (activity: TransactionQueue) => void;
 }
 
-function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProps) {
+function HistoryGameActivityRow({
+  activity,
+  onView,
+}: HistoryGameActivityRowProps) {
   const statusVariant = mapStatusToVariant(activity.status);
   const typeLabel = mapTypeToLabel(activity.type);
   const typeVariant = mapTypeToVariant(activity.type);
   const formattedAmount = formatCurrency(activity.amount);
-  const isRecharge = activity.type === 'recharge_game';
-  const isRedeem = activity.type === 'redeem_game';
+  const isRecharge = activity.type === "recharge_game";
+  const isRedeem = activity.type === "redeem_game";
 
-  const amountValue = parseFloat(activity.amount || '0');
+  const amountValue = parseFloat(activity.amount || "0");
   const isZeroAmount = amountValue === 0 || isNaN(amountValue);
   const typeStr = String(activity.type);
-  const isNonMonetaryType = typeStr === 'create_game' ||
-    typeStr === 'reset_password' ||
-    typeStr === 'change_password' ||
-    typeStr === 'add_user_game';
+  const isNonMonetaryType =
+    typeStr === "create_game" ||
+    typeStr === "reset_password" ||
+    typeStr === "change_password" ||
+    typeStr === "add_user_game";
+  const isAddUserAction =
+    typeStr === "add_user_game" || typeStr === "create_game";
   const shouldShowDash = isZeroAmount && isNonMonetaryType;
 
   const bonus = activity.bonus_amount || activity.data?.bonus_amount;
-  const bonusValue = bonus ? (typeof bonus === 'string' || typeof bonus === 'number'
-    ? parseFloat(String(bonus))
-    : 0) : 0;
+  const bonusValue = bonus
+    ? typeof bonus === "string" || typeof bonus === "number"
+      ? parseFloat(String(bonus))
+      : 0
+    : 0;
   const bonusAmount = bonusValue > 0 ? bonus : null;
-  const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+  const formattedBonus = bonusAmount
+    ? formatCurrency(String(bonusAmount))
+    : null;
 
   const previousCredits = activity.data?.previous_credits_balance;
-  const previousCreditsValue = previousCredits !== undefined && previousCredits !== null
-    ? (typeof previousCredits === 'string' || typeof previousCredits === 'number' ? parseFloat(String(previousCredits)) : null)
-    : null;
-  const formattedPreviousCredits = previousCreditsValue !== null && !isNaN(previousCreditsValue) ? formatCurrency(String(previousCreditsValue)) : null;
+  const previousCreditsValue =
+    previousCredits !== undefined && previousCredits !== null
+      ? typeof previousCredits === "string" ||
+        typeof previousCredits === "number"
+        ? parseFloat(String(previousCredits))
+        : null
+      : null;
+  const formattedPreviousCredits =
+    previousCreditsValue !== null && !isNaN(previousCreditsValue)
+      ? formatCurrency(String(previousCreditsValue))
+      : null;
 
   const newCredits = activity.data?.new_credits_balance;
-  const newCreditsValue = newCredits !== undefined && newCredits !== null
-    ? (typeof newCredits === 'string' || typeof newCredits === 'number' ? parseFloat(String(newCredits)) : null)
-    : null;
-  const formattedNewCredits = newCreditsValue !== null && !isNaN(newCreditsValue) ? formatCurrency(String(newCreditsValue)) : null;
+  const newCreditsValue =
+    newCredits !== undefined && newCredits !== null
+      ? typeof newCredits === "string" || typeof newCredits === "number"
+        ? parseFloat(String(newCredits))
+        : null
+      : null;
+  const formattedNewCredits =
+    newCreditsValue !== null && !isNaN(newCreditsValue)
+      ? formatCurrency(String(newCreditsValue))
+      : null;
 
-  const zeroCurrency = formatCurrency('0');
+  const zeroCurrency = formatCurrency("0");
 
   /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
   const previousCreditsNum = previousCreditsValue ?? 0;
   const newCreditsNum = newCreditsValue ?? 0;
   const creditsChanged = previousCreditsNum !== newCreditsNum;
   const creditsColorClass = creditsChanged
-    ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
-    : 'text-gray-600 dark:text-gray-400';
+    ? "text-indigo-600 dark:text-indigo-400 font-semibold"
+    : "text-gray-600 dark:text-gray-400";
 
   const creditsDisplayText = formatBalanceTransitionDisplay(
     formattedPreviousCredits,
@@ -867,25 +993,32 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
     zeroCurrency,
   );
 
-  const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
-    ? activity.user_username.trim()
-    : null;
+  const websiteUsername =
+    typeof activity.user_username === "string" && activity.user_username.trim()
+      ? activity.user_username.trim()
+      : null;
 
-  const websiteEmail = typeof activity.user_email === 'string' && activity.user_email.trim()
-    ? activity.user_email.trim()
-    : null;
+  const websiteEmail =
+    typeof activity.user_email === "string" && activity.user_email.trim()
+      ? activity.user_email.trim()
+      : null;
 
-  const gameUsername = typeof activity.game_username === 'string' && activity.game_username.trim()
-    ? activity.game_username.trim()
-    : (activity.data && typeof activity.data === 'object' && activity.data !== null && typeof activity.data.username === 'string' && activity.data.username.trim()
-      ? activity.data.username.trim()
-      : null);
-
-  const isAddUserAction = typeStr === 'add_user_game' || typeStr === 'create_game';
+  const gameUsername =
+    typeof activity.game_username === "string" && activity.game_username.trim()
+      ? activity.game_username.trim()
+      : activity.data &&
+          typeof activity.data === "object" &&
+          activity.data !== null &&
+          typeof activity.data.username === "string" &&
+          activity.data.username.trim()
+        ? activity.data.username.trim()
+        : null;
 
   const userInitial = websiteUsername
     ? websiteUsername.charAt(0).toUpperCase()
-    : (activity.user_id ? String(activity.user_id).charAt(0) : '—');
+    : activity.user_id
+      ? String(activity.user_id).charAt(0)
+      : "—";
 
   const formattedCreatedAt = formatDate(activity.created_at);
   const formattedUpdatedAt = formatDate(activity.updated_at);
@@ -894,8 +1027,20 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
     onView(activity);
   }, [activity, onView]);
 
-  const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
-  const bonusColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400');
+  const amountColorClass = shouldShowDash
+    ? ""
+    : isRedeem
+      ? "text-orange-600 dark:text-orange-400"
+      : isRecharge
+        ? "text-purple-600 dark:text-purple-400"
+        : "text-foreground";
+  const bonusColorClass = shouldShowDash
+    ? ""
+    : isRedeem
+      ? "text-orange-600 dark:text-orange-400"
+      : isRecharge
+        ? "text-purple-600 dark:text-purple-400"
+        : "text-foreground";
 
   return (
     <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
@@ -936,15 +1081,18 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="font-medium">{activity.game}</div>
-      </TableCell>
-      <TableCell>
-        <div className="font-medium">{gameUsername || (isAddUserAction ? 'New user added' : '—')}</div>
+        <div className="font-medium">
+          {activity.game}
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {" · "}
+            {gameUsername || (isAddUserAction ? "New user added" : "—")}
+          </span>
+        </div>
       </TableCell>
       <TableCell>
         <div className="space-y-1">
           <div className={`font-semibold ${amountColorClass}`}>
-            {shouldShowDash ? '—' : formattedAmount}
+            {shouldShowDash ? "—" : formattedAmount}
           </div>
           {formattedBonus && (
             <div className={`text-xs ${bonusColorClass}`}>
@@ -955,7 +1103,9 @@ function HistoryGameActivityRow({ activity, onView }: HistoryGameActivityRowProp
       </TableCell>
       <TableCell>
         <div className={`text-xs ${creditsColorClass}`}>
-          {creditsDisplayText}
+          {showsGameCreditsBalanceForActivityType(typeStr)
+            ? creditsDisplayText
+            : "—"}
         </div>
       </TableCell>
       <TableCell>
@@ -984,59 +1134,86 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
   const typeLabel = mapTypeToLabel(activity.type);
   const typeVariant = mapTypeToVariant(activity.type);
   const formattedAmount = formatCurrency(activity.amount);
-  const isRecharge = activity.type === 'recharge_game';
-  const isRedeem = activity.type === 'redeem_game';
+  const isRecharge = activity.type === "recharge_game";
+  const isRedeem = activity.type === "redeem_game";
 
-  const amountValue = parseFloat(activity.amount || '0');
+  const amountValue = parseFloat(activity.amount || "0");
   const isZeroAmount = amountValue === 0 || isNaN(amountValue);
   const typeStr = String(activity.type);
-  const isNonMonetaryType = typeStr === 'create_game' ||
-    typeStr === 'reset_password' ||
-    typeStr === 'change_password' ||
-    typeStr === 'add_user_game';
+  const isNonMonetaryType =
+    typeStr === "create_game" ||
+    typeStr === "reset_password" ||
+    typeStr === "change_password" ||
+    typeStr === "add_user_game";
+  const isAddUserAction =
+    typeStr === "add_user_game" || typeStr === "create_game";
   const shouldShowDash = isZeroAmount && isNonMonetaryType;
 
   const bonus = activity.bonus_amount || activity.data?.bonus_amount;
-  const bonusValue = bonus ? (typeof bonus === 'string' || typeof bonus === 'number'
-    ? parseFloat(String(bonus))
-    : 0) : 0;
+  const bonusValue = bonus
+    ? typeof bonus === "string" || typeof bonus === "number"
+      ? parseFloat(String(bonus))
+      : 0
+    : 0;
   const bonusAmount = bonusValue > 0 ? bonus : null;
-  const formattedBonus = bonusAmount ? formatCurrency(String(bonusAmount)) : null;
+  const formattedBonus = bonusAmount
+    ? formatCurrency(String(bonusAmount))
+    : null;
 
   // Balance data parsing (same as desktop)
   const previousCredits = activity.data?.previous_credits_balance;
-  const previousCreditsValue = previousCredits !== undefined && previousCredits !== null
-    ? (typeof previousCredits === 'string' || typeof previousCredits === 'number' ? parseFloat(String(previousCredits)) : null)
-    : null;
-  const formattedPreviousCredits = previousCreditsValue !== null && !isNaN(previousCreditsValue) ? formatCurrency(String(previousCreditsValue)) : null;
+  const previousCreditsValue =
+    previousCredits !== undefined && previousCredits !== null
+      ? typeof previousCredits === "string" ||
+        typeof previousCredits === "number"
+        ? parseFloat(String(previousCredits))
+        : null
+      : null;
+  const formattedPreviousCredits =
+    previousCreditsValue !== null && !isNaN(previousCreditsValue)
+      ? formatCurrency(String(previousCreditsValue))
+      : null;
 
   const newCredits = activity.data?.new_credits_balance;
-  const newCreditsValue = newCredits !== undefined && newCredits !== null
-    ? (typeof newCredits === 'string' || typeof newCredits === 'number' ? parseFloat(String(newCredits)) : null)
-    : null;
-  const formattedNewCredits = newCreditsValue !== null && !isNaN(newCreditsValue) ? formatCurrency(String(newCreditsValue)) : null;
+  const newCreditsValue =
+    newCredits !== undefined && newCredits !== null
+      ? typeof newCredits === "string" || typeof newCredits === "number"
+        ? parseFloat(String(newCredits))
+        : null
+      : null;
+  const formattedNewCredits =
+    newCreditsValue !== null && !isNaN(newCreditsValue)
+      ? formatCurrency(String(newCreditsValue))
+      : null;
 
   /* Logic for highlighting - Match Transactions Page (Indigo for changes) */
   const previousCreditsNum = previousCreditsValue ?? 0;
   const newCreditsNum = newCreditsValue ?? 0;
   const creditsChanged = previousCreditsNum !== newCreditsNum;
   const creditsColorClass = creditsChanged
-    ? 'text-indigo-600 dark:text-indigo-400'
-    : 'text-gray-500 dark:text-gray-400';
+    ? "text-indigo-600 dark:text-indigo-400"
+    : "text-gray-500 dark:text-gray-400";
 
-  const websiteUsername = typeof activity.user_username === 'string' && activity.user_username.trim()
-    ? activity.user_username.trim()
-    : `User ${activity.user_id}`;
+  const websiteUsername =
+    typeof activity.user_username === "string" && activity.user_username.trim()
+      ? activity.user_username.trim()
+      : `User ${activity.user_id}`;
 
-  const websiteEmail = typeof activity.user_email === 'string' && activity.user_email.trim()
-    ? activity.user_email.trim()
-    : null;
+  const websiteEmail =
+    typeof activity.user_email === "string" && activity.user_email.trim()
+      ? activity.user_email.trim()
+      : null;
 
-  const gameUsername = typeof activity.game_username === 'string' && activity.game_username.trim()
-    ? activity.game_username.trim()
-    : (activity.data && typeof activity.data === 'object' && activity.data !== null && typeof activity.data.username === 'string' && activity.data.username.trim()
-      ? activity.data.username.trim()
-      : null);
+  const gameUsername =
+    typeof activity.game_username === "string" && activity.game_username.trim()
+      ? activity.game_username.trim()
+      : activity.data &&
+          typeof activity.data === "object" &&
+          activity.data !== null &&
+          typeof activity.data.username === "string" &&
+          activity.data.username.trim()
+        ? activity.data.username.trim()
+        : null;
 
   const formattedCreatedAt = formatDate(activity.created_at);
   const formattedUpdatedAt = formatDate(activity.updated_at);
@@ -1045,7 +1222,13 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
     onView(activity);
   }, [activity, onView]);
 
-  const amountColorClass = shouldShowDash ? '' : (isRedeem ? 'text-red-600 dark:text-red-400' : (isRecharge ? 'text-green-600 dark:text-green-400' : 'text-foreground'));
+  const amountColorClass = shouldShowDash
+    ? ""
+    : isRedeem
+      ? "text-orange-600 dark:text-orange-400"
+      : isRecharge
+        ? "text-purple-600 dark:text-purple-400"
+        : "text-foreground";
 
   const userInitial = websiteUsername.charAt(0).toUpperCase();
 
@@ -1054,21 +1237,21 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
   const newCredit = newCreditsValue ?? 0;
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden">
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-start gap-3">
+    <div className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900">
+      <div className="border-b border-gray-100 px-3 py-2.5 dark:border-gray-800">
+        <div className="flex items-start gap-2.5">
           <button
             type="button"
             onClick={handleOpenDetails}
             className="flex-shrink-0 touch-manipulation"
             title="View activity details"
           >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md cursor-pointer hover:opacity-80 transition-opacity">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-85">
               {userInitial}
             </div>
           </button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1.5">
+            <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <button
                   type="button"
@@ -1076,120 +1259,197 @@ function GameActivityCard({ activity, onView }: GameActivityCardProps) {
                   className="text-left w-full touch-manipulation"
                   title="View activity details"
                 >
-                  <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                  <h3 className="truncate text-sm font-semibold leading-5 text-gray-900 transition-colors hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                     {websiteUsername}
                   </h3>
                 </button>
                 {websiteEmail && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                  <p className="mt-0.5 truncate text-[11px] leading-4 text-gray-500 dark:text-gray-400">
                     {websiteEmail}
                   </p>
                 )}
               </div>
-              <Badge 
-                variant={typeVariant} 
-                className="text-[10px] px-2 py-0.5 uppercase shrink-0"
+              <Badge
+                variant={typeVariant}
+                className="h-5 shrink-0 px-2 text-[10px] uppercase"
               >
                 {typeLabel}
               </Badge>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant={statusVariant} className="text-[10px] px-2 py-0.5 capitalize">
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              <Badge
+                variant={statusVariant}
+                className="h-5 px-2 text-[10px] capitalize"
+              >
                 {activity.status}
               </Badge>
               {activity.game && (
                 <Badge
                   variant="info"
-                  className="text-[10px] px-2 py-0.5 truncate flex-1 min-w-0"
+                  className="h-5 min-w-0 flex-1 truncate px-2 text-[10px]"
                 >
                   {activity.game}
                 </Badge>
               )}
             </div>
-            {gameUsername && (
-              <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">
-                Game Username: <span className="font-medium text-gray-700 dark:text-gray-300">{gameUsername}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
-          <div className="text-right">
-            <div className={`text-base font-bold ${amountColorClass}`}>
-              {shouldShowDash ? '—' : formattedAmount}
+            <div className="mt-1.5 text-[11px] text-gray-600 dark:text-gray-300 truncate">
+              {activity.game}
+              <span className="text-gray-500 dark:text-gray-400">
+                {" · "}
+                {gameUsername || (isAddUserAction ? "New user added" : "—")}
+              </span>
             </div>
-            {formattedBonus && (
-              <div className={`text-xs font-semibold mt-0.5 ${amountColorClass}`}>
-                +{formattedBonus} bonus
+          </div>
+        </div>
+      </div>
+
+      {!isNonMonetaryGameActivityType(typeStr) && (
+        <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Amount
+            </span>
+            <div className="text-right">
+              <div className={`text-sm font-semibold ${amountColorClass}`}>
+                {shouldShowDash ? "—" : formattedAmount}
               </div>
-            )}
+              {formattedBonus && (
+                <div
+                  className={`mt-0.5 text-[11px] font-medium ${amountColorClass}`}
+                >
+                  +{formattedBonus} bonus
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex-1 min-w-0">
-          <div className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Balance</div>
-          <div className={`text-xs ${creditsColorClass} flex items-center gap-1`}>
-            <span className="truncate">{formatCurrency(String(prevCredit))}</span>
-            <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-            <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
+      {showsGameCreditsBalanceForActivityType(typeStr) && (
+        <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
+          <div className="flex-1 min-w-0">
+            <div className="mb-0.5 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Balance
+            </div>
+            <div
+              className={`flex items-center gap-1 text-[11px] ${creditsColorClass}`}
+            >
+              <span className="truncate">
+                {formatCurrency(String(prevCredit))}
+              </span>
+              <svg
+                className="h-3 w-3 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+              <span className="font-semibold truncate">
+                {formatCurrency(String(newCredit))}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="p-3">
+      <div className="flex items-center justify-between px-3 py-2">
         <div className="flex items-center justify-between gap-3 text-[10px] text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-1.5">
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
             <span>{formattedCreatedAt}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <span>{formattedUpdatedAt}</span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={handleOpenDetails}
+          className="rounded-md border border-gray-200 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          Details
+        </button>
       </div>
     </div>
   );
 }
 
 // Helper functions
-function mapStatusToVariant(status: string): 'default' | 'success' | 'warning' | 'danger' {
+function mapStatusToVariant(
+  status: string,
+): "default" | "success" | "warning" | "danger" {
   const statusLower = status?.toLowerCase();
-  if (statusLower === 'completed' || statusLower === 'complete') return 'success';
-  if (statusLower === 'pending' || statusLower === 'processing') return 'warning';
-  if (statusLower === 'failed' || statusLower === 'cancelled' || statusLower === 'canceled') return 'danger';
-  return 'default';
+  if (statusLower === "completed" || statusLower === "complete")
+    return "success";
+  if (statusLower === "pending" || statusLower === "processing")
+    return "warning";
+  if (
+    statusLower === "failed" ||
+    statusLower === "cancelled" ||
+    statusLower === "canceled"
+  )
+    return "danger";
+  return "default";
 }
 
 function mapTypeToLabel(type: string): string {
-  if (!type) return '—';
-  if (type === 'recharge_game') return 'Recharge';
-  if (type === 'redeem_game') return 'Redeem';
-  if (type === 'add_user_game' || type === 'create_game') return 'Add User';
-  if (type === 'change_password' || type === 'reset_password') return 'Reset';
-  return type.replace(/_/g, ' ');
+  if (!type) return "—";
+  if (type === "recharge_game") return "Recharge";
+  if (type === "redeem_game") return "Redeem";
+  if (type === "add_user_game" || type === "create_game") return "Add User";
+  if (type === "change_password" || type === "reset_password") return "Reset";
+  return type.replace(/_/g, " ");
 }
 
-function mapTypeToVariant(type: string): 'default' | 'success' | 'danger' | 'info' {
-  if (!type) return 'default';
+function mapTypeToVariant(
+  type: string,
+): "default" | "success" | "danger" | "info" {
+  if (!type) return "default";
   const typeLower = type.toLowerCase();
-  if (typeLower === 'recharge_game') return 'success';
-  if (typeLower === 'redeem_game') return 'danger';
-  if (typeLower === 'add_user_game' || typeLower === 'create_game' || typeLower === 'change_password' || typeLower === 'reset_password') return 'info';
-  if (typeLower.includes('recharge') || typeLower.includes('purchase')) return 'success';
-  if (typeLower.includes('redeem') || typeLower.includes('cashout')) return 'danger';
-  if (typeLower.includes('transfer')) return 'info';
-  return 'default';
+  if (typeLower === "recharge_game") return "success";
+  if (typeLower === "redeem_game") return "danger";
+  if (
+    typeLower === "add_user_game" ||
+    typeLower === "create_game" ||
+    typeLower === "change_password" ||
+    typeLower === "reset_password"
+  )
+    return "info";
+  if (typeLower.includes("recharge") || typeLower.includes("purchase"))
+    return "success";
+  if (typeLower.includes("redeem") || typeLower.includes("cashout"))
+    return "danger";
+  if (typeLower.includes("transfer")) return "info";
+  return "default";
 }

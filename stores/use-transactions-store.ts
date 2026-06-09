@@ -5,6 +5,7 @@ import {
 } from '@/lib/utils/transaction-provider-filter-options';
 import { transactionsApi } from '@/lib/api';
 import { shouldPreserveLedgerBalancesWhenMerging } from '@/lib/utils/transaction-ledger-ws';
+import { mergeTransactionTextSnapshot } from '@/lib/utils/transaction-ws-merge';
 import { getTransactionKind } from '@/lib/utils/transaction-display';
 import type { 
   Transaction,
@@ -26,6 +27,9 @@ const CARD_MERGE_MAX_DEPTH = 2500;
  * (otherwise UI shows "Page 1 of 6" while only ~1–2 pages of rows exist).
  */
 const CARD_MERGE_MIN_DEPTH = 200;
+
+/** When a fetch runs while another is in flight, rerun once afterward with latest filters. */
+let deferTransactionsFetch = false;
 
 type FilterType = 
   | 'all' 
@@ -83,10 +87,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
   ...initialState,
 
   fetchTransactions: async () => {
-    // Skip fetch if we're already loading (prevent concurrent requests)
+    // Skip concurrent requests — schedule one follow-up with the newest filter/page state.
     const currentState = get();
     if (currentState.isLoading) {
-      console.log('⏭️ Skipping transactions fetch - already loading');
+      deferTransactionsFetch = true;
+      console.log('⏭️ Skipping transactions fetch - already loading (scheduled refetch)');
       return;
     }
 
@@ -509,6 +514,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         delete purchaseFilters.type;
         delete purchaseFilters.txn;
         delete purchaseFilters.txn_type;
+        // Processing purchase endpoint returns the full pending list (no server-side pagination).
+        if (filter === 'pending-purchases') {
+          delete purchaseFilters.page;
+          delete purchaseFilters.page_size;
+        }
         response = await transactionsApi.listPurchases(purchaseFilters);
       } else if (filter === 'cashouts' || filter === 'pending-cashouts') {
         // Use transaction-cashouts endpoint - remove type/txn/txn_type since endpoint handles it
@@ -516,6 +526,11 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         delete cashoutFilters.type;
         delete cashoutFilters.txn;
         delete cashoutFilters.txn_type;
+        // Processing cashout endpoint returns the full pending list (no server-side pagination).
+        if (filter === 'pending-cashouts') {
+          delete cashoutFilters.page;
+          delete cashoutFilters.page_size;
+        }
         response = await transactionsApi.listCashouts(cashoutFilters);
       } else {
         // Use legacy endpoint for other filters (all, processing, etc.)
@@ -561,32 +576,45 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         };
       });
 
-      set({ 
+      const isProcessingPendingView =
+        filter === 'pending-purchases' || filter === 'pending-cashouts';
+
+      set({
         transactions: {
           ...response,
           results: normalizedTransactions,
-          count: response.count ?? normalizedTransactions.length,
-        }, 
+          count: isProcessingPendingView
+            ? normalizedTransactions.length
+            : (response.count ?? normalizedTransactions.length),
+          next: isProcessingPendingView ? null : response.next,
+          previous: isProcessingPendingView ? null : response.previous,
+        },
         isLoading: false,
         error: null,
       });
     } catch (err: unknown) {
       let errorMessage = 'Failed to load transactions';
-      
+
       if (err && typeof err === 'object' && 'detail' in err) {
         errorMessage = String(err.detail);
-        
+
         if (errorMessage.toLowerCase().includes('permission')) {
           errorMessage = 'Access Denied: You need appropriate privileges to view transactions.';
         }
       } else if (err instanceof Error) {
         errorMessage = err.message;
       }
-      
-      set({ 
+
+      set({
         error: errorMessage,
         isLoading: false,
       });
+    }
+
+    const shouldRefetchAfter = deferTransactionsFetch;
+    deferTransactionsFetch = false;
+    if (shouldRefetchAfter) {
+      void get().fetchTransactions();
     }
   },
 
@@ -738,11 +766,21 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         const v = updatedTransaction[key];
         return v != null && String(v).trim() !== '';
       };
+      const mergedDescription = mergeTransactionTextSnapshot(
+        existingTransaction.description,
+        updatedTransaction.description,
+      );
+      const mergedRemarksRaw = mergeTransactionTextSnapshot(
+        existingTransaction.remarks,
+        updatedTransaction.remarks,
+      );
       const mergedTransaction: Transaction = {
         ...existingTransaction,
         ...updatedTransaction,
         user_username: updatedTransaction.user_username || existingTransaction.user_username || '',
         user_email: updatedTransaction.user_email || existingTransaction.user_email || '',
+        description: mergedDescription,
+        remarks: mergedRemarksRaw === '' ? null : mergedRemarksRaw,
         provider: hasWsProvider ? updatedTransaction.provider : existingTransaction.provider,
         payment_details: hasWsPaymentDetails ? updatedTransaction.payment_details : existingTransaction.payment_details,
         payment_method: hasWsPaymentMethod ? updatedTransaction.payment_method : existingTransaction.payment_method,

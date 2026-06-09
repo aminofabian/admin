@@ -90,18 +90,29 @@ function normalizeBonusAnalytics(raw: unknown): BonusAnalytics {
     average_first_deposit_bonus_pct: n(o.average_first_deposit_bonus_pct),
     transfer_bonus: n(o.transfer_bonus),
     average_transfer_bonus_pct: n(o.average_transfer_bonus_pct),
-    total_free_play: n(o.total_free_play),
-    average_free_play: n(o.average_free_play),
     seized_or_tipped_fund: n(o.seized_or_tipped_fund),
   };
+}
+
+function analyticsFiltersEffectKey(filters?: AnalyticsFilters): string {
+  if (filters === undefined) return '__pending__';
+  return JSON.stringify(filters);
 }
 
 export function useTransactionSummary(filters?: AnalyticsFilters) {
   const [data, setData] = useState<TransactionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filterEffectKey = analyticsFiltersEffectKey(filters);
 
   useEffect(() => {
+    if (filters === undefined) {
+      setLoading(true);
+      setError(null);
+      setData(null);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -124,7 +135,7 @@ export function useTransactionSummary(filters?: AnalyticsFilters) {
     };
 
     void fetchData();
-  }, [JSON.stringify(filters)]);
+  }, [filterEffectKey, filters]);
 
   return { data, loading, error };
 }
@@ -136,8 +147,19 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
   const [manualAdjustments, setManualAdjustments] = useState<ManualAdjustmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filterEffectKey = analyticsFiltersEffectKey(filters);
 
   useEffect(() => {
+    if (filters === undefined) {
+      setLoading(true);
+      setError(null);
+      setData([]);
+      setPurchaseMethodsGrouped([]);
+      setCashoutMethodsGrouped([]);
+      setManualAdjustments([]);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -195,7 +217,6 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
                 .map(normalizeManualAdjustment)
                 .filter((row): row is ManualAdjustmentRow => row !== null)
             : [];
-
           setData(paymentMethodsArray);
           setPurchaseMethodsGrouped(purchaseGrouped);
           setCashoutMethodsGrouped(cashoutGrouped);
@@ -218,7 +239,7 @@ export function usePaymentMethods(filters?: AnalyticsFilters) {
     };
 
     void fetchData();
-  }, [JSON.stringify(filters)]);
+  }, [filterEffectKey, filters]);
 
   return { data, purchaseMethodsGrouped, cashoutMethodsGrouped, manualAdjustments, loading, error };
 }
@@ -227,8 +248,16 @@ export function useBonusAnalytics(filters?: AnalyticsFilters) {
   const [data, setData] = useState<BonusAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filterEffectKey = analyticsFiltersEffectKey(filters);
 
   useEffect(() => {
+    if (filters === undefined) {
+      setLoading(true);
+      setError(null);
+      setData(null);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -251,7 +280,7 @@ export function useBonusAnalytics(filters?: AnalyticsFilters) {
     };
 
     void fetchData();
-  }, [JSON.stringify(filters)]);
+  }, [filterEffectKey, filters]);
 
   return { data, loading, error };
 }

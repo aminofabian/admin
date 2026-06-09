@@ -3,10 +3,23 @@
 import { memo, useCallback, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
-import { formatCurrency, formatDate, formatPaymentMethod, getPaymentDetailsForDisplay } from '@/lib/utils/formatters';
+import {
+  formatCurrency,
+  formatDate,
+  formatPaymentMethod,
+  getPaymentDetailsForDisplay,
+  isCryptoPaymentMethod,
+} from '@/lib/utils/formatters';
 import type { Transaction } from '@/types';
-import { PROJECT_DOMAIN } from '@/lib/constants/api';
 import { playersApi } from '@/lib/api';
+import { mergeTransactionTextSnapshot } from '@/lib/utils/transaction-ws-merge';
+import {
+  getRouletteTransactionDetailEntries,
+  isRouletteTransaction,
+  parseRouletteTimelineSpins,
+  resolvePlayerTimelineAmountDisplay,
+  type PlayerTimelineItem,
+} from '@/lib/utils/player-timeline';
 import {
   DetailsModalWrapper,
   DetailsCard,
@@ -18,8 +31,6 @@ import {
   DetailsRemarks,
   DetailsCloseButton,
 } from './details-modal-wrapper';
-
-const CRYPTO_PAYMENT_METHODS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'];
 
 const parseNumericValue = (value: string | number | null | undefined): number | null => {
   if (value === null || value === undefined) {
@@ -148,10 +159,43 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
   // Memoize expensive computations
   const isPurchase = useMemo(() => transaction.type === 'purchase', [transaction.type]);
-  const formattedAmount = useMemo(
-    () => formatCurrency(parseNumericValue(transaction.amount) ?? 0),
-    [transaction.amount]
+  const isRoulette = useMemo(() => isRouletteTransaction(transaction), [transaction]);
+
+  const rouletteDetailEntries = useMemo(
+    () => getRouletteTransactionDetailEntries(transaction),
+    [transaction],
   );
+
+  const timelineAmountPreview = useMemo(() => {
+    if (!isRoulette) return null;
+    const spins = parseRouletteTimelineSpins({
+      roulette_spins:
+        transaction.payment_details &&
+        typeof transaction.payment_details === 'object'
+          ? transaction.payment_details.roulette_spins
+          : undefined,
+    });
+    const preview: PlayerTimelineItem = {
+      id: transaction.id,
+      kind: 'transaction',
+      type: transaction.type,
+      status: transaction.status,
+      amount: transaction.amount,
+      bonus_amount: transaction.bonus_amount,
+      roulette_spins: spins,
+      provider: transaction.provider ?? 'roulette',
+      created_at: transaction.created_at,
+      raw: {},
+    };
+    return resolvePlayerTimelineAmountDisplay(preview);
+  }, [isRoulette, transaction]);
+
+  const formattedAmount = useMemo(() => {
+    if (timelineAmountPreview && !timelineAmountPreview.showAsCurrency) {
+      return timelineAmountPreview.primaryText;
+    }
+    return formatCurrency(parseNumericValue(transaction.amount) ?? 0);
+  }, [transaction.amount, timelineAmountPreview]);
   const isPending = useMemo(() => transaction.status === 'pending', [transaction.status]);
   const hasComplete = typeof onComplete === 'function';
   const hasCancel = typeof onCancel === 'function';
@@ -171,6 +215,19 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
     return bonusAmount ? formatCurrency(bonusAmount) : null;
   }, [bonusAmount]);
 
+  const rouletteSpinsMeta = useMemo(() => {
+    const pd = transaction.payment_details;
+    if (!pd || typeof pd !== 'object') return undefined;
+    return parseRouletteTimelineSpins(pd as Record<string, unknown>);
+  }, [transaction.payment_details]);
+
+  const showSpinBalanceInModal = Boolean(
+    isRoulette &&
+      rouletteSpinsMeta &&
+      (rouletteSpinsMeta.previous_balance != null || rouletteSpinsMeta.new_balance != null) &&
+      !((parseNumericValue(transaction.amount) ?? 0) > 0 || (bonusAmount ?? 0) > 0),
+  );
+
   const amountVariant: 'positive' | 'negative' = transaction.type === 'cashout' ? 'negative' : 'positive';
 
   const previousBalanceValue = useMemo(
@@ -183,25 +240,22 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   );
 
   const paymentMethod = useMemo(() => transaction.payment_method ?? '', [transaction.payment_method]);
-  const lowerPaymentMethod = useMemo(() => paymentMethod.toLowerCase(), [paymentMethod]);
-  const isCryptoPayment = useMemo(
-    () => CRYPTO_PAYMENT_METHODS.some((method) => lowerPaymentMethod.includes(method)),
-    [lowerPaymentMethod]
-  );
+  const isCryptoPayment = useMemo(() => isCryptoPaymentMethod(paymentMethod), [paymentMethod]);
 
   const explicitInvoiceUrl = useMemo(() => transaction.payment_url ?? transaction.invoice_url, [transaction.payment_url, transaction.invoice_url]);
   const sanitizedInvoiceUrl = useMemo(() => typeof explicitInvoiceUrl === 'string' ? explicitInvoiceUrl.trim() : '', [explicitInvoiceUrl]);
-  const invoiceUrl = useMemo(() => {
-    if (sanitizedInvoiceUrl.length > 0) {
-      return sanitizedInvoiceUrl;
-    }
-    return transaction.id
-      ? `${(process.env.NEXT_PUBLIC_API_URL ?? PROJECT_DOMAIN).replace(/\/$/, '')}/api/v1/transactions/${transaction.id}/invoice/`
-      : undefined;
-  }, [sanitizedInvoiceUrl, transaction.id]);
+  const invoiceUrl = useMemo(
+    () => (sanitizedInvoiceUrl.length > 0 ? sanitizedInvoiceUrl : undefined),
+    [sanitizedInvoiceUrl],
+  );
 
   const formattedCreatedAt = useMemo(() => formatDate(transaction.created_at), [transaction.created_at]);
   const formattedUpdatedAt = useMemo(() => formatDate(transaction.updated_at), [transaction.updated_at]);
+
+  const remarksForDisplay = useMemo(
+    () => mergeTransactionTextSnapshot(transaction.description, transaction.remarks),
+    [transaction.description, transaction.remarks],
+  );
 
   const handleOpenInvoice = useCallback(() => {
     if (invoiceUrl) {
@@ -210,12 +264,18 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
   }, [invoiceUrl]);
 
   const handleOpenChat = useCallback(() => {
+    if (playerId) {
+      router.push(`/dashboard/chat?playerId=${playerId}`);
+      onClose();
+      return;
+    }
     if (transaction.user_username) {
-      const chatUrl = `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`;
-      router.push(chatUrl);
+      router.push(
+        `/dashboard/chat?username=${encodeURIComponent(transaction.user_username)}`,
+      );
       onClose();
     }
-  }, [router, transaction.user_username, onClose]);
+  }, [router, playerId, transaction.user_username, onClose]);
 
   const handleGoToPlayerDetails = useCallback(() => {
     if (playerId) {
@@ -329,11 +389,29 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
             </div>
           </div>
 
+          {rouletteDetailEntries.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Prize wheel
+              </div>
+              <div className="bg-violet-50 dark:bg-violet-950/30 rounded-md p-3 space-y-2">
+                {rouletteDetailEntries.map(([label, value]) => (
+                  <div key={label} className="flex items-start justify-between gap-3">
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300 min-w-0 flex-shrink-0">
+                      {label}:
+                    </span>
+                    <span className="text-xs text-gray-900 dark:text-gray-100 text-right break-all min-w-0">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Payment Details (provider-specific: email, account name, cashtag, etc.) */}
           {(() => {
-            const entries = getPaymentDetailsForDisplay(transaction).filter(
-              ([label]) => label.toLowerCase() !== 'email'
-            );
+            const entries = getPaymentDetailsForDisplay(transaction);
             return entries.length > 0 ? (
               <div className="space-y-2">
                 <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Payment Details</div>
@@ -364,16 +442,33 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
             {/* Balance Information */}
             <DetailsRow>
-              <DetailsHighlightBox
-                label="Previous Balance"
-                value={formatCurrency(previousBalanceValue)}
-                variant="blue"
-              />
-              <DetailsHighlightBox
-                label="New Balance"
-                value={formatCurrency(newBalanceValue)}
-                variant="green"
-              />
+              {showSpinBalanceInModal && rouletteSpinsMeta ? (
+                <>
+                  <DetailsHighlightBox
+                    label="Spin balance (before)"
+                    value={String(rouletteSpinsMeta.previous_balance ?? 0)}
+                    variant="blue"
+                  />
+                  <DetailsHighlightBox
+                    label="Spin balance (after)"
+                    value={String(rouletteSpinsMeta.new_balance ?? 0)}
+                    variant="green"
+                  />
+                </>
+              ) : (
+                <>
+                  <DetailsHighlightBox
+                    label="Previous Balance"
+                    value={formatCurrency(previousBalanceValue)}
+                    variant="blue"
+                  />
+                  <DetailsHighlightBox
+                    label="New Balance"
+                    value={formatCurrency(newBalanceValue)}
+                    variant="green"
+                  />
+                </>
+              )}
             </DetailsRow>
           </div>
 
@@ -384,8 +479,8 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
               <DetailsField label="Updated" value={formattedUpdatedAt} />
             </DetailsRow>
 
-            {/* Remarks/Description */}
-            {transaction.description && <DetailsRemarks remarks={transaction.description} />}
+            {/* Remarks: API `description` (and optional `remarks`) — merged so list + WS snapshots stay aligned */}
+            {remarksForDisplay.trim().length > 0 ? <DetailsRemarks remarks={remarksForDisplay} /> : null}
 
             {/* View Invoice Button for Crypto Payments - Only for Purchases */}
             {isPurchase && isCryptoPayment && invoiceUrl && (
@@ -404,13 +499,13 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
 
           {/* Action Buttons */}
           {showActions && (
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
-              <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-row flex-wrap gap-2">
                 {hasComplete && (
                   <Button
                     variant="primary"
                     size="sm"
-                    className={hasCancel ? 'flex-1 font-semibold' : 'flex-1 font-semibold'}
+                    className="flex-1 min-w-0 font-semibold"
                     disabled={disableComplete}
                     onClick={onComplete}
                   >
@@ -421,53 +516,49 @@ export const TransactionDetailsModal = memo(function TransactionDetailsModal({
                   <Button
                     variant="danger"
                     size="sm"
-                    className={hasComplete ? 'flex-1 font-semibold' : 'flex-1 font-semibold'}
+                    className="flex-1 min-w-0 font-semibold"
                     disabled={disableCancel}
                     onClick={onCancel}
                   >
                     {isActionLoading ? 'Processing...' : 'Cancel Transaction'}
                   </Button>
                 )}
+                {hasDynamicSendButtons &&
+                  sendToProviderButtons!.map((btn) => (
+                    <Button
+                      key={btn.action}
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1 min-w-0 font-semibold"
+                      disabled={disableSendToProvider}
+                      onClick={() => onSendToProvider!(btn.action)}
+                    >
+                      {isActionLoading ? 'Processing...' : btn.label}
+                    </Button>
+                  ))}
+                {!hasDynamicSendButtons && hasSendToBinpay && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1 min-w-0 font-semibold"
+                    disabled={disableSendToProvider}
+                    onClick={onSendToBinpay}
+                  >
+                    {isActionLoading ? 'Processing...' : 'Send to Binpay'}
+                  </Button>
+                )}
+                {!hasDynamicSendButtons && hasSendToTierlock && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1 min-w-0 font-semibold"
+                    disabled={disableSendToProvider}
+                    onClick={onSendToTierlock}
+                  >
+                    {isActionLoading ? 'Processing...' : 'Send to Tierlock'}
+                  </Button>
+                )}
               </div>
-              {(hasDynamicSendButtons || hasSendToBinpay || hasSendToTierlock) && (
-                <div className="flex flex-col gap-2 sm:flex-row flex-wrap">
-                  {hasDynamicSendButtons &&
-                    sendToProviderButtons!.map((btn) => (
-                      <Button
-                        key={btn.action}
-                        variant="secondary"
-                        size="sm"
-                        className="flex-1 min-w-0 font-semibold"
-                        disabled={disableSendToProvider}
-                        onClick={() => onSendToProvider!(btn.action)}
-                      >
-                        {isActionLoading ? 'Processing...' : btn.label}
-                      </Button>
-                    ))}
-                  {!hasDynamicSendButtons && hasSendToBinpay && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="flex-1 font-semibold"
-                      disabled={disableSendToProvider}
-                      onClick={onSendToBinpay}
-                    >
-                      {isActionLoading ? 'Processing...' : 'Send to Binpay'}
-                    </Button>
-                  )}
-                  {!hasDynamicSendButtons && hasSendToTierlock && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="flex-1 font-semibold"
-                      disabled={disableSendToProvider}
-                      onClick={onSendToTierlock}
-                    >
-                      {isActionLoading ? 'Processing...' : 'Send to Tierlock'}
-                    </Button>
-                  )}
-                </div>
-              )}
             </div>
           )}
         </div>

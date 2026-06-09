@@ -3,6 +3,12 @@
  * Eliminates duplicate connections and provides consistent reconnection logic
  */
 
+import { TOKEN_KEY } from "@/lib/constants/api";
+import { storage } from "@/lib/utils/storage";
+
+/** Query parameter name expected by the backend WebSocket gateways for JWT validation */
+const WEBSOCKET_ACCESS_TOKEN_QUERY = "token" as const;
+
 export interface WebSocketConfig {
   url: string;
   maxReconnectAttempts?: number;
@@ -16,6 +22,7 @@ export interface WebSocketListeners {
   onMessage?: (data: unknown) => void;
   onError?: (error: Event) => void;
   onClose?: (event: CloseEvent) => void;
+  onMaxReconnectAttemptsReached?: () => void;
 }
 
 export interface ManagedWebSocket {
@@ -32,8 +39,12 @@ class WebSocketManager {
   private connections = new Map<string, ManagedWebSocket>();
   private reconnectTimeouts = new Map<string, NodeJS.Timeout>();
   private connectionTimeouts = new Map<string, NodeJS.Timeout>();
+  private pingIntervals = new Map<string, NodeJS.Timeout>();
 
-  private readonly DEFAULT_CONFIG: Required<Omit<WebSocketConfig, 'url'>> = {
+  /** How often the client sends a ping to keep the connection alive (ms) */
+  private readonly PING_INTERVAL_MS = 25000;
+
+  private readonly DEFAULT_CONFIG: Required<Omit<WebSocketConfig, "url">> = {
     maxReconnectAttempts: 5,
     baseDelay: 1000,
     maxDelay: 30000,
@@ -43,7 +54,10 @@ class WebSocketManager {
   /**
    * Connect to WebSocket URL or return existing connection
    */
-  connect(config: WebSocketConfig, listeners: WebSocketListeners): ManagedWebSocket {
+  connect(
+    config: WebSocketConfig,
+    listeners: WebSocketListeners,
+  ): ManagedWebSocket {
     const { url } = config;
 
     // Check if connection already exists
@@ -106,7 +120,7 @@ class WebSocketManager {
       managed.lastActivity = Date.now();
       return true;
     } catch (error) {
-      console.error('❌ [WebSocket Manager] Failed to send message:', error);
+      console.error("❌ [WebSocket Manager] Failed to send message:", error);
       return false;
     }
   }
@@ -132,7 +146,10 @@ class WebSocketManager {
     return new WebSocket(url);
   }
 
-  private setupWebSocket(managed: ManagedWebSocket, config: WebSocketConfig): void {
+  private setupWebSocket(
+    managed: ManagedWebSocket,
+    config: WebSocketConfig,
+  ): void {
     const finalConfig = { ...this.DEFAULT_CONFIG, ...config };
 
     managed.ws.onopen = () => {
@@ -143,12 +160,18 @@ class WebSocketManager {
       // Clear connection timeout
       this.clearConnectionTimeout(managed.url);
 
+      // Start client-side heartbeat to keep the connection alive
+      this.startHeartbeat(managed);
+
       // Notify all listeners
-      managed.listeners.forEach(listener => {
+      managed.listeners.forEach((listener) => {
         try {
           listener.onOpen?.();
         } catch (error) {
-          console.error('❌ [WebSocket Manager] Error in onOpen listener:', error);
+          console.error(
+            "❌ [WebSocket Manager] Error in onOpen listener:",
+            error,
+          );
         }
       });
     };
@@ -160,60 +183,77 @@ class WebSocketManager {
         const data = JSON.parse(event.data);
 
         // Notify all listeners
-        managed.listeners.forEach(listener => {
+        managed.listeners.forEach((listener) => {
           try {
             listener.onMessage?.(data);
           } catch (error) {
-            console.error('❌ [WebSocket Manager] Error in onMessage listener:', error);
+            console.error(
+              "❌ [WebSocket Manager] Error in onMessage listener:",
+              error,
+            );
           }
         });
       } catch (error) {
-        console.error('❌ [WebSocket Manager] Failed to parse message:', error);
+        console.error("❌ [WebSocket Manager] Failed to parse message:", error);
       }
     };
 
     managed.ws.onerror = (error) => {
       // WebSocket error events are often empty, but we log the connection state for debugging
       const state = managed.ws.readyState;
-      const stateNames = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
-      const stateName = stateNames[state] || 'UNKNOWN';
-      
+      const stateNames = ["CONNECTING", "OPEN", "CLOSING", "CLOSED"];
+      const stateName = stateNames[state] || "UNKNOWN";
+
       // Only log if not already closing/closed (to avoid duplicate logs)
       if (state !== WebSocket.CLOSING && state !== WebSocket.CLOSED) {
-        console.warn(`⚠️ [WebSocket Manager] WebSocket error for ${managed.url} (state: ${stateName})`);
+        console.warn(
+          `⚠️ [WebSocket Manager] WebSocket error for ${managed.url} (state: ${stateName})`,
+        );
       }
-      
+
       managed.isConnecting = false;
 
       // Clear connection timeout
       this.clearConnectionTimeout(managed.url);
 
       // Notify all listeners
-      managed.listeners.forEach(listener => {
+      managed.listeners.forEach((listener) => {
         try {
           listener.onError?.(error);
         } catch (err) {
-          console.error('❌ [WebSocket Manager] Error in onError listener:', err);
+          console.error(
+            "❌ [WebSocket Manager] Error in onError listener:",
+            err,
+          );
         }
       });
     };
 
     managed.ws.onclose = (event) => {
-      console.log(`🔌 [WebSocket Manager] WebSocket closed for ${managed.url}:`, {
-        code: event.code,
-        reason: event.reason,
-        wasClean: event.wasClean,
-      });
+      console.log(
+        `🔌 [WebSocket Manager] WebSocket closed for ${managed.url}:`,
+        {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        },
+      );
 
       managed.isConnecting = false;
       this.clearConnectionTimeout(managed.url);
 
+      // Stop heartbeat on close
+      this.stopHeartbeat(managed.url);
+
       // Notify all listeners
-      managed.listeners.forEach(listener => {
+      managed.listeners.forEach((listener) => {
         try {
           listener.onClose?.(event);
         } catch (error) {
-          console.error('❌ [WebSocket Manager] Error in onClose listener:', error);
+          console.error(
+            "❌ [WebSocket Manager] Error in onClose listener:",
+            error,
+          );
         }
       });
 
@@ -224,13 +264,19 @@ class WebSocketManager {
     };
   }
 
-  private setupConnectionTimeout(managed: ManagedWebSocket, config: WebSocketConfig): void {
-    const timeout = config.connectionTimeout || this.DEFAULT_CONFIG.connectionTimeout;
+  private setupConnectionTimeout(
+    managed: ManagedWebSocket,
+    config: WebSocketConfig,
+  ): void {
+    const timeout =
+      config.connectionTimeout || this.DEFAULT_CONFIG.connectionTimeout;
 
     const timeoutId = setTimeout(() => {
       if (managed.isConnecting) {
-        console.error(`❌ [WebSocket Manager] Connection timeout for ${managed.url}`);
-        managed.ws.close(1006, 'Connection timeout');
+        console.error(
+          `❌ [WebSocket Manager] Connection timeout for ${managed.url}`,
+        );
+        managed.ws.close(1006, "Connection timeout");
       }
     }, timeout);
 
@@ -245,9 +291,28 @@ class WebSocketManager {
     }
   }
 
-  private attemptReconnection(managed: ManagedWebSocket, config: Required<WebSocketConfig>): void {
-    if (!managed.shouldReconnect || managed.reconnectAttempts >= config.maxReconnectAttempts) {
-      console.log(`⚠️ [WebSocket Manager] Max reconnection attempts reached for ${managed.url}`);
+  private attemptReconnection(
+    managed: ManagedWebSocket,
+    config: Required<WebSocketConfig>,
+  ): void {
+    if (
+      !managed.shouldReconnect ||
+      managed.reconnectAttempts >= config.maxReconnectAttempts
+    ) {
+      console.log(
+        `⚠️ [WebSocket Manager] Max reconnection attempts reached for ${managed.url}`,
+      );
+      // Notify all listeners before closing
+      managed.listeners.forEach((listener) => {
+        try {
+          listener.onMaxReconnectAttemptsReached?.();
+        } catch (error) {
+          console.error(
+            "❌ [WebSocket Manager] Error in onMaxReconnectAttemptsReached listener:",
+            error,
+          );
+        }
+      });
       this.closeConnection(managed.url);
       return;
     }
@@ -257,14 +322,16 @@ class WebSocketManager {
     // Exponential backoff with jitter
     const delay = Math.min(
       config.baseDelay * Math.pow(2, managed.reconnectAttempts - 1),
-      config.maxDelay
+      config.maxDelay,
     );
 
     // Add random jitter (±25% of delay)
     const jitter = delay * 0.25 * (Math.random() * 2 - 1);
     const finalDelay = Math.max(0, delay + jitter);
 
-    console.log(`🔄 [WebSocket Manager] Reconnecting to ${managed.url} in ${Math.round(finalDelay)}ms (attempt ${managed.reconnectAttempts}/${config.maxReconnectAttempts})`);
+    console.log(
+      `🔄 [WebSocket Manager] Reconnecting to ${managed.url} in ${Math.round(finalDelay)}ms (attempt ${managed.reconnectAttempts}/${config.maxReconnectAttempts})`,
+    );
 
     const timeoutId = setTimeout(() => {
       this.reconnectTimeouts.delete(managed.url);
@@ -279,12 +346,48 @@ class WebSocketManager {
     this.reconnectTimeouts.set(managed.url, timeoutId);
   }
 
+  /**
+   * Start a client-side heartbeat ping interval.
+   * Sends a JSON ping every PING_INTERVAL_MS to prevent proxy/server idle timeouts.
+   * This complements any server-initiated pings your backend may already send.
+   */
+  private startHeartbeat(managed: ManagedWebSocket): void {
+    this.stopHeartbeat(managed.url);
+
+    const intervalId = setInterval(() => {
+      if (managed.ws.readyState !== WebSocket.OPEN) {
+        this.stopHeartbeat(managed.url);
+        return;
+      }
+      try {
+        managed.ws.send(
+          JSON.stringify({ type: "ping", timestamp: Date.now() }),
+        );
+      } catch {
+        // Socket may have died silently — stop heartbeat, let onclose/onerror handle it
+        this.stopHeartbeat(managed.url);
+      }
+    }, this.PING_INTERVAL_MS);
+
+    this.pingIntervals.set(managed.url, intervalId);
+  }
+
+  /** Stop the heartbeat ping interval for a given URL. */
+  private stopHeartbeat(url: string): void {
+    const intervalId = this.pingIntervals.get(url);
+    if (intervalId) {
+      clearInterval(intervalId);
+      this.pingIntervals.delete(url);
+    }
+  }
+
   private closeConnection(url: string): void {
     const managed = this.connections.get(url);
     if (!managed) return;
 
-    // Clear all timeouts
+    // Clear all timeouts & heartbeat
     this.clearConnectionTimeout(url);
+    this.stopHeartbeat(url);
     const reconnectTimeoutId = this.reconnectTimeouts.get(url);
     if (reconnectTimeoutId) {
       clearTimeout(reconnectTimeoutId);
@@ -293,11 +396,14 @@ class WebSocketManager {
 
     // Close WebSocket
     managed.shouldReconnect = false;
-    if (managed.ws.readyState === WebSocket.OPEN || managed.ws.readyState === WebSocket.CONNECTING) {
+    if (
+      managed.ws.readyState === WebSocket.OPEN ||
+      managed.ws.readyState === WebSocket.CONNECTING
+    ) {
       try {
-        managed.ws.close(1000, 'Client disconnecting');
+        managed.ws.close(1000, "Client disconnecting");
       } catch (error) {
-        console.warn('⚠️ [WebSocket Manager] Error closing WebSocket:', error);
+        console.warn("⚠️ [WebSocket Manager] Error closing WebSocket:", error);
       }
     }
 
@@ -310,7 +416,11 @@ class WebSocketManager {
 export const websocketManager = new WebSocketManager();
 
 // Utility function for URL encoding
-export function createWebSocketUrl(base: string, path: string, params: Record<string, string | number> = {}): string {
+export function createWebSocketUrl(
+  base: string,
+  path: string,
+  params: Record<string, string | number> = {},
+): string {
   const url = new URL(path, base);
 
   Object.entries(params).forEach(([key, value]) => {
@@ -320,10 +430,27 @@ export function createWebSocketUrl(base: string, path: string, params: Record<st
   return url.toString();
 }
 
+/**
+ * Same as {@link createWebSocketUrl}, but adds `token=<JWT>` from localStorage
+ * so the backend can authenticate the connecting user (Bearer equivalent on WS handshake).
+ */
+export function createAuthenticatedWebSocketUrl(
+  base: string,
+  path: string,
+  params: Record<string, string | number> = {},
+): string {
+  const accessToken = storage.get(TOKEN_KEY);
+  const merged: Record<string, string | number> = { ...params };
+  if (accessToken) {
+    merged[WEBSOCKET_ACCESS_TOKEN_QUERY] = accessToken;
+  }
+  return createWebSocketUrl(base, path, merged);
+}
+
 // Debounce utility for rapid updates
 export function debounce<T extends (...args: unknown[]) => void>(
   func: T,
-  delay: number
+  delay: number,
 ): (...args: Parameters<T>) => void {
   let timeoutId: NodeJS.Timeout | null = null;
 

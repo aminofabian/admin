@@ -98,8 +98,6 @@ export interface BonusAnalytics {
   average_first_deposit_bonus_pct: number;
   transfer_bonus: number;
   average_transfer_bonus_pct: number;
-  total_free_play: number;
-  average_free_play: number;
   seized_or_tipped_fund: number;
 }
 
@@ -125,6 +123,10 @@ export interface GameByGame {
 
 // Filter Types
 export interface AnalyticsFilters extends Record<string, string | number | boolean | undefined> {
+  /** Backend interprets rolling calendar day boundaries in `timezone`; only with today/yesterday. */
+  preset?: 'today' | 'yesterday';
+  /** IANA zone, e.g. America/New_York — sent on every analytics range request. */
+  timezone?: string;
   start_date?: string;
   end_date?: string;
   username?: string;

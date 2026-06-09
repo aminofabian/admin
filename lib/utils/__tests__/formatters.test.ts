@@ -2,9 +2,11 @@ import {
   formatDate,
   formatCurrency,
   formatPercentage,
+  formatPercentageOrEmpty,
   getPaymentDetailsForDisplay,
   getProviderDisplayName,
   getPurchaseBonusPaymentLabel,
+  parseApiTimestampToDate,
 } from '../formatters';
 
 describe('formatters', () => {
@@ -29,9 +31,9 @@ describe('formatters', () => {
     });
 
     it('should handle invalid date strings', () => {
-      expect(formatDate('invalid-date')).toBe('Invalid Date');
-      expect(formatDate('2024-13-45')).toBe('Invalid Date');
-      expect(formatDate('not-a-date')).toBe('Invalid Date');
+      expect(formatDate('invalid-date')).toBe('N/A');
+      expect(formatDate('2024-13-45')).toBe('N/A');
+      expect(formatDate('not-a-date')).toBe('N/A');
     });
 
     it('should handle various date formats', () => {
@@ -43,6 +45,33 @@ describe('formatters', () => {
       
       // Timestamp
       expect(formatDate('1705312200000')).toMatch(/Jan 15, 2024/);
+    });
+
+    it('should treat naive ISO datetimes as UTC and format in local time', () => {
+      const parsed = parseApiTimestampToDate('2026-05-30T04:45:00');
+      expect(parsed).not.toBeNull();
+      const formatted = formatDate('2026-05-30T04:45:00');
+      const expected = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).format(parsed!);
+      expect(formatted).toBe(expected);
+      expect(formatted).not.toBe('May 30, 2026, 04:45:00');
+    });
+
+    it('should parse DD/MM/YYYY HH:mm:ss as UTC', () => {
+      const parsed = parseApiTimestampToDate('29/05/2026 23:45:00');
+      expect(parsed?.toISOString()).toBe('2026-05-29T23:45:00.000Z');
+    });
+
+    it('should parse YYYY-MM-DD HH:mm:ss as UTC', () => {
+      const parsed = parseApiTimestampToDate('2026-05-30 00:15:01');
+      expect(parsed?.toISOString()).toBe('2026-05-30T00:15:01.000Z');
     });
   });
 
@@ -75,6 +104,20 @@ describe('formatters', () => {
     it('should format string numbers correctly', () => {
       expect(formatPercentage('12.34')).toBe('12.34%');
       expect(formatPercentage('0')).toBe('0.00%');
+    });
+  });
+
+  describe('formatPercentageOrEmpty', () => {
+    it('returns em dash for missing or invalid input', () => {
+      expect(formatPercentageOrEmpty(undefined)).toBe('\u2014');
+      expect(formatPercentageOrEmpty(null)).toBe('\u2014');
+      expect(formatPercentageOrEmpty('')).toBe('\u2014');
+      expect(formatPercentageOrEmpty('x')).toBe('\u2014');
+    });
+
+    it('formats finite numbers like formatPercentage', () => {
+      expect(formatPercentageOrEmpty(5)).toBe('5.00%');
+      expect(formatPercentageOrEmpty('3.25')).toBe('3.25%');
     });
   });
 
@@ -134,6 +177,35 @@ describe('formatters', () => {
       });
       const venmoRow = rows.find(([label]) => label === 'Venmo username');
       expect(venmoRow?.[1]).toBe('@Alex-Pay-Venmo');
+    });
+
+    it('includes Provider for crypto when payment_details already has wallet (provider not from fallback)', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'bitcoin',
+        provider: 'opennode',
+        payment_details: {
+          wallet_address: 'bc1qexample000000000000000000000000000000',
+        },
+      });
+      expect(rows.find(([label]) => label === 'Provider')?.[1]).toBe('Opennode');
+    });
+
+    it('does not add Provider row for card when identity fields already fill the panel', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        provider: 'binpay',
+        payment_details: { email: 'player@example.com', last4: '7887' },
+      });
+      expect(rows.some(([label]) => label === 'Provider')).toBe(false);
+    });
+
+    it('includes Tierlock order ID when present on the transaction', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'card',
+        provider: 'tierlock',
+        tierlock_order_id: 'tierlock_71',
+      });
+      expect(rows.find(([label]) => label === 'Tierlock order ID')?.[1]).toBe('tierlock_71');
     });
   });
 

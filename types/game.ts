@@ -29,6 +29,8 @@ export interface PlayerGame {
   id: number;
   game__id: number;
   username: string;
+  /** Present when returned from user-games API; revealed in UI via toggle only */
+  password?: string | null;
   game__title: string;
   status: 'active' | 'inactive';
   game_state: 'active' | 'inactive';

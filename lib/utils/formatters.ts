@@ -26,6 +26,88 @@ export const formatCurrency = (amount: string | number): string => {
   return new Intl.NumberFormat('en-US', USD_TWO_DECIMALS).format(numAmount);
 };
 
+/** True when the string ends with Z or a numeric UTC offset (±HH:MM). */
+const HAS_EXPLICIT_TIMEZONE_RE = /(?:Z|[+-]\d{2}(?::?\d{2})?)$/i;
+
+/**
+ * Parse API / Django timestamp strings into a Date instant.
+ * Naive datetimes (no offset) are treated as UTC; display uses the browser locale/TZ.
+ */
+export function parseApiTimestampToDate(dateString: string): Date | null {
+  const trimmed = dateString.trim();
+  if (!trimmed) return null;
+
+  const ddmmyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/;
+  const ddmmMatch = trimmed.match(ddmmyyyyPattern);
+  if (ddmmMatch) {
+    const [, day, month, year, hour, minute, second] = ddmmMatch;
+    return new Date(
+      Date.UTC(
+        parseInt(year, 10),
+        parseInt(month, 10) - 1,
+        parseInt(day, 10),
+        parseInt(hour, 10),
+        parseInt(minute, 10),
+        parseInt(second, 10),
+      ),
+    );
+  }
+
+  const ymdHmsSpacePattern = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/;
+  const spaceMatch = trimmed.match(ymdHmsSpacePattern);
+  if (spaceMatch) {
+    const [, year, month, day, hour, minute, second] = spaceMatch;
+    return new Date(
+      Date.UTC(
+        parseInt(year, 10),
+        parseInt(month, 10) - 1,
+        parseInt(day, 10),
+        parseInt(hour, 10),
+        parseInt(minute, 10),
+        parseInt(second, 10),
+      ),
+    );
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [year, month, day] = trimmed.split('-').map((part) => parseInt(part, 10));
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.getUTCFullYear() !== year ||
+      date.getUTCMonth() + 1 !== month ||
+      date.getUTCDate() !== day
+    ) {
+      return null;
+    }
+    return date;
+  }
+
+  if (trimmed.includes('T')) {
+    const iso = HAS_EXPLICIT_TIMEZONE_RE.test(trimmed) ? trimmed : `${trimmed}Z`;
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (trimmed.includes('-')) {
+    const date = new Date(`${trimmed}T00:00:00.000Z`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (trimmed.includes('/')) {
+    const date = new Date(trimmed);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (/^\d+$/.test(trimmed)) {
+    const date = new Date(parseInt(trimmed, 10));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const date = new Date(trimmed);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString || dateString.trim() === '') {
     return 'N/A';
@@ -35,37 +117,9 @@ export const formatDate = (dateString: string | null | undefined): string => {
     return 'N/A';
   }
 
-  let date: Date;
+  const date = parseApiTimestampToDate(dateString);
 
-  const ddmmyyyyPattern = /^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/;
-  const match = dateString.match(ddmmyyyyPattern);
-
-  if (match) {
-    const [, day, month, year, hour, minute, second] = match;
-    date = new Date(
-      parseInt(year),
-      parseInt(month) - 1,
-      parseInt(day),
-      parseInt(hour),
-      parseInt(minute),
-      parseInt(second)
-    );
-  } else if (dateString.includes('T')) {
-    date = new Date(dateString);
-  } else if (dateString.includes('-')) {
-    date = new Date(dateString + 'T00:00:00Z');
-  } else if (dateString.includes('/')) {
-    date = new Date(dateString);
-  } else {
-    const timestamp = parseInt(dateString);
-    if (!isNaN(timestamp)) {
-      date = new Date(timestamp);
-    } else {
-      date = new Date(dateString);
-    }
-  }
-
-  if (isNaN(date.getTime())) {
+  if (!date || Number.isNaN(date.getTime())) {
     console.warn('Invalid date string:', dateString);
     return 'N/A';
   }
@@ -352,6 +406,14 @@ function pickTopTwoIdentifiers(paymentDetails: Record<string, unknown>): [string
   return out;
 }
 
+/** Crypto rails (and lightning): provider is tied to the method, unlike card cashouts where admins pick at send time. */
+const CRYPTO_PAYMENT_METHOD_SUBSTRINGS = ['bitcoin', 'litecoin', 'bitcoin_lightning', 'crypto'] as const;
+
+export function isCryptoPaymentMethod(paymentMethod: string | null | undefined): boolean {
+  const lower = (paymentMethod ?? '').trim().toLowerCase();
+  return CRYPTO_PAYMENT_METHOD_SUBSTRINGS.some((m) => lower.includes(m));
+}
+
 /** Fallback when no identity fields: Provider + Payment Method. */
 function getProviderPaymentMethodFallback(transaction: {
   payment_method?: string | null;
@@ -390,6 +452,29 @@ const PROVIDER_STATUS_KEYS: [string, string[]][] = [
   ['Tierlock status', ['tierlock_status', 'tierlockStatus']],
 ];
 
+const TIERLOCK_ORDER_ID_KEYS = ['tierlock_order_id', 'tierlockOrderId'] as const;
+
+function getTierlockOrderIdEntry(
+  transaction: Pick<Transaction, 'tierlock_order_id' | 'payment_details'>
+): [string, string] | null {
+  const tx = transaction as Record<string, unknown>;
+  const pd = transaction.payment_details && typeof transaction.payment_details === 'object'
+    ? transaction.payment_details
+    : null;
+
+  let val: unknown = null;
+  for (const key of TIERLOCK_ORDER_ID_KEYS) {
+    val = tx[key] ?? (pd && typeof pd === 'object' ? (pd as Record<string, unknown>)[key] : undefined);
+    if (val != null && String(val).trim() !== '') break;
+  }
+
+  const str = formatDetailValue(val);
+  if (str !== '—' && String(str).trim() !== '') {
+    return ['Tierlock order ID', str];
+  }
+  return null;
+}
+
 function getProviderStatusEntries(
   transaction: Pick<Transaction, 'payment_details' | 'binpay_status' | 'tierlock_status' | 'taparcadia_status'>
 ): [string, string][] {
@@ -422,6 +507,7 @@ export function getPaymentDetailsForDisplay(
     | 'provider'
     | 'binpay_status'
     | 'tierlock_status'
+    | 'tierlock_order_id'
     | 'taparcadia_status'
     | 'user_username'
   >
@@ -503,6 +589,31 @@ export function getPaymentDetailsForDisplay(
         }
       }
     }
+  }
+
+  const rawMethodForCrypto = transaction.payment_method ?? resolvedMethod;
+  if (isCryptoPaymentMethod(rawMethodForCrypto)) {
+    const providerRaw =
+      transaction.provider ??
+      (paymentDetails && typeof paymentDetails === 'object'
+        ? findPaymentDetailValue(paymentDetails, ['provider'])
+        : null);
+    const providerDisplay = getProviderDisplayName(
+      providerRaw != null ? String(providerRaw) : null,
+      resolvedMethod ?? transaction.payment_method
+    );
+    if (providerDisplay !== '—' && String(providerDisplay).trim() !== '') {
+      const hasProviderRow = entries.some(([label]) => label.toLowerCase() === 'provider');
+      if (!hasProviderRow) {
+        entries.push(['Provider', providerDisplay]);
+      }
+    }
+  }
+
+  const tierlockOrderEntry = getTierlockOrderIdEntry(transaction);
+  if (tierlockOrderEntry) {
+    const alreadyHasOrderId = entries.some(([label]) => label.toLowerCase() === 'tierlock order id');
+    if (!alreadyHasOrderId) entries.push(tierlockOrderEntry);
   }
 
   const providerStatusEntries = getProviderStatusEntries(transaction);
@@ -594,6 +705,19 @@ export const formatPercentage = (value: string | number): string => {
   return `${numValue.toFixed(2)}%`;
 };
 
+const EMPTY_DISPLAY_DASH = '\u2014';
+
+/** Percentage placeholder when API omits or returns non-numeric values. */
+export const formatPercentageOrEmpty = (
+  value: string | number | null | undefined,
+  emptyDisplay: string = EMPTY_DISPLAY_DASH,
+): string => {
+  if (value === null || value === undefined || value === '') return emptyDisplay;
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (!Number.isFinite(numValue)) return emptyDisplay;
+  return formatPercentage(numValue);
+};
+
 /** API ledger N/A is often "-" or empty (e.g. cashout limit on purchases). */
 export function formatLedgerAmountDisplay(raw: string | number | null | undefined): string | null {
   if (raw === null || raw === undefined) return null;
@@ -612,6 +736,23 @@ export function formatLedgerArrowDisplay(
   const next = formatLedgerAmountDisplay(nextRaw);
   if (prev === null && next === null) return '—';
   return `${prev ?? '—'} → ${next ?? '—'}`;
+}
+
+/** Credits transition column / blocks apply only to recharge and redeem (not add-user or password reset). */
+export function showsGameCreditsBalanceForActivityType(type: string | undefined | null): boolean {
+  return type === 'recharge_game' || type === 'redeem_game';
+}
+
+/** Add-user / create-game / password-reset activities have no meaningful wallet amount on mobile summaries. */
+export function isNonMonetaryGameActivityType(type: string | undefined | null): boolean {
+  if (!type) return false;
+  const t = String(type);
+  return (
+    t === 'create_game' ||
+    t === 'reset_password' ||
+    t === 'change_password' ||
+    t === 'add_user_game'
+  );
 }
 
 /**

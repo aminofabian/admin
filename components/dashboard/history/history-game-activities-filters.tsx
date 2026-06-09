@@ -1,6 +1,7 @@
 'use client';
 
 import { Button, Select, DateSelect } from '@/components/ui';
+import { LIST_DATE_PRESET_OPTIONS } from '@/lib/utils/list-filter-date-preset';
 
 export type QueueFilterOption =
   | 'processing'
@@ -18,6 +19,8 @@ export interface HistoryGameActivitiesFiltersState {
   game: string;
   game_username: string;
   status: string;
+  /** Preset id; not sent to the API (only date_from/date_to are). */
+  date_preset: string;
   date_from: string;
   date_to: string;
 }
@@ -239,17 +242,30 @@ export function HistoryGameActivitiesFilters({
               Date range
             </h4>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <DateSelect
-                label="From date"
-                value={filters.date_from}
-                onChange={(v) => onFilterChange('date_from', v)}
-              />
-              <DateSelect
-                label="To date"
-                value={filters.date_to}
-                onChange={(v) => onFilterChange('date_to', v)}
-              />
+              <div className="sm:col-span-2">
+                <label className={labelClasses}>Period</label>
+                <Select
+                  value={filters.date_preset}
+                  onChange={(v) => onFilterChange('date_preset', v)}
+                  options={LIST_DATE_PRESET_OPTIONS}
+                  placeholder="All time"
+                />
+              </div>
             </div>
+            {filters.date_preset === 'custom' && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mt-3">
+                <DateSelect
+                  label="From date"
+                  value={filters.date_from}
+                  onChange={(v) => onFilterChange('date_from', v)}
+                />
+                <DateSelect
+                  label="To date"
+                  value={filters.date_to}
+                  onChange={(v) => onFilterChange('date_to', v)}
+                />
+              </div>
+            )}
           </section>
 
           <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border dark:border-slate-700/80">

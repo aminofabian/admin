@@ -43,7 +43,7 @@ export const MessageInputArea = memo(function MessageInputArea({
   toggleEmojiPicker,
 }: MessageInputAreaProps) {
   return (
-    <div className="shrink-0 border-t border-border/40 bg-card/95 shadow-[0_-4px_20px_-8px_rgba(0,0,0,0.08)] backdrop-blur-md dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.35)]">
+    <div className="shrink-0 border-t border-border/40 bg-card/95 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] shadow-[0_-4px_20px_-8px_rgba(0,0,0,0.08)] backdrop-blur-md dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.35)] md:pb-0">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -212,11 +212,6 @@ export const MessageInputArea = memo(function MessageInputArea({
           </div>
         </div>
       </div>
-      </div>
-
-      {/* Mobile hint — own row + generous bottom inset so it is not clipped by home indicator / overflow */}
-      <div className="border-t border-border/20 bg-card/95 px-3 pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] pt-1.5 text-center text-[11px] leading-snug text-muted-foreground/80 md:hidden">
-        Enter to send · Shift+Enter for new line
       </div>
     </div>
   );

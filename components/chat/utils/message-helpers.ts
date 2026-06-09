@@ -1,13 +1,14 @@
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency } from "@/lib/utils/formatters";
 
 // URL regex to detect image links
-const IMAGE_URL_REGEX = /https?:\/\/[^\s<>"]+\.(jpg|jpeg|png|gif|bmp|webp|svg)/gi;
+const IMAGE_URL_REGEX =
+  /https?:\/\/[^\s<>"]+\.(jpg|jpeg|png|gif|bmp|webp|svg)/gi;
 
 /** USD amounts in chat HTML from the server often use 1 or 4+ fraction digits; normalize to two. */
 export function normalizeDollarAmountsInChatHtml(html: string): string {
   if (!html) return html;
   return html.replace(/\$[\d,]+(?:\.\d+)?/g, (token) => {
-    const n = parseFloat(token.slice(1).replace(/,/g, ''));
+    const n = parseFloat(token.slice(1).replace(/,/g, ""));
     return Number.isFinite(n) ? formatCurrency(n) : token;
   });
 }
@@ -15,9 +16,17 @@ export function normalizeDollarAmountsInChatHtml(html: string): string {
 // Check if a URL points to an image
 export const isImageUrl = (url: string | null | undefined): boolean => {
   if (!url) return false;
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+  const imageExtensions = [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".bmp",
+    ".webp",
+    ".svg",
+  ];
   const lowerUrl = url.toLowerCase();
-  return imageExtensions.some(ext => lowerUrl.includes(ext));
+  return imageExtensions.some((ext) => lowerUrl.includes(ext));
 };
 
 // Extract image URLs from text
@@ -40,17 +49,57 @@ export const linkifyText = (text: string): string => {
   if (!text) return text;
   const urlRegex = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/gi;
   return text.replace(urlRegex, (url) => {
-    const href = url.startsWith('http') ? url : `https://${url}`;
+    const href = url.startsWith("http") ? url : `https://${url}`;
     return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`;
   });
 };
 
-// Strip HTML tags for preview text
+// Strip HTML tags for preview text (SSR-safe fallback when document is unavailable)
 export const stripHtml = (html: string): string => {
-  const tmp = document.createElement('DIV');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
+  if (!html) return "";
+  if (typeof document !== "undefined") {
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
 };
+
+/**
+ * Informal signup-bonus chat (e.g. "Added 20 signup bonus for u") — regular bubble.
+ * Ledger-style copy (amount + "added as Sign Up Bonus", Balance:/Credits:/Winnings:) stays a transaction card.
+ */
+function isSignupBonusChatCopy(message: { text: string }): boolean {
+  if (!message.text) return false;
+  const plain = stripHtml(message.text);
+  if (
+    !/sign[\s-]?up bonus/i.test(plain) &&
+    !/sign[\s-]?up bonus/i.test(message.text)
+  ) {
+    return false;
+  }
+  const lower = plain.toLowerCase();
+  if (
+    /\bbalance\s*:/i.test(lower) ||
+    /\bcredits?\s*:/i.test(lower) ||
+    /winnings?\s*:/i.test(lower)
+  ) {
+    return false;
+  }
+  if (/\$[\d,]+\.?\d*\s+added as\s+sign[\s-]?up bonus/i.test(plain)) {
+    return false;
+  }
+  return true;
+}
 
 /**
  * Remove "Winnings: …" lines from server chat templates (single-balance product).
@@ -59,11 +108,14 @@ export const stripHtml = (html: string): string => {
 export function stripWinningsLineFromChatMessage(text: string): string {
   if (!text) return text;
   let s = text;
-  s = s.replace(/(?:<br\s*\/?>\s*)+Winnings?\s*:\s*<b>[\s\S]*?<\/b>/gi, '');
-  s = s.replace(/(?:<br\s*\/?>\s*)+Winnings?\s*:\s*[^<\n]+/gi, '');
-  s = s.replace(/^Winnings?\s*:\s*<b>[\s\S]*?<\/b>\s*(?:<br\s*\/?>\s*)?/gim, '');
-  s = s.replace(/\r?\n\s*Winnings?\s*:\s*[^\n\r]*/gi, '');
-  s = s.replace(/(?:<br\s*\/?>\s*)+$/gi, '');
+  s = s.replace(/(?:<br\s*\/?>\s*)+Winnings?\s*:\s*<b>[\s\S]*?<\/b>/gi, "");
+  s = s.replace(/(?:<br\s*\/?>\s*)+Winnings?\s*:\s*[^<\n]+/gi, "");
+  s = s.replace(
+    /^Winnings?\s*:\s*<b>[\s\S]*?<\/b>\s*(?:<br\s*\/?>\s*)?/gim,
+    "",
+  );
+  s = s.replace(/\r?\n\s*Winnings?\s*:\s*[^\n\r]*/gi, "");
+  s = s.replace(/(?:<br\s*\/?>\s*)+$/gi, "");
   return s.trim();
 }
 
@@ -73,41 +125,87 @@ export function stripWinningsLineFromChatMessage(text: string): string {
 export function relabelCreditsToBalanceInChatMessage(text: string): string {
   if (!text) return text;
   let s = text;
-  s = s.replace(/<b>\s*Credits?\s*:\s*<\/b>/gi, '<b>Balance:</b>');
-  s = s.replace(/\b[Cc]redit\s+[Bb]alance\s*:/g, 'Balance:');
-  s = s.replace(/\bCredits?\s*:/gi, 'Balance:');
+  s = s.replace(/<b>\s*Credits?\s*:\s*<\/b>/gi, "<b>Balance:</b>");
+  s = s.replace(/\b[Cc]redit\s+[Bb]alance\s*:/g, "Balance:");
+  s = s.replace(/\bCredits?\s*:/gi, "Balance:");
   return s;
 }
 
 /** Strip winnings line + relabel credits→balance for any rendered chat HTML. */
 export function prepareChatMessageHtmlForDisplay(text: string): string {
   return normalizeDollarAmountsInChatHtml(
-    relabelCreditsToBalanceInChatMessage(stripWinningsLineFromChatMessage(text)),
+    relabelCreditsToBalanceInChatMessage(
+      stripWinningsLineFromChatMessage(text),
+    ),
   );
 }
 
 // Message HTML content classes
 export const MESSAGE_HTML_CONTENT_CLASS = {
   admin:
-    'min-w-0 max-w-full text-[13px] md:text-sm leading-relaxed break-words [overflow-wrap:anywhere] [&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80 [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4',
+    "min-w-0 max-w-full text-[13px] md:text-sm leading-relaxed break-words [overflow-wrap:anywhere] [&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80 [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
   player:
-    'min-w-0 max-w-full text-[13px] md:text-sm leading-relaxed break-words [overflow-wrap:anywhere] [&_a]:text-white [&_a]:underline hover:[&_a]:text-white/80 text-white [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4',
+    "min-w-0 max-w-full text-[13px] md:text-sm leading-relaxed break-words [overflow-wrap:anywhere] [&_a]:text-white [&_a]:underline hover:[&_a]:text-white/80 text-white [&_p]:mb-2 last:[&_p]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4",
 };
 
 // Format a date for display (actual date only, e.g., "Jan 15, 2025")
 export const formatMessageDate = (dateString: string): string => {
   const date = new Date(dateString);
   const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: sameYear ? undefined : 'numeric'
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: sameYear ? undefined : "numeric",
   });
 };
 
-// Check if a message is a purchase notification (should be displayed centered)
-export const isPurchaseNotification = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
+/** Prize wheel / roulette auto chat (daily bonus, spin wins, balance prizes). */
+export const isPrizeWheelMessage = (message: {
+  text: string;
+  type?: string;
+}): boolean => {
   if (!message.text) return false;
+
+  const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
+  const textWithHtml = message.text.toLowerCase();
+
+  const prizeWheelPatterns = [
+    /won from (?:the\s+)?(?:prize\s*wheel|roulette(?:\s+wheel)?)/i,
+    /spin(?:s)? added as daily bonus/i,
+    /spin(?:s)? (?:added|deducted) (?:to|from) (?:your )?(?:prize\s*wheel|roulette)/i,
+    /(?:prize\s*wheel|roulette) (?:balance|spin)/i,
+    /spin(?:s)? won from (?:the\s+)?(?:prize\s*wheel|roulette)/i,
+    /(?:prize|reward):\s*(?:\$\d|(?:\d+\s*)?respin|try\s*again|free\s*spin)/i,
+    /\d+\s*spin(?:s)?\s+won\b/i,
+    /try\s*again.*(?:spin|wheel|roulette)/i,
+    /free\s*respin/i,
+  ];
+
+  const messageTypeLower = message.type?.toLowerCase() ?? "";
+  if (
+    messageTypeLower === "roulette" ||
+    messageTypeLower.includes("roulette") ||
+    messageTypeLower.includes("prize_wheel") ||
+    messageTypeLower === "spin_reward" ||
+    messageTypeLower === "prize_wheel_notification"
+  ) {
+    return true;
+  }
+
+  return prizeWheelPatterns.some(
+    (pattern) => pattern.test(textWithHtml) || pattern.test(textWithoutHtml),
+  );
+};
+
+// Check if a message is a purchase notification (should be displayed centered)
+export const isPurchaseNotification = (message: {
+  text: string;
+  type?: string;
+  sender?: string;
+  userId?: number;
+}): boolean => {
+  if (!message.text) return false;
+  if (isSignupBonusChatCopy(message)) return false;
 
   // Strip HTML tags for pattern matching
   const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
@@ -119,8 +217,13 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
     /purchased via/i,
     /purchased \(credited by admin\)/i,
     /credited by admin/i,
+    /\$[\d,]+\.?\d*\s+added as\s+sign[\s-]?up bonus/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bbalance\s*:/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bcredits?\s*:/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bwinnings?\s*:/i,
     // Do not match colloquial "cashed out" in player chat (e.g. "someone cashed out my winnings")
     /successfully cashed out/i,
+    /cashed out via/i,
     /recharged to/i,
     /redeemed from/i,
     /added to your (credit|winning) balance/i,
@@ -131,20 +234,31 @@ export const isPurchaseNotification = (message: { text: string; type?: string; s
 
   // Check if message type indicates it's a purchase notification
   const messageTypeLower = message.type?.toLowerCase();
-  if (messageTypeLower === 'purchase_notification' || messageTypeLower === 'balanceupdated') {
+  if (
+    messageTypeLower === "purchase_notification" ||
+    messageTypeLower === "balanceupdated"
+  ) {
     // For balanceupdated, check if it looks like a purchase or balance display
-    if (messageTypeLower === 'balanceupdated') {
-      return purchasePatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
+    if (messageTypeLower === "balanceupdated") {
+      return purchasePatterns.some(
+        (pattern) =>
+          pattern.test(textWithHtml) || pattern.test(textWithoutHtml),
+      );
     }
     return true;
   }
 
   // Check if text matches purchase notification patterns (check both HTML and plain text)
-  return purchasePatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
+  return purchasePatterns.some(
+    (pattern) => pattern.test(textWithHtml) || pattern.test(textWithoutHtml),
+  );
 };
 
 // Check if a message is a Binpay KYC verification prompt (display as auto message with button)
-export const isKycVerificationMessage = (message: { text: string; type?: string }): boolean => {
+export const isKycVerificationMessage = (message: {
+  text: string;
+  type?: string;
+}): boolean => {
   if (!message.text) return false;
   const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
   const textWithHtml = message.text.toLowerCase();
@@ -154,7 +268,9 @@ export const isKycVerificationMessage = (message: { text: string; type?: string 
     /kyc verification.*cashout|cashout.*kyc verification/i,
     /verify kyc/i,
   ];
-  return kycPatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
+  return kycPatterns.some(
+    (pattern) => pattern.test(textWithHtml) || pattern.test(textWithoutHtml),
+  );
 };
 
 export interface KycMessageParsed {
@@ -163,8 +279,10 @@ export interface KycMessageParsed {
 }
 
 // Extract KYC link and body text (without the link) for Binpay KYC messages
-export const parseKycMessage = (message: { text: string }): KycMessageParsed => {
-  const result: KycMessageParsed = { link: null, bodyText: '' };
+export const parseKycMessage = (message: {
+  text: string;
+}): KycMessageParsed => {
+  const result: KycMessageParsed = { link: null, bodyText: "" };
   if (!message.text) return result;
 
   // Extract first <a href="..."> from HTML
@@ -179,10 +297,10 @@ export const parseKycMessage = (message: { text: string }): KycMessageParsed => 
 
   // Body: strip <a> tags (keep text between tags), then strip other HTML for display
   const body = message.text
-    .replace(/<a\s+href=["'][^"']*["'][^>]*>([^<]*)<\/a>/gi, '') // Remove anchor but we show button instead
-    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<a\s+href=["'][^"']*["'][^>]*>([^<]*)<\/a>/gi, "") // Remove anchor but we show button instead
+    .replace(/<br\s*\/?>/gi, " ")
     .trim();
-  result.bodyText = stripHtml(body).replace(/\s+/g, ' ').trim();
+  result.bodyText = stripHtml(body).replace(/\s+/g, " ").trim();
   return result;
 };
 
@@ -198,28 +316,40 @@ export const removeAutomatedMessageHeading = (text: string): string => {
   // Remove HTML bold heading tags at the start (e.g., <b>Recharge</b> or <b>Redeem</b>)
   // This handles cases like: <b>Recharge</b><br />You successfully recharged...
   // We only remove it if it matches known keywords or is followed by a line break AND doesn't look like an amount
-  cleanedText = cleanedText.replace(/^<b>(recharge|redeem|balance\s+updated|transaction|system|auto|notification)<\/b>\s*(<br\s*\/?>)?\s*/i, '');
+  cleanedText = cleanedText.replace(
+    /^<b>(recharge|redeem|balance\s+updated|transaction|system|auto|notification)<\/b>\s*(<br\s*\/?>)?\s*/i,
+    "",
+  );
 
   // Remove standalone bold tags at the start ONLY if followed by a line break
   // This ensures we don't remove <b>$5</b> at the start of a sentence
-  cleanedText = cleanedText.replace(/^<b>[^<]+<\/b>\s*(<br\s*\/?>)+\s*/i, '');
+  cleanedText = cleanedText.replace(/^<b>[^<]+<\/b>\s*(<br\s*\/?>)+\s*/i, "");
 
   // Remove plain text headings at the start of a line (case-insensitive, multiline)
   // This handles cases like: Recharge\nYou successfully recharged...
-  cleanedText = cleanedText.replace(/^(recharge|redeem|balance\s+updated|transaction|system|auto|notification):?\s*$/im, '');
+  cleanedText = cleanedText.replace(
+    /^(recharge|redeem|balance\s+updated|transaction|system|auto|notification):?\s*$/im,
+    "",
+  );
 
   // Remove any leading line breaks, whitespace, or HTML breaks
-  cleanedText = cleanedText.replace(/^(<br\s*\/?>|\s|\n)+/i, '');
+  cleanedText = cleanedText.replace(/^(<br\s*\/?>|\s|\n)+/i, "");
 
   // Clean up any excessive line breaks (more than 2 consecutive)
-  cleanedText = cleanedText.replace(/(<br\s*\/?>\s*){3,}/gi, '<br /><br />');
+  cleanedText = cleanedText.replace(/(<br\s*\/?>\s*){3,}/gi, "<br /><br />");
 
   return cleanedText.trim();
 };
 
 // Check if a message is an auto/system message (not sent by staff)
-export const isAutoMessage = (message: { text: string; type?: string; sender?: string; userId?: number }): boolean => {
+export const isAutoMessage = (message: {
+  text: string;
+  type?: string;
+  sender?: string;
+  userId?: number;
+}): boolean => {
   if (!message.text) return false;
+  if (isSignupBonusChatCopy(message)) return false;
 
   // Strip HTML tags for pattern matching
   const textWithoutHtml = stripHtml(message.text).toLowerCase().trim();
@@ -230,6 +360,10 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
     /<b>recharge<\/b>/i,
     /^recharge$/i, // Only exact "recharge" word, not "purchased"
     /successfully recharged/i, // But not "successfully purchased"
+    /\$[\d,]+\.?\d*\s+added as\s+sign[\s-]?up bonus/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bbalance\s*:/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bcredits?\s*:/i,
+    /sign[\s-]?up bonus[\s\S]{0,240}\bwinnings?\s*:/i,
     /^system:/i,
     /^auto:/i,
     /^notification:/i,
@@ -242,28 +376,42 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
     /manual withdraw/i,
   ];
 
-  // Don't treat purchase messages as auto messages - they have their own handler
-  if (isPurchaseNotification(message)) {
+  // Don't treat purchase / prize wheel messages as auto messages - they have their own handler
+  if (isPurchaseNotification(message) || isPrizeWheelMessage(message)) {
     return false;
   }
 
   // Check if message type indicates it's an auto message
-  const autoTypes = ['system', 'auto', 'notification', 'recharge', 'transaction', 'balance_update'];
+  const autoTypes = [
+    "system",
+    "auto",
+    "notification",
+    "recharge",
+    "transaction",
+    "balance_update",
+  ];
   const messageTypeLower = message.type?.toLowerCase();
-  if (messageTypeLower && autoTypes.includes(messageTypeLower) && messageTypeLower !== 'balanceupdated') {
+  if (
+    messageTypeLower &&
+    autoTypes.includes(messageTypeLower) &&
+    messageTypeLower !== "balanceupdated"
+  ) {
     return true;
   }
 
   // For balanceUpdated type messages, check if they're manual balance operations
   // (credit or winning balance manual top-up/withdraw)
-  if (messageTypeLower === 'balanceupdated' || messageTypeLower === 'balance_updated') {
+  if (
+    messageTypeLower === "balanceupdated" ||
+    messageTypeLower === "balance_updated"
+  ) {
     const hasManualBalanceOperation =
-      textWithoutHtml.includes('added to your credit balance') ||
-      textWithoutHtml.includes('deducted from your credit balance') ||
-      textWithoutHtml.includes('added to your winning balance') ||
-      textWithoutHtml.includes('deducted from your winning balance') ||
-      textWithHtml.includes('manual top-up') ||
-      textWithHtml.includes('manual withdraw');
+      textWithoutHtml.includes("added to your credit balance") ||
+      textWithoutHtml.includes("deducted from your credit balance") ||
+      textWithoutHtml.includes("added to your winning balance") ||
+      textWithoutHtml.includes("deducted from your winning balance") ||
+      textWithHtml.includes("manual top-up") ||
+      textWithHtml.includes("manual withdraw");
 
     // If it's a manual balance operation, treat it as an auto message
     if (hasManualBalanceOperation) {
@@ -276,19 +424,35 @@ export const isAutoMessage = (message: { text: string; type?: string; sender?: s
 
   // Check if userId is 0 or undefined (system messages often have no user ID)
   // But ONLY if it's not a purchase notification
-  if ((message.userId === 0 || message.userId === undefined) && !isPurchaseNotification(message)) {
+  if (
+    (message.userId === 0 || message.userId === undefined) &&
+    !isPurchaseNotification(message) &&
+    !isPrizeWheelMessage(message)
+  ) {
     return true;
   }
 
   // Check if text matches auto message patterns (check both HTML and plain text)
-  return autoPatterns.some(pattern => pattern.test(textWithHtml) || pattern.test(textWithoutHtml));
+  return autoPatterns.some(
+    (pattern) => pattern.test(textWithHtml) || pattern.test(textWithoutHtml),
+  );
 };
 
 /**
  * Parses transaction message text to extract transaction details
  */
 interface TransactionDetails {
-  type: 'credit_purchase' | 'cashout' | 'credit_added' | 'credit_deducted' | 'winning_added' | 'winning_deducted' | 'recharge' | 'redeem' | null;
+  type:
+    | "credit_purchase"
+    | "cashout"
+    | "credit_added"
+    | "credit_deducted"
+    | "winning_added"
+    | "winning_deducted"
+    | "recharge"
+    | "redeem"
+    | "prize_wheel"
+    | null;
   amount: string | null;
   credits: string | null;
   winnings: string | null;
@@ -300,7 +464,7 @@ interface TransactionDetails {
 export const parseTransactionMessage = (
   text: string,
   messageType?: string,
-  operationType?: 'increase' | 'decrease' | null
+  operationType?: "increase" | "decrease" | null,
 ): TransactionDetails => {
   const result: TransactionDetails = {
     type: null,
@@ -314,8 +478,9 @@ export const parseTransactionMessage = (
   if (!text) return result;
 
   // Check message type first - if it's a balance update, prioritize manual operations
-  const isBalanceUpdate = messageType?.toLowerCase() === 'balanceupdated' ||
-    messageType?.toLowerCase() === 'balance_updated';
+  const isBalanceUpdate =
+    messageType?.toLowerCase() === "balanceupdated" ||
+    messageType?.toLowerCase() === "balance_updated";
 
   // Strip HTML tags for parsing
   const cleanText = stripHtml(text).toLowerCase();
@@ -341,7 +506,8 @@ export const parseTransactionMessage = (
     }
 
     if (match) {
-      const value = match[1]?.replace(/,/g, '') || match[0]?.replace(/[$,<>b\/\s]/gi, '');
+      const value =
+        match[1]?.replace(/,/g, "") || match[0]?.replace(/[$,<>b\/\s]/gi, "");
       if (value && !isNaN(parseFloat(value))) {
         result.amount = value;
         break;
@@ -360,7 +526,7 @@ export const parseTransactionMessage = (
   for (const pattern of creditsPatterns) {
     const match = originalText.match(pattern);
     if (match && match[1]) {
-      const value = match[1].replace(/,/g, '');
+      const value = match[1].replace(/,/g, "");
       if (value && !isNaN(parseFloat(value))) {
         result.credits = value;
         break;
@@ -379,7 +545,7 @@ export const parseTransactionMessage = (
   for (const pattern of winningsPatterns) {
     const match = originalText.match(pattern);
     if (match && match[1]) {
-      const value = match[1].replace(/,/g, '');
+      const value = match[1].replace(/,/g, "");
       if (value && !isNaN(parseFloat(value))) {
         result.winnings = value;
         break;
@@ -397,7 +563,7 @@ export const parseTransactionMessage = (
   for (const pattern of bonusPatterns) {
     const match = originalText.match(pattern);
     if (match && match[1]) {
-      const value = match[1].replace(/,/g, '');
+      const value = match[1].replace(/,/g, "");
       if (value && !isNaN(parseFloat(value))) {
         result.bonusAmount = value;
         break;
@@ -416,7 +582,7 @@ export const parseTransactionMessage = (
     if (match && match[1]) {
       let gameName = stripHtml(match[1]).trim();
       // Remove trailing period if captured
-      if (gameName.endsWith('.')) {
+      if (gameName.endsWith(".")) {
         gameName = gameName.slice(0, -1);
       }
       // Only accept if it looks like a game name (not just a number or single word)
@@ -429,14 +595,14 @@ export const parseTransactionMessage = (
 
   // Extract payment method (for purchase) - look for "via {Payment Method}"
   const paymentPatterns = [
-    /via\s+<b>([\w\s]+)<\/b>/i,
+    /via\s+<b>([^<]+)<\/b>/i,
     /via\s+([\w\s]+?)(?:\.|$|<br)/i,
   ];
 
   for (const pattern of paymentPatterns) {
     const match = originalText.match(pattern);
     if (match && match[1]) {
-      const method = stripHtml(match[1]).trim();
+      const method = stripHtml(match[1]).trim().replace(/\.+$/, "");
       if (method && method.length > 1 && !/^\d+$/.test(method)) {
         result.paymentMethod = method;
         break;
@@ -447,90 +613,176 @@ export const parseTransactionMessage = (
   // Determine transaction type based on text patterns (order matters - more specific first)
 
   // Rule 1: Always check for specific automated transaction keywords first
-  if (cleanText.includes('credited by admin')) {
-    result.type = 'credit_added';
-  } else if (cleanText.includes('successfully cashed out')) {
-    result.type = 'cashout';
-  } else if (cleanText.includes('successfully purchased') || (cleanText.includes('purchased') && cleanText.includes('credit'))) {
-    result.type = 'credit_purchase';
-  } else if (cleanText.includes('successfully recharged') || cleanText.includes('recharged')) {
-    result.type = 'recharge';
-  } else if (cleanText.includes('successfully redeemed') || cleanText.includes('redeemed')) {
-    result.type = 'redeem';
+  if (cleanText.includes("credited by admin")) {
+    result.type = "credit_added";
+  } else if (
+    cleanText.includes("successfully cashed out") ||
+    cleanText.includes("cashed out via")
+  ) {
+    result.type = "cashout";
+  } else if (
+    cleanText.includes("successfully purchased") ||
+    cleanText.includes("purchased via") ||
+    (cleanText.includes("purchased") && cleanText.includes("credit"))
+  ) {
+    result.type = "credit_purchase";
+  } else if (
+    cleanText.includes("successfully recharged") ||
+    cleanText.includes("recharged")
+  ) {
+    result.type = "recharge";
+  } else if (
+    cleanText.includes("successfully redeemed") ||
+    cleanText.includes("redeemed")
+  ) {
+    result.type = "redeem";
+  } else if (
+    /won from (?:the\s+)?(?:prize wheel|roulette)/.test(cleanText) ||
+    cleanText.includes("added as daily bonus") ||
+    /(?:prize wheel|roulette) balance/.test(cleanText) ||
+    /spin(?:s)? (?:added|deducted) (?:to|from) (?:your )?(?:prize wheel|roulette)/.test(
+      cleanText,
+    ) ||
+    (/prize\s*:/.test(cleanText) &&
+      /(?:respin|try again|free spin)/.test(cleanText))
+  ) {
+    result.type = "prize_wheel";
   }
   // Rule 2: Handle manual operations or generic balance updates
-  else if (isBalanceUpdate ||
-    cleanText.includes('added to your') ||
-    cleanText.includes('deducted from your') ||
-    operationType) {
-
+  else if (
+    isBalanceUpdate ||
+    cleanText.includes("added to your") ||
+    cleanText.includes("deducted from your") ||
+    operationType
+  ) {
     // Check for deduction indicators
     const hasDeductionIndicators =
-      operationType === 'decrease' ||
-      cleanText.includes('deducted') ||
-      cleanText.includes('withdraw') ||
-      cleanText.includes('decrease') ||
-      cleanText.includes('minus') ||
-      cleanText.includes('remove') ||
-      cleanText.includes('subtract');
+      operationType === "decrease" ||
+      cleanText.includes("deducted") ||
+      cleanText.includes("withdraw") ||
+      cleanText.includes("decrease") ||
+      cleanText.includes("minus") ||
+      cleanText.includes("remove") ||
+      cleanText.includes("subtract");
 
     if (hasDeductionIndicators) {
-      result.type = cleanText.includes('winning') ? 'winning_deducted' : 'credit_deducted';
+      result.type = cleanText.includes("winning")
+        ? "winning_deducted"
+        : "credit_deducted";
     } else {
-      result.type = cleanText.includes('winning') ? 'winning_added' : 'credit_added';
+      result.type = cleanText.includes("winning")
+        ? "winning_added"
+        : "credit_added";
     }
   }
 
   return result;
 };
 
+/** UI color bucket for ledger / transaction chat cards. */
+export type TransactionVisualKind =
+  | "purchase"
+  | "withdraw"
+  | "recharge"
+  | "redeem"
+  | "prize_wheel"
+  | "manual";
+
+export function transactionTypeToVisualKind(
+  type: TransactionDetails["type"],
+): TransactionVisualKind {
+  switch (type) {
+    case "credit_purchase":
+      return "purchase";
+    case "cashout":
+      return "withdraw";
+    case "recharge":
+      return "recharge";
+    case "redeem":
+      return "redeem";
+    case "prize_wheel":
+      return "prize_wheel";
+    default:
+      return "manual";
+  }
+}
+
+/** Bold amount / label accent in transaction HTML. */
+export function getTransactionTextColorClass(
+  kind: TransactionVisualKind,
+): string {
+  switch (kind) {
+    case "purchase":
+      return "text-green-600 dark:text-green-400";
+    case "withdraw":
+      return "text-red-600 dark:text-red-400";
+    case "recharge":
+      return "text-purple-600 dark:text-purple-400";
+    case "redeem":
+      return "text-orange-600 dark:text-orange-400";
+    case "prize_wheel":
+      return "text-amber-600 dark:text-amber-400";
+    default:
+      return "text-purple-600 dark:text-purple-400";
+  }
+}
+
+/** Centered transaction card tint on admin chat. */
+export function getTransactionCardClass(kind: TransactionVisualKind): string {
+  switch (kind) {
+    case "purchase":
+      return "bg-green-500/10 border-green-500/30";
+    case "withdraw":
+      return "bg-red-500/10 border-red-500/30";
+    case "recharge":
+      return "bg-purple-500/10 border-purple-500/30";
+    case "redeem":
+      return "bg-orange-500/10 border-orange-500/30";
+    case "prize_wheel":
+      return "bg-amber-500/10 border-amber-500/30";
+    default:
+      return "bg-purple-500/10 border-purple-500/30";
+  }
+}
+
 /**
  * Formats a transaction message according to the specified format.
  * Now simplified to show the message as it appears from the source,
  * only applying color to bolded elements.
  */
-export const formatTransactionMessage = (
-  message: {
-    text: string;
-    userBalance?: string;
-    winningBalance?: string;
-    type?: string;
-    operationType?: 'increase' | 'decrease' | null;
-    bonusAmount?: string | null;
-    paymentMethod?: string | null;
-  }
-): string => {
-  if (!message.text) return '';
+export const formatTransactionMessage = (message: {
+  text: string;
+  userBalance?: string;
+  winningBalance?: string;
+  type?: string;
+  operationType?: "increase" | "decrease" | null;
+  bonusAmount?: string | null;
+  paymentMethod?: string | null;
+}): string => {
+  if (!message.text) return "";
 
   // Remove automated headings like "Recharge" or "Redeem" as requested
   const textWithoutHeading = prepareChatMessageHtmlForDisplay(
     removeAutomatedMessageHeading(message.text),
   );
 
-  const details = parseTransactionMessage(message.text, message.type, message.operationType);
-
-  // Identify the color based on transaction type:
-  // Red: Cashout, Redeem (money leaving the system)
-  // Green: Purchase, Recharge (money entering the system)
-  // Purple: Manual transactions from chat (add/deduct credit & add/deduct winnings)
-  let colorClass = 'text-purple-600 dark:text-purple-400'; // Default: manual transactions
-
-  if (details.type === 'recharge' || details.type === 'credit_purchase') {
-    // Green for purchase and recharge
-    colorClass = 'text-green-600 dark:text-green-400';
-  } else if (details.type === 'cashout' || details.type === 'redeem') {
-    // Red for cashout and redeem
-    colorClass = 'text-red-600 dark:text-red-400';
-  }
-  // Purple is default for: credit_added, credit_deducted, winning_added, winning_deducted (manual operations)
-
+  const details = parseTransactionMessage(
+    message.text,
+    message.type,
+    message.operationType,
+  );
+  const visualKind = transactionTypeToVisualKind(details.type);
+  const colorClass = getTransactionTextColorClass(visualKind);
   const boldClass = `text-[0.92em] font-bold ${colorClass}`;
 
   // Unbold labels before wrapping amounts so "Balance:" stays plain while $ amounts get color
   const unboldLabels = textWithoutHeading.replace(
     /<b>\s*(Balance:|Credits:|Winnings:)\s*<\/b>/gi,
-    '$1',
+    "$1",
   );
 
-  return unboldLabels.replace(/<b>(.*?)<\/b>/g, `<b class="${boldClass}">$1</b>`);
+  return unboldLabels.replace(
+    /<b>(.*?)<\/b>/g,
+    `<b class="${boldClass}">$1</b>`,
+  );
 };

@@ -19,6 +19,10 @@ import {
     type TransactionDetailsNavigation,
 } from '@/components/features';
 import { HistoryTransactionsFilters, HistoryTransactionsFiltersState } from '@/components/dashboard/history/history-transactions-filters';
+import {
+  applyListDateFilterChange,
+  inferListDatePreset,
+} from '@/lib/utils/list-filter-date-preset';
 import { agentsApi, paymentMethodsApi } from '@/lib/api';
 import { transactionsApi } from '@/lib/api/transactions';
 import type { Agent, Company, Transaction } from '@/types';
@@ -35,6 +39,7 @@ const DEFAULT_HISTORY_FILTERS: HistoryTransactionsFiltersState = {
     provider: '',
     status: '',
     game: '',
+    date_preset: '',
     date_from: '',
     date_to: '',
     amount_min: '',
@@ -70,6 +75,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
         game: advanced.game ?? '',
         date_from: advanced.date_from ?? '',
         date_to: advanced.date_to ?? '',
+        date_preset: inferListDatePreset(advanced.date_from ?? '', advanced.date_to ?? ''),
         amount_min: advanced.amount_min ?? '',
         amount_max: advanced.amount_max ?? '',
     };
@@ -366,6 +372,10 @@ export function SuperAdminHistoryTransactions() {
     };
 
     const handleFilterChange = useCallback((key: keyof HistoryTransactionsFiltersState, value: string) => {
+        if (key === 'date_preset' || key === 'date_from' || key === 'date_to') {
+            setFilters((previous) => applyListDateFilterChange(previous, key, value));
+            return;
+        }
         setFilters((previous) => ({ ...previous, [key]: value }));
     }, []);
 
@@ -394,6 +404,7 @@ export function SuperAdminHistoryTransactions() {
             Object.entries(filters).filter(([key, value]) => {
                 if (key === 'game') return false; // Remove game filter as it's not used for transactions
                 if (key === 'operator') return false; // Remove operator filter for superadmin
+                if (key === 'date_preset') return false;
                 if (typeof value === 'string') {
                     return value.trim() !== '';
                 }
@@ -1119,153 +1130,112 @@ export function SuperAdminHistoryTransactions() {
                                         transaction.type,
                                         transaction.payment_method,
                                     );
-                                    const isFailedOrCancelled = transaction.status === 'failed' || transaction.status === 'cancelled';
-
                                     const amountColorClass = getTransactionAmountColorClass(
                                         transaction.type,
                                         transaction.amount,
                                     );
-
                                     const bonusAmount = parseFloat(transaction.bonus_amount || '0');
                                     const formattedBonus = bonusAmount > 0 ? formatCurrency(String(bonusAmount)) : null;
-
                                     const userInitial = username.charAt(0).toUpperCase();
                                     const formattedCreatedAt = formatDate(transaction.created_at || transaction.created);
+
+                                    const prevCredit = transaction.previous_balance && !isNaN(parseFloat(transaction.previous_balance))
+                                        ? parseFloat(transaction.previous_balance)
+                                        : 0;
+                                    const newCredit = transaction.new_balance && !isNaN(parseFloat(transaction.new_balance))
+                                        ? parseFloat(transaction.new_balance)
+                                        : 0;
+                                    const creditChanged = prevCredit !== newCredit;
+                                    const creditColorClass = creditChanged
+                                        ? 'text-indigo-600 dark:text-indigo-400'
+                                        : 'text-gray-500 dark:text-gray-400';
+
+                                    const transactionCompany = transaction.company_username
+                                        ? companyMapByUsername.get(transaction.company_username)
+                                        : null;
+                                    const companyLabel = transactionCompany?.project_name || transaction.company_username || null;
 
                                     return (
                                         <div
                                             key={transaction.id}
-                                            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm overflow-hidden"
+                                            className="overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-sm transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900"
                                         >
-                                            <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-                                                <div className="flex items-start gap-3">
-                                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold shadow-md ${
-                                                        isFailedOrCancelled
-                                                            ? 'bg-gradient-to-br from-red-500 to-red-600'
-                                                            : 'bg-gradient-to-br from-indigo-500 to-indigo-600'
-                                                    }`}>
+                                            <div className="border-b border-gray-100 px-3 py-2.5 dark:border-gray-800">
+                                                <div className="flex items-start gap-2.5">
+                                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-sm font-semibold text-white shadow-sm">
                                                         {userInitial}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-start justify-between gap-2 mb-1.5">
-                                                            <div className="flex-1 min-w-0">
-                                                                <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                                                                    {username}
-                                                                </h3>
-                                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                                                                    {transaction.user_email || '—'}
-                                                                </p>
-                                                            </div>
-                                                            <Badge 
-                                                                variant={typeVariant} 
-                                                                className={`text-[10px] px-2 py-0.5 uppercase shrink-0 ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
-                                                            >
-                                                                {transactionType}
-                                                            </Badge>
+                                                        <div className="truncate text-sm font-semibold leading-5 text-gray-900 dark:text-gray-100">
+                                                            {username}
                                                         </div>
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            {transaction.payment_method?.trim() ? (
-                                                                <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                                                                    {transaction.payment_method.trim()}
-                                                                </Badge>
-                                                            ) : null}
-                                                            {transaction.provider && (
-                                                                <Badge variant="info" className="text-[10px] px-2 py-0.5 truncate">
-                                                                    {getProviderDisplayName(transaction.provider, transaction.payment_method)}
-                                                                </Badge>
-                                                            )}
+                                                        <p className="mt-0.5 truncate text-[11px] leading-4 text-gray-500 dark:text-gray-400">
+                                                            {transaction.user_email || '—'}
+                                                        </p>
+                                                        {companyLabel && (
+                                                            <p className="mt-0.5 truncate text-[11px] leading-4 text-gray-600 dark:text-gray-300">
+                                                                {companyLabel}
+                                                            </p>
+                                                        )}
+                                                        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                                                             <Badge
                                                                 variant={
                                                                     transaction.status === 'completed' ? 'success' :
                                                                         transaction.status === 'pending' ? 'warning' :
                                                                             transaction.status === 'failed' || transaction.status === 'cancelled' ? 'danger' : 'default'
                                                                 }
-                                                                className="text-[10px] px-2 py-0.5 capitalize"
+                                                                className="h-5 px-2 text-[10px] capitalize"
                                                             >
                                                                 {transaction.status}
                                                             </Badge>
+                                                            <Badge
+                                                                variant={typeVariant}
+                                                                className={`h-5 px-2 text-[10px] uppercase ${isTransfer ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200/50 dark:border-indigo-800/50' : ''}`}
+                                                            >
+                                                                {transactionType}
+                                                            </Badge>
+                                                            {transaction.payment_method?.trim() ? (
+                                                                <Badge variant="info" className="h-5 px-2 text-[10px] truncate">
+                                                                    {transaction.payment_method.trim()}
+                                                                </Badge>
+                                                            ) : null}
+                                                            {transaction.provider && (
+                                                                <Badge variant="info" className="h-5 px-2 text-[10px] truncate">
+                                                                    {getProviderDisplayName(transaction.provider, transaction.payment_method)}
+                                                                </Badge>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {(() => {
-                                                const transactionCompany = transaction.company_username 
-                                                    ? companyMapByUsername.get(transaction.company_username)
-                                                    : null;
-                                                
-                                                if (transactionCompany) {
-                                                    return (
-                                                        <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center font-bold text-xs text-primary">
-                                                                    {transactionCompany.project_name.charAt(0).toUpperCase()}
-                                                                </div>
-                                                                <div className="min-w-0 flex-1">
-                                                                    <div className="font-medium text-sm truncate">
-                                                                        {transactionCompany.username}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                }
-                                                
-                                                // Fallback: show company_username if available
-                                                if (transaction.company_username) {
-                                                    return (
-                                                        <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center font-bold text-xs text-muted-foreground">
-                                                                    {transaction.company_username.charAt(0).toUpperCase()}
-                                                                </div>
-                                                                <div className="min-w-0 flex-1">
-                                                                    <div className="font-medium text-sm truncate text-muted-foreground">
-                                                                        {transaction.company_username}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                }
-                                                
-                                                return null;
-                                            })()}
-
-                                            <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400 uppercase">Amount</span>
-                                                    <div className="text-right">
-                                                        <div className={`text-base font-bold ${amountColorClass}`}>
+                                            <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="rounded-md bg-gray-50/70 px-2 py-1.5 dark:bg-gray-800/60">
+                                                        <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Amount</div>
+                                                        <div className={`mt-0.5 text-sm font-semibold ${amountColorClass}`}>
                                                             {formatCurrency(transaction.amount || '0')}
                                                         </div>
                                                         {formattedBonus && (
-                                                            <div className={`text-xs font-semibold mt-0.5 ${amountColorClass}`}>
+                                                            <div className={`mt-0.5 text-[10px] font-medium ${amountColorClass}`}>
                                                                 +{formattedBonus} bonus
                                                             </div>
                                                         )}
                                                     </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
-                                                        <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">Previous Credit</div>
-                                                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                                            {formatCurrency(transaction.previous_balance || '0')}
-                                                        </div>
-                                                    </div>
-                                                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2">
-                                                        <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase mb-0.5 font-medium">New Credit</div>
-                                                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                                            {formatCurrency(transaction.new_balance || '0')}
+                                                    <div className="rounded-md bg-gray-50/70 px-2 py-1.5 dark:bg-gray-800/60">
+                                                        <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Balance</div>
+                                                        <div className={`mt-0.5 flex items-center gap-1 text-[10px] ${creditColorClass}`}>
+                                                            <span className="truncate">{formatCurrency(String(prevCredit))}</span>
+                                                            <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                                            </svg>
+                                                            <span className="font-semibold truncate">{formatCurrency(String(newCredit))}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="p-3 flex items-center justify-between">
+                                            <div className="px-3 py-2">
                                                 <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
                                                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1274,11 +1244,11 @@ export function SuperAdminHistoryTransactions() {
                                                 </div>
                                                 <Button
                                                     size="sm"
-                                                    variant="primary"
+                                                    variant="ghost"
                                                     onClick={() => handleViewTransaction(transaction)}
-                                                    className="px-3 py-1.5 text-xs touch-manipulation shrink-0"
+                                                    className="mt-2 w-full rounded-md border border-gray-200 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                                                 >
-                                                    View
+                                                    Details
                                                 </Button>
                                             </div>
                                         </div>

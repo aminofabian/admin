@@ -79,6 +79,36 @@ export default function StaffsPage() {
     }
   };
 
+  const getBackendErrorMessage = (err: unknown, fallback: string) => {
+    if (err instanceof Error && err.message) {
+      return err.message;
+    }
+
+    if (!err || typeof err !== 'object') {
+      return fallback;
+    }
+
+    const errorObj = err as Record<string, unknown>;
+
+    if (typeof errorObj.message === 'string' && errorObj.message.trim()) {
+      return errorObj.message;
+    }
+
+    if (typeof errorObj.detail === 'string' && errorObj.detail.trim()) {
+      return errorObj.detail;
+    }
+
+    const validationErrors = Object.entries(errorObj)
+      .filter(([, value]) => Array.isArray(value))
+      .map(([field, messages]) => `${field}: ${(messages as unknown[]).join(', ')}`);
+
+    if (validationErrors.length > 0) {
+      return validationErrors.join('; ');
+    }
+
+    return fallback;
+  };
+
   const handleCreateStaff = async (formData: CreateUserRequest | UpdateUserRequest) => {
     try {
       setIsSubmitting(true);
@@ -90,7 +120,7 @@ export default function StaffsPage() {
       setIsCreateModalOpen(false);
       await loadStaffs(); // Refresh the list
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create staff';
+      const errorMessage = getBackendErrorMessage(err, 'Failed to create staff');
       setSubmitError(errorMessage);
       throw err;
     } finally {

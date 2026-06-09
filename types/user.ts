@@ -49,6 +49,11 @@ export interface SavedPaymentMethod {
   account_name?: string;
   account_number?: string;
   account_info?: string;
+  paypal_email?: string;
+  payer_email?: string;
+  customer_email?: string;
+  email?: string;
+  venmo_username?: string | null;
 }
 
 export interface Player extends BaseUser {

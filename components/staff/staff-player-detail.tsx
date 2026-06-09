@@ -1,22 +1,32 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Player, UpdateUserRequest } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils/formatters';
-import { playersApi } from '@/lib/api';
+import { playersApi, gameOperationsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants/api';
-import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input } from '@/components/ui';
-import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal } from '@/components/features';
+import { Badge, Button, useToast, DropdownMenu, DropdownMenuItem, ConfirmModal, Input, Select, DateSelect } from '@/components/ui';
+import { LoadingState, ErrorState, PlayerGameBalanceModal, SavedPaymentMethodsModal, GameRechargeModal } from '@/components/features';
 import { usePlayerGames } from '@/hooks/use-player-games';
 import type { PlayerGame, CheckPlayerGameBalanceResponse } from '@/types';
+import { PlayerTransactionAnalyticsModal } from '@/components/analytics/player-transaction-analytics-modal';
 import { AddGameDrawer } from '@/components/chat/modals/add-game-drawer';
+import { PlayerGameOperationMenuItems } from '@/components/dashboard/players/player-game-operation-menu-items';
+import { PlayerGamePasswordReveal } from '@/components/dashboard/players/player-game-password-reveal';
 import { useTransactionsStore, useTransactionQueuesStore } from '@/stores';
 import { hasMeaningfulWinningBalance } from '@/lib/chat/map-chat-api';
 import { EditPlayerDetailsDrawer } from '@/components/dashboard/players/edit-player-drawer';
 import { PlayerCashoutLimitHeroCard } from '@/components/dashboard/players/player-cashout-limit-hero-card';
-import { USER_ROLES, canEditPlayerCashoutLimit } from '@/lib/constants/roles';
+import { PlayerPersonalInformationCard } from '@/components/dashboard/players/player-personal-information-card';
+import { PlayerRouletteSpinAllowanceSection } from '@/components/dashboard/players/player-roulette-spin-allowance-section';
+import {
+  USER_ROLES,
+  canEditPlayerCashoutLimit,
+  canEditPlayerRouletteAllowance,
+} from '@/lib/constants/roles';
+import { usePlayerAdjacentNavigation } from '@/hooks/use-player-adjacent-navigation';
 
 
 interface StaffPlayerDetailProps {
@@ -49,7 +59,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   // State
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isLoadingPlayer, setIsLoadingPlayer] = useState(true);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [selectedGameForBalance, setSelectedGameForBalance] = useState<PlayerGame | null>(null);
@@ -64,8 +73,16 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
   const [isEditingGame, setIsEditingGame] = useState(false);
   const [isEditGameDrawerOpen, setIsEditGameDrawerOpen] = useState(false);
   const [isSavedPaymentMethodsOpen, setIsSavedPaymentMethodsOpen] = useState(false);
+  const [isTransactionAnalyticsModalOpen, setIsTransactionAnalyticsModalOpen] = useState(false);
   const [gameToDelete, setGameToDelete] = useState<PlayerGame | null>(null);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
+  const [gameForRecharge, setGameForRecharge] = useState<PlayerGame | null>(null);
+  const [gamePendingRedeem, setGamePendingRedeem] = useState<PlayerGame | null>(null);
+  const [gamePendingResetPassword, setGamePendingResetPassword] = useState<PlayerGame | null>(null);
+  const [isGameOperationSubmitting, setIsGameOperationSubmitting] = useState(false);
+  const [visiblePlayerGamePasswordIds, setVisiblePlayerGamePasswordIds] = useState<
+    Record<number, boolean>
+  >({});
   const [editableFields, setEditableFields] = useState<EditableFields>({
     email: '',
     full_name: '',
@@ -104,24 +121,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           is_active: player.is_active ?? true,
         });
 
-        // Load transaction details
-        setIsLoadingDetails(true);
-        try {
-          const details = await playersApi.viewDetails(player.id);
-          setSelectedPlayer((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              total_purchases: details.total_purchases,
-              total_cashouts: details.total_cashouts,
-              total_transfers: details.total_transfers,
-            };
-          });
-        } catch (err) {
-          console.error('Failed to load player details:', err);
-        } finally {
-          setIsLoadingDetails(false);
-        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load player';
         setError(message);
@@ -133,6 +132,10 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     loadPlayer();
   }, [playerId]);
 
+  useEffect(() => {
+    setVisiblePlayerGamePasswordIds({});
+  }, [playerId]);
+
   const handleBack = useCallback(() => {
     router.push('/dashboard/players');
   }, [router]);
@@ -142,6 +145,11 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     const chatUrl = `/dashboard/chat?playerId=${selectedPlayer.id}`;
     router.push(chatUrl);
   }, [selectedPlayer, router]);
+
+  const { playerNavDirection, handleNavigateToAdjacentPlayer } = usePlayerAdjacentNavigation({
+    selectedPlayer,
+    onNavigateToChat: handleNavigateToChat,
+  });
 
   const handleViewTransactions = useCallback(() => {
     if (!selectedPlayer?.username) {
@@ -163,6 +171,11 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     queuesStore.setFilterWithoutFetch('history');
     queuesStore.setAdvancedFiltersWithoutFetch({ username: selectedPlayer.username });
     router.push('/dashboard/history/game-activities?preserveFilters=true');
+  }, [selectedPlayer, router]);
+
+  const handleViewTimeline = useCallback(() => {
+    if (!selectedPlayer) return;
+    router.push(`/dashboard/players/${selectedPlayer.id}/timeline`);
   }, [selectedPlayer, router]);
 
   const handleCheckBalance = useCallback(async (game: PlayerGame) => {
@@ -192,34 +205,150 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     setIsAddGameDrawerOpen(true);
   }, []);
 
-  const handleAddGame = useCallback(async (data: { username: string; password: string; code: string; user_id: number }) => {
-    if (!selectedPlayer || isAddingGame) {
-      return;
-    }
+  const handleAddGameDashboardRecord = useCallback(
+    async (data: { username: string; password: string; code: string; user_id: number }) => {
+      if (!selectedPlayer || isAddingGame) return;
 
-    setIsAddingGame(true);
+      setIsAddingGame(true);
+      try {
+        const result = await playersApi.createGame(data);
+        addToast({
+          type: 'success',
+          title: result.message || `Added ${result.game_name}`,
+        });
+        setIsAddGameDrawerOpen(false);
+        void refreshGames({ silent: true });
+      } catch (error) {
+        const description =
+          error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+            ? (error as { message: string }).message
+            : 'Unknown error';
+        addToast({
+          type: 'error',
+          title: 'Failed to add game',
+          description,
+        });
+      } finally {
+        setIsAddingGame(false);
+      }
+    },
+    [selectedPlayer, isAddingGame, addToast, refreshGames],
+  );
+
+  const handleAddGamePlatform = useCallback(
+    async (data: { game_id: number }) => {
+      if (!selectedPlayer || isAddingGame) return;
+
+      setIsAddingGame(true);
+      try {
+        const result = await gameOperationsApi.addUserGame({
+          player_id: selectedPlayer.id,
+          game_id: data.game_id,
+        });
+        addToast({
+          type: 'success',
+          title: result.message,
+        });
+        setIsAddGameDrawerOpen(false);
+        void refreshGames({ silent: true });
+      } catch (error) {
+        const description =
+          error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+            ? (error as { message: string }).message
+            : 'Unknown error';
+        addToast({
+          type: 'error',
+          title: 'Failed to add game',
+          description,
+        });
+      } finally {
+        setIsAddingGame(false);
+      }
+    },
+    [selectedPlayer, isAddingGame, addToast, refreshGames],
+  );
+
+  const submitGameRecharge = useCallback(
+    async (amount: number) => {
+      if (!selectedPlayer || !gameForRecharge) return;
+      setIsGameOperationSubmitting(true);
+      try {
+        const result = await gameOperationsApi.recharge({
+          player_id: selectedPlayer.id,
+          game_id: gameForRecharge.game__id,
+          amount,
+        });
+        addToast({
+          type: 'success',
+          title: 'Recharge queued',
+          description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+        });
+        setGameForRecharge(null);
+        await refreshGames({ silent: true });
+      } catch (error) {
+        const description =
+          error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+            ? (error as { message: string }).message
+            : 'Recharge failed';
+        addToast({ type: 'error', title: 'Recharge failed', description });
+      } finally {
+        setIsGameOperationSubmitting(false);
+      }
+    },
+    [selectedPlayer, gameForRecharge, addToast, refreshGames],
+  );
+
+  const confirmRedeemGame = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingRedeem) return;
+    setIsGameOperationSubmitting(true);
     try {
-      const result = await playersApi.createGame(data);
-
+      const result = await gameOperationsApi.redeem({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingRedeem.game__id,
+      });
       addToast({
         type: 'success',
-        title: 'Game added successfully',
-        description: `${result.game_name} account created for ${result.username}`,
+        title: 'Redeem queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
       });
-
-      setIsAddGameDrawerOpen(false);
-      await refreshGames();
+      setGamePendingRedeem(null);
+      await refreshGames({ silent: true });
     } catch (error) {
-      const description = error instanceof Error ? error.message : 'Unknown error';
-      addToast({
-        type: 'error',
-        title: 'Failed to add game',
-        description,
-      });
+      const description =
+        error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Redeem failed';
+      addToast({ type: 'error', title: 'Redeem failed', description });
     } finally {
-      setIsAddingGame(false);
+      setIsGameOperationSubmitting(false);
     }
-  }, [selectedPlayer, isAddingGame, addToast, refreshGames]);
+  }, [selectedPlayer, gamePendingRedeem, addToast, refreshGames]);
+
+  const confirmResetGamePassword = useCallback(async () => {
+    if (!selectedPlayer || !gamePendingResetPassword) return;
+    setIsGameOperationSubmitting(true);
+    try {
+      const result = await gameOperationsApi.resetPassword({
+        player_id: selectedPlayer.id,
+        game_id: gamePendingResetPassword.game__id,
+      });
+      addToast({
+        type: 'success',
+        title: 'Password reset queued',
+        description: result.message + (result.queue_id ? ` Queue ID: ${result.queue_id}.` : ''),
+      });
+      setGamePendingResetPassword(null);
+      await refreshGames({ silent: true });
+    } catch (error) {
+      const description =
+        error && typeof error === 'object' && 'message' in error && typeof (error as { message: string }).message === 'string'
+          ? (error as { message: string }).message
+          : 'Reset failed';
+      addToast({ type: 'error', title: 'Reset failed', description });
+    } finally {
+      setIsGameOperationSubmitting(false);
+    }
+  }, [selectedPlayer, gamePendingResetPassword, addToast, refreshGames]);
 
   const handleEditGame = useCallback(async (data: { username: string; password: string }) => {
     if (!gameToEdit || isEditingGame) {
@@ -241,7 +370,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
 
       setIsEditGameDrawerOpen(false);
       setGameToEdit(null);
-      await refreshGames();
+      await refreshGames({ silent: true });
     } catch (error) {
       const description = error instanceof Error ? error.message : 'Unknown error';
       addToast({
@@ -260,7 +389,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     setIsDeletingGame(true);
     try {
       await playersApi.deleteGame(gameToDelete.id);
-      await refreshGames();
+      await refreshGames({ silent: true });
       addToast({
         type: 'success',
         title: 'Game removed',
@@ -368,9 +497,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
 
   const creditBalance = formatCurrency(selectedPlayer.balance ?? 0);
   const showWinningsHero = hasMeaningfulWinningBalance(selectedPlayer.winning_balance);
-  const purchasesTotal = formatCurrency(selectedPlayer.total_purchases ?? 0);
-  const cashoutsTotal = formatCurrency(selectedPlayer.total_cashouts ?? 0);
-  const transfersTotal = formatCurrency(selectedPlayer.total_transfers ?? 0);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -398,24 +524,20 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
               </svg>
             </button>
             <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 flex-1 min-w-0">
-              <button
-                onClick={handleNavigateToChat}
-                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base hover:bg-gray-600 dark:hover:bg-gray-500 transition-colors cursor-pointer active:scale-95"
-                title="Open chat with this player"
-                aria-label="Open chat"
+              <div
+                className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-full bg-gray-700 dark:bg-gray-600 text-white font-bold shadow-md text-xs sm:text-sm md:text-base"
+                aria-label="Player avatar"
               >
                 {usernameInitial}
-              </button>
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5 sm:gap-2 flex-wrap">
-                  <button
-                    onClick={handleNavigateToChat}
-                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer text-left"
-                    title="Open chat with this player"
-                    aria-label="Open chat"
+                  <span
+                    className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 lg:text-xl truncate text-left"
+                    aria-label="Player username"
                   >
                     {selectedPlayer.username}
-                  </button>
+                  </span>
                   <span className="hidden sm:inline-flex items-center justify-center h-4 sm:h-5 px-1 sm:px-1.5 text-[9px] sm:text-[10px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shrink-0 rounded">
                     #{selectedPlayer.id}
                   </span>
@@ -435,17 +557,52 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                 </div>
               </div>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setIsEditDrawerOpen(true)}
-              className="flex items-center gap-1 sm:gap-1.5 shrink-0 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
-            >
-              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
-            </Button>
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 flex-wrap sm:flex-nowrap justify-end">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleNavigateToAdjacentPlayer('previous')}
+                disabled={playerNavDirection !== null}
+                isLoading={playerNavDirection === 'previous'}
+                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <span className="hidden sm:inline text-xs sm:text-sm">Prev</span>
+                <span className="sm:hidden text-xs">◀</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleNavigateToAdjacentPlayer('next')}
+                disabled={playerNavDirection !== null}
+                isLoading={playerNavDirection === 'next'}
+                className="touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <span className="hidden sm:inline text-xs sm:text-sm">Next</span>
+                <span className="sm:hidden text-xs">▶</span>
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleNavigateToChat}
+                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="hidden sm:inline text-xs sm:text-sm">Chat</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsEditDrawerOpen(true)}
+                className="flex items-center gap-1 sm:gap-1.5 touch-manipulation px-2 sm:px-3 py-1.5 sm:py-2"
+              >
+                <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className="hidden sm:inline text-xs sm:text-sm">Edit</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -552,7 +709,7 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                 </div>
                 <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h2>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
                 <Button
                   onClick={handleViewTransactions}
                   variant="primary"
@@ -575,9 +732,19 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                   <span className="text-center leading-tight">Activities</span>
                 </Button>
                 <Button
+                  onClick={handleViewTimeline}
+                  variant="primary"
+                  className="group col-span-2 flex flex-col items-center justify-center gap-2 rounded-lg px-3 py-4 text-xs font-semibold shadow-md transition-all active:scale-[0.95] touch-manipulation min-h-[80px] sm:col-span-1"
+                >
+                  <svg className="h-6 w-6 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-center leading-tight">Timeline</span>
+                </Button>
+                <Button
                   onClick={() => setIsSavedPaymentMethodsOpen(true)}
                   variant="secondary"
-                  className="group col-span-2 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98] touch-manipulation"
+                  className="group col-span-2 flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98] touch-manipulation sm:col-span-3"
                 >
                   <svg className="h-5 w-5 transition-transform group-active:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
@@ -592,105 +759,57 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
               </div>
             </section>
 
-            {/* Personal Information Card */}
-            <section className="border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
-              <div className="mb-2 sm:mb-3 flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Personal Information</h2>
-              </div>
-              <div className="space-y-1.5">
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Email</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100 break-all">{selectedPlayer.email}</p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Full Name</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.full_name || '—'}</p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Date of Birth</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.dob || '—'}</p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">State</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.state || '—'}</p>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 p-2 dark:border-gray-800 dark:bg-gray-800/50">
-                  <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Phone</p>
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{selectedPlayer.mobile_number || '—'}</p>
-                </div>
-              </div>
-            </section>
+            <PlayerPersonalInformationCard
+              email={selectedPlayer.email}
+              fullName={selectedPlayer.full_name}
+              dob={selectedPlayer.dob}
+              state={selectedPlayer.state}
+              mobileNumber={selectedPlayer.mobile_number}
+            />
+
+            <PlayerRouletteSpinAllowanceSection
+              playerId={selectedPlayer.id}
+              playerUsername={selectedPlayer.username}
+              canEdit={canEditPlayerRouletteAllowance(USER_ROLES.STAFF)}
+            />
           </div>
 
           {/* Column 2: Transaction Summary */}
-          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-2 lg:order-2">
-            {/* Transaction Summary Card */}
-            <section className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 rounded-xl p-3 sm:p-4 md:p-5 lg:p-6 border border-purple-200 dark:border-purple-800/50 shadow-sm">
-              <div className="mb-3 sm:mb-4 md:mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <h2 className="text-sm sm:text-base md:text-lg font-bold text-purple-900 dark:text-purple-200">Transaction Summary</h2>
-                </div>
-                {isLoadingDetails && (
-                  <svg className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                )}
+          <div className="order-2 lg:order-2 space-y-3 sm:space-y-4 md:space-y-6">
+            <section className="rounded-lg border border-purple-200/90 bg-gradient-to-br from-[#f3f0fb] via-purple-50 to-violet-50 p-2.5 shadow-sm sm:p-3 dark:border-purple-800/70 dark:from-purple-950/35 dark:via-purple-950/25 dark:to-violet-950/30">
+              <div className="mb-2 flex items-center gap-2 sm:mb-2.5">
+                <svg
+                  className="h-3.5 w-3.5 shrink-0 text-purple-600 dark:text-purple-400"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden
+                >
+                  <rect x="4" y="14" width="4" height="6" rx="1" />
+                  <rect x="10" y="8" width="4" height="12" rx="1" />
+                  <rect x="16" y="4" width="4" height="16" rx="1" />
+                </svg>
+                <h2 className="text-xs font-bold tracking-tight text-purple-900 dark:text-purple-100 sm:text-sm">
+                  Transaction Summary
+                </h2>
               </div>
-              <div className="flex flex-col 2xl:grid 2xl:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-purple-200/50 dark:border-purple-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-purple-700 dark:text-purple-300 break-words min-w-0">Purchases</h5>
-                  </div>
-                  {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-purple-300/30 dark:bg-purple-700/30 rounded w-full animate-pulse" />
-                  ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 break-words min-w-0">{purchasesTotal}</p>
-                  )}
-                </div>
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-indigo-200/50 dark:border-indigo-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-indigo-500/20 dark:bg-indigo-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-indigo-700 dark:text-indigo-300 break-words min-w-0">Cashouts</h5>
-                  </div>
-                  {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-indigo-300/30 dark:bg-indigo-700/30 rounded w-full animate-pulse" />
-                  ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-indigo-600 dark:text-indigo-400 transition-all duration-300 break-words min-w-0">{cashoutsTotal}</p>
-                  )}
-                </div>
-                <div className="bg-white/60 dark:bg-white/10 backdrop-blur-sm rounded-lg p-3 sm:p-4 2xl:p-2.5 border border-violet-200/50 dark:border-violet-700/50 hover:shadow-md transition-all duration-300 min-w-0 overflow-hidden">
-                  <div className="mb-2 flex items-center gap-1.5 sm:gap-2 2xl:gap-1 min-w-0">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 2xl:w-5 2xl:h-5 rounded-lg bg-violet-500/20 dark:bg-violet-500/30 flex items-center justify-center shrink-0">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 2xl:w-2.5 2xl:h-2.5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
-                    </div>
-                    <h5 className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-violet-700 dark:text-violet-300 break-words min-w-0">Transfers</h5>
-                  </div>
-                  {isLoadingDetails ? (
-                    <div className="h-5 sm:h-6 md:h-7 bg-violet-300/30 dark:bg-violet-700/30 rounded w-full animate-pulse" />
-                  ) : (
-                    <p className="text-sm sm:text-lg md:text-xl lg:text-2xl 2xl:text-lg font-bold text-violet-600 dark:text-violet-400 transition-all duration-300 break-words min-w-0">{transfersTotal}</p>
-                  )}
-                </div>
+              <div className="rounded-md border border-purple-100/90 bg-white p-2 shadow-sm dark:border-purple-900/50 dark:bg-gray-950/80 sm:p-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsTransactionAnalyticsModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#6b73e3] px-2.5 py-1.5 text-[11px] font-bold leading-tight text-white shadow-sm transition-colors hover:bg-[#5c64d6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b73e3] focus-visible:ring-offset-1 dark:bg-[#7b83f0] dark:hover:bg-[#6b73e3] sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs"
+                >
+                  <svg
+                    className="h-3 w-3 shrink-0 text-white sm:h-3.5 sm:w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 13l3-3 2 2 5-5" />
+                  </svg>
+                  Open Player Transaction Analytics
+                </button>
               </div>
             </section>
           </div>
@@ -700,8 +819,8 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
             {/* Player Games Card */}
             <section className="border border-gray-200 bg-white p-3 sm:p-4 md:p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 rounded-lg">
               <div className="mb-4 sm:mb-5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-md">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
                     </svg>
@@ -721,7 +840,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                   <span className="sm:hidden">Add</span>
                 </Button>
               </div>
-
               {isLoadingGames ? (
                 <div className="space-y-2">
                   {[...Array(3)].map((_, i) => (
@@ -746,6 +864,17 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {game.username}
                         </p>
+                        <PlayerGamePasswordReveal
+                          layout="compact"
+                          game={game}
+                          isVisible={!!visiblePlayerGamePasswordIds[game.id]}
+                          onToggleVisibility={() =>
+                            setVisiblePlayerGamePasswordIds((prev) => ({
+                              ...prev,
+                              [game.id]: !prev[game.id],
+                            }))
+                          }
+                        />
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -771,6 +900,12 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
                             }
                             align="right"
                           >
+                            <PlayerGameOperationMenuItems
+                              game={game}
+                              onRecharge={setGameForRecharge}
+                              onRedeem={setGamePendingRedeem}
+                              onResetPassword={setGamePendingResetPassword}
+                            />
                             <DropdownMenuItem
                               onClick={() => {
                                 setGameToEdit(game);
@@ -820,6 +955,36 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         error={balanceError}
       />
 
+      <GameRechargeModal
+        isOpen={!!gameForRecharge}
+        onClose={() => !isGameOperationSubmitting && setGameForRecharge(null)}
+        gameTitle={gameForRecharge?.game__title ?? ''}
+        onConfirm={submitGameRecharge}
+        isSubmitting={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingRedeem}
+        onClose={() => !isGameOperationSubmitting && setGamePendingRedeem(null)}
+        onConfirm={confirmRedeemGame}
+        title="Redeem full game balance"
+        description={`Queue a redeem for all funds in "${gamePendingRedeem?.game__title}" for ${selectedPlayer.username}? This runs in the background.`}
+        confirmText="Redeem"
+        variant="warning"
+        isLoading={isGameOperationSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={!!gamePendingResetPassword}
+        onClose={() => !isGameOperationSubmitting && setGamePendingResetPassword(null)}
+        onConfirm={confirmResetGamePassword}
+        title="Reset game password"
+        description={`Submit a password reset for "${gamePendingResetPassword?.game__title}"? Processing runs in the background.`}
+        confirmText="Reset password"
+        variant="info"
+        isLoading={isGameOperationSubmitting}
+      />
+
       {/* Add Game Drawer */}
       {selectedPlayer && (
         <AddGameDrawer
@@ -828,7 +993,8 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
           playerId={selectedPlayer.id}
           playerUsername={selectedPlayer.username}
           playerGames={games}
-          onSubmit={handleAddGame}
+          onSubmitDashboardRecord={handleAddGameDashboardRecord}
+          onSubmitGamePlatform={handleAddGamePlatform}
           isSubmitting={isAddingGame}
         />
       )}
@@ -860,6 +1026,11 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
         onClose={() => setIsSavedPaymentMethodsOpen(false)}
         playerUsername={selectedPlayer.username}
         savedPaymentMethods={selectedPlayer.saved_payment_methods ?? []}
+      />
+      <PlayerTransactionAnalyticsModal
+        isOpen={isTransactionAnalyticsModalOpen}
+        onClose={() => setIsTransactionAnalyticsModalOpen(false)}
+        username={selectedPlayer.username}
       />
 
       {/* Edit Game Drawer */}
@@ -895,7 +1066,6 @@ export function StaffPlayerDetail({ playerId }: StaffPlayerDetailProps) {
     </div>
   );
 }
-
 // Edit Game Drawer Component
 interface EditGameDrawerContentProps {
   game: PlayerGame;

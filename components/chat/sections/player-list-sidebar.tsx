@@ -8,6 +8,7 @@ import type { ChatUser } from '@/types';
 import {
   isAutoMessage,
   isPurchaseNotification,
+  isPrizeWheelMessage,
   isKycVerificationMessage,
   formatTransactionMessage,
   prepareChatMessageHtmlForDisplay,
@@ -130,6 +131,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
             const mockMessage = { text: player.lastMessage };
             const isAuto = isAutoMessage(mockMessage);
             const isPurchase = isPurchaseNotification(mockMessage);
+            const isPrizeWheel = isPrizeWheelMessage(mockMessage);
             const isKyc = isKycVerificationMessage(mockMessage);
 
             if (isKyc) {
@@ -142,7 +144,7 @@ const PlayerItem = memo(function PlayerItem({ player, isSelected, onSelect }: Pl
                 </p>
               );
             }
-            if (isAuto || isPurchase) {
+            if (isAuto || isPurchase || isPrizeWheel) {
               // Format the transaction message
               const formatted = formatTransactionMessage(mockMessage as { text: string; type?: string });
 
@@ -250,11 +252,6 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
   const withChatsDisplayCount =
     playersWithChatsTotalCount ?? directoryAllPlayersCount ?? activeChatsCount;
 
-  const onlinePlayersBadgeCount =
-    activeTab === 'online' && searchQuery.trim().length > 0
-      ? displayedPlayers.length
-      : onlinePlayersCount;
-
   // Refs for infinite scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
@@ -334,7 +331,7 @@ export const PlayerListSidebar = memo(function PlayerListSidebar({
                 : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                 }`}
             >
-              <span className="text-[11px] font-bold tabular-nums md:text-xs">{onlinePlayersBadgeCount}</span>
+              <span className="text-[11px] font-bold tabular-nums md:text-xs">{onlinePlayersCount}</span>
               <span
                 className={`mt-0.5 text-[6px] font-semibold uppercase tracking-wide md:text-[7px] ${activeTab === 'online' ? 'text-primary-foreground/90' : ''
                   }`}

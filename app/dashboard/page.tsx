@@ -268,6 +268,17 @@ export default function DashboardPage() {
           ),
         },
         {
+          label: 'Prize Wheel Settings',
+          href: '/dashboard/settings/roulette',
+          icon: (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" strokeWidth={2} />
+              <path strokeLinecap="round" strokeWidth={2} d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+              <circle cx="12" cy="12" r="3" strokeWidth={2} />
+            </svg>
+          ),
+        },
+        {
           label: 'Payment Settings',
           href: '/dashboard/settings/payment',
           icon: (

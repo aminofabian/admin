@@ -56,6 +56,21 @@ const settingsCategories = [
     href: '/dashboard/settings/games',
     permissions: ['company', 'superadmin'],
   },
+  {
+    id: 'roulette',
+    title: 'Prize Wheel Settings',
+    description:
+      'Configure daily free spins (credited after first deposit each day) and prize wheel rewards',
+    icon: (
+      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <circle cx="12" cy="12" r="9" strokeWidth={2} />
+        <path strokeLinecap="round" strokeWidth={2} d="M12 3v2M12 19v2M3 12h2M19 12h2" />
+        <circle cx="12" cy="12" r="3" strokeWidth={2} />
+      </svg>
+    ),
+    href: '/dashboard/settings/roulette',
+    permissions: ['company', 'superadmin'],
+  },
 ];
 
 export default function SettingsPage() {
@@ -183,6 +198,16 @@ export default function SettingsPage() {
               <li>• Game status management</li>
               <li>• Dashboard URL configuration</li>
               <li>• Game enable/disable</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              Prize Wheel Settings
+            </h3>
+            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+              <li>• Daily free spins credited after first deposit; unused spins accumulate</li>
+              <li>• Enable or disable prize wheel spins</li>
+              <li>• Dynamic wheel rewards (prizes, amounts, chances)</li>
             </ul>
           </div>
         </div>
