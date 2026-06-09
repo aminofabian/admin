@@ -7,7 +7,6 @@ import { useAuth } from '@/providers/auth-provider';
 import { useProcessingWebSocketContext } from '@/contexts/processing-websocket-context';
 import { useChatUsersContext } from '@/contexts/chat-users-context';
 import { USER_ROLES } from '@/lib/constants/roles';
-import { sendTestPush } from '@/lib/push';
 import { useState, useEffect, useMemo, useRef } from 'react';
 
 interface TopNavigationProps {
@@ -332,16 +331,6 @@ export function TopNavigation({ onMenuClick }: TopNavigationProps) {
                     {wsError && (
                       <p className="text-xs text-muted-foreground mt-1 ml-4">{wsError}</p>
                     )}
-                  </div>
-
-                  <div className="p-2">
-                    <button
-                      type="button"
-                      onClick={() => sendTestPush()}
-                      className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors text-left"
-                    >
-                      <span className="text-xs text-muted-foreground">📲 Test push (works when tab is closed)</span>
-                    </button>
                   </div>
 
                   {/* Chat Connection Status */}
