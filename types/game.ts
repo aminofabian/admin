@@ -1,10 +1,12 @@
+export type GameOperationMode = 'auto' | 'manual';
+
 export interface Game {
   id: number;
   title: string;
   code: string;
   game_category: string;
   game_status: boolean;
-  game_operation_mode?: string;
+  game_operation_mode?: GameOperationMode;
   dashboard_url?: string;
   playing_url?: string;
   created: string;
@@ -39,6 +41,7 @@ export interface PlayerGame {
 export interface UpdateGameRequest {
   title?: string;
   game_status?: boolean;
+  game_operation_mode?: GameOperationMode;
   dashboard_url?: string;
   playing_url?: string;
 }

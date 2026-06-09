@@ -2,7 +2,9 @@
 
 import { useState, FormEvent, useMemo } from 'react';
 import { Input, Button } from '@/components/ui';
-import type { Game, UpdateGameRequest } from '@/types';
+import { GameOperationModeSelector } from '@/components/features/game-operation-mode-selector';
+import { normalizeGameOperationMode } from '@/lib/constants/game-operation-mode';
+import type { Game, GameOperationMode, UpdateGameRequest } from '@/types';
 
 interface GameFormProps {
   game: Game;
@@ -18,6 +20,7 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading, backendErrors = 
     dashboard_url: game.dashboard_url || '',
     playing_url: game.playing_url || '',
     game_status: game.game_status,
+    game_operation_mode: normalizeGameOperationMode(game.game_operation_mode),
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,7 +65,10 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading, backendErrors = 
     }
   };
 
-  const handleChange = (field: keyof UpdateGameRequest, value: string | boolean) => {
+  const handleChange = (
+    field: keyof UpdateGameRequest,
+    value: string | boolean | GameOperationMode,
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear client-side validation error when user starts typing
     if (errors[field as string]) {
@@ -106,6 +112,13 @@ export const GameForm = ({ game, onSubmit, onCancel, isLoading, backendErrors = 
           error={allErrors.playing_url}
           placeholder="https://play.game.com"
           disabled={isLoading}
+        />
+
+        <GameOperationModeSelector
+          value={normalizeGameOperationMode(formData.game_operation_mode)}
+          onChange={mode => handleChange('game_operation_mode', mode)}
+          disabled={isLoading}
+          error={allErrors.game_operation_mode}
         />
 
         {/* Status Toggle */}

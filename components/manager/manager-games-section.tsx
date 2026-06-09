@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import type { JSX } from 'react';
 import { Badge, Button, Drawer, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Skeleton } from '@/components/ui';
 import { EmptyState, ErrorState, GameForm, StoreBalanceModal } from '@/components/features';
+import { GameOperationModeBadge } from '@/components/features/game-operation-mode-badge';
 import { useGamesStore } from '@/stores';
+import { isManualGameMode } from '@/lib/constants/game-operation-mode';
 import type { Game, UpdateGameRequest, CheckStoreBalanceResponse, ApiError } from '@/types';
 
 /**
@@ -375,7 +377,7 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
             <TableRow>
               <TableHead>Game</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Operation Mode</TableHead>
+              <TableHead>Game Mode</TableHead>
               <TableHead>Dashboard URL</TableHead>
               <TableHead>Playing URL</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -396,13 +398,7 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {game.game_operation_mode ? (
-                    <Badge variant="info">
-                      {game.game_operation_mode.charAt(0).toUpperCase() + game.game_operation_mode.slice(1)}
-                    </Badge>
-                  ) : (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
-                  )}
+                  <GameOperationModeBadge mode={game.game_operation_mode} />
                 </TableCell>
                 <TableCell>
                   {(() => {
@@ -450,18 +446,20 @@ function GamesTable({ games, onEditGame, onCheckBalance }: GamesTableProps) {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onCheckBalance(game)}
-                      title="Check store balance"
-                      className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Balance
-                    </Button>
+                    {!isManualGameMode(game.game_operation_mode) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onCheckBalance(game)}
+                        title="Check store balance"
+                        className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Balance
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -506,11 +504,7 @@ function GameCard({ game, onEditGame, onCheckBalance }: GameCardProps) {
             </h3>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {game.game_operation_mode && (
-              <Badge variant="info" className="text-[10px] px-2 py-0.5">
-                {game.game_operation_mode.charAt(0).toUpperCase() + game.game_operation_mode.slice(1)}
-              </Badge>
-            )}
+            <GameOperationModeBadge mode={game.game_operation_mode} className="text-[10px] px-2 py-0.5" />
             <Badge 
               variant={game.game_status ? 'success' : 'danger'} 
               className="text-[10px] px-2 py-0.5"
@@ -592,18 +586,20 @@ function GameCard({ game, onEditGame, onCheckBalance }: GameCardProps) {
               <span className="truncate">Play</span>
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onCheckBalance(game)}
-            title="Check store balance"
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors touch-manipulation"
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="truncate">Balance</span>
-          </Button>
+          {!isManualGameMode(game.game_operation_mode) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onCheckBalance(game)}
+              title="Check store balance"
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors touch-manipulation"
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="truncate">Balance</span>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
