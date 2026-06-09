@@ -5,6 +5,8 @@ export * from './agent-form';
 export * from './player-form';
 export * from '../dashboard/data-sections/action-modal/player-view-modal';
 export * from './game-form';
+export * from './game-operation-mode-badge';
+export * from './game-operation-mode-selector';
 export * from './banner-form';
 export * from './affiliate-form';
 export * from './add-manual-affiliate-form';
