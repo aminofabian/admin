@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { formatCurrency } from '@/lib/utils/formatters';
+import {
+  getQueueDisplayStatus,
+  getQueueStatusBadgeClassName,
+} from '@/lib/utils/game-queue-display';
 import type { TransactionQueue, GameActionType } from '@/types';
 
 const mapTypeToLabel = (type: string): string => {
@@ -118,12 +122,13 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return null;
   }
 
+  const displayStatus = getQueueDisplayStatus(queue.status, queue.remarks);
+  const statusBadgeClass = getQueueStatusBadgeClassName(displayStatus);
+
   const handleActionSelect = (selectedAction: GameActionType) => {
     if (selectedAction === 'complete') {
-      // Show form fields for complete action
       setShowCompleteFields(true);
     } else {
-      // Show confirmation for retry and cancel
       setPendingAction(selectedAction);
       setShowConfirmation(true);
     }
@@ -248,12 +253,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
               </div>
             </div>
-            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              queue.status === 'failed' 
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-            }`}>
-              {queue.status.toUpperCase()}
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+              {displayStatus.toUpperCase()}
             </div>
           </div>
 
@@ -325,12 +326,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 <div className="text-xs font-semibold text-foreground">Reset</div>
               </div>
             </div>
-            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              queue.status === 'failed' 
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-            }`}>
-              {queue.status.toUpperCase()}
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+              {displayStatus.toUpperCase()}
             </div>
           </div>
 
@@ -376,12 +373,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
             </div>
           </div>
-          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-            queue.status === 'failed' 
-              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-          }`}>
-            {queue.status.toUpperCase()}
+          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+            {displayStatus.toUpperCase()}
           </div>
         </div>
 
@@ -572,14 +565,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
               </div>
             </div>
-            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              queue.status === 'failed' 
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                : queue.status === 'pending'
-                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-            }`}>
-              {queue.status.toUpperCase()}
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+              {displayStatus.toUpperCase()}
             </div>
           </div>
 
@@ -651,14 +638,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 <div className="text-xs font-semibold text-foreground">Reset</div>
               </div>
             </div>
-            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              queue.status === 'failed' 
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                : queue.status === 'pending'
-                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-            }`}>
-              {queue.status.toUpperCase()}
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+              {displayStatus.toUpperCase()}
             </div>
           </div>
 
@@ -704,14 +685,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
             </div>
           </div>
-          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-            queue.status === 'failed' 
-              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-              : queue.status === 'pending'
-              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-              : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-          }`}>
-            {queue.status.toUpperCase()}
+          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+            {displayStatus.toUpperCase()}
           </div>
         </div>
 
@@ -783,20 +758,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       {/* Action Buttons */}
       <div className="space-y-1.5">
         <label className="text-[10px] font-medium text-muted-foreground">Select Action</label>
-        <div className="grid grid-cols-3 gap-1.5">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => handleActionSelect('retry')}
-            disabled={isSubmitting}
-            size="sm"
-            className="flex items-center justify-center gap-1 text-xs h-7 px-2"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span className="text-[10px] font-medium">Retry</span>
-          </Button>
+        <div className="grid grid-cols-2 gap-1.5">
           <Button
             type="button"
             variant="secondary"
@@ -840,20 +802,15 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         </Button>
       </div>
 
-      {/* Confirmation Modal for Retry/Cancel */}
       <ConfirmModal
         isOpen={showConfirmation}
         onClose={handleCancelConfirmation}
         onConfirm={handleConfirmAction}
-        title={pendingAction === 'retry' ? 'Confirm Retry' : 'Confirm Cancellation'}
-        description={
-          pendingAction === 'retry'
-            ? `Are you sure you want to retry this ${mapTypeToLabel(queue.type).toLowerCase()} operation for ${queue.user_username || `User ${queue.user_id}`}? This will re-queue the task for processing.`
-            : `Are you sure you want to cancel this ${mapTypeToLabel(queue.type).toLowerCase()} operation for ${queue.user_username || `User ${queue.user_id}`}? This action will mark the transaction as cancelled and may trigger refunds.`
-        }
-        confirmText={pendingAction === 'retry' ? 'Yes, Retry' : 'Yes, Cancel'}
+        title="Confirm Cancellation"
+        description={`Are you sure you want to cancel this ${mapTypeToLabel(queue.type).toLowerCase()} operation for ${queue.user_username || `User ${queue.user_id}`}? This action will mark the transaction as cancelled and may trigger refunds.`}
+        confirmText="Yes, Cancel"
         cancelText="No, Go Back"
-        variant={pendingAction === 'retry' ? 'info' : 'danger'}
+        variant="danger"
         isLoading={isSubmitting}
       />
     </div>

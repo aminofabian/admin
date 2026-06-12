@@ -18,6 +18,10 @@ import {
   isNonMonetaryGameActivityType,
   showsGameCreditsBalanceForActivityType,
 } from "@/lib/utils/formatters";
+import {
+  getQueueDisplayStatus,
+  getQueueStatusBadgeVariant,
+} from "@/lib/utils/game-queue-display";
 
 interface GameActivityTableProps {
   activities: TransactionQueue[];
@@ -51,21 +55,7 @@ const mapTypeToVariant = (
   return "info";
 };
 
-const getStatusVariant = (
-  status: string,
-): "success" | "warning" | "danger" | "info" => {
-  switch (status.toLowerCase()) {
-    case "completed":
-      return "success";
-    case "pending":
-      return "warning";
-    case "failed":
-    case "cancelled":
-      return "danger";
-    default:
-      return "info";
-  }
-};
+const getStatusVariant = getQueueStatusBadgeVariant;
 
 function GameActivityRow({
   activity,
@@ -73,7 +63,8 @@ function GameActivityRow({
   showActions = true,
   actionLoading = false,
 }: GameActivityRowProps) {
-  const statusVariant = getStatusVariant(activity.status);
+  const displayStatus = getQueueDisplayStatus(activity.status, activity.remarks);
+  const statusVariant = getStatusVariant(displayStatus);
   const typeLabel = mapTypeToLabel(activity.type);
   const typeVariant = mapTypeToVariant(activity.type);
   const formattedAmount = formatCurrency(activity.amount || "0");
@@ -280,7 +271,7 @@ function GameActivityRow({
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
-          {activity.status}
+          {displayStatus}
         </Badge>
       </TableCell>
       <TableCell>
@@ -374,7 +365,8 @@ const GameActivityCard = memo(
     showActions = true,
     actionLoading = false,
   }: GameActivityCardProps) {
-    const statusVariant = getStatusVariant(activity.status);
+    const displayStatus = getQueueDisplayStatus(activity.status, activity.remarks);
+    const statusVariant = getStatusVariant(displayStatus);
     const typeLabel = mapTypeToLabel(activity.type);
     const typeVariant = mapTypeToVariant(activity.type);
     const formattedAmount = formatCurrency(activity.amount || "0");
@@ -556,7 +548,7 @@ const GameActivityCard = memo(
                   variant={statusVariant}
                   className="h-5 px-2 text-[10px] capitalize"
                 >
-                  {activity.status}
+                  {displayStatus}
                 </Badge>
                 <Badge
                   variant={typeVariant}
