@@ -497,8 +497,8 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     pageSize: queuePageSize,
     setPage: setQueuePage,
     advancedFilters,
-    setAdvancedFiltersWithoutFetch,
-    clearAdvancedFiltersWithoutFetch,
+    setAdvancedFilters,
+    clearAdvancedFilters,
   } = useTransactionQueuesStore();
 
   const { 
@@ -589,18 +589,24 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
   // Lazy-load games when filters are opened (match history view behavior)
   useEffect(() => {
-    if (!isGameActivitiesView || !areGameFiltersOpen || gameOptions.length > 0 || isGameLoading) {
+    if (!isGameActivitiesView || !areGameFiltersOpen) {
       return;
     }
 
     let isMounted = true;
-    setIsGameLoading(true);
+    let isCancelled = false;
 
     const loadGames = async () => {
+      if (isCancelled || !isMounted) {
+        return;
+      }
+
+      setIsGameLoading(true);
+
       try {
         await fetchGames();
 
-        if (!isMounted) return;
+        if (!isMounted || isCancelled) return;
 
         const gamesData = useGamesStore.getState().games;
         const gamesList = Array.isArray(gamesData) ? gamesData : gamesData ?? [];
@@ -617,13 +623,13 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           .map(([value, label]) => ({ value, label }))
           .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
-        if (isMounted) {
+        if (isMounted && !isCancelled) {
           setGameOptions(mappedOptions);
         }
       } catch (error) {
         console.error('Failed to load games for game activity filters (processing view):', error);
       } finally {
-        if (isMounted) {
+        if (isMounted && !isCancelled) {
           setIsGameLoading(false);
         }
       }
@@ -632,22 +638,28 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     void loadGames();
 
     return () => {
+      isCancelled = true;
       isMounted = false;
     };
-  }, [areGameFiltersOpen, gameOptions.length, isGameLoading, isGameActivitiesView, fetchGames]);
+  }, [areGameFiltersOpen, isGameActivitiesView, fetchGames]);
 
   // Load operators (staff + managers) for operator filter in processing view
   useEffect(() => {
     if (!isGameActivitiesView) {
       return;
     }
-    if (operatorOptions.length > 0 || isOperatorLoading) {
+    if (operatorOptions.length > 0) {
       return;
     }
 
     let isMounted = true;
+    let isCancelled = false;
 
     const loadOperators = async () => {
+      if (isCancelled || !isMounted) {
+        return;
+      }
+
       setIsOperatorLoading(true);
 
       try {
@@ -730,7 +742,7 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
           }
         }
 
-        if (!isMounted) {
+        if (!isMounted || isCancelled) {
           return;
         }
 
@@ -749,13 +761,13 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
 
         const mappedOptions = sortedEntries.map(([, option]) => option);
 
-        if (isMounted) {
+        if (isMounted && !isCancelled) {
           setOperatorOptions(mappedOptions);
         }
       } catch (error) {
         console.error('Failed to load operators for game activity filters (processing view):', error);
       } finally {
-        if (isMounted) {
+        if (isMounted && !isCancelled) {
           setIsOperatorLoading(false);
         }
       }
@@ -764,9 +776,10 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
     void loadOperators();
 
     return () => {
+      isCancelled = true;
       isMounted = false;
     };
-  }, [isGameActivitiesView, operatorOptions.length, isOperatorLoading]);
+  }, [isGameActivitiesView, operatorOptions.length]);
 
   const handleGameFilterChange = useCallback(
     (key: keyof HistoryGameActivitiesFiltersState, value: string) => {
@@ -816,13 +829,13 @@ export function ProcessingSection({ type }: ProcessingSectionProps) {
       }
     }
 
-    setAdvancedFiltersWithoutFetch(sanitized);
-  }, [gameFilters, setAdvancedFiltersWithoutFetch]);
+    setAdvancedFilters(sanitized);
+  }, [gameFilters, setAdvancedFilters]);
 
   const handleClearGameFilters = useCallback(() => {
     setGameFilters(DEFAULT_GAME_ACTIVITY_FILTERS);
-    clearAdvancedFiltersWithoutFetch();
-  }, [clearAdvancedFiltersWithoutFetch]);
+    clearAdvancedFilters();
+  }, [clearAdvancedFilters]);
 
   const handleToggleGameFilters = useCallback(() => {
     setAreGameFiltersOpen((previous) => !previous);
