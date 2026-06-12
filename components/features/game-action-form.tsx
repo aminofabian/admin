@@ -9,6 +9,7 @@ import {
   getQueueDisplayStatus,
   getQueueStatusBadgeClassName,
 } from '@/lib/utils/game-queue-display';
+import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
 import type { TransactionQueue, GameActionType } from '@/types';
 
 const mapTypeToLabel = (type: string): string => {
@@ -70,28 +71,22 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
   }, [bonusAmount]);
 
-  const formattedPreviousCreditsBalance = useMemo(() => {
-    if (!queue?.data || typeof queue.data !== 'object') return null;
-    const raw =
-      queue.data.previous_credits_balance ?? queue.data.balance;
-    if (raw === undefined || raw === null) return null;
-    const n =
-      typeof raw === 'string' || typeof raw === 'number'
-        ? parseFloat(String(raw))
-        : NaN;
-    return !Number.isNaN(n) ? formatCurrency(String(n)) : null;
+  const creditsBalances = useMemo(() => {
+    if (!queue) return { previous: null, new: null };
+    return resolveGameActivityCreditsBalances(queue);
   }, [queue]);
 
+  const formattedPreviousCreditsBalance = useMemo(() => {
+    return creditsBalances.previous != null
+      ? formatCurrency(String(creditsBalances.previous))
+      : null;
+  }, [creditsBalances.previous]);
+
   const formattedNewCreditsBalance = useMemo(() => {
-    if (!queue?.data || typeof queue.data !== 'object') return null;
-    const raw = queue.data.new_credits_balance;
-    if (raw === undefined || raw === null) return null;
-    const n =
-      typeof raw === 'string' || typeof raw === 'number'
-        ? parseFloat(String(raw))
-        : NaN;
-    return !Number.isNaN(n) ? formatCurrency(String(n)) : null;
-  }, [queue]);
+    return creditsBalances.new != null
+      ? formatCurrency(String(creditsBalances.new))
+      : null;
+  }, [creditsBalances.new]);
 
   const renderRechargeRedeemBalanceBoxes = () => (
     <div className="grid grid-cols-2 gap-2">

@@ -3,6 +3,7 @@ import {
   ledgerBalancesAreDuplicateSnapshot,
   patchGameActivityMergedDataCreditsFromWs,
   resolveCreditLedgerBalancesFromWsPayload,
+  resolveGameActivityCreditsBalances,
   shouldPreserveGameActivityCreditsWhenMerging,
   shouldPreserveLedgerBalancesWhenMerging,
 } from '../transaction-ledger-ws';
@@ -73,5 +74,49 @@ describe('patchGameActivityMergedDataCreditsFromWs', () => {
     };
     patchGameActivityMergedDataCreditsFromWs(merged);
     expect(merged.new_credits_balance).toBe(50);
+  });
+});
+
+describe('resolveGameActivityCreditsBalances', () => {
+  it('derives wallet credits after a pending redeem when API sends duplicate snapshots', () => {
+    const result = resolveGameActivityCreditsBalances({
+      type: 'redeem_game',
+      status: 'pending',
+      amount: '2',
+      data: {
+        previous_credits_balance: 1898.1,
+        new_credits_balance: 1898.1,
+      },
+    });
+
+    expect(result).toEqual({ previous: 1898.1, new: 1900.1 });
+  });
+
+  it('derives wallet credits after a pending recharge when API sends duplicate snapshots', () => {
+    const result = resolveGameActivityCreditsBalances({
+      type: 'recharge_game',
+      status: 'processing',
+      amount: '1',
+      data: {
+        previous_credits_balance: 1895.1,
+        new_credits_balance: 1895.1,
+      },
+    });
+
+    expect(result).toEqual({ previous: 1895.1, new: 1894.1 });
+  });
+
+  it('keeps completed activity balances unchanged', () => {
+    const result = resolveGameActivityCreditsBalances({
+      type: 'redeem_game',
+      status: 'completed',
+      amount: '2',
+      data: {
+        previous_credits_balance: 1898.1,
+        new_credits_balance: 1898.1,
+      },
+    });
+
+    expect(result).toEqual({ previous: 1898.1, new: 1898.1 });
   });
 });

@@ -144,3 +144,85 @@ export function patchGameActivityMergedDataCreditsFromWs(mergedData: Record<stri
   if (Number.isFinite(pn)) mergedData.previous_credits_balance = pn;
   if (Number.isFinite(nn)) mergedData.new_credits_balance = nn;
 }
+
+function parseLedgerAmount(value: unknown): number | null {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  const parsed = Number.parseFloat(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isIncompleteGameActivityStatus(status: string | undefined | null): boolean {
+  const normalized = String(status ?? '').toLowerCase();
+  return normalized === 'pending' || normalized === 'processing';
+}
+
+/**
+ * Wallet credits before/after for recharge/redeem rows.
+ * Pending redeems often ship duplicate previous/new snapshots; derive the expected
+ * post-operation wallet balance from the activity amount when that happens.
+ */
+export function resolveGameActivityCreditsBalances(activity: {
+  type: string;
+  status: string;
+  amount?: string | null;
+  data?: Record<string, unknown> | null;
+}): { previous: number | null; new: number | null } {
+  const mergedData: Record<string, unknown> =
+    activity.data && typeof activity.data === 'object' && !Array.isArray(activity.data)
+      ? { ...activity.data }
+      : {};
+
+  patchGameActivityMergedDataCreditsFromWs(mergedData);
+
+  const previous = parseLedgerAmount(
+    mergedData.previous_credits_balance ?? mergedData.previous_balance,
+  );
+  let next = parseLedgerAmount(
+    mergedData.new_credits_balance ?? mergedData.new_balance,
+  );
+
+  const amount = parseLedgerAmount(activity.amount) ?? 0;
+  const hasDuplicateSnapshot =
+    previous != null &&
+    (next == null ||
+      ledgerBalancesAreDuplicateSnapshot(String(previous), String(next)));
+
+  if (
+    isIncompleteGameActivityStatus(activity.status) &&
+    hasDuplicateSnapshot &&
+    amount > 0
+  ) {
+    if (activity.type === 'recharge_game') {
+      next = previous - amount;
+    } else if (activity.type === 'redeem_game') {
+      next = previous + amount;
+    }
+  }
+
+  return { previous, new: next };
+}
+
+export function normalizeGameActivityQueueData(
+  type: string,
+  status: string,
+  amount: string | undefined,
+  data: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return data ?? null;
+  }
+
+  const balances = resolveGameActivityCreditsBalances({ type, status, amount, data });
+  const normalized = { ...data };
+
+  if (balances.previous != null) {
+    normalized.previous_credits_balance = balances.previous;
+  }
+  if (balances.new != null) {
+    normalized.new_credits_balance = balances.new;
+  }
+
+  return normalized;
+}
