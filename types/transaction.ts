@@ -105,6 +105,7 @@ export interface GameActionRequest {
   type: GameActionType;
   new_password?: string;
   new_balance?: string;
+  new_entries?: string;
   new_username?: string;
   game_username?: string; // For add_user_game and create_game types
   game_password?: string; // For add_user_game and create_game types
