@@ -14,8 +14,57 @@ interface PasswordInputProps {
   className?: string;
   autoComplete?: string;
   showRequirements?: boolean;
+  compact?: boolean;
   validationRules?: PasswordValidationRules;
   onValidationChange?: (isValid: boolean) => void;
+}
+
+function RequirementChips({
+  requirements,
+}: {
+  requirements: {
+    minLength: boolean;
+    hasUppercase: boolean;
+    hasAlphabet: boolean;
+    hasNumber: boolean;
+  };
+}) {
+  const chips = [
+    { met: requirements.minLength, label: '8+ chars', icon: '8' },
+    { met: requirements.hasUppercase, label: 'A-Z', icon: 'A' },
+    { met: requirements.hasAlphabet && requirements.hasNumber, label: 'A-z 0-9', icon: 'A1' },
+  ];
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-1">
+      {chips.map((chip) => (
+        <span
+          key={chip.label}
+          title={chip.label}
+          className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-px text-[10px] font-medium transition-colors ${
+            chip.met
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300'
+              : 'border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-500'
+          }`}
+        >
+          <span
+            className={`flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] font-bold ${
+              chip.met ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+            }`}
+          >
+            {chip.met ? (
+              <svg className="h-2 w-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              chip.icon
+            )}
+          </span>
+          {chip.label}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export function PasswordInput({
@@ -23,11 +72,12 @@ export function PasswordInput({
   value,
   onChange,
   error: externalError,
-  placeholder = 'Enter password',
+  placeholder = 'Min 8 chars, A-Z, letters & numbers',
   disabled = false,
   className = '',
   autoComplete = 'new-password',
   showRequirements = true,
+  compact = false,
   validationRules,
   onValidationChange,
 }: PasswordInputProps) {
@@ -58,7 +108,7 @@ export function PasswordInput({
         const validationResult = validatePassword(newValue, validationRules);
         const errorMessage = getPasswordErrorMessage(validationResult.errors);
         setInternalError(errorMessage);
-        
+
         if (onValidationChange) {
           onValidationChange(validationResult.isValid);
         }
@@ -81,79 +131,22 @@ export function PasswordInput({
   }, [value, validationRules]);
 
   const displayError = externalError || internalError;
-
   const requirements = validation.requirements;
 
   return (
-    <div className="space-y-2">
-      <Input
-        label={label}
-        type="password"
-        value={value}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={displayError}
-        placeholder={placeholder}
-        disabled={disabled}
-        className={className}
-        autoComplete={autoComplete}
-      />
-      {showRequirements && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-950/30">
-          <div className="flex items-start gap-2">
-            <svg
-              className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div className="flex-1">
-              <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1.5">
-                Password Requirements:
-              </p>
-              <ul className="text-xs space-y-1.5">
-                <li className={`flex items-center gap-2 transition-colors duration-200 ${requirements.minLength ? 'text-green-600 dark:text-green-400' : 'text-amber-800 dark:text-amber-300'}`}>
-                  {requirements.minLength ? (
-                    <svg className="w-4 h-4 flex-shrink-0 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center text-amber-600 dark:text-amber-400">•</span>
-                  )}
-                  <span className={requirements.minLength ? 'font-medium' : ''}>Minimum 8 characters</span>
-                </li>
-                <li className={`flex items-center gap-2 transition-colors duration-200 ${requirements.hasUppercase ? 'text-green-600 dark:text-green-400' : 'text-amber-800 dark:text-amber-300'}`}>
-                  {requirements.hasUppercase ? (
-                    <svg className="w-4 h-4 flex-shrink-0 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center text-amber-600 dark:text-amber-400">•</span>
-                  )}
-                  <span className={requirements.hasUppercase ? 'font-medium' : ''}>At least one uppercase letter</span>
-                </li>
-                <li className={`flex items-center gap-2 transition-colors duration-200 ${requirements.hasAlphabet && requirements.hasNumber ? 'text-green-600 dark:text-green-400' : 'text-amber-800 dark:text-amber-300'}`}>
-                  {(requirements.hasAlphabet && requirements.hasNumber) ? (
-                    <svg className="w-4 h-4 flex-shrink-0 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center text-amber-600 dark:text-amber-400">•</span>
-                  )}
-                  <span className={requirements.hasAlphabet && requirements.hasNumber ? 'font-medium' : ''}>Must contain both letters and numbers</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    <Input
+      label={label}
+      type="password"
+      value={value}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      error={displayError}
+      placeholder={placeholder}
+      disabled={disabled}
+      className={className}
+      autoComplete={autoComplete}
+      compact={compact}
+      hint={showRequirements ? <RequirementChips requirements={requirements} /> : undefined}
+    />
   );
 }
