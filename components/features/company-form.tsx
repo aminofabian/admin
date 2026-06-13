@@ -33,7 +33,8 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
     binpay_secret_key: company?.binpay_secret_key ?? '',
     binpay_deposit_secret_key: company?.binpay_deposit_secret_key ?? '',
     binpay_withdrawal_secret_key: company?.binpay_withdrawal_secret_key ?? '',
-    brenzi_merchant_slug: company?.brenzi_merchant_slug ?? '',
+    brenzi_api_key: company?.brenzi_api_key ?? '',
+    brenzi_webhook_secret: company?.brenzi_webhook_secret ?? '',
     taparcaida_vendor_id: company?.taparcaida_vendor_id ?? '',
     taparcaida_payout_api_key: company?.taparcaida_payout_api_key ?? '',
     tierlock_merchant_id: company?.tierlock_merchant_id ?? '',
@@ -135,7 +136,8 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
           binpay_secret_key: formData.binpay_secret_key,
           binpay_deposit_secret_key: formData.binpay_deposit_secret_key,
           binpay_withdrawal_secret_key: formData.binpay_withdrawal_secret_key,
-          brenzi_merchant_slug: formData.brenzi_merchant_slug,
+          brenzi_api_key: formData.brenzi_api_key,
+          brenzi_webhook_secret: formData.brenzi_webhook_secret,
           taparcaida_vendor_id: formData.taparcaida_vendor_id,
           taparcaida_payout_api_key: formData.taparcaida_payout_api_key,
           tierlock_merchant_id: formData.tierlock_merchant_id,
@@ -423,11 +425,19 @@ export const CompanyForm = ({ company, onSubmit, onCancel, isLoading }: CompanyF
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Brenzi & Taparcaida Payment Configuration</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Brenzi Merchant Slug"
+            label="Brenzi API Key"
             type="text"
-            value={formData.brenzi_merchant_slug}
-            onChange={(e) => handleChange('brenzi_merchant_slug', e.target.value)}
-            placeholder="e.g., tastey"
+            value={formData.brenzi_api_key}
+            onChange={(e) => handleChange('brenzi_api_key', e.target.value)}
+            placeholder="Brenzi API Key"
+            disabled={isLoading}
+          />
+          <Input
+            label="Brenzi Webhook Secret"
+            type="text"
+            value={formData.brenzi_webhook_secret}
+            onChange={(e) => handleChange('brenzi_webhook_secret', e.target.value)}
+            placeholder="Brenzi Webhook Secret"
             disabled={isLoading}
           />
           <Input
