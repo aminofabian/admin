@@ -207,6 +207,24 @@ describe('formatters', () => {
       });
       expect(rows.find(([label]) => label === 'Tierlock order ID')?.[1]).toBe('tierlock_71');
     });
+
+    it('includes Tap ticket ID when present on the transaction', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'cashapp',
+        provider: 'tap',
+        taparcaida_ticket_id: '58709',
+      });
+      expect(rows.find(([label]) => label === 'Tap ticket ID')?.[1]).toBe('58709');
+    });
+
+    it('reads Tap ticket ID from payment_details when not on the transaction root', () => {
+      const rows = getPaymentDetailsForDisplay({
+        payment_method: 'cashapp',
+        provider: 'tap',
+        payment_details: { taparcaida_ticket_id: '58709', cashtag: '$mrettig72' },
+      });
+      expect(rows.find(([label]) => label === 'Tap ticket ID')?.[1]).toBe('58709');
+    });
   });
 
   describe('getProviderDisplayName', () => {

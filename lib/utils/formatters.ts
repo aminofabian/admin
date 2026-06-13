@@ -454,6 +454,8 @@ const PROVIDER_STATUS_KEYS: [string, string[]][] = [
 
 const TIERLOCK_ORDER_ID_KEYS = ['tierlock_order_id', 'tierlockOrderId'] as const;
 
+const TAP_TICKET_ID_KEYS = ['taparcaida_ticket_id', 'taparcadia_ticket_id', 'tapTicketId'] as const;
+
 function getTierlockOrderIdEntry(
   transaction: Pick<Transaction, 'tierlock_order_id' | 'payment_details'>
 ): [string, string] | null {
@@ -471,6 +473,27 @@ function getTierlockOrderIdEntry(
   const str = formatDetailValue(val);
   if (str !== '—' && String(str).trim() !== '') {
     return ['Tierlock order ID', str];
+  }
+  return null;
+}
+
+function getTapTicketIdEntry(
+  transaction: Pick<Transaction, 'taparcaida_ticket_id' | 'payment_details'>
+): [string, string] | null {
+  const tx = transaction as Record<string, unknown>;
+  const pd = transaction.payment_details && typeof transaction.payment_details === 'object'
+    ? transaction.payment_details
+    : null;
+
+  let val: unknown = null;
+  for (const key of TAP_TICKET_ID_KEYS) {
+    val = tx[key] ?? (pd && typeof pd === 'object' ? (pd as Record<string, unknown>)[key] : undefined);
+    if (val != null && String(val).trim() !== '') break;
+  }
+
+  const str = formatDetailValue(val);
+  if (str !== '—' && String(str).trim() !== '') {
+    return ['Tap ticket ID', str];
   }
   return null;
 }
@@ -509,6 +532,7 @@ export function getPaymentDetailsForDisplay(
     | 'tierlock_status'
     | 'tierlock_order_id'
     | 'taparcadia_status'
+    | 'taparcaida_ticket_id'
     | 'user_username'
   >
 ): [string, string][] {
@@ -614,6 +638,12 @@ export function getPaymentDetailsForDisplay(
   if (tierlockOrderEntry) {
     const alreadyHasOrderId = entries.some(([label]) => label.toLowerCase() === 'tierlock order id');
     if (!alreadyHasOrderId) entries.push(tierlockOrderEntry);
+  }
+
+  const tapTicketEntry = getTapTicketIdEntry(transaction);
+  if (tapTicketEntry) {
+    const alreadyHasTapTicket = entries.some(([label]) => label.toLowerCase() === 'tap ticket id');
+    if (!alreadyHasTapTicket) entries.push(tapTicketEntry);
   }
 
   const providerStatusEntries = getProviderStatusEntries(transaction);

@@ -306,6 +306,12 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
       nestedData?.taparcaida_status ??
       nestedData?.taparcadia_status ??
       undefined,
+    taparcaida_ticket_id:
+      rawCashout.taparcaida_ticket_id ??
+      rawCashout.taparcadia_ticket_id ??
+      nestedData?.taparcaida_ticket_id ??
+      nestedData?.taparcadia_ticket_id ??
+      undefined,
   };
 }
 

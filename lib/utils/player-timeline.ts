@@ -625,6 +625,16 @@ export function playerTimelineItemToTransaction(item: PlayerTimelineItem): Trans
     tierlock_order_id:
       typeof raw.tierlock_order_id === 'string' ? raw.tierlock_order_id : null,
     taparcadia_status:
-      typeof raw.taparcadia_status === 'string' ? raw.taparcadia_status : null,
+      typeof raw.taparcadia_status === 'string'
+        ? raw.taparcadia_status
+        : typeof raw.taparcaida_status === 'string'
+          ? raw.taparcaida_status
+          : null,
+    taparcaida_ticket_id:
+      raw.taparcaida_ticket_id != null
+        ? String(raw.taparcaida_ticket_id)
+        : raw.taparcadia_ticket_id != null
+          ? String(raw.taparcadia_ticket_id)
+          : null,
   };
 }

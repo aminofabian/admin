@@ -55,6 +55,8 @@ export interface Transaction {
   /** Tierlock purchase/cashout reference returned by the API after send-to-tierlock. */
   tierlock_order_id?: string | null;
   taparcadia_status?: string | null;
+  /** Taparcaida payout ticket reference returned by the API after send-to-taparcadia. */
+  taparcaida_ticket_id?: string | null;
 }
 
 export interface TransactionQueue {
