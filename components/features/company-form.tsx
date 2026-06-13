@@ -71,7 +71,7 @@ const SecretInput = ({
   className,
 }: {
   label: string;
-  value: string;
+  value?: string;
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
@@ -81,7 +81,7 @@ const SecretInput = ({
     {...field}
     label={label}
     type="password"
-    value={value}
+    value={value ?? ''}
     onChange={(e) => onChange(e.target.value)}
     placeholder={placeholder ?? '••••••••'}
     disabled={disabled}
