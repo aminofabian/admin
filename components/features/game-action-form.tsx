@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { isManualGameMode } from '@/lib/constants/game-operation-mode';
 import { formatCurrency } from '@/lib/utils/formatters';
 import {
   getQueueDisplayStatus,
   getQueueStatusBadgeClassName,
+  isManualQueueRequest,
 } from '@/lib/utils/game-queue-display';
+import { useGamesStore } from '@/stores/use-games-store';
 import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
 import type { TransactionQueue, GameActionType } from '@/types';
 
@@ -108,6 +111,26 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return isRiversweepsGame(queue.game_code, queue.game);
   }, [queue]);
 
+  const games = useGamesStore((state) => state.games);
+  const fetchGames = useGamesStore((state) => state.fetchGames);
+
+  useEffect(() => {
+    if (!queue || games) return;
+    void fetchGames();
+  }, [queue, games, fetchGames]);
+
+  const isManualMode = useMemo(() => {
+    if (!queue) return false;
+    if (isManualQueueRequest(queue.remarks)) return true;
+
+    const gamesList = Array.isArray(games) ? games : games ?? [];
+    const game = gamesList.find(
+      (g) => g.code === queue.game_code || g.title === queue.game,
+    );
+
+    return isManualGameMode(game?.game_operation_mode);
+  }, [queue, games]);
+
   const renderRechargeRedeemBalanceBoxes = () => (
     <div className="grid grid-cols-2 gap-2">
       <div className="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800/30">
@@ -139,6 +162,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   const displayStatus = getQueueDisplayStatus(queue.status, queue.remarks);
   const statusBadgeClass = getQueueStatusBadgeClassName(displayStatus);
+  const showRetryButton = !isManualMode;
 
   const handleActionSelect = (selectedAction: GameActionType) => {
     if (selectedAction === 'complete') {
@@ -801,7 +825,22 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       {/* Action Buttons */}
       <div className="space-y-1.5">
         <label className="text-[10px] font-medium text-muted-foreground">Select Action</label>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className={`grid gap-1.5 ${showRetryButton ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {showRetryButton && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => handleActionSelect('retry')}
+              disabled={isSubmitting}
+              size="sm"
+              className="flex items-center justify-center gap-1 text-xs h-7 px-2"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="text-[10px] font-medium">Retry</span>
+            </Button>
+          )}
           <Button
             type="button"
             variant="secondary"
@@ -849,11 +888,15 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         isOpen={showConfirmation}
         onClose={handleCancelConfirmation}
         onConfirm={handleConfirmAction}
-        title="Confirm Cancellation"
-        description={`Are you sure you want to cancel this ${mapTypeToLabel(queue.type).toLowerCase()} operation for ${queue.user_username || `User ${queue.user_id}`}? This action will mark the transaction as cancelled and may trigger refunds.`}
-        confirmText="Yes, Cancel"
+        title={pendingAction === 'retry' ? 'Confirm Retry' : 'Confirm Cancellation'}
+        description={
+          pendingAction === 'retry'
+            ? `Are you sure you want to retry this ${mapTypeToLabel(queue.type).toLowerCase()} operation for ${queue.user_username || `User ${queue.user_id}`}? This will re-queue the task for processing.`
+            : `Are you sure you want to cancel this ${mapTypeToLabel(queue.type).toLowerCase()} operation for ${queue.user_username || `User ${queue.user_id}`}? This action will mark the transaction as cancelled and may trigger refunds.`
+        }
+        confirmText={pendingAction === 'retry' ? 'Yes, Retry' : 'Yes, Cancel'}
         cancelText="No, Go Back"
-        variant="danger"
+        variant={pendingAction === 'retry' ? 'info' : 'danger'}
         isLoading={isSubmitting}
       />
     </div>
