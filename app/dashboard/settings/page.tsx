@@ -99,6 +99,11 @@ export default function SettingsPage() {
     return <ManagerSettingsSection />;
   }
 
+  const visibleCategories = settingsCategories.filter((category) => {
+    if (!user?.role) return false;
+    return category.permissions.includes(user.role);
+  });
+
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
@@ -111,7 +116,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {settingsCategories.map((category) => (
+        {visibleCategories.map((category) => (
           <Link
             key={category.id}
             href={category.href}
