@@ -247,3 +247,13 @@ export interface UpdateChatLinkRequest {
   is_enabled_for_dashboard?: boolean;
   is_enabled_for_landing_page?: boolean;
 }
+
+export interface PhoneVerificationSettings {
+  status: string;
+  is_phone_verification_enabled: boolean;
+  whitelabel_admin_uuid: string;
+}
+
+export interface UpdatePhoneVerificationSettingsRequest {
+  is_phone_verification_enabled: boolean;
+}
