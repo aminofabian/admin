@@ -65,8 +65,8 @@ export default function PhoneVerificationSettingsPage() {
         type: 'success',
         title: enabled ? 'Phone verification enabled' : 'Phone verification disabled',
         description: enabled
-          ? 'New signups will require a phone OTP.'
-          : 'New signups will skip the phone OTP step.',
+          ? 'Signups and Complete Profile will require a phone OTP.'
+          : 'Signups and Complete Profile will skip the phone OTP step.',
       });
     } catch (err) {
       setIsEnabled(previous);
@@ -109,7 +109,8 @@ export default function PhoneVerificationSettingsPage() {
           Phone Verification
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Control whether new player signups must verify their phone number with an OTP.
+          Control whether players must verify their phone number with an OTP during signup and in the
+          Complete Profile flow.
         </p>
       </div>
 
@@ -117,11 +118,11 @@ export default function PhoneVerificationSettingsPage() {
         <div className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Require phone OTP during signup
+              Require phone OTP verification
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
-              Disable this if your OTP provider is failing so players can still register.
-              Email verification remains required.
+              Disable this if your OTP provider is failing so players can still register and complete
+              their profile without a phone code. Email verification remains required for signup.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -140,8 +141,8 @@ export default function PhoneVerificationSettingsPage() {
         <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-gray-50 dark:bg-gray-900/40">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {isEnabled
-              ? 'Players complete email verification, profile details, then a phone OTP before their account is created.'
-              : 'Players complete email verification and profile details; phone number is collected but not OTP-verified.'}
+              ? 'Signup: players complete email verification, profile details, then a phone OTP before their account is created. Complete Profile: existing players must verify their phone with an OTP when finishing profile details.'
+              : 'Signup: players complete email verification and profile details; the phone number is collected but not OTP-verified. Complete Profile: players can save profile details without a phone OTP.'}
           </p>
           <div className="mt-4">
             <Button
