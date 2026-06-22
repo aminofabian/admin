@@ -248,12 +248,14 @@ export interface UpdateChatLinkRequest {
   is_enabled_for_landing_page?: boolean;
 }
 
-export interface PhoneVerificationSettings {
+export interface VerificationSettings {
   status: string;
   is_phone_verification_enabled: boolean;
+  is_identity_verification_enabled: boolean;
   whitelabel_admin_uuid: string;
 }
 
-export interface UpdatePhoneVerificationSettingsRequest {
+export interface UpdateVerificationSettingsRequest {
   is_phone_verification_enabled: boolean;
+  is_identity_verification_enabled: boolean;
 }
