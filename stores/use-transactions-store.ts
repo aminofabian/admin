@@ -30,7 +30,9 @@ const CARD_MERGE_MIN_DEPTH = 200;
 
 const HISTORY_TXN_TYPES = ['purchase', 'cashout'] as const;
 
-function isHistoryTxnType(type: string | undefined): type is (typeof HISTORY_TXN_TYPES)[number] {
+function isHistoryTxnType(
+  type: string | number | boolean | undefined,
+): type is (typeof HISTORY_TXN_TYPES)[number] {
   return type === 'purchase' || type === 'cashout';
 }
 
