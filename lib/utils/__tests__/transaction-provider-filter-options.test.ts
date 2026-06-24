@@ -524,15 +524,15 @@ describe('buildPaymentMethodFilterOptionsFromPaymentMethodsRaw', () => {
 });
 
 describe('buildStaticPaymentMethodFilterOptions', () => {
-  it('returns all canonical payment methods regardless of settings', () => {
+  it('returns all canonical purchase/cashout payment methods regardless of settings', () => {
     const opts = buildStaticPaymentMethodFilterOptions();
     const values = opts.map((o) => o.value);
 
     expect(values).toContain('crypto');
     expect(values).toContain('card');
     expect(values).toContain('cashapp');
-    expect(values).toContain('manual');
-    expect(values).toContain('signup');
+    expect(values).not.toContain('manual');
+    expect(values).not.toContain('signup');
     expect(opts.find((o) => o.value === 'card')?.label).toBe(PAYMENT_METHOD_CARD_DISPLAY_LABEL);
   });
 
@@ -543,13 +543,14 @@ describe('buildStaticPaymentMethodFilterOptions', () => {
 
     expect(staticOpts).toContain('venmo');
     expect(staticOpts).toContain('zelle');
+    expect(staticOpts).not.toContain('manual');
     expect(dynamic).not.toContain('venmo');
     expect(dynamic).not.toContain('zelle');
   });
 });
 
 describe('buildStaticProviderFilterOptions', () => {
-  it('returns all canonical providers regardless of settings', () => {
+  it('returns canonical purchase/cashout providers regardless of settings', () => {
     const opts = buildStaticProviderFilterOptions();
     const values = opts.map((o) => o.value);
 
@@ -557,7 +558,11 @@ describe('buildStaticProviderFilterOptions', () => {
     expect(values).toContain('tierlock');
     expect(values).toContain('stripe');
     expect(values).toContain(CASHAPP_PAY_PROVIDER_FILTER_VALUE);
-    expect(values).toContain('freeplay');
+    expect(values).not.toContain('freeplay');
+    expect(values).not.toContain('external_deposit');
+    expect(values).not.toContain('external_cashout');
+    expect(values).not.toContain('void');
+    expect(values).not.toContain('signup');
   });
 
   it('includes disabled providers that dynamic settings-based options would omit', () => {
@@ -567,6 +572,7 @@ describe('buildStaticProviderFilterOptions', () => {
 
     expect(staticOpts).toContain('binpay');
     expect(staticOpts).toContain('moonpay');
+    expect(staticOpts).not.toContain('freeplay');
     expect(dynamic).not.toContain('binpay');
     expect(dynamic).not.toContain('moonpay');
   });
