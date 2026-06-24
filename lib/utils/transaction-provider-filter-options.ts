@@ -243,6 +243,33 @@ function enabledPaymentMethodKeysFromParents(
 }
 
 /**
+ * Static payment-method options for transaction history filters. Always lists every canonical
+ * rail so admins can filter old transactions after a method is disabled in settings.
+ */
+export function buildStaticPaymentMethodFilterOptions(): Array<{ value: string; label: string }> {
+  const result = PAYMENT_METHOD_CANONICAL.map((row) => ({
+    value: row.queryValue,
+    label: row.label,
+  }));
+  return sortFilterOptionsByLabel(result);
+}
+
+/**
+ * Static provider options for transaction history filters. Always lists every canonical
+ * integrator so admins can filter old transactions after a provider is disabled in settings.
+ */
+export function buildStaticProviderFilterOptions(): Array<{ value: string; label: string }> {
+  const result = PROVIDER_CANONICAL.map((row) => ({
+    value: row.fixedFilterValue ?? row.matchKeys[0].replace(/-/g, '_'),
+    label: row.label,
+  }));
+  return sortFilterOptionsByLabel(result);
+}
+
+export const STATIC_PAYMENT_METHOD_FILTER_OPTIONS = buildStaticPaymentMethodFilterOptions();
+export const STATIC_PROVIDER_FILTER_OPTIONS = buildStaticProviderFilterOptions();
+
+/**
  * Purchase-tab parent categories (Payment Settings → Purchase), superadmin-enabled only, then
  * sorted A–Z by label. Manual / Signup are always listed for ledger history filters.
  */
