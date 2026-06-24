@@ -117,7 +117,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
       : txn === 'cashouts'
         ? 'cashout'
         : advanced.type ?? '';
-  if (derivedType === 'transfer') {
+  if (derivedType === 'transfer' || derivedType === 'add' || derivedType === 'deduct') {
     derivedType = '';
   }
 
@@ -697,13 +697,11 @@ export function TransactionsSection() {
       }
     }
 
-    // Transaction type filter: purchase, cashout, add, deduct (no transfer)
+    // Transaction type filter: purchase or cashout only in history
     if (
       sanitized.type &&
       sanitized.type !== 'purchase' &&
-      sanitized.type !== 'cashout' &&
-      sanitized.type !== 'add' &&
-      sanitized.type !== 'deduct'
+      sanitized.type !== 'cashout'
     ) {
       delete sanitized.type;
     }
@@ -714,9 +712,7 @@ export function TransactionsSection() {
       mainFilter: filter,
       willPreserveType:
         sanitized.type === 'purchase' ||
-        sanitized.type === 'cashout' ||
-        sanitized.type === 'add' ||
-        sanitized.type === 'deduct',
+        sanitized.type === 'cashout',
     });
 
     if (sanitized.agent && !sanitized.agent_id) {

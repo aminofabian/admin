@@ -54,7 +54,7 @@ function buildHistoryFilterState(advanced: Record<string, string>): HistoryTrans
             : txn === 'cashouts'
                 ? 'cashout'
                 : advanced.type ?? '';
-    if (derivedType === 'transfer') {
+    if (derivedType === 'transfer' || derivedType === 'add' || derivedType === 'deduct') {
         derivedType = '';
     }
 
