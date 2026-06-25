@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { useReferralSettingsStore } from '@/stores';
-import { Button, Switch, Skeleton, useToast } from '@/components/ui';
+import { Button, Switch, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
-import { ErrorState } from '@/components/features';
+import { LoadingState, ErrorState } from '@/components/features';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 type FormFieldKey =
@@ -18,72 +18,37 @@ type FormFieldKey =
 
 type ReferralSettingField = {
   key: FormFieldKey;
-  label: string;
+  title: string;
+  description: string;
   suffix: '%' | '$';
 };
 
 const REFERRAL_FIELDS: ReferralSettingField[] = [
-  { key: 'referrer_bonus_percentage', label: 'Referrer bonus %', suffix: '%' },
-  { key: 'referrer_bonus_cap', label: 'Referrer bonus cap', suffix: '$' },
-  { key: 'referred_player_bonus_amount', label: 'Referred player bonus', suffix: '$' },
-  { key: 'first_deposit_min_amount', label: 'Min. first deposit', suffix: '$' },
+  {
+    key: 'referrer_bonus_percentage',
+    title: 'Referrer bonus percentage',
+    description: 'Percentage of the referred player’s first deposit paid to the referrer.',
+    suffix: '%',
+  },
+  {
+    key: 'referrer_bonus_cap',
+    title: 'Referrer bonus cap',
+    description: 'Maximum bonus a referrer can earn per successful referral.',
+    suffix: '$',
+  },
+  {
+    key: 'referred_player_bonus_amount',
+    title: 'Referred player bonus',
+    description: 'Flat bonus for the new player when eligibility is met.',
+    suffix: '$',
+  },
+  {
+    key: 'first_deposit_min_amount',
+    title: 'Minimum first deposit',
+    description: 'Lowest first deposit required to trigger referral rewards.',
+    suffix: '$',
+  },
 ];
-
-function NumericField({
-  field,
-  value,
-  error,
-  disabled,
-  onChange,
-}: {
-  field: ReferralSettingField;
-  value: string;
-  error?: string;
-  disabled: boolean;
-  onChange: (value: string) => void;
-}) {
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextValue = event.target.value;
-    if (nextValue === '' || /^\d*\.?\d*$/.test(nextValue)) {
-      onChange(nextValue);
-    }
-  };
-
-  const handleBlur = () => {
-    if (value === '' || value === '.') {
-      onChange('0');
-      return;
-    }
-    const parsed = Number.parseFloat(value);
-    if (!Number.isNaN(parsed)) {
-      onChange(String(parsed));
-    }
-  };
-
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700">
-      <label htmlFor={field.key} className="text-sm font-medium text-gray-900 dark:text-gray-100">
-        {field.label}
-      </label>
-      <div className="relative w-32 shrink-0">
-        <Input
-          id={field.key}
-          type="text"
-          inputMode="decimal"
-          value={value}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          className={`pr-7 text-right ${error ? 'border-red-500' : ''}`}
-          placeholder="0"
-          disabled={disabled}
-        />
-        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-          {field.suffix}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 const parseNumericField = (value: string) => {
   if (value === '' || value === '.') return 0;
@@ -93,7 +58,7 @@ const parseNumericField = (value: string) => {
 
 export default function ReferralSettingsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { addToast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -104,22 +69,23 @@ export default function ReferralSettingsPage() {
     first_deposit_min_amount: '0',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { referralSettings, isLoading, error, fetchReferralSettings, patchReferralSettings } =
     useReferralSettingsStore();
 
+  const canEdit = user?.role === USER_ROLES.COMPANY || user?.role === USER_ROLES.SUPERADMIN;
+
   useEffect(() => {
-    if (user?.role === USER_ROLES.STAFF) {
+    if (user?.role === USER_ROLES.STAFF || user?.role === USER_ROLES.MANAGER) {
       router.push('/dashboard/settings');
     }
   }, [user?.role, router]);
 
   useEffect(() => {
-    if (user?.role !== USER_ROLES.STAFF) {
+    if (canEdit) {
       fetchReferralSettings();
     }
-  }, [fetchReferralSettings, user?.role]);
+  }, [canEdit, fetchReferralSettings]);
 
   useEffect(() => {
     if (referralSettings) {
@@ -144,26 +110,37 @@ export default function ReferralSettingsPage() {
     [formData],
   );
 
+  const handleFieldChange = (key: FormFieldKey, raw: string) => {
+    if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+      setFormData((previous) => ({ ...previous, [key]: raw }));
+    }
+  };
+
+  const handleFieldBlur = (key: FormFieldKey) => {
+    const value = formData[key];
+    if (value === '' || value === '.') {
+      setFormData((previous) => ({ ...previous, [key]: '0' }));
+      return;
+    }
+    const parsed = Number.parseFloat(value);
+    if (!Number.isNaN(parsed)) {
+      setFormData((previous) => ({ ...previous, [key]: String(parsed) }));
+    }
+  };
+
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (
-      numericFormData.referrer_bonus_percentage < 0 ||
-      numericFormData.referrer_bonus_percentage > 100
-    ) {
-      newErrors.referrer_bonus_percentage = '0–100';
+    const { referrer_bonus_percentage, referrer_bonus_cap, referred_player_bonus_amount, first_deposit_min_amount } =
+      numericFormData;
+
+    if (referrer_bonus_percentage < 0 || referrer_bonus_percentage > 100) {
+      addToast({ type: 'error', title: 'Referrer bonus percentage must be between 0 and 100' });
+      return false;
     }
-    if (numericFormData.referrer_bonus_cap < 0) newErrors.referrer_bonus_cap = '≥ 0';
-    if (numericFormData.referred_player_bonus_amount < 0) {
-      newErrors.referred_player_bonus_amount = '≥ 0';
+    if (referrer_bonus_cap < 0 || referred_player_bonus_amount < 0 || first_deposit_min_amount < 0) {
+      addToast({ type: 'error', title: 'Amounts must be 0 or greater' });
+      return false;
     }
-    if (numericFormData.first_deposit_min_amount < 0) {
-      newErrors.first_deposit_min_amount = '≥ 0';
-    }
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      addToast({ type: 'error', title: 'Check your values' });
-    }
-    return Object.keys(newErrors).length === 0;
+    return true;
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -173,11 +150,11 @@ export default function ReferralSettingsPage() {
     setIsSubmitting(true);
     try {
       await patchReferralSettings(numericFormData);
-      addToast({ type: 'success', title: 'Saved' });
+      addToast({ type: 'success', title: 'Referral settings saved' });
     } catch (err) {
       addToast({
         type: 'error',
-        title: 'Save failed',
+        title: 'Update failed',
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -185,69 +162,111 @@ export default function ReferralSettingsPage() {
     }
   };
 
+  if (isAuthLoading) {
+    return <LoadingState />;
+  }
+
+  if (!canEdit) {
+    return null;
+  }
+
   if (isLoading) {
-    return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="mt-6 h-48 w-full" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (error && !referralSettings) {
     return <ErrorState message={error} onRetry={fetchReferralSettings} />;
   }
 
-  const controlsDisabled = isSubmitting || !formData.is_enabled;
+  const fieldsDisabled = isSubmitting || !formData.is_enabled;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-[#eff3ff] px-4 py-3 dark:border-gray-700 dark:bg-indigo-950/30 sm:px-6 sm:py-4">
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 sm:text-xl">
-          Referral Settings
-        </h1>
-        <Button type="submit" variant="primary" size="sm" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : 'Save'}
-        </Button>
+    <div className="space-y-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Referral</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-400">
+          Configure player referral rewards and first-deposit eligibility rules.
+        </p>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-4 py-3 dark:border-gray-700 sm:px-6">
-          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Program</span>
-          <Switch
-            checked={formData.is_enabled}
-            onChange={(checked) => setFormData((p) => ({ ...p, is_enabled: checked }))}
-            disabled={isSubmitting}
-            tone="emerald"
-          />
-        </div>
+      <form onSubmit={handleSubmit}>
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex flex-col gap-4 border-b border-gray-200 p-6 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700">
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Enable referral program
+              </h2>
+              <p className="max-w-2xl text-sm text-gray-600 dark:text-gray-400">
+                When disabled, referral rewards are not active for players.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {formData.is_enabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <Switch
+                checked={formData.is_enabled}
+                onChange={(checked) => setFormData((previous) => ({ ...previous, is_enabled: checked }))}
+                disabled={isSubmitting}
+                tone="emerald"
+              />
+            </div>
+          </div>
 
-        <div className={`px-4 sm:px-6 ${controlsDisabled ? 'opacity-50' : ''}`}>
-          {REFERRAL_FIELDS.map((field) => (
-            <NumericField
+          {REFERRAL_FIELDS.map((field, index) => (
+            <div
               key={field.key}
-              field={field}
-              value={formData[field.key]}
-              error={errors[field.key]}
-              disabled={controlsDisabled}
-              onChange={(value) => setFormData((p) => ({ ...p, [field.key]: value }))}
-            />
+              className={`flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between ${
+                index < REFERRAL_FIELDS.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
+              } ${fieldsDisabled ? 'opacity-60' : ''}`}
+            >
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{field.title}</h2>
+                <p className="max-w-2xl text-sm text-gray-600 dark:text-gray-400">{field.description}</p>
+              </div>
+              <div className="relative w-full shrink-0 sm:w-36">
+                <Input
+                  id={field.key}
+                  type="text"
+                  inputMode="decimal"
+                  value={formData[field.key]}
+                  onChange={(event) => handleFieldChange(field.key, event.target.value)}
+                  onBlur={() => handleFieldBlur(field.key)}
+                  className="pr-8"
+                  placeholder="0.00"
+                  disabled={fieldsDisabled}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400">
+                  {field.suffix}
+                </span>
+              </div>
+            </div>
           ))}
-        </div>
 
-        <div className="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400 sm:px-6">
-          <p>
-            <span className="font-medium text-gray-700 dark:text-gray-300">Referrer:</span>{' '}
-            {numericFormData.referrer_bonus_percentage}% up to{' '}
-            {formatCurrency(numericFormData.referrer_bonus_cap)}
-          </p>
-          <p className="mt-1">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Referred:</span>{' '}
-            {formatCurrency(numericFormData.referred_player_bonus_amount)} at{' '}
-            {formatCurrency(numericFormData.first_deposit_min_amount)} min deposit
-          </p>
+          <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {formData.is_enabled
+                ? `Referrer: earn ${numericFormData.referrer_bonus_percentage}% (up to ${formatCurrency(numericFormData.referrer_bonus_cap)}) on a referred player’s first deposit. `
+                : 'Referral program is disabled. '}
+              Referred player: {formatCurrency(numericFormData.referred_player_bonus_amount)} bonus at{' '}
+              {formatCurrency(numericFormData.first_deposit_min_amount)} minimum first deposit.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving…' : 'Save changes'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={fetchReferralSettings}
+                disabled={isSubmitting}
+              >
+                Refresh
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }
