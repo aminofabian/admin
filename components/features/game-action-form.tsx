@@ -1,11 +1,32 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { isManualGameMode } from '@/lib/constants/game-operation-mode';
 import { formatCurrency } from '@/lib/utils/formatters';
+import {
+  getQueueDisplayStatus,
+  getQueueStatusBadgeClassName,
+  isManualQueueRequest,
+} from '@/lib/utils/game-queue-display';
+import { useGamesStore } from '@/stores/use-games-store';
+import { resolveGameActivityCreditsBalances } from '@/lib/utils/transaction-ledger-ws';
 import type { TransactionQueue, GameActionType } from '@/types';
+
+function isRiversweepsGame(
+  gameCode?: string | null,
+  gameTitle?: string | null,
+): boolean {
+  const code = gameCode?.toLowerCase() ?? '';
+  const title = gameTitle?.toLowerCase() ?? '';
+  return (
+    code.includes('riversweeps') ||
+    title.includes('riversweeps') ||
+    title.includes('river sweeps')
+  );
+}
 
 const mapTypeToLabel = (type: string): string => {
   if (type === 'recharge_game') return 'Recharge';
@@ -21,6 +42,7 @@ interface GameActionFormProps {
     type: GameActionType;
     new_password?: string;
     new_balance?: string;
+    new_entries?: string;
     new_username?: string;
     game_username?: string;
     game_password?: string;
@@ -31,6 +53,7 @@ interface GameActionFormProps {
 export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProps) {
   const [newPassword, setNewPassword] = useState('');
   const [newBalance, setNewBalance] = useState('');
+  const [newEntries, setNewEntries] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCompleteFields, setShowCompleteFields] = useState(false);
@@ -66,28 +89,47 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return bonusAmount ? formatCurrency(String(bonusAmount)) : null;
   }, [bonusAmount]);
 
-  const formattedPreviousCreditsBalance = useMemo(() => {
-    if (!queue?.data || typeof queue.data !== 'object') return null;
-    const raw =
-      queue.data.previous_credits_balance ?? queue.data.balance;
-    if (raw === undefined || raw === null) return null;
-    const n =
-      typeof raw === 'string' || typeof raw === 'number'
-        ? parseFloat(String(raw))
-        : NaN;
-    return !Number.isNaN(n) ? formatCurrency(String(n)) : null;
+  const creditsBalances = useMemo(() => {
+    if (!queue) return { previous: null, new: null };
+    return resolveGameActivityCreditsBalances(queue);
   }, [queue]);
 
+  const formattedPreviousCreditsBalance = useMemo(() => {
+    return creditsBalances.previous != null
+      ? formatCurrency(String(creditsBalances.previous))
+      : null;
+  }, [creditsBalances.previous]);
+
   const formattedNewCreditsBalance = useMemo(() => {
-    if (!queue?.data || typeof queue.data !== 'object') return null;
-    const raw = queue.data.new_credits_balance;
-    if (raw === undefined || raw === null) return null;
-    const n =
-      typeof raw === 'string' || typeof raw === 'number'
-        ? parseFloat(String(raw))
-        : NaN;
-    return !Number.isNaN(n) ? formatCurrency(String(n)) : null;
+    return creditsBalances.new != null
+      ? formatCurrency(String(creditsBalances.new))
+      : null;
+  }, [creditsBalances.new]);
+
+  const isRiversweeps = useMemo(() => {
+    if (!queue) return false;
+    return isRiversweepsGame(queue.game_code, queue.game);
   }, [queue]);
+
+  const games = useGamesStore((state) => state.games);
+  const fetchGames = useGamesStore((state) => state.fetchGames);
+
+  useEffect(() => {
+    if (!queue || games) return;
+    void fetchGames();
+  }, [queue, games, fetchGames]);
+
+  const isManualMode = useMemo(() => {
+    if (!queue) return false;
+    if (isManualQueueRequest(queue.remarks)) return true;
+
+    const gamesList = Array.isArray(games) ? games : games ?? [];
+    const game = gamesList.find(
+      (g) => g.code === queue.game_code || g.title === queue.game,
+    );
+
+    return isManualGameMode(game?.game_operation_mode);
+  }, [queue, games]);
 
   const renderRechargeRedeemBalanceBoxes = () => (
     <div className="grid grid-cols-2 gap-2">
@@ -118,12 +160,14 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     return null;
   }
 
+  const displayStatus = getQueueDisplayStatus(queue.status, queue.remarks);
+  const statusBadgeClass = getQueueStatusBadgeClassName(displayStatus);
+  const showRetryButton = !isManualMode;
+
   const handleActionSelect = (selectedAction: GameActionType) => {
     if (selectedAction === 'complete') {
-      // Show form fields for complete action
       setShowCompleteFields(true);
     } else {
-      // Show confirmation for retry and cancel
       setPendingAction(selectedAction);
       setShowConfirmation(true);
     }
@@ -142,7 +186,13 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
     setPendingAction(null);
   };
 
-  const executeAction = async (action: GameActionType, password?: string, balance?: string, username?: string) => {
+  const executeAction = async (
+    action: GameActionType,
+    password?: string,
+    balance?: string,
+    username?: string,
+    entries?: string,
+  ) => {
     setIsSubmitting(true);
     
     try {
@@ -151,6 +201,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         type: GameActionType;
         new_password?: string;
         new_balance?: string;
+        new_entries?: string;
         new_username?: string;
         game_username?: string;
         game_password?: string;
@@ -172,6 +223,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         }
         
         if (balance?.trim()) data.new_balance = balance.trim();
+        if (entries?.trim()) data.new_entries = entries.trim();
       }
 
       await onSubmit(data);
@@ -182,28 +234,34 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
 
   const handleCompleteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await executeAction('complete', newPassword, newBalance, newUsername);
+    await executeAction('complete', newPassword, newBalance, newUsername, newEntries);
   };
 
   // Determine required fields based on queue type
   const getRequiredFields = () => {
     if (queue.type === 'recharge_game' || queue.type === 'redeem_game') {
-      return { balance: true, password: false, username: false };
+      return {
+        balance: true,
+        entries: isRiversweeps,
+        password: false,
+        username: false,
+      };
     }
     if (queue.type === 'add_user_game' || queue.type === 'create_game') {
-      return { balance: false, password: true, username: true };
+      return { balance: false, entries: false, password: true, username: true };
     }
     // For future types like change_password_game
     if ((queue.type as string).includes('password')) {
-      return { balance: false, password: true, username: false };
+      return { balance: false, entries: false, password: true, username: false };
     }
-    return { balance: false, password: false, username: false };
+    return { balance: false, entries: false, password: false, username: false };
   };
 
   const requiredFields = getRequiredFields();
 
   const isFormValid = () => {
     if (requiredFields.balance && !newBalance.trim()) return false;
+    if (requiredFields.entries && !newEntries.trim()) return false;
     if (requiredFields.password && !newPassword.trim()) return false;
     if (requiredFields.username && !newUsername.trim()) return false;
     return true;
@@ -248,12 +306,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
               </div>
             </div>
-            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              queue.status === 'failed' 
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-            }`}>
-              {queue.status.toUpperCase()}
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+              {displayStatus.toUpperCase()}
             </div>
           </div>
 
@@ -325,12 +379,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 <div className="text-xs font-semibold text-foreground">Reset</div>
               </div>
             </div>
-            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              queue.status === 'failed' 
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-            }`}>
-              {queue.status.toUpperCase()}
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+              {displayStatus.toUpperCase()}
             </div>
           </div>
 
@@ -376,12 +426,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
             </div>
           </div>
-          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-            queue.status === 'failed' 
-              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-          }`}>
-            {queue.status.toUpperCase()}
+          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+            {displayStatus.toUpperCase()}
           </div>
         </div>
 
@@ -460,7 +506,9 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
             </h4>
             <p className="text-[10px] text-muted-foreground">
               {queue.type === 'recharge_game' || queue.type === 'redeem_game' 
-                ? 'Enter the new game balance after manually completing the operation.'
+                ? isRiversweeps
+                  ? 'Enter the new game balance and entries after manually completing the operation.'
+                  : 'Enter the new game balance after manually completing the operation.'
                 : queue.type === 'add_user_game' || queue.type === 'create_game'
                 ? 'Enter the game username and password that were created.'
                 : 'Enter the required information to complete this operation.'}
@@ -500,6 +548,17 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                   required
                 />
               )}
+
+              {requiredFields.entries && (
+                <Input
+                  label="New Entries *"
+                  type="text"
+                  value={newEntries}
+                  onChange={(e) => setNewEntries(e.target.value)}
+                  placeholder="Enter the new entries (e.g., 500)"
+                  required
+                />
+              )}
           </div>
         </div>
 
@@ -512,6 +571,7 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               setShowCompleteFields(false);
               setNewPassword('');
               setNewBalance('');
+              setNewEntries('');
               setNewUsername('');
             }}
             disabled={isSubmitting}
@@ -572,14 +632,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
               </div>
             </div>
-            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              queue.status === 'failed' 
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                : queue.status === 'pending'
-                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-            }`}>
-              {queue.status.toUpperCase()}
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+              {displayStatus.toUpperCase()}
             </div>
           </div>
 
@@ -651,14 +705,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
                 <div className="text-xs font-semibold text-foreground">Reset</div>
               </div>
             </div>
-            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-              queue.status === 'failed' 
-                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-                : queue.status === 'pending'
-                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-            }`}>
-              {queue.status.toUpperCase()}
+            <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+              {displayStatus.toUpperCase()}
             </div>
           </div>
 
@@ -704,14 +752,8 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
               <div className="text-xs font-semibold text-foreground">{mapTypeToLabel(queue.type)}</div>
             </div>
           </div>
-          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-            queue.status === 'failed' 
-              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
-              : queue.status === 'pending'
-              ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-              : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-          }`}>
-            {queue.status.toUpperCase()}
+          <div className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${statusBadgeClass}`}>
+            {displayStatus.toUpperCase()}
           </div>
         </div>
 
@@ -783,20 +825,22 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
       {/* Action Buttons */}
       <div className="space-y-1.5">
         <label className="text-[10px] font-medium text-muted-foreground">Select Action</label>
-        <div className="grid grid-cols-3 gap-1.5">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => handleActionSelect('retry')}
-            disabled={isSubmitting}
-            size="sm"
-            className="flex items-center justify-center gap-1 text-xs h-7 px-2"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span className="text-[10px] font-medium">Retry</span>
-          </Button>
+        <div className={`grid gap-1.5 ${showRetryButton ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {showRetryButton && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => handleActionSelect('retry')}
+              disabled={isSubmitting}
+              size="sm"
+              className="flex items-center justify-center gap-1 text-xs h-7 px-2"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="text-[10px] font-medium">Retry</span>
+            </Button>
+          )}
           <Button
             type="button"
             variant="secondary"
@@ -840,7 +884,6 @@ export function GameActionForm({ queue, onSubmit, onCancel }: GameActionFormProp
         </Button>
       </div>
 
-      {/* Confirmation Modal for Retry/Cancel */}
       <ConfirmModal
         isOpen={showConfirmation}
         onClose={handleCancelConfirmation}

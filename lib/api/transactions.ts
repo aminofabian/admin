@@ -201,6 +201,7 @@ export const transactionsApi = {
     }
     
     if (data.new_balance) formData.append('new_balance', data.new_balance);
+    if (data.new_entries) formData.append('new_entries', data.new_entries);
 
     // Use the Next.js API proxy route to avoid CORS issues
     // The proxy route will forward the request to the Django backend

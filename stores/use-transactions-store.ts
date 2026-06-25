@@ -766,6 +766,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         const v = updatedTransaction[key];
         return v != null && String(v).trim() !== '';
       };
+      const hasWsTapTicketId =
+        updatedTransaction.taparcaida_ticket_id != null &&
+        String(updatedTransaction.taparcaida_ticket_id).trim() !== '';
       const mergedDescription = mergeTransactionTextSnapshot(
         existingTransaction.description,
         updatedTransaction.description,
@@ -787,6 +790,9 @@ export const useTransactionsStore = create<TransactionsStore>((set, get) => ({
         binpay_status: hasWsProviderStatus('binpay_status') ? updatedTransaction.binpay_status : existingTransaction.binpay_status,
         tierlock_status: hasWsProviderStatus('tierlock_status') ? updatedTransaction.tierlock_status : existingTransaction.tierlock_status,
         taparcadia_status: hasWsProviderStatus('taparcadia_status') ? updatedTransaction.taparcadia_status : existingTransaction.taparcadia_status,
+        taparcaida_ticket_id: hasWsTapTicketId
+          ? updatedTransaction.taparcaida_ticket_id
+          : existingTransaction.taparcaida_ticket_id,
       };
 
       if (

@@ -17,7 +17,8 @@ export interface Company {
   binpay_secret_key?: string | null;
   binpay_deposit_secret_key?: string | null;
   binpay_withdrawal_secret_key?: string | null;
-  brenzi_merchant_slug?: string | null;
+  brenzi_api_key?: string | null;
+  brenzi_webhook_secret?: string | null;
   taparcaida_vendor_id?: string | null;
   taparcaida_payout_api_key?: string | null;
   tierlock_merchant_id?: string | null;
@@ -49,7 +50,8 @@ export interface CreateCompanyRequest {
   binpay_secret_key?: string;
   binpay_deposit_secret_key?: string;
   binpay_withdrawal_secret_key?: string;
-  brenzi_merchant_slug?: string;
+  brenzi_api_key?: string;
+  brenzi_webhook_secret?: string;
   taparcaida_vendor_id?: string;
   taparcaida_payout_api_key?: string;
   tierlock_merchant_id?: string;
@@ -79,7 +81,8 @@ export interface UpdateCompanyRequest {
   binpay_secret_key?: string;
   binpay_deposit_secret_key?: string;
   binpay_withdrawal_secret_key?: string;
-  brenzi_merchant_slug?: string;
+  brenzi_api_key?: string;
+  brenzi_webhook_secret?: string;
   taparcaida_vendor_id?: string;
   taparcaida_payout_api_key?: string;
   tierlock_merchant_id?: string;

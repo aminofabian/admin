@@ -18,6 +18,11 @@ import {
   isNonMonetaryGameActivityType,
   showsGameCreditsBalanceForActivityType,
 } from "@/lib/utils/formatters";
+import {
+  getQueueDisplayStatus,
+  getQueueStatusBadgeVariant,
+} from "@/lib/utils/game-queue-display";
+import { resolveGameActivityCreditsBalances } from "@/lib/utils/transaction-ledger-ws";
 
 interface GameActivityTableProps {
   activities: TransactionQueue[];
@@ -51,21 +56,7 @@ const mapTypeToVariant = (
   return "info";
 };
 
-const getStatusVariant = (
-  status: string,
-): "success" | "warning" | "danger" | "info" => {
-  switch (status.toLowerCase()) {
-    case "completed":
-      return "success";
-    case "pending":
-      return "warning";
-    case "failed":
-    case "cancelled":
-      return "danger";
-    default:
-      return "info";
-  }
-};
+const getStatusVariant = getQueueStatusBadgeVariant;
 
 function GameActivityRow({
   activity,
@@ -73,7 +64,8 @@ function GameActivityRow({
   showActions = true,
   actionLoading = false,
 }: GameActivityRowProps) {
-  const statusVariant = getStatusVariant(activity.status);
+  const displayStatus = getQueueDisplayStatus(activity.status, activity.remarks);
+  const statusVariant = getStatusVariant(displayStatus);
   const typeLabel = mapTypeToLabel(activity.type);
   const typeVariant = mapTypeToVariant(activity.type);
   const formattedAmount = formatCurrency(activity.amount || "0");
@@ -112,35 +104,23 @@ function GameActivityRow({
         : "text-green-600 dark:text-green-400";
   const bonusColorClass = amountColorClass;
 
-  const previousCreditsNum = useMemo(() => {
-    const val = activity.data?.previous_credits_balance;
-    if (val === undefined || val === null) return 0;
-    return typeof val === "string" || typeof val === "number"
-      ? parseFloat(String(val))
-      : 0;
-  }, [activity.data?.previous_credits_balance]);
+  const creditsBalances = useMemo(
+    () => resolveGameActivityCreditsBalances(activity),
+    [activity.type, activity.status, activity.amount, activity.data],
+  );
 
-  const newCreditsNum = useMemo(() => {
-    const val = activity.data?.new_credits_balance;
-    if (val === undefined || val === null) return 0;
-    return typeof val === "string" || typeof val === "number"
-      ? parseFloat(String(val))
-      : 0;
-  }, [activity.data?.new_credits_balance]);
+  const previousCreditsNum = creditsBalances.previous ?? 0;
+  const newCreditsNum = creditsBalances.new ?? 0;
 
-  const formattedPreviousCredits = useMemo(() => {
-    const val = activity.data?.previous_credits_balance;
-    return val !== undefined && val !== null
-      ? formatCurrency(String(val))
+  const formattedPreviousCredits =
+    creditsBalances.previous != null
+      ? formatCurrency(String(creditsBalances.previous))
       : null;
-  }, [activity.data?.previous_credits_balance]);
 
-  const formattedNewCredits = useMemo(() => {
-    const val = activity.data?.new_credits_balance;
-    return val !== undefined && val !== null
-      ? formatCurrency(String(val))
+  const formattedNewCredits =
+    creditsBalances.new != null
+      ? formatCurrency(String(creditsBalances.new))
       : null;
-  }, [activity.data?.new_credits_balance]);
 
   const creditsChanged = previousCreditsNum !== newCreditsNum;
 
@@ -280,7 +260,7 @@ function GameActivityRow({
       </TableCell>
       <TableCell>
         <Badge variant={statusVariant} className="capitalize">
-          {activity.status}
+          {displayStatus}
         </Badge>
       </TableCell>
       <TableCell>
@@ -374,7 +354,8 @@ const GameActivityCard = memo(
     showActions = true,
     actionLoading = false,
   }: GameActivityCardProps) {
-    const statusVariant = getStatusVariant(activity.status);
+    const displayStatus = getQueueDisplayStatus(activity.status, activity.remarks);
+    const statusVariant = getStatusVariant(displayStatus);
     const typeLabel = mapTypeToLabel(activity.type);
     const typeVariant = mapTypeToVariant(activity.type);
     const formattedAmount = formatCurrency(activity.amount || "0");
@@ -400,35 +381,23 @@ const GameActivityCard = memo(
           : "text-green-600 dark:text-green-400";
     const bonusColorClass = amountColorClass;
 
-    const previousCreditsNum = useMemo(() => {
-      const val = activity.data?.previous_credits_balance;
-      if (val === undefined || val === null) return 0;
-      return typeof val === "string" || typeof val === "number"
-        ? parseFloat(String(val))
-        : 0;
-    }, [activity.data?.previous_credits_balance]);
+    const creditsBalances = useMemo(
+      () => resolveGameActivityCreditsBalances(activity),
+      [activity.type, activity.status, activity.amount, activity.data],
+    );
 
-    const newCreditsNum = useMemo(() => {
-      const val = activity.data?.new_credits_balance;
-      if (val === undefined || val === null) return 0;
-      return typeof val === "string" || typeof val === "number"
-        ? parseFloat(String(val))
-        : 0;
-    }, [activity.data?.new_credits_balance]);
+    const previousCreditsNum = creditsBalances.previous ?? 0;
+    const newCreditsNum = creditsBalances.new ?? 0;
 
-    const formattedPreviousCredits = useMemo(() => {
-      const val = activity.data?.previous_credits_balance;
-      return val !== undefined && val !== null
-        ? formatCurrency(String(val))
+    const formattedPreviousCredits =
+      creditsBalances.previous != null
+        ? formatCurrency(String(creditsBalances.previous))
         : null;
-    }, [activity.data?.previous_credits_balance]);
 
-    const formattedNewCredits = useMemo(() => {
-      const val = activity.data?.new_credits_balance;
-      return val !== undefined && val !== null
-        ? formatCurrency(String(val))
+    const formattedNewCredits =
+      creditsBalances.new != null
+        ? formatCurrency(String(creditsBalances.new))
         : null;
-    }, [activity.data?.new_credits_balance]);
 
     const creditsChanged = previousCreditsNum !== newCreditsNum;
 
@@ -556,7 +525,7 @@ const GameActivityCard = memo(
                   variant={statusVariant}
                   className="h-5 px-2 text-[10px] capitalize"
                 >
-                  {activity.status}
+                  {displayStatus}
                 </Badge>
                 <Badge
                   variant={typeVariant}

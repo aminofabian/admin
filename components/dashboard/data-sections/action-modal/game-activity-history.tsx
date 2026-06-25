@@ -12,6 +12,7 @@ interface ActionModalProps {
     type: GameActionType;
     new_password?: string;
     new_balance?: string;
+    new_entries?: string;
     new_username?: string;
     game_username?: string;
     game_password?: string;
@@ -29,6 +30,7 @@ export function ActionModal({ isOpen, queue, onSubmit, onClose }: ActionModalPro
     type: GameActionType;
     new_password?: string;
     new_balance?: string;
+    new_entries?: string;
     new_username?: string;
     game_username?: string;
     game_password?: string;

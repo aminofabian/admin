@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { transactionsApi } from '@/lib/api';
 import {
-  patchGameActivityMergedDataCreditsFromWs,
+  normalizeGameActivityQueueData,
   shouldPreserveGameActivityCreditsWhenMerging,
 } from '@/lib/utils/transaction-ledger-ws';
 import type { 
@@ -203,6 +203,16 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
           }
         }
         
+        const normalizedData =
+          queue.data && typeof queue.data === 'object'
+            ? normalizeGameActivityQueueData(
+                queue.type,
+                queue.status,
+                normalizedAmount,
+                queue.data as Record<string, unknown>,
+              )
+            : queue.data;
+
         // If data has nested fields, promote them to top level for consistency
         if (queue.data && typeof queue.data === 'object') {
           const data = queue.data as any;
@@ -216,8 +226,7 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
             // Explicitly preserve company fields from API response
             company_id: queue.company_id,
             company_username: queue.company_username,
-            // Ensure data object is preserved with all nested fields
-            data: queue.data,
+            data: normalizedData,
           };
         }
         // Even when there's no data object, ensure company fields are preserved
@@ -440,8 +449,12 @@ export const useTransactionQueuesStore = create<TransactionQueuesStore>((set, ge
             merged.new_credits_balance = ex.new_balance;
           }
         }
-        patchGameActivityMergedDataCreditsFromWs(merged);
-        mergedData = merged as TransactionQueue['data'];
+        mergedData = normalizeGameActivityQueueData(
+          updatedQueue.type || existingQueue.type,
+          updatedQueue.status || existingQueue.status,
+          updatedQueue.amount || existingQueue.amount,
+          merged,
+        ) as TransactionQueue['data'];
       }
 
       const mergedQueue: TransactionQueue = {

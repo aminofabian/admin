@@ -9,7 +9,7 @@ import {
 } from "@/lib/websocket-manager";
 import type { TransactionQueue, Transaction } from "@/types";
 import {
-  patchGameActivityMergedDataCreditsFromWs,
+  normalizeGameActivityQueueData,
   resolveCreditLedgerBalancesFromWsPayload,
 } from "@/lib/utils/transaction-ledger-ws";
 
@@ -306,6 +306,12 @@ function transformCashoutToTransaction(rawCashout: any): Transaction {
       nestedData?.taparcaida_status ??
       nestedData?.taparcadia_status ??
       undefined,
+    taparcaida_ticket_id:
+      rawCashout.taparcaida_ticket_id ??
+      rawCashout.taparcadia_ticket_id ??
+      nestedData?.taparcaida_ticket_id ??
+      nestedData?.taparcadia_ticket_id ??
+      undefined,
   };
 }
 
@@ -322,7 +328,6 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
     ...rawActivity,
     ...(nestedData || {}),
   };
-  patchGameActivityMergedDataCreditsFromWs(mergedData);
 
   // Normalize amount to string (handle both string and number types)
   let normalizedAmount: string;
@@ -348,10 +353,19 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
     }
   }
 
+  const operationType = rawActivity.operation_type || rawActivity.type || "recharge_game";
+  const operationStatus = rawActivity.status || "pending";
+  const normalizedData = normalizeGameActivityQueueData(
+    operationType,
+    operationStatus,
+    normalizedAmount,
+    mergedData,
+  );
+
   return {
     id: rawActivity.id || rawActivity.transaction_id || "",
-    type: rawActivity.operation_type || rawActivity.type || "recharge_game",
-    status: rawActivity.status || "pending",
+    type: operationType,
+    status: operationStatus,
     user_id: rawActivity.user_id || 0,
     user_username: rawActivity.user_username || rawActivity.username || "",
     user_email: rawActivity.user_email || rawActivity.email || "",
@@ -367,7 +381,7 @@ function transformActivityToQueue(rawActivity: any): TransactionQueue {
     bonus_amount: normalizedBonusAmount,
     new_game_balance: rawActivity.new_game_balance,
     remarks: rawActivity.remarks || "",
-    data: mergedData as TransactionQueue["data"],
+    data: normalizedData as TransactionQueue["data"],
     created_at:
       rawActivity.created_at || rawActivity.created || new Date().toISOString(),
     updated_at:
