@@ -377,6 +377,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
       { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
       { name: 'Prize Wheel', href: '/dashboard/settings/roulette', icon: <RouletteSettingsIcon /> },
+      { name: 'Referral Settings', href: '/dashboard/settings/referral', icon: <AffiliatesAgentIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],
   },
