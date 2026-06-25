@@ -5,21 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_ROLES } from '@/lib/constants/roles';
 import { useReferralSettingsStore } from '@/stores';
-import {
-  Button,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  Skeleton,
-  useToast,
-} from '@/components/ui';
+import { Button, Switch, Skeleton, useToast } from '@/components/ui';
 import { Input } from '@/components/ui/input';
 import { ErrorState } from '@/components/features';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 
 type FormFieldKey =
   | 'referrer_bonus_percentage'
@@ -32,64 +21,47 @@ type ReferralSettingField = {
   label: string;
   description: string;
   suffix: '%' | '$';
-  min: number;
-  max?: number;
-  step: string;
 };
 
-const REFERRAL_SETTING_FIELDS: ReferralSettingField[] = [
+const REFERRER_FIELDS: ReferralSettingField[] = [
   {
     key: 'referrer_bonus_percentage',
-    label: 'Referrer Bonus Percentage',
-    description: 'Percentage of the referred player’s first deposit paid to the referrer.',
+    label: 'Bonus percentage',
+    description: 'Share of the referred player’s first deposit paid to the referrer.',
     suffix: '%',
-    min: 0,
-    max: 100,
-    step: '0.01',
   },
   {
     key: 'referrer_bonus_cap',
-    label: 'Referrer Bonus Cap',
-    description: 'Maximum bonus amount a referrer can earn per successful referral.',
+    label: 'Bonus cap',
+    description: 'Maximum amount a referrer can earn per successful referral.',
     suffix: '$',
-    min: 0,
-    step: '0.01',
-  },
-  {
-    key: 'referred_player_bonus_amount',
-    label: 'Referred Player Bonus',
-    description: 'Flat bonus credited to the new player when eligibility is met.',
-    suffix: '$',
-    min: 0,
-    step: '0.01',
-  },
-  {
-    key: 'first_deposit_min_amount',
-    label: 'First Deposit Minimum',
-    description: 'Minimum first deposit required to trigger referral rewards.',
-    suffix: '$',
-    min: 0,
-    step: '0.01',
   },
 ];
 
-type SettingRowProps = {
+const REFERRED_PLAYER_FIELDS: ReferralSettingField[] = [
+  {
+    key: 'referred_player_bonus_amount',
+    label: 'Signup bonus',
+    description: 'Flat bonus credited to the new player when eligibility is met.',
+    suffix: '$',
+  },
+  {
+    key: 'first_deposit_min_amount',
+    label: 'Minimum first deposit',
+    description: 'Lowest first deposit that triggers referral rewards.',
+    suffix: '$',
+  },
+];
+
+type NumericFieldProps = {
   field: ReferralSettingField;
   value: string;
   error?: string;
-  isSubmitting: boolean;
   disabled: boolean;
   onChange: (value: string) => void;
 };
 
-function SettingRow({
-  field,
-  value,
-  error,
-  isSubmitting,
-  disabled,
-  onChange,
-}: SettingRowProps) {
+function NumericField({ field, value, error, disabled, onChange }: NumericFieldProps) {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const nextValue = event.target.value;
     if (nextValue === '' || /^\d*\.?\d*$/.test(nextValue)) {
@@ -110,32 +82,34 @@ function SettingRow({
   };
 
   return (
-    <TableRow className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-      <TableCell>
-        <div className="space-y-1">
-          <p className="font-medium text-gray-900 dark:text-gray-100">{field.label}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{field.description}</p>
-        </div>
-      </TableCell>
-      <TableCell className="align-top">
-        <div className="relative max-w-[220px]">
-          <Input
-            type="text"
-            inputMode="decimal"
-            value={value}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={`pr-8 ${error ? 'border-red-500' : ''}`}
-            placeholder="0.00"
-            disabled={isSubmitting || disabled}
-          />
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-            {field.suffix}
-          </span>
-        </div>
-        {error ? <p className="mt-2 text-xs font-medium text-red-600">{error}</p> : null}
-      </TableCell>
-    </TableRow>
+    <div className="flex flex-col gap-3 border-b border-gray-200 py-5 last:border-b-0 dark:border-gray-700 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0 flex-1 space-y-1">
+        <label
+          htmlFor={field.key}
+          className="text-sm font-medium text-gray-900 dark:text-gray-100"
+        >
+          {field.label}
+        </label>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{field.description}</p>
+        {error ? <p className="text-xs font-medium text-red-600">{error}</p> : null}
+      </div>
+      <div className="relative w-full shrink-0 sm:w-36">
+        <Input
+          id={field.key}
+          type="text"
+          inputMode="decimal"
+          value={value}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={`pr-8 ${error ? 'border-red-500' : ''}`}
+          placeholder="0.00"
+          disabled={disabled}
+        />
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400">
+          {field.suffix}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -200,8 +174,8 @@ export default function ReferralSettingsPage() {
 
   const previewText = useMemo(
     () => ({
-      referrer: `Earn ${numericFormData.referrer_bonus_percentage}% (up to ${formatCurrency(numericFormData.referrer_bonus_cap)}) based on the referred player's first deposit.`,
-      referred: `Receives ${formatCurrency(numericFormData.referred_player_bonus_amount)} bonus when their first deposit is at least ${formatCurrency(numericFormData.first_deposit_min_amount)}.`,
+      referrer: `Earn ${numericFormData.referrer_bonus_percentage}% (up to ${formatCurrency(numericFormData.referrer_bonus_cap)}) on a referred player’s first deposit.`,
+      referred: `Receive ${formatCurrency(numericFormData.referred_player_bonus_amount)} when the first deposit is at least ${formatCurrency(numericFormData.first_deposit_min_amount)}.`,
     }),
     [numericFormData],
   );
@@ -266,20 +240,13 @@ export default function ReferralSettingsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="rounded-lg border border-gray-200 bg-[#eff3ff] p-6 dark:border-gray-700 dark:bg-indigo-950/30">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
           <Skeleton className="h-8 w-48" />
+          <Skeleton className="mt-2 h-4 w-96 max-w-full" />
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-          <Skeleton className="mb-4 h-6 w-64" />
-          <Skeleton className="h-20 w-full" />
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          {[...Array(4)].map((_, index) => (
-            <div key={index} className="border-b border-gray-200 p-4 last:border-b-0 dark:border-gray-700">
-              <Skeleton className="mb-2 h-4 w-48" />
-              <Skeleton className="h-10 w-40" />
-            </div>
-          ))}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="mt-4 h-10 w-full" />
         </div>
       </div>
     );
@@ -290,102 +257,139 @@ export default function ReferralSettingsPage() {
   }
 
   const controlsDisabled = isSubmitting || !formData.is_enabled;
+  const lastUpdated = referralSettings?.modified ? formatDate(referralSettings.modified) : null;
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-gray-200 bg-[#eff3ff] dark:border-gray-700 dark:bg-indigo-950/30">
-        <div className="relative flex items-center gap-2 p-4 sm:gap-3 sm:p-6">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md">
-            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">
+              Referral Settings
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
+              Configure how players earn rewards when they refer friends. Changes apply platform-wide
+              once saved.
+            </p>
+            {lastUpdated ? (
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Last updated {lastUpdated}
+              </p>
+            ) : null}
           </div>
-          <h2 className="shrink-0 text-xl font-semibold text-gray-900 dark:text-gray-100 sm:text-2xl">
-            Referral Settings
-          </h2>
-          <div className="min-w-0 flex-1" />
           <Button
             type="submit"
             form="referral-settings-form"
             variant="primary"
             size="sm"
             disabled={isSubmitting}
-            className="shrink-0"
+            className="shrink-0 self-start"
           >
-            {isSubmitting ? 'Saving…' : 'Save Changes'}
+            {isSubmitting ? 'Saving…' : 'Save changes'}
           </Button>
         </div>
       </div>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Referral Program
-            </h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Enable or disable the referral program for your players.
-            </p>
-          </div>
-          <Switch
-            checked={formData.is_enabled}
-            onChange={(checked) =>
-              setFormData((previous) => ({
-                ...previous,
-                is_enabled: checked,
-              }))
-            }
-            disabled={isSubmitting}
-            tone="emerald"
-          />
-        </div>
-      </section>
-
-      <section className="rounded-lg border border-indigo-200 bg-indigo-50/60 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/20 sm:p-6">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">
-          Player-facing preview
-        </h3>
-        <div className="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300">
-          <p>
-            <span className="font-medium text-gray-900 dark:text-gray-100">Referrer:</span>{' '}
-            {previewText.referrer}
-          </p>
-          <p>
-            <span className="font-medium text-gray-900 dark:text-gray-100">Referred player:</span>{' '}
-            {previewText.referred}
-          </p>
-        </div>
-      </section>
-
       <form id="referral-settings-form" onSubmit={handleSubmit}>
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Setting</TableHead>
-                  <TableHead>Value</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {REFERRAL_SETTING_FIELDS.map((field) => (
-                  <SettingRow
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex flex-col gap-4 border-b border-gray-200 p-6 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Referral program
+              </h2>
+              <p className="max-w-2xl text-sm text-gray-600 dark:text-gray-400">
+                Turn the player referral program on or off. When disabled, reward fields are saved
+                but not active for players.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {formData.is_enabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <Switch
+                checked={formData.is_enabled}
+                onChange={(checked) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    is_enabled: checked,
+                  }))
+                }
+                disabled={isSubmitting}
+                tone="emerald"
+              />
+            </div>
+          </div>
+
+          <div className={`px-6 ${controlsDisabled ? 'opacity-60' : ''}`}>
+            <div className="border-b border-gray-200 py-5 dark:border-gray-700">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Referrer rewards
+              </h3>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                What existing players earn when someone they referred makes a qualifying first
+                deposit.
+              </p>
+              <div className="mt-2">
+                {REFERRER_FIELDS.map((field) => (
+                  <NumericField
                     key={field.key}
                     field={field}
                     value={formData[field.key]}
                     error={errors[field.key]}
-                    isSubmitting={isSubmitting}
                     disabled={controlsDisabled}
                     onChange={(value) => handleFieldChange(field.key, value)}
                   />
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </div>
+
+            <div className="py-5">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Referred player rewards
+              </h3>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                What new players receive when they sign up through a referral and meet the deposit
+                requirement.
+              </p>
+              <div className="mt-2">
+                {REFERRED_PLAYER_FIELDS.map((field) => (
+                  <NumericField
+                    key={field.key}
+                    field={field}
+                    value={formData[field.key]}
+                    error={errors[field.key]}
+                    disabled={controlsDisabled}
+                    onChange={(value) => handleFieldChange(field.key, value)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {!formData.is_enabled ? (
+            <div className="border-t border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+              Referral program is disabled. Enable it above to activate these rewards for players.
+            </div>
+          ) : null}
+
+          <div className="border-t border-gray-200 bg-gray-50 px-6 py-5 dark:border-gray-700 dark:bg-gray-900/40">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Player-facing preview
+            </h3>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Referrer sees
+                </p>
+                <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">{previewText.referrer}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Referred player sees
+                </p>
+                <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">{previewText.referred}</p>
+              </div>
+            </div>
           </div>
         </div>
       </form>

@@ -197,6 +197,7 @@ export function CompaniesSection() {
         isOpen={isDrawerOpen}
         onClose={handleCloseDrawer}
         title="Create New Company"
+        subtitle="Set up the company in two quick steps — integrations are optional"
         size="xl"
       >
         {submitError && (

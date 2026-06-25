@@ -516,6 +516,7 @@ export function SuperAdminCompanies() {
                 isOpen={isCreateModalOpen}
                 onClose={closeModals}
                 title="Create New Company"
+                subtitle="Set up the company in two quick steps — integrations are optional"
                 size="xl"
             >
                 {submitError && (
@@ -538,6 +539,7 @@ export function SuperAdminCompanies() {
                 isOpen={isEditModalOpen}
                 onClose={closeModals}
                 title="Edit Company"
+                subtitle="Update company details and integration credentials"
                 size="xl"
             >
                 {submitError && (
