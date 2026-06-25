@@ -73,6 +73,26 @@ export interface AffiliateDefaultSettings {
   default_payment_method_fee_percentage: string; // Decimal as string
 }
 
+// Referral Settings Types
+export interface ReferralSettings {
+  id: number;
+  is_enabled: boolean;
+  referrer_bonus_percentage: string;
+  referrer_bonus_cap: string;
+  referred_player_bonus_amount: string;
+  first_deposit_min_amount: string;
+  created: string;
+  modified: string;
+}
+
+export interface UpdateReferralSettingsRequest {
+  is_enabled?: boolean;
+  referrer_bonus_percentage?: number;
+  referrer_bonus_cap?: number;
+  referred_player_bonus_amount?: number;
+  first_deposit_min_amount?: number;
+}
+
 // Game Settings Types
 export interface GameSettings {
   id: number;

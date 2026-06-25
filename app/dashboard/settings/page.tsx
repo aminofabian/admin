@@ -45,6 +45,18 @@ const settingsCategories = [
     permissions: ['company', 'superadmin'],
   },
   {
+    id: 'referral',
+    title: 'Referral Settings',
+    description: 'Configure referral rewards, eligibility rules, and program status',
+    icon: (
+      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+    href: '/dashboard/settings/referral',
+    permissions: ['company', 'superadmin'],
+  },
+  {
     id: 'games',
     title: 'Game Settings',
     description: 'Configure game status and dashboard URLs',
@@ -188,6 +200,17 @@ export default function SettingsPage() {
               <li>• Default commission percentages</li>
               <li>• Fee configurations</li>
               <li>• Payment method fees</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              Referral Settings
+            </h3>
+            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+              <li>• Enable or disable the referral program</li>
+              <li>• Referrer reward percentage and cap</li>
+              <li>• Referred player bonus amount</li>
+              <li>• First deposit eligibility minimum</li>
             </ul>
           </div>
           <div>
