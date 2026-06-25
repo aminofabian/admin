@@ -75,11 +75,11 @@ const REFERRAL_SETTING_FIELDS: ReferralSettingField[] = [
 
 type SettingRowProps = {
   field: ReferralSettingField;
-  value: number;
+  value: string;
   error?: string;
   isSubmitting: boolean;
   disabled: boolean;
-  onChange: (value: number) => void;
+  onChange: (value: string) => void;
 };
 
 function SettingRow({
@@ -91,8 +91,22 @@ function SettingRow({
   onChange,
 }: SettingRowProps) {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextValue = Number.parseFloat(event.target.value);
-    onChange(Number.isNaN(nextValue) ? 0 : nextValue);
+    const nextValue = event.target.value;
+    if (nextValue === '' || /^\d*\.?\d*$/.test(nextValue)) {
+      onChange(nextValue);
+    }
+  };
+
+  const handleBlur = () => {
+    if (value === '' || value === '.') {
+      onChange('0');
+      return;
+    }
+
+    const parsed = Number.parseFloat(value);
+    if (!Number.isNaN(parsed)) {
+      onChange(String(parsed));
+    }
   };
 
   return (
@@ -106,14 +120,13 @@ function SettingRow({
       <TableCell className="align-top">
         <div className="relative max-w-[220px]">
           <Input
-            type="number"
-            value={Number.isFinite(value) ? value : 0}
+            type="text"
+            inputMode="decimal"
+            value={value}
             onChange={handleChange}
-            className={error ? 'border-red-500' : ''}
+            onBlur={handleBlur}
+            className={`pr-8 ${error ? 'border-red-500' : ''}`}
             placeholder="0.00"
-            min={field.min}
-            max={field.max}
-            step={field.step}
             disabled={isSubmitting || disabled}
           />
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
@@ -126,6 +139,12 @@ function SettingRow({
   );
 }
 
+const parseNumericField = (value: string) => {
+  if (value === '' || value === '.') return 0;
+  const parsed = Number.parseFloat(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
 export default function ReferralSettingsPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -133,10 +152,10 @@ export default function ReferralSettingsPage() {
 
   const [formData, setFormData] = useState({
     is_enabled: false,
-    referrer_bonus_percentage: 0,
-    referrer_bonus_cap: 0,
-    referred_player_bonus_amount: 0,
-    first_deposit_min_amount: 0,
+    referrer_bonus_percentage: '0',
+    referrer_bonus_cap: '0',
+    referred_player_bonus_amount: '0',
+    first_deposit_min_amount: '0',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -160,39 +179,52 @@ export default function ReferralSettingsPage() {
     if (referralSettings) {
       setFormData({
         is_enabled: Boolean(referralSettings.is_enabled),
-        referrer_bonus_percentage: parseFloat(referralSettings.referrer_bonus_percentage) || 0,
-        referrer_bonus_cap: parseFloat(referralSettings.referrer_bonus_cap) || 0,
-        referred_player_bonus_amount:
-          parseFloat(referralSettings.referred_player_bonus_amount) || 0,
-        first_deposit_min_amount: parseFloat(referralSettings.first_deposit_min_amount) || 0,
+        referrer_bonus_percentage: referralSettings.referrer_bonus_percentage,
+        referrer_bonus_cap: referralSettings.referrer_bonus_cap,
+        referred_player_bonus_amount: referralSettings.referred_player_bonus_amount,
+        first_deposit_min_amount: referralSettings.first_deposit_min_amount,
       });
     }
   }, [referralSettings]);
 
-  const previewText = useMemo(
+  const numericFormData = useMemo(
     () => ({
-      referrer: `Earn ${formData.referrer_bonus_percentage}% (up to ${formatCurrency(formData.referrer_bonus_cap)}) based on the referred player's first deposit.`,
-      referred: `Receives ${formatCurrency(formData.referred_player_bonus_amount)} bonus when their first deposit is at least ${formatCurrency(formData.first_deposit_min_amount)}.`,
+      is_enabled: formData.is_enabled,
+      referrer_bonus_percentage: parseNumericField(formData.referrer_bonus_percentage),
+      referrer_bonus_cap: parseNumericField(formData.referrer_bonus_cap),
+      referred_player_bonus_amount: parseNumericField(formData.referred_player_bonus_amount),
+      first_deposit_min_amount: parseNumericField(formData.first_deposit_min_amount),
     }),
     [formData],
+  );
+
+  const previewText = useMemo(
+    () => ({
+      referrer: `Earn ${numericFormData.referrer_bonus_percentage}% (up to ${formatCurrency(numericFormData.referrer_bonus_cap)}) based on the referred player's first deposit.`,
+      referred: `Receives ${formatCurrency(numericFormData.referred_player_bonus_amount)} bonus when their first deposit is at least ${formatCurrency(numericFormData.first_deposit_min_amount)}.`,
+    }),
+    [numericFormData],
   );
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (formData.referrer_bonus_percentage < 0 || formData.referrer_bonus_percentage > 100) {
+    if (
+      numericFormData.referrer_bonus_percentage < 0 ||
+      numericFormData.referrer_bonus_percentage > 100
+    ) {
       newErrors.referrer_bonus_percentage = 'Must be between 0 and 100';
     }
 
-    if (formData.referrer_bonus_cap < 0) {
+    if (numericFormData.referrer_bonus_cap < 0) {
       newErrors.referrer_bonus_cap = 'Must be 0 or greater';
     }
 
-    if (formData.referred_player_bonus_amount < 0) {
+    if (numericFormData.referred_player_bonus_amount < 0) {
       newErrors.referred_player_bonus_amount = 'Must be 0 or greater';
     }
 
-    if (formData.first_deposit_min_amount < 0) {
+    if (numericFormData.first_deposit_min_amount < 0) {
       newErrors.first_deposit_min_amount = 'Must be 0 or greater';
     }
 
@@ -207,7 +239,7 @@ export default function ReferralSettingsPage() {
 
     setIsSubmitting(true);
     try {
-      await patchReferralSettings(formData);
+      await patchReferralSettings(numericFormData);
       addToast({
         type: 'success',
         title: 'Referral settings updated',
@@ -224,7 +256,7 @@ export default function ReferralSettingsPage() {
     }
   };
 
-  const handleFieldChange = (key: FormFieldKey, value: number) => {
+  const handleFieldChange = (key: FormFieldKey, value: string) => {
     setFormData((previous) => ({
       ...previous,
       [key]: value,
