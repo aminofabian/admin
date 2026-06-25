@@ -23,5 +23,5 @@ export * from './roulette-spin-allowances';
 export * from './roulette-player-spin-allowances';
 export * from './roulette-player-spin-balances';
 export * from './roulette-reward-configs';
-export * from './phone-verification-settings';
+export * from './verification-settings';
 

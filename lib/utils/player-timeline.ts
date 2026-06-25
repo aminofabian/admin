@@ -68,12 +68,10 @@ function readOptionalInt(value: unknown): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-export function parseRouletteTimelineSpins(
-  raw: Record<string, unknown>,
-): RouletteTimelineSpins | undefined {
-  const spinsRaw = raw.roulette_spins;
-  if (!spinsRaw || typeof spinsRaw !== 'object') return undefined;
-  const s = spinsRaw as Record<string, unknown>;
+function parseRouletteTimelineSpinsFromRecord(
+  s: Record<string, unknown>,
+  position?: number,
+): RouletteTimelineSpins {
   const quantity = readOptionalInt(s.quantity);
   return {
     entry_type: typeof s.entry_type === 'string' ? s.entry_type : undefined,
@@ -83,13 +81,54 @@ export function parseRouletteTimelineSpins(
     reason: typeof s.reason === 'string' ? s.reason : undefined,
     reward_id: readOptionalInt(s.reward_id),
     reward_type: typeof s.reward_type === 'string' ? s.reward_type : undefined,
-    position: readOptionalInt(s.position),
+    position: readOptionalInt(s.position) ?? position,
   };
+}
+
+/** Normalize spin metadata from `roulette_spins` or `roulette_reward` timeline rows. */
+export function parseRouletteTimelineSpins(
+  raw: Record<string, unknown>,
+): RouletteTimelineSpins | undefined {
+  const spinsRaw = raw.roulette_spins;
+  if (spinsRaw && typeof spinsRaw === 'object') {
+    return parseRouletteTimelineSpinsFromRecord(spinsRaw as Record<string, unknown>);
+  }
+
+  const rewardRaw = raw.roulette_reward;
+  if (!rewardRaw || typeof rewardRaw !== 'object') return undefined;
+
+  const reward = rewardRaw as Record<string, unknown>;
+  const rouletteRaw = raw.roulette;
+  const roulette =
+    rouletteRaw && typeof rouletteRaw === 'object'
+      ? (rouletteRaw as Record<string, unknown>)
+      : null;
+  const position = readOptionalInt(roulette?.position);
+  const rewardType =
+    typeof reward.reward_type === 'string' ? reward.reward_type.toLowerCase() : '';
+
+  return parseRouletteTimelineSpinsFromRecord(
+    {
+      entry_type: 'reward_add',
+      reward_type: typeof reward.reward_type === 'string' ? reward.reward_type : undefined,
+      quantity: readOptionalInt(reward.quantity) ?? (rewardType === 'respin' ? 1 : undefined),
+      previous_balance: reward.previous_balance,
+      new_balance: reward.new_balance,
+      reward_id: reward.reward_id,
+      position,
+    },
+    position,
+  );
 }
 
 export function isRouletteTimelineItem(item: PlayerTimelineItem): boolean {
   if (String(item.provider ?? '').trim().toLowerCase() === 'roulette') return true;
   if (item.roulette_spins) return true;
+  const timelineSource = String(item.raw.timeline_source ?? '').toLowerCase();
+  if (timelineSource === 'roulette_reward' || timelineSource.startsWith('roulette')) {
+    return true;
+  }
+  if (item.raw.roulette_reward || item.raw.roulette) return true;
   const reason = String(item.reason ?? item.raw.reason ?? '').toLowerCase();
   return reason.startsWith('roulette_') || reason.includes('roulette');
 }
@@ -116,6 +155,7 @@ const ROULETTE_REASON_LABELS: Record<string, string> = {
   roulette_spin: 'Spin used',
   roulette_spin_use: 'Spin used',
   roulette_reward: 'Prize won',
+  roulette_try_again: 'Try again',
   roulette_win: 'Prize won',
   roulette_main_balance: 'Main balance prize',
   admin_spin_balance_add: 'Admin spins added',
@@ -185,6 +225,16 @@ function normalizeAmount(value: unknown): string {
 }
 
 function resolveProviderFromRaw(raw: Record<string, unknown>): string | undefined {
+  const timelineSource = String(raw.timeline_source ?? '').toLowerCase();
+  if (
+    timelineSource === 'roulette_reward' ||
+    timelineSource.startsWith('roulette') ||
+    raw.roulette_reward ||
+    raw.roulette
+  ) {
+    return 'roulette';
+  }
+
   if (typeof raw.provider === 'string' && raw.provider.trim()) {
     return raw.provider.trim();
   }
@@ -402,7 +452,7 @@ export function formatRouletteTimelineTypeLabel(item: PlayerTimelineItem): strin
   }
   if (reason.includes('respin') || rewardType === 'respin') return 'Respin won';
   if (item.type.toLowerCase() === 'deduct' || entry.includes('use')) return 'Spin used';
-  if (rewardType === 'try_again') return 'Try again';
+  if (rewardType === 'try_again' || reason.includes('try_again')) return 'Try again';
   if (rewardType === 'main_balance' || parseFloat(item.amount ?? '0') > 0) return 'Prize won';
   if (item.type.toLowerCase() === 'add') return 'Spin reward';
   return item.type.charAt(0).toUpperCase() + item.type.slice(1);

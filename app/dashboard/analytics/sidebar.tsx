@@ -365,7 +365,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
     submenu: [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
       { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
-      { name: 'Phone Verification', href: '/dashboard/settings/phone-verification', icon: <SettingsIcon /> },
+      { name: 'Verification', href: '/dashboard/settings/verification', icon: <SettingsIcon /> },
       { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
       { name: 'Referral Settings', href: '/dashboard/settings/referral', icon: <AffiliatesAgentIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
@@ -388,7 +388,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
     submenu: [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
       { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
-      { name: 'Phone Verification', href: '/dashboard/settings/phone-verification', icon: <SettingsIcon /> },
+      { name: 'Verification', href: '/dashboard/settings/verification', icon: <SettingsIcon /> },
       { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
       { name: 'Payment Settings', href: '/dashboard/settings/payment', icon: <PaymentSettingsIcon /> },
     ],

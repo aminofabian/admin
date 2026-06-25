@@ -278,7 +278,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
     name: 'Phone Verification',
     icon: <PhoneVerificationIcon />,
     roles: [USER_ROLES.SUPERADMIN],
-    href: '/dashboard/settings/phone-verification',
+    href: '/dashboard/settings/verification',
   },
   {
     name: 'Players',
@@ -387,7 +387,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
     submenu: [
       { name: 'Banners', href: '/dashboard/settings/banners', icon: <BannerIcon /> },
       { name: 'Social Links', href: '/dashboard/settings/social-links', icon: <SocialLinksIcon /> },
-      { name: 'Phone Verification', href: '/dashboard/settings/phone-verification', icon: <PhoneVerificationIcon /> },
+      { name: 'Verification', href: '/dashboard/settings/verification', icon: <PhoneVerificationIcon /> },
       { name: 'Game Settings', href: '/dashboard/settings/games', icon: <GameSettingsIcon /> },
       { name: 'Prize Wheel', href: '/dashboard/settings/roulette', icon: <RouletteSettingsIcon /> },
       { name: 'Referral Settings', href: '/dashboard/settings/referral', icon: <AffiliatesAgentIcon /> },
